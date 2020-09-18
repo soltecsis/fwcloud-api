@@ -30,7 +30,6 @@ import Model from '../Model';
 import { PrimaryGeneratedColumn, Column, Entity, getRepository, Repository, ManyToOne, JoinColumn, OneToMany, ManyToMany } from 'typeorm';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { app, logger } from '../../fonaments/abstract-application';
-import { RepositoryService } from '../../database/repository.service';
 import { IPObjType } from './IPObjType';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { PolicyRule } from '../policy/PolicyRule';

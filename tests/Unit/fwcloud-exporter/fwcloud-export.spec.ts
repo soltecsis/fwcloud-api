@@ -13,6 +13,8 @@ import { User } from "../../../src/models/user/User";
 import { createUser } from "../../utils/utils";
 import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
 import Sinon from "sinon";
+import { DatabaseService } from "../../../src/database/database.service";
+import sinon from "sinon";
 
 describe(describeName('FwCloudExport Unit Tests'), () => {
     let app: Application;
@@ -147,8 +149,8 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
         it('should throw an exception if the export is not compatible', async () => {
             fwCloudExporter = await FwCloudExport.create(directory, fwCloud, user);
             
-            const stub = Sinon.stub(Snapshot.prototype, 'isCompatible').returns(false);
-
+            const stub = Sinon.stub(Snapshot.prototype, 'compatible').get(() => false);
+            
             const t = () => {
                 return fwCloudExporter.import(); 
             }

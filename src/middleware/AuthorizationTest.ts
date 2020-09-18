@@ -26,7 +26,6 @@ import { AuthorizationException } from "../fonaments/exceptions/authorization-ex
 import * as fs from "fs";
 import * as path from "path";
 import { app, logger } from "../fonaments/abstract-application";
-import { RepositoryService } from "../database/repository.service";
 import { User } from "../models/user/User";
 import { getRepository } from "typeorm";
 

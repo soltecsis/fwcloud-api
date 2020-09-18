@@ -21,32 +21,19 @@
 */
 
 import "reflect-metadata";
-import express from "express";
 import * as fs from 'fs';
-import Query from "../database/Query";
-import { RequestInputs } from "./http/request-inputs";
 import { ServiceContainer } from "./services/service-container";
-import { Middleware } from "./http/middleware/Middleware";
 import { ServiceProvider } from "./services/service-provider";
 import { Service } from "./services/service";
-import io from 'socket.io';
 import * as path from "path";
 import { Version } from "../version/version";
-import { SessionSocketMiddleware } from "../middleware/Session";
-import { SocketMiddleware } from "./http/sockets/socket-middleware";
 import { FSHelper } from "../utils/fs-helper";
 import { DatabaseService } from "../database/database.service";
-import { WebSocketService } from "../sockets/web-socket.service";
 import { LogServiceProvider } from "../logs/log.provider";
 import { LoggerType, LogService } from "../logs/log.service";
 import winston from "winston";
 
-declare module 'express-serve-static-core' {
-  interface Request {
-    dbCon: Query,
-    inputs: RequestInputs
-  }
-}
+
 
 let _runningApplication: AbstractApplication = null;
 
@@ -64,8 +51,6 @@ export function app<T extends AbstractApplication>(): T {
 
 
 export abstract class AbstractApplication {
-  protected _express: express.Application;
-  protected _socketio: any;
   protected _config: any;
   protected _path: string;
   protected _services: ServiceContainer;
@@ -75,21 +60,12 @@ export abstract class AbstractApplication {
   protected constructor(path: string = process.cwd()) {
     try {
       this._path = path;
-      this._express = express();
       this._config = require('../config/config');
       _runningApplication = this;
     } catch (e) {
       console.error('Aplication startup failed: ' + e.message);
       process.exit(e);
     }
-  }
-
-  get express(): express.Application {
-    return this._express;
-  }
-
-  get socketio(): io.Server {
-    return this._socketio;
   }
 
   get config(): any {
@@ -112,18 +88,6 @@ export abstract class AbstractApplication {
     return this._services.get(name);
   }
 
-  public async setSocketIO(socketIO: io.Server): Promise<io.Server> {
-    this._socketio = socketIO;
-
-    const sessionMiddleware: SocketMiddleware = new SessionSocketMiddleware();
-    sessionMiddleware.register(this);
-
-    const wsService: WebSocketService = await this.getService<WebSocketService>(WebSocketService.name);
-    wsService.setSocketIO(this._socketio);
-
-    return this._socketio;
-  }
-
   public async bootstrap(): Promise<AbstractApplication> {
     this.generateDirectories();
     this.startServiceContainer();
@@ -133,20 +97,6 @@ export abstract class AbstractApplication {
     this._logService = await this.getService<LogService>(LogService.name);
 
     this._version = await this.loadVersion();
-    
-    this.registerMiddlewares('before');
-    await this.registerRoutes();
-    this.registerMiddlewares('after');
-
-    this.logger().info(`------- Starting application -------`);
-    this.logger().info(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
-
-    // If stdout log mode is not enabled, log messages are not shown in terminal. As a result, user doesn't know when application has started.
-    // So, we print out the message directly 
-    if (this._config.get('env') !== 'test' && this._config.get('log.stdout') === false) {
-      console.log(`------- Starting application -------`);
-      console.log(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
-    }
 
     return this;
   }
@@ -185,41 +135,6 @@ export abstract class AbstractApplication {
   protected async stopServiceContainer(): Promise<void> {
     await this._services.close();
   }
-
-  protected abstract async registerRoutes(): Promise<void>;
-
-  /**
-   * Register all middlewares
-   */
-  protected registerMiddlewares(group: 'before' | 'after'): void {
-    let middlewares: Array<any> = [];
-
-    if (group === 'before') {
-      middlewares = this.beforeMiddlewares();
-      for (let i = 0; i < middlewares.length; i++) {
-        const middleware: Middleware = new middlewares[i]();
-        middleware.register(this);
-      }
-    }
-
-    if (group === 'after') {
-      middlewares = this.afterMiddlewares();
-      for (let i = 0; i < middlewares.length; i++) {
-        const middleware: Middleware = new middlewares[i]();
-        middleware.register(this);
-      }
-    }
-  }
-
-  /**
-   * Returns an array of Middleware classes to be registered before the routes handlers
-   */
-  protected abstract beforeMiddlewares(): Array<any>;
-
-  /**
-   * Returns an array of Middleware classes to be registered after the routes handlers
-   */
-  protected abstract afterMiddlewares(): Array<any>;
 
   /**
    * Returns an array of ServiceProviders classes to be bound

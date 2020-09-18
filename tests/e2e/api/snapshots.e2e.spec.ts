@@ -26,7 +26,6 @@ import request = require("supertest");
 import { Application } from "../../../src/Application";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { User } from "../../../src/models/user/User";
-import { RepositoryService } from "../../../src/database/repository.service";
 import { generateSession, attachSession, createUser } from "../../utils/utils";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
@@ -43,7 +42,6 @@ let loggedUser: User;
 let loggedUserSessionId: string;
 let adminUser: User;
 let adminUserSessionId: string;
-let repository: RepositoryService;
 
 let fwCloud: FwCloud;
 let snapshotService: SnapshotService;
@@ -379,14 +377,17 @@ describe(describeName('Snapshot E2E tests'), () => {
             });
 
             it('restore should throw an exception if the snapshot is not compatible', async () => {
+                const stub = sinon.stub(Snapshot.prototype, 'compatible').get(() => { return false; });
+                
                 const metadata: SnapshotMetadata = JSON.parse(fs.readFileSync(path.join(s1.path, Snapshot.METADATA_FILENAME)).toString());
-                metadata.schema = '0.0.0';
                 fs.writeFileSync(path.join(s1.path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
 
                 await request(app.express)
                     .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                     .set('Cookie', attachSession(adminUserSessionId))
                     .expect(400);
+
+                stub.restore();
             });
 
             it('channel_id should be valid as input', async () => {

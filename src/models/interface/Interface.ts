@@ -30,7 +30,6 @@ import { IPObj } from '../../models/ipobj/IPObj';
 import { getRepository, Column, PrimaryGeneratedColumn, Entity, Repository, ManyToOne, JoinColumn, OneToMany, JoinTable } from "typeorm";
 import { Firewall } from "../firewall/Firewall";
 import { app, logger } from "../../fonaments/abstract-application";
-import { RepositoryService } from "../../database/repository.service";
 import { PolicyRule } from "../policy/PolicyRule";
 import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface.model";
 import { string } from "joi";
@@ -498,15 +497,15 @@ export class Interface extends Model {
 						options: null,
 						comment: 'IPv4 loopback interface address.'
 					};
-					await IPObj.insertIpobj(connection, ipobjData);
+					const ipv4Id = await IPObj.insertIpobj(connection, ipobjData);
 
 					ipobjData.address = '::1';
 					ipobjData.netmask = '/128';
 					ipobjData.ip_version = 6;
 					ipobjData.comment = 'IPv6 loopback interface address.';
-					await IPObj.insertIpobj(connection, ipobjData);
+					const ipv6Id = await IPObj.insertIpobj(connection, ipobjData);
 
-					resolve(interfaceId);
+					resolve({ "ifId": interfaceId, "ipv4Id": ipv4Id, "ipv6Id": ipv6Id });
 				});
 			});
 		});

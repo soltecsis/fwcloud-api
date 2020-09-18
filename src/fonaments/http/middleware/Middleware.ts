@@ -22,12 +22,12 @@
 
 import { Application } from "../../../Application";
 import { Request, Response, NextFunction } from "express";
-import { AbstractApplication } from "../../abstract-application";
+import { HTTPApplication } from "../../http-application";
 
 export type Middlewareable = typeof Middleware | typeof ErrorMiddleware;
 
 export abstract class Middleware {
-    protected app: AbstractApplication;
+    protected app: HTTPApplication;
 
     public async abstract handle(req: Request, res: Response, next: NextFunction): Promise<void>;
 
@@ -40,7 +40,7 @@ export abstract class Middleware {
         }
     }
 
-    public register(app: AbstractApplication) {
+    public register(app: HTTPApplication) {
         this.app = app;
         app.express.use(async (req: Request, res: Response, next: NextFunction) => {
             await this.safeHandler(req, res, next);

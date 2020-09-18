@@ -93,7 +93,7 @@ export class FwCloudExport implements Responsable {
 
         const snapshot: Snapshot = await Snapshot.load(path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY));
 
-        if (!snapshot.isCompatible()) {
+        if (!snapshot.compatible) {
             throw new SnapshotNotCompatibleException(snapshot);
         }
 

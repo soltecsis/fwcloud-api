@@ -29,7 +29,6 @@ import { PolicyRuleToInterface } from './PolicyRuleToInterface';
 import { Between, Entity, TableIndex, Column, getRepository, PrimaryGeneratedColumn, PrimaryColumn, Repository, ManyToOne, JoinColumn } from 'typeorm';
 import { PolicyCompilation } from './PolicyCompilation';
 import { app, logger } from '../../fonaments/abstract-application';
-import { RepositoryService } from '../../database/repository.service';
 import { IPObj } from '../ipobj/IPObj';
 import { PolicyPosition } from './PolicyPosition';
 var asyncMod = require('async');
@@ -108,24 +107,6 @@ export class PolicyRuleToIPObj extends Model {
 
     public getTableName(): string {
         return tableModel;
-    }
-
-    public async onCreate() {
-        const policyCompilationRepository: Repository<PolicyCompilation> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
-    }
-
-    public async onUpdate() {
-        const policyCompilationRepository: Repository<PolicyCompilation> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
-    }
-
-    public async onDelete() {
-        const policyCompilationRepository: Repository<PolicyCompilation> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
     }
 
     //Get All policy_r__ipobj by Policy_r (rule)
@@ -695,15 +676,6 @@ export class PolicyRuleToIPObj extends Model {
 
                 //If exists Id from policy_r__ipobj to remove
                 if (row) {
-                    const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
-                            (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
-                    const models: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({
-                        policyRuleId: rule,
-                        ipObjId: ipobj,
-                        ipObjGroupId: ipobj_g,
-                        policyPositionId: position,
-                        interfaceId: _interface
-                    });
                     const sql = `DELETE FROM ${tableModel}
                         WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}
                         AND ipobj_g=${dbCon.escape(ipobj_g)} AND position=${dbCon.escape(position)}
@@ -733,11 +705,6 @@ export class PolicyRuleToIPObj extends Model {
                 if (row) {
                     logger().debug("DELETING IPOBJ FROM RULE: " + rule);
                     db.get(async (error, connection) => {
-                        const policyRuleToIPObjRepository: Repository<PolicyRuleToIPObj> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToIPObj);
-                        const models: PolicyRuleToIPObj[] = await policyRuleToIPObjRepository.find({
-                            policyRuleId: rule,
-                        });
                         var sql = 'DELETE FROM ' + tableModel +
                             ' WHERE rule = ' + connection.escape(rule);
                         connection.query(sql, async (error, result) => {

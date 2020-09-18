@@ -29,6 +29,7 @@ import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { PolicyGroup } from "../models/policy/PolicyGroup";
 import PolicyGroupRepository from "../repositories/PolicyGroupRepository";
+import { deprecate } from "util";
 
 type RepositoryMapItem = {"entityClass": Function, "repository": Function};
 export class RepositoryService extends Service {
@@ -55,10 +56,12 @@ export class RepositoryService extends Service {
     }
 
     public for<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string, connectionName?: string): any {
-        if(this.hasCustomRepository(entityClass)) {
-            return getCustomRepository(this.getCustomRepositoryFor(entityClass), this._databaseService.connection.name);
-        }
-        return getRepository(entityClass, this._databaseService.connection.name);
+        return deprecate(() => {
+            if(this.hasCustomRepository(entityClass)) {
+                return getCustomRepository(this.getCustomRepositoryFor(entityClass), this._databaseService.connection.name);
+            }
+            return getRepository(entityClass, this._databaseService.connection.name);
+        }, 'Repository service is deprecated and will be removed. Use getRepository() or getCustomRepository() from TypeORM instead')();
     }
 
     protected hasCustomRepository<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string): boolean {

@@ -24,7 +24,6 @@ import Model from "../Model";
 import { Entity, Column, getRepository, PrimaryColumn, Repository, ManyToOne, JoinColumn } from "typeorm";
 import { PolicyCompilation } from "./PolicyCompilation";
 import { app } from "../../fonaments/abstract-application";
-import { RepositoryService } from "../../database/repository.service";
 import { PolicyPosition } from "./PolicyPosition";
 import { OpenVPN } from "../vpn/openvpn/OpenVPN";
 import { PolicyRule } from "./PolicyRule";
@@ -80,24 +79,6 @@ export class PolicyRuleToOpenVPN extends Model {
         return tableName;
     }
 
-    public async onCreate() {
-        const policyCompilationRepository: Repository<PolicyCompilation> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
-    }
-
-    public async onUpdate() {
-        const policyCompilationRepository: Repository<PolicyCompilation> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
-    }
-
-    public async onDelete() {
-        const policyCompilationRepository: Repository<PolicyCompilation> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-        await policyCompilationRepository.update({policyRuleId: this.policyRuleId}, {status_compiled: 0});
-    }
-
     //Add new policy_r__openvpn
     public static insertInRule(req) {
         return new Promise(async (resolve, reject) => {
@@ -150,13 +131,6 @@ export class PolicyRuleToOpenVPN extends Model {
 
     public static deleteFromRulePosition(req) {
         return new Promise(async (resolve, reject) => {
-            const policyRuleToOpenVPNRepository: Repository<PolicyRuleToOpenVPN> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToOpenVPN);
-            const models: PolicyRuleToOpenVPN[] = await policyRuleToOpenVPNRepository.find({
-                policyRuleId: req.body.rule,
-                openVPNId: req.body.openvpn,
-                policyPositionId: req.body.position
-            });
             let sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
             req.dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
@@ -167,11 +141,6 @@ export class PolicyRuleToOpenVPN extends Model {
 
     public static deleteFromRule(dbCon,rule) {
         return new Promise(async (resolve, reject) => {
-            const policyRuleToOpenVPNRepository: Repository<PolicyRuleToOpenVPN> = 
-								(await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyRuleToOpenVPN);
-            const models: PolicyRuleToOpenVPN[] = await policyRuleToOpenVPNRepository.find({
-                policyRuleId: rule
-            });
             dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error, rows) => {
                 if (error) return reject(error);
                 resolve();

@@ -20,6 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import express from "express";
 import { Service } from "../../services/service";
 import { Request, Response, NextFunction } from "express";
 import { RouteCollection as RouteDefinition, RouteCollectionable } from "./route-collection";
@@ -31,6 +32,8 @@ import { URLHelper } from "./url-helper";
 import { Validator } from "../../validation/validator";
 import { HttpException } from "../../exceptions/http/http-exception";
 import { getFWCloudMetadata } from "../../../metadata/metadata";
+import { HTTPApplication } from "../../http-application";
+import { CLIApplication } from "../../cli-application";
 
 export type HttpMethod = "ALL" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";
 export type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
@@ -43,8 +46,8 @@ export function _URL<T extends URLHelper>(): T {
 
 
 export class RouterService extends Service {
-    protected _express: Express.Application;
-    protected _router: Express.Application
+    protected _express: express.Application;
+    protected _router: express.Application
 
     protected _routes: RouteDefinition;
 
@@ -55,10 +58,13 @@ export class RouterService extends Service {
     }
 
     public async build(): Promise<RouterService> {
-        this._express = this._app.express;
-        this._router = this._express;
         this._list = [];
 
+        if (this._app instanceof HTTPApplication) {
+            this._express = (<HTTPApplication> this._app).express;
+            this._router = this._express;
+        }
+        
         _runningURLHelper = new URLHelper(this);
 
         return this;
@@ -68,8 +74,43 @@ export class RouterService extends Service {
         const routes: Array<Route> = this.parseRoutes(routesDefinition);
 
         for(let i = 0; i < routes.length; i++) {
-            const route: Route = this.registerRoute(routes[i]);
-            this._list.push(route);
+            if (this._app instanceof HTTPApplication) {
+                this.registerRoute(routes[i]);            
+            }
+            this._list.push(routes[i]);
+        }
+
+        if (this._app instanceof HTTPApplication) {
+            //OLD Routes
+            this._express.use('/user', require('../../../routes/user/user'));
+            this._express.use('/customer', require('../../../routes/user/customer'));
+            this._express.use('/fwcloud', require('../../../routes/fwcloud/fwcloud'));
+            this._express.use('/cluster', require('../../../routes/firewall/cluster'));
+            this._express.use('/firewall', require('../../../routes/firewall/firewall'));
+            this._express.use('/policy/rule', require('../../../routes/policy/rule'));
+            this._express.use('/policy/compile', require('../../../routes/policy/compile'));
+            this._express.use('/policy/install', require('../../../routes/policy/install'));
+            this._express.use('/policy/ipobj', require('../../../routes/policy/ipobj'));
+            this._express.use('/policy/interface', require('../../../routes/policy/interface'));
+            this._express.use('/policy/group', require('../../../routes/policy/group'));
+            this._express.use('/policy/types', require('../../../routes/policy/types'));
+            this._express.use('/policy/positions', require('../../../routes/policy/positions'));
+            this._express.use('/policy/openvpn', require('../../../routes/policy/openvpn'));
+            this._express.use('/policy/prefix', require('../../../routes/policy/prefix'));
+            this._express.use('/interface', require('../../../routes/interface/interface'));
+            this._express.use('/ipobj', require('../../../routes/ipobj/ipobj'));
+            this._express.use('/ipobj/group', require('../../../routes/ipobj/group'));
+            this._express.use('/ipobj/types', require('../../../routes/ipobj/types'));
+            this._express.use('/ipobj/positions', require('../../../routes/ipobj/positions'));
+            this._express.use('/ipobj/mark', require('../../../routes/ipobj/mark'));
+            this._express.use('/tree', require('../../../routes/tree/tree'));
+            this._express.use('/tree/folder', require('../../../routes/tree/folder'));
+            this._express.use('/tree/repair', require('../../../routes/tree/repair'));
+            this._express.use('/vpn/pki/ca', require('../../../routes/vpn/pki/ca'));
+            this._express.use('/vpn/pki/crt', require('../../../routes/vpn/pki/crt'));
+            this._express.use('/vpn/pki/prefix', require('../../../routes/vpn/pki/prefix'));
+            this._express.use('/vpn/openvpn', require('../../../routes/vpn/openvpn/openvpn'));
+            this._express.use('/vpn/openvpn/prefix', require('../../../routes/vpn/openvpn/prefix'));
         }
     }
 

@@ -21,11 +21,10 @@
 */
 
 import { Service } from "../fonaments/services/service";
-import { Connection, QueryRunner, Migration, getConnectionManager, ConnectionOptions } from "typeorm";
+import { Connection, QueryRunner, Migration, getConnectionManager, ConnectionOptions, MigrationExecutor } from "typeorm";
 import * as path from "path";
 import * as fs from "fs";
 import moment from "moment";
-import { FirewallTest } from "../../tests/Unit/models/fixtures/FirewallTest";
 import ObjectHelpers from "../utils/object-helpers";
 import { FSHelper } from "../utils/fs-helper";
 import * as semver from "semver";
@@ -127,10 +126,32 @@ export class DatabaseService extends Service {
         return await connection.runMigrations();
     }
 
+    public async getExecutedMigrations(connection?: Connection): Promise<Migration[]> {
+        connection = connection ?? this._connection;
+        const queryRunner: QueryRunner = connection.createQueryRunner();
+
+        const migrationExecutor: MigrationExecutor = new MigrationExecutor(connection, queryRunner);
+        const migrations: Migration[] = await migrationExecutor.getExecutedMigrations();
+        
+        await queryRunner.release();
+        
+        return migrations;
+    }
+
     public async resetMigrations(connection: Connection = null): Promise<void> {
         connection = connection ? connection : this._connection;
         
         return await this.emptyDatabase(connection);
+    }
+
+    public async rollbackMigrations(steps: number = 1, connection?: Connection): Promise<void> {
+        connection = connection ?? this._connection;
+
+        for(let i = 0; i < steps; i++) {
+            await connection.undoLastMigration();
+        }
+
+        return;
     }
 
     public async feedDefaultData(connection: Connection = null): Promise<void> {
@@ -205,7 +226,6 @@ export class DatabaseService extends Service {
             },
             entities: [
                 path.join(process.cwd(), 'dist', 'src', 'models', '**', '*'),
-                FirewallTest
             ]
         }
     }

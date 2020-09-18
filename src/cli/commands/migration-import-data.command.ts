@@ -21,35 +21,24 @@
 */
 
 import * as yargs from "yargs";
-import { Application } from "../../Application";
+import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
+import { logger } from "../../fonaments/abstract-application";
+import { Command } from "../command";
 
 
 /**
  * Runs migration command.
  */
-export class MigrationImportDataCommand implements yargs.CommandModule {
+export class MigrationImportDataCommand extends Command {
+    public name: string = "migration:data";
+    public description: string = "Import default data";
 
-    command = "migration:data";
-    describe = "Import default data";
-
-    builder(args: yargs.Argv) {
-        return args;
-    }
-
-    async handler(args: yargs.Arguments) {
-        const app: Application = await Application.run();
+    async handle(args: yargs.Arguments) {
+        const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
         
-        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
-        
-        try {
-            await databaseService.feedDefaultData();
-            process.exit(0);
-        } catch (err) {
-            console.log("Error during migration run:");
-            console.error(err);
-            process.exit(1);
-        }
+        await databaseService.feedDefaultData();
+        this.output.success(`Default data imported.`);
     }
 
 }

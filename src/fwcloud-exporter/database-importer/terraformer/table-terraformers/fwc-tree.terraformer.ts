@@ -24,7 +24,6 @@ import { TableTerraformer, TerraformHandlerCollection } from "../table-terraform
 import { ImportMapping } from "../mapper/import-mapping";
 import { QueryRunner } from "typeorm";
 import { IPObjType } from "../../../../models/ipobj/IPObjType";
-import { RepositoryService } from "../../../../database/repository.service";
 import { app } from "../../../../fonaments/abstract-application";
 import { Firewall } from "../../../../models/firewall/Firewall";
 import { Ca } from "../../../../models/vpn/pki/Ca";
@@ -95,9 +94,8 @@ export class FwcTreeTerraformer extends TableTerraformer {
     }
 
     public static async make(mapper: ImportMapping, queryRunner: QueryRunner): Promise<FwcTreeTerraformer> {
-        const repositoryService: RepositoryService = await app().getService<RepositoryService>(RepositoryService.name);
         const terraformer: FwcTreeTerraformer = new FwcTreeTerraformer(mapper);
-        terraformer.ipObjTypes = await repositoryService.for(IPObjType).find();
+        terraformer.ipObjTypes = await IPObjType.find();
         return terraformer;
     }
 

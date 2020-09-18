@@ -23,13 +23,54 @@
 import { describeName, testSuite, expect } from "../../mocha/global-setup";
 import { AbstractApplication } from "../../../src/fonaments/abstract-application";
 import { DatabaseService } from "../../../src/database/database.service";
+import { Connection, Migration } from "typeorm";
 
 let app: AbstractApplication;
 let databaseService: DatabaseService;
 
-describe.skip(describeName('Database Service tests'), () => {
+describe(describeName('Database Service tests'), () => {
     beforeEach(async() => {
         app = testSuite.app;
         databaseService = await app.getService<DatabaseService>(DatabaseService.name);
+    });
+
+    describe('getAppliedMigrations()', async () => {
+        let connection: Connection;
+        
+        beforeEach(async () => {
+            connection = databaseService.connection
+        });
+
+        it('should return all migrations', async () => {
+            const migrations = (await connection.query('SELECT * from migrations ORDER BY id DESC')).map((row: any) => {
+                return {
+                    id: row.id,
+                    timestamp: parseInt(row.timestamp),
+                    name: row.name
+                }
+            });
+
+            const executedMigrations = (await databaseService.getExecutedMigrations()).map((migration: Migration) => {
+                return {
+                    id: migration.id,
+                    timestamp: migration.timestamp,
+                    name: migration.name
+                }
+            });
+
+            expect(executedMigrations).to.be.deep.eq(migrations);
+        });
+    });
+
+    describe('rollbackMigrations()', () => {
+        it('should rollback multiple migrations', async () => {
+            const migrations: Migration[] = await databaseService.getExecutedMigrations();
+
+            await databaseService.rollbackMigrations(3);
+
+            expect((await databaseService.getExecutedMigrations()).length).to.be.deep.eq(migrations.length - 3);
+
+            await databaseService.runMigrations();
+        })
     });
 });

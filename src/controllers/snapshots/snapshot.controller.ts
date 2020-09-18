@@ -28,7 +28,6 @@ import { SnapshotPolicy } from "../../policies/snapshot.policy";
 import { Request } from "express";
 import { NotFoundException } from "../../fonaments/exceptions/not-found-exception";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { RepositoryService } from "../../database/repository.service";
 import { Channel } from "../../sockets/channels/channel";
 import { Validate } from "../../decorators/validate.decorator";
 import { Required } from "../../fonaments/validation/rules/required.rule";
@@ -38,13 +37,11 @@ import { Max } from "../../fonaments/validation/rules/max.rule";
 export class SnapshotController extends Controller {
 
     protected _snapshotService: SnapshotService;
-    protected _repositoryService: RepositoryService;
     protected _fwCloud: FwCloud;
 
     public async make(request: Request) {
         this._snapshotService = await this._app.getService<SnapshotService>(SnapshotService.name);
-        this._repositoryService = await this._app.getService<RepositoryService>(RepositoryService.name);
-        this._fwCloud = await this._repositoryService.for(FwCloud).findOneOrFail(parseInt(request.params.fwcloud));
+        this._fwCloud = await FwCloud.findOneOrFail(parseInt(request.params.fwcloud));
     }
 
     @Validate({})

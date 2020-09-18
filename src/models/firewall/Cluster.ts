@@ -142,18 +142,14 @@ export class Cluster extends Model {
     }
 
     //Add new cluster
-    public static async insertCluster(clusterData, callback) {
-        db.get((error, connection) => {
-            if (error)
-                callback(error, null);
-            logger().debug(clusterData);
-            connection.query('INSERT INTO ' + tableName + ' SET ?', clusterData, (error, result) => {
-                if (error) {
-                    callback(error, null);
-                } else {
-                    //devolvemos la última id insertada
-                    callback(null, { "insertId": result.insertId });
-                }
+    public static async insertCluster(clusterData) {
+		return new Promise((resolve, reject) => {
+            db.get((error, connection) => {
+                if (error) return reject(error);
+                connection.query(`INSERT INTO ${tableName} SET ?`, clusterData, (error, result) => {
+                    if (error) return reject(error);
+                    resolve(result.insertId);
+                });
             });
         });
     }

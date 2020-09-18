@@ -21,12 +21,11 @@
 */
 
 import { describeName, expect, testSuite } from "../../mocha/global-setup"
-import * as fs from "fs";
+import * as fs from "fs-extra";
 import * as path from "path";
 import { Application } from "../../../src/Application";
 import { Snapshot, SnapshotMetadata } from "../../../src/snapshots/snapshot";
-import { RepositoryService } from "../../../src/database/repository.service";
-import { Repository, getRepository } from "typeorm";
+import { Repository, getRepository, Migration } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
@@ -35,29 +34,25 @@ import { Firewall } from "../../../src/models/firewall/Firewall";
 import StringHelper from "../../../src/utils/string.helper";
 import Sinon from "sinon";
 import * as semver from "semver";
+import { DatabaseService } from "../../../src/database/database.service";
+import sinon from "sinon";
 
 let app: Application;
 let fwCloud: FwCloud;
-let fwcloudRepository: Repository<FwCloud>;
 let service: SnapshotService;
-let repositoryService: RepositoryService;
 
 describe(describeName('Snapshot Unit Tests'), () => {
     before(async () => {
         app = testSuite.app;
         service = await app.getService<SnapshotService>(SnapshotService.name);
-        repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
-        fwcloudRepository = repositoryService.for(FwCloud);
     });
 
     beforeEach(async () => {
-        fwCloud = fwcloudRepository.create({
+        fwCloud = await FwCloud.save(FwCloud.create({
             name: StringHelper.randomize(10)
-        });
+        }));
 
-        fwCloud = await fwcloudRepository.save(fwCloud);
-        fwCloud = await fwcloudRepository.findOne(fwCloud.id);
-
+        fwCloud = await FwCloud.findOne(fwCloud.id);
     });
 
     describe('create()', () => {
@@ -80,12 +75,16 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             expect(fs.statSync(snapshot.path).isDirectory()).to.be.true;
             expect(fs.statSync(path.join(snapshot.path, Snapshot.METADATA_FILENAME)).isFile()).to.be.true;
+        });
 
+        it('should create the sanapshot metadata file', async () => {
+            const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+            
             expect(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.METADATA_FILENAME)).toString())).to.be.deep.equal({
                 timestamp: snapshot.date.valueOf(),
                 name: snapshot.name,
-                schema: snapshot.schema,
                 comment: snapshot.comment,
+                migrations: snapshot.migrations,
                 version: snapshot.version
             });
         });
@@ -148,6 +147,18 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             expect(snaphost.fwCloud).to.be.deep.equal(fwCloud);
         });
+
+        it('should set incompatible if migrations metadata attribute is not provided', async () => {
+            let snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+            const metadata: SnapshotMetadata = fs.readJSONSync(path.join(snapshot.path, Snapshot.METADATA_FILENAME));
+            delete metadata['migrations'];
+            fs.writeJSONSync(path.join(snapshot.path, Snapshot.METADATA_FILENAME), metadata);
+
+            let snaphost = await Snapshot.load(snapshot.path);
+
+            expect(snaphost.compatible).to.be.false;
+        });
     });
 
     describe('update()', () => {
@@ -186,7 +197,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             await snaphost.restore();
 
-            const importedFwCloud: FwCloud = await fwcloudRepository.findOne(fwCloud.id + 1)
+            const importedFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1)
 
             expect(importedFwCloud.name).to.be.deep.equal(fwCloud.name);
         });
@@ -204,7 +215,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             await snaphost.restore();
 
-            expect(await fwcloudRepository.findOne(fwCloud.id)).to.be.undefined;
+            expect(await FwCloud.findOne(fwCloud.id)).to.be.undefined;
         });
 
         it('should remove the old fwcloud data directories', async () => {
@@ -219,11 +230,9 @@ describe(describeName('Snapshot Unit Tests'), () => {
         })
 
         it('should throw an exception if the snapshot is not compatible', async () => {
-            let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+            const stub = sinon.stub(Snapshot.prototype, 'compatible').get(() => { return false;});
 
-            const metadata: SnapshotMetadata = JSON.parse(fs.readFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME)).toString());
-            metadata.schema = '0.0.0';
-            fs.writeFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
+            let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
             snaphost = await Snapshot.load(snaphost.path);
 
@@ -232,33 +241,30 @@ describe(describeName('Snapshot Unit Tests'), () => {
             }
 
             await expect(t()).to.be.rejectedWith(SnapshotNotCompatibleException);
+            stub.restore();
         });
 
         it('should mark as uncompiled all fwcloud firewalls', async () => {
-            let firewall: Firewall = repositoryService.for(Firewall).create({
+            let firewall: Firewall = await Firewall.save(Firewall.create({
                 name: 'firewall_test',
                 status: 1,
                 fwCloudId: fwCloud.id
-            });
+            }));
 
-            let firewall2: Firewall = repositoryService.for(Firewall).create({
+            let firewall2: Firewall = await Firewall.save(Firewall.create({
                 name: 'firewall_test2',
                 status: 1,
                 fwCloudId: fwCloud.id
-            });
-
-            await repositoryService.for(Firewall).save([firewall, firewall2]);
-            firewall = await repositoryService.for(Firewall).findOne(firewall.id);
-            firewall2 = await repositoryService.for(Firewall).findOne(firewall2.id);
+            }));
 
             let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
             await snaphost.restore();
 
-            const newFwCloud: FwCloud = await repositoryService.for(FwCloud).findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
 
-            firewall = (await repositoryService.for(Firewall).find({ fwCloudId: newFwCloud.id }))[0];
-            firewall2 = (await repositoryService.for(Firewall).find({ fwCloudId: newFwCloud.id }))[1];
+            firewall = (await Firewall.find({ fwCloudId: newFwCloud.id }))[0];
+            firewall2 = (await Firewall.find({ fwCloudId: newFwCloud.id }))[1];
 
             expect(firewall.status).to.be.deep.eq(3);
             expect(firewall.compiled_at).to.be.null;
@@ -271,15 +277,13 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
         it('should migrate snapshot from the old fwcloud to the new one', async () => {
             const snapshotService: SnapshotService = await app.getService<SnapshotService>(SnapshotService.name);
-            const repositoryService: RepositoryService = await app.getService<RepositoryService>(RepositoryService.name);
-            const fwCloudRepository: Repository<FwCloud> = repositoryService.for(FwCloud);
-
+            
             let snaphost1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
             let snaphost2: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
             await snaphost2.restore();
 
-            const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
 
             expect(fs.existsSync(snaphost1.path)).to.be.false;
             expect(fs.existsSync(snaphost2.path)).to.be.false;
@@ -287,46 +291,23 @@ describe(describeName('Snapshot Unit Tests'), () => {
         });
 
         it('should not copy the policy directory if data directory is not present in the snapshot', async () => {
-            const fwCloudRepository: Repository<FwCloud> = repositoryService.for(FwCloud);
             let snaphost1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
             await snaphost1.restore();
 
-            const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
 
             expect(FSHelper.directoryExistsSync(newFwCloud.getPolicyDirectoryPath())).to.be.false;
         });
 
         it('should not copy the pki directory if data directory is not present in the snapshot', async () => {
-            const fwCloudRepository: Repository<FwCloud> = repositoryService.for(FwCloud);
             let snaphost1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
             await snaphost1.restore();
 
-            const newFwCloud: FwCloud = await fwCloudRepository.findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
 
             expect(FSHelper.directoryExistsSync(newFwCloud.getPkiDirectoryPath())).to.be.false;
-        });
-    });
-
-    describe('isCompatible()', () => {
-        it('should throw an exception if the snapshot schema is not defined', async () => {
-            const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
-            snapshot["_schema"] = null;
-
-            expect(snapshot.isCompatible).to.throw(Error);
-        });
-
-        it('should return true if the schema is compatible', async () => {
-            const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
-            expect(snapshot.isCompatible()).to.be.true;
-        });
-
-        it('should return false if the schema is not compatible', async () => {
-            const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
-            snapshot["_schema"] = '0.0.0';
-            
-            expect(snapshot.isCompatible()).to.be.false;
         });
     });
 });

@@ -36,8 +36,7 @@ import { FSHelper } from "../utils/fs-helper";
 import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";
 import { FwCloud } from "../models/fwcloud/FwCloud";
-import { RepositoryService } from "../database/repository.service";
-import { Repository } from "typeorm";
+import { getCustomRepository, Migration, Repository } from "typeorm";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Firewall } from "../models/firewall/Firewall";
 import { PolicyCompilation } from "../models/policy/PolicyCompilation";
@@ -50,9 +49,9 @@ export interface BackupMetadata {
     timestamp: number;
     version: string;
     comment: string;
-    schema: string;
     imported: boolean;
 }
+
 export class Backup implements Responsable {
     static DUMP_FILENAME: string = 'db.sql';
     static METADATA_FILENAME: string = 'backup.json';
@@ -66,10 +65,9 @@ export class Backup implements Responsable {
     protected _dumpFilename: string;
     protected _comment: string;
     protected _version: string;
-    protected _schema: string;
     protected _imported: boolean;
 
-    constructor() {
+  constructor() {
         this._id = null;
         this._name = null;
         this._date = null;
@@ -78,7 +76,6 @@ export class Backup implements Responsable {
         this._dumpFilename = null;
         this._comment = null;
         this._version = null;
-        this._schema = null;
         this._imported = false;
     }
 
@@ -86,7 +83,6 @@ export class Backup implements Responsable {
         return {
             id: this._id,
             version: this._version,
-            schema: this._schema ? this._schema : null,
             name: this._name,
             date: this._date.utc(),
             comment: this._comment,
@@ -96,10 +92,6 @@ export class Backup implements Responsable {
 
     get version(): string {
         return this._version;
-    }
-
-    get schema(): string {
-        return this._schema;
     }
 
     /**
@@ -166,7 +158,6 @@ export class Backup implements Responsable {
             this._comment = metadata.comment;
             this._exists = true;
             this._version = metadata.version;
-            this._schema = metadata.schema;
             this._imported = metadata.imported ?? false;
             this._backupPath = path.isAbsolute(backupPath) ? StringHelper.after(path.join(app().path, "/"), backupPath) : backupPath;
             this._dumpFilename = Backup.DUMP_FILENAME
@@ -196,7 +187,6 @@ export class Backup implements Responsable {
         this._date = moment();
         this._id = moment().valueOf();
         this._version = app<Application>().version.tag;
-        this._schema = app<Application>().version.schema;
         this._name = this._date.format('YYYY-MM-DD HH:mm:ss');
         this._backupPath = path.join(backupDirectory, this.timestamp.toString());
 
@@ -221,10 +211,14 @@ export class Backup implements Responsable {
 
         if (this._exists) {
             await progress.procedure('Restoring backup', (task: Task) => {
-                task.parallel((task: Task) => {
-                    task.addTask(() => { return this.importDatabase(); }, 'Database restored');
-                    task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restored');
+                task.sequence((task: Task) => {
+                    task.parallel((task: Task) => {
+                        task.addTask(() => { return this.importDatabase(); }, 'Database restored');
+                        task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restored');
+                    });
+                    task.addTask(async (_) => { return this.runMigrations(); }, 'Database migrated');
                 })
+                
             }, 'Backup restored');
 
             return this;
@@ -261,7 +255,6 @@ export class Backup implements Responsable {
             name: this._name,
             timestamp: this._date.valueOf(),
             version: app<Application>().version.tag,
-            schema: app<Application>().version.schema,
             comment: this._comment,
             imported: false,
         };
@@ -323,21 +316,24 @@ export class Backup implements Responsable {
                 await mydb_importer.import(path.join(this._backupPath, Backup.DUMP_FILENAME));
 
                 //Change compilation status from firewalls
-                const firewallRepository: FirewallRepository = (await app().getService<RepositoryService>(RepositoryService.name)).for(Firewall);
-                const firewalls: Array<Firewall> = await firewallRepository.find();
+                const firewallRepository: FirewallRepository = getCustomRepository(FirewallRepository);
+                const firewalls: Array<Firewall> = await Firewall.find();
                 await firewallRepository.markAsUncompiled(firewalls);
 
                 //Remove all compiled rules
-                const policyCompilationRepository: Repository<PolicyCompilation> = (await app().getService<RepositoryService>(RepositoryService.name)).for(PolicyCompilation);
-                const policyCompilations: Array<PolicyCompilation> = await policyCompilationRepository.find();
-                await policyCompilationRepository.remove(policyCompilations);
-
+                await PolicyCompilation.remove(await PolicyCompilation.find());
+                
                 //TODO: Make all VPNs pending of install.
                 resolve();
             } catch (e) {
                 reject(e);
             }
         });
+    }
+
+    protected async runMigrations(): Promise<Migration[]> {
+        const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
+        return await databaseService.runMigrations();
     }
 
     /**

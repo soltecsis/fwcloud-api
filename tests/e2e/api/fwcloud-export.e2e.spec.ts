@@ -33,6 +33,8 @@ import { FwCloudExport } from "../../../src/fwcloud-exporter/fwcloud-export";
 import { FwCloudExportService } from "../../../src/fwcloud-exporter/fwcloud-export.service";
 import * as fs from "fs-extra";
 import * as path from "path";
+import { Snapshot } from "../../../src/snapshots/snapshot";
+import sinon from "sinon";
 
 describe(describeName('FwCloudExport E2E Tests'), () => {
     let app: Application;
@@ -149,16 +151,15 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
             });
 
             it('should return 400 if the export file is not compatible', async () => {
-                const schema: string = app["_version"].schema;
-                app["_version"].schema = '0.0.0';
-                fwCloudExport = await fwCloudExportService.create(fwCloud, regularUser)
-                app["_version"].schema = schema;
-
-                return await request(app.express)
+                const stub = sinon.stub(Snapshot.prototype, 'compatible').get(() => { return false;});
+                
+                await request(app.express)
                     .post(_URL().getURL('fwclouds.exports.import'))
                     .attach('file', fwCloudExport.exportPath)
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(400);
+
+                stub.restore();
             });
         });
     });

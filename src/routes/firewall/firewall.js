@@ -165,15 +165,15 @@ router.post('/', async(req, res) => {
 		firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
 		firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
 
-		let newFirewallId = await Firewall.insertFirewall(firewallData);
-		var dataresp = { "insertId": newFirewallId };
+		const newFirewallId = await Firewall.insertFirewall(firewallData);
+		let loData = {};
 
 		await Firewall.updateFWMaster(req.session.user_id, req.body.fwcloud, firewallData.cluster, newFirewallId, firewallData.fwmaster);
 
 		if ((firewallData.cluster > 0 && firewallData.fwmaster === 1) || firewallData.cluster === null) {
 			// Create the loop backup interface.
-			const loInterfaceId = await Interface.createLoInterface(req.body.fwcloud, newFirewallId);
-			await PolicyRule.insertDefaultPolicy(newFirewallId, loInterfaceId, req.body.options);
+			loData = await Interface.createLoInterface(req.body.fwcloud, newFirewallId);
+			await PolicyRule.insertDefaultPolicy(newFirewallId, loData.ifId, req.body.options);
 		}
 
 		if (!firewallData.cluster) // Create firewall tree.
@@ -184,7 +184,7 @@ router.post('/', async(req, res) => {
 		// Create the directory used for store firewall data.
 		await utilsModel.createFirewallDataDir(req.body.fwcloud, newFirewallId);
 
-		res.status(200).json(dataresp);
+		res.status(200).json({ "insertId": newFirewallId, "loData": loData });
 	} catch (error) { 
 		logger().error('Error creating firewall: ' + JSON.stringify(error));
 		res.status(400).json(error);

@@ -24,45 +24,25 @@ import * as process from "process";
 import * as yargs from "yargs";
 import { Connection, ConnectionOptionsReader, createConnection, MigrationExecutor, QueryRunner } from "typeorm";
 import * as config from "../../config/config"
-import { Application } from "../../Application";
+import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
+import { logger } from "../../fonaments/abstract-application";
+import { Command } from "../command";
 
 
 /**
  * Runs migration command.
  */
-export class MigrationRunCommand implements yargs.CommandModule {
+export class MigrationRunCommand extends Command {
+    public name: string = "migration:run";
+    public description: string = "Run all migrations";
 
-    command = "migration:run";
-    describe = "Run all migrations";
-
-    builder(args: yargs.Argv) {
-        return args
-            .option("connection", {
-                alias: "c",
-                default: "default",
-                describe: "Name of the connection on which run a query."
-            })
-            .option("config", {
-                alias: "f",
-                default: "ormconfig",
-                describe: "Name of the file with connection configuration."
-            });
-    }
-
-    async handler(args: yargs.Arguments) {
-        const app: Application = await Application.run();
-        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
+    async handle(args: yargs.Arguments) {
+        const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
         const connection: Connection = await databaseService.getConnection({name: 'cli'});
 
-        try {
-            await databaseService.runMigrations(connection);
-            await app.close();
-        } catch (err) {
-            console.log("Error during migration run:");
-            console.error(err);
-            process.exit(1);
-        }
+        await databaseService.runMigrations(connection);
+        this.output.success(`Pending migrations applied.`);
     }
 
 }

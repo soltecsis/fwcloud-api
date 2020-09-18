@@ -21,16 +21,12 @@
 */
 
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { RepositoryService } from "../../../../src/database/repository.service";
 import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
 
 let app: AbstractApplication;
-let repositoryService: RepositoryService;
 
 describe.skip(describeName('PolicyRule tests'), () => {
     before(async () => {
         app = testSuite.app;
-
-        repositoryService = await app.getService<RepositoryService>(RepositoryService.name);
     })
 });
