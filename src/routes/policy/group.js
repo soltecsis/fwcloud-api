@@ -25,21 +25,16 @@ var express = require('express');
 var router = express.Router();
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
-import { app, logger } from '../../fonaments/abstract-application';
-import { RepositoryService } from '../../database/repository.service';
-import { In } from 'typeorm';
+import { logger } from '../../fonaments/abstract-application';
+import { getCustomRepository, getRepository, In } from 'typeorm';
 const fwcError = require('../../utils/error_table');
-const app = require('../../fonaments/abstract-application').app;
-
-
 
 /* Create New PolicyGroup */
 router.post('/', async (req, res) => {
-	const repository = await app().getService(RepositoryService.name);
 	var body = req.body;
 
-	const policyGroupRepository = repository.for(PolicyGroup);
-	const policyRuleRepository = repository.for(PolicyRule);
+	const policyGroupRepository = getRepository(PolicyGroup);
+	const policyRuleRepository = getRepository(PolicyRule);
 
 	try {
 		policyGroup = policyGroupRepository.create({
@@ -63,7 +58,6 @@ router.post('/', async (req, res) => {
 
 /* Update PolicyGroup that exist */
 router.put('/', async (req, res) => {
-	const repository = await app().getService(RepositoryService.name);
 	//Save data into object
 	var data = {
 		id: req.body.id,
@@ -75,7 +69,7 @@ router.put('/', async (req, res) => {
 
 
 	try {
-		const policyGroup = repository.for(PolicyGroup).update(data.id, {
+		const policyGroup = await getRepository(PolicyGroup).update(data.id, {
 			name: req.body.name,
 			firewall: req.body.firewall,
 			comment: req.body.comment,
@@ -91,7 +85,6 @@ router.put('/', async (req, res) => {
 
 /* Update Style PolicyGroup  */
 router.put('/style', async (req, res) => {
-	const repository = await app().getService(RepositoryService.name);
 	var data = { 
 		iduser: req.session.user_id, 
 		fwcloud: req.body.fwcloud, 
@@ -102,7 +95,7 @@ router.put('/style', async (req, res) => {
 	var groupIds = req.body.groupIds;
 
 	try {
-		await repository.for(PolicyGroup).update({firewall: data.idfirewall, id: groupIds}, { groupstyle: style} );
+		await getRepository(PolicyGroup).update({firewallId: data.idfirewall, id: groupIds}, { groupstyle: style} );
 		res.status(204).end();
 	} catch (error) {
 		logger().error('Error updating policy group style: ' + e.message);
@@ -113,12 +106,11 @@ router.put('/style', async (req, res) => {
 
 /* Update PolicyGruop Name  */
 router.put('/name', async (req, res) => {
-	const repository = await app().getService(RepositoryService.name);
 	//Save data into object
 	var data = { id: req.body.id, name: req.body.name };
 
 	try {
-		await repository.for(PolicyGroup).update(data.id, {
+		await getRepository(PolicyGroup).update(data.id, {
 			name: data.name
 		});
 		res.status(204).end();
@@ -131,16 +123,15 @@ router.put('/name', async (req, res) => {
 
 /* Remove PolicyGroup */
 router.put("/del", async (req, res) => {
-	const repository = await app().getService(RepositoryService.name);
 	var idfirewall = req.body.firewall;
 	var id = req.body.id;
 
 	logger().debug("Removed all Policy from Group " + id);
-	const policyGroup = await repository.for(PolicyGroup).findOne(id);
+	const policyGroup = await getRepository(PolicyGroup).findOne(id);
 
 	try {
 		if (policyGroup) {
-			await repository.for(PolicyGroup).remove(policyGroup);
+			await getRepository(PolicyGroup).remove(policyGroup);
 			res.status(204).end();
 		}
 	} catch(error) {
@@ -152,13 +143,12 @@ router.put("/del", async (req, res) => {
 
 /* Remove rules from Group */
 router.put("/rules/del", async (req, res) => {
-	const repository = await app().getService(RepositoryService.name);
 	try {
 		await removeRules(req.body.firewall, req.body.id, req.body.rulesIds);
 		// If after removing the rules the group is empty, remove the rules group from the data base.
-		const policyGroup = await repository.for(PolicyGroup).findOne(req.body.id);
+		const policyGroup = await getRepository(PolicyGroup).findOne(req.body.id);
 		if (policyGroup) {
-			await repository.for(PolicyGroup).deleteIfEmpty(policyGroup);
+			await getCustomRepository(PolicyGroup).deleteIfEmpty(policyGroup);
 		}
 		res.status(204).end();
 	} catch (error) {
@@ -179,11 +169,10 @@ async function removeRules(idfirewall, idgroup, rulesIds) {
 
 async function ruleRemove(ruleidfirewall, idgroup, rule) {
 	return new Promise(async (resolve, reject) => {
-		const repository = await app().getService(RepositoryService.name);
-		let policyRule = await repository.for(PolicyRule).findOne(rule);
+		let policyRule = await getRepository(PolicyRule).findOne(rule);
 		
 		if(policyRule) {
-			policyRule = await repository.for(PolicyRule).assignToGroup(policyRule, null);
+			policyRule = await getCustomRepository(PolicyRule).assignToGroup(policyRule, null);
 			return resolve();
 		}
 	});
