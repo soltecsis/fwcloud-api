@@ -11,6 +11,7 @@ import moment from "moment";
 import { User } from "../models/user/User";
 import { Responsable } from "../fonaments/contracts/responsable";
 import { SnapshotNotCompatibleException } from "../snapshots/exceptions/snapshot-not-compatible.exception";
+import { Zip } from "../utils/zip";
 
 export class FwCloudExport implements Responsable {
     static FWCLOUD_DATA_DIRECTORY = 'fwcloud';
@@ -79,38 +80,9 @@ export class FwCloudExport implements Responsable {
 
     /**
      * Generates a compressed version of the export directory in the same path but fwcloud extension
-     * @returns Promise<String> The fwcloud file path
      */
-    public compress(): Promise<string> {
-
-        return new Promise<string>((resolve, reject) => {
-            const output = fs.createWriteStream(this.exportPath);
-            const archive = archiver('zip', { zlib: { level: 9 } });
-
-            output.on('close', async () => {
-                return resolve(this.exportPath);
-            });
-
-            // good practice to catch warnings (ie stat failures and other non-blocking errors)
-            archive.on('warning', (error: any) => {
-                if (error.code === 'ENOENT') {
-                    console.warn(error);
-                } else {
-                    return reject(error);
-                }
-            });
-
-            // good practice to catch this error explicitly
-            archive.on('error', (err) => {
-                return reject(err);
-            });
-
-            // pipe archive data to the file
-            archive.pipe(output);
-
-            archive.directory(this._path, false);
-            archive.finalize();
-        });
+    public compress(): Promise<void> {
+        return Zip.zip(this._path, this.exportPath);
     }
 
     /**
@@ -141,34 +113,14 @@ export class FwCloudExport implements Responsable {
     public static loadCompressed(compressedFilePath: string): Promise<FwCloudExport> {
         return new Promise<FwCloudExport>((resolve, reject) => {
             const destinationPath: string = path.join(path.dirname(compressedFilePath), path.basename(compressedFilePath.replace('.fwcloud', '')));
-            yauzl.open(compressedFilePath, { lazyEntries: true }, function (err, zipfile) {
-                if (err) throw err;
-                zipfile.on("entry", function (entry) {
-                    if (/\/$/.test(entry.fileName)) {
-                        // Entry is a directory as file names end with '/'.
-                        FSHelper.mkdirSync(path.join(destinationPath, entry.fileName));
-                        zipfile.readEntry();
-                    } else {
-                        // file entry
-                        zipfile.openReadStream(entry, function (err, readStream) {
-                            if (err) throw err;
-                            readStream.on("end", function () {
-                                zipfile.readEntry();
-                            });
-                            const ws: fs.WriteStream = fs.createWriteStream(path.join(destinationPath, entry.fileName));
-                            readStream.pipe(ws);
-                        });
-                    }
+            
+            Zip.unzip(compressedFilePath, destinationPath)
+                .then(async (_) => {
+                    return resolve(await FwCloudExport.load(destinationPath));
+                })
+                .catch((err) => {
+                    reject(err);
                 });
-
-                zipfile.on('end', async () => {
-                    return resolve(await FwCloudExport.load(destinationPath))
-                });
-                
-                zipfile.readEntry();
-            });
-
-            return null;
         });
     }
 

@@ -27,6 +27,7 @@ import { testSuite, expect, describeName } from "../../mocha/global-setup";
 import * as fs from "fs";
 import * as path from "path";
 import sinon from "sinon";
+import { Zip } from "../../../src/utils/zip";
 
 let app: AbstractApplication;
 
@@ -138,6 +139,64 @@ describe(describeName('BackupService Unit tests'), async() => {
 
                 expect(backup.exists()).to.be.false;
             });
+        });
+
+        describe('export()', async () => {
+            let backup: Backup;
+
+            beforeEach(async () => {
+                backup = await service.create();
+            });
+
+            it('should generate a zipped file', async () => {
+                const p: string = await service.export(backup);
+
+                expect(fs.existsSync(p)).to.be.true;
+            });
+        });
+
+        describe('import()', async () => {
+            let zippedFilePath: string;
+            let backup: Backup;
+            beforeEach(async () => {
+                backup = await service.create();
+                zippedFilePath = await service.export(backup);
+            });
+
+            it('should create a new backup', async () => {
+                let currentBackups: number = (await service.getAll()).length;
+
+                const newBackup: Backup = await service.import(zippedFilePath);
+
+                expect((await service.getAll()).length).to.be.eq(currentBackups + 1);
+            });
+
+            it('should create a new backup with new id', async () => {
+                const newBackup: Backup = await service.import(zippedFilePath);
+
+                expect(newBackup.id).not.to.be.eq(backup.id);
+            });
+
+            it('should set the imported flag to true', async () => {
+                let currentBackups: number = (await service.getAll()).length;
+
+                const newBackup: Backup = await service.import(zippedFilePath);
+
+                expect(newBackup.imported).to.be.true;
+            });
+
+            it('should throw an exception if the file is not a valid backup', async () => {
+                const tmpDirectoryPath: string = path.join(app.config.get('tmp.directory'), 'test');
+                fs.mkdirSync(tmpDirectoryPath);
+                fs.writeFileSync(path.join(tmpDirectoryPath, 'test.txt'), "this is a file");
+                await Zip.zip(tmpDirectoryPath, path.join(app.config.get('tmp.directory'), 'test.zip'));
+
+                const t = () => {
+                    return service.import(path.join(app.config.get('tmp.directory'), 'test.zip'));
+                }
+
+                await expect(t()).to.be.rejected;
+            })
         });
 
         describe('applyRetentionPolicy()', () => {

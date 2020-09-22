@@ -108,6 +108,7 @@ describe(describeName('Backup Unit tests'), () => {
                 timestamp: backup.timestamp,
                 version: app.version.tag,
                 comment: 'test comment',
+                imported: false
             });
         });
     });
@@ -250,6 +251,7 @@ describe(describeName('Backup Unit tests'), () => {
                 date: backup.date.utc(),
                 comment: backup.comment,
                 version: backup.version,
+                imported: false
             })
         });
     });
