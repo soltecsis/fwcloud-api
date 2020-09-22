@@ -22,7 +22,7 @@
 
 import express from "express";
 import { AbstractApplication } from "./abstract-application";
-import Query from "../database/Query";
+import * as DatabaseQuery from "../database/Query";
 import { RequestInputs } from "./http/request-inputs";
 import io from 'socket.io';
 import { SocketMiddleware } from "./http/sockets/socket-middleware";
@@ -34,7 +34,7 @@ import { Routes } from "../routes/routes";
 
 declare module 'express-serve-static-core' {
     interface Request {
-        dbCon: Query,
+        dbCon: DatabaseQuery.default,
         inputs: RequestInputs
     }
 }
