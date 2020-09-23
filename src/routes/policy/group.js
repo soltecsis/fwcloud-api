@@ -27,6 +27,9 @@ import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { logger } from '../../fonaments/abstract-application';
 import { getCustomRepository, getRepository, In } from 'typeorm';
+import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
+import PolicyGroupRepository from "../../repositories/PolicyGroupRepository";
+
 const fwcError = require('../../utils/error_table');
 
 /* Create New PolicyGroup */
@@ -34,7 +37,7 @@ router.post('/', async (req, res) => {
 	var body = req.body;
 
 	const policyGroupRepository = getRepository(PolicyGroup);
-	const policyRuleRepository = getCustomRepository(PolicyRule);
+	const policyRuleRepository = getCustomRepository(PolicyRuleRepository);
 
 	try {
 		policyGroup = policyGroupRepository.create({
@@ -148,7 +151,7 @@ router.put("/rules/del", async (req, res) => {
 		// If after removing the rules the group is empty, remove the rules group from the data base.
 		const policyGroup = await getRepository(PolicyGroup).findOne(req.body.id);
 		if (policyGroup) {
-			await getCustomRepository(PolicyGroup).deleteIfEmpty(policyGroup);
+			await getCustomRepository(PolicyGroupRepository).deleteIfEmpty(policyGroup);
 		}
 		res.status(204).end();
 	} catch (error) {
@@ -172,7 +175,7 @@ async function ruleRemove(ruleidfirewall, idgroup, rule) {
 		let policyRule = await getRepository(PolicyRule).findOne(rule);
 		
 		if(policyRule) {
-			policyRule = await getCustomRepository(PolicyRule).assignToGroup(policyRule, null);
+			policyRule = await getCustomRepository(PolicyRuleRepository).assignToGroup(policyRule, null);
 			return resolve();
 		}
 	});
