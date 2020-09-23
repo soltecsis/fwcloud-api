@@ -34,7 +34,7 @@ router.post('/', async (req, res) => {
 	var body = req.body;
 
 	const policyGroupRepository = getRepository(PolicyGroup);
-	const policyRuleRepository = getRepository(PolicyRule);
+	const policyRuleRepository = getCustomRepository(PolicyRule);
 
 	try {
 		policyGroup = policyGroupRepository.create({
