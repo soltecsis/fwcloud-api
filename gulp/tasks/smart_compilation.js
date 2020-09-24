@@ -2,6 +2,7 @@ const fs = require('fs');;
 const path = require('path');
 const EventEmitter = require('events');
 const compilationTask = require('./compile');
+const removeDistTask = require('./remove_dist');
 const log = require('fancy-log');
 
 let compiled_list = [];
@@ -39,11 +40,13 @@ class SmartObserver extends EventEmitter {
             return;
         }
         log(uncompiled.length + ' compiled files outdated. Needs compilation...');
+        await removeDistTask();
         await compilationTask();
     }
 
     async compileAll() {
         log('Compiling all files...');
+        await removeDistTask();
         await compilationTask();
     }
 }
