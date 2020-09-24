@@ -40,6 +40,53 @@ const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'fwcloud';
 
+export interface colorUsage {
+    "color": string,
+    "count": number
+}
+
+export class fwcloudColors {
+    private _colors: colorUsage[] = [];
+
+    constructor(data: any[]) {
+        for (let item of data) this._colors.push({"color": item.color, "count": parseInt(item.count)}); 
+    }
+
+    get colors() {
+        return this._colors;
+    }
+
+    get length() {
+        return this._colors.length;
+    }
+
+    public combine(other: fwcloudColors) {
+       if (other.length > 0) {
+            for (let item1 of this._colors) {
+                for (let item2 of other.colors) {
+                    if (item1.color === item2.color) {
+                        item1.count += item2.count;
+                        other.colors.shift();
+                        break;
+                    }
+                }
+                if (other.length === 0) break;
+            }
+
+            if (other.length > 0) {
+                for (let item2 of other.colors) 
+                    this._colors.push(item2);
+            }
+        }
+
+    }
+
+    public sort() {
+        this._colors.sort((a:colorUsage, b:colorUsage) => b.count - a.count);
+    }
+}
+
+
 @Entity(tableName)
 export class FwCloud extends Model {
     
