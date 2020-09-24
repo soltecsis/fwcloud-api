@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /*
     Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
@@ -92,7 +91,9 @@ class CLI {
                 
                 return yargs;
             }, async (yargs) => {
-                await instance.safeHandle(yargs);
+                const returnCode: number = await instance.safeHandle(yargs);
+                
+                process.exit(returnCode);
             });
         });
         
@@ -116,4 +117,3 @@ class CLI {
 
 const cli = new CLI();
 cli.load();
-

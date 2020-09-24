@@ -85,7 +85,7 @@ export async function sleep(ms: number): Promise<void> {
  * @param testSuite 
  * @param fn 
  */
-export async function runCLICommandIsolated(testSuite: TestSuite, fn: () => Promise<void>) {
+export async function runCLICommandIsolated(testSuite: TestSuite, fn: () => Promise<number>) {
     return new Promise(async (resolve, reject) => {
         try {
             const _f = await fn();

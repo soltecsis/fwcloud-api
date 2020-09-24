@@ -36,7 +36,7 @@ export abstract class Command {
 
     public abstract handle(args: yargs.Arguments): Promise<void>;
 
-    public async safeHandle(args: yargs.Arguments): Promise<void> {
+    public async safeHandle(args: yargs.Arguments): Promise<number> {
         this._app = await Application.run();
         this.output = new Output(this._app.config.get('env') !== 'test' ? console.log : () => {});
 
@@ -44,6 +44,8 @@ export abstract class Command {
 
             await this.handle(args);
             await this._app.close();
+            
+            return 0;
 
         } catch (err) {
             this.output.error('Unexpected error: ' + err.message);
@@ -51,7 +53,8 @@ export abstract class Command {
             if(this._app.config.get('env') === 'test') { 
                 throw err;
             }
-            process.exit(-1);
+            
+            return 1;
         }
     }
     public getArguments(): Argument[]
