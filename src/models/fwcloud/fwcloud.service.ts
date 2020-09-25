@@ -1,6 +1,7 @@
 import { Service } from "../../fonaments/services/service";
 import { DeepPartial } from "typeorm";
-import { FwCloud, colorUsage, fwcloudColors } from "./FwCloud";
+import { FwCloud } from "./FwCloud";
+import { colorUsage, fwcloudColors } from "./FwCloud-colors";
 import { User } from "../user/User";
 import { Tree } from "../tree/Tree";
 import { getRepository } from "typeorm";

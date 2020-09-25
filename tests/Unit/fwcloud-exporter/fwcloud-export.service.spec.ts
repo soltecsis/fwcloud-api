@@ -4,10 +4,11 @@ import { FwCloudExportService } from "../../../src/fwcloud-exporter/fwcloud-expo
 import { FSHelper } from "../../../src/utils/fs-helper";
 import { FwCloudExport } from "../../../src/fwcloud-exporter/fwcloud-export";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
+import { colorUsage, fwcloudColors } from "../../../src/models/fwcloud/FwCloud-colors";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../src/utils/string.helper";
 import { User } from "../../../src/models/user/User";
-import { createUser, sleep } from "../../utils/utils";
+import { createUser, sleep, ramdomInteger } from "../../utils/utils";
 
 describe(describeName('FwCloudExportService Unit Tests'), () => {
     let app: Application;
@@ -88,5 +89,57 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
 
             expect(user.fwClouds.length).to.be.eq(fwcloudAssigned + 1);
         });
+    });
+
+    describe.only('colors()', () => {
+        let fwcColors1:fwcloudColors;
+        let fwcColors2:fwcloudColors;
+        let cua1: colorUsage[] = [];
+        let cua2: colorUsage[] = [];
+
+        beforeEach(async () => {
+            let n: number;
+
+            // Generate ramdon content colorsUsage arrays.
+            for(n=ramdomInteger(1,64); n>0 ;n--) {
+                cua1.push({color: '#'+Math.random().toString(16).substr(2,6), count: ramdomInteger(1,10000)})
+            }
+            for(n=ramdomInteger(1,64); n>0 ;n--) {
+                cua2.push({color: '#'+Math.random().toString(16).substr(2,6), count: ramdomInteger(1,10000)})
+            }
+
+            fwcColors1 = new fwcloudColors(cua1);
+            fwcColors2 = new fwcloudColors(cua2);
+        });
+
+        describe('combine fwcloudColors objects', () => {
+
+            it('should return empty fwcloudColor object', () => {
+                fwcColors1.empty();
+                fwcColors2.empty();
+                fwcColors1.combine(fwcColors2);
+                expect(fwcColors1.isEmpty()).to.be.true;
+            });
+
+            it('should return combined fwcloudColor object', () => {
+                fwcColors1.combine(fwcColors2);
+                expect(fwcColors1.foundAll(cua1)).to.be.true;
+                expect(fwcColors1.foundAll(cua2)).to.be.true;
+            });
+
+            it('should add count usage for same color', () => {
+                fwcColors1.add({color: '#112233', count: 5});
+                fwcColors2.add({color: '#112233', count: 10});
+                fwcColors1.combine(fwcColors2);
+                expect(fwcColors1.found({color: '#112233', count: 15})).to.be.true;
+            });
+
+            it('should return sorted combined fwcloudColor object', () => {
+                fwcColors1.combine(fwcColors2);
+                fwcColors1.sort();
+                expect(fwcColors1.isSorted()).to.be.true;
+            });
+        });
+
     });
 });
