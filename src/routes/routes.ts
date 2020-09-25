@@ -78,6 +78,7 @@ export class Routes extends RouteCollection {
                             })
                         })
                     })
+
                     //Firewalls
                     // Old way restored. These routes has been disabled temporarily
                     /*router.prefix('/firewalls/:firewall(\\d+)', (router: RouterParser) => {
@@ -85,6 +86,8 @@ export class Routes extends RouteCollection {
                         router.post('/install', FirewallController, 'install').name('firewalls.install');
                     });*/
 
+                    //Colors usage.
+                    router.get('/colors', FwCloudController, 'colors').name('fwclouds.colors');
 
                     //Snapshots
                     router.prefix('/snapshots', (router: RouterParser) => {

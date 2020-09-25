@@ -96,3 +96,14 @@ export async function runCLICommandIsolated(testSuite: TestSuite, fn: () => Prom
         }
     });
 };
+
+/**
+ * Generate random integer between min and max, included.
+ * 
+ * @param min 
+ * @param max 
+ */
+export function ramdomInteger(min: number, max: number):number {
+    max++;
+    return Math.floor(Math.random() * (max - min)) + min;
+};

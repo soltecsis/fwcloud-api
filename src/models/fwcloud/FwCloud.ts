@@ -40,6 +40,7 @@ const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'fwcloud';
 
+
 @Entity(tableName)
 export class FwCloud extends Model {
     
