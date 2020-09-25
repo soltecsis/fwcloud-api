@@ -160,7 +160,7 @@ describe(describeName('FwCloud E2E Tests'), () => {
             });
         })
     
-        describe.only('FwCloudController@colors()', () => {
+        describe('FwCloudController@colors()', () => {
             let fwCloud: FwCloud;
             
             beforeEach(async () => {
