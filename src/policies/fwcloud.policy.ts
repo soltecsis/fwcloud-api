@@ -12,6 +12,10 @@ export class FwCloudPolicy extends Policy {
     }
 
     static async colors(user: User, fwCloud: FwCloud): Promise<Authorization> {
+        if (user.role === 1) {
+            return Authorization.grant();
+        }
+        
         user = await User.findOne({where: {id: user.id}, relations: ['fwClouds']})
         return user.fwClouds.findIndex(item => item.id === fwCloud.id) >= 0 ? Authorization.grant() : Authorization.revoke();
     }
