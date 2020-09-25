@@ -3,6 +3,7 @@ import { Request } from "express";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { FwCloudService } from "../../models/fwcloud/fwcloud.service";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
+import { colorUsage } from "../../models/fwcloud/FwCloud-colors";
 import { Validate } from "../../decorators/validate.decorator";
 import { FwCloudPolicy } from "../../policies/fwcloud.policy";
 import { Required } from "../../fonaments/validation/rules/required.rule";
@@ -51,5 +52,17 @@ export class FwCloudController extends Controller {
         });
 
         return ResponseBuilder.buildResponse().status(200).body(fwCloud);
+    }
+
+    @Validate({})
+    public async colors(request: Request): Promise<ResponseBuilder> {
+       
+        let fwCloud: FwCloud = await FwCloud.findOneOrFail(request.params.fwcloud);
+
+        (await FwCloudPolicy.colors(request.session.user, fwCloud)).authorize();
+
+        let colors: colorUsage[] = await this._fwCloudService.colors(fwCloud);
+
+        return ResponseBuilder.buildResponse().status(200).body(colors);
     }
 }
