@@ -47,6 +47,8 @@ sharedSchema.comment = Joi.string().allow('').allow(null).regex(/^[\x09-\x0D -~\
 
 sharedSchema.img = Joi.string().allow('').allow(null).dataUri().min(3).max(64);
 
+sharedSchema.style = Joi.string().allow('').allow(null).max(50);
+
 sharedSchema._0_1 = Joi.number().integer().valid([0, 1]);
 
 sharedSchema.linux_user = Joi.string().regex(/^[a-zA-Z_]([a-zA-Z0-9_-]{0,31}|[a-zA-Z0-9_-]{0,30}\$)$/);

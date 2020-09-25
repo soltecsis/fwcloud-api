@@ -46,7 +46,7 @@ schema.validate = req => {
 				options: sharedSch.u16bits,
 				comment: sharedSch.comment,
 				type: sharedSch.policy_type.optional(),
-				style: sharedSch.u16bits.optional(),
+				style: sharedSch.style.optional(),
 				fw_apply_to: sharedSch.id.allow(null).optional(),
 				mark: sharedSch.mark_id.allow(null).optional()
 			});
@@ -69,7 +69,7 @@ schema.validate = req => {
 			else if (req.url === '/policy/rule/style')
 				schema = schema.append({
 					type: sharedSch.policy_type,
-					style: sharedSch.u16bits,
+					style: sharedSch.style,
 					rulesIds: Joi.array().items(sharedSch.id)
 				});
 			else if (req.url === '/policy/rule/copy' || req.url === '/policy/rule/move')

@@ -44,7 +44,7 @@ schema.validate = req => {
 			else schema = schema.append({ rulesIds: Joi.array().items(sharedSch.id) });
 		} else if (req.method === 'PUT') {
 			if (req.url === '/policy/group/style')
-				schema = schema.append({ style: sharedSch.u16bits, groupIds: Joi.array().items(sharedSch.id) });
+				schema = schema.append({ style: sharedSch.style, groupIds: Joi.array().items(sharedSch.id) });
 			else if (req.url === '/policy/group/name')
 				schema = schema.append({ id: sharedSch.id, name: sharedSch.name });
 			else if (req.url === '/policy/group/del')
