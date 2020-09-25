@@ -91,7 +91,7 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
         });
     });
 
-    describe.only('colors()', () => {
+    describe('colors()', () => {
         let fwcColors1:fwcloudColors;
         let fwcColors2:fwcloudColors;
         let cua1: colorUsage[] = [];
