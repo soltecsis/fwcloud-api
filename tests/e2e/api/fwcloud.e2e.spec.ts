@@ -159,5 +159,44 @@ describe(describeName('FwCloud E2E Tests'), () => {
                     });
             });
         })
+    
+        describe('FwCloudController@colors()', () => {
+            let fwCloud: FwCloud;
+            
+            beforeEach(async () => {
+                fwCloud = FwCloud.create({name: StringHelper.randomize(10)});
+                await fwCloud.save();
+            });
+
+            it('guest user should not reach the fwcloud colors', async () => {
+                return await request(app.express)
+                        .get(_URL().getURL('fwclouds.colors', {fwcloud: fwCloud.id}))
+                        .expect(401);
+            });
+
+            it('users who does not belong to the fwcloud should not reach the fwcloud colors', async () => {
+                return await request(app.express)
+                        .get(_URL().getURL('fwclouds.colors', {fwcloud: fwCloud.id}))
+                        .set('Cookie', [attachSession(regularUserSessionId)])
+                        .expect(401);
+            });
+
+            it('user which belongs to the fwcloud should get the fwcloud colors', async () => {
+                regularUser.fwClouds = [fwCloud];
+                await regularUser.save();
+
+                return await request(app.express)
+                        .get(_URL().getURL('fwclouds.colors', {fwcloud: fwCloud.id}))
+                        .set('Cookie', [attachSession(regularUserSessionId)])
+                        .expect(200); 
+            });
+
+            it('admin user should get the fwcloud colors', async () => {
+                return await request(app.express)
+                        .get(_URL().getURL('fwclouds.colors', {fwcloud: fwCloud.id}))
+                        .set('Cookie', [attachSession(adminUserSessionId)])
+                        .expect(200); 
+            });
+        });
     });
 });
