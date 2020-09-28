@@ -69,6 +69,20 @@ export class PgpHelper {
         });
     }
 
+    public encryptWithPrivateKey(msg: string): Promise<string> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const options = {
+                    message: openpgp.message.fromText(msg), // input as Message object
+                    publicKeys: (await openpgp.key.readArmored(this._privateKey)).keys // for encryption
+                };
+                const { data: msgEncrypted } = await openpgp.encrypt(options);
+                //console.log(msgEncrypted);
+                resolve(msgEncrypted);
+            } catch (error) { reject(error); }
+        });
+    }
+
     public decrypt(msgEncrypted: string): Promise<string> {
         return new Promise(async (resolve, reject) => {
             try {
