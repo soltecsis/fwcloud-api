@@ -27,6 +27,7 @@ module.exports = schema;
 const Joi = require('joi');
 const sharedSch = require('../shared');
 const fwcError = require('../../../utils/error_table');
+import { PgpHelper } from '../../../utils/pgp';
 
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
@@ -167,6 +168,13 @@ schema.validate = req => {
 			}
 			else if (req.path==='/vpn/openvpn/install' || req.path==='/vpn/openvpn/uninstall'
 					|| req.path==='/vpn/openvpn/ccdsync' || req.path==='/vpn/openvpn/status/get') {
+		    // SSH user and password are encrypted with the PGP session key.
+				try {
+					const pgp = new PgpHelper(req.session.pgp);
+					req.body.sshuser = await pgp.decrypt(req.body.sshuser);
+					req.body.sshpass = await pgp.decrypt(req.body.sshpass);
+				} catch(error) { return reject(error) }
+
 				schema = schema.append({
 					firewall: sharedSch.id,
 					openvpn: sharedSch.id,

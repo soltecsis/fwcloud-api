@@ -39,6 +39,7 @@ import { RoutingGroup } from "../routing/routing-group.model";
 import { DatabaseService } from "../../database/database.service";
 import { app } from "../../fonaments/abstract-application";
 import * as path from "path";
+import { PgpHelper } from '../../utils/pgp';
 
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
@@ -191,13 +192,20 @@ export class Firewall extends Model {
 				LEFT JOIN firewall M on M.cluster=T.cluster and M.fwmaster=1
 				WHERE T.id=${req.body.firewall} AND T.fwcloud=${req.body.fwcloud}`;
 			
-			req.dbCon.query(sql, (error, rows) => {
-			if (error) return reject(error);
-			if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
+			req.dbCon.query(sql, async (error, rows) => {
+				if (error) return reject(error);
+				if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
 
-			Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
-				.then(data => resolve(data[0]))
-				.catch(error => reject(error));
+				try {
+					let firewall_data:any = (await Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data))))[0];
+
+					// SSH user and password are encrypted with the PGP session key.
+					const pgp = new PgpHelper(req.session.pgp);
+					firewall_data.install_user = await pgp.encrypt(firewall_data.install_user);
+					firewall_data.install_pass = await pgp.encrypt(firewall_data.install_pass);
+
+					resolve(firewall_data);
+				} catch(error) { return reject(error) } 
 			});
 		});
 	}
