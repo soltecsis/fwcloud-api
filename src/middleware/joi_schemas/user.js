@@ -38,6 +38,7 @@ schema.validate = req => {
 					customer: sharedSch.id,
 					username: sharedSch.username,
 					password: sharedSch.password,
+					publicKey: sharedSch.pgp_public_key,
 				});
 			}
 		} else if (req.url === '/user' && (req.method === 'POST' || req.method === 'PUT')) {

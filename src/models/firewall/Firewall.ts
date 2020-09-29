@@ -200,9 +200,9 @@ export class Firewall extends Model {
 					let firewall_data:any = (await Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data))))[0];
 
 					// SSH user and password are encrypted with the PGP session key.
-					const pgp = new PgpHelper(req.session.pgp);
-					firewall_data.install_user = await pgp.encryptWithPrivateKey(firewall_data.install_user);
-					firewall_data.install_pass = await pgp.encryptWithPrivateKey(firewall_data.install_pass);
+					const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+					firewall_data.install_user = await pgp.encrypt(firewall_data.install_user);
+					firewall_data.install_pass = await pgp.encrypt(firewall_data.install_pass);
 
 					resolve(firewall_data);
 				} catch(error) { return reject(error) } 

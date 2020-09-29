@@ -100,6 +100,9 @@ router.post('/login',async (req, res) => {
 				private: pgp.privateKey
 			};
 
+			// Store the fwcloud-ui session public key.
+			req.session.uiPublicKey = req.body.publicKey;
+
 			res.status(200).json({"user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey});
 		} else {
 			req.session.destroy(err => {} );
