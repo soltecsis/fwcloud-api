@@ -173,7 +173,7 @@ schema.validate = req => {
 					const pgp = new PgpHelper(req.session.pgp);
 					req.body.sshuser = await pgp.decrypt(req.body.sshuser);
 					req.body.sshpass = await pgp.decrypt(req.body.sshpass);
-				} catch(error) { return reject(error) }
+				} catch(error) { return reject(fwcError.other(error)) }
 
 				schema = schema.append({
 					firewall: sharedSch.id,

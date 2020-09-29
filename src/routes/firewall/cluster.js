@@ -286,13 +286,12 @@ router.put('/get', async (req, res) => {
 	try {
 		const data = await Cluster.getCluster(req);
 		if (data) {
-			for (node of data.nodes) {
-				if (node.fwmaster === 1) {
-					// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
-					const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
-					node.install_user = await pgp.encrypt(node.install_user);
-					node.install_pass = await pgp.encrypt(node.install_pass);
-				}
+			let nodes = data.nodes;
+			for (let i=0; i<nodes.length; i++) {
+				// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
+				const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+				nodes[i].install_user = await pgp.encrypt(nodes[i].install_user);
+				nodes[i].install_pass = await pgp.encrypt(nodes[i].install_pass);
 			}
 
 			res.status(200).json(data);

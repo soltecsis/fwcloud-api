@@ -39,7 +39,7 @@ schema.validate = req => {
 				const pgp = new PgpHelper(req.session.pgp);
 				req.body.install_user = await pgp.decrypt(req.body.install_user);
 				req.body.install_pass = await pgp.decrypt(req.body.install_pass);
-			} catch(error) { return reject(error) }
+			} catch(error) { return reject(fwcError.other(error)) }
 			
 			schema = Joi.object().keys({
 				fwcloud: sharedSch.id,
