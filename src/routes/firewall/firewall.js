@@ -79,6 +79,8 @@ import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Tree } from '../../models/tree/Tree';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { logger } from '../../fonaments/abstract-application';
+import { PgpHelper } from '../../utils/pgp';
+
 var utilsModel = require("../../utils/utils.js");
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -343,8 +345,14 @@ router.put('/', async (req, res) => {
 router.put('/get', async (req, res) => {
 	try {
 		const data = await Firewall.getFirewall(req);
-		if (data)
+		if (data) {
+			// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
+			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+			data.install_user = await pgp.encrypt(data.install_user);
+			data.install_pass = await pgp.encrypt(data.install_pass);
+
 			res.status(200).json(data);
+		}
 		else
 			res.status(204).end();
 	} catch(error) {

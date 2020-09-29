@@ -39,7 +39,6 @@ import { RoutingGroup } from "../routing/routing-group.model";
 import { DatabaseService } from "../../database/database.service";
 import { app } from "../../fonaments/abstract-application";
 import * as path from "path";
-import { PgpHelper } from '../../utils/pgp';
 
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
@@ -198,12 +197,6 @@ export class Firewall extends Model {
 
 				try {
 					let firewall_data:any = (await Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data))))[0];
-
-					// SSH user and password are encrypted with the PGP session key.
-					const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
-					firewall_data.install_user = await pgp.encrypt(firewall_data.install_user);
-					firewall_data.install_pass = await pgp.encrypt(firewall_data.install_pass);
-
 					resolve(firewall_data);
 				} catch(error) { return reject(error) } 
 			});
@@ -406,17 +399,14 @@ export class Firewall extends Model {
 					LEFT join interface I on I.id=T.install_interface
 					LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id
 					WHERE cluster=${idcluster} AND fwmaster=1`;
-			connection.query(sql, (error, rows) => {
+			connection.query(sql, async (error, rows) => {
 				if (error)
 					callback(error, null);
 				else {
-					Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
-						.then(data => {
-							callback(null, data);
-						})
-						.catch(e => {
-							callback(e, null);
-						});
+					try {
+						let firewall_data:any = (await Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data))))[0];	
+						callback(null, firewall_data);
+					} catch(error) { return callback(error, null) } 
 				}
 			});
 		});

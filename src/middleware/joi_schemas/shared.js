@@ -39,9 +39,6 @@ sharedSchema.mark_id = Joi.number().integer().min(0);
 sharedSchema.username = Joi.string().alphanum().min(3).max(32);
 sharedSchema.password = Joi.string().regex(/^[ -~\x80-\xFE]{6,64}$/);
 
-sharedSchema.pgp_public_key = Joi.string().regex(/^-----BEGIN PGP PUBLIC KEY BLOCK-----\n(.*)\n-----END PUBLIC KEY-----$/);
-sharedSchema.pgp_private_key = Joi.string().regex(/^-----BEGIN PGP PRIVATE KEY BLOCK-----\n(.*)\n-----END PRIVATE KEY-----$/);
-
 sharedSchema.days = Joi.number().integer().min(1).max(36500);
 sharedSchema.cn = Joi.string().regex(/^[a-zA-Z0-9\-_\.]{1,64}$/);
 
