@@ -649,8 +649,8 @@ export class Firewall extends Model {
 				connection.query(sqlExists, (error, row) => {
 					//NEW FIREWALL
 					if (row && row.length > 0) {
-						var sql = 'insert into firewall(cluster,fwcloud,name,comment,by_user,status,fwmaster,install_port,options) ' +
-							' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 3, fwmaster, install_port, options ' +
+						var sql = 'insert into firewall(cluster,fwcloud,name,comment,by_user,status,fwmaster,install_port,options,install_user,install_pass) ' +
+							' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 3, fwmaster, install_port, options, "", "" ' +
 							' from firewall where id= ' + firewallData.id + ' and fwcloud=' + firewallData.fwcloud;
 						connection.query(sql, (error, result) => {
 							if (error) return reject(error);

@@ -288,6 +288,9 @@ router.put('/get', async (req, res) => {
 		if (data) {
 			let nodes = data.nodes;
 			for (let i=0; i<nodes.length; i++) {
+				if (nodes[i].install_user === null) nodes[i].install_user = '';
+				if (nodes[i].install_pass === null) nodes[i].install_pass = '';
+	
 				// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
 				const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
 				nodes[i].install_user = await pgp.encrypt(nodes[i].install_user);

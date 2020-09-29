@@ -346,6 +346,9 @@ router.put('/get', async (req, res) => {
 	try {
 		const data = await Firewall.getFirewall(req);
 		if (data) {
+			if (data.install_user === null) data.install_user = '';
+			if (data.install_pass === null) data.install_pass = '';
+
 			// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
 			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
 			data.install_user = await pgp.encrypt(data.install_user);
