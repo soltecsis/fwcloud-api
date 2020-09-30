@@ -404,7 +404,7 @@ export class Firewall extends Model {
 					callback(error, null);
 				else {
 					try {
-						let firewall_data:any = (await Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data))))[0];	
+						let firewall_data:any = await Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)));	
 						callback(null, firewall_data);
 					} catch(error) { return callback(error, null) } 
 				}
