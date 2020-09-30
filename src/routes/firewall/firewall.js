@@ -351,8 +351,8 @@ router.put('/get', async (req, res) => {
 
 			// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
 			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
-			data.install_user = await pgp.encrypt(data.install_user);
-			data.install_pass = await pgp.encrypt(data.install_pass);
+			if (data.install_user) data.install_user = await pgp.encrypt(data.install_user);
+			if (data.install_pass) data.install_pass = await pgp.encrypt(data.install_pass);
 
 			res.status(200).json(data);
 		}
@@ -444,8 +444,21 @@ router.put('/get', async (req, res) => {
 router.put('/cloud/get', async (req, res) => {
 	try {
 		data = await Firewall.getFirewallCloud(req);
-		if (data && data.length > 0)
+		if (data && data.length > 0) {
+
+			for (let i=0; i<data.length; i++) {
+				/*// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
+				const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+				if (data[i].install_user) data[i].install_user = await pgp.encrypt(data[i].install_user);
+				if (data[i].install_pass) data[i].install_pass = await pgp.encrypt(data[i].install_pass);
+				*/
+
+				delete data[i].install_user;
+				delete data[i].install_pass;
+			}
+			
 			res.status(200).json(data);
+		}
 		else
 			res.status(204).end();
 	} catch(error) {
@@ -535,14 +548,25 @@ router.put('/cloud/get', async (req, res) => {
  * }
  */
 router.put('/cluster/get', (req, res) => {
-	Firewall.getFirewallCluster(req.session.user_id, req.body.cluster, (error, data) => {
+	Firewall.getFirewallCluster(req.session.user_id, req.body.cluster, async (error, data) => {
 		if (error) {
 			logger().error('Error getting cluster firewalls: ' + JSON.stringify(error));
 			return res.status(400).json(error);
 		}
 		
-		if (data && data.length > 0)
+		if (data && data.length > 0) {
+			for (let i=0; i<data.length; i++) {
+				/*// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
+				const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+				if (data[i].install_user) data[i].install_user = await pgp.encrypt(data[i].install_user);
+				if (data[i].install_pass) data[i].install_pass = await pgp.encrypt(data[i].install_pass)*/
+
+				delete data[i].install_user;
+				delete data[i].install_pass;
+			}
+
 			res.status(200).json(data);
+		}
 		else
 			res.status(204).end();
 	});

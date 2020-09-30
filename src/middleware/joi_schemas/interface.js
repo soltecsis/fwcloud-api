@@ -67,8 +67,8 @@ schema.validate = req => {
 				// SSH user and password are encrypted with the PGP session key.
 				try {
 					const pgp = new PgpHelper(req.session.pgp);
-					req.body.sshuser = await pgp.decrypt(req.body.sshuser);
-					req.body.sshpass = await pgp.decrypt(req.body.sshpass);
+					if (req.body.sshuser) req.body.sshuser = await pgp.decrypt(req.body.sshuser);
+					if (req.body.sshpass) req.body.sshpass = await pgp.decrypt(req.body.sshpass);
 				} catch(error) { return reject(fwcError.other(error)) }
 
 				schema = schema.append({ 
