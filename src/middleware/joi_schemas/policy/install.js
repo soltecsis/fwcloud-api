@@ -30,9 +30,9 @@ import { PgpHelper } from '../../../utils/pgp';
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
-    // SSH user and password are encrypted with the PGP session key.
     try {
       const pgp = new PgpHelper(req.session.pgp);
+      // SSH user and password are encrypted with the PGP session key.
       if (req.body.sshuser) req.body.sshuser = await pgp.decrypt(req.body.sshuser);
       if (req.body.sshpass) req.body.sshpass = await pgp.decrypt(req.body.sshpass);
     } catch(error) { return reject(error) }

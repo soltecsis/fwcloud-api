@@ -287,12 +287,13 @@ router.put('/get', async (req, res) => {
 		const data = await Cluster.getCluster(req);
 		if (data) {
 			let nodes = data.nodes;
+			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+
 			for (let i=0; i<nodes.length; i++) {
 				if (nodes[i].install_user === null) nodes[i].install_user = '';
 				if (nodes[i].install_pass === null) nodes[i].install_pass = '';
 	
 				// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
-				const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
 				if (nodes[i].install_user) nodes[i].install_user = await pgp.encrypt(nodes[i].install_user);
 				if (nodes[i].install_pass) nodes[i].install_pass = await pgp.encrypt(nodes[i].install_pass);
 			}

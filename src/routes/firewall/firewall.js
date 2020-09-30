@@ -349,8 +349,8 @@ router.put('/get', async (req, res) => {
 			if (data.install_user === null) data.install_user = '';
 			if (data.install_pass === null) data.install_pass = '';
 
-			// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
 			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+			// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
 			if (data.install_user) data.install_user = await pgp.encrypt(data.install_user);
 			if (data.install_pass) data.install_pass = await pgp.encrypt(data.install_pass);
 
@@ -549,8 +549,20 @@ router.put('/cluster/get', (req, res) => {
 			return res.status(400).json(error);
 		}
 		
-		if (data && data.length > 0)
+		if (data && data.length > 0) {
+			// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
+			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+
+			for (let i=0; i<data.length; i++) {
+				if (data[i].install_user === null) data[i].install_user = '';
+				if (data[i].install_pass === null) data[i].install_pass = '';
+	
+				if (data[i].install_user) data[i].install_user = await pgp.encrypt(data[i].install_user);
+				if (data[i].install_pass) data[i].install_pass = await pgp.encrypt(data[i].install_pass);
+			}
+
 			res.status(200).json(data);
+		}
 		else
 			res.status(204).end();
 	});

@@ -34,9 +34,9 @@ schema.validate = req => {
 		var schema = {};
 
 		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/firewall')) {
-			// SSH user and password are encrypted with the PGP session key.
 			try {
 				const pgp = new PgpHelper(req.session.pgp);
+				// SSH user and password are encrypted with the PGP session key.
 				if (req.body.install_user) req.body.install_user = await pgp.decrypt(req.body.install_user);
 				if (req.body.install_pass) req.body.install_pass = await pgp.decrypt(req.body.install_pass);
 			} catch(error) { return reject(fwcError.other(error)) }

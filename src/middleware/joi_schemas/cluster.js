@@ -34,12 +34,13 @@ schema.validate = req => {
 		var schema = {};
 
 		if ((req.method==='POST' && req.url==='/cluster') || (req.method==='PUT' && req.url==='/cluster')) {
-			// SSH user and password are encrypted with the PGP session key.
 			try {
 				if (req.body.clusterData.fwnodes) {
 					let nodes = req.body.clusterData.fwnodes;
+					const pgp = new PgpHelper(req.session.pgp);
+
 					for (let i=0; i<nodes.length; i++) {
-						const pgp = new PgpHelper(req.session.pgp);
+						// SSH user and password are encrypted with the PGP session key.
 						if (nodes[i].install_user) nodes[i].install_user = await pgp.decrypt(nodes[i].install_user);
 						if (nodes[i].install_pass) nodes[i].install_pass = await pgp.decrypt(nodes[i].install_pass);
 					}
