@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
-var schema = {};
+var schema = { };
 module.exports = schema;
 
 const Joi = require('joi');
 const sharedSch = require('./shared');
 const fwcError = require('../../utils/error_table');
+import { PgpHelper } from '../../utils/pgp';
 
 schema.validate = req => {
 	var i = 1;
@@ -64,6 +64,13 @@ schema.validate = req => {
 			else if (req.url === '/interface/restricted')
 				schema = schema.append({ id: sharedSch.id, host: sharedSch.id.optional() });
 			else if (req.url === '/interface/autodiscover') {
+				try {
+					const pgp = new PgpHelper(req.session.pgp);
+					// SSH user and password are encrypted with the PGP session key.
+					if (req.body.sshuser) req.body.sshuser = await pgp.decrypt(req.body.sshuser);
+					if (req.body.sshpass) req.body.sshpass = await pgp.decrypt(req.body.sshpass);
+				} catch(error) { return reject(fwcError.other(error)) }
+
 				schema = schema.append({ 
 					ip: sharedSch.ipv4,
 					port: Joi.number().port(), 

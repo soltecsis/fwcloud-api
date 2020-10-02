@@ -27,12 +27,20 @@ module.exports = schema;
 const Joi = require('joi');
 const sharedSch = require('./shared');
 const fwcError = require('../../utils/error_table');
+import { PgpHelper } from '../../utils/pgp';
 
 schema.validate = req => {
 	return new Promise(async(resolve, reject) => {
 		var schema = {};
 
 		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/firewall')) {
+			try {
+				const pgp = new PgpHelper(req.session.pgp);
+				// SSH user and password are encrypted with the PGP session key.
+				if (req.body.install_user) req.body.install_user = await pgp.decrypt(req.body.install_user);
+				if (req.body.install_pass) req.body.install_pass = await pgp.decrypt(req.body.install_pass);
+			} catch(error) { return reject(fwcError.other(error)) }
+			
 			schema = Joi.object().keys({
 				fwcloud: sharedSch.id,
 				cluster: sharedSch.id.allow(null).optional(),

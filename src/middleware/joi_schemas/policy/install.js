@@ -20,16 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 var schema = {};
 module.exports = schema;
 
 const Joi = require('joi');
 const sharedSch = require('../shared');
 const fwcError = require('../../../utils/error_table');
+import { PgpHelper } from '../../../utils/pgp';
  
 schema.validate = req => {
   return new Promise(async (resolve, reject) => {
+    try {
+      const pgp = new PgpHelper(req.session.pgp);
+      // SSH user and password are encrypted with the PGP session key.
+      if (req.body.sshuser) req.body.sshuser = await pgp.decrypt(req.body.sshuser);
+      if (req.body.sshpass) req.body.sshpass = await pgp.decrypt(req.body.sshpass);
+    } catch(error) { return reject(error) }
+    
     var schema = Joi.object().keys({ 
       fwcloud: sharedSch.id,
       firewall: sharedSch.id,

@@ -27,12 +27,26 @@ module.exports = schema;
 const Joi = require('joi');
 const sharedSch = require('./shared');
 const fwcError = require('../../utils/error_table');
+import { PgpHelper } from '../../utils/pgp';
 
 schema.validate = req => {
 	return new Promise(async(resolve, reject) => {
 		var schema = {};
 
 		if ((req.method==='POST' && req.url==='/cluster') || (req.method==='PUT' && req.url==='/cluster')) {
+			try {
+				if (req.body.clusterData.fwnodes) {
+					let nodes = req.body.clusterData.fwnodes;
+					const pgp = new PgpHelper(req.session.pgp);
+
+					for (let i=0; i<nodes.length; i++) {
+						// SSH user and password are encrypted with the PGP session key.
+						if (nodes[i].install_user) nodes[i].install_user = await pgp.decrypt(nodes[i].install_user);
+						if (nodes[i].install_pass) nodes[i].install_pass = await pgp.decrypt(nodes[i].install_pass);
+					}
+				}
+			} catch(error) { return reject(fwcError.other(error)) }
+			
 			var schemaItem = Joi.object().keys({
 				name: sharedSch.name,
 				comment: sharedSch.comment,

@@ -79,6 +79,8 @@ import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Tree } from '../../models/tree/Tree';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { logger } from '../../fonaments/abstract-application';
+import { PgpHelper } from '../../utils/pgp';
+
 var utilsModel = require("../../utils/utils.js");
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -343,8 +345,17 @@ router.put('/', async (req, res) => {
 router.put('/get', async (req, res) => {
 	try {
 		const data = await Firewall.getFirewall(req);
-		if (data)
+		if (data) {
+			if (data.install_user === null) data.install_user = '';
+			if (data.install_pass === null) data.install_pass = '';
+
+			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+			// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
+			if (data.install_user) data.install_user = await pgp.encrypt(data.install_user);
+			if (data.install_pass) data.install_pass = await pgp.encrypt(data.install_pass);
+
 			res.status(200).json(data);
+		}
 		else
 			res.status(204).end();
 	} catch(error) {
@@ -433,8 +444,16 @@ router.put('/get', async (req, res) => {
 router.put('/cloud/get', async (req, res) => {
 	try {
 		data = await Firewall.getFirewallCloud(req);
-		if (data && data.length > 0)
+		if (data && data.length > 0) {
+
+			for (let i=0; i<data.length; i++) {
+				// Remove ssh data.
+				delete data[i].install_user;
+				delete data[i].install_pass;
+			}
+			
 			res.status(200).json(data);
+		}
 		else
 			res.status(204).end();
 	} catch(error) {
@@ -524,14 +543,26 @@ router.put('/cloud/get', async (req, res) => {
  * }
  */
 router.put('/cluster/get', (req, res) => {
-	Firewall.getFirewallCluster(req.session.user_id, req.body.cluster, (error, data) => {
+	Firewall.getFirewallCluster(req.session.user_id, req.body.cluster, async (error, data) => {
 		if (error) {
 			logger().error('Error getting cluster firewalls: ' + JSON.stringify(error));
 			return res.status(400).json(error);
 		}
 		
-		if (data && data.length > 0)
+		if (data && data.length > 0) {
+			// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
+			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+
+			for (let i=0; i<data.length; i++) {
+				if (data[i].install_user === null) data[i].install_user = '';
+				if (data[i].install_pass === null) data[i].install_pass = '';
+	
+				if (data[i].install_user) data[i].install_user = await pgp.encrypt(data[i].install_user);
+				if (data[i].install_pass) data[i].install_pass = await pgp.encrypt(data[i].install_pass);
+			}
+
 			res.status(200).json(data);
+		}
 		else
 			res.status(204).end();
 	});

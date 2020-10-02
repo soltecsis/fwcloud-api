@@ -72,6 +72,8 @@ import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
 import { logger } from '../../fonaments/abstract-application';
+import { PgpHelper } from '../../utils/pgp';
+
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -283,8 +285,21 @@ router.post('/', async (req, res) => {
 router.put('/get', async (req, res) => {
 	try {
 		const data = await Cluster.getCluster(req);
-		if (data)
+		if (data) {
+			let nodes = data.nodes;
+			const pgp = new PgpHelper({public: req.session.uiPublicKey, private: ""});
+
+			for (let i=0; i<nodes.length; i++) {
+				if (nodes[i].install_user === null) nodes[i].install_user = '';
+				if (nodes[i].install_pass === null) nodes[i].install_pass = '';
+	
+				// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
+				if (nodes[i].install_user) nodes[i].install_user = await pgp.encrypt(nodes[i].install_user);
+				if (nodes[i].install_pass) nodes[i].install_pass = await pgp.encrypt(nodes[i].install_pass);
+			}
+
 			res.status(200).json(data);
+		}
 		else
 			res.status(400).json(fwcError.NOT_FOUND);
 	} catch(error) {

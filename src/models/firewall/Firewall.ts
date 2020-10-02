@@ -191,13 +191,14 @@ export class Firewall extends Model {
 				LEFT JOIN firewall M on M.cluster=T.cluster and M.fwmaster=1
 				WHERE T.id=${req.body.firewall} AND T.fwcloud=${req.body.fwcloud}`;
 			
-			req.dbCon.query(sql, (error, rows) => {
-			if (error) return reject(error);
-			if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
+			req.dbCon.query(sql, async (error, rows) => {
+				if (error) return reject(error);
+				if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
 
-			Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
-				.then(data => resolve(data[0]))
-				.catch(error => reject(error));
+				try {
+					let firewall_data:any = (await Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data))))[0];
+					resolve(firewall_data);
+				} catch(error) { return reject(error) } 
 			});
 		});
 	}
@@ -398,17 +399,14 @@ export class Firewall extends Model {
 					LEFT join interface I on I.id=T.install_interface
 					LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id
 					WHERE cluster=${idcluster} AND fwmaster=1`;
-			connection.query(sql, (error, rows) => {
+			connection.query(sql, async (error, rows) => {
 				if (error)
 					callback(error, null);
 				else {
-					Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
-						.then(data => {
-							callback(null, data);
-						})
-						.catch(e => {
-							callback(e, null);
-						});
+					try {
+						let firewall_data:any = await Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)));	
+						callback(null, firewall_data);
+					} catch(error) { return callback(error, null) } 
 				}
 			});
 		});
@@ -651,8 +649,8 @@ export class Firewall extends Model {
 				connection.query(sqlExists, (error, row) => {
 					//NEW FIREWALL
 					if (row && row.length > 0) {
-						var sql = 'insert into firewall(cluster,fwcloud,name,comment,by_user,status,fwmaster,install_port,options) ' +
-							' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 3, fwmaster, install_port, options ' +
+						var sql = 'insert into firewall(cluster,fwcloud,name,comment,by_user,status,fwmaster,install_port,options,install_user,install_pass) ' +
+							' select cluster,fwcloud,' + connection.escape(firewallData.name) + ',' + connection.escape(firewallData.comment) + ',' + connection.escape(iduser) + ' , 3, fwmaster, install_port, options, "", "" ' +
 							' from firewall where id= ' + firewallData.id + ' and fwcloud=' + firewallData.fwcloud;
 						connection.query(sql, (error, result) => {
 							if (error) return reject(error);

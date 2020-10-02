@@ -27,10 +27,6 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { Ca } from '../vpn/pki/Ca';
 import { Customer } from './Customer';
 
-import { PgpHelper } from '../../utils/pgp';
-import { PathHelper } from '../../utils/path-helpers';
-
-
 const fwcError = require('../../utils/error_table');
 
 var bcrypt = require('bcryptjs');
@@ -151,11 +147,6 @@ export class User extends Model {
             };
 
             try {
-                // PGP TESTS.
-                const pgp: PgpHelper = new PgpHelper(req.session.pgp);
-                const msgEncrypted: string = await pgp.encrypt('Este es mi texto secretillo!!!!!');
-                const msg: string = await pgp.decrypt(msgEncrypted);
-
                 req.dbCon.query(`INSERT INTO ${tableName} SET ?`, userData, (error, result) => {
                     if (error) return reject(error);
                     resolve(result.insertId);
