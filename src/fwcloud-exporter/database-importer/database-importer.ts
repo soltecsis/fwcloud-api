@@ -107,6 +107,10 @@ export class DatabaseImporter {
     }
 
     protected static async importDataDirectories(snapshotPath: string, fwCloud: FwCloud, mapper: ImportMapping): Promise<void> {
+        FSHelper.rmDirectorySync(fwCloud.getPkiDirectoryPath());
+        FSHelper.rmDirectorySync(fwCloud.getPolicyDirectoryPath());
+        FSHelper.rmDirectorySync(fwCloud.getSnapshotDirectoryPath());
+        
         if(FSHelper.directoryExistsSync(path.join(snapshotPath, Snapshot.PKI_DIRECTORY))) {
             await this.importPKIDirectory(path.join(snapshotPath, Snapshot.PKI_DIRECTORY), fwCloud, mapper);
         }
