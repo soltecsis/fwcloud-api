@@ -23,6 +23,7 @@
 var fwcError = require('../utils/error_table');
 import { PolicyRule } from '../models/policy/PolicyRule';
 import { PolicyCompilation } from '../models/policy/PolicyCompilation';
+import { stream } from 'winston';
 
 export const POLICY_TYPE_INPUT = 1;
 export const POLICY_TYPE_OUTPUT = 2;
@@ -36,7 +37,6 @@ export const POLICY_TYPE_SNAT_IPv6 = 64;
 export const POLICY_TYPE_DNAT_IPv6 = 65;
 export const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 export const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING'];
-//const MARK_CHAIN = ['', 'PREROUTING', 'OUTPUT', 'POSTROUTING'];
 export const MARK_CHAIN = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 
 export class RuleCompiler {
@@ -536,10 +536,22 @@ export class RuleCompiler {
                         action = `MARK --set-mark ${data[0].mark_code}`;
                         cs_trail = `${stateful} -j ${action}\n`
                         cs += this.generate_compilation_string(`${rule}-M1`, position_items, `${iptables_cmd} -t mangle -A ${MARK_CHAIN[policy_type]} `, cs_trail, table, stateful, action, iptables_cmd);
+                        // Add the mark to the PREROUTING chain of the mangle table.
+                        if (policy_type === POLICY_TYPE_FORWARD) {
+                            let str:string = this.generate_compilation_string(`${rule}-M1`, position_items, `${iptables_cmd} -t mangle -A PREROUTING `, cs_trail, table, stateful, action, iptables_cmd);
+                            str = str.replace(/-o \w+ /g, "")
+                            cs += str;
+                        }
 
                         action = `CONNMARK --save-mark`;
                         cs_trail = `${stateful} -j ${action}\n`
                         cs += this.generate_compilation_string(`${rule}-M2`, position_items, `${iptables_cmd} -t mangle -A ${MARK_CHAIN[policy_type]} `, cs_trail, table, stateful, action, iptables_cmd);
+                        // Add the mark to the PREROUTING chain of the mangle table.
+                        if (policy_type === POLICY_TYPE_FORWARD) {
+                            let str:string = this.generate_compilation_string(`${rule}-M2`, position_items, `${iptables_cmd} -t mangle -A PREROUTING `, cs_trail, table, stateful, action, iptables_cmd);
+                            str = str.replace(/-o \w+ /g, "")
+                            cs += str;
+                        }
                     }
                 }
 
