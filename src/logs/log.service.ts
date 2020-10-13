@@ -64,7 +64,7 @@ export class LogService extends Service {
             filename: path.join(this._config.directory, 'fwcloud.log'),
             format: winston.format.combine(
                 winston.format.timestamp({
-                    format: 'DD/MM/YYYY HH:mm:ss'
+                    format: 'YYYY-MM-DD HH:mm:ss'
                 }),
                 winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}:${info.message}`)
             ),
@@ -77,7 +77,7 @@ export class LogService extends Service {
             transports.push(new winston.transports.Console({
                 format: winston.format.combine(
                     winston.format.timestamp({
-                        format: 'DD/MM/YYYY HH:mm:ss'
+                        format: 'YYYY-MM-DD HH:mm:ss'
                     }),
                     winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}: ${info.message}`)
                 )
@@ -93,7 +93,7 @@ export class LogService extends Service {
             filename: path.join(this._config.directory, 'query.log'),
             format: winston.format.combine(
                 winston.format.timestamp({
-                    format: 'DD/MM/YYYY HH:mm:ss'
+                    format: 'YYYY-MM-DD HH:mm:ss'
                 }),
                 winston.format.align(),
                 winston.format.printf((info) => `[${info.timestamp}]${info.message}`)
@@ -107,7 +107,7 @@ export class LogService extends Service {
             transports.push(new winston.transports.Console({
                 format: winston.format.combine(
                     winston.format.timestamp({
-                        format: 'DD/MM/YYYY HH:mm:ss'
+                        format: 'YYYY-MM-DD HH:mm:ss'
                     }),
                     winston.format.printf((info) => `[${info.timestamp}] ${info.message}`)
                 )
