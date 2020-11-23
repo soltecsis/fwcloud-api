@@ -41,13 +41,13 @@ export class UpdateUpdaterService extends Service {
         try { fs.readdirSync(installDir) }
         catch (err) { 
             logger().error(`Accessing directory: ${installDir}`);
-          throw new Error('fwcloud-${app} install directory not accessible');
+          throw new Error('fwcloud-updater install directory not accessible');
         }
     
         const result: any = await cmd.runSync(`cd ${installDir} && npm run update`);
         if (result.err) {
             logger().error(`${result.err}`);
-          throw new Error('Error during the update procedure');
+          throw new Error('Error during fwcloud-updater update procedure');
         }
     
         return;

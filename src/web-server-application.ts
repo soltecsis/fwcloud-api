@@ -57,9 +57,12 @@ export class WebServerApplication {
                 if (this._config.get('web_server').remove_api_string_from_url) req.url = req.url.substr(4);
                 this._proxy.web(req, res, { target: this._config.get('web_server').updater_url});
             });
-
-            // Proxy API calls for fwcloud-updater.
-            this._express.put('/api/updates/[api|ui]', (req, res) => {
+            this._express.put('/api/updates/ui', (req, res) => {
+                //console.log(`Proxing request: ${req.url} -> ${this._config.get('web_server').api_url}${req.url.substr(4)}`);
+                if (this._config.get('web_server').remove_api_string_from_url) req.url = req.url.substr(4);
+                this._proxy.web(req, res, { target: this._config.get('web_server').updater_url});
+            });
+            this._express.put('/api/updates/api', (req, res) => {
                 //console.log(`Proxing request: ${req.url} -> ${this._config.get('web_server').api_url}${req.url.substr(4)}`);
                 if (this._config.get('web_server').remove_api_string_from_url) req.url = req.url.substr(4);
                 this._proxy.web(req, res, { target: this._config.get('web_server').updater_url});

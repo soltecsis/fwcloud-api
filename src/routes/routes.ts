@@ -63,7 +63,7 @@ export class Routes extends RouteCollection {
                 router.get('/version', VersionController, 'show').name('versions.show');
 
                 //Update fwcloud-updater
-                router.get('/updates/updater', UpdateUpdaterController, 'update').name('update.fwcloud-updater');
+                router.put('/updates/updater', UpdateUpdaterController, 'update').name('update.fwcloud-updater');
             });
 
             router.prefix('/fwclouds', (router: RouterParser) => {
