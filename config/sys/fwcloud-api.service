@@ -3,6 +3,7 @@ Description=fwcloud-api
 
 [Service]
 ExecStart=/usr/bin/npm start
+ExecStop=/usr/bin/npm run stop
 WorkingDirectory=/opt/fwcloud-api/
 Restart=always
 StandardOutput=/opt/fwcloud-api/logs/out.log

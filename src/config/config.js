@@ -119,10 +119,16 @@ const config = convict({
       env: 'WEBSRV_DOCROOT'
     },
     api_url: {
-      doc: 'Web server document root path.',
+      doc: 'API access URL.',
       format: String,
       default: 'http://localhost:3131',
       env: 'WEBSRV_API_URL'
+    },
+    updater_url: {
+      doc: 'FWCloud-Updater URL.',
+      format: String,
+      default: 'http://localhost:3132',
+      env: 'WEBSRV_UPDATER_URL'
     },
     remove_api_string_from_url: {
       doc: 'Remove the heading string /api before proxying the request to the API server.',

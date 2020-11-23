@@ -50,7 +50,8 @@ inputValidation.check = async(req, res, next) => {
 		(req.method==='GET' && req.url==='/ipobj/types') ||
 		(req.method==='GET' && req.url==='/ipobj/positions/policy') ||
 		(req.method==='GET' && req.url==='/policy/types') ||
-		(req.method==='GET' && req.url==='/stream'))
+		(req.method==='GET' && req.url==='/stream') ||
+		(req.method==='PUT' && req.url==='/updates/updater'))
 		return next();
 
 	try {

@@ -43,7 +43,6 @@ export class WebServerApplication {
                 secure: false,
                 ws: true
             });
-
         } catch (e) {
             console.error('Web Server Application startup failed: ' + e.message);
             process.exit(e);
@@ -52,6 +51,19 @@ export class WebServerApplication {
 
     public proxySetup(server: https.Server | http.Server): void {
         try {
+            // Proxy API calls for fwcloud-updater.
+            this._express.get('/api/updates', (req, res) => {
+                //console.log(`Proxing request: ${req.url} -> ${this._config.get('web_server').api_url}${req.url.substr(4)}`);
+                if (this._config.get('web_server').remove_api_string_from_url) req.url = req.url.substr(4);
+                this._proxy.web(req, res, { target: this._config.get('web_server').updater_url});
+            });
+
+            // Proxy API calls for fwcloud-updater.
+            this._express.put('/api/updates/[api|ui]', (req, res) => {
+                //console.log(`Proxing request: ${req.url} -> ${this._config.get('web_server').api_url}${req.url.substr(4)}`);
+                if (this._config.get('web_server').remove_api_string_from_url) req.url = req.url.substr(4);
+                this._proxy.web(req, res, { target: this._config.get('web_server').updater_url});
+            });
             
             // Proxy API calls.
             this._express.all('/api/*', (req, res) => {
@@ -60,7 +72,7 @@ export class WebServerApplication {
                 this._proxy.web(req, res);
             });
 
-            // Proxy shocket.io calls.
+            // Proxy socket.io calls.
             // proxy HTTP GET / POST
             this._express.get('/socket.io/*', (req, res) => {
                 //console.log("Proxying GET request", req.url);
@@ -81,11 +93,13 @@ export class WebServerApplication {
             // Set origin header if not exists.
             this._proxy.on('proxyReq', (proxyReq: ClientRequest, req, res, options) => {
                 if (!proxyReq.getHeader('origin')) {
-                    const referer: string = proxyReq.getHeader('referer').toString();
-                    if (referer) {
-                        const origin = referer.substr(0,referer.indexOf('/',referer.indexOf('://')+3));
-                        proxyReq.setHeader('origin', origin);
-                    } 
+                    if (proxyReq.getHeader('referer')) {
+                        const referer: string = proxyReq.getHeader('referer').toString();
+                        if (referer) {
+                            const origin = referer.substr(0,referer.indexOf('/',referer.indexOf('://')+3));
+                            proxyReq.setHeader('origin', origin);
+                        } 
+                    } else proxyReq.setHeader('origin', '');
                 }
             });
 

@@ -29,7 +29,7 @@ export class UpdateUpdaterController extends Controller {
     protected _updateUpdaterService: UpdateUpdaterService;
 
     @Validate({})
-    public async update(request: Request): Promise<ResponseBuilder> {
+    public async update(): Promise<ResponseBuilder> {
         await this._updateUpdaterService.runUpdate();
 
         return ResponseBuilder.buildResponse().status(200);
