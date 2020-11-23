@@ -4,7 +4,9 @@
   "description": "FWCloud RESTful API.",
   "private": true,
   "scripts": {
-    "start": "npm run smart-compilation && node dist/src/bin/fwcloud.js",
+    "start": "npm run smart-compilation && node dist/src/bin/fwcloud.js & echo $! > .pid",
+    "stop": "if [ -f \".pid\" ]; then PID=$(cat .pid); EXISTS=`ps axw | awk '{print $1}' | grep \"^${PID}$\"`; if [ \"$EXISTS\" ]; then kill $PID; fi; rm \".pid\"; fi",
+    "update": "npm run stop && git pull && npm install && npm run build && node fwcli migration:run && npm run start",
     "generate-jsdoc": "node_modules/.bin/jsdoc -c jsdoc.json",
     "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/",
     "clean": "rm -fr dist/",
@@ -58,6 +60,7 @@
     "mysql": "^2.17.1",
     "mysql-import": "^3.0.6",
     "mysqldump": "^3.1.0",
+    "node-cmd": "^4.0.0",
     "openpgp": "^4.10.4",
     "passport": "^0.4.1",
     "passport-local": "*",

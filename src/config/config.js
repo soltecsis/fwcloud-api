@@ -504,7 +504,18 @@ const config = convict({
         }
       }
     }
+  },
+
+  // fwcloud-updater
+  updater: {
+    installDir: {
+      doc: 'fwcloud-updater install directory',
+      format: String,
+      default: '/opt/fwcloud-updater',
+      env: 'FWC_UPDATER_INSTALL_DIR'
+    },
   }
+
 });
 
 
