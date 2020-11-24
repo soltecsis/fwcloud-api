@@ -5,15 +5,15 @@ Description=fwcloud-api
 ExecStart=/usr/bin/npm start
 ExecStop=/usr/bin/npm run stop
 WorkingDirectory=/opt/fwcloud-api/
-Restart=always
-StandardOutput=/opt/fwcloud-api/logs/out.log
-StandardError=/opt/fwcloud-api/logs/error.log
+StandardOutput=/opt/fwcloud-api/logs/stdout.log
+StandardError=/opt/fwcloud-api/logs/stderr.log
 SyslogIdentifier=fwcloud-api
 User=fwcloud
 Group=fwcloud
+Type=forking
 
-# Restart service after 10 seconds if node service crashes
-# RestartSec=10
+Restart=always
+RestartSec=60
 
 [Install]
 WantedBy=multi-user.target
