@@ -92,6 +92,7 @@ router.post('/login',async (req, res) => {
 			req.session.customer_id = data[0].customer;
 			req.session.user_id = data[0].id;
 			req.session.username = data[0].username;
+			req.session.admin_role = await User.isLoggedUserAdmin(req); 
 
 			const pgp = new PgpHelper; 
 			await pgp.init(config.get('session').pgp_rsa_bits);
