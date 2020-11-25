@@ -10,8 +10,5 @@ User=fwcloud
 Group=fwcloud
 Type=forking
 
-Restart=always
-RestartSec=60
-
 [Install]
 WantedBy=multi-user.target
