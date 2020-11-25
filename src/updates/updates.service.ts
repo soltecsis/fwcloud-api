@@ -23,33 +23,33 @@
 import { logger } from "../fonaments/abstract-application";
 import { Service } from "../fonaments/services/service";
 import * as fs from 'fs';
-import * as cmd from 'node-cmd';
+const exec = require('child-process-promise').exec;
 
 export class UpdateUpdaterService extends Service {
-    public async runUpdate(): Promise<void> {
-        logger().info(`Updating fwcloud-updater`);
+  public async runUpdate(): Promise<void> {
+    logger().info(`Updating fwcloud-updater`);
 
-        const installDir = this._app.config.get('updater').installDir;
+    const installDir = this._app.config.get('updater').installDir;
 
-        // Make sure install dir exists.
-        try { fs.lstatSync(installDir).isDirectory() }
-        catch (err) { 
-            logger().error(`Directory not found: ${installDir}`);
-          throw new Error('fwcloud-updater install directory not found');
-        }
-    
-        try { fs.readdirSync(installDir) }
-        catch (err) { 
-            logger().error(`Accessing directory: ${installDir}`);
-          throw new Error('fwcloud-updater install directory not accessible');
-        }
-    
-        const result: any = await cmd.runSync(`cd ${installDir} && npm run update`);
-        if (result.err) {
-            logger().error(`${result.err}`);
-          throw new Error('Error during fwcloud-updater update procedure');
-        }
-    
-        return;
+    // Make sure install dir exists.
+    try { fs.lstatSync(installDir).isDirectory() }
+    catch (err) { 
+      logger().error(`Directory not found: ${installDir}`);
+      throw new Error('fwcloud-updater install directory not found');
     }
+
+    try { fs.readdirSync(installDir) }
+    catch (err) { 
+      logger().error(`Accessing directory: ${installDir}`);
+      throw new Error('fwcloud-updater install directory not accessible');
+    }
+
+    try { await exec(`cd ${installDir} && npm run update`) }
+    catch(err) {
+      logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
+      throw new Error('Error during fwcloud-updater update procedure');
+    }
+
+    return;
+  }
 }
