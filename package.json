@@ -1,6 +1,6 @@
 {
   "name": "FWCloud-API",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "FWCloud RESTful API.",
   "private": true,
   "scripts": {
@@ -60,7 +60,6 @@
     "mysql": "^2.17.1",
     "mysql-import": "^3.0.6",
     "mysqldump": "^3.1.0",
-    "node-cmd": "^4.0.0",
     "openpgp": "^4.10.4",
     "passport": "^0.4.1",
     "passport-local": "*",
