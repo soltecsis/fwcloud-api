@@ -2,10 +2,6 @@
   "api_server": {
     "https" : false    
   },
-  "web_server": {
-    "https" : false,
-    "api_url": "http://localhost:3131"    
-  },
   "session": {
     "force_HTTPS" : false    
   },

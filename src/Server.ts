@@ -26,33 +26,28 @@ import http from 'http';
 import * as fs from 'fs';
 import io from 'socket.io';
 import { ConfigurationErrorException } from "./config/exceptions/configuration-error.exception";
-import { WebServerApplication } from "./web-server-application";
 import { logger } from "./fonaments/abstract-application";
 
 export class Server {
-    private _application: Application | WebServerApplication;
+    private _application: Application;
     private _config;
     private _server: https.Server | http.Server;
-    private _type: 'api_server' | 'web_server';
 
-    constructor(app: Application | WebServerApplication, type: 'api_server' | 'web_server') {
+    constructor(app: Application) {
         this._application = app;
         this._config = app.config;
-        this._type = type;
     }
 
     public async start(): Promise<any> {
         try {
             this.validateApplicationConfiguration();
 
-            if (this._config.get(this._type).enabled) {
+            if (this._config.get('api_server').enabled) {
                 this._server = this.isHttps() ? this.startHttpsServer() : this.startHttpServer();
                 this.bootstrapEvents();
-                if (this._type === 'api_server') {
-                    await this.bootstrapSocketIO();
-                }
+                await this.bootstrapSocketIO();
             }
-            else logger().info(`${this._type==='api_server' ? 'API server' : 'WEB server'} not started because it is not enabled.`);
+            else logger().info('API server not started because it is not enabled.');
         } catch (error) {
             logger().error("ERROR CREATING HTTP/HTTPS SERVER: ", error);
             process.exit(1);
@@ -67,9 +62,9 @@ export class Server {
             cert: string,
             ca: string | null
         } = {
-            key: fs.readFileSync(this._config.get(this._type).key).toString(),
-            cert: fs.readFileSync(this._config.get(this._type).cert).toString(),
-            ca: this._config.get(this._type).ca_bundle ? fs.readFileSync(this._config.get(this._type).ca_bundle).toString() : null
+            key: fs.readFileSync(this._config.get('api_server').key).toString(),
+            cert: fs.readFileSync(this._config.get('api_server').cert).toString(),
+            ca: this._config.get('api_server').ca_bundle ? fs.readFileSync(this._config.get('api_server').ca_bundle).toString() : null
         }
 
         return https.createServer(tlsOptions, this._application.express);
@@ -81,8 +76,8 @@ export class Server {
 
     private bootstrapEvents() {
         this._server.listen(
-            this._config.get(this._type).port,
-            this._config.get(this._type).ip
+            this._config.get('api_server').port,
+            this._config.get('api_server').ip
         );
 
         this._server.on('error', (error: Error) => {
@@ -90,12 +85,12 @@ export class Server {
         });
 
         this._server.on('listening', () => {
-            logger().info(`${this._type==='api_server' ? 'API server' : 'WEB server'} listening on ` + this.getFullURL());
+            logger().info(`FWCloud API server listening on ${this.getFullURL()}`);
 
             // In prod mode, log messages are not shown in terminal. As a result, user doesn't know when application has started.
             // So, we print out the message directly
             if (this._config.get('env') === 'prod') {
-                console.log(`${this._type==='api_server' ? 'API server' : 'WEB server'} listening on ` + this.getFullURL());
+                console.log(`FWCloud API server' listening on ${this.getFullURL()}`);
             }
         });
     }
@@ -124,13 +119,13 @@ export class Server {
     }
 
     public isHttps(): boolean {
-        return this._config.get(this._type).https;
+        return this._config.get('api_server').https;
     }
 
     protected getFullURL(): string {
-        return (this.isHttps() ? 'https' : 'http') + '://' + this._application.config.get(this._type).ip 
+        return (this.isHttps() ? 'https' : 'http') + '://' + this._application.config.get('api_server').ip 
         + ':' 
-        + this._application.config.get(this._type).port;
+        + this._application.config.get('api_server').port;
     }
 
     get server(): https.Server | http.Server {
