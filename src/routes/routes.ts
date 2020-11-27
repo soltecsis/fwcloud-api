@@ -31,7 +31,7 @@ import { isLoggedIn } from "../gates/isLoggedIn";
 import { FwCloudExportController } from "../controllers/fwclouds/fwcloud-export.controller";
 import { OpenVPNController } from "../controllers/firewalls/openvpn/openvpn.controller";
 import { FwCloudController } from "../controllers/fwclouds/fwcloud.controller";
-import { UpdateUpdaterController } from "../controllers/updates/update.controller";
+import { UpdateController } from "../controllers/updates/update.controller";
 
 export class Routes extends RouteCollection {
 
@@ -62,8 +62,14 @@ export class Routes extends RouteCollection {
                 //Version
                 router.get('/version', VersionController, 'show').name('versions.show');
 
-                //Update fwcloud-updater
-                router.put('/updates/updater', UpdateUpdaterController, 'update').name('update.fwcloud-updater');
+                //Update requests
+                router.prefix('/updates', (router: RouterParser) => {
+                    router.get('/', UpdateController, 'proxy').name('updates.show');
+                    router.put('/ui', UpdateController, 'proxy').name('updates.fwcloud-updater');
+                    router.put('/api', UpdateController, 'proxy').name('updates.fwcloud-api');
+                    router.put('/websrv', UpdateController, 'proxy').name('updates.fwcloud-websrv');
+                    router.put('/updater', UpdateController, 'update').name('updates.fwcloud-updater');
+                });
             });
 
             router.prefix('/fwclouds', (router: RouterParser) => {
