@@ -22,20 +22,20 @@
 
 import { ServiceProvider } from "../fonaments/services/service-provider";
 import { ServiceContainer, ServiceBound } from "../fonaments/services/service-container";
-import { UpdateUpdaterService } from "./updates.service";
+import { UpdateService } from "./updates.service";
 import { AbstractApplication } from "../fonaments/abstract-application";
 
-export class UpdateUpdaterServiceProvider extends ServiceProvider {
+export class UpdateServiceProvider extends ServiceProvider {
     
     public register(serviceContainer: ServiceContainer): ServiceBound {
-        return serviceContainer.singleton(UpdateUpdaterService.name, async(app: AbstractApplication): Promise<UpdateUpdaterService> => {
-            return UpdateUpdaterService.make(app);
+        return serviceContainer.singleton(UpdateService.name, async(app: AbstractApplication): Promise<UpdateService> => {
+            return UpdateService.make(app);
         });
     }
 
     public async bootstrap(app: AbstractApplication) {
         // Call to backup service in order to start cron job task
-        await app.getService<UpdateUpdaterService>(UpdateUpdaterService.name);
+        await app.getService<UpdateService>(UpdateService.name);
     }
 
 }

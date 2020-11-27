@@ -21,17 +21,26 @@
 */
 
 import { Controller } from "../../fonaments/http/controller";
-import { UpdateUpdaterService } from "../../updates/updates.service";
+import { UpdateService } from "../../updates/updates.service";
 import { Validate } from "../../decorators/validate.decorator";
+import { Request } from "express";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { app } from "../../fonaments/abstract-application";
 
-export class UpdateUpdaterController extends Controller {
-    protected _updateUpdaterService: UpdateUpdaterService;
+export class UpdateController extends Controller {
+    protected _updateUpdaterService: UpdateService;
 
     async make() {
-        this._updateUpdaterService = await app().getService<UpdateUpdaterService>(UpdateUpdaterService.name);
+        this._updateUpdaterService = await app().getService<UpdateService>(UpdateService.name);
     }
+
+    @Validate({})
+    public async proxy(request: Request): Promise<ResponseBuilder> {
+        const data = await this._updateUpdaterService.proxyUpdate(request);
+
+        return data ? ResponseBuilder.buildResponse().status(200).body(data) : ResponseBuilder.buildResponse().status(200);
+    }
+
 
     @Validate({})
     public async update(): Promise<ResponseBuilder> {

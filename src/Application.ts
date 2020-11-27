@@ -55,7 +55,7 @@ import { LogRequestMiddleware } from './middleware/log-request.middleware';
 import { OpenVPNServiceProvider } from './models/vpn/openvpn/openvpn.provider';
 import { FwCloudServiceProvider } from './models/fwcloud/fwcloud.provider';
 import { HTTPApplication } from './fonaments/http-application';
-import { UpdateUpdaterServiceProvider } from "./updates/updates.provider";
+import { UpdateServiceProvider } from "./updates/updates.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -103,7 +103,7 @@ export class Application extends HTTPApplication {
             FwCloudExportServiceProvider,
             OpenVPNServiceProvider,
             FwCloudServiceProvider,
-            UpdateUpdaterServiceProvider
+            UpdateServiceProvider
         ]
     }
 

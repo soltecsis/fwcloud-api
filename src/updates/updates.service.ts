@@ -22,10 +22,31 @@
 
 import { logger } from "../fonaments/abstract-application";
 import { Service } from "../fonaments/services/service";
+import { Request } from "express";
 import * as fs from 'fs';
+import axios, { AxiosRequestConfig, Method } from "axios";
 const exec = require('child-process-promise').exec;
 
-export class UpdateUpdaterService extends Service {
+export class UpdateService extends Service {
+  public async proxyUpdate(request: Request): Promise<any> {
+    const updaterURL = this._app.config.get('updater').url;
+
+    const req: AxiosRequestConfig = {
+      method: <Method>request.method.toLowerCase(),
+      url: `${updaterURL}${request.url}`,
+      headers: request.headers
+    }
+
+    try { 
+      const res = await axios(req);
+      return (res && res.data) ? res.data : null;
+    }
+    catch(err) {
+      logger().error(`Proxying update request: ${err.message}`);
+      throw new Error('Proxying update request');
+    }
+  }
+
   public async runUpdate(): Promise<void> {
     logger().info(`Updating fwcloud-updater`);
 

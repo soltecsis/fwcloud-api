@@ -124,12 +124,6 @@ const config = convict({
       default: 'http://localhost:3131',
       env: 'WEBSRV_API_URL'
     },
-    updater_url: {
-      doc: 'FWCloud-Updater URL.',
-      format: String,
-      default: 'http://localhost:3132',
-      env: 'WEBSRV_UPDATER_URL'
-    },
     remove_api_string_from_url: {
       doc: 'Remove the heading string /api before proxying the request to the API server.',
       format: Boolean,
@@ -519,6 +513,12 @@ const config = convict({
       format: String,
       default: '/opt/fwcloud-updater',
       env: 'FWC_UPDATER_INSTALL_DIR'
+    },
+    url: {
+      doc: 'fwcloud-updater URL.',
+      format: String,
+      default: 'http://localhost:3132',
+      env: 'FWC_UPDATER_URL'
     },
   }
 
