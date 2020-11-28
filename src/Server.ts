@@ -90,7 +90,7 @@ export class Server {
             // In prod mode, log messages are not shown in terminal. As a result, user doesn't know when application has started.
             // So, we print out the message directly
             if (this._config.get('env') === 'prod') {
-                console.log(`FWCloud API server' listening on ${this.getFullURL()}`);
+                console.log(`FWCloud API server listening on ${this.getFullURL()}`);
             }
         });
     }

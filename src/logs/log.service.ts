@@ -61,12 +61,12 @@ export class LogService extends Service {
         const transports: Array<Transport> = [];
 
         transports.push(new winston.transports.File({
-            filename: path.join(this._config.directory, 'fwcloud.log'),
+            filename: path.join(this._config.directory, 'api.log'),
             format: winston.format.combine(
                 winston.format.timestamp({
                     format: 'YYYY-MM-DD HH:mm:ss'
                 }),
-                winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}:${info.message}`)
+                winston.format.printf((info) => `${info.timestamp}|${info.level.toUpperCase()}|${info.message}`)
             ),
             maxsize: this._config.maxSize,
             maxFiles: this._config.maxFiles,
@@ -79,7 +79,7 @@ export class LogService extends Service {
                     winston.format.timestamp({
                         format: 'YYYY-MM-DD HH:mm:ss'
                     }),
-                    winston.format.printf((info) => `[${info.timestamp}]${info.level.toUpperCase()}: ${info.message}`)
+                    winston.format.printf((info) => `${info.timestamp}|${info.level.toUpperCase()}|${info.message}`)
                 )
             }));
         }
@@ -96,7 +96,7 @@ export class LogService extends Service {
                     format: 'YYYY-MM-DD HH:mm:ss'
                 }),
                 winston.format.align(),
-                winston.format.printf((info) => `[${info.timestamp}]${info.message}`)
+                winston.format.printf((info) => `${info.timestamp}|${info.message}`)
             ),
             maxsize: this._config.maxSize,
             maxFiles: this._config.maxFiles,
@@ -109,7 +109,7 @@ export class LogService extends Service {
                     winston.format.timestamp({
                         format: 'YYYY-MM-DD HH:mm:ss'
                     }),
-                    winston.format.printf((info) => `[${info.timestamp}] ${info.message}`)
+                    winston.format.printf((info) => `${info.timestamp}|${info.message}`)
                 )
             }));
         }
@@ -122,7 +122,10 @@ export class LogService extends Service {
         transports.push(new winston.transports.File({
             filename: path.join(this._config.directory, 'http.log'),
             format: winston.format.combine(
-                winston.format.printf((info) => `${info.message}`)
+                winston.format.timestamp({
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }),
+                winston.format.printf((info) => `${info.timestamp}|${info.message}`)
             ),
             maxsize: this._config.maxSize,
             maxFiles: this._config.maxFiles,
