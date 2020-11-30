@@ -53,6 +53,8 @@ export class Server {
             process.exit(1);
         }
 
+        fs.writeFileSync('.pid',`${process.pid}`);
+
         return this;
     }
 
@@ -85,12 +87,12 @@ export class Server {
         });
 
         this._server.on('listening', () => {
-            logger().info(`FWCloud API server listening on ${this.getFullURL()}`);
+            logger().info(`Listening on ${this.getFullURL()}`);
 
             // In prod mode, log messages are not shown in terminal. As a result, user doesn't know when application has started.
             // So, we print out the message directly
             if (this._config.get('env') === 'prod') {
-                console.log(`FWCloud API server listening on ${this.getFullURL()}`);
+                console.log(`Listening on ${this.getFullURL()}`);
             }
         });
     }

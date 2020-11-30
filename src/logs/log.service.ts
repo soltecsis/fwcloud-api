@@ -61,7 +61,7 @@ export class LogService extends Service {
         const transports: Array<Transport> = [];
 
         transports.push(new winston.transports.File({
-            filename: path.join(this._config.directory, 'api.log'),
+            filename: path.join(this._config.directory, 'app.log'),
             format: winston.format.combine(
                 winston.format.timestamp({
                     format: 'YYYY-MM-DD HH:mm:ss'

@@ -6,10 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-
-### Changed
 - Log format for http.log.
 - Rename log file from 'fwcloud.log' to 'api.log'.
 - Unify log format with all other applications (fwcloud-updater and fwcloud-websrv) logs format.
+- Store pid in .pid file.
+- Npm script for stop process using the pid stored in .pid file.
+- SGTERM and SIGINT signal handlers.
 
 ### Fixed
