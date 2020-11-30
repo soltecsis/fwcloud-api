@@ -8,7 +8,7 @@ WorkingDirectory=/opt/fwcloud-api/
 SyslogIdentifier=fwcloud-api
 User=fwcloud
 Group=fwcloud
-Type=forking
+Type=simple
 
 [Install]
 WantedBy=multi-user.target

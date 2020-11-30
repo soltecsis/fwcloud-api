@@ -41,7 +41,6 @@ export class UpdateController extends Controller {
         return data ? ResponseBuilder.buildResponse().status(200).body(data) : ResponseBuilder.buildResponse().status(200);
     }
 
-
     @Validate({})
     public async update(): Promise<ResponseBuilder> {
         await this._updateUpdaterService.runUpdate();

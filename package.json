@@ -4,8 +4,8 @@
   "description": "FWCloud RESTful API.",
   "private": true,
   "scripts": {
-    "start": "node dist/src/bin/fwcloud.js & echo $! > .pid",
-    "stop": "if [ -f \".pid\" ]; then PID=$(cat .pid); EXISTS=`ps axw | awk '{print $1}' | grep \"^${PID}$\"`; if [ \"$EXISTS\" ]; then kill $PID; fi; rm \".pid\"; fi",
+    "start": "node dist/src/bin/fwcloud.js",
+    "stop": "if [ -f \".pid\" ]; then PID=$(cat .pid); EXISTS=`ps axw | awk '{print $1}' | grep \"^${PID}$\"`; if [ \"$EXISTS\" ]; then kill $PID; fi; fi",
     "update": "npm run stop && git pull && npm install && npm run build && node fwcli migration:run && npm run start",
     "generate-jsdoc": "node_modules/.bin/jsdoc -c jsdoc.json",
     "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/",
