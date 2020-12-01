@@ -453,7 +453,7 @@ const config = convict({
     url: {
       doc: 'fwcloud-updater URL.',
       format: String,
-      default: 'http://localhost:3132',
+      default: 'https://localhost:3132',
       env: 'FWC_UPDATER_URL'
     },
   }
