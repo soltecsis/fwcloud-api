@@ -25,6 +25,7 @@ import { Service } from "../fonaments/services/service";
 import { Request } from "express";
 import * as fs from 'fs';
 import axios, { AxiosRequestConfig, Method } from "axios";
+import * as https from 'https';
 const exec = require('child-process-promise').exec;
 
 export class UpdateService extends Service {
@@ -34,7 +35,10 @@ export class UpdateService extends Service {
     const req: AxiosRequestConfig = {
       method: <Method>request.method.toLowerCase(),
       url: `${updaterURL}${request.url}`,
-      headers: request.headers
+      headers: request.headers,
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: false
+      })
     }
 
     try { 
