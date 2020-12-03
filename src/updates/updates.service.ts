@@ -32,6 +32,14 @@ export class UpdateService extends Service {
   public async proxyUpdate(request: Request): Promise<any> {
     const updaterURL = this._app.config.get('updater').url;
 
+    /* ATENTION: Only forward the cookie header to fwcloud-updater. 
+    If all headers are forwarded with:
+      headers: req.headers
+    then the update request like PUT /updates/ui doesn't go.
+    Updater recevies them, but don't arrive neither to the middleware
+    nor the controller.
+    Curiously, the GET /updates requests is processed correctly
+    with al headres forwarded. */
     const req: AxiosRequestConfig = {
       method: <Method>request.method.toLowerCase(),
       url: `${updaterURL}${request.url}`,
