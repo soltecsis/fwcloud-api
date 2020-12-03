@@ -35,7 +35,7 @@ export class UpdateService extends Service {
     const req: AxiosRequestConfig = {
       method: <Method>request.method.toLowerCase(),
       url: `${updaterURL}${request.url}`,
-      headers: request.headers,
+      headers: { cookie: request.headers.cookie },
       httpsAgent: new https.Agent({
         rejectUnauthorized: false
       })
