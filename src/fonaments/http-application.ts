@@ -47,6 +47,29 @@ export abstract class HTTPApplication extends AbstractApplication {
         try {
             super(path);
             this._express = express();
+
+            /* ATENTION: If etag is not disabled in expres, when fwcloud-api recevies API requests whose data doesn't change respect
+            to previous requests, an HTTP 304 "Not Modified" response code is sent back.
+
+            Moreover, in the logs file app.log we can see errors like these ones because we try to send an answer after espress
+            has already sent its answer by itself:
+                2020-12-04 11:05:16|ERROR|Error [ERR_HTTP_HEADERS_SENT]: Cannot remove headers after they are sent to the client
+                2020-12-04 11:05:16|ERROR|    at ServerResponse.removeHeader (_http_outgoing.js:618:11)
+                2020-12-04 11:05:16|ERROR|    at ServerResponse.send (/Users/carles/Desktop/FWCloud.net/fwcloud-api/node_modules/express/lib/response.js:210:10)
+                2020-12-04 11:05:16|ERROR|    at ResponseBuilder.send (/Users/carles/Desktop/FWCloud.net/fwcloud-api/dist/src/fonaments/http/response-builder.js:94:24)
+                2020-12-04 11:05:16|ERROR|    at /Users/carles/Desktop/FWCloud.net/fwcloud-api/dist/src/fonaments/http/router/router.service.js:129:48
+                2020-12-04 11:05:16|ERROR|    at runMicrotasks (<anonymous>)
+                2020-12-04 11:05:16|ERROR|    at processTicksAndRejections (internal/process/task_queues.js:93:5)
+
+            This happens, for example, in the GET /updates request if the etag is enabled.
+            
+            The ETag or entity tag is part of HTTP, the protocol for the World Wide Web. 
+            It is one of several mechanisms that HTTP provides for Web cache validation, which allows a client to make conditional requests. 
+            This allows caches to be more efficient and saves bandwidth, as a Web server does not need to send a full response if the content 
+            has not changed. ETags can also be used for optimistic concurrency control,[1] as a way to help prevent simultaneous updates of a 
+            resource from overwriting each other.
+            */
+            this._express.disable('etag');
         } catch (e) {
             console.error('Aplication HTTP startup failed: ' + e.message);
             process.exit(e);

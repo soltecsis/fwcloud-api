@@ -21,7 +21,7 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Run Fwcloud",
+      "name": "Run FWCloud-API",
       "skipFiles": [
         "<node_internals>/**"
       ],
