@@ -77,7 +77,7 @@ export class UpdateService extends Service {
       throw new Error('fwcloud-updater install directory not accessible');
     }
 
-    try { await exec(`cd ${installDir} && npm run update`) }
+    try { await exec(`cd ${installDir}; npm run update`) }
     catch(err) {
       logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
       throw new Error('Error during fwcloud-updater update procedure');
