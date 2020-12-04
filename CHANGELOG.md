@@ -5,7 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-## Fixed
+### Added
+- Default listen to localhost.
+
+### Fixed
 - fwcloud-updater doesn't process update requests (for example, PUT /updates/ui) when all request headers are forwarded. Forward only the cookie header, required for the authentication middleware of the fwcloud-updater.
 - Log detailed information for websocket connection/disconnection.
 - Disable etag in express for avoid the problem explained in the http-application.ts file.

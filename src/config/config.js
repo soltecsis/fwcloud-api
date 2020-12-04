@@ -69,7 +69,7 @@ const config = convict({
     ip: {
       doc: 'API IP address to bind.',
       format: 'ipaddress',
-      default: '0.0.0.0',
+      default: 'localhost',
       env: 'APISRV_IP'
     },
     port: {
