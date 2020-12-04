@@ -35,8 +35,8 @@ function startServer(app: Application): Server {
 }
 
 async function start() {
-    const apiApp = await loadApiApplication();
-    startServer(apiApp);
+    const app = await loadApiApplication();
+    startServer(app);
 }
 
 
