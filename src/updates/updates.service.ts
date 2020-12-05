@@ -78,7 +78,7 @@ export class UpdateService extends Service {
     }
 
     try { 
-      const promise = spawn('npm', ['run', 'update'], { cwd: installDir, detached: true });
+      const promise = spawn('npm', ['run', 'update'], { cwd: installDir, detached: true, stdio: 'ignore' });
       promise.childProcess.unref();
       await promise;
     }
