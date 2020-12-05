@@ -26,7 +26,7 @@ import { Request } from "express";
 import * as fs from 'fs';
 import axios, { AxiosRequestConfig, Method } from "axios";
 import * as https from 'https';
-const exec = require('child-process-promise').exec;
+const spawn = require('child-process-promise').spawn;
 
 export class UpdateService extends Service {
   public async proxyUpdate(request: Request): Promise<any> {
@@ -77,7 +77,7 @@ export class UpdateService extends Service {
       throw new Error('fwcloud-updater install directory not accessible');
     }
 
-    try { await exec(`cd ${installDir}; npm run update`) }
+    try { await spawn('npm', ['run', 'update'], { cwd: installDir}) }
     catch(err) {
       logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
       throw new Error('Error during fwcloud-updater update procedure');
