@@ -78,9 +78,11 @@ export class UpdateService extends Service {
     }
 
     try { 
-      const promise = spawn('npm', ['run', 'update'], { cwd: installDir, detached: true, stdio: 'ignore', killSignal: 0 });
+      await spawn('npm', ['run', 'update'], { cwd: installDir });
+      logger().info('fwcloud-updater update finished. Starting it ...');
+      const promise = spawn('npm', ['start'], { cwd: installDir, detached: true, stdio: 'ignore' });
       promise.childProcess.unref();
-      await promise;
+      //await promise;
     }
     catch(err) {
       logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
