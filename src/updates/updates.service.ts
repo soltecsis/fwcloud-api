@@ -77,7 +77,11 @@ export class UpdateService extends Service {
       throw new Error('fwcloud-updater install directory not accessible');
     }
 
-    try { await spawn('npm', ['run', 'update'], { cwd: installDir, detached: true }) }
+    try { 
+      const promise = spawn('npm', ['run', 'update'], { cwd: installDir, detached: true });
+      promise.childProcess.unref();
+      await promise;
+    }
     catch(err) {
       logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
       throw new Error('Error during fwcloud-updater update procedure');

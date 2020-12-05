@@ -28,6 +28,8 @@ sessions/
 .env
 config/tls/
 BACKUP/
+.pid
+nohup.out
 
 *.fwb
 *.swp
@@ -41,4 +43,3 @@ lib/nsis-3.05/fwcloud-vpn/*.exe
 lib/nsis-3.05/fwcloud-vpn/*.ovpn
 
 .DS_Store
-.pid
