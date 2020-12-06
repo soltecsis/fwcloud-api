@@ -72,6 +72,12 @@ export class Application extends HTTPApplication {
 
     private signalHandler (signal: 'SIGINT' | 'SIGTERM') {
         logger().info(`Received signal: ${signal}`);
+
+        if (signal === 'SIGTERM') {
+            logger().info(`Ignoring signal ${signal}. If you want stop the application use the signal SIGINT.`);
+            return;
+        }
+
         fs.unlink('.pid',err => {
             logger().info(`------- Application stopped --------`);
             setTimeout(() => process.exit(0), 100);

@@ -60,8 +60,6 @@ export class UpdateService extends Service {
   }
 
   public async runUpdate(): Promise<void> {
-    logger().info(`Updating fwcloud-updater`);
-
     const installDir = this._app.config.get('updater').installDir;
 
     // Make sure install dir exists.
@@ -78,11 +76,12 @@ export class UpdateService extends Service {
     }
 
     try { 
+      logger().info('Updating fwcloud-updater ...');
       await spawn('npm', ['run', 'update'], { cwd: installDir });
       logger().info('fwcloud-updater update finished. Starting it ...');
-      const promise = spawn('npm', ['start'], { cwd: installDir, detached: true, stdio: 'ignore' });
+      const promise = spawn('npm', ['run','start:bg'], { cwd: installDir, detached: true, stdio: 'ignore' });
       promise.childProcess.unref();
-      //await promise;
+      await promise;
     }
     catch(err) {
       logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
