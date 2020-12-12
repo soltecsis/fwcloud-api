@@ -1,0 +1,56 @@
+/*!
+    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import { Controller } from "../../fonaments/http/controller";
+import { IptablesSaveService } from "../../iptables-save/iptables-save.service";
+import { Validate } from "../../decorators/validate.decorator";
+import { Request } from "express";
+import { ResponseBuilder } from "../../fonaments/http/response-builder";
+import { app } from "../../fonaments/abstract-application";
+import { String } from "../../fonaments/validation/rules/string.rule";
+import { Number } from "../../fonaments/validation/rules/number.rule";
+
+export class IptablesSaveController extends Controller {
+    protected _iptablesSaveService: IptablesSaveService;
+
+    async make() {
+        this._iptablesSaveService = await app().getService<IptablesSaveService>(IptablesSaveService.name);
+    }
+
+    // WARNING: We are validating input wit Joi middleware, ignore this validation.
+    //@Validate({})
+    public async import(request: Request): Promise<ResponseBuilder> {
+        // If request.body.fwcloud and request.body.firewall exists, we have already checked in the access control middleware 
+        // that the user has access to the indicated fwcloud and firewall.
+
+        await this._iptablesSaveService.import(request.body.fwcloud, request.body.firewall, request.body.data);
+
+        return ResponseBuilder.buildResponse().status(200);
+    }
+
+    // WARNING: We are validating input wit Joi middleware, ignore this validation.
+    //@Validate({})
+    public async export(): Promise<ResponseBuilder> {
+
+        return ResponseBuilder.buildResponse().status(200);
+    }
+}

@@ -54,6 +54,7 @@ import { OpenVPNServiceProvider } from './models/vpn/openvpn/openvpn.provider';
 import { FwCloudServiceProvider } from './models/fwcloud/fwcloud.provider';
 import { HTTPApplication } from './fonaments/http-application';
 import { UpdateServiceProvider } from "./updates/updates.provider";
+import { IptablesSaveServiceProvider } from "./iptables-save/iptables-save.provider";
 import { logger } from "./fonaments/abstract-application";
 import * as fs from 'fs';
 
@@ -113,7 +114,8 @@ export class Application extends HTTPApplication {
             FwCloudExportServiceProvider,
             OpenVPNServiceProvider,
             FwCloudServiceProvider,
-            UpdateServiceProvider
+            UpdateServiceProvider,
+            IptablesSaveServiceProvider
         ]
     }
 
