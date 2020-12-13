@@ -24,6 +24,7 @@ import { logger } from "../fonaments/abstract-application";
 import { Service } from "../fonaments/services/service";
 import { Request } from "express";
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
+import { PolicyRule } from '../models/policy/PolicyRule';
 
 const ipTables = {
   NULL: '',
@@ -34,51 +35,72 @@ const ipTables = {
 }
 
 export class IptablesSaveService extends Service {
-  private str: string;
-  private i: number;
+  private req: Request;
+  private p: number;
+  private data: string[];
   private items: string[];
   private table: string;
 
-  public async import(fwcloud: number, firewall: number, data: string): Promise<void> {
+  public async import(request: Request): Promise<void> {
+    this.req = request;
+    this.data = request.body.data;
     this.table = ipTables.NULL;
 
-    for(this.str of data) {
-      this.i = 0;
-      this.ignoreWhites();      
-      if (this.cc() === '#' || this.cc() === '\0') continue;
+    for(this.p=0; this.p < this.data.length; this.p++) {
+      // Get items of current string.
+      this.items = this.data[this.p].trim().split(/\s+/);
 
-      this.items = this.str.split(' ');
+      // Ignore comments or empty lines.
+      if (this.items.length === 0 || this.items[0] === '#') continue;
 
       // Iptables table with which we are working now.
       if (this.table === ipTables.NULL) {
         if (this.items[0]!=ipTables.NAT && this.items[0]!=ipTables.RAW && this.items[0]!=ipTables.MANGLE && this.items[0]!=ipTables.FILTER)
           throw new HttpException('Bad iptables-save data',400);
         this.table = this.items[0];
+        continue;
       }
 
       // End of iptables table.
-      if (this.items[0] === 'COMMIT')
+      if (this.items[0] === 'COMMIT') {
         this.table = ipTables.NULL;
+        continue;
+      }
 
       // By the moment ignore MANGLE and RAW iptables tables.
       if (this.table === ipTables.MANGLE || this.table === ipTables.RAW) continue;
+
+      // Generate rule.
+      if (this.items[0] === '-A')
+        this.generateRule();
     }
 
+    return;
+  }
 
+  private async generateRule(): Promise<void> {
+    var policy_rData = {
+      id: null,
+      firewall: this.req.body.firewall,
+      rule_order: 1,
+      action: 1,
+      active: 1,
+      options: 0,
+      comment: '',
+      type: 0,
+    };
+  
+    try {
+      await PolicyRule.reorderAfterRuleOrder(this.req.dbCon, this.req.body.firewall, policy_rData.type, policy_rData.rule_order);
+      await PolicyRule.insertPolicy_r(policy_rData);
+    } catch(error) {
+      throw new HttpException(`Error creating policy rule: ${JSON.stringify(error)}`,500);
+    }
+  
     return;
   }
 
   public async export(request: Request): Promise<void> {
     return;
-  }
-
-  private ignoreWhites() {
-    for (let c=this.cc(); c===' ' || c==='\t' || c==='\r' || c==='\r'; c=this.cc()) 
-      this.i++;
-  }
-
-  // Current character
-  private cc() {
-    return this.str.charAt(this.i);
   }
 }

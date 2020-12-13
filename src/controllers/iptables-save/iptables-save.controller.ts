@@ -22,12 +22,9 @@
 
 import { Controller } from "../../fonaments/http/controller";
 import { IptablesSaveService } from "../../iptables-save/iptables-save.service";
-import { Validate } from "../../decorators/validate.decorator";
 import { Request } from "express";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { app } from "../../fonaments/abstract-application";
-import { String } from "../../fonaments/validation/rules/string.rule";
-import { Number } from "../../fonaments/validation/rules/number.rule";
 
 export class IptablesSaveController extends Controller {
     protected _iptablesSaveService: IptablesSaveService;
@@ -42,7 +39,7 @@ export class IptablesSaveController extends Controller {
         // If request.body.fwcloud and request.body.firewall exists, we have already checked in the access control middleware 
         // that the user has access to the indicated fwcloud and firewall.
 
-        await this._iptablesSaveService.import(request.body.fwcloud, request.body.firewall, request.body.data);
+        await this._iptablesSaveService.import(request);
 
         return ResponseBuilder.buildResponse().status(200);
     }
