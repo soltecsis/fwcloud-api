@@ -755,8 +755,12 @@ export class Interface extends Model {
 
 						// Get the interface name.
 						if (!(match = currentData.match(/\: /))) 
-							continue; // If the pattern is not found we have bad data.							
+							continue; // If the pattern is not found we have bad data.
 						ifData.name = currentData.substring(0,match.index);
+						// For interfaces with name like this one: ens193.40@ens193:
+						// take as interface name the substring before the '@' character.							
+						if (match = ifData.name.match(/\@/)) 
+							ifData.name = ifData.name.substring(0,match.index);
 
 						// Now the MAC address.
 						if (match = currentData.match(/\n    link\/ether /)) {
