@@ -26,13 +26,20 @@ import { Request } from "express";
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { PolicyRule } from '../models/policy/PolicyRule';
 
-const ipTables = {
-  NULL: '',
-  NAT: '*nat',
-  RAW: '*raw',
-  MANGLE: '*mangle',
-  FILTER: '*filter'
-}
+const netFilterTables = new Set<string>([
+  '*nat',
+  '*raw',
+  '*mangle',
+  '*filter'
+]);
+
+const stdChains = new Set<string>([
+  ':INPUT',
+  ':OUTPUT',
+  ':FORWARD',
+  ':PREROUTING',
+  ':POSTROUTING'
+]);
 
 /*
 mysql> select * from policy_type;
@@ -52,13 +59,15 @@ mysql> select * from policy_type;
 | 65 | D6   | DNAT IPv6    |          5 |           0 |
 +----+------+--------------+------------+-------------+
 */
-const typeMap = new Map([
-  [`${ipTables.FILTER}-INPUT`, 1],
-  [`${ipTables.FILTER}-OUTPUT`, 2],
-  [`${ipTables.FILTER}-FORWARD`, 3],
-  [`${ipTables.NAT}-PREROUTING`, 4],
-  [`${ipTables.NAT}-POSTROUTING`, 5],
+const typeMap = new Map<string, number>([
+  ['*filter-INPUT', 1],
+  ['*filter-OUTPUT', 2],
+  ['*filter-FORWARD', 3],
+  ['*nat-PREROUTING', 4],
+  ['*nat-POSTROUTING', 5]
 ]);
+
+
 
 export class IptablesSaveService extends Service {
   private req: Request;
@@ -68,11 +77,12 @@ export class IptablesSaveService extends Service {
   private table: string;
   private chain: string;
   private rule_order: number;
+  private customChainsSet: Set<string>;
 
   public async import(request: Request): Promise<void> {
     this.req = request;
     this.data = request.body.data;
-    this.table = ipTables.NULL;
+    this.table = null;
 
     for(this.p=0; this.p < this.data.length; this.p++) {
       // Get items of current string.
@@ -82,27 +92,27 @@ export class IptablesSaveService extends Service {
       if (this.items.length === 0 || this.items[0] === '#') continue;
 
       // Iptables table with which we are working now.
-      if (this.table === ipTables.NULL) {
-        if (this.items[0]!=ipTables.NAT && this.items[0]!=ipTables.RAW && this.items[0]!=ipTables.MANGLE && this.items[0]!=ipTables.FILTER)
+      if (!this.table) {
+        if (!netFilterTables.has(this.items[0]))
           throw new HttpException(`Bad iptables-save data (line: ${this.p+1})`,400);
         this.table = this.items[0];
         this.rule_order = 1;
+        this.customChainsSet = new Set();
         continue;
       }
 
       // End of iptables table.
       if (this.items[0] === 'COMMIT') {
-        this.table = ipTables.NULL;
+        this.table = null;
         continue;
       }
 
       // By the moment ignore MANGLE and RAW iptables tables.
-      if (this.table === ipTables.MANGLE || this.table === ipTables.RAW) continue;
+      if (this.table === '*mangle' || this.table === '*raw') continue;
 
-      await this.generateCustomChainsMap();
-
-      // Generate rule.
-      if (this.items[0] === '-A') {
+      if (this.data[this.p].charAt(0) === ':')
+        await this.generateCustomChainsMap();
+      else if (this.items[0] === '-A') { // Generate rule.
         await this.generateRule();
         await this.fillPositions();
       }
@@ -112,6 +122,10 @@ export class IptablesSaveService extends Service {
   }
 
   private async generateCustomChainsMap(): Promise<void> {
+    if (stdChains.has(this.items[0])) return;
+
+    this.customChainsSet.add(this.items[0]);
+
     return;
   }
 
