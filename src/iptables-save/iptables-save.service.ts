@@ -113,15 +113,15 @@ export class IptablesSaveService extends Service {
       if (this.data[this.p].charAt(0) === ':')
         await this.generateCustomChainsMap();
       else if (this.items[0] === '-A') { // Generate rule.
-        await this.generateRule();
-        await this.fillPositions();
+        if (await this.generateRule()) 
+          await this.fillPositions();
       }
     }
 
     return;
   }
 
-  private async generateCustomChainsMap(): Promise<void> {
+  private generateCustomChainsMap(): Promise<void> {
     if (stdChains.has(this.items[0])) return;
 
     this.customChainsSet.add(this.items[0]);
@@ -129,7 +129,7 @@ export class IptablesSaveService extends Service {
     return;
   }
 
-  private async generateRule(): Promise<void> {
+  private async generateRule(): Promise<boolean> {
     let policy_rData = {
       id: null,
       firewall: this.req.body.firewall,
@@ -137,14 +137,18 @@ export class IptablesSaveService extends Service {
       action: 1,
       active: 1,
       options: 0,
-      comment: this.data[this.p],
+      comment: '',
       type: 0,
     };
 
     this.items.shift();
     this.chain = this.items[0];
 
-    if (! (policy_rData.type = typeMap.get(`${this.table}-${this.chain}`))) return;
+    // Ignore iptables rules for custom chains because they have already been processed.
+    if (this.customChainsSet.has(`:${this.chain}`)) return false;
+
+    // If don't find type map, ignore this rule.
+    if (!(policy_rData.type = typeMap.get(`${this.table}-${this.chain}`))) return false;
 
     this.items.shift();
 
@@ -155,26 +159,53 @@ export class IptablesSaveService extends Service {
       throw new HttpException(`Error creating policy rule: ${JSON.stringify(error)}`,500);
     }
   
-    return;
+    return true;
   }
 
   private async fillPositions(): Promise<void> {
-    switch(this.items[0]) {
+    while(this.items.length > 0)
+      await this.consumeRuleData();
+    return;
+  }
+
+  private consumeRuleData(): Promise<void> {
+    const item = this.items[0];
+    this.items.shift();
+
+    switch(item) {
       case '-s':
       case '-d':
-          break;
+        this.items.shift();
+        break;
 
       case '-o':
       case '-i':
+        this.items.shift();
         break;
-  
+
+      case '-p':
+        this.items.shift();
+        break;
+
+      case '-m':
+        this.items.shift();
+        this.items.shift();
+        this.items.shift();
+        break;
+    
       case '-j':
+        if (this.items[0] === 'SNAT' || this.items[0] === 'DNAT') {
+          this.items.shift();
+          this.items.shift();
+        }
+        this.items.shift();
         break;
   
       default:
         throw new HttpException(`Bad iptables-save data (line: ${this.p+1})`,400);
-      }
+    }
 
+    return;
   }
 
   public async export(request: Request): Promise<void> {
