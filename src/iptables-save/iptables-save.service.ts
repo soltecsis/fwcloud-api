@@ -28,14 +28,13 @@ import { PolicyRule } from '../models/policy/PolicyRule';
 import { Interface } from '../models/interface/Interface';
 import { Tree } from '../models/tree/Tree';
 import { PolicyRuleToInterface } from '../models/policy/PolicyRuleToInterface';
-import { PolicyPosition } from '../models/policy/PolicyPosition';
 
 
 const netFilterTables = new Set<string>([
-  '*nat',
-  '*raw',
-  '*mangle',
-  '*filter'
+  'nat',
+  'raw',
+  'mangle',
+  'filter'
 ]);
 
 const stdChains = new Set<string>([
@@ -64,14 +63,57 @@ mysql> select * from policy_type;
 | 65 | D6   | DNAT IPv6    |          5 |           0 |
 +----+------+--------------+------------+-------------+
 */
-const typeMap = new Map<string, number>([
-  ['*filter-INPUT', 1],
-  ['*filter-OUTPUT', 2],
-  ['*filter-FORWARD', 3],
-  ['*nat-PREROUTING', 4],
-  ['*nat-POSTROUTING', 5]
+const policyTypeMap = new Map<string, number>([
+  ['filter:INPUT', 1],
+  ['filter:OUTPUT', 2],
+  ['filter:FORWARD', 3],
+  ['nat:POSTROUTING', 4], // SNAT
+  ['nat:PREROUTING', 5], // DNAT
 ]);
 
+/*
+mysql> select * from policy_position;
++----+------------------------+-------------+----------------+---------+---------------+
+| id | name                   | policy_type | position_order | content | single_object |
++----+------------------------+-------------+----------------+---------+---------------+
+|  1 | Source                 |           1 |              2 | O       |             0 |
+|  2 | Destination            |           1 |              3 | O       |             0 |
+|  3 | Service                |           1 |              4 | O       |             0 |
+|  4 | Source                 |           2 |              2 | O       |             0 |
+|  5 | Destination            |           2 |              3 | O       |             0 |
+|  6 | Service                |           2 |              4 | O       |             0 |
+|  7 | Source                 |           3 |              3 | O       |             0 |
+|  8 | Destination            |           3 |              4 | O       |             0 |
+|  9 | Service                |           3 |              5 | O       |             0 |
+| 11 | Source                 |           4 |              2 | O       |             0 |
+| 12 | Destination            |           4 |              3 | O       |             0 |
+...
+
+mysql> select * from policy_type;
++----+------+--------------+------------+-------------+
+| id | type | name         | type_order | show_action |
++----+------+--------------+------------+-------------+
+|  1 | I    | Input        |          1 |           1 |
+|  2 | O    | Output       |          2 |           1 |
+|  3 | F    | Forward      |          3 |           1 |
+|  4 | S    | SNAT         |          4 |           0 |
+|  5 | D    | DNAT         |          5 |           0 |
+|  6 | R    | Routing      |          6 |           1 |
+| 61 | I6   | Input IPv6   |          1 |           1 |
+| 62 | O6   | Output IPv6  |          2 |           1 |
+| 63 | F6   | Forward IPv6 |          3 |           1 |
+| 64 | S6   | SNAT IPv6    |          4 |           0 |
+| 65 | D6   | DNAT IPv6    |          5 |           0 |
++----+------+--------------+------------+-------------+
+*/
+const positionMap = new Map<string, number>([
+  ['filter:INPUT:-i', 20],
+  ['filter:OUTPUT:-o', 21],
+  ['filter:FORWARD:-i', 22],
+  ['filter:FORWARD:-o', 25],
+  ['nat:POSTROUTING:-o', 24],
+  ['nat:PREROUTING:-i', 36],
+]);
 
 
 export class IptablesSaveService extends Service {
@@ -105,9 +147,9 @@ export class IptablesSaveService extends Service {
 
       // Iptables table with which we are working now.
       if (!this.table) {
-        if (!netFilterTables.has(this.items[0]))
+        if (!netFilterTables.has(this.items[0].substr(1)))
           throw new HttpException(`Bad iptables-save data (line: ${this.p+1})`,400);
-        this.table = this.items[0];
+        this.table = this.items[0].substr(1);
         this.ruleOrder = 1;
         this.customChainsMap = new Map();
         continue;
@@ -120,7 +162,7 @@ export class IptablesSaveService extends Service {
       }
 
       // By the moment ignore MANGLE and RAW iptables tables.
-      if (this.table === '*mangle' || this.table === '*raw') continue;
+      if (this.table === 'mangle' || this.table === 'raw') continue;
 
       if (this.data[this.p].charAt(0) === ':')
         await this.generateCustomChainsMap();
@@ -172,7 +214,7 @@ export class IptablesSaveService extends Service {
     if (this.customChainsMap.has(this.chain)) return false;
 
     // If don't find type map, ignore this rule.
-    if (!(policy_rData.type = typeMap.get(`${this.table}-${this.chain}`))) return false;
+    if (!(policy_rData.type = policyTypeMap.get(`${this.table}:${this.chain}`))) return false;
     this.policyType = policy_rData.type;
 
     this.items.shift();
@@ -277,15 +319,18 @@ export class IptablesSaveService extends Service {
     }
 
     // Add the interface to the rule position.
+    const rulePosition = positionMap.get(`${this.table}:${this.chain}:${dir}`);
+    if (!rulePosition)
+      throw new HttpException(`Rule position not found for: ${this.table}:${this.chain}:${dir}`,500);
+
     let policy_r__interfaceData = {
       rule: this.ruleId,
       interface: interfaceId,
-      position: 0,
+      position: rulePosition,
       position_order: 9999
     };
-  
+
     try {
-      const data = await PolicyPosition.getPolicyPositionsByType(this.req.dbCon, this.policyType);
       await PolicyRuleToInterface.insertPolicy_r__interface(this.req.body.firewall, policy_r__interfaceData);
     } catch(err) { throw new HttpException(`Error inserting interface in policy rule: ${JSON.stringify(err)}`,500); }
   }
