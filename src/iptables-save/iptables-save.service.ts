@@ -25,6 +25,11 @@ import { Service } from "../fonaments/services/service";
 import { Request } from "express";
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { PolicyRule } from '../models/policy/PolicyRule';
+import { Interface } from '../models/interface/Interface';
+import { Tree } from '../models/tree/Tree';
+import { PolicyRuleToInterface } from '../models/policy/PolicyRuleToInterface';
+import { PolicyPosition } from '../models/policy/PolicyPosition';
+
 
 const netFilterTables = new Set<string>([
   '*nat',
@@ -76,9 +81,15 @@ export class IptablesSaveService extends Service {
   private items: string[];
   private table: string;
   private chain: string;
+  private policyType: number;
+  private ruleId: any;
   private ruleOrder: number;
   private ruleTarget: string;
   private customChainsMap: Map<string, number[]>;
+
+  public async export(request: Request): Promise<void> {
+    return;
+  }
 
   public async import(request: Request): Promise<void> {
     this.req = request;
@@ -162,15 +173,14 @@ export class IptablesSaveService extends Service {
 
     // If don't find type map, ignore this rule.
     if (!(policy_rData.type = typeMap.get(`${this.table}-${this.chain}`))) return false;
+    this.policyType = policy_rData.type;
 
     this.items.shift();
 
     try {
       await PolicyRule.reorderAfterRuleOrder(this.req.dbCon, this.req.body.firewall, policy_rData.type, policy_rData.rule_order);
-      await PolicyRule.insertPolicy_r(policy_rData);
-    } catch(error) {
-      throw new HttpException(`Error creating policy rule: ${JSON.stringify(error)}`,500);
-    }
+      this.ruleId = await PolicyRule.insertPolicy_r(policy_rData);
+    } catch(err) { throw new HttpException(`Error creating policy rule: ${JSON.stringify(err)}`,500); }
   
     return true;
   }
@@ -183,11 +193,11 @@ export class IptablesSaveService extends Service {
     this.ruleTarget = '';
 
     while(lineItems.length > 0)
-      await this.consumeRuleData(line,lineItems);
+      await this.eatRuleData(line,lineItems);
 
     let lines: number[] = this.customChainsMap.get(this.ruleTarget);
     if (lines) {
-      for(let l of lines){
+      for(let l of lines) {
         await this.fillRulePositions(l);
       }
     }
@@ -195,7 +205,7 @@ export class IptablesSaveService extends Service {
     return;
   }
 
-  private consumeRuleData(line: number, lineItems: string[]): Promise<void> {
+  private async eatRuleData(line: number, lineItems: string[]): Promise<void> {
     const item = lineItems[0];
     lineItems.shift();
 
@@ -207,6 +217,7 @@ export class IptablesSaveService extends Service {
 
       case '-o':
       case '-i':
+        await this.eatInterface(item,lineItems[0]);
         lineItems.shift();
         break;
 
@@ -236,7 +247,46 @@ export class IptablesSaveService extends Service {
     return;
   }
 
-  public async export(request: Request): Promise<void> {
-    return;
+  private async eatInterface(dir: string, _interface: string): Promise<void> {
+    const interfaces = await Interface.getInterfaces(this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall);
+    let interfaceId: any = 0;
+
+    // Search if the interface exits.
+    for(let i=0; i<interfaces.length; i++) {
+      if (interfaces[i].name === _interface) {
+        interfaceId = interfaces[i].id;
+        break;
+      }
+    }
+
+    // If not found create it.
+    if (!interfaceId) {
+      let interfaceData = {
+        id: null,
+        firewall: this.req.body.firewall,
+        name: _interface,
+        type: 10,
+        interface_type: 10
+      };
+      
+      try {
+        interfaceData.id = interfaceId = await Interface.insertInterface(this.req.dbCon, interfaceData);
+        const fwcTreeNode: any = await Tree.getNodeByNameAndType(this.req.body.fwcloud,'Interfaces','FDI');
+        await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'IFF', interfaceData);
+      } catch(err) { throw new HttpException(`Error creating firewall interface: ${JSON.stringify(err)}`,500); }
+    }
+
+    // Add the interface to the rule position.
+    let policy_r__interfaceData = {
+      rule: this.ruleId,
+      interface: interfaceId,
+      position: 0,
+      position_order: 9999
+    };
+  
+    try {
+      const data = await PolicyPosition.getPolicyPositionsByType(this.req.dbCon, this.policyType);
+      await PolicyRuleToInterface.insertPolicy_r__interface(this.req.body.firewall, policy_r__interfaceData);
+    } catch(err) { throw new HttpException(`Error inserting interface in policy rule: ${JSON.stringify(err)}`,500); }
   }
 }
