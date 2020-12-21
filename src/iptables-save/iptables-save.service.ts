@@ -34,11 +34,11 @@ const netFilterTables = new Set<string>([
 ]);
 
 const stdChains = new Set<string>([
-  ':INPUT',
-  ':OUTPUT',
-  ':FORWARD',
-  ':PREROUTING',
-  ':POSTROUTING'
+  'INPUT',
+  'OUTPUT',
+  'FORWARD',
+  'PREROUTING',
+  'POSTROUTING'
 ]);
 
 /*
@@ -76,8 +76,9 @@ export class IptablesSaveService extends Service {
   private items: string[];
   private table: string;
   private chain: string;
-  private rule_order: number;
-  private customChainsSet: Set<string>;
+  private ruleOrder: number;
+  private ruleTarget: string;
+  private customChainsMap: Map<string, number[]>;
 
   public async import(request: Request): Promise<void> {
     this.req = request;
@@ -96,8 +97,8 @@ export class IptablesSaveService extends Service {
         if (!netFilterTables.has(this.items[0]))
           throw new HttpException(`Bad iptables-save data (line: ${this.p+1})`,400);
         this.table = this.items[0];
-        this.rule_order = 1;
-        this.customChainsSet = new Set();
+        this.ruleOrder = 1;
+        this.customChainsMap = new Map();
         continue;
       }
 
@@ -114,7 +115,7 @@ export class IptablesSaveService extends Service {
         await this.generateCustomChainsMap();
       else if (this.items[0] === '-A') { // Generate rule.
         if (await this.generateRule()) 
-          await this.fillPositions();
+          await this.fillRulePositions(this.p);
       }
     }
 
@@ -122,9 +123,21 @@ export class IptablesSaveService extends Service {
   }
 
   private generateCustomChainsMap(): Promise<void> {
-    if (stdChains.has(this.items[0])) return;
+    let chain: string = this.items[0].substr(1);
 
-    this.customChainsSet.add(this.items[0]);
+    // Ignore standard chains names.
+    if (stdChains.has(chain)) return;
+
+    // Search all the lines that have data for this custom chain.
+    let value: number[] = [];
+    let items: string[];
+    for(let p=this.p+1; p< this.data.length; p++) {
+      items = this.data[p].trim().split(/\s+/);
+      if (items[0] === 'COMMIT') break;
+      if (items[0] === '-A' && items[1] === chain) value.push(p);
+    }
+
+    this.customChainsMap.set(this.items[0].substr(1),value);
 
     return;
   }
@@ -133,7 +146,7 @@ export class IptablesSaveService extends Service {
     let policy_rData = {
       id: null,
       firewall: this.req.body.firewall,
-      rule_order: ++this.rule_order,
+      rule_order: ++this.ruleOrder,
       action: 1,
       active: 1,
       options: 0,
@@ -145,7 +158,7 @@ export class IptablesSaveService extends Service {
     this.chain = this.items[0];
 
     // Ignore iptables rules for custom chains because they have already been processed.
-    if (this.customChainsSet.has(`:${this.chain}`)) return false;
+    if (this.customChainsMap.has(this.chain)) return false;
 
     // If don't find type map, ignore this rule.
     if (!(policy_rData.type = typeMap.get(`${this.table}-${this.chain}`))) return false;
@@ -162,47 +175,62 @@ export class IptablesSaveService extends Service {
     return true;
   }
 
-  private async fillPositions(): Promise<void> {
-    while(this.items.length > 0)
-      await this.consumeRuleData();
+  private async fillRulePositions(line: number): Promise<void> {
+    let lineItems = this.data[line].trim().split(/\s+/); 
+    lineItems.shift(); // -A
+    lineItems.shift(); // Chain name
+
+    this.ruleTarget = '';
+
+    while(lineItems.length > 0)
+      await this.consumeRuleData(line,lineItems);
+
+    let lines: number[] = this.customChainsMap.get(this.ruleTarget);
+    if (lines) {
+      for(let l of lines){
+        await this.fillRulePositions(l);
+      }
+    }
+
     return;
   }
 
-  private consumeRuleData(): Promise<void> {
-    const item = this.items[0];
-    this.items.shift();
+  private consumeRuleData(line: number, lineItems: string[]): Promise<void> {
+    const item = lineItems[0];
+    lineItems.shift();
 
     switch(item) {
       case '-s':
       case '-d':
-        this.items.shift();
+        lineItems.shift();
         break;
 
       case '-o':
       case '-i':
-        this.items.shift();
+        lineItems.shift();
         break;
 
       case '-p':
-        this.items.shift();
+        lineItems.shift();
         break;
 
       case '-m':
-        this.items.shift();
-        this.items.shift();
-        this.items.shift();
+        lineItems.shift();
+        lineItems.shift();
+        lineItems.shift();
         break;
     
       case '-j':
-        if (this.items[0] === 'SNAT' || this.items[0] === 'DNAT') {
-          this.items.shift();
-          this.items.shift();
+        if (lineItems[0] === 'SNAT' || lineItems[0] === 'DNAT') {
+          lineItems.shift();
+          lineItems.shift();
         }
-        this.items.shift();
+        this.ruleTarget = lineItems[0];
+        lineItems.shift();
         break;
   
       default:
-        throw new HttpException(`Bad iptables-save data (line: ${this.p+1})`,400);
+        throw new HttpException(`Bad iptables-save data (line: ${line+1})`,400);
     }
 
     return;
