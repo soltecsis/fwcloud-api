@@ -28,6 +28,7 @@ import { Interface } from '../models/interface/Interface';
 import { Tree } from '../models/tree/Tree';
 import { PolicyRuleToInterface } from '../models/policy/PolicyRuleToInterface';
 import { IPObj } from '../models/ipobj/IPObj';
+import { PolicyRuleToIPObj } from "../models/policy/PolicyRuleToIPObj";
 
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
@@ -111,11 +112,25 @@ mysql> select * from policy_type;
 */
 export const PositionMap = new Map<string, number>([
   ['filter:INPUT:-i', 20],
+  ['filter:INPUT:-s', 1],
+  ['filter:INPUT:-d', 2],
+
   ['filter:OUTPUT:-o', 21],
+  ['filter:OUTPUT:-s', 4],
+  ['filter:OUTPUT:-d', 5],
+
   ['filter:FORWARD:-i', 22],
   ['filter:FORWARD:-o', 25],
-  ['nat:POSTROUTING:-o', 24],
-  ['nat:PREROUTING:-i', 36],
+  ['filter:FORWARD:-s', 7],
+  ['filter:FORWARD:-d', 8],
+
+  ['nat:POSTROUTING:-o', 24], // SNAT
+  ['nat:POSTROUTING:-s', 11],
+  ['nat:POSTROUTING:-d', 12],
+
+  ['nat:PREROUTING:-i', 36], // DNAT
+  ['nat:PREROUTING:-s', 30],
+  ['nat:PREROUTING:-d', 31],
 ]);
 
 export class IptablesSaveToFWCloud extends Service {
@@ -158,7 +173,7 @@ export class IptablesSaveToFWCloud extends Service {
       action: 1,
       active: 1,
       options: 0,
-      comment: '',
+      comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`,
       type: 0,
     };
 
@@ -266,12 +281,13 @@ export class IptablesSaveToFWCloud extends Service {
         firewall: this.req.body.firewall,
         name: _interface,
         type: 10,
-        interface_type: 10
+        interface_type: 10,
+        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
       };
       
       try {
         interfaceData.id = interfaceId = await Interface.insertInterface(this.req.dbCon, interfaceData);
-        const fwcTreeNode: any = await Tree.getNodeByNameAndType(this.req.body.fwcloud,'Interfaces','FDI');
+        const fwcTreeNode: any = await Tree.getNodeUnderFirewall(this.req.dbCon,this.req.body.fwcloud,this.req.body.fwcloud,'FDI');
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'IFF', interfaceData);
       } catch(err) { throw new HttpException(`Error creating firewall interface: ${JSON.stringify(err)}`,500); }
     }
@@ -284,8 +300,7 @@ export class IptablesSaveToFWCloud extends Service {
     let policy_r__interfaceData = {
       rule: this.ruleId,
       interface: interfaceId,
-      position: rulePosition,
-      position_order: 9999
+      position: rulePosition
     };
 
     try {
@@ -293,11 +308,54 @@ export class IptablesSaveToFWCloud extends Service {
     } catch(err) { throw new HttpException(`Error inserting interface in policy rule: ${JSON.stringify(err)}`,500); }
   }
 
+
   private async eatAddr(dir: string, addr: string): Promise<void> {
     // IMPORTAT: Validate data before process it.
-    await Joi.validate(addr, Joi.string().ip({ version: ['ipv4'], cidr: 'required' }));
+    await Joi.validate(addr, Joi.string().ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'required' }));
 
-    const ip = addr.split('/');
-    let addrId = await IPObj.searchAddrWithMask(this.req.dbCon,this.req.body.fwcloud,ip[0],ip[1]);
+    const fullMask = this.req.body.ip_version === 4 ? '32' : '128';
+    const addrData = addr.split('/');
+    const ip: string = addrData[0];
+    const mask: string = addrData[1];
+
+    let addrId = await IPObj.searchAddrWithMask(this.req.dbCon,this.req.body.fwcloud,ip,mask);
+    
+    // If not found create it.
+    if (!addrId) {
+      let ipobjData = {
+        id: null,
+        fwcloud: this.req.body.fwcloud,
+        name: mask === fullMask ? ip :addr,
+        type: mask === fullMask ? 5 : 7, // 5: ADDRESS, 7: NETWORK
+        address: ip,
+        netmask: `/${mask}`,
+        ip_version: this.req.body.ip_version,
+        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+      };
+  
+      try {
+        ipobjData.id = addrId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
+        const fwcTreeNode: any = mask === fullMask ? await Tree.getNodeByNameAndType(this.req.body.fwcloud,'Addresses','OIA') : await Tree.getNodeByNameAndType(this.req.body.fwcloud,'Networks','OIN');
+        await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, mask===fullMask ? 'OIA' : 'OIN' , ipobjData);
+      } catch(err) { throw new HttpException(`Error creating IP object: ${JSON.stringify(err)}`,500); }
+    }
+
+    // Add the addr object to the rule position.
+    const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${dir}`);
+    if (!rulePosition)
+      throw new HttpException(`Rule position not found for: ${this.table}:${this.chain}:${dir}`,500);
+
+    let policy_r__ipobjData = {
+      rule: this.ruleId,
+      ipobj: addrId,
+      ipobj_g: -1,
+      interface: -1,
+      position: rulePosition,
+      position_order: 1
+    };
+
+    try {
+      await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
+    } catch(err) { throw new HttpException(`Error inserting IP object in policy rule: ${JSON.stringify(err)}`,500); }
   }
 }

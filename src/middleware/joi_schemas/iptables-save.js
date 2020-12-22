@@ -30,7 +30,11 @@ const fwcError = require('../../utils/error_table');
 
 schema.validate = req => {
 	return new Promise(async(resolve, reject) => {
-		var schema = Joi.object().keys({ fwcloud: sharedSch.id, firewall: sharedSch.id });
+		var schema = Joi.object().keys({ 
+            fwcloud: sharedSch.id, 
+            firewall: sharedSch.id,
+            ip_version: Joi.number().integer().valid([4, 6])
+         });
 
 		if (req.method==='PUT' && req.url==='/iptables-save/import') {
 			schema = schema.append({ data: Joi.array().items(Joi.string()) });
