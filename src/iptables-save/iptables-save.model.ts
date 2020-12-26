@@ -381,14 +381,14 @@ export class IptablesSaveToFWCloud extends Service {
 
         const ports = data.trim().split(',');
         for (let port of ports)
-          await this.eatService(opt,port);
+          await this.eatServicePort(opt,port);
         break;
 
       case 'tcp':
       case 'udp':
         if (opt!=='--dport' && opt!=='--sport')
           throw new HttpException(`Bad ${module} module option`,500);
-        await this.eatService(opt,data);
+        await this.eatServicePort(opt,data);
         break;
 
       case 'icmp':
@@ -402,10 +402,51 @@ export class IptablesSaveToFWCloud extends Service {
     }  
   }
 
-  private async eatService(dir: string, port: string): Promise<void> {
+
+  private async eatServicePort(dir: string, port: string): Promise<void> {
     // IMPORTANT: Validate data before process it.
     await Joi.validate(port, Joi.number().port());
+
+    let src1: number = 0;
+    let src2: number = 0;
+    let dst1: number = 0;
+    let dst2: number = 0;
+
+    if (dir==='--dport' || dir==='--dports') {
+      dst1 = dst2 = parseInt(port);
+    } else {
+      src1 = src2 = parseInt(port);
+    }
+
+    // Search to find out if it already exists.
+    let portId: any = await IPObj.searchPort(this.req.dbCon,this.req.body.fwcloud,this.ipProtocol,src1,src2,dst1,dst2);
+
+    // If not found create it.
+    if (!portId) {
+      let ipobjData = {
+        id: null,
+        fwcloud: this.req.body.fwcloud,
+        name: port,
+        type: this.ipProtocol === 'tcp' ? 2 : 4, // 2: TCP, 4: UDP
+        protocol: this.ipProtocol === 'tcp' ? 6 : 17,
+        source_port_start: src1,
+        source_port_end: src2, 
+        destination_port_start: dst1,
+        destination_port_end: dst2,
+        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+      };
+  
+      try {
+        ipobjData.id = portId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
+        const fwcTreeNode: any = this.ipProtocol === 'tcp' ? await Tree.getNodeByNameAndType(this.req.body.fwcloud,'TCP','SOT') : await Tree.getNodeByNameAndType(this.req.body.fwcloud,'UDP','SOU');
+        await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, this.ipProtocol==='TCP' ? 'SOT' : 'SOU', ipobjData);
+      } catch(err) { throw new HttpException(`Error creating service object: ${JSON.stringify(err)}`,500); }
+    }
+
+    // Add the addr object to the rule position.
+    await this.addIPObjToRulePosition(dir,portId);
   }
+
 
   private async addIPObjToRulePosition(item: string, id: string): Promise<void> {
     const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${item}`);
