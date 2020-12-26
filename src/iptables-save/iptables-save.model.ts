@@ -114,23 +114,28 @@ export const PositionMap = new Map<string, number>([
   ['filter:INPUT:-i', 20],
   ['filter:INPUT:-s', 1],
   ['filter:INPUT:-d', 2],
+  ['filter:INPUT:-p', 3], ['filter:INPUT:--dports', 3], ['filter:INPUT:--dport', 3], ['filter:INPUT:--sports', 3], ['filter:INPUT:--sport', 3],
 
   ['filter:OUTPUT:-o', 21],
   ['filter:OUTPUT:-s', 4],
   ['filter:OUTPUT:-d', 5],
+  ['filter:OUTPUT:-p', 6], ['filter:OUTPUT:--dports', 6], ['filter:INPUT:--dport', 6], ['filter:INPUT:--sports', 6], ['filter:INPUT:--sport', 6],
 
   ['filter:FORWARD:-i', 22],
   ['filter:FORWARD:-o', 25],
   ['filter:FORWARD:-s', 7],
   ['filter:FORWARD:-d', 8],
+  ['filter:FORWARD:-p', 9], ['filter:FORWARD:--dports', 9], ['filter:FORWARD:--dport', 9], ['filter:FORWARD:--sports', 9], ['filter:FORWARD:--sport', 9],
 
   ['nat:POSTROUTING:-o', 24], // SNAT
   ['nat:POSTROUTING:-s', 11],
   ['nat:POSTROUTING:-d', 12],
+  ['nat:POSTROUTING:-p', 13], ['nat:POSTROUTING:--dports', 13], ['nat:POSTROUTING:--dport', 13], ['nat:POSTROUTING:--sports', 13], ['nat:POSTROUTING:--sport', 13],
 
   ['nat:PREROUTING:-i', 36], // DNAT
   ['nat:PREROUTING:-s', 30],
   ['nat:PREROUTING:-d', 31],
+  ['nat:PREROUTING:-p', 32], ['nat:PREROUTING:--dports', 32], ['nat:PREROUTING:--dport', 32], ['nat:PREROUTING:--sports', 32], ['nat:PREROUTING:--sport', 32],
 ]);
 
 export class IptablesSaveToFWCloud extends Service {
@@ -140,6 +145,7 @@ export class IptablesSaveToFWCloud extends Service {
   protected items: string[];
   protected table: string;
   protected chain: string;
+  protected ipProtocol: string;
   protected ruleId: any;
   protected ruleOrder: number;
   protected ruleTarget: string;
@@ -234,13 +240,13 @@ export class IptablesSaveToFWCloud extends Service {
         break;
 
       case '-p':
+        await this.eatProtocol(lineItems[0])
         lineItems.shift();
         break;
 
       case '-m':
-        lineItems.shift();
-        lineItems.shift();
-        lineItems.shift();
+        await this.eatModule(lineItems[0], lineItems[1], lineItems[2]);
+        lineItems.shift(); lineItems.shift(); lineItems.shift();
         break;
     
       case '-j':
@@ -260,9 +266,10 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
   private async eatInterface(dir: string, _interface: string): Promise<void> {
-    // IMPORTAT: Validate data before process it.
+    // IMPORTANT: Validate data before process it.
     await Joi.validate(_interface, sharedSch.name);
 
+    // Search to find out if it already exists.
     const interfaces = await Interface.getInterfaces(this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall);
     let interfaceId: any = 0;
 
@@ -310,7 +317,7 @@ export class IptablesSaveToFWCloud extends Service {
 
 
   private async eatAddr(dir: string, addr: string): Promise<void> {
-    // IMPORTAT: Validate data before process it.
+    // IMPORTANT: Validate data before process it.
     await Joi.validate(addr, Joi.string().ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'required' }));
 
     const fullMask = this.req.body.ip_version === 4 ? '32' : '128';
@@ -318,7 +325,8 @@ export class IptablesSaveToFWCloud extends Service {
     const ip: string = addrData[0];
     const mask: string = addrData[1];
 
-    let addrId = await IPObj.searchAddrWithMask(this.req.dbCon,this.req.body.fwcloud,ip,mask);
+    // Search to find out if it already exists.
+    let addrId: any = await IPObj.searchAddrWithMask(this.req.dbCon,this.req.body.fwcloud,ip,mask);
     
     // If not found create it.
     if (!addrId) {
@@ -341,13 +349,72 @@ export class IptablesSaveToFWCloud extends Service {
     }
 
     // Add the addr object to the rule position.
-    const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${dir}`);
+    await this.addIPObjToRulePosition(dir,addrId);
+  }
+
+
+  private async eatProtocol(protocol: string): Promise<void> {
+    // IMPORTANT: Validate data before process it.
+    if (protocol==='tcp' || protocol==='udp' || protocol==='icmp') {
+      this.ipProtocol = protocol;
+      return;
+    }
+    await Joi.validate(protocol, sharedSch.u8bits);
+
+    // Search to find out if it already exists.   
+    const protocolId: any = await IPObj.searchIPProtocol(this.req.dbCon,this.req.body.fwcloud,protocol);
+    if (protocolId === '')
+      throw new HttpException(`IP protocol not found: ${protocol}`,500);
+
+    // Add the protocol object to the rule position.
+    await this.addIPObjToRulePosition('-p',protocolId);
+  }
+
+
+  private async eatModule(module: string, opt: string, data: string): Promise<void> {
+    switch (module) {
+      case 'multiport':
+        if (this.ipProtocol!=='tcp' && this.ipProtocol!=='udp')
+          throw new HttpException('IPTables multiport module can only be used in conjunction with -p tcp or -p udp',500);
+        if (opt!=='--dports' && opt!=='--sports')
+        throw new HttpException(`Bad ${module} module option`,500);
+
+        const ports = data.trim().split(',');
+        for (let port of ports)
+          await this.eatService(opt,port);
+        break;
+
+      case 'tcp':
+      case 'udp':
+        if (opt!=='--dport' && opt!=='--sport')
+          throw new HttpException(`Bad ${module} module option`,500);
+        await this.eatService(opt,data);
+        break;
+
+      case 'icmp':
+        break;
+
+      case 'conntrack':
+        break;
+  
+      default: 
+        throw new HttpException(`IPTables module not supported: ${module}`,500);
+    }  
+  }
+
+  private async eatService(dir: string, port: string): Promise<void> {
+    // IMPORTANT: Validate data before process it.
+    await Joi.validate(port, Joi.number().port());
+  }
+
+  private async addIPObjToRulePosition(item: string, id: string): Promise<void> {
+    const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${item}`);
     if (!rulePosition)
-      throw new HttpException(`Rule position not found for: ${this.table}:${this.chain}:${dir}`,500);
+      throw new HttpException(`Rule position not found for: ${this.table}:${this.chain}:${item}`,500);
 
     let policy_r__ipobjData = {
       rule: this.ruleId,
-      ipobj: addrId,
+      ipobj: id,
       ipobj_g: -1,
       interface: -1,
       position: rulePosition,

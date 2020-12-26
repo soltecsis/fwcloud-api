@@ -1183,7 +1183,7 @@ export class IPObj extends Model {
     // Search if IP with mask exists. (IP is given in CIDR notation) 
     public static searchAddrWithMask(dbCon, fwcloud, addr, mask) {        
         return new Promise((resolve, reject) => {
-            let sql = `select id,name,address,netmask from ipobj 
+            let sql = `select id,address,netmask from ipobj 
             where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND address=${dbCon.escape(addr)} and (type=5 OR type=7)`; // 5: ADDRESS, 7: NETWORK
 
             dbCon.query(sql, (error, rows) => {
@@ -1200,6 +1200,20 @@ export class IPObj extends Model {
                 }
 
                 resolve(0);
+            });
+        });
+    };
+
+    // Search if IP with mask exists. (IP is given in CIDR notation) 
+    public static searchIPProtocol(dbCon, fwcloud, protocol) {        
+        return new Promise((resolve, reject) => {
+            let sql = `select id from ipobj 
+            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=${protocol} and type=1`; // 1: IP
+
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+
+                resolve(rows.length === 0 ? '' : rows[0].id)
             });
         });
     };
