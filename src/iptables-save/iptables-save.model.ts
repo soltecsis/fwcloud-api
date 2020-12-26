@@ -379,16 +379,21 @@ export class IptablesSaveToFWCloud extends Service {
         if (opt!=='--dports' && opt!=='--sports')
         throw new HttpException(`Bad ${module} module option`,500);
 
-        const ports = data.trim().split(',');
-        for (let port of ports)
-          await this.eatServicePort(opt,port);
+        const portsList = data.trim().split(',');
+        for (let ports of portsList) {
+          const sports = opt === '--sports' ? ports : '';
+          const dports = opt === '--dports' ? ports : '';
+          await this.eatServicePort(opt,sports,dports);
+        }
         break;
 
       case 'tcp':
       case 'udp':
         if (opt!=='--dport' && opt!=='--sport')
           throw new HttpException(`Bad ${module} module option`,500);
-        await this.eatServicePort(opt,data);
+        const sports = opt === '--sport' ? data : '';
+        const dports = opt === '--dport' ? data : '';
+        await this.eatServicePort(opt,sports,dports);
         break;
 
       case 'icmp':
@@ -403,36 +408,34 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
 
-  private async eatServicePort(dir: string, port: string): Promise<void> {
+  private async eatServicePort(dir: string, sports: string, dports: string): Promise<void> {
+    const srcPorts = sports.split(':');
+    const dstPorts = dports.split(':');
+
     // IMPORTANT: Validate data before process it.
-    await Joi.validate(port, Joi.number().port());
+    for (let port of srcPorts)
+      await Joi.validate(port, Joi.number().port());
+    for (let port of dstPorts)
+      await Joi.validate(port, Joi.number().port());
 
-    let src1: number = 0;
-    let src2: number = 0;
-    let dst1: number = 0;
-    let dst2: number = 0;
-
-    if (dir==='--dport' || dir==='--dports') {
-      dst1 = dst2 = parseInt(port);
-    } else {
-      src1 = src2 = parseInt(port);
-    }
+    if (srcPorts.length < 2) srcPorts.push(srcPorts[0]);
+    if (dstPorts.length < 2) dstPorts.push(dstPorts[0]);
 
     // Search to find out if it already exists.
-    let portId: any = await IPObj.searchPort(this.req.dbCon,this.req.body.fwcloud,this.ipProtocol,src1,src2,dst1,dst2);
+    let portId: any = await IPObj.searchPort(this.req.dbCon,this.req.body.fwcloud,this.ipProtocol,srcPorts,dstPorts);
 
     // If not found create it.
     if (!portId) {
       let ipobjData = {
         id: null,
         fwcloud: this.req.body.fwcloud,
-        name: port,
+        name: dports,
         type: this.ipProtocol === 'tcp' ? 2 : 4, // 2: TCP, 4: UDP
         protocol: this.ipProtocol === 'tcp' ? 6 : 17,
-        source_port_start: src1,
-        source_port_end: src2, 
-        destination_port_start: dst1,
-        destination_port_end: dst2,
+        source_port_start: srcPorts[0],
+        source_port_end: srcPorts[1], 
+        destination_port_start: dstPorts[0],
+        destination_port_end: dstPorts[1],
         comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
       };
   
