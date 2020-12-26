@@ -114,28 +114,28 @@ export const PositionMap = new Map<string, number>([
   ['filter:INPUT:-i', 20],
   ['filter:INPUT:-s', 1],
   ['filter:INPUT:-d', 2],
-  ['filter:INPUT:-p', 3], ['filter:INPUT:--dports', 3], ['filter:INPUT:--dport', 3], ['filter:INPUT:--sports', 3], ['filter:INPUT:--sport', 3],
+  ['filter:INPUT:-p', 3], ['filter:INPUT:srvc', 3],
 
   ['filter:OUTPUT:-o', 21],
   ['filter:OUTPUT:-s', 4],
   ['filter:OUTPUT:-d', 5],
-  ['filter:OUTPUT:-p', 6], ['filter:OUTPUT:--dports', 6], ['filter:INPUT:--dport', 6], ['filter:INPUT:--sports', 6], ['filter:INPUT:--sport', 6],
+  ['filter:OUTPUT:-p', 6], ['filter:OUTPUT:srvc', 6],
 
   ['filter:FORWARD:-i', 22],
   ['filter:FORWARD:-o', 25],
   ['filter:FORWARD:-s', 7],
   ['filter:FORWARD:-d', 8],
-  ['filter:FORWARD:-p', 9], ['filter:FORWARD:--dports', 9], ['filter:FORWARD:--dport', 9], ['filter:FORWARD:--sports', 9], ['filter:FORWARD:--sport', 9],
+  ['filter:FORWARD:-p', 9], ['filter:FORWARD:srvc', 9],
 
   ['nat:POSTROUTING:-o', 24], // SNAT
   ['nat:POSTROUTING:-s', 11],
   ['nat:POSTROUTING:-d', 12],
-  ['nat:POSTROUTING:-p', 13], ['nat:POSTROUTING:--dports', 13], ['nat:POSTROUTING:--dport', 13], ['nat:POSTROUTING:--sports', 13], ['nat:POSTROUTING:--sport', 13],
+  ['nat:POSTROUTING:-p', 13], ['nat:POSTROUTING:srvc', 13],
 
   ['nat:PREROUTING:-i', 36], // DNAT
   ['nat:PREROUTING:-s', 30],
   ['nat:PREROUTING:-d', 31],
-  ['nat:PREROUTING:-p', 32], ['nat:PREROUTING:--dports', 32], ['nat:PREROUTING:--dport', 32], ['nat:PREROUTING:--sports', 32], ['nat:PREROUTING:--sport', 32],
+  ['nat:PREROUTING:-p', 32], ['nat:PREROUTING:srvc', 32],
 ]);
 
 export class IptablesSaveToFWCloud extends Service {
@@ -240,10 +240,26 @@ export class IptablesSaveToFWCloud extends Service {
         break;
 
       case '-p':
-        await this.eatProtocol(lineItems[0])
+        await this.eatProtocol(lineItems[0]);
         lineItems.shift();
         break;
 
+      case '--sport':
+        if (this.ipProtocol!=='tcp' && this.ipProtocol!=='udp')
+          throw new HttpException('--sport can only be used in conjunction with -p tcp or -p udp',500);
+        const dstPorts = lineItems[1] && lineItems[1] === '--dport' ? lineItems[2] : '0';
+        await this.eatServicePort(lineItems[0],dstPorts);
+        lineItems.shift();
+        if (dstPorts !== '0') { lineItems.shift(); lineItems.shift(); }
+        break;
+
+      case '--dport':
+        if (this.ipProtocol!=='tcp' && this.ipProtocol!=='udp')
+          throw new HttpException('--dport can only be used in conjunction with -p tcp or -p udp',500);
+        await this.eatServicePort('0',lineItems[0]);
+        lineItems.shift();
+        break;
+          
       case '-m':
         await this.eatModule(lineItems[0], lineItems[1], lineItems[2]);
         lineItems.shift(); lineItems.shift(); lineItems.shift();
@@ -377,13 +393,13 @@ export class IptablesSaveToFWCloud extends Service {
         if (this.ipProtocol!=='tcp' && this.ipProtocol!=='udp')
           throw new HttpException('IPTables multiport module can only be used in conjunction with -p tcp or -p udp',500);
         if (opt!=='--dports' && opt!=='--sports')
-        throw new HttpException(`Bad ${module} module option`,500);
+          throw new HttpException(`Bad ${module} module option`,500);
 
         const portsList = data.trim().split(',');
         for (let ports of portsList) {
-          const sports = opt === '--sports' ? ports : '';
-          const dports = opt === '--dports' ? ports : '';
-          await this.eatServicePort(opt,sports,dports);
+          const sports = opt === '--sports' ? ports : '0';
+          const dports = opt === '--dports' ? ports : '0';
+          await this.eatServicePort(sports,dports);
         }
         break;
 
@@ -391,9 +407,10 @@ export class IptablesSaveToFWCloud extends Service {
       case 'udp':
         if (opt!=='--dport' && opt!=='--sport')
           throw new HttpException(`Bad ${module} module option`,500);
-        const sports = opt === '--sport' ? data : '';
-        const dports = opt === '--dport' ? data : '';
-        await this.eatServicePort(opt,sports,dports);
+
+        const sports = opt === '--sport' ? data : '0';
+        const dports = opt === '--dport' ? data : '0';
+        await this.eatServicePort(sports,dports);
         break;
 
       case 'icmp':
@@ -408,7 +425,7 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
 
-  private async eatServicePort(dir: string, sports: string, dports: string): Promise<void> {
+  private async eatServicePort(sports: string, dports: string): Promise<void> {
     const srcPorts = sports.split(':');
     const dstPorts = dports.split(':');
 
@@ -447,7 +464,7 @@ export class IptablesSaveToFWCloud extends Service {
     }
 
     // Add the addr object to the rule position.
-    await this.addIPObjToRulePosition(dir,portId);
+    await this.addIPObjToRulePosition('srvc',portId);
   }
 
 
