@@ -49,6 +49,15 @@ export const StdChains = new Set<string>([
   'POSTROUTING'
 ]);
 
+export const TcpFlags = new Map<string, number>([
+  ['URG', 1],
+  ['ACK', 2],
+  ['PSH', 4],
+  ['RST', 8],
+  ['SYN', 16],
+  ['FIN', 32]
+]);
+
 /*
 mysql> select * from policy_type;
 +----+------+--------------+------------+-------------+
@@ -245,19 +254,9 @@ export class IptablesSaveToFWCloud extends Service {
         break;
 
       case '--sport':
-        if (this.ipProtocol!=='tcp' && this.ipProtocol!=='udp')
-          throw new HttpException('--sport can only be used in conjunction with -p tcp or -p udp',500);
-        const dstPorts = lineItems[1] && lineItems[1] === '--dport' ? lineItems[2] : '0';
-        await this.eatServicePort(lineItems[0],dstPorts);
-        lineItems.shift();
-        if (dstPorts !== '0') { lineItems.shift(); lineItems.shift(); }
-        break;
-
       case '--dport':
-        if (this.ipProtocol!=='tcp' && this.ipProtocol!=='udp')
-          throw new HttpException('--dport can only be used in conjunction with -p tcp or -p udp',500);
-        await this.eatServicePort('0',lineItems[0]);
-        lineItems.shift();
+      case '--tcp-flags':
+        await this.composeAndEatServicePort(item,lineItems);
         break;
           
       case '-m':
@@ -267,8 +266,7 @@ export class IptablesSaveToFWCloud extends Service {
     
       case '-j':
         if (lineItems[0] === 'SNAT' || lineItems[0] === 'DNAT') {
-          lineItems.shift();
-          lineItems.shift();
+          lineItems.shift(); lineItems.shift();
         }
         this.ruleTarget = lineItems[0];
         lineItems.shift();
@@ -279,6 +277,51 @@ export class IptablesSaveToFWCloud extends Service {
     }
 
     return;
+  }
+
+  private async composeAndEatServicePort(item: string, items: string[]): Promise<void> {
+    if ((item==='--sport' || item==='--dport') && this.ipProtocol!=='tcp' && this.ipProtocol!=='udp')
+      throw new HttpException('--sport/--dport can only be used in conjunction with -p tcp or -p udp',500);
+    if (item==='--tcp-flags' && this.ipProtocol!=='tcp')
+      throw new HttpException('--tcp-flags can only be used in conjunction with -p tcp',500);
+    
+    let srcPorts = '0';
+    let dstPorts = '0';
+    let tcpFlags = 0;
+    let tcpFlagsSet = 0;
+    
+    while(items.length > 0) {
+      if (item === '--sport') srcPorts = items[0];
+      else if (item === '--dport') dstPorts = items[0];
+      else if (item === '--tcp-flags') { 
+        tcpFlags = await this.generateBitMask(items[0]); 
+        tcpFlagsSet = await this.generateBitMask(items[1]);
+        items.shift();
+      }
+      else { // Other item.
+        items.unshift(item);
+        break;
+      }
+
+      items.shift();
+      item = items[0];
+      items.shift();
+    } 
+  
+    await this.eatServicePort(srcPorts,dstPorts,tcpFlags,tcpFlagsSet);
+  }
+
+  private async generateBitMask(data: string): Promise<number> {
+    if (data==='NONE') return 0;
+    if (data==='ALL') return 63;
+
+    let mask = 0;
+    const items = data.split(',');
+    for(let item of items) {
+      mask |= TcpFlags.get(item);
+    }
+
+    return mask;
   }
 
   private async eatInterface(dir: string, _interface: string): Promise<void> {
@@ -399,7 +442,7 @@ export class IptablesSaveToFWCloud extends Service {
         for (let ports of portsList) {
           const sports = opt === '--sports' ? ports : '0';
           const dports = opt === '--dports' ? ports : '0';
-          await this.eatServicePort(sports,dports);
+          await this.eatServicePort(sports,dports,null,null);
         }
         break;
 
@@ -410,10 +453,12 @@ export class IptablesSaveToFWCloud extends Service {
 
         const sports = opt === '--sport' ? data : '0';
         const dports = opt === '--dport' ? data : '0';
-        await this.eatServicePort(sports,dports);
+        await this.eatServicePort(sports,dports,null,null);
         break;
 
       case 'icmp':
+        if (this.ipProtocol!=='icmp')
+          throw new HttpException('IPTables icmp module can only be used in conjunction with -p icmp',500);
         break;
 
       case 'conntrack':
@@ -425,7 +470,7 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
 
-  private async eatServicePort(sports: string, dports: string): Promise<void> {
+  private async eatServicePort(sports: string, dports: string, tcpFlags: number, tcpFlagsSet: number): Promise<void> {
     const srcPorts = sports.split(':');
     const dstPorts = dports.split(':');
 
@@ -439,7 +484,7 @@ export class IptablesSaveToFWCloud extends Service {
     if (dstPorts.length < 2) dstPorts.push(dstPorts[0]);
 
     // Search to find out if it already exists.
-    let portId: any = await IPObj.searchPort(this.req.dbCon,this.req.body.fwcloud,this.ipProtocol,srcPorts,dstPorts);
+    let portId: any = await IPObj.searchPort(this.req.dbCon,this.req.body.fwcloud,this.ipProtocol,srcPorts,dstPorts,tcpFlags,tcpFlagsSet);
 
     // If not found create it.
     if (!portId) {
@@ -453,6 +498,8 @@ export class IptablesSaveToFWCloud extends Service {
         source_port_end: srcPorts[1], 
         destination_port_start: dstPorts[0],
         destination_port_end: dstPorts[1],
+        tcp_flags_mask: tcpFlags,
+        tcp_flags_settings: tcpFlagsSet,
         comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
       };
   

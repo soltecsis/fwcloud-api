@@ -1219,12 +1219,15 @@ export class IPObj extends Model {
     };
 
     // Search if serivice port exists.
-    public static searchPort(dbCon, fwcloud, protocol, scrPorts, dstPorts) {        
+    public static searchPort(dbCon, fwcloud, protocol, scrPorts, dstPorts, tcpFlags, tcpFlagsSet) {        
         return new Promise((resolve, reject) => {
             let sql = `select id from ipobj 
             where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=${protocol==='tcp' ? 6 : 17}
             AND source_port_start=${scrPorts[0]} AND source_port_end=${scrPorts[1]}
             AND destination_port_start=${dstPorts[0]} AND destination_port_end=${dstPorts[1]}`;
+
+            if (tcpFlags)
+                sql = `${sql} AND tcp_flags_mask=${tcpFlags} AND tcp_flags_settings=${tcpFlagsSet}`
 
             dbCon.query(sql, (error, rows) => {
                 if (error) return reject(error);
