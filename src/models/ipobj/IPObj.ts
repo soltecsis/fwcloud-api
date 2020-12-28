@@ -1218,7 +1218,7 @@ export class IPObj extends Model {
         });
     };
 
-    // Search if serivice port exists.
+    // Search for service port.
     public static searchPort(dbCon, fwcloud, protocol, scrPorts, dstPorts, tcpFlags, tcpFlagsSet) {        
         return new Promise((resolve, reject) => {
             let sql = `select id from ipobj 
@@ -1228,6 +1228,21 @@ export class IPObj extends Model {
 
             if (tcpFlags)
                 sql = `${sql} AND tcp_flags_mask=${tcpFlags} AND tcp_flags_settings=${tcpFlagsSet}`
+
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+
+                resolve(rows.length === 0 ? 0 : rows[0].id)
+            });
+        });
+    };
+    
+    // Search for icmp service.
+    public static searchICMP(dbCon, fwcloud, type, code) {        
+        return new Promise((resolve, reject) => {
+            let sql = `select id from ipobj 
+            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=1 AND type=3
+            AND icmp_type=${type} AND icmp_code=${code}`;
 
             dbCon.query(sql, (error, rows) => {
                 if (error) return reject(error);

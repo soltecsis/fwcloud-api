@@ -32,9 +32,9 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     this.data = request.body.data;
     this.table = null;
 
-    for(this.p=0; this.p < this.data.length; this.p++) {
+    for(this.line=0; this.line < this.data.length; this.line++) {
       // Get items of current string.
-      this.items = this.data[this.p].trim().split(/\s+/);
+      this.items = this.data[this.line].trim().split(/\s+/);
 
       // Ignore comments or empty lines.
       if (this.items.length === 0 || this.items[0] === '#') continue;
@@ -42,7 +42,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
       // Iptables table with which we are working now.
       if (!this.table) {
         if (!NetFilterTables.has(this.items[0].substr(1)))
-          throw new HttpException(`Bad iptables-save data (line: ${this.p+1})`,400);
+          throw new HttpException(`Bad iptables-save data (line: ${this.line+1})`,400);
         this.table = this.items[0].substr(1);
         this.ruleOrder = 1;
         this.customChainsMap = new Map();
@@ -58,12 +58,14 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
       // By the moment ignore MANGLE and RAW iptables tables.
       if (this.table === 'mangle' || this.table === 'raw') continue;
 
-      if (this.data[this.p].charAt(0) === ':')
-        await this.generateCustomChainsMap();
-      else if (this.items[0] === '-A') { // Generate rule.
-        if (await this.generateRule()) 
-          await this.fillRulePositions(this.p);
-      }
+      try {
+        if (this.data[this.line].charAt(0) === ':')
+          await this.generateCustomChainsMap();
+        else if (this.items[0] === '-A') { // Generate rule.
+          if (await this.generateRule()) 
+            await this.fillRulePositions(this.line);
+        }
+      } catch(err) { throw new HttpException(`ERROR in iptables-save import: ${err.message} (line: ${this.line+1})`,400); }
     }
 
     return;

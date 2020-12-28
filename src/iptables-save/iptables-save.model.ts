@@ -22,7 +22,6 @@
 
 import { Service } from "../fonaments/services/service";
 import { Request } from "express";
-import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { PolicyRule } from '../models/policy/PolicyRule';
 import { Interface } from '../models/interface/Interface';
 import { Tree } from '../models/tree/Tree';
@@ -149,7 +148,7 @@ export const PositionMap = new Map<string, number>([
 
 export class IptablesSaveToFWCloud extends Service {
   protected req: Request;
-  protected p: number;
+  protected line: number;
   protected data: string[];
   protected items: string[];
   protected table: string;
@@ -169,7 +168,7 @@ export class IptablesSaveToFWCloud extends Service {
     // Search all the lines that have data for this custom chain.
     let value: number[] = [];
     let items: string[];
-    for(let p=this.p+1; p< this.data.length; p++) {
+    for(let p=this.line+1; p < this.data.length; p++) {
       items = this.data[p].trim().split(/\s+/);
       if (items[0] === 'COMMIT') break;
       if (items[0] === '-A' && items[1] === chain) value.push(p);
@@ -206,7 +205,7 @@ export class IptablesSaveToFWCloud extends Service {
     try {
       await PolicyRule.reorderAfterRuleOrder(this.req.dbCon, this.req.body.firewall, policy_rData.type, policy_rData.rule_order);
       this.ruleId = await PolicyRule.insertPolicy_r(policy_rData);
-    } catch(err) { throw new HttpException(`Error creating policy rule: ${JSON.stringify(err)}`,500); }
+    } catch(err) { throw new Error(`Error creating policy rule: ${JSON.stringify(err)}`); }
   
     return true;
   }
@@ -273,17 +272,79 @@ export class IptablesSaveToFWCloud extends Service {
         break;
   
       default:
-        throw new HttpException(`Bad iptables-save data (line: ${line+1})`,400);
+        throw new Error('Bad iptables-save data');
     }
 
     return;
   }
 
+  private async eatModule(module: string, opt: string, data: string): Promise<void> {
+    switch (module) {
+      /*
+      multiport
+
+      This module matches a set of source or destination ports. Up to 15 ports can be specified. A port range (port:port) counts as two ports. It can only be used in conjunction with -p tcp or -p udp.
+      --source-ports [!] port[,port[,port:port...]]
+      Match if the source port is one of the given ports. The flag --sports is a convenient alias for this option.
+      --destination-ports [!] port[,port[,port:port...]]
+      Match if the destination port is one of the given ports. The flag --dports is a convenient alias for this option.
+      --ports [!] port[,port[,port:port...]]
+      Match if either the source or destination ports are equal to one of the given ports.
+      */
+      case 'multiport':
+        if (this.ipProtocol!=='tcp' && this.ipProtocol!=='udp')
+          throw new Error('IPTables multiport module can only be used in conjunction with -p tcp or -p udp');
+        if (opt!=='--dports' && opt!=='--sports')
+          throw new Error(`Bad ${module} module option`);
+
+        const portsList = data.trim().split(',');
+        for (let ports of portsList) {
+          const sports = opt === '--sports' ? ports : '0';
+          const dports = opt === '--dports' ? ports : '0';
+          await this.eatServicePort(sports,dports,null,null);
+        }
+        break;
+
+      case 'tcp':
+      case 'udp':
+        if (opt!=='--dport' && opt!=='--sport')
+          throw new Error(`Bad ${module} module option`);
+
+        const sports = opt === '--sport' ? data : '0';
+        const dports = opt === '--dport' ? data : '0';
+        await this.eatServicePort(sports,dports,null,null);
+        break;
+
+      /*
+        icmp
+
+        This extension is loaded if '--protocol icmp' is specified. It provides the following option:
+        --icmp-type [!] typename
+        This allows specification of the ICMP type, which can be a numeric ICMP type, or one of the ICMP type names shown by the command
+        iptables -p icmp -h
+      */  
+      case 'icmp':
+        if (this.ipProtocol!=='icmp')
+          throw new Error('IPTables icmp module can only be used in conjunction with -p icmp');
+        if (opt!=='--icmp-type')
+          throw new Error(`Bad ${module} module option`);
+        await this.eatICMP(data);
+        break;
+
+      case 'conntrack':
+        break;
+  
+      default: 
+        throw new Error(`IPTables module not supported: ${module}`);
+    }  
+  }
+
+
   private async composeAndEatServicePort(item: string, items: string[]): Promise<void> {
     if ((item==='--sport' || item==='--dport') && this.ipProtocol!=='tcp' && this.ipProtocol!=='udp')
-      throw new HttpException('--sport/--dport can only be used in conjunction with -p tcp or -p udp',500);
+      throw new Error('--sport/--dport can only be used in conjunction with -p tcp or -p udp');
     if (item==='--tcp-flags' && this.ipProtocol!=='tcp')
-      throw new HttpException('--tcp-flags can only be used in conjunction with -p tcp',500);
+      throw new Error('--tcp-flags can only be used in conjunction with -p tcp');
     
     let srcPorts = '0';
     let dstPorts = '0';
@@ -355,13 +416,13 @@ export class IptablesSaveToFWCloud extends Service {
         interfaceData.id = interfaceId = await Interface.insertInterface(this.req.dbCon, interfaceData);
         const fwcTreeNode: any = await Tree.getNodeUnderFirewall(this.req.dbCon,this.req.body.fwcloud,this.req.body.fwcloud,'FDI');
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'IFF', interfaceData);
-      } catch(err) { throw new HttpException(`Error creating firewall interface: ${JSON.stringify(err)}`,500); }
+      } catch(err) { throw new Error(`Error creating firewall interface: ${JSON.stringify(err)}`); }
     }
 
     // Add the interface to the rule position.
     const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${dir}`);
     if (!rulePosition)
-      throw new HttpException(`Rule position not found for: ${this.table}:${this.chain}:${dir}`,500);
+      throw new Error(`Rule position not found for: ${this.table}:${this.chain}:${dir}`);
 
     let policy_r__interfaceData = {
       rule: this.ruleId,
@@ -371,7 +432,7 @@ export class IptablesSaveToFWCloud extends Service {
 
     try {
       await PolicyRuleToInterface.insertPolicy_r__interface(this.req.body.firewall, policy_r__interfaceData);
-    } catch(err) { throw new HttpException(`Error inserting interface in policy rule: ${JSON.stringify(err)}`,500); }
+    } catch(err) { throw new Error(`Error inserting interface in policy rule: ${JSON.stringify(err)}`); }
   }
 
 
@@ -404,7 +465,7 @@ export class IptablesSaveToFWCloud extends Service {
         ipobjData.id = addrId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
         const fwcTreeNode: any = mask === fullMask ? await Tree.getNodeByNameAndType(this.req.body.fwcloud,'Addresses','OIA') : await Tree.getNodeByNameAndType(this.req.body.fwcloud,'Networks','OIN');
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, mask===fullMask ? 'OIA' : 'OIN' , ipobjData);
-      } catch(err) { throw new HttpException(`Error creating IP object: ${JSON.stringify(err)}`,500); }
+      } catch(err) { throw new Error(`Error creating IP object: ${JSON.stringify(err)}`); }
     }
 
     // Add the addr object to the rule position.
@@ -423,50 +484,10 @@ export class IptablesSaveToFWCloud extends Service {
     // Search to find out if it already exists.   
     const protocolId: any = await IPObj.searchIPProtocol(this.req.dbCon,this.req.body.fwcloud,protocol);
     if (protocolId === '')
-      throw new HttpException(`IP protocol not found: ${protocol}`,500);
+      throw new Error(`IP protocol not found: ${protocol}`);
 
     // Add the protocol object to the rule position.
     await this.addIPObjToRulePosition('-p',protocolId);
-  }
-
-
-  private async eatModule(module: string, opt: string, data: string): Promise<void> {
-    switch (module) {
-      case 'multiport':
-        if (this.ipProtocol!=='tcp' && this.ipProtocol!=='udp')
-          throw new HttpException('IPTables multiport module can only be used in conjunction with -p tcp or -p udp',500);
-        if (opt!=='--dports' && opt!=='--sports')
-          throw new HttpException(`Bad ${module} module option`,500);
-
-        const portsList = data.trim().split(',');
-        for (let ports of portsList) {
-          const sports = opt === '--sports' ? ports : '0';
-          const dports = opt === '--dports' ? ports : '0';
-          await this.eatServicePort(sports,dports,null,null);
-        }
-        break;
-
-      case 'tcp':
-      case 'udp':
-        if (opt!=='--dport' && opt!=='--sport')
-          throw new HttpException(`Bad ${module} module option`,500);
-
-        const sports = opt === '--sport' ? data : '0';
-        const dports = opt === '--dport' ? data : '0';
-        await this.eatServicePort(sports,dports,null,null);
-        break;
-
-      case 'icmp':
-        if (this.ipProtocol!=='icmp')
-          throw new HttpException('IPTables icmp module can only be used in conjunction with -p icmp',500);
-        break;
-
-      case 'conntrack':
-        break;
-  
-      default: 
-        throw new HttpException(`IPTables module not supported: ${module}`,500);
-    }  
   }
 
 
@@ -507,18 +528,53 @@ export class IptablesSaveToFWCloud extends Service {
         ipobjData.id = portId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
         const fwcTreeNode: any = this.ipProtocol === 'tcp' ? await Tree.getNodeByNameAndType(this.req.body.fwcloud,'TCP','SOT') : await Tree.getNodeByNameAndType(this.req.body.fwcloud,'UDP','SOU');
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, this.ipProtocol==='TCP' ? 'SOT' : 'SOU', ipobjData);
-      } catch(err) { throw new HttpException(`Error creating service object: ${JSON.stringify(err)}`,500); }
+      } catch(err) { throw new Error(`Error creating service object: ${JSON.stringify(err)}`); }
     }
 
     // Add the addr object to the rule position.
     await this.addIPObjToRulePosition('srvc',portId);
   }
 
+  private async eatICMP(data: string): Promise<void> {
+    // IMPORTANT: Validate data before process it.
+    const icmp = data.split('/');
+    for (let val of icmp)
+      await Joi.validate(val, Joi.number().integer().min(-1).max(255));
+
+    if (icmp.length < 2) icmp.push('-1');
+
+    // Search to find out if it already exists.   
+    let icmpId: any = await IPObj.searchICMP(this.req.dbCon,this.req.body.fwcloud,icmp[0],icmp[1]);
+    
+    // If not found create it.
+    if (!icmpId) {
+      let ipobjData = {
+        id: null,
+        fwcloud: this.req.body.fwcloud,
+        name: data,
+        type: 3,
+        protocol: 1,
+        icmp_type: icmp[0],
+        icmp_code: icmp[1],
+        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+      };
+  
+      try {
+        ipobjData.id = icmpId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
+        const fwcTreeNode: any = await Tree.getNodeByNameAndType(this.req.body.fwcloud,'ICMP','SOM');
+        await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'SOM', ipobjData);
+      } catch(err) { throw new Error(`Error creating ICMP object: ${JSON.stringify(err)}`); }
+    }
+
+    // Add the addr object to the rule position.
+    await this.addIPObjToRulePosition('srvc',icmpId);
+  }
+
 
   private async addIPObjToRulePosition(item: string, id: string): Promise<void> {
     const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${item}`);
     if (!rulePosition)
-      throw new HttpException(`Rule position not found for: ${this.table}:${this.chain}:${item}`,500);
+      throw new Error(`Rule position not found for: ${this.table}:${this.chain}:${item}`);
 
     let policy_r__ipobjData = {
       rule: this.ruleId,
@@ -531,6 +587,6 @@ export class IptablesSaveToFWCloud extends Service {
 
     try {
       await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
-    } catch(err) { throw new HttpException(`Error inserting IP object in policy rule: ${JSON.stringify(err)}`,500); }
+    } catch(err) { throw new Error(`Error inserting IP object in policy rule: ${JSON.stringify(err)}`); }
   }
 }
