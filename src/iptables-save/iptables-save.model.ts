@@ -139,11 +139,15 @@ export const PositionMap = new Map<string, number>([
   ['nat:POSTROUTING:-s', 11],
   ['nat:POSTROUTING:-d', 12],
   ['nat:POSTROUTING:-p', 13], ['nat:POSTROUTING:srvc', 13],
+  ['nat:POSTROUTING:--to-source_ip', 14],
+  ['nat:POSTROUTING:--to-source_port', 16],
 
   ['nat:PREROUTING:-i', 36], // DNAT
   ['nat:PREROUTING:-s', 30],
   ['nat:PREROUTING:-d', 31],
   ['nat:PREROUTING:-p', 32], ['nat:PREROUTING:srvc', 32],
+  ['nat:PREROUTING:--to-destination_ip', 34],
+  ['nat:PREROUTING:--to-destination_port', 35],
 ]);
 
 export class IptablesSaveToFWCloud extends Service {
@@ -157,6 +161,7 @@ export class IptablesSaveToFWCloud extends Service {
   protected ruleId: any;
   protected ruleOrder: number;
   protected ruleTarget: string;
+  protected ruleTargetSet: boolean;
   protected customChainsMap: Map<string, number[]>;
 
   protected generateCustomChainsMap(): Promise<void> {
@@ -184,7 +189,7 @@ export class IptablesSaveToFWCloud extends Service {
       id: null,
       firewall: this.req.body.firewall,
       rule_order: ++this.ruleOrder,
-      action: 1,
+      action: 1, // By default action rule is ACCEPT
       active: 1,
       options: 0,
       comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`,
@@ -207,6 +212,9 @@ export class IptablesSaveToFWCloud extends Service {
       this.ruleId = await PolicyRule.insertPolicy_r(policy_rData);
     } catch(err) { throw new Error(`Error creating policy rule: ${JSON.stringify(err)}`); }
   
+    this.ruleTarget = null;
+    this.ruleTargetSet = false;
+
     return true;
   }
 
@@ -218,19 +226,29 @@ export class IptablesSaveToFWCloud extends Service {
     this.ruleTarget = '';
 
     while(lineItems.length > 0)
-      await this.eatRuleData(line,lineItems);
+      await this.eatRuleData(lineItems);
 
     let lines: number[] = this.customChainsMap.get(this.ruleTarget);
-    if (lines) {
+    if (lines) { // Target is a custom chain.
       for(let l of lines) {
         await this.fillRulePositions(l);
       }
-    }
+    } else if (this.ruleTarget !== 'ACCEPT') { // Target is a builtin one or an extension.
+      let policy_rData = {
+        id: this.ruleId,
+        action: 1
+      }
 
-    return;
+      if (this.ruleTarget === 'DROP')
+        policy_rData.action = 2;
+      else if (this.ruleTarget === 'REJECT')
+        policy_rData.action = 3;
+
+      await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
+    }
   }
 
-  private async eatRuleData(line: number, lineItems: string[]): Promise<void> {
+  private async eatRuleData(lineItems: string[]): Promise<void> {
     const item = lineItems[0];
     lineItems.shift();
 
@@ -262,20 +280,43 @@ export class IptablesSaveToFWCloud extends Service {
         await this.eatModule(lineItems[0], lineItems[1], lineItems[2]);
         lineItems.shift(); lineItems.shift(); lineItems.shift();
         break;
-    
+
+      /*
+        -j, --jump target
+        This specifies the target of the rule; i.e., what to do if the packet matches it. 
+        The target can be a user-defined chain (other than the one this rule is in), one of the special builtin targets which decide the fate of 
+        the packet immediately, or an extension (see EXTENSIONS below). If this option is omitted in a rule (and -g is not used), then matching 
+        the rule will have no effect on the packet's fate, but the counters on the rule will be incremented. 
+      */       
       case '-j':
-        if (lineItems[0] === 'SNAT' || lineItems[0] === 'DNAT') {
-          lineItems.shift(); lineItems.shift();
-        }
         this.ruleTarget = lineItems[0];
         lineItems.shift();
+        if (this.ruleTarget === 'SNAT' || this.ruleTarget === 'DNAT') {
+          if (!this.ruleTargetSet) 
+            await this.eatNAT(lineItems[0], lineItems[1]);
+          lineItems.shift(); lineItems.shift();
+        }
         break;
   
       default:
         throw new Error('Bad iptables-save data');
     }
+  }
 
-    return;
+  private async eatNAT(item: string, data: string): Promise<void> {
+    if (this.ruleTarget === 'SNAT' && item !== '--to-source')
+      throw new Error('Bad iptables-save data in SNAT target');
+    if (this.ruleTarget === 'DNAT' && item !== '--to-destination')
+      throw new Error('Bad iptables-save data in DNAT target');
+
+    const items = data.split(':');
+
+    if (items[0])
+      await this.eatAddr(`${item}_ip`,`${items[0]}/32`);
+    if (items[1])
+      await this.eatPort('0',items[1],null,null,`${item}_port`);
+
+    this.ruleTargetSet = true;
   }
 
   private async eatModule(module: string, opt: string, data: string): Promise<void> {
@@ -301,7 +342,7 @@ export class IptablesSaveToFWCloud extends Service {
         for (let ports of portsList) {
           const sports = opt === '--sports' ? ports : '0';
           const dports = opt === '--dports' ? ports : '0';
-          await this.eatServicePort(sports,dports,null,null);
+          await this.eatPort(sports,dports,null,null);
         }
         break;
 
@@ -312,7 +353,7 @@ export class IptablesSaveToFWCloud extends Service {
 
         const sports = opt === '--sport' ? data : '0';
         const dports = opt === '--dport' ? data : '0';
-        await this.eatServicePort(sports,dports,null,null);
+        await this.eatPort(sports,dports,null,null);
         break;
 
       /*
@@ -369,7 +410,7 @@ export class IptablesSaveToFWCloud extends Service {
       items.shift();
     } 
   
-    await this.eatServicePort(srcPorts,dstPorts,tcpFlags,tcpFlagsSet);
+    await this.eatPort(srcPorts,dstPorts,tcpFlags,tcpFlagsSet);
   }
 
   private async generateBitMask(data: string): Promise<number> {
@@ -491,9 +532,9 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
 
-  private async eatServicePort(sports: string, dports: string, tcpFlags: number, tcpFlagsSet: number): Promise<void> {
-    const srcPorts = sports.split(':');
-    const dstPorts = dports.split(':');
+  private async eatPort(sports: string, dports: string, tcpFlags: number, tcpFlagsSet: number, pos?: string): Promise<void> {
+    const srcPorts = sports.split(/:|-/);
+    const dstPorts = dports.split(/:|-/);
 
     // IMPORTANT: Validate data before process it.
     for (let port of srcPorts)
@@ -532,7 +573,7 @@ export class IptablesSaveToFWCloud extends Service {
     }
 
     // Add the addr object to the rule position.
-    await this.addIPObjToRulePosition('srvc',portId);
+    await this.addIPObjToRulePosition(pos ? pos : 'srvc',portId);
   }
 
   private async eatICMP(data: string): Promise<void> {
