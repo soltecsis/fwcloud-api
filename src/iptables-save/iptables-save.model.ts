@@ -152,6 +152,7 @@ export const PositionMap = new Map<string, number>([
 
 export class IptablesSaveToFWCloud extends Service {
   protected req: Request;
+  protected statefulFirewall: boolean;
   protected line: number;
   protected data: string[];
   protected items: string[];
@@ -162,6 +163,7 @@ export class IptablesSaveToFWCloud extends Service {
   protected ruleOrder: number;
   protected ruleTarget: string;
   protected ruleTargetSet: boolean;
+  protected ruleWithStatus: boolean;
   protected customChainsMap: Map<string, number[]>;
 
   protected generateCustomChainsMap(): Promise<void> {
@@ -202,6 +204,12 @@ export class IptablesSaveToFWCloud extends Service {
     // Ignore iptables rules for custom chains because they have already been processed.
     if (this.customChainsMap.has(this.chain)) return false;
 
+    // Ignore RELATED,ESTABLISHED rules.
+    if (`${this.items[1]} ${this.items[2]} ${this.items[3]} ${this.items[4]} ${this.items[5]} ${this.items[6]}` 
+        === '-m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT') {
+      return false;
+    }
+
     // If don't find type map, ignore this rule.
     if (!(policy_rData.type = PolicyTypeMap.get(`${this.table}:${this.chain}`))) return false;
 
@@ -214,6 +222,7 @@ export class IptablesSaveToFWCloud extends Service {
   
     this.ruleTarget = null;
     this.ruleTargetSet = false;
+    this.ruleWithStatus = false;
 
     return true;
   }
@@ -223,22 +232,29 @@ export class IptablesSaveToFWCloud extends Service {
     lineItems.shift(); // -A
     lineItems.shift(); // Chain name
 
+    let policy_rData = {
+      id: this.ruleId,
+      action: 1,
+      options: 0
+    }
+
     this.ruleTarget = '';
 
     while(lineItems.length > 0)
       await this.eatRuleData(lineItems);
 
+    // If rule doesn't follow the firewall stateness change its stateness options.
+    if (this.table==='filter' && this.statefulFirewall!=this.ruleWithStatus) {
+      policy_rData.options = this.ruleWithStatus ? 1 : 2;
+      await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
+    }
+  
     let lines: number[] = this.customChainsMap.get(this.ruleTarget);
     if (lines) { // Target is a custom chain.
       for(let l of lines) {
         await this.fillRulePositions(l);
       }
     } else if (this.ruleTarget !== 'ACCEPT') { // Target is a builtin one or an extension.
-      let policy_rData = {
-        id: this.ruleId,
-        action: 1
-      }
-
       if (this.ruleTarget === 'DROP')
         policy_rData.action = 2;
       else if (this.ruleTarget === 'REJECT')
@@ -373,6 +389,8 @@ export class IptablesSaveToFWCloud extends Service {
         break;
 
       case 'conntrack':
+        if (opt==='--ctstate' && data==='NEW')
+          this.ruleWithStatus = true;
         break;
   
       default: 

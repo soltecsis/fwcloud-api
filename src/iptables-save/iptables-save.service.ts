@@ -24,6 +24,7 @@ import { logger } from "../fonaments/abstract-application";
 import { Request } from "express";
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { IptablesSaveToFWCloud, NetFilterTables } from './iptables-save.model';
+import { Firewall } from '../models/firewall/Firewall';
 
 
 export class IptablesSaveService extends IptablesSaveToFWCloud {
@@ -31,6 +32,9 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     this.req = request;
     this.data = request.body.data;
     this.table = null;
+
+    const fwOptions: any = await Firewall.getFirewallOptions(this.req.body.fwcloud,this.req.body.firewall);
+    this.statefulFirewall = parseInt(fwOptions) & 0x1 ? true : false;
 
     for(this.line=0; this.line < this.data.length; this.line++) {
       // Get items of current string.
