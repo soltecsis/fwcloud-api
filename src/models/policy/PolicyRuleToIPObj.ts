@@ -665,7 +665,7 @@ export class PolicyRuleToIPObj extends Model {
     };
 
     //Remove policy_r__ipobj 
-    public static deletePolicy_r__ipobj(dbCon, rule, ipobj, ipobj_g, _interface, position, position_order, callback) {
+    public static deletePolicy_r__ipobj(dbCon, rule, ipobj, ipobj_g, _interface, position, position_order) {
         return new Promise(async (resolve, reject) => {
             var sqlExists = `SELECT * FROM ${tableModel}
                 WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}

@@ -762,14 +762,16 @@ export class IptablesSaveToFWCloud extends Service {
     const ipobjGroups = groupsData.map( ({ id }) => { return id } );
     const positionsList = AgrupablePositionMap.get(`${this.table}:${this.chain}`);
 
+    // For all positions for which it is possible to agrupage objects.
     for (let position of positionsList) {
       const ipobjsData: any = await PolicyRuleToIPObj.getRuleIPObjsByPosition(this.ruleId, position);
       if (ipobjsData.length < 2) continue;
       let ipobjsInRule = ipobjsData.map( ({ ipobj }) => { return ipobj } );
 
+      // For all existing IP objects groups.
       for(let group of ipobjGroups) {
         const groupData: any = await IPObjGroup.getIpobj_g_Full(this.req.dbCon, this.req.body.fwcloud, group);
-        if (groupData[0].ipobjs.length < 2) continue;
+        if (!groupData || !groupData[0] || !groupData[0].ipobjs || groupData[0].ipobjs.length < 2) continue;
         const ipobjsInGroup = groupData[0].ipobjs.map( ({ id }) => { return id } );;
 
         // Check if all group objects exists in the rule position.
@@ -782,8 +784,13 @@ export class IptablesSaveToFWCloud extends Service {
           // Add group to rule position.
           await this.addIPObjGroupToRulePosition(position, group);
 
-          // Remove from rule position all the objects that are part of the group.
-          // Remove too from ipobjsInRule.
+          for(let ipobjInGroup of ipobjsInGroup) {
+            // Remove from rule position all the objects that are part of the group.
+            await	PolicyRuleToIPObj.deletePolicy_r__ipobj(this.req.dbCon, this.ruleId, ipobjInGroup, -1, -1, position, 0);
+
+            // Remove too from ipobjsInRule array.
+            ipobjsInRule.splice(ipobjsInRule.indexOf(ipobjInGroup),1);
+          }
         }
       }
     }
