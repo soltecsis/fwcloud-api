@@ -28,6 +28,7 @@ import { Tree } from '../models/tree/Tree';
 import { PolicyRuleToInterface } from '../models/policy/PolicyRuleToInterface';
 import { IPObj } from '../models/ipobj/IPObj';
 import { PolicyRuleToIPObj } from "../models/policy/PolicyRuleToIPObj";
+import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
@@ -40,7 +41,7 @@ export const NetFilterTables = new Set<string>([
   'filter'
 ]);
 
-export const StdChains = new Set<string>([
+const StdChains = new Set<string>([
   'INPUT',
   'OUTPUT',
   'FORWARD',
@@ -48,7 +49,7 @@ export const StdChains = new Set<string>([
   'POSTROUTING'
 ]);
 
-export const TcpFlags = new Map<string, number>([
+const TcpFlags = new Map<string, number>([
   ['URG', 1],
   ['ACK', 2],
   ['PSH', 4],
@@ -75,7 +76,7 @@ mysql> select * from policy_type;
 | 65 | D6   | DNAT IPv6    |          5 |           0 |
 +----+------+--------------+------------+-------------+
 */
-export const PolicyTypeMap = new Map<string, number>([
+const PolicyTypeMap = new Map<string, number>([
   ['filter:INPUT', 1],
   ['filter:OUTPUT', 2],
   ['filter:FORWARD', 3],
@@ -118,7 +119,7 @@ mysql> select * from policy_type;
 | 65 | D6   | DNAT IPv6    |          5 |           0 |
 +----+------+--------------+------------+-------------+
 */
-export const PositionMap = new Map<string, number>([
+const PositionMap = new Map<string, number>([
   ['filter:INPUT:-i', 20],
   ['filter:INPUT:-s', 1], ['filter:INPUT:--src-range', 1],
   ['filter:INPUT:-d', 2], ['filter:INPUT:--dst-range', 2],
@@ -149,6 +150,15 @@ export const PositionMap = new Map<string, number>([
   ['nat:PREROUTING:--to-destination_ip', 34],
   ['nat:PREROUTING:--to-destination_port', 35],
 ]);
+
+const AgrupablePositionMap = new Map<string, number[]>([
+  ['filter:INPUT', [1,2,3]],
+  ['filter:OUTPUT', [4,5,6]],
+  ['filter:FORWARD', [7,8,9]],
+  ['nat:POSTROUTING', [11,12,13]], // SNAT
+  ['nat:PREROUTING', [30,31,32]] // DNAT
+]);
+
 
 export class IptablesSaveToFWCloud extends Service {
   protected req: Request;
@@ -182,8 +192,6 @@ export class IptablesSaveToFWCloud extends Service {
     }
 
     this.customChainsMap.set(this.items[0].substr(1),value);
-
-    return;
   }
 
 
@@ -248,7 +256,7 @@ export class IptablesSaveToFWCloud extends Service {
     this.ruleTarget = '';
 
     while(lineItems.length > 0)
-      await this.eatRuleData(lineItems);
+      await this.eatRuleData(line, lineItems);
 
     // If rule doesn't follow the firewall stateness change its stateness options.
     if (this.table==='filter' && this.statefulFirewall!=this.ruleWithStatus) {
@@ -269,10 +277,13 @@ export class IptablesSaveToFWCloud extends Service {
 
       await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
     }
+
+    // Once we have created the fwcloud rule, search for groups that can agrupate items of a position.
+    await this.agrupateRulePositionItems();
   }
 
 
-  private async eatRuleData(lineItems: string[]): Promise<void> {
+  private async eatRuleData(line: number, lineItems: string[]): Promise<void> {
     const item = lineItems[0];
     lineItems.shift();
 
@@ -315,7 +326,9 @@ export class IptablesSaveToFWCloud extends Service {
       case '-j':
         this.ruleTarget = lineItems[0];
         lineItems.shift();
-        if (this.ruleTarget === 'SNAT' || this.ruleTarget === 'DNAT') {
+        if (this.ruleTarget === 'RETURN')
+          await this.negateLinePositions(line);
+        else if (this.ruleTarget === 'SNAT' || this.ruleTarget === 'DNAT') {
           if (!this.ruleTargetSet) 
             await this.eatNAT(lineItems[0], lineItems[1]);
           lineItems.shift(); lineItems.shift();
@@ -327,6 +340,21 @@ export class IptablesSaveToFWCloud extends Service {
     }
   }
 
+  private async negateLinePositions(line: number): Promise<void> {
+    let items = this.data[line].trim().split(/\s+/);
+
+    for (let item of items) {
+      if (item.charAt(0) === '-') {
+        if (item==='--sport' || item==='--dport' || item==='--tcp-flags'
+            || item==='--sports' || item==='--dports' || item==='--icmp-type') 
+          item = 'srvc';
+
+        const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${item}`);
+        if (rulePosition) 
+			    await PolicyRule.negateRulePosition(this.req.dbCon,this.req.body.firewall,this.ruleId,rulePosition);
+      }
+    }
+  }
 
   private async eatNAT(item: string, data: string): Promise<void> {
     if (this.ruleTarget === 'SNAT' && item !== '--to-source')
@@ -709,5 +737,55 @@ export class IptablesSaveToFWCloud extends Service {
     try {
       await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
     } catch(err) { throw new Error(`Error inserting IP object in policy rule: ${JSON.stringify(err)}`); }
+  }
+
+
+  private async addIPObjGroupToRulePosition(position: number, group: number): Promise<void> {
+    let policy_r__ipobjData = {
+      rule: this.ruleId,
+      ipobj: -1,
+      ipobj_g: group,
+      interface: -1,
+      position: position,
+      position_order: 1
+    };
+
+    try {
+      await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
+    } catch(err) { throw new Error(`Error inserting IP objects group in policy rule: ${JSON.stringify(err)}`); }
+  }
+
+
+  private async agrupateRulePositionItems(): Promise<void> {
+    let i: number;
+    const groupsData: any = await IPObjGroup.getIpobjGroups(this.req.dbCon, this.req.body.fwcloud);
+    const ipobjGroups = groupsData.map( ({ id }) => { return id } );
+    const positionsList = AgrupablePositionMap.get(`${this.table}:${this.chain}`);
+
+    for (let position of positionsList) {
+      const ipobjsData: any = await PolicyRuleToIPObj.getRuleIPObjsByPosition(this.ruleId, position);
+      if (ipobjsData.length < 2) continue;
+      let ipobjsInRule = ipobjsData.map( ({ ipobj }) => { return ipobj } );
+
+      for(let group of ipobjGroups) {
+        const groupData: any = await IPObjGroup.getIpobj_g_Full(this.req.dbCon, this.req.body.fwcloud, group);
+        if (groupData[0].ipobjs.length < 2) continue;
+        const ipobjsInGroup = groupData[0].ipobjs.map( ({ id }) => { return id } );;
+
+        // Check if all group objects exists in the rule position.
+        for (i=0; i < ipobjsInGroup.length; i++) {
+          if (ipobjsInRule.indexOf(ipobjsInGroup[i]) === -1)
+            break;
+        }
+
+        if (i === ipobjsInGroup.length) { // All objects in group have been found in rule position.
+          // Add group to rule position.
+          await this.addIPObjGroupToRulePosition(position, group);
+
+          // Remove from rule position all the objects that are part of the group.
+          // Remove too from ipobjsInRule.
+        }
+      }
+    }
   }
 }

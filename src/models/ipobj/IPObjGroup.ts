@@ -90,23 +90,14 @@ export class IPObjGroup extends Model {
     }
     
     //Get All ipobj_g
-    public static getIpobj_gs(fwcloud, callback) {
-
-        db.get((error, connection) => {
-            if (error)
-                callback(error, null);
-            connection.query('SELECT * FROM ' + tableName + ' WHERE (fwcloud= ' + connection.escape(fwcloud) + '  OR fwcloud is null) ORDER BY id', (error, rows) => {
-                if (error)
-                    callback(error, null);
-                else
-                    callback(null, rows);
+    public static getIpobjGroups(dbCon, fwcloud) {
+        return new Promise((resolve, reject) => {
+            dbCon.query(`SELECT * FROM ${tableName} WHERE (fwcloud=${dbCon.escape(fwcloud)} OR fwcloud is null) ORDER BY id`, (error, rows) => {
+                if (error) return reject(error);
+                resolve(rows);
             });
-        });
+        });    
     }
-
-
-
-
 
     //Get ipobj_g by  id
     public static getIpobj_g(dbCon, fwcloud, id) {
