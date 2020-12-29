@@ -120,31 +120,31 @@ mysql> select * from policy_type;
 */
 export const PositionMap = new Map<string, number>([
   ['filter:INPUT:-i', 20],
-  ['filter:INPUT:-s', 1],
-  ['filter:INPUT:-d', 2],
+  ['filter:INPUT:-s', 1], ['filter:INPUT:--src-range', 1],
+  ['filter:INPUT:-d', 2], ['filter:INPUT:--dst-range', 2],
   ['filter:INPUT:-p', 3], ['filter:INPUT:srvc', 3],
 
   ['filter:OUTPUT:-o', 21],
-  ['filter:OUTPUT:-s', 4],
-  ['filter:OUTPUT:-d', 5],
+  ['filter:OUTPUT:-s', 4], ['filter:OUTPUT:--src-range', 4],
+  ['filter:OUTPUT:-d', 5], ['filter:OUTPUT:--dst-range', 5],
   ['filter:OUTPUT:-p', 6], ['filter:OUTPUT:srvc', 6],
 
   ['filter:FORWARD:-i', 22],
   ['filter:FORWARD:-o', 25],
-  ['filter:FORWARD:-s', 7],
-  ['filter:FORWARD:-d', 8],
+  ['filter:FORWARD:-s', 7], ['filter:FORWARD:--src-range', 7],
+  ['filter:FORWARD:-d', 8], ['filter:FORWARD:--dst-range', 8],
   ['filter:FORWARD:-p', 9], ['filter:FORWARD:srvc', 9],
 
   ['nat:POSTROUTING:-o', 24], // SNAT
-  ['nat:POSTROUTING:-s', 11],
-  ['nat:POSTROUTING:-d', 12],
+  ['nat:POSTROUTING:-s', 11], ['nat:POSTROUTING:--src-range', 11],
+  ['nat:POSTROUTING:-d', 12], ['nat:POSTROUTING:--dst-range', 12],
   ['nat:POSTROUTING:-p', 13], ['nat:POSTROUTING:srvc', 13],
   ['nat:POSTROUTING:--to-source_ip', 14],
   ['nat:POSTROUTING:--to-source_port', 16],
 
   ['nat:PREROUTING:-i', 36], // DNAT
-  ['nat:PREROUTING:-s', 30],
-  ['nat:PREROUTING:-d', 31],
+  ['nat:PREROUTING:-s', 30], ['nat:PREROUTING:--src-range', 30],
+  ['nat:PREROUTING:-d', 31], ['nat:PREROUTING:--dst-range', 31],
   ['nat:PREROUTING:-p', 32], ['nat:PREROUTING:srvc', 32],
   ['nat:PREROUTING:--to-destination_ip', 34],
   ['nat:PREROUTING:--to-destination_port', 35],
@@ -186,6 +186,7 @@ export class IptablesSaveToFWCloud extends Service {
     return;
   }
 
+
   protected async generateRule(): Promise<boolean> {
     let policy_rData = {
       id: null,
@@ -200,21 +201,26 @@ export class IptablesSaveToFWCloud extends Service {
 
     this.items.shift();
     this.chain = this.items[0];
+    this.items.shift();
 
     // Ignore iptables rules for custom chains because they have already been processed.
     if (this.customChainsMap.has(this.chain)) return false;
 
-    // Ignore RELATED,ESTABLISHED rules.
-    if (`${this.items[1]} ${this.items[2]} ${this.items[3]} ${this.items[4]} ${this.items[5]} ${this.items[6]}` 
-        === '-m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT') {
-      return false;
-    }
-
     // If don't find type map, ignore this rule.
     if (!(policy_rData.type = PolicyTypeMap.get(`${this.table}:${this.chain}`))) return false;
 
-    this.items.shift();
+    if (this.table==='filter') {
+      let action = `${this.items[0]} ${this.items[1]} ${this.items[2]} ${this.items[3]} ${this.items[4]} ${this.items[5]}`;
+    
+      // Ignore RELATED,ESTABLISHED rules.
+      if (action === '-m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT') return false;
+    
+      // Ignore catch all rules.
+      action = `${this.items[0]} ${this.items[1]}`;
+      if (action==='-j ACCEPT' || action==='-j DROP' || action==='-j REJECT') return false;
+    }
 
+    // Create new policy rule.
     try {
       await PolicyRule.reorderAfterRuleOrder(this.req.dbCon, this.req.body.firewall, policy_rData.type, policy_rData.rule_order);
       this.ruleId = await PolicyRule.insertPolicy_r(policy_rData);
@@ -226,6 +232,7 @@ export class IptablesSaveToFWCloud extends Service {
 
     return true;
   }
+
 
   protected async fillRulePositions(line: number): Promise<void> {
     let lineItems = this.data[line].trim().split(/\s+/); 
@@ -264,6 +271,7 @@ export class IptablesSaveToFWCloud extends Service {
     }
   }
 
+
   private async eatRuleData(lineItems: string[]): Promise<void> {
     const item = lineItems[0];
     lineItems.shift();
@@ -289,7 +297,7 @@ export class IptablesSaveToFWCloud extends Service {
       case '--sport':
       case '--dport':
       case '--tcp-flags':
-        await this.composeAndEatServicePort(item,lineItems);
+        await this.composeAndEatPort(item,lineItems);
         break;
           
       case '-m':
@@ -319,6 +327,7 @@ export class IptablesSaveToFWCloud extends Service {
     }
   }
 
+
   private async eatNAT(item: string, data: string): Promise<void> {
     if (this.ruleTarget === 'SNAT' && item !== '--to-source')
       throw new Error('Bad iptables-save data in SNAT target');
@@ -334,6 +343,7 @@ export class IptablesSaveToFWCloud extends Service {
 
     this.ruleTargetSet = true;
   }
+
 
   private async eatModule(module: string, opt: string, data: string): Promise<void> {
     switch (module) {
@@ -388,6 +398,19 @@ export class IptablesSaveToFWCloud extends Service {
         await this.eatICMP(data);
         break;
 
+      /*
+        iprange
+
+        This matches on a given arbitrary range of IPv4 addresses
+        [!]--src-range ip-ip
+        Match source IP in the specified range.
+        [!]--dst-range ip-ip
+        Match destination IP in the specified range.
+      */
+     case 'iprange':
+      await this.eatIPRange(opt,data);
+      break;
+
       case 'conntrack':
         if (opt==='--ctstate' && data==='NEW')
           this.ruleWithStatus = true;
@@ -399,7 +422,7 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
 
-  private async composeAndEatServicePort(item: string, items: string[]): Promise<void> {
+  private async composeAndEatPort(item: string, items: string[]): Promise<void> {
     if ((item==='--sport' || item==='--dport') && this.ipProtocol!=='tcp' && this.ipProtocol!=='udp')
       throw new Error('--sport/--dport can only be used in conjunction with -p tcp or -p udp');
     if (item==='--tcp-flags' && this.ipProtocol!=='tcp')
@@ -532,6 +555,41 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
 
+  private async eatIPRange(dir: string, data: string): Promise<void> {
+    const ips = data.split('-');
+
+    // IMPORTANT: Validate data before process it.
+    await Joi.validate(ips[0], Joi.string().ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'forbidden' }));
+    await Joi.validate(ips[1], Joi.string().ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'forbidden' }));
+
+    // Search to find out if it already exists.
+    let iprangeId: any = await IPObj.searchIPRange(this.req.dbCon,this.req.body.fwcloud,ips[0],ips[1]);
+    
+    // If not found create it.
+    if (!iprangeId) {
+      let ipobjData = {
+        id: null,
+        fwcloud: this.req.body.fwcloud,
+        name: data,
+        type: 6, // 5: ADDRESS RANGE
+        range_start: ips[0],
+        range_end: ips[1],
+        ip_version: this.req.body.ip_version,
+        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+      };
+  
+      try {
+        ipobjData.id = iprangeId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
+        const fwcTreeNode: any = await Tree.getNodeByNameAndType(this.req.body.fwcloud,'Address Ranges','OIR');
+        await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'OIR', ipobjData);
+      } catch(err) { throw new Error(`Error creating address range object: ${JSON.stringify(err)}`); }
+    }
+
+    // Add the addr object to the rule position.
+    await this.addIPObjToRulePosition(dir,iprangeId);
+  }
+
+
   private async eatProtocol(protocol: string): Promise<void> {
     // IMPORTANT: Validate data before process it.
     if (protocol==='tcp' || protocol==='udp' || protocol==='icmp') {
@@ -562,6 +620,9 @@ export class IptablesSaveToFWCloud extends Service {
 
     if (srcPorts.length < 2) srcPorts.push(srcPorts[0]);
     if (dstPorts.length < 2) dstPorts.push(dstPorts[0]);
+
+    if (parseInt(srcPorts[1])<parseInt(srcPorts[0]) || parseInt(dstPorts[1])<parseInt(dstPorts[0]))
+      throw new Error('End port must be equal or greater than start port');
 
     // Search to find out if it already exists.
     let portId: any = await IPObj.searchPort(this.req.dbCon,this.req.body.fwcloud,this.ipProtocol,srcPorts,dstPorts,tcpFlags,tcpFlagsSet);
@@ -594,6 +655,7 @@ export class IptablesSaveToFWCloud extends Service {
     await this.addIPObjToRulePosition(pos ? pos : 'srvc',portId);
   }
 
+  
   private async eatICMP(data: string): Promise<void> {
     // IMPORTANT: Validate data before process it.
     const icmp = data.split('/');

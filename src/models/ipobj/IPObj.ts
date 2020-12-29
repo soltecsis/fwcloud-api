@@ -1205,6 +1205,20 @@ export class IPObj extends Model {
     };
 
     // Search if IP with mask exists. (IP is given in CIDR notation) 
+    public static searchIPRange(dbCon, fwcloud, start, end) {        
+        return new Promise((resolve, reject) => {
+            let sql = `select id from ipobj where (fwcloud IS NULL OR fwcloud=${fwcloud}) 
+            AND range_start=${dbCon.escape(start)} AND range_end=${dbCon.escape(end)} AND type=6`; // 6: ADDRESS RANGE
+
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+
+                resolve(rows.length === 0 ? 0 : rows[0].id);
+            });
+        });
+    };
+
+    // Search if IP with mask exists. (IP is given in CIDR notation) 
     public static searchIPProtocol(dbCon, fwcloud, protocol) {        
         return new Promise((resolve, reject) => {
             let sql = `select id from ipobj 
@@ -1213,7 +1227,7 @@ export class IPObj extends Model {
             dbCon.query(sql, (error, rows) => {
                 if (error) return reject(error);
 
-                resolve(rows.length === 0 ? '' : rows[0].id)
+                resolve(rows.length === 0 ? '' : rows[0].id);
             });
         });
     };
