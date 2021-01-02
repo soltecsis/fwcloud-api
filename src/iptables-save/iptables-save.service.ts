@@ -69,7 +69,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
           if (await this.generateRule()) 
             await this.fillRulePositions(this.line);
         }
-      } catch(err) { throw new HttpException(`ERROR in iptables-save import: ${err.message} (line: ${this.line+1})`,400); }
+      } catch(err) { throw new HttpException(`ERROR in iptables-save import (line: ${this.line+1}): ${err.message} `,400); }
     }
 
     return;

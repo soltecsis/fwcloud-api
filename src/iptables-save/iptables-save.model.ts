@@ -222,6 +222,7 @@ export class IptablesSaveToFWCloud extends Service {
     
       // Ignore RELATED,ESTABLISHED rules.
       if (action === '-m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT') return false;
+      if (action === '-m state --state RELATED,ESTABLISHED -j ACCEPT') return false;
     
       // Ignore catch all rules.
       action = `${this.items[0]} ${this.items[1]}`;
@@ -247,12 +248,6 @@ export class IptablesSaveToFWCloud extends Service {
     lineItems.shift(); // -A
     lineItems.shift(); // Chain name
 
-    let policy_rData = {
-      id: this.ruleId,
-      action: 1,
-      options: 0
-    }
-
     this.ruleTarget = '';
 
     while(lineItems.length > 0)
@@ -260,7 +255,9 @@ export class IptablesSaveToFWCloud extends Service {
 
     // If rule doesn't follow the firewall stateness change its stateness options.
     if (this.table==='filter' && this.statefulFirewall!=this.ruleWithStatus) {
-      policy_rData.options = this.ruleWithStatus ? 1 : 2;
+      const ruleData: any = await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
+      const policy_rData = { id: this.ruleId, options: ruleData.options }
+      policy_rData.options = this.ruleWithStatus ? policy_rData.options | 1 : policy_rData.options | 2;
       await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
     }
   
@@ -270,6 +267,8 @@ export class IptablesSaveToFWCloud extends Service {
         await this.fillRulePositions(l);
       }
     } else if (this.ruleTarget !== 'ACCEPT') { // Target is a builtin one or an extension.
+      const policy_rData = { id: this.ruleId, action: 1 }
+    
       if (this.ruleTarget === 'DROP')
         policy_rData.action = 2;
       else if (this.ruleTarget === 'REJECT')
@@ -312,8 +311,7 @@ export class IptablesSaveToFWCloud extends Service {
         break;
           
       case '-m':
-        await this.eatModule(lineItems[0], lineItems[1], lineItems[2]);
-        lineItems.shift(); lineItems.shift(); lineItems.shift();
+        await this.eatModule(lineItems[0], lineItems);
         break;
 
       /*
@@ -333,8 +331,29 @@ export class IptablesSaveToFWCloud extends Service {
             await this.eatNAT(lineItems[0], lineItems[1]);
           lineItems.shift(); lineItems.shift();
         }
+        else if (this.ruleTarget === 'REJECT') {
+          if (lineItems[0] === '--reject-with') { // For now ignore the --reject-with option.
+            lineItems.shift(); lineItems.shift();
+          }
+        }
+        else if (this.ruleTarget === 'LOG')
+          await this.eatLOG(lineItems);
         break;
-  
+
+      /*
+      [!] -f, --fragment
+      This means that the rule only refers to second and further fragments of fragmented packets. 
+      Since there is no way to tell the source or destination ports of such a packet (or ICMP type), 
+      such a packet will not match any rules which specify them. When the "!" argument precedes the "-f" 
+      flag, the rule will only match head fragments, or unfragmented packets.
+      */
+      case '-f': // For now ignore it.
+        break;
+      case '!': // For now ignore it.
+        if (lineItems[0] === '-f') lineItems.shift();
+        else throw new Error('Bad iptables-save data');
+        break;
+    
       default:
         throw new Error('Bad iptables-save data');
     }
@@ -356,6 +375,7 @@ export class IptablesSaveToFWCloud extends Service {
     }
   }
 
+
   private async eatNAT(item: string, data: string): Promise<void> {
     if (this.ruleTarget === 'SNAT' && item !== '--to-source')
       throw new Error('Bad iptables-save data in SNAT target');
@@ -373,7 +393,40 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
 
-  private async eatModule(module: string, opt: string, data: string): Promise<void> {
+  private async eatLOG(items: string[]): Promise<void> {
+    // Enable rule logging.
+    const ruleData: any = await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
+    let policy_rData = { id: this.ruleId, options: ruleData.options | 4 }
+    await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
+
+    for (;;) {
+      const item = items[0];
+
+      if (item==='--log-level') {
+        items.shift(); items.shift();
+      }
+      else if (item==='--log-prefix') {
+        items.shift();
+        if (items[0].charAt(0) === '"') { // Log prefix string.
+          items.shift();
+          while(items.length>0 && items[0].charAt(items[0].length-1)!=='"')
+            items.shift();
+          if (items[0].charAt(items[0].length-1) != '"') throw new Error('End of log prefix not found'); 
+        }
+        items.shift();
+      }
+      else if (item==='--log-tcp-sequence' || item==='--log-tcp-options' || item==='--log-ip-options' || item==='--log-uid')
+        items.shift();
+      else break;
+    }
+  }
+
+
+  private async eatModule(module: string, items: string[]): Promise<void> {
+    items.shift(); 
+    const opt = items[0];
+    const data = items[1];
+
     switch (module) {
       /*
       multiport
@@ -398,16 +451,17 @@ export class IptablesSaveToFWCloud extends Service {
           const dports = opt === '--dports' ? ports : '0';
           await this.eatPort(sports,dports,null,null);
         }
+        items.shift(); items.shift();
         break;
 
       case 'tcp':
       case 'udp':
-        if (opt!=='--dport' && opt!=='--sport')
-          throw new Error(`Bad ${module} module option`);
-
-        const sports = opt === '--sport' ? data : '0';
-        const dports = opt === '--dport' ? data : '0';
-        await this.eatPort(sports,dports,null,null);
+        if (opt==='--dport' || opt==='--sport') {
+          const sports = opt === '--sport' ? data : '0';
+          const dports = opt === '--dport' ? data : '0';
+          await this.eatPort(sports,dports,null,null);
+          items.shift(); items.shift();
+        }
         break;
 
       /*
@@ -424,6 +478,7 @@ export class IptablesSaveToFWCloud extends Service {
         if (opt!=='--icmp-type')
           throw new Error(`Bad ${module} module option`);
         await this.eatICMP(data);
+        items.shift(); items.shift();
         break;
 
       /*
@@ -435,15 +490,39 @@ export class IptablesSaveToFWCloud extends Service {
         [!]--dst-range ip-ip
         Match destination IP in the specified range.
       */
-     case 'iprange':
-      await this.eatIPRange(opt,data);
-      break;
+      case 'iprange':
+        await this.eatIPRange(opt,data);
+        items.shift(); items.shift();
+        break;
+
+      /*
+        mac
+
+        --mac-source [!] address
+        Match source MAC address. It must be of the form XX:XX:XX:XX:XX:XX. 
+        Note that this only makes sense for packets coming from an Ethernet device and entering 
+        the PREROUTING, FORWARD or INPUT chains.
+      */
+      case 'mac': // By the moment ignore it.
+        items.shift(); items.shift();
+        break;
+
+      case 'limit': // By the moment ignore it.
+        items.shift(); items.shift();
+        break;
 
       case 'conntrack':
         if (opt==='--ctstate' && data==='NEW')
           this.ruleWithStatus = true;
+        items.shift(); items.shift();
         break;
   
+      case 'state':
+        if (opt==='--state' && data==='NEW')
+          this.ruleWithStatus = true;
+        items.shift(); items.shift();
+        break;
+
       default: 
         throw new Error(`IPTables module not supported: ${module}`);
     }  
@@ -541,7 +620,8 @@ export class IptablesSaveToFWCloud extends Service {
     };
 
     try {
-      await PolicyRuleToInterface.insertPolicy_r__interface(this.req.body.firewall, policy_r__interfaceData);
+      if (!(await PolicyRuleToInterface.interfaceAlreadyInRulePosition(this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.ruleId, rulePosition, interfaceId)))
+        await PolicyRuleToInterface.insertPolicy_r__interface(this.req.body.firewall, policy_r__interfaceData);
     } catch(err) { throw new Error(`Error inserting interface in policy rule: ${JSON.stringify(err)}`); }
   }
 
@@ -686,11 +766,17 @@ export class IptablesSaveToFWCloud extends Service {
   
   private async eatICMP(data: string): Promise<void> {
     // IMPORTANT: Validate data before process it.
-    const icmp = data.split('/');
-    for (let val of icmp)
-      await Joi.validate(val, Joi.number().integer().min(-1).max(255));
+    let icmp: string[];
+    
+    if (data === 'any')
+      icmp = ['-1', '-1'];
+    else {
+      icmp = data.split('/');
+      for (let val of icmp)
+        await Joi.validate(val, Joi.number().integer().min(-1).max(255));
 
-    if (icmp.length < 2) icmp.push('-1');
+      if (icmp.length < 2) icmp.push('-1');
+    }
 
     // Search to find out if it already exists.   
     let icmpId: any = await IPObj.searchICMP(this.req.dbCon,this.req.body.fwcloud,icmp[0],icmp[1]);
@@ -735,7 +821,8 @@ export class IptablesSaveToFWCloud extends Service {
     };
 
     try {
-      await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
+      if (!(await PolicyRuleToIPObj.checkExistsInPosition(policy_r__ipobjData)))
+        await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
     } catch(err) { throw new Error(`Error inserting IP object in policy rule: ${JSON.stringify(err)}`); }
   }
 

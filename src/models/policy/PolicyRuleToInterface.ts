@@ -656,6 +656,25 @@ export class PolicyRuleToInterface extends Model {
             });
         });
     };
+
+
+    public static interfaceAlreadyInRulePosition = (dbCon, fwcloud, firewall, rule, position, _interface) => {
+        return new Promise((resolve, reject) => {
+            let sql = `SELECT O.rule FROM ${tableName} O 
+                INNER JOIN policy_r R on R.id=O.rule
+                INNER JOIN firewall F on F.id=R.firewall
+                INNER JOIN fwcloud C on C.id=F.fwcloud
+                WHERE O.rule=${dbCon.escape(rule)} AND O.position=${dbCon.escape(position)} AND O.interface=${dbCon.escape(_interface)} 
+                AND F.id=${dbCon.escape(firewall)} AND C.id=${dbCon.escape(fwcloud)}`;
+
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+                resolve(rows.length === 0 ? false : true);
+            });
+
+        });
+    };
+
 }
 
 
