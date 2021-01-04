@@ -23,16 +23,17 @@
 import { logger } from "../fonaments/abstract-application";
 import { Request } from "express";
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
-import { IptablesSaveToFWCloud, NetFilterTables } from './iptables-save.model';
+import { IptablesSaveToFWCloud } from './iptables-save.model';
+import { NetFilterTables, IptablesSaveStats } from './iptables-save.data';
 import { Firewall } from '../models/firewall/Firewall';
 
 
 export class IptablesSaveService extends IptablesSaveToFWCloud {
-  public async import(request: Request): Promise<void> {
+  public async import(request: Request): Promise<IptablesSaveStats> {
     this.req = request;
     this.data = request.body.data;
     this.table = null;
-    this.stats = { rules: 0, interfaces: 0, objects: 0, modulesIgnored: [] }; // Reset statistics.
+    this.stats = { rules: 0, interfaces: 0, ipOpbjs: 0, modulesIgnored: [] }; // Reset statistics.
 
     const fwOptions: any = await Firewall.getFirewallOptions(this.req.body.fwcloud,this.req.body.firewall);
     this.statefulFirewall = parseInt(fwOptions) & 0x1 ? true : false;
@@ -73,7 +74,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
       } catch(err) { throw new HttpException(`ERROR in iptables-save import (line: ${this.line+1}): ${err.message} `,400); }
     }
 
-    return;
+    return this.stats;
   }
 
   public async export(request: Request): Promise<void> {

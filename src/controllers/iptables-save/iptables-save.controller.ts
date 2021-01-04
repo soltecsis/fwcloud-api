@@ -22,6 +22,7 @@
 
 import { Controller } from "../../fonaments/http/controller";
 import { IptablesSaveService } from "../../iptables-save/iptables-save.service";
+import { IptablesSaveStats } from '../../iptables-save/iptables-save.data';
 import { Request } from "express";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { app } from "../../fonaments/abstract-application";
@@ -39,9 +40,9 @@ export class IptablesSaveController extends Controller {
         // If request.body.fwcloud and request.body.firewall exists, we have already checked in the access control middleware 
         // that the user has access to the indicated fwcloud and firewall.
 
-        await this._iptablesSaveService.import(request);
+        const result: IptablesSaveStats = await this._iptablesSaveService.import(request);
 
-        return ResponseBuilder.buildResponse().status(200);
+        return ResponseBuilder.buildResponse().status(200).body(result);
     }
 
     // WARNING: We are validating input wit Joi middleware, ignore this validation.
