@@ -457,7 +457,7 @@ router.put('/cloud/get', async (req, res) => {
 		else
 			res.status(204).end();
 	} catch(error) {
-		logger().error('Error getting cloud firewalsl: ' + JSON.stringify(error)); 
+		logger().error('Error getting cloud firewalls: ' + JSON.stringify(error)); 
 		res.status(400).json(error);
 	}
 });

@@ -148,7 +148,10 @@ export class PolicyRuleToInterface extends Model {
                     connection.query('INSERT INTO ' + tableName + ' SET ?', policy_r__interfaceData, async (error, result) => {
                         if (error) return reject(error);
                         if (result.affectedRows > 0) {
-                            this.OrderList(policy_r__interfaceData.position_order, policy_r__interfaceData.rule, policy_r__interfaceData.position, 999999, policy_r__interfaceData.interface);
+                            try {
+                                await this.OrderList(policy_r__interfaceData.position_order, policy_r__interfaceData.rule, policy_r__interfaceData.position, 999999, policy_r__interfaceData.interface);
+                            } catch(err) { return reject(err) }
+                            
                             resolve();
                         } else reject(fwcError.NOT_FOUND);
                     });

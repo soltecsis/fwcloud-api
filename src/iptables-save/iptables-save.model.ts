@@ -564,7 +564,8 @@ export class IptablesSaveToFWCloud extends Service {
     let policy_r__interfaceData = {
       rule: this.ruleId,
       interface: interfaceId,
-      position: rulePosition
+      position: rulePosition,
+      position_order: 0
     };
 
     try {
