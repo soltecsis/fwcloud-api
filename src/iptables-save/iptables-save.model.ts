@@ -606,7 +606,7 @@ export class IptablesSaveToFWCloud extends Service {
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, mask===fullMask ? 'OIA' : 'OIN' , ipobjData);
       } catch(err) { throw new Error(`Error creating IP object: ${JSON.stringify(err)}`); }
 
-      this.stats.ipOpbjs++;
+      this.stats.ipObjs++;
     }
 
     // Add the addr object to the rule position.
@@ -643,7 +643,7 @@ export class IptablesSaveToFWCloud extends Service {
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'OIR', ipobjData);
       } catch(err) { throw new Error(`Error creating address range object: ${JSON.stringify(err)}`); }
 
-      this.stats.ipOpbjs++;
+      this.stats.ipObjs++;
     }
 
     // Add the addr object to the rule position.
@@ -711,7 +711,7 @@ export class IptablesSaveToFWCloud extends Service {
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, this.ipProtocol==='TCP' ? 'SOT' : 'SOU', ipobjData);
       } catch(err) { throw new Error(`Error creating service object: ${JSON.stringify(err)}`); }
 
-      this.stats.ipOpbjs++;
+      this.stats.ipObjs++;
     }
 
     // Add the addr object to the rule position.
@@ -755,7 +755,7 @@ export class IptablesSaveToFWCloud extends Service {
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'SOM', ipobjData);
       } catch(err) { throw new Error(`Error creating ICMP object: ${JSON.stringify(err)}`); }
 
-      this.stats.ipOpbjs++;
+      this.stats.ipObjs++;
     }
 
     // Add the addr object to the rule position.
