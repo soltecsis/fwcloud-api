@@ -1,4 +1,4 @@
-/*!
+/*
     Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
@@ -20,24 +20,29 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Application } from '../Application';
-import { Server } from '../Server';
 
-async function loadApiApplication(): Promise<Application> {
-    const application = await Application.run();
-    return application;
-}
+var schema = {};
+module.exports = schema;
 
-function startServer(app: Application): Server {
-    const server: Server = new Server(app);
-    server.start();
-    return server;
-}
+const Joi = require('joi');
+const sharedSch = require('./shared');
+const fwcError = require('../../utils/error_table');
 
-async function start() {
-    const app = await loadApiApplication();
-    startServer(app);
-}
+schema.validate = req => {
+	return new Promise(async(resolve, reject) => {
+		var schema = Joi.object().keys({ 
+            fwcloud: sharedSch.id, 
+            firewall: sharedSch.id,
+            ip_version: Joi.number().integer().valid([4, 6])
+         });
 
+		if (req.method==='PUT' && req.url==='/iptables-save/import') {
+			schema = schema.append({ data: Joi.array().items(Joi.string()) });
+		} else return reject(fwcError.BAD_API_CALL);
 
-start();
+		try {
+			await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
+			resolve();
+		} catch (error) { return reject(error) }
+	});
+};

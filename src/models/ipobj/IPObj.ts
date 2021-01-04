@@ -34,6 +34,7 @@ import { IPObjType } from './IPObjType';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { PolicyRule } from '../policy/PolicyRule';
 import { RoutingRuleToIPObj } from '../routing/routing-rule-to-ipobj.model';
+const ip = require('ip');
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
 var interface_Data = require('../../models/data/data_interface');
@@ -1178,4 +1179,91 @@ export class IPObj extends Model {
         });
     };
 
+
+    // Search if IP with mask exists. (IP is given in CIDR notation) 
+    public static searchAddrWithMask(dbCon, fwcloud, addr, mask) {        
+        return new Promise((resolve, reject) => {
+            let sql = `select id,address,netmask from ipobj 
+            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND address=${dbCon.escape(addr)} and (type=5 OR type=7)`; // 5: ADDRESS, 7: NETWORK
+
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+
+                // We have two formats for the netmask (for example, 255.255.255.0 or /24).
+                // We have to check if the object already exist independently of the netmask format.
+                const net1 = ip.cidrSubnet(`${addr}/${mask}`);
+                let net2: any = {};
+                for (let row of rows) {
+                    net2 = (row.netmask[0] === '/') ? ip.cidrSubnet(`${row.address}${row.netmask}`) : ip.subnet(row.address, row.netmask);
+                    if (net1.subnetMaskLength===net2.subnetMaskLength)
+                        resolve(row.id);
+                }
+
+                resolve(0);
+            });
+        });
+    };
+
+    // Search if IP with mask exists. (IP is given in CIDR notation) 
+    public static searchIPRange(dbCon, fwcloud, start, end) {        
+        return new Promise((resolve, reject) => {
+            let sql = `select id from ipobj where (fwcloud IS NULL OR fwcloud=${fwcloud}) 
+            AND range_start=${dbCon.escape(start)} AND range_end=${dbCon.escape(end)} AND type=6`; // 6: ADDRESS RANGE
+
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+
+                resolve(rows.length === 0 ? 0 : rows[0].id);
+            });
+        });
+    };
+
+    // Search if IP with mask exists. (IP is given in CIDR notation) 
+    public static searchIPProtocol(dbCon, fwcloud, protocol) {        
+        return new Promise((resolve, reject) => {
+            let sql = `select id from ipobj 
+            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=${protocol} and type=1`; // 1: IP
+
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+
+                resolve(rows.length === 0 ? '' : rows[0].id);
+            });
+        });
+    };
+
+    // Search for service port.
+    public static searchPort(dbCon, fwcloud, protocol, scrPorts, dstPorts, tcpFlags, tcpFlagsSet) {        
+        return new Promise((resolve, reject) => {
+            let sql = `select id from ipobj 
+            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=${protocol==='tcp' ? 6 : 17}
+            AND source_port_start=${scrPorts[0]} AND source_port_end=${scrPorts[1]}
+            AND destination_port_start=${dstPorts[0]} AND destination_port_end=${dstPorts[1]}`;
+
+            if (tcpFlags)
+                sql = `${sql} AND tcp_flags_mask=${tcpFlags} AND tcp_flags_settings=${tcpFlagsSet}`
+
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+
+                resolve(rows.length === 0 ? 0 : rows[0].id)
+            });
+        });
+    };
+    
+    // Search for icmp service.
+    public static searchICMP(dbCon, fwcloud, type, code) {        
+        return new Promise((resolve, reject) => {
+            let sql = `select id from ipobj 
+            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=1 AND type=3
+            AND icmp_type=${type} AND icmp_code=${code}`;
+
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+
+                resolve(rows.length === 0 ? 0 : rows[0].id)
+            });
+        });
+    };
+    
 }

@@ -108,6 +108,38 @@ export class Tree extends Model {
             });
         });
     }
+    
+    //Get ipobjects node info.
+    public static getNodeInfo(dbCon, fwcloud, node_type, id_obj?) {
+        return new Promise((resolve, reject) => {
+            let sql = `SELECT * FROM ${tableName}
+                WHERE fwcloud${(!fwcloud ? " IS NULL" : ("=" + fwcloud))} 
+                AND node_type=${dbCon.escape(node_type)}`;
+
+            if (id_obj !== undefined) {
+                sql = sql + ` AND id_obj${(!id_obj ? " IS NULL" : ("=" + id_obj))}`
+            }
+
+            dbCon.query(sql, (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+            });
+        });
+    };
+
+    //Get node info under firewall
+    public static getNodeUnderFirewall(dbCon, fwcloud, firewall, node_type) {
+        return new Promise((resolve, reject) => {
+            let sql = `SELECT T2.* FROM ${tableName} T1
+			INNER JOIN ${tableName} T2 ON T2.id_parent=T1.id
+			WHERE T1.fwcloud=${fwcloud} AND (T1.node_type='FW' OR T1.node_type='CL')  
+			AND T2.id_obj=${firewall} AND T2.node_type=${dbCon.escape(node_type)}`;
+            dbCon.query(sql, (error, result) => {
+                if (error) return reject(error);
+                resolve(result.length > 0 ? result[0] : null);
+            });
+        });
+    };
 
     //Get COMPLETE TREE from idparent
     public static getTree(req, idparent, tree, objStandard, objCloud, order_mode) {
@@ -1205,39 +1237,6 @@ export class Tree extends Model {
                     );
                 } else
                     callback(null, { "result": true });
-            });
-        });
-    };
-
-
-    //Get ipobjects node info.
-    public static getNodeInfo(dbCon, fwcloud, node_type, id_obj?) {
-        return new Promise((resolve, reject) => {
-            let sql = `SELECT * FROM ${tableName}
-                WHERE fwcloud${(!fwcloud ? " IS NULL" : ("=" + fwcloud))} 
-                AND node_type=${dbCon.escape(node_type)}`;
-
-            if (id_obj !== undefined) {
-                sql = sql + ` AND id_obj${(!id_obj ? " IS NULL" : ("=" + id_obj))}`
-            }
-
-            dbCon.query(sql, (error, result) => {
-                if (error) return reject(error);
-                resolve(result);
-            });
-        });
-    };
-
-    //Get node info under firewall
-    public static getNodeUnderFirewall(dbCon, fwcloud, firewall, node_type) {
-        return new Promise((resolve, reject) => {
-            let sql = `SELECT T2.* FROM ${tableName} T1
-			INNER JOIN ${tableName} T2 ON T2.id_parent=T1.id
-			WHERE T1.fwcloud=${fwcloud} AND (T1.node_type='FW' OR T1.node_type='CL')  
-			AND T2.id_obj=${firewall} AND T2.node_type=${dbCon.escape(node_type)}`;
-            dbCon.query(sql, (error, result) => {
-                if (error) return reject(error);
-                resolve(result.length > 0 ? result[0] : null);
             });
         });
     };
