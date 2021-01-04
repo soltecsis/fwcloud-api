@@ -164,6 +164,22 @@ const AgrupablePositionMap = new Map<string, number[]>([
 // the second for options with one parameter, and so on ...
 const ModulesIgnoreMap = new Map<string, string[][]>([
   ['account', [['--ashort'], ['--aaddr','--aname']]],
+  ['addrtype', [[], ['--src-type', '--dst-type']]],
+  ['ah', [[], ['--ahspi']]],
+  ['childlevel', [[], ['--childlevel']]],
+  ['condition', [[], ['--condition']]],
+  ['connbytes', [[], ['--connbytes','--connbytes-dir','--connbytes-mode']]],
+  ['', [[], []]],
+  ['', [[], []]],
+  ['', [[], []]],
+  ['', [[], []]],
+  ['', [[], []]],
+  ['', [[], []]],
+  ['', [[], []]],
+  ['', [[], []]],
+  ['', [[], []]],
+  ['', [[], []]],
+
   ['limit', [[], ['--limit','--limit-burst']]],
   ['mac', [[], ['--mac-source']]],
 ]);
@@ -490,6 +506,11 @@ export class IptablesSaveToFWCloud extends Service {
         items.shift(); items.shift();
         break;
 
+      case 'comment': 
+        items.shift(); // --comment
+        await this.eatRuleComment(items);     
+        break;
+
       case 'conntrack':
         if (opt==='--ctstate' && data==='NEW')
           this.ruleWithStatus = true;
@@ -568,6 +589,28 @@ export class IptablesSaveToFWCloud extends Service {
         items.shift();
       else break;
     }
+  }
+
+  private async eatRuleComment(items: string[]): Promise<void> {
+    let comment: string;
+
+    if (items[0].charAt(0) === '"') { // Comment string.
+      comment = items[0];
+      items.shift();
+      while(items.length>0 && items[0].charAt(items[0].length-1)!=='"') {
+        comment = `${comment} ${items[0]}`;
+        items.shift();
+      }
+      if (items[0].charAt(items[0].length-1) != '"') throw new Error('End of rule comment not found');
+      comment = `${comment} ${items[0]}`;
+      items.shift(); 
+    }
+    else throw new Error('Start of rule comment not found');
+
+    // Update rule comment.
+    const ruleData: any = await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
+    let policy_rData = { id: this.ruleId, comment: `${ruleData.comment}\n${comment}` }
+    await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
   }
 
 
