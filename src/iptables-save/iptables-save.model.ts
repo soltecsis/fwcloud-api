@@ -141,7 +141,7 @@ const PositionMap = new Map<string, number>([
   ['nat:POSTROUTING:-d', 12], ['nat:POSTROUTING:--dst-range', 12],
   ['nat:POSTROUTING:-p', 13], ['nat:POSTROUTING:srvc', 13],
   ['nat:POSTROUTING:--to-source_ip', 14],
-  ['nat:POSTROUTING:--to-source_port', 16],
+  ['nat:POSTROUTING:--to-source_port', 16], ['nat:POSTROUTING:--to-ports', 16],
 
   ['nat:PREROUTING:-i', 36], // DNAT
   ['nat:PREROUTING:-s', 30], ['nat:PREROUTING:--src-range', 30],
@@ -159,6 +159,21 @@ const AgrupablePositionMap = new Map<string, number[]>([
   ['nat:PREROUTING', [30,31,32]] // DNAT
 ]);
 
+// For each module to ignore, one array of strings arrays.
+// The fisrt string array for options with no parameters, 
+// the second for options with one parameter, and so on ...
+const ModulesIgnoreMap = new Map<string, string[][]>([
+  ['account', [['--ashort'], ['--aaddr','--aname']]],
+  ['limit', [[], ['--limit','--limit-burst']]],
+  ['mac', [[], ['--mac-source']]],
+]);
+
+type IptablesSaveStats = {
+  rules: number;
+  interfaces: number;
+  objects: number;
+  modulesIgnored: string[];
+}
 
 export class IptablesSaveToFWCloud extends Service {
   protected req: Request;
@@ -175,6 +190,7 @@ export class IptablesSaveToFWCloud extends Service {
   protected ruleTargetSet: boolean;
   protected ruleWithStatus: boolean;
   protected customChainsMap: Map<string, number[]>;
+  protected stats: IptablesSaveStats;
 
   protected generateCustomChainsMap(): Promise<void> {
     let chain: string = this.items[0].substr(1);
@@ -331,6 +347,12 @@ export class IptablesSaveToFWCloud extends Service {
             await this.eatNAT(lineItems[0], lineItems[1]);
           lineItems.shift(); lineItems.shift();
         }
+        else if (this.ruleTarget === 'MASQUERADE') {
+          if (lineItems[0] === '--to-ports') {
+            await this.eatPort('0',lineItems[1],null,null,'--to-ports');
+            lineItems.shift(); lineItems.shift();
+          }
+        }
         else if (this.ruleTarget === 'REJECT') {
           if (lineItems[0] === '--reject-with') { // For now ignore the --reject-with option.
             lineItems.shift(); lineItems.shift();
@@ -359,71 +381,44 @@ export class IptablesSaveToFWCloud extends Service {
     }
   }
 
-  private async negateLinePositions(line: number): Promise<void> {
-    let items = this.data[line].trim().split(/\s+/);
-
-    for (let item of items) {
-      if (item.charAt(0) === '-') {
-        if (item==='--sport' || item==='--dport' || item==='--tcp-flags'
-            || item==='--sports' || item==='--dports' || item==='--icmp-type') 
-          item = 'srvc';
-
-        const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${item}`);
-        if (rulePosition) 
-			    await PolicyRule.negateRulePosition(this.req.dbCon,this.req.body.firewall,this.ruleId,rulePosition);
-      }
-    }
-  }
-
-
-  private async eatNAT(item: string, data: string): Promise<void> {
-    if (this.ruleTarget === 'SNAT' && item !== '--to-source')
-      throw new Error('Bad iptables-save data in SNAT target');
-    if (this.ruleTarget === 'DNAT' && item !== '--to-destination')
-      throw new Error('Bad iptables-save data in DNAT target');
-
-    const items = data.split(':');
-
-    if (items[0])
-      await this.eatAddr(`${item}_ip`,`${items[0]}/32`);
-    if (items[1])
-      await this.eatPort('0',items[1],null,null,`${item}_port`);
-
-    this.ruleTargetSet = true;
-  }
-
-
-  private async eatLOG(items: string[]): Promise<void> {
-    // Enable rule logging.
-    const ruleData: any = await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
-    let policy_rData = { id: this.ruleId, options: ruleData.options | 4 }
-    await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
-
-    for (;;) {
-      const item = items[0];
-
-      if (item==='--log-level') {
-        items.shift(); items.shift();
-      }
-      else if (item==='--log-prefix') {
-        items.shift();
-        if (items[0].charAt(0) === '"') { // Log prefix string.
-          items.shift();
-          while(items.length>0 && items[0].charAt(items[0].length-1)!=='"')
-            items.shift();
-          if (items[0].charAt(items[0].length-1) != '"') throw new Error('End of log prefix not found'); 
-        }
-        items.shift();
-      }
-      else if (item==='--log-tcp-sequence' || item==='--log-tcp-options' || item==='--log-ip-options' || item==='--log-uid')
-        items.shift();
-      else break;
-    }
-  }
-
 
   private async eatModule(module: string, items: string[]): Promise<void> {
     items.shift(); 
+    
+    if (ModulesIgnoreMap.has(module)) {
+      const moduleOptions: string[][] = ModulesIgnoreMap.get(module);
+
+      while (items.length > 0) {
+        let found = false;
+
+        for (let i=0; i<moduleOptions.length && !found; i++) {
+          for (let j=0; j <= i; j++) {
+            if (items[0] === moduleOptions[i][j]) {
+              // Ignore module option name.
+              items.shift();
+              
+              // Ignore the negation string: '!'
+              if (items[0]==='!') items.shift();
+
+              // Ignore module option parameters.
+              for (let k=1; k<=i; k++) items.shift();
+
+              found = true;
+              break;
+            }
+          }
+        }
+
+        if (!found) break;
+      }
+
+      // Add the ingnored module to statistics information.
+      if (this.stats.modulesIgnored.indexOf(module) === -1)
+        this.stats.modulesIgnored.push(module);
+
+      return;
+    }
+
     const opt = items[0];
     const data = items[1];
 
@@ -495,22 +490,6 @@ export class IptablesSaveToFWCloud extends Service {
         items.shift(); items.shift();
         break;
 
-      /*
-        mac
-
-        --mac-source [!] address
-        Match source MAC address. It must be of the form XX:XX:XX:XX:XX:XX. 
-        Note that this only makes sense for packets coming from an Ethernet device and entering 
-        the PREROUTING, FORWARD or INPUT chains.
-      */
-      case 'mac': // By the moment ignore it.
-        items.shift(); items.shift();
-        break;
-
-      case 'limit': // By the moment ignore it.
-        items.shift(); items.shift();
-        break;
-
       case 'conntrack':
         if (opt==='--ctstate' && data==='NEW')
           this.ruleWithStatus = true;
@@ -526,6 +505,69 @@ export class IptablesSaveToFWCloud extends Service {
       default: 
         throw new Error(`IPTables module not supported: ${module}`);
     }  
+  }
+
+
+  private async negateLinePositions(line: number): Promise<void> {
+    let items = this.data[line].trim().split(/\s+/);
+
+    for (let item of items) {
+      if (item.charAt(0) === '-') {
+        if (item==='--sport' || item==='--dport' || item==='--tcp-flags'
+            || item==='--sports' || item==='--dports' || item==='--icmp-type') 
+          item = 'srvc';
+
+        const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${item}`);
+        if (rulePosition) 
+			    await PolicyRule.negateRulePosition(this.req.dbCon,this.req.body.firewall,this.ruleId,rulePosition);
+      }
+    }
+  }
+
+
+  private async eatNAT(item: string, data: string): Promise<void> {
+    if (this.ruleTarget === 'SNAT' && item !== '--to-source')
+      throw new Error('Bad iptables-save data in SNAT target');
+    if (this.ruleTarget === 'DNAT' && item !== '--to-destination')
+      throw new Error('Bad iptables-save data in DNAT target');
+
+    const items = data.split(':');
+
+    if (items[0])
+      await this.eatAddr(`${item}_ip`,`${items[0]}/32`);
+    if (items[1])
+      await this.eatPort('0',items[1],null,null,`${item}_port`);
+
+    this.ruleTargetSet = true;
+  }
+
+
+  private async eatLOG(items: string[]): Promise<void> {
+    // Enable rule logging.
+    const ruleData: any = await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
+    let policy_rData = { id: this.ruleId, options: ruleData.options | 4 }
+    await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
+
+    for (;;) {
+      const item = items[0];
+
+      if (item==='--log-level') {
+        items.shift(); items.shift();
+      }
+      else if (item==='--log-prefix') {
+        items.shift();
+        if (items[0].charAt(0) === '"') { // Log prefix string.
+          items.shift();
+          while(items.length>0 && items[0].charAt(items[0].length-1)!=='"')
+            items.shift();
+          if (items[0].charAt(items[0].length-1) != '"') throw new Error('End of log prefix not found'); 
+        }
+        items.shift();
+      }
+      else if (item==='--log-tcp-sequence' || item==='--log-tcp-options' || item==='--log-ip-options' || item==='--log-uid')
+        items.shift();
+      else break;
+    }
   }
 
 

@@ -32,6 +32,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     this.req = request;
     this.data = request.body.data;
     this.table = null;
+    this.stats = { rules: 0, interfaces: 0, objects: 0, modulesIgnored: [] }; // Reset statistics.
 
     const fwOptions: any = await Firewall.getFirewallOptions(this.req.body.fwcloud,this.req.body.firewall);
     this.statefulFirewall = parseInt(fwOptions) & 0x1 ? true : false;
