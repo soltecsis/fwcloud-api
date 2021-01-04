@@ -25,11 +25,11 @@ export class WebSocketService extends Service {
     }
 
     public getSocket(socketId: string): io.Socket {
-        if (this._socketIO.sockets.connected[socketId]) {
-            return this._socketIO.sockets.connected[socketId];
-        }
+        // if (this._socketIO.sockets.connected[socketId]) {
+        //     return this._socketIO.sockets.connected[socketId];
+        // }
 
-        return null;
+        return this._socketIO.of('/').sockets.get(socketId) || null;
     }
 
     public setSocketIO(socketIO: io.Server) {

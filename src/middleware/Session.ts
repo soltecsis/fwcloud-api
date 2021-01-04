@@ -57,7 +57,7 @@ export class SessionMiddleware extends Middleware {
 
 export class SessionSocketMiddleware extends SocketMiddleware {
     public async handle(socket: Socket, next: NextFunction): Promise<void> {
-        session(Session.getConfig(this.app))(socket.request, socket.request.res, next);
+        session(Session.getConfig(this.app))(socket.request as any, (socket.request as any).res, next);
         //next();
     }
 }

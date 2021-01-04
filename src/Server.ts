@@ -98,7 +98,7 @@ export class Server {
     }
 
     private async bootstrapSocketIO() {
-        const _io: io.Server = io(this._server);
+        const _io: io.Server = new io.Server(this._server);
         await (<Application>this._application).setSocketIO(_io);
     }
 
