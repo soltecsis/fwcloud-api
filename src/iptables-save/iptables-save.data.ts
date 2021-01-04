@@ -195,6 +195,6 @@ export const ModulesIgnoreMap = new Map<string, string[][]>([
 export type IptablesSaveStats = {
   rules: number;
   interfaces: number;
-  ipOpbjs: number;
+  ipObjs: number;
   modulesIgnored: string[];
 }
