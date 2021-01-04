@@ -25,11 +25,11 @@ export class WebSocketService extends Service {
     }
 
     public getSocket(socketId: string): io.Socket {
-        if (this._socketIO.sockets.connected[socketId]) {
-            return this._socketIO.sockets.connected[socketId];
-        }
+        // if (this._socketIO.sockets.connected[socketId]) {
+        //     return this._socketIO.sockets.connected[socketId];
+        // }
 
-        return null;
+        return this._socketIO.of('/').sockets.get(socketId) || null;
     }
 
     public setSocketIO(socketIO: io.Server) {
@@ -39,14 +39,10 @@ export class WebSocketService extends Service {
             socket.request.session.socketId = socket.id;
             socket.request.session.save();
 
-            if (this._app.config.get('env') === 'dev') {
-                logger().info('user connected', socket.id);
-            }
+            logger().info(`WebSocket: User connected (ID: ${socket.id}, IP: ${socket.handshake.address}, session: ${socket.request.session.id})`);
             
             socket.on('disconnect', () => {
-                if (this._app.config.get('env') === 'dev') {
-                    logger().info('user disconnected', socket.id);
-                }
+                logger().info(`WebSocket: User disconnected (ID: ${socket.id}, IP: ${socket.handshake.address}, session: ${socket.request.session.id})`);
             });
         });
     }

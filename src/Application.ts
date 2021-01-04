@@ -46,8 +46,6 @@ import { RepositoryServiceProvider } from './database/repository.provider';
 import { RouterServiceProvider } from './fonaments/http/router/router.provider';
 import { AuthorizationServiceProvider } from './fonaments/authorization/authorization.provider';
 import { AuthorizationMiddleware } from './fonaments/authorization/authorization.middleware';
-import { RouterService } from './fonaments/http/router/router.service';
-import { Routes } from './routes/routes';
 import { WebSocketServiceProvider } from './sockets/web-socket.provider';
 import { FirewallServiceProvider } from './models/firewall/firewall.provider';
 import { FwCloudExportServiceProvider } from './fwcloud-exporter/fwcloud-export.provider';
@@ -56,6 +54,9 @@ import { OpenVPNServiceProvider } from './models/vpn/openvpn/openvpn.provider';
 import { FwCloudServiceProvider } from './models/fwcloud/fwcloud.provider';
 import { HTTPApplication } from './fonaments/http-application';
 import { UpdateServiceProvider } from "./updates/updates.provider";
+import { IptablesSaveServiceProvider } from "./iptables-save/iptables-save.provider";
+import { logger } from "./fonaments/abstract-application";
+import * as fs from 'fs';
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -70,22 +71,32 @@ export class Application extends HTTPApplication {
         }
     }
 
+    private signalHandler (signal: 'SIGINT' | 'SIGTERM') {
+        logger().info(`Received signal: ${signal}`);
+        fs.unlink('.pid',err => {
+            logger().info(`------- Application stopped --------`);
+            setTimeout(() => process.exit(0), 100);
+        });
+    }
+
     public async bootstrap(): Promise<Application> {
         await super.bootstrap();
         await this.startDatabaseService();
 
         this.logger().info(`------- Starting application -------`);
-        this.logger().info(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
+        this.logger().info(`FWCloud API v${this.version.tag} (PID=${process.pid}) (${this.config.get('env')}) | schema: v${this.version.schema}`);
 
         // If stdout log mode is not enabled, log messages are not shown in terminal. 
         // As a result, user doesn't know when application has started.
         // So, we print out the message directly 
         if (this._config.get('env') !== 'test' && this._config.get('log.stdout') === false) {
             console.log(`------- Starting application -------`);
-            console.log(`FwCloud v${this.version.tag} (${this.config.get('env')}) | schema: v${this.version.schema}`);
+            console.log(`FWCloud API v${this.version.tag} (PID=${process.pid}) (${this.config.get('env')}) | schema: v${this.version.schema}`);
         }
 
-
+        process.on('SIGINT', this.signalHandler);
+        process.on('SIGTERM', this.signalHandler);
+        
         return this;
     }
 
@@ -103,7 +114,8 @@ export class Application extends HTTPApplication {
             FwCloudExportServiceProvider,
             OpenVPNServiceProvider,
             FwCloudServiceProvider,
-            UpdateServiceProvider
+            UpdateServiceProvider,
+            IptablesSaveServiceProvider
         ]
     }
 

@@ -129,22 +129,21 @@ export class PolicyRuleToIPObj extends Model {
     };
 
     //Get All policy_r__ipobj by Policy_r (rule) and position
-    public static getPolicy_r__ipobjs_position(rule, position, callback) {
+    public static getRuleIPObjsByPosition(rule, position) {
+        return new Promise((resolve, reject) => {
+            db.get((error, connection) => {
+                if (error) return reject(error);
 
-        db.get((error, connection) => {
-            if (error)
-                callback(error, null);
+                let sql = `SELECT * FROM ${tableModel} 
+                    WHERE rule=${connection.escape(rule)} AND position=${connection.escape(position)}
+                    ORDER BY position_order`;
 
-            var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule=' + connection.escape(rule) + ' AND position=' + connection.escape(position) + ' ORDER BY position_order';
-
-            connection.query(sql, (error, rows) => {
-                if (error)
-                    callback(error, null);
-                else
-                    callback(null, rows);
+                connection.query(sql, (error, rows) => {
+                    if (error) return reject(error);
+                    resolve(rows);
+                });
             });
         });
-
     };
 
     //Get All policy_r__ipobj by Policy_r (rule) and position
@@ -666,7 +665,7 @@ export class PolicyRuleToIPObj extends Model {
     };
 
     //Remove policy_r__ipobj 
-    public static deletePolicy_r__ipobj(dbCon, rule, ipobj, ipobj_g, _interface, position, position_order, callback) {
+    public static deletePolicy_r__ipobj(dbCon, rule, ipobj, ipobj_g, _interface, position, position_order) {
         return new Promise(async (resolve, reject) => {
             var sqlExists = `SELECT * FROM ${tableModel}
                 WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}

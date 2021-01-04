@@ -4,11 +4,11 @@ Description=fwcloud-api
 [Service]
 ExecStart=/usr/bin/npm start
 ExecStop=/usr/bin/npm run stop
-WorkingDirectory=/opt/fwcloud-api/
+WorkingDirectory=/opt/fwcloud/api/
 SyslogIdentifier=fwcloud-api
 User=fwcloud
 Group=fwcloud
-Type=forking
+Type=simple
 
 [Install]
 WantedBy=multi-user.target

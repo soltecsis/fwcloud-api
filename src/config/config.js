@@ -24,7 +24,6 @@ const fs = require('fs');
 process.env.NODE_ENV !== 'test' ? require('dotenv').config() : true;
 const path = require('path');
 var convict = require('convict');
-convict.addFormat(require('convict-format-with-validator').ipaddress);
 convict.addFormat(require('convict-format-with-moment').duration);
 
 // Define a schema
@@ -67,9 +66,9 @@ const config = convict({
       env: 'APISRV_HTTPS'
     },
     ip: {
-      doc: 'API IP address to bind.',
-      format: 'ipaddress',
-      default: '0.0.0.0',
+      doc: 'API IP address or hostname to bind.',
+      format: String,
+      default: 'localhost',
       env: 'APISRV_IP'
     },
     port: {
@@ -98,70 +97,6 @@ const config = convict({
     }
   },
 
-  // Web server for fwcloud-ui.
-  web_server: {
-    enabled: {
-      doc: 'Web server for fwcloud-ui.',
-      format: Boolean,
-      default: true,
-      env: 'WEBSRV_ENABLE'
-    },
-    https: {
-      doc: 'Enable HTTPS protocol for the web server.',
-      format: Boolean,
-      default: true,
-      env: 'WEBSRV_HTTPS'
-    },
-    docroot: {
-      doc: 'Web server document root path.',
-      format: String,
-      default: '/opt/fwcloud-ui/dist',
-      env: 'WEBSRV_DOCROOT'
-    },
-    api_url: {
-      doc: 'API access URL.',
-      format: String,
-      default: 'http://localhost:3131',
-      env: 'WEBSRV_API_URL'
-    },
-    remove_api_string_from_url: {
-      doc: 'Remove the heading string /api before proxying the request to the API server.',
-      format: Boolean,
-      default: true,
-      env: 'WEBSRV_REMOVE_API_STRING_FROM_URL'
-    },
-    ip: {
-      doc: 'Web server IP.',
-      format: 'ipaddress',
-      default: '0.0.0.0',
-      env: 'WEBSRV_IP'
-    },
-    port: {
-      doc: 'Web server port.',
-      format: 'port',
-      default: 3030,
-      env: 'WEBSRV_PORT'
-    },
-    cert: {
-      doc: 'Path to certificate file for the web server.',
-      format: String,
-      default: './config/tls/fwcloud-web.crt',
-      env: 'WEBSRV_HTTPS_CERT'
-    },
-    key: {
-      doc: 'Path to key file for the web server.',
-      format: String,
-      default: './config/tls/fwcloud-web.key',
-      env: 'WEBSRV_HTTPS_KEY'
-    },
-    ca_bundle: {
-      doc: 'Path to CA bundle file for the web server.',
-      format: String,
-      default: '',
-      env: 'WEBSRV_HTTPS_CA_BUNDLE'
-    }
-  },
-  
   // Confirmation token for all not GET requests.
   confirmation_token: {
     doc: 'Confirmation token for all modification API requests.',
@@ -511,13 +446,13 @@ const config = convict({
     installDir: {
       doc: 'fwcloud-updater install directory',
       format: String,
-      default: '/opt/fwcloud-updater',
+      default: '/opt/fwcloud/updater',
       env: 'FWC_UPDATER_INSTALL_DIR'
     },
     url: {
       doc: 'fwcloud-updater URL.',
       format: String,
-      default: 'http://localhost:3132',
+      default: 'https://localhost:3132',
       env: 'FWC_UPDATER_URL'
     },
   }
