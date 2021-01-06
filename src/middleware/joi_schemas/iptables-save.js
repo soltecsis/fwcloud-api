@@ -37,6 +37,16 @@ schema.validate = req => {
          });
 
 		if (req.method==='PUT' && req.url==='/iptables-save/import') {
+            if (Object.keys(req.query).length > 1) {
+                return reject(fwcError.BAD_API_CALL);
+            }
+      
+            if (Object.keys(req.query).length === 1 && Object.keys(req.query)[0] !== 'channel_id') {
+                return reject(fwcError.BAD_API_CALL);
+            }
+              
+            schema = schema.append({ socketid: sharedSch.socketio_id.optional() });
+      
 			schema = schema.append({ data: Joi.array().items(Joi.string()) });
 		} else return reject(fwcError.BAD_API_CALL);
 
