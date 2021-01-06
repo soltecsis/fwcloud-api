@@ -192,6 +192,11 @@ export class RouterService extends Service {
     }
 
     public async validateInput(route: Route, request: Request): Promise<void> {
+
+        // These routes are already validated with the Joi middleware.
+        if (route.pathParams === "/iptables-save/import" || route.pathParams === "/iptables-save/export")
+            return;
+
         const validations = getFWCloudMetadata.validations[route.controllerSignature.controller.name + '@' + route.controllerSignature.method];
         
         if (!validations) {

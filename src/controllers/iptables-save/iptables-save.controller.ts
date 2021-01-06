@@ -21,29 +21,33 @@
 */
 
 import { Controller } from "../../fonaments/http/controller";
-import { UpdateService } from "../../updates/updates.service";
-import { Validate } from "../../decorators/validate.decorator";
+import { IptablesSaveService } from "../../iptables-save/iptables-save.service";
+import { IptablesSaveStats } from '../../iptables-save/iptables-save.data';
 import { Request } from "express";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { app } from "../../fonaments/abstract-application";
 
-export class UpdateController extends Controller {
-    protected _updateUpdaterService: UpdateService;
+export class IptablesSaveController extends Controller {
+    protected _iptablesSaveService: IptablesSaveService;
 
     async make() {
-        this._updateUpdaterService = await app().getService<UpdateService>(UpdateService.name);
+        this._iptablesSaveService = await app().getService<IptablesSaveService>(IptablesSaveService.name);
     }
 
-    @Validate({})
-    public async proxy(request: Request): Promise<ResponseBuilder> {
-        const data = await this._updateUpdaterService.proxyUpdate(request);
+    // WARNING: We are validating input wit Joi middleware, ignore this validation.
+    //@Validate({})
+    public async import(request: Request): Promise<ResponseBuilder> {
+        // If request.body.fwcloud and request.body.firewall exists, we have already checked in the access control middleware 
+        // that the user has access to the indicated fwcloud and firewall.
 
-        return data ? ResponseBuilder.buildResponse().status(200).body(data) : ResponseBuilder.buildResponse().status(200);
+        const result: IptablesSaveStats = await this._iptablesSaveService.import(request);
+
+        return ResponseBuilder.buildResponse().status(200).body(result);
     }
 
-    @Validate({})
-    public async update(): Promise<ResponseBuilder> {
-        await this._updateUpdaterService.runUpdate();
+    // WARNING: We are validating input wit Joi middleware, ignore this validation.
+    //@Validate({})
+    public async export(): Promise<ResponseBuilder> {
 
         return ResponseBuilder.buildResponse().status(200);
     }

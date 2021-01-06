@@ -25,16 +25,28 @@ import { Service } from "../fonaments/services/service";
 import { Request } from "express";
 import * as fs from 'fs';
 import axios, { AxiosRequestConfig, Method } from "axios";
-const exec = require('child-process-promise').exec;
+import * as https from 'https';
+const spawn = require('child-process-promise').spawn;
 
 export class UpdateService extends Service {
   public async proxyUpdate(request: Request): Promise<any> {
     const updaterURL = this._app.config.get('updater').url;
 
+    /* ATENTION: Only forward the cookie header to fwcloud-updater. 
+    If all headers are forwarded with:
+      headers: req.headers
+    then the update request like PUT /updates/ui doesn't go.
+    Updater recevies them, but don't arrive neither to the middleware
+    nor the controller.
+    Curiously, the GET /updates requests is processed correctly
+    with al headres forwarded. */
     const req: AxiosRequestConfig = {
       method: <Method>request.method.toLowerCase(),
       url: `${updaterURL}${request.url}`,
-      headers: request.headers
+      headers: { cookie: request.headers.cookie },
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: false
+      })
     }
 
     try { 
@@ -48,8 +60,6 @@ export class UpdateService extends Service {
   }
 
   public async runUpdate(): Promise<void> {
-    logger().info(`Updating fwcloud-updater`);
-
     const installDir = this._app.config.get('updater').installDir;
 
     // Make sure install dir exists.
@@ -65,7 +75,14 @@ export class UpdateService extends Service {
       throw new Error('fwcloud-updater install directory not accessible');
     }
 
-    try { await exec(`cd ${installDir} && npm run update`) }
+    try { 
+      logger().info('Updating fwcloud-updater ...');
+      await spawn('npm', ['run', 'update'], { cwd: installDir });
+      logger().info('fwcloud-updater update finished. Starting it ...');
+      const promise = spawn('npm', ['run','start:bg'], { cwd: installDir, detached: true, stdio: 'ignore' });
+      promise.childProcess.unref();
+      await promise;
+    }
     catch(err) {
       logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
       throw new Error('Error during fwcloud-updater update procedure');
