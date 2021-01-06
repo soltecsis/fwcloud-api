@@ -26,7 +26,8 @@ import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { IptablesSaveToFWCloud } from './iptables-save.model';
 import { NetFilterTables, IptablesSaveStats } from './iptables-save.data';
 import { Firewall } from '../models/firewall/Firewall';
-
+import { Channel } from '../sockets/channels/channel';
+import { ProgressNoticePayload } from '../sockets/messages/socket-message';
 
 export class IptablesSaveService extends IptablesSaveToFWCloud {
   public async import(request: Request): Promise<IptablesSaveStats> {
@@ -38,7 +39,11 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     const fwOptions: any = await Firewall.getFirewallOptions(this.req.body.fwcloud,this.req.body.firewall);
     this.statefulFirewall = parseInt(fwOptions) & 0x1 ? true : false;
 
+    const channel = await Channel.fromRequest(request);
+
     for(this.line=0; this.line < this.data.length; this.line++) {
+      channel.emit('message', new ProgressNoticePayload(`${this.line+1}/${this.data.length}`, true));
+
       // Get items of current string.
       this.items = this.data[this.line].trim().split(/\s+/);
 
