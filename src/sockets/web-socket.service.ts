@@ -33,7 +33,10 @@ export class WebSocketService extends Service {
 
         this._socketIO.on('connection', socket => {
             socket.request.session.socketId = socket.id;
-            socket.request.session.save();
+            socket.request.session.save(err => {
+                if (err) { logger().error(`WebSocket: Storing socket.io id in session file: ${err.message}`); }
+                else socket.request.session.reload(err => { });
+            });
 
             logger().info(`WebSocket: User connected (ID: ${socket.id}, IP: ${socket.handshake.address}, session: ${socket.request.session.id})`);
             
