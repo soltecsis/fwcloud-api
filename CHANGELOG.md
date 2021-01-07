@@ -6,13 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Default listen to localhost.
+- API call `PUT /iptables-save/import`: Import iptables-save data into an existing firewall.
+- API call `PUT /iptables-save/import/ssh`: Import iptables-save form an existing iptables firewall accessible by means of ssh.
+- API call `PUT /iptables-save/import/file`: Import iptables-save data by means of a file.
+- API call `PUT /iptables-save/export`: Get iptables-save data exit from a FWCloud managed firewall.
+- Upgrade to Socket.IO v3. Upgraded npm module socket.io from 2.3.0 to 3.0.4.
+- By default listen to localhost.
 
 ### Fixed
 - fwcloud-updater doesn't process update requests (for example, PUT /updates/ui) when all request headers are forwarded. Forward only the cookie header, required for the authentication middleware of the fwcloud-updater.
 - Log detailed information for websocket connection/disconnection.
 - Disable etag in express for avoid the problem explained in the http-application.ts file.
 - Bug in autodiscover when the `ip a` command returns interfaces with name like this one: `ens193.40@ens193:` In such cases the interface name must be the string preceding the `@` character.
+
+### Security
+- Updated npm module highlight.js from 9.18.0 to 9.18.5.
+- Updated npm module ini from 1.3.5 to 1.3.7.
+- Updated npm module axios from 0.21.0 to 0.21.1.
+
 
 ## [1.0.1] 
 ### Added
