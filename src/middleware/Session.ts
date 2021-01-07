@@ -36,7 +36,8 @@ class Session {
             Session.sessionInstance = session({
                 name: app.config.get('session').name,
                 secret: app.config.get('session').secret,
-                saveUninitialized: true,
+                //saveUninitialized: true,
+                saveUninitialized: false,
                 resave: false,
                 rolling: false,
                 store: new (FileStore(session))({
