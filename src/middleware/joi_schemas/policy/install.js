@@ -35,7 +35,7 @@ schema.validate = req => {
       // SSH user and password are encrypted with the PGP session key.
       if (req.body.sshuser) req.body.sshuser = await pgp.decrypt(req.body.sshuser);
       if (req.body.sshpass) req.body.sshpass = await pgp.decrypt(req.body.sshpass);
-    } catch(error) { return reject(error) }
+    } catch(error) { return reject(fwcError.other(`PGP decrypt: ${error.message}`)) }
     
     var schema = Joi.object().keys({ 
       fwcloud: sharedSch.id,

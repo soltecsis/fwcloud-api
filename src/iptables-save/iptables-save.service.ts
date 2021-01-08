@@ -82,6 +82,26 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     return this.stats;
   }
 
+  public async importSSH(request: Request): Promise<IptablesSaveStats> {
+    const SSHconn = {
+			host: request.body.ip,
+			port: request.body.port,
+			username: request.body.sshuser,
+			password: request.body.sshpass
+    }
+
+    request.body.data = await Firewall.getIptablesSave(SSHconn);
+		
+    this.import(request);
+    return;
+  }
+
+  public async importFile(request: Request): Promise<IptablesSaveStats> {
+
+    this.import(request);
+    return;
+  }
+
   public async export(request: Request): Promise<void> {
     return;
   }

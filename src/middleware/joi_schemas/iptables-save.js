@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -27,16 +27,19 @@ module.exports = schema;
 const Joi = require('joi');
 const sharedSch = require('./shared');
 const fwcError = require('../../utils/error_table');
+import { PgpHelper } from '../../utils/pgp';
+
 
 schema.validate = req => {
 	return new Promise(async(resolve, reject) => {
-		var schema = Joi.object().keys({ 
+		var schema = Joi.object().keys({
+            socketid: sharedSch.socketio_id.optional(), 
             fwcloud: sharedSch.id, 
             firewall: sharedSch.id,
             ip_version: Joi.number().integer().valid([4, 6])
          });
 
-		if (req.method==='PUT' && req.url==='/iptables-save/import') {
+        if (req.method==='PUT' && req.url==='/iptables-save/import') {
             if (Object.keys(req.query).length > 1) {
                 return reject(fwcError.BAD_API_CALL);
             }
@@ -45,9 +48,28 @@ schema.validate = req => {
                 return reject(fwcError.BAD_API_CALL);
             }
               
-            schema = schema.append({ socketid: sharedSch.socketio_id.optional() });
+            if (!req.body.type) return reject(fwcError.other('iptables-save import type expected'));
+            schema = schema.append({ type: Joi.string().valid(['data', 'ssh', 'file']) });
       
-			schema = schema.append({ data: Joi.array().items(Joi.string()) });
+            if (req.body.type==='data')
+                schema = schema.append({ data: Joi.array().items(Joi.string()) });
+            else if (req.body.type==='ssh') {
+                try {
+                    const pgp = new PgpHelper(req.session.pgp);
+                    // SSH user and password are encrypted with the PGP session key.
+                    if (req.body.sshuser) req.body.sshuser = await pgp.decrypt(req.body.sshuser);
+                    if (req.body.sshpass) req.body.sshpass = await pgp.decrypt(req.body.sshpass);
+                } catch(error) { return reject(fwcError.other(`PGP decrypt: ${error.message}`)) }
+
+                schema = schema.append({ 
+                    ip: sharedSch.ipv4,
+                    port: Joi.number().port(), 
+                    sshuser: sharedSch.linux_user, 
+                    sshpass: sharedSch.linux_pass });
+            }
+            else if (req.body.type==='file') {
+            }
+            else return reject(fwcError.other('Bad iptables-save import type'))
 		} else return reject(fwcError.BAD_API_CALL);
 
 		try {
