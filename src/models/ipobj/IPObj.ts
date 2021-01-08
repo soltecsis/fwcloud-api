@@ -1179,12 +1179,27 @@ export class IPObj extends Model {
         });
     };
 
+    // Search if IP without mask exists.
+    public static searchAddr(dbCon, fwcloud, addr): Promise<number> {        
+        return new Promise((resolve, reject) => {
+            let sql = `select id from ipobj 
+            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND address=${dbCon.escape(addr)} 
+            AND type=5 order by id asc`; // 5: ADDRESS
+
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+                
+                resolve(rows.length === 0 ? 0 : rows[0].id);
+            });
+        });
+    };
 
     // Search if IP with mask exists. (IP is given in CIDR notation) 
-    public static searchAddrWithMask(dbCon, fwcloud, addr, mask) {        
+    public static searchAddrWithMask(dbCon, fwcloud, addr, mask): Promise<number> {        
         return new Promise((resolve, reject) => {
             let sql = `select id,address,netmask from ipobj 
-            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND address=${dbCon.escape(addr)} and (type=5 OR type=7)`; // 5: ADDRESS, 7: NETWORK
+            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND address=${dbCon.escape(addr)} 
+            AND (type=5 OR type=7) order by id asc`; // 5: ADDRESS, 7: NETWORK
 
             dbCon.query(sql, (error, rows) => {
                 if (error) return reject(error);

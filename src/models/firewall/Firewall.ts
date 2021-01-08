@@ -1124,11 +1124,11 @@ export class Firewall extends Model {
 		});
 	}
 
-	public static getIptablesSave(SSHconn) {
+	public static getIptablesSave(SSHconn): Promise<string[]> {
 		return new Promise(async (resolve, reject) => {
 			try {
 				const data: any = await sshTools.runCommand(SSHconn, "sudo iptables-save");
-				resolve(data);
+				resolve(data.split('\r\n'));
 			} catch (error) { reject(error) }
 		});
 	}

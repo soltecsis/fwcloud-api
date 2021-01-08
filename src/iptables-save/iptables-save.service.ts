@@ -48,7 +48,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
       this.items = this.data[this.line].trim().split(/\s+/);
 
       // Ignore comments or empty lines.
-      if (this.items.length === 0 || this.items[0] === '#') continue;
+      if (this.items.length === 0 || this.items[0] === '#' || this.items[0] === '') continue;
 
       // Iptables table with which we are working now.
       if (!this.table) {
@@ -82,6 +82,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     return this.stats;
   }
 
+  
   public async importSSH(request: Request): Promise<IptablesSaveStats> {
     const SSHconn = {
 			host: request.body.ip,
@@ -92,17 +93,22 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
 
     request.body.data = await Firewall.getIptablesSave(SSHconn);
 		
-    this.import(request);
-    return;
+    await this.import(request);
+    return this.stats;
   }
+
 
   public async importFile(request: Request): Promise<IptablesSaveStats> {
 
-    this.import(request);
-    return;
+    await this.import(request);
+    return this.stats;
   }
 
-  public async export(request: Request): Promise<void> {
-    return;
+
+  public async export(request: Request): Promise<string[]> {
+    const SSHconn = await Firewall.getFirewallSSH(request);
+    const result = await Firewall.getIptablesSave(SSHconn);
+   
+    return result;
   }
 }
