@@ -45,7 +45,7 @@ schema.validate = req => {
 						if (nodes[i].install_pass) nodes[i].install_pass = await pgp.decrypt(nodes[i].install_pass);
 					}
 				}
-			} catch(error) { return reject(fwcError.other(error)) }
+			} catch(error) { return reject(fwcError.other(`PGP decrypt: ${error.message}`)) }
 			
 			var schemaItem = Joi.object().keys({
 				name: sharedSch.name,

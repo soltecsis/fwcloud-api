@@ -1123,4 +1123,13 @@ export class Firewall extends Model {
 			} catch (error) { reject(error) }
 		});
 	}
+
+	public static getIptablesSave(SSHconn) {
+		return new Promise(async (resolve, reject) => {
+			try {
+				const data: any = await sshTools.runCommand(SSHconn, "sudo iptables-save");
+				resolve(data);
+			} catch (error) { reject(error) }
+		});
+	}
 }

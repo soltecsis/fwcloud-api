@@ -40,7 +40,14 @@ export class IptablesSaveController extends Controller {
         // If request.body.fwcloud and request.body.firewall exists, we have already checked in the access control middleware 
         // that the user has access to the indicated fwcloud and firewall.
 
-        const result: IptablesSaveStats = await this._iptablesSaveService.import(request);
+        let result: IptablesSaveStats;
+
+        if (request.body.type === 'data')
+            result = await this._iptablesSaveService.import(request);
+        else if (request.body.type === 'ssh')
+            result = await this._iptablesSaveService.importSSH(request);
+        else // file
+            result = await this._iptablesSaveService.importFile(request);
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
