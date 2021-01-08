@@ -525,16 +525,7 @@ export class IptablesSaveToFWCloud extends Service {
     await Joi.validate(_interface, sharedSch.name);
 
     // Search to find out if it already exists.
-    const interfaces = await Interface.getInterfaces(this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall);
-    let interfaceId: any = 0;
-
-    // Search if the interface exits.
-    for(let i=0; i<interfaces.length; i++) {
-      if (interfaces[i].name === _interface) {
-        interfaceId = interfaces[i].id;
-        break;
-      }
-    }
+    let interfaceId = await Interface.searchInterfaceInFirewallByName(this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, _interface);
 
     // If not found create it.
     if (!interfaceId) {
@@ -549,7 +540,7 @@ export class IptablesSaveToFWCloud extends Service {
       
       try {
         interfaceData.id = interfaceId = await Interface.insertInterface(this.req.dbCon, interfaceData);
-        const fwcTreeNode: any = await Tree.getNodeUnderFirewall(this.req.dbCon,this.req.body.fwcloud,this.req.body.fwcloud,'FDI');
+        const fwcTreeNode: any = await Tree.getNodeUnderFirewall(this.req.dbCon,this.req.body.fwcloud,this.req.body.firewall,'FDI');
         await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'IFF', interfaceData);
       } catch(err) { throw new Error(`Error creating firewall interface: ${JSON.stringify(err)}`); }
 
@@ -585,7 +576,12 @@ export class IptablesSaveToFWCloud extends Service {
     const mask: string = addrData[1];
 
     // Search to find out if it already exists.
-    let addrId: any = await IPObj.searchAddrWithMask(this.req.dbCon,this.req.body.fwcloud,ip,mask);
+    let addrId: any;
+
+    if (mask === '32' || mask === '128')
+      addrId = await IPObj.searchAddr(this.req.dbCon,this.req.body.fwcloud,ip);
+    else
+      addrId = await IPObj.searchAddrWithMask(this.req.dbCon,this.req.body.fwcloud,ip,mask);
     
     // If not found create it.
     if (!addrId) {

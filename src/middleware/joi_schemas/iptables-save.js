@@ -65,12 +65,27 @@ schema.validate = req => {
                     ip: sharedSch.ipv4,
                     port: Joi.number().port(), 
                     sshuser: sharedSch.linux_user, 
-                    sshpass: sharedSch.linux_pass });
+                    sshpass: sharedSch.linux_pass 
+                });
             }
             else if (req.body.type==='file') {
             }
             else return reject(fwcError.other('Bad iptables-save import type'))
-		} else return reject(fwcError.BAD_API_CALL);
+        } 
+        else if (req.method==='PUT' && req.url==='/iptables-save/export') {
+            try {
+                const pgp = new PgpHelper(req.session.pgp);
+                // SSH user and password are encrypted with the PGP session key.
+                if (req.body.sshuser) req.body.sshuser = await pgp.decrypt(req.body.sshuser);
+                if (req.body.sshpass) req.body.sshpass = await pgp.decrypt(req.body.sshpass);
+            } catch(error) { return reject(fwcError.other(`PGP decrypt: ${error.message}`)) }
+
+            schema = schema.append({ 
+                sshuser: sharedSch.linux_user, 
+                sshpass: sharedSch.linux_pass 
+            });
+        }
+        else return reject(fwcError.BAD_API_CALL);
 
 		try {
 			await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
