@@ -23,7 +23,7 @@
 var fwcError = require('../utils/error_table');
 import { PolicyRule } from '../models/policy/PolicyRule';
 import { PolicyCompilation } from '../models/policy/PolicyCompilation';
-import { stream } from 'winston';
+var shellescape = require('shell-escape');
 
 export const POLICY_TYPE_INPUT = 1;
 export const POLICY_TYPE_OUTPUT = 2;
@@ -397,6 +397,29 @@ export class RuleCompiler {
 
         return cs;
     }
+    /*----------------------------------------------------------------------------------------------------------------------*/
+
+    /*----------------------------------------------------------------------------------------------------------------------*/
+    public static ruleComment(ruleData: any): string {
+        let metaData = {};
+        let comment:string = ruleData.comment ? ruleData.comment : '';
+        comment.trim();
+
+        if (ruleData.style) metaData['fwc_rc'] = ruleData.style;
+        if (ruleData.group_name) metaData['fwc_rgn'] = ruleData.group_name;
+        if (ruleData.group_style) metaData['fwc_rgc'] = ruleData.group_style;
+
+        if (JSON.stringify(metaData) !== '{}') comment = `${JSON.stringify(metaData)}${comment}`;
+
+        if (comment) {
+            // IPTables comment extension allows you to add comments (up to 256 characters) to any rule.
+            comment = shellescape([comment]).substring(0,256);
+            comment = `-m comment --comment ${comment.replace(/\r/g,' ').replace(/\n/g,' ')} `;
+        }
+
+        return comment;
+    }
+    /*----------------------------------------------------------------------------------------------------------------------*/
 
     /**
      * Get  policy_r by id and  by Id
@@ -406,6 +429,7 @@ export class RuleCompiler {
      * @param type 
      * @param rule 
      */
+    /*----------------------------------------------------------------------------------------------------------------------*/
     public static rule_compile(fwcloud, firewall, type, rule) {
         return new Promise(async (resolve, reject) => {
             let data;
@@ -428,7 +452,8 @@ export class RuleCompiler {
                 let cs_trail = ""; 
                 let stateful = ""; 
                 let table = ""; 
-                let action:string = ""; 
+                let action:string = "";
+                let comment: string = this.ruleComment(data[0]);
 
                 // Since now, all the compilation process for IPv6 is the same that the one for IPv4.
                 if (policy_type >= POLICY_TYPE_INPUT_IPv6) {
@@ -439,12 +464,12 @@ export class RuleCompiler {
 
                 if (policy_type === POLICY_TYPE_SNAT) { // SNAT
                     table = "-t nat";
-                    cs += table + " -A POSTROUTING ";
+                    cs += table + ` -A POSTROUTING ${comment}`;
                     action = await this.nat_action(policy_type, data[0].positions[4].position_objs, data[0].positions[5].position_objs, data[0].ip_version);
                 }
                 else if (policy_type === POLICY_TYPE_DNAT) { // DNAT
                     table = "-t nat";
-                    cs += table + " -A PREROUTING ";
+                    cs += table + ` -A PREROUTING ${comment}`;
                     action = await this.nat_action(policy_type, data[0].positions[4].position_objs, data[0].positions[5].position_objs, data[0].ip_version);
                 }
                 else { // Filter policy
@@ -454,7 +479,7 @@ export class RuleCompiler {
                         return reject("Bad rule data");
                     }
 
-                    cs += `-A ${POLICY_TYPE[policy_type]} `;
+                    cs += `-A ${POLICY_TYPE[policy_type]} ${comment}`;
 
                     if (data[0].special === 1) // Special rule for ESTABLISHED,RELATED packages.
                         action = "ACCEPT";

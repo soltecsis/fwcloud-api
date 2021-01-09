@@ -457,7 +457,10 @@ export class IptablesSaveToFWCloud extends Service {
       comment = `${comment} ${items[0]}`;
       items.shift(); 
     }
-    else throw new Error('Start of rule comment not found');
+    else if (items[0].charAt(0) !== '-') { // Comment will be a single word.
+      comment = items[0];
+      items.shift(); 
+    } else throw new Error('Start of rule comment not found');
 
     // Update rule comment.
     try {
