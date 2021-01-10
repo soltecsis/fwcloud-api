@@ -94,14 +94,26 @@ export class IptablesSaveToFWCloud extends Service {
     if (!(policy_rData.type = PolicyTypeMap.get(`${this.table}:${this.chain}`))) return false;
 
     if (this.table==='filter') {
-      let action = `${this.items[0]} ${this.items[1]} ${this.items[2]} ${this.items[3]} ${this.items[4]} ${this.items[5]}`;
+      let action: string;
+      let i = 0;
+      
+      // Ignore comment data, but don't remove it from items array.
+      if (this.items[0]==='-m' && this.items[1]==='comment' && this.items[2]==='--comment') { 
+        if (this.items[3].charAt(0) === '"') { // Comment is a string.
+          for(i=4; i<this.items.length && this.items[i].charAt(this.items[i].length-1)!=='"'; i++) ;
+          i++;
+        }
+        else i = 4; // Comment is a single word.
+      }
+
+      action = `${this.items[i]} ${this.items[i+1]} ${this.items[i+2]} ${this.items[i+3]} ${this.items[i+4]} ${this.items[i+5]}`;
     
       // Ignore RELATED,ESTABLISHED rules.
       if (action === '-m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT') return false;
       if (action === '-m state --state RELATED,ESTABLISHED -j ACCEPT') return false;
     
       // Ignore catch all rules.
-      action = `${this.items[0]} ${this.items[1]}`;
+      action = `${this.items[i]} ${this.items[i+1]}`;
       if (action==='-j ACCEPT' || action==='-j DROP' || action==='-j REJECT') return false;
     }
 
@@ -447,14 +459,14 @@ export class IptablesSaveToFWCloud extends Service {
     let comment: string;
 
     if (items[0].charAt(0) === '"') { // Comment string.
-      comment = items[0];
+      comment = items[0].substr(1,items[0].length-1);
       items.shift();
       while(items.length>0 && items[0].charAt(items[0].length-1)!=='"') {
         comment = `${comment} ${items[0]}`;
         items.shift();
       }
       if (items[0].charAt(items[0].length-1) != '"') throw new Error('End of rule comment not found');
-      comment = `${comment} ${items[0]}`;
+      comment = `${comment} ${items[0].substr(0,items[0].length-1)}`;
       items.shift(); 
     }
     else if (items[0].charAt(0) !== '-') { // Comment will be a single word.
@@ -465,7 +477,7 @@ export class IptablesSaveToFWCloud extends Service {
     // Update rule comment.
     try {
       const ruleData: any = await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
-      let policy_rData = { id: this.ruleId, comment: `${ruleData.comment}\n${comment}` }
+      let policy_rData = { id: this.ruleId, comment: `${ruleData.comment}\n${comment.replace(/\\\"/g,'"')}` }
       await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
     } catch(err) { throw new Error(`Error updating rule comment: ${JSON.stringify(err)}`); }  
   }
