@@ -405,9 +405,9 @@ export class RuleCompiler {
         let comment:string = ruleData.comment ? ruleData.comment : '';
         comment.trim();
 
-        if (ruleData.style) metaData['fwc_rc'] = ruleData.style;
+        if (ruleData.style) metaData['fwc_rs'] = ruleData.style;
         if (ruleData.group_name) metaData['fwc_rgn'] = ruleData.group_name;
-        if (ruleData.group_style) metaData['fwc_rgc'] = ruleData.group_style;
+        if (ruleData.group_style) metaData['fwc_rgs'] = ruleData.group_style;
 
         if (JSON.stringify(metaData) !== '{}') comment = `${JSON.stringify(metaData)}${comment}`;
 

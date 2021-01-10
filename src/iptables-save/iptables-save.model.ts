@@ -30,7 +30,8 @@ import { IPObj } from '../models/ipobj/IPObj';
 import { PolicyRuleToIPObj } from "../models/policy/PolicyRuleToIPObj";
 import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 import { StdChains, TcpFlags, PolicyTypeMap, PositionMap, AgrupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
-
+import { getRepository } from 'typeorm';
+import { PolicyGroup } from '../models/policy/PolicyGroup';
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
@@ -49,6 +50,8 @@ export class IptablesSaveToFWCloud extends Service {
   protected ruleTarget: string;
   protected ruleTargetSet: boolean;
   protected ruleWithStatus: boolean;
+  protected ruleGroupId: number;
+  protected ruleGroupName: string;
   protected customChainsMap: Map<string, number[]>;
   protected stats: IptablesSaveStats;
 
@@ -474,10 +477,50 @@ export class IptablesSaveToFWCloud extends Service {
       items.shift(); 
     } else throw new Error('Start of rule comment not found');
 
-    // Update rule comment.
+    comment = comment.replace(/\\\"/g,'"');
+
+    // If comment contains stringify version of a JSON rule metadata object.
+    let ruleMetadata: object = null;
+    if (comment.charAt(0) === '{') {
+      const end: number = comment.search('}');
+      if (end !== -1) {
+        ruleMetadata = JSON.parse(comment.substr(0,end+1));
+        comment = comment.substr(end+1);
+      }
+    }
+
+    // Update rule comment and metadata.
     try {
       const ruleData: any = await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
-      let policy_rData = { id: this.ruleId, comment: `${ruleData.comment}\n${comment.replace(/\\\"/g,'"')}` }
+      let policy_rData = { 
+        id: this.ruleId, 
+        comment: `${ruleData.comment}\n${comment}` 
+      }
+
+      if (ruleMetadata) {
+        // Rule style.
+        if (ruleMetadata['fwc_rs']) policy_rData['style'] = ruleMetadata['fwc_rs'];
+        
+        // Rule group name.
+        if (ruleMetadata['fwc_rgn']) {
+          // The rule belongs to the current rules group.
+          if (this.ruleGroupName && this.ruleGroupName===ruleMetadata['fwc_rgn'])
+            policy_rData['idgroup'] = this.ruleGroupId;
+          else { // Create new rules group.
+            const policyGroupRepository = getRepository(PolicyGroup);
+            let policyGroup = policyGroupRepository.create({
+              name: ruleMetadata['fwc_rgn'],
+              firewallId: this.req.body.firewall
+            });
+            if (ruleMetadata['fwc_rgs']) policyGroup['groupstyle'] = ruleMetadata['fwc_rgs'];
+            policyGroup = await policyGroupRepository.save(policyGroup);
+            this.ruleGroupId = policyGroup.id;
+            this.ruleGroupName = ruleMetadata['fwc_rgn'];
+            policy_rData['idgroup'] = this.ruleGroupId;
+          }
+        }
+      }
+
       await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
     } catch(err) { throw new Error(`Error updating rule comment: ${JSON.stringify(err)}`); }  
   }
