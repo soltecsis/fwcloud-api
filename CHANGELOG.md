@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Include rule metadata (color, group, group color, etc.) in the comment of rule compilation. Thanks to this it is possible to restore these metadata information when we import a FWCloud firewall using `iptables-save import feature`.
 - API call `PUT /iptables-save/import`: Import iptables-save data into an existing firewall.
 - API call `PUT /iptables-save/import/ssh`: Import iptables-save form an existing iptables firewall accessible by means of ssh.
 - API call `PUT /iptables-save/import/file`: Import iptables-save data by means of a file.
