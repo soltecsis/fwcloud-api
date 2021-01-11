@@ -54,8 +54,9 @@ export class IptablesSaveController extends Controller {
 
     // WARNING: We are validating input wit Joi middleware, ignore this validation.
     //@Validate({})
-    public async export(): Promise<ResponseBuilder> {
+    public async export(request: Request): Promise<ResponseBuilder> {
+        const result = await this._iptablesSaveService.export(request);
 
-        return ResponseBuilder.buildResponse().status(200);
+        return ResponseBuilder.buildResponse().status(200).body(result);
     }
 }
