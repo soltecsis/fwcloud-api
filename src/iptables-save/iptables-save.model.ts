@@ -30,7 +30,8 @@ import { IPObj } from '../models/ipobj/IPObj';
 import { PolicyRuleToIPObj } from "../models/policy/PolicyRuleToIPObj";
 import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 import { StdChains, TcpFlags, PolicyTypeMap, PositionMap, AgrupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
-
+import { getRepository } from 'typeorm';
+import { PolicyGroup } from '../models/policy/PolicyGroup';
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
@@ -49,6 +50,8 @@ export class IptablesSaveToFWCloud extends Service {
   protected ruleTarget: string;
   protected ruleTargetSet: boolean;
   protected ruleWithStatus: boolean;
+  protected ruleGroupId: number;
+  protected ruleGroupName: string;
   protected customChainsMap: Map<string, number[]>;
   protected stats: IptablesSaveStats;
 
@@ -94,14 +97,24 @@ export class IptablesSaveToFWCloud extends Service {
     if (!(policy_rData.type = PolicyTypeMap.get(`${this.table}:${this.chain}`))) return false;
 
     if (this.table==='filter') {
-      let action = `${this.items[0]} ${this.items[1]} ${this.items[2]} ${this.items[3]} ${this.items[4]} ${this.items[5]}`;
+      let action: string;
+      let itemsCopy = this.items;
+      
+      if (itemsCopy[0]==='-m' && itemsCopy[1]==='comment' && itemsCopy[2]==='--comment') {
+        itemsCopy.shift(); itemsCopy.shift(); itemsCopy.shift();
+        try { 
+          await this.eatCommentString(itemsCopy); 
+        } catch(err) { throw new Error(`Error eating rule comment string: ${JSON.stringify(err)}`); }
+      }
+
+      action = `${itemsCopy[0]} ${itemsCopy[1]} ${itemsCopy[2]} ${itemsCopy[3]} ${itemsCopy[4]} ${itemsCopy[5]}`;
     
       // Ignore RELATED,ESTABLISHED rules.
       if (action === '-m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT') return false;
       if (action === '-m state --state RELATED,ESTABLISHED -j ACCEPT') return false;
     
       // Ignore catch all rules.
-      action = `${this.items[0]} ${this.items[1]}`;
+      action = `${itemsCopy[0]} ${itemsCopy[1]}`;
       if (action==='-j ACCEPT' || action==='-j DROP' || action==='-j REJECT') return false;
     }
 
@@ -443,26 +456,90 @@ export class IptablesSaveToFWCloud extends Service {
     }
   }
 
-  private async eatRuleComment(items: string[]): Promise<void> {
+
+  private async eatCommentString(items: string[]): Promise<string> {
+    if (items.length === 0) throw new Error('Comment data not found');
+
     let comment: string;
+    let item = items[0];
+    let size = item.length;
+    
+    items.shift();
 
-    if (items[0].charAt(0) === '"') { // Comment string.
-      comment = items[0];
-      items.shift();
-      while(items.length>0 && items[0].charAt(items[0].length-1)!=='"') {
-        comment = `${comment} ${items[0]}`;
+    // Comment is a single word without double quotes.
+    if (item.charAt(0) !== '"') 
+      return item;
+
+    // Comment is surrounded by double quotes.
+    comment = item.substr(1); // Remove start double quote.
+    if (size>1 && item.charAt(size-1)==='"' && item.charAt(size-2)!=='\\') { // Comment is a single word surrounded by double quotes.
+    } else { // Comment is a several items string surrounded by doble quotes.
+      let endFound =  false;
+
+      while(items.length > 0) {
+        item=items[0]; 
+        size=item.length;
+
+        comment = `${comment} ${item}`;
         items.shift();
-      }
-      if (items[0].charAt(items[0].length-1) != '"') throw new Error('End of rule comment not found');
-      comment = `${comment} ${items[0]}`;
-      items.shift(); 
-    }
-    else throw new Error('Start of rule comment not found');
 
-    // Update rule comment.
+        if (item==='"' || (size>1 && item.charAt(size-1)==='"' && item.charAt(size-2)!=='\\')) {
+          endFound = true;
+          break; // End of comment string.          
+        }
+      }
+      if (!endFound) throw new Error('End of rule comment not found');
+    }
+
+    comment = comment.substr(0,comment.length-1); // Remove end double quote.
+    return comment.replace(/\\\"/g,'"');
+  }
+
+  private async eatRuleComment(items: string[]): Promise<void> {
+    // Update rule comment and metadata.
     try {
+      let comment: string = await this.eatCommentString(items);
+  
+      // If comment contains stringify version of a JSON rule metadata object.
+      let ruleMetadata: object = null;
+      if (comment.charAt(0) === '{') {
+        const end: number = comment.search('}');
+        if (end !== -1) {
+          ruleMetadata = JSON.parse(comment.substr(0,end+1));
+          comment = comment.substr(end+1);
+        }
+      }
+  
       const ruleData: any = await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
-      let policy_rData = { id: this.ruleId, comment: `${ruleData.comment}\n${comment}` }
+      let policy_rData = { 
+        id: this.ruleId, 
+        comment: `${ruleData.comment}\n${comment}` 
+      }
+
+      if (ruleMetadata) {
+        // Rule style.
+        if (ruleMetadata['fwc_rs']) policy_rData['style'] = ruleMetadata['fwc_rs'];
+        
+        // Rule group name.
+        if (ruleMetadata['fwc_rgn']) {
+          // The rule belongs to the current rules group.
+          if (this.ruleGroupName && this.ruleGroupName===ruleMetadata['fwc_rgn'])
+            policy_rData['idgroup'] = this.ruleGroupId;
+          else { // Create new rules group.
+            const policyGroupRepository = getRepository(PolicyGroup);
+            let policyGroup = policyGroupRepository.create({
+              name: ruleMetadata['fwc_rgn'],
+              firewallId: this.req.body.firewall
+            });
+            if (ruleMetadata['fwc_rgs']) policyGroup['groupstyle'] = ruleMetadata['fwc_rgs'];
+            policyGroup = await policyGroupRepository.save(policyGroup);
+            this.ruleGroupId = policyGroup.id;
+            this.ruleGroupName = ruleMetadata['fwc_rgn'];
+            policy_rData['idgroup'] = this.ruleGroupId;
+          }
+        }
+      }
+
       await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
     } catch(err) { throw new Error(`Error updating rule comment: ${JSON.stringify(err)}`); }  
   }

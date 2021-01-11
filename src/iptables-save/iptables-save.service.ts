@@ -48,7 +48,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
       this.items = this.data[this.line].trim().split(/\s+/);
 
       // Ignore comments or empty lines.
-      if (this.items.length === 0 || this.items[0] === '#' || this.items[0] === '') continue;
+      if (this.items[0] === '#' || this.items.length === 0 || this.items[0] === '') continue;
 
       // Iptables table with which we are working now.
       if (!this.table) {
@@ -57,6 +57,8 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
         this.table = this.items[0].substr(1);
         this.ruleOrder = 1;
         this.customChainsMap = new Map();
+        this.ruleGroupId = 0;
+        this.ruleGroupName = null;
         continue;
       }
 
