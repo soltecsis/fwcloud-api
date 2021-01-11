@@ -39,7 +39,7 @@ schema.validate = req => {
             ip_version: Joi.number().integer().valid([4, 6])
          });
 
-        if (req.method==='PUT' && req.url==='/iptables-save/import') {
+        if (req.method==='PUT' && req.path==='/iptables-save/import') {
             if (Object.keys(req.query).length > 1) {
                 return reject(fwcError.BAD_API_CALL);
             }
