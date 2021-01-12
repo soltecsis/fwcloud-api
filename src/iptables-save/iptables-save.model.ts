@@ -75,23 +75,27 @@ export class IptablesSaveToFWCloud extends Service {
 
 
   protected async generateRule(): Promise<boolean> {
+    this.items.shift(); // -A
+
+    // If the new chain is a standard one and is different from the current one, reset rule position.
+    if (StdChains.has(this.items[0]) && this.chain!==this.items[0]) 
+      this.ruleOrder = 1;
+    this.chain = this.items[0];
+    this.items.shift();
+
+    // Ignore iptables rules for custom chains because they have already been processed.
+    if (this.customChainsMap.has(this.chain)) return false;
+
     let policy_rData = {
       id: null,
       firewall: this.req.body.firewall,
-      rule_order: ++this.ruleOrder,
+      rule_order: this.ruleOrder++,
       action: 1, // By default action rule is ACCEPT
       active: 1,
       options: 0,
       comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`,
       type: 0,
     };
-
-    this.items.shift();
-    this.chain = this.items[0];
-    this.items.shift();
-
-    // Ignore iptables rules for custom chains because they have already been processed.
-    if (this.customChainsMap.has(this.chain)) return false;
 
     // If don't find type map, ignore this rule.
     if (!(policy_rData.type = PolicyTypeMap.get(`${this.table}:${this.chain}`))) return false;
@@ -730,10 +734,18 @@ export class IptablesSaveToFWCloud extends Service {
       this.ipProtocol = protocol;
       return;
     }
-    await Joi.validate(protocol, sharedSch.u8bits);
+    
+    let protocolId: string;
 
-    // Search to find out if it already exists.   
-    const protocolId: any = await IPObj.searchIPProtocol(this.req.dbCon,this.req.body.fwcloud,protocol);
+    if (parseInt(protocol)) { // IP protocol by number.
+      await Joi.validate(protocol, sharedSch.u8bits);
+      protocolId = await IPObj.searchIPProtocolByNumber(this.req.dbCon,this.req.body.fwcloud,protocol);
+    }
+    else { // IP protocol by name.
+      await Joi.validate(protocol, sharedSch.name);
+      protocolId = await IPObj.searchIPProtocolByName(this.req.dbCon,this.req.body.fwcloud,protocol);
+    }
+
     if (protocolId === '')
       throw new Error(`IP protocol not found: ${protocol}`);
 

@@ -413,7 +413,9 @@ export class RuleCompiler {
 
         if (comment) {
             // IPTables comment extension allows you to add comments (up to 256 characters) to any rule.
-            comment = shellescape([comment]).substring(0,256);
+            comment = shellescape([comment]).substring(0,250);
+            // If we cut the string because it is to long, we must end it with the ' character.
+            if (comment.charAt(comment.length-1) !== "'") comment =`${comment}'`;
             comment = `-m comment --comment ${comment.replace(/\r/g,' ').replace(/\n/g,' ')} `;
         }
 

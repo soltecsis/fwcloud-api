@@ -1233,11 +1233,11 @@ export class IPObj extends Model {
         });
     };
 
-    // Search if IP with mask exists. (IP is given in CIDR notation) 
-    public static searchIPProtocol(dbCon, fwcloud, protocol) {        
+    // Search if IP protocol number exists. 
+    public static searchIPProtocolByNumber(dbCon, fwcloud, protocolNumber): Promise<string> {        
         return new Promise((resolve, reject) => {
             let sql = `select id from ipobj 
-            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=${protocol} and type=1`; // 1: IP
+            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=${protocolNumber} and type=1`; // 1: IP
 
             dbCon.query(sql, (error, rows) => {
                 if (error) return reject(error);
@@ -1247,6 +1247,20 @@ export class IPObj extends Model {
         });
     };
 
+    // Search if IP protocol name exists.
+    public static searchIPProtocolByName(dbCon, fwcloud, protocolName): Promise<string> {        
+        return new Promise((resolve, reject) => {
+            let sql = `select id from ipobj 
+            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND name=${dbCon.escape(protocolName)} and type=1`; // 1: IP
+
+            dbCon.query(sql, (error, rows) => {
+                if (error) return reject(error);
+
+                resolve(rows.length === 0 ? '' : rows[0].id);
+            });
+        });
+    };
+    
     // Search for service port.
     public static searchPort(dbCon, fwcloud, protocol, scrPorts, dstPorts, tcpFlags, tcpFlagsSet) {        
         return new Promise((resolve, reject) => {

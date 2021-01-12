@@ -42,7 +42,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     const channel = await Channel.fromRequest(request);
 
     for(this.line=0; this.line < this.data.length; this.line++) {
-      channel.emit('message', new ProgressNoticePayload(`${this.line+1}/${this.data.length}`, true));
+      channel.emit('message', new ProgressNoticePayload(`${this.line+1}/${this.data.length}`));
 
       // Get items of current string.
       this.items = this.data[this.line].trim().split(/\s+/);
@@ -55,7 +55,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
         if (!NetFilterTables.has(this.items[0].substr(1)))
           throw new HttpException(`Bad iptables-save data (line: ${this.line+1})`,400);
         this.table = this.items[0].substr(1);
-        this.ruleOrder = 0;
+        this.chain = null;
         this.customChainsMap = new Map();
         this.ruleGroupId = 0;
         this.ruleGroupName = null;
