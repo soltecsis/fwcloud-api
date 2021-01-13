@@ -121,7 +121,11 @@ sshTools.runCommand = (SSHconn, cmd) => {
 				});
 			});
 		})
-		.on('error', error => reject(error))
+		.on('error', error => {
+			if (error.message)
+				error.message = `SSH_ERROR(${error.level}): ${error.message}`;
+			reject(error)
+		})
 		.connect(SSHconn);
 	});
 }

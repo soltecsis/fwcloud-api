@@ -100,13 +100,6 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
   }
 
 
-  public async importFile(request: Request): Promise<IptablesSaveStats> {
-
-    await this.import(request);
-    return this.stats;
-  }
-
-
   public async export(request: Request): Promise<string[]> {
     let result: any;
 

@@ -49,7 +49,7 @@ schema.validate = req => {
             }
               
             if (!req.body.type) return reject(fwcError.other('iptables-save import type expected'));
-            schema = schema.append({ type: Joi.string().valid(['data', 'ssh', 'file']) });
+            schema = schema.append({ type: Joi.string().valid(['data', 'ssh']) });
       
             if (req.body.type==='data')
                 schema = schema.append({ data: Joi.array().items(Joi.string()) });
@@ -67,8 +67,6 @@ schema.validate = req => {
                     sshuser: sharedSch.linux_user, 
                     sshpass: sharedSch.linux_pass 
                 });
-            }
-            else if (req.body.type==='file') {
             }
             else return reject(fwcError.other('Bad iptables-save import type'))
         } 
