@@ -178,6 +178,12 @@ export class IptablesSaveToFWCloud extends Service {
 
 
   private async eatRuleData(line: number, lineItems: string[]): Promise<void> {
+    // Negate rule position.
+    if (lineItems[0] === '!') {
+      lineItems.shift();
+      await this.negateRulePosition(lineItems[0]);
+    }
+
     const item = lineItems[0];
     lineItems.shift();
 
@@ -249,10 +255,6 @@ export class IptablesSaveToFWCloud extends Service {
       flag, the rule will only match head fragments, or unfragmented packets.
       */
       case '-f': // For now ignore it.
-        break;
-      case '!': // For now ignore it.
-        if (lineItems[0] === '-f') lineItems.shift();
-        else throw new Error('Bad iptables-save data');
         break;
     
       default:
@@ -392,23 +394,20 @@ export class IptablesSaveToFWCloud extends Service {
     }  
   }
 
+  private async negateRulePosition(item: string): Promise<void> {
+    const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${item}`);
+    if (rulePosition) {
+      try { 
+        await PolicyRule.negateRulePosition(this.req.dbCon,this.req.body.firewall,this.ruleId,rulePosition);
+      } catch(err) { throw new Error(`Error negating rule position: ${JSON.stringify(err)}`); }
+    }
+  }
 
   private async negateLinePositions(line: number): Promise<void> {
     let items = this.data[line].trim().split(/\s+/);
 
     for (let item of items) {
-      if (item.charAt(0) === '-') {
-        if (item==='--sport' || item==='--dport' || item==='--tcp-flags'
-            || item==='--sports' || item==='--dports' || item==='--icmp-type') 
-          item = 'srvc';
-
-        const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${item}`);
-        if (rulePosition) {
-          try { 
-            await PolicyRule.negateRulePosition(this.req.dbCon,this.req.body.firewall,this.ruleId,rulePosition);
-          } catch(err) { throw new Error(`Error negating rule position: ${JSON.stringify(err)}`); }
-        }
-      }
+      if (item.charAt(0) === '-') await this.negateRulePosition(item);
     }
   }
 
