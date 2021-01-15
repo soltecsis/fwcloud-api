@@ -109,7 +109,7 @@ export const PositionMap = new Map<string, number>([
   ['filter:INPUT:-i', 20],
   ['filter:INPUT:-s', 1], ['filter:INPUT:--src-range', 1],
   ['filter:INPUT:-d', 2], ['filter:INPUT:--dst-range', 2],
-  ['filter:INPUT:-p', 3], ['filter:INPUT:srvc', 6],
+  ['filter:INPUT:-p', 3], ['filter:INPUT:srvc', 3],
   ['filter:INPUT:--sport', 3], ['filter:INPUT:--sports', 3],
   ['filter:INPUT:--dport', 3], ['filter:INPUT:--dports', 3],
   ['filter:INPUT:--tcp-flags', 3], ['filter:INPUT:--icmp-type', 3],
