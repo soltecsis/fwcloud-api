@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- API call `PUT /ping` for keep session alive.
 - Improved SSH errors management.
 - Include rule metadata (color, group, group color, etc.) in the comment of rule compilation. Thanks to this it is possible to restore these metadata information when we import a FWCloud firewall using `iptables-save import feature`.
 - API call `PUT /iptables-save/import`: Import iptables-save data into an existing firewall.
