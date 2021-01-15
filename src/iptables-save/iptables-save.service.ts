@@ -93,7 +93,9 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
 			password: request.body.sshpass
     }
 
-    request.body.data = await Firewall.getIptablesSave(SSHconn);
+    try {
+      request.body.data = await Firewall.getIptablesSave(SSHconn);
+    } catch(err) { throw new HttpException(`${err.message} `,401); }
 		
     await this.import(request);
     return this.stats;
@@ -106,7 +108,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     try {
       const data: any = await Firewall.getFirewallSSH(request);
       result = await Firewall.getIptablesSave(data.SSHconn);
-    } catch(err) { throw new HttpException(`ERROR in iptables-save export: ${err.message} `,400); }
+    } catch(err) { throw new HttpException(`${err.message} `,401); }
    
     return result;
   }
