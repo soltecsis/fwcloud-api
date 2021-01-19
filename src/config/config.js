@@ -136,10 +136,10 @@ const config = convict({
       default: true
     },
     expire: {
-      doc: 'Expiration seconds for the session cookie.',
+      doc: 'Expiration milliseconds for the session cookie.',
       format: 'duration',
-      env: 'SESSION_EXPIRE',
-      default: 900
+      env: 'SESSION_MAX_AGE',
+      default: 24*60*60*1000
     },
     files_path: {
       doc: 'Directory for the session cookies store.',

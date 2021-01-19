@@ -36,18 +36,13 @@ export class Authorization extends Middleware {
 
         /////////////////////////////////////////////////////////////////////////////////
         // WARNING!!!!: If you enable the next two code lines, then you disable
-        // the authorization mechanism for access the API and it will be accesible
-        // without autorization.
+        // the authorization mechanism for access the API and it will be accessible
+        // without authorization.
         //req.session.destroy(err => {} );
         //return next();
         /////////////////////////////////////////////////////////////////////////////////
 
         try {
-            if (req.session.cookie.maxAge < 1) { // See if the session has expired.
-                req.session.destroy(err => { });
-                throw fwcError.SESSION_EXPIRED;
-            }
-
             if (!req.session.customer_id || !req.session.user_id || !req.session.username || !req.session.pgp) {
                 req.session.destroy(err => { });
                 throw fwcError.SESSION_BAD;
@@ -62,9 +57,6 @@ export class Authorization extends Middleware {
             req.session.user = await getRepository(User).findOne(req.session.user_id);
             // If we arrive here, then the session is correct.
             logger().debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");
-            
-            // Important for refresh session expiration.
-            req.session.touch();
             
             next();
         } catch (error) {

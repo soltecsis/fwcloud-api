@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- API call `PUT /ping` for keep session alive.
+- Improve session check in socket.io connection establishment.
+- API call `PUT /ping`.
 - Improved SSH errors management.
 - Include rule metadata (color, group, group color, etc.) in the comment of rule compilation. Thanks to this it is possible to restore these metadata information when we import a FWCloud firewall using `iptables-save import feature`.
 - API call `PUT /iptables-save/import`: Import iptables-save data into an existing firewall.
@@ -17,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - By default listen to localhost.
 
 ### Fixed
+- Bug in session expiration.
 - fwcloud-updater doesn't process update requests (for example, PUT /updates/ui) when all request headers are forwarded. Forward only the cookie header, required for the authentication middleware of the fwcloud-updater.
 - Log detailed information for websocket connection/disconnection.
 - Disable etag in express for avoid the problem explained in the http-application.ts file.
