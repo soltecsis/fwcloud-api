@@ -135,11 +135,11 @@ const config = convict({
       env: 'SESSION_FORCE_HTTPS',
       default: true
     },
-    expire: {
-      doc: 'Expiration milliseconds for the session cookie.',
+    keepalive_ms: {
+      doc: 'Amount of milliseconds that a session can remain active without any request.',
       format: 'duration',
-      env: 'SESSION_MAX_AGE',
-      default: 24*60*60*1000
+      env: 'SESSION_KEEPALIVE_MS',
+      default: 900*1000
     },
     files_path: {
       doc: 'Directory for the session cookies store.',

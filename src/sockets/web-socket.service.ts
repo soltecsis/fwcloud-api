@@ -48,8 +48,8 @@ export class WebSocketService extends Service {
                 }
 
                 // Session must contain some mandatory data.
-                if (!socket.request.session || !socket.request.session.customer_id || !socket.request.session.user_id 
-                    || !socket.request.session.username || !socket.request.session.pgp) {
+                if (!socket.request.session.keepalive_ts || !socket.request.session || !socket.request.session.customer_id 
+                    || !socket.request.session.user_id || !socket.request.session.username || !socket.request.session.pgp) {
                     logger().error('WebSocket: Bad session data.');
                     socket.disconnect(true);
                     return;
