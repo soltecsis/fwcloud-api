@@ -47,7 +47,7 @@ class Session {
                 cookie: {
                     httpOnly: false,
                     secure: app.config.get('session').force_HTTPS, // Enable this when the https is enabled for the API.
-                    maxAge: app.config.get('session').expire * 1000
+                    maxAge: app.config.get('session').expire
                 }
             })
         }
