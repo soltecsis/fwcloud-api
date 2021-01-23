@@ -75,6 +75,7 @@ export class RuleCompiler {
         return ((items.str.length > 0) ? items : null);
     }
 
+
     public static pre_compile_if(dir, ifs, negate) {
         var items = {
             'negate': negate,
@@ -87,9 +88,47 @@ export class RuleCompiler {
         return ((items.str.length > 0) ? items : null);
     }
 
+    /*
+        multiport
+
+        This module matches a set of source or destination ports. Up to 15 ports can be specified. A port range (port:port) counts as two ports. It can only be used in conjunction with -p tcp or -p udp.
+        --source-ports [!] port[,port[,port:port...]]
+        Match if the source port is one of the given ports. The flag --sports is a convenient alias for this option.
+        --destination-ports [!] port[,port[,port:port...]]
+        Match if the destination port is one of the given ports. The flag --dports is a convenient alias for this option.
+        --ports [!] port[,port[,port:port...]]
+        Match if either the source or destination ports are equal to one of the given ports.
+    */
+    public static portsLimitControl(proto: 'tcp' | 'udp', portsStr: string, items) {
+        const portsList = portsStr.split(',');
+
+        //tcpPorts = tcpPorts.indexOf(",") > -1 ? `-p ${proto} -m multiport --dports ${tcpPorts}` : ;
+        if (portsList.length === 1)
+            items.str.push(`-p ${proto} --dport ${portsStr}`);
+        else { // Up to 15 ports can be specified. A port range (port:port) counts as two ports.
+            let n = 0;
+            let currentPorts: string[] = [];
+            for(let port of portsList) {
+                // Is the current port a port range (port:port)?
+                n += port.indexOf(':') === -1 ? 1 : 2;
+
+                if (n <= 15) 
+                    currentPorts.push(port);
+                else {
+                    items.str.push(`-p ${proto} -m multiport --dports ${currentPorts.join(',')}`);
+                    currentPorts = [];
+                    currentPorts.push(port);
+                    n = port.indexOf(':') === -1 ? 1 : 2;
+                }
+            } 
+            items.str.push(`-p ${proto} -m multiport --dports ${currentPorts.join(',')}`);
+        }
+    }
+
+
     /**
-     * Agrupate services position by protocol number (TCP, UDP, ICMP, etc.) 
-     * Returns an array of strings with the services agrupated by protocol.
+     * Group services position by protocol number (TCP, UDP, ICMP, etc.) 
+     * Returns an array of strings with the services grouped by protocol.
      * 
      * @param sep 
      * @param svc 
@@ -101,9 +140,8 @@ export class RuleCompiler {
             'negate': negate,
             'str': []
         };
-        var tcp = "";
-        let udp = "";
-        let imcp = "";
+        var tcpPorts = "";
+        let udpPorts = "";
         let tmp = "";
 
         for (var i = 0; i < svc.length; i++) {
@@ -113,9 +151,9 @@ export class RuleCompiler {
 
                     if (!mask || mask === 0) { // No TCP flags.
                         if (svc[i].source_port_end === 0) { // No source port.
-                            if (tcp)
-                                tcp += ",";
-                            tcp += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end);
+                            if (tcpPorts)
+                                tcpPorts += ",";
+                            tcpPorts += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end);
                         } else {
                             tmp = "-p tcp --sport " + ((svc[i].source_port_start === svc[i].source_port_end) ? svc[i].source_port_start : (svc[i].source_port_start + sep + svc[i].source_port_end));
                             if (svc[i].destination_port_end !== 0)
@@ -178,9 +216,9 @@ export class RuleCompiler {
 
                 case 17: // UDP
                     if (svc[i].source_port_end === 0) { // No source port.
-                        if (udp)
-                            udp += ",";
-                        udp += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end);
+                        if (udpPorts)
+                            udpPorts += ",";
+                        udpPorts += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end);
                     } else {
                         tmp = "-p udp --sport " + ((svc[i].source_port_start === svc[i].source_port_end) ? svc[i].source_port_start : (svc[i].source_port_start + sep + svc[i].source_port_end));
                         if (svc[i].destination_port_end !== 0)
@@ -206,15 +244,13 @@ export class RuleCompiler {
             }
         }
 
-        if (tcp) {
-            if (sep === ":")
-                tcp = (tcp.indexOf(",") > -1) ? ("-p tcp -m multiport --dports " + tcp) : ("-p tcp --dport " + tcp);
-            items.str.push(tcp);
+        if (tcpPorts) {
+            if (sep === ":") this.portsLimitControl('tcp',tcpPorts,items);
+            else items.str.push(tcpPorts);
         }
-        if (udp) {
-            if (sep === ":")
-                udp = (udp.indexOf(",") > -1) ? ("-p udp -m multiport --dports " + udp) : ("-p udp --dport " + udp);
-            items.str.push(udp);
+        if (udpPorts) {
+            if (sep === ":") this.portsLimitControl('udp',udpPorts,items);
+            else items.str.push(udpPorts);
         }
 
         return ((items.str.length > 0) ? items : null);
@@ -222,7 +258,7 @@ export class RuleCompiler {
 
     /**
      * This function will return an array of arrays of strings. 
-     * Each array will contain the precompiled strings for the items of each rule position.
+     * Each array will contain the pre-compiled strings for the items of each rule position.
      * 
      * @param rule 
      */
