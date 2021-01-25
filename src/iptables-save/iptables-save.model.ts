@@ -32,6 +32,7 @@ import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 import { StdChains, TcpFlags, PolicyTypeMap, PositionMap, GroupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../models/policy/PolicyGroup';
+import { RuleCompiler } from '../compiler/RuleCompiler';
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
@@ -975,15 +976,50 @@ export class IptablesSaveToFWCloud extends Service {
       // Move items in the differing position from the new rule to the same position of the previous one.
       const currPosObjs = currentRule.positions[posDiffer[0]].position_objs;
       const position =  currentRule.positions[posDiffer[0]].id;
-      for(let obj of currPosObjs)
-        await PolicyRuleToIPObj.updatePolicy_r__ipobj_position(this.req.dbCon, currentRule.id, obj.id, -1, -1, position, 99999, previousRule.id, position, 99999);
+      let allMoved = true;
+      for(let obj of currPosObjs) {
+        const currPosNegated = RuleCompiler.isPositionNegated(currentRule.negate,position);
+        const prevPosNegated = RuleCompiler.isPositionNegated(previousRule.negate,position);
+        // Rules must have the same negation status in the differing position.
+        if (currPosNegated === prevPosNegated) {
+          /* 
+            +-----+-----------------------+-----------------+
+            | id  | type                  | protocol_number |
+            +-----+-----------------------+-----------------+
+            |   1 | IP                    |            NULL |
+            |   2 | TCP                   |               6 |
+            |   3 | ICMP                  |               1 |
+            |   4 | UDP                   |              17 |
+            |   5 | ADDRESS               |            NULL |
+            |   6 | ADDRESS RANGE         |            NULL |
+            |   7 | NETWORK               |            NULL |
+            ...
+            |  10 | INTERFACE FIREWALL    |            NULL |
+            ...
+            +-----+-----------------------+-----------------+
+          */
+          if (obj.type>=1 && obj.type<=7)
+            await PolicyRuleToIPObj.updatePolicy_r__ipobj_position(this.req.dbCon, currentRule.id, obj.id, -1, -1, position, 99999, previousRule.id, position, 99999);
+          else if (obj.type === 10) // INTERFACE FIREWALL
+            await PolicyRuleToInterface.updatePolicy_r__interface_position(this.req.dbCon, this.req.body.firewall, currentRule.id, obj.interface, position, 99999, previousRule.id, position, 99999);
+          else {
+            allMoved = false;
+            break;
+          }
+        } else {
+          allMoved = false;
+          break;
+        }
+      }
+      
+      if (allMoved) {
+        // Delete the new rule because it has been merged with the previous one.
+        await PolicyRule.deletePolicy_r(this.req.body.firewall, this.ruleId);
 
-      // Delete the new rule because it has been merged with the previous one.
-      await PolicyRule.deletePolicy_r(this.req.body.firewall, this.ruleId);
-
-      // Update data.
-      this.ruleId = this.previousRuleId = previousRule.id;
-      this.stats.rules--;
+        // Update data.
+        this.ruleId = this.previousRuleId = previousRule.id;
+        this.stats.rules--;
+      }
     }
   }
 }
