@@ -250,7 +250,7 @@ async (req, res) => {
 	try {
 		let pasteOnRuleId = req.body.pasteOnRuleId;
 
-		// The rule over wich we move cuted rules can not be part of the moved rules.
+		// The rule over which we move cat rules can not be part of the moved rules.
 		for (let rule of req.body.rulesIds)
 			if (rule === pasteOnRuleId) throw(fwcError.other('Paste on rule can not be part of the set of pasted rules.'));
 

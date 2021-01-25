@@ -29,7 +29,7 @@ import { PolicyRuleToInterface } from '../models/policy/PolicyRuleToInterface';
 import { IPObj } from '../models/ipobj/IPObj';
 import { PolicyRuleToIPObj } from "../models/policy/PolicyRuleToIPObj";
 import { IPObjGroup } from '../models/ipobj/IPObjGroup';
-import { StdChains, TcpFlags, PolicyTypeMap, PositionMap, AgrupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
+import { StdChains, TcpFlags, PolicyTypeMap, PositionMap, GroupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../models/policy/PolicyGroup';
 const Joi = require('joi');
@@ -44,7 +44,9 @@ export class IptablesSaveToFWCloud extends Service {
   protected items: string[];
   protected table: string;
   protected chain: string;
+  private policyType: number;
   protected ipProtocol: string;
+  protected previousRuleId: any;
   protected ruleId: any;
   protected ruleOrder: number;
   protected ruleTarget: string;
@@ -98,7 +100,9 @@ export class IptablesSaveToFWCloud extends Service {
     };
 
     // If don't find type map, ignore this rule.
-    if (!(policy_rData.type = PolicyTypeMap.get(`${this.table}:${this.chain}`))) return false;
+    this.policyType = PolicyTypeMap.get(`${this.table}:${this.chain}`);
+    if (!this.policyType) return false;
+    policy_rData.type = this.policyType ;
 
     if (this.table==='filter') {
       let action: string;
@@ -159,7 +163,7 @@ export class IptablesSaveToFWCloud extends Service {
     let lines: number[] = this.customChainsMap.get(this.ruleTarget);
     if (lines) { // Target is a custom chain.
       for(let l of lines) {
-        await this.fillRulePositions(l);
+        await this.fillRulePositions(l); // RECURSIVE CALL!!!
       }
     } else if (this.ruleTarget !== 'ACCEPT') { // Target is a builtin one or an extension.
       const policy_rData = { id: this.ruleId, action: 1 }
@@ -172,8 +176,8 @@ export class IptablesSaveToFWCloud extends Service {
       await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
     }
 
-    // Once we have created the fwcloud rule, search for groups that can agrupate items of a position.
-    await this.agrupateRulePositionItems();
+    // Warning, keep in mind that this method executes recursively, then  any coded here
+    // will be executed with each recursion.
   }
 
 
@@ -884,13 +888,13 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
 
-  private async agrupateRulePositionItems(): Promise<void> {
+  public async groupRulePositionItems(): Promise<void> {
     let i: number;
     const groupsData: any = await IPObjGroup.getIpobjGroups(this.req.dbCon, this.req.body.fwcloud);
     const ipobjGroups = groupsData.map( ({ id }) => { return id } );
-    const positionsList = AgrupablePositionMap.get(`${this.table}:${this.chain}`);
+    const positionsList = GroupablePositionMap.get(`${this.table}:${this.chain}`);
 
-    // For all positions for which it is possible to agrupage objects.
+    // For all positions for which it is possible to group objects.
     for (let position of positionsList) {
       const ipobjsData: any = await PolicyRuleToIPObj.getRuleIPObjsByPosition(this.ruleId, position);
       if (ipobjsData.length < 2) continue;
@@ -921,6 +925,65 @@ export class IptablesSaveToFWCloud extends Service {
           }
         }
       }
+    }
+  }
+
+
+  public async mergeWithPreviousRule(): Promise<void> {
+    if (!this.previousRuleId) { 
+      this.previousRuleId = this.ruleId;
+      return;
+    }
+
+    let data: any = await PolicyRule.getPolicyDataDetailed(this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.previousRuleId);
+    if (!data || !data.length || data.length!=1) return;
+    const previousRule = data[0];
+
+    data = await PolicyRule.getPolicyDataDetailed(this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.ruleId);
+    if (!data || !data.length || data.length!=1) return;
+    const currentRule = data[0];
+
+    this.previousRuleId = this.ruleId;
+
+    // Compare rules.
+    if (previousRule.action !== currentRule.action) return;
+    if (previousRule.active !== currentRule.active) return;
+    if (previousRule.options !== currentRule.options) return;
+    if (previousRule.special !== currentRule.special) return;
+    if (previousRule.mark !== currentRule.mark) return;
+    if (previousRule.mark_code !== currentRule.mark_code) return;
+    if (previousRule.positions.length !== currentRule.positions.length) return;
+
+    // Compare rule positions.
+    let posDiffer: number[] = [];
+    for (let i=0; i<previousRule.positions.length; i++) {
+      if (previousRule.positions[i].id != currentRule.positions[i].id) return;
+
+      const prevPosObjs = JSON.stringify(previousRule.positions[i].position_objs);
+      const currPosObjs = JSON.stringify(currentRule.positions[i].position_objs);
+
+      // Check position negation!!!!
+
+      if (prevPosObjs !== currPosObjs) {
+        if (posDiffer.length === 1) return; // Only can merge if rules differ in one position.
+        posDiffer.push(i);
+      }
+    }
+
+    // If only differ in one position then current rule can be merged with the previous one.
+    if (posDiffer.length === 1) {
+      // Move items in the differing position from the new rule to the same position of the previous one.
+      const currPosObjs = currentRule.positions[posDiffer[0]].position_objs;
+      const position =  currentRule.positions[posDiffer[0]].id;
+      for(let obj of currPosObjs)
+        await PolicyRuleToIPObj.updatePolicy_r__ipobj_position(this.req.dbCon, currentRule.id, obj.id, -1, -1, position, 99999, previousRule.id, position, 99999);
+
+      // Delete the new rule because it has been merged with the previous one.
+      await PolicyRule.deletePolicy_r(this.req.body.firewall, this.ruleId);
+
+      // Update data.
+      this.ruleId = this.previousRuleId = previousRule.id;
+      this.stats.rules--;
     }
   }
 }

@@ -152,7 +152,7 @@ export const PositionMap = new Map<string, number>([
   ['nat:PREROUTING:--to-destination_port', 35],
 ]);
 
-export const AgrupablePositionMap = new Map<string, number[]>([
+export const GroupablePositionMap = new Map<string, number[]>([
   ['filter:INPUT', [1,2,3]],
   ['filter:OUTPUT', [4,5,6]],
   ['filter:FORWARD', [7,8,9]],
