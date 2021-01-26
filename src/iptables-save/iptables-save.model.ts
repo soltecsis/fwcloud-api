@@ -1001,7 +1001,7 @@ export class IptablesSaveToFWCloud extends Service {
           if (obj.type>=1 && obj.type<=7)
             await PolicyRuleToIPObj.updatePolicy_r__ipobj_position(this.req.dbCon, currentRule.id, obj.id, -1, -1, position, 99999, previousRule.id, position, 99999);
           else if (obj.type === 10) // INTERFACE FIREWALL
-            await PolicyRuleToInterface.updatePolicy_r__interface_position(this.req.dbCon, this.req.body.firewall, currentRule.id, obj.interface, position, 99999, previousRule.id, position, 99999);
+            await PolicyRuleToInterface.updatePolicy_r__interface_position(this.req.dbCon, this.req.body.firewall, currentRule.id, obj.id, position, 99999, previousRule.id, position, 99999);
           else {
             allMoved = false;
             break;
