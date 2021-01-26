@@ -33,6 +33,7 @@ import { StdChains, TcpFlags, PolicyTypeMap, PositionMap, GroupablePositionMap, 
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../models/policy/PolicyGroup';
 import { RuleCompiler } from '../compiler/RuleCompiler';
+import { PolicyRuleToOpenVPN } from '../models/policy/PolicyRuleToOpenVPN';
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
@@ -688,10 +689,24 @@ export class IptablesSaveToFWCloud extends Service {
       } catch(err) { throw new Error(`Error creating IP object: ${JSON.stringify(err)}`); }
 
       this.stats.ipObjs++;
-    }
 
-    // Add the addr object to the rule position.
-    await this.addIPObjToRulePosition(dir,addrId);
+      // Add the addr object to the rule position.
+      await this.addIPObjToRulePosition(dir,addrId);
+    } else {
+      // Search if the address object is part of an OpenVPN configuration.
+      const result: any = await IPObj.searchIpobjInOpenvpn(addrId, 5, this.req.body.fwcloud); // 5: ADDRESS
+
+      // If it is, then add the OpenVPN config to the rule position instead of the address object.
+      if (result.length && result.length>0) { 
+        this.req.body.rule = this.ruleId;
+        this.req.body.openvpn = result[0].id;
+        this.req.body.position = PositionMap.get(`${this.table}:${this.chain}:${dir}`);
+        this.req.body.position_order = 999999;
+        await PolicyRuleToOpenVPN.insertInRule(this.req);
+      }
+      else // Add the addr object to the rule position.
+        await this.addIPObjToRulePosition(dir,addrId);
+    }
   }
 
 
