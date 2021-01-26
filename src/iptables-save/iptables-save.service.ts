@@ -59,6 +59,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
         this.customChainsMap = new Map();
         this.ruleGroupId = 0;
         this.ruleGroupName = null;
+        this.previousRuleId = null;
         continue;
       }
 
@@ -75,10 +76,17 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
         if (this.data[this.line].charAt(0) === ':')
           await this.generateCustomChainsMap();
         else if (this.items[0] === '-A') { // Generate rule.
-          if (await this.generateRule()) 
+          if (await this.generateRule()) {
             await this.fillRulePositions(this.line);
+
+            // If it is possible, merge this rule with the previous one.
+            await this.mergeWithPreviousRule();
+
+            // Once we have created the fwcloud rule, search for groups that can group items in a position.
+            await this.groupRulePositionItems();
+          }
         }
-      } catch(err) { throw new HttpException(`ERROR in iptables-save import (line: ${this.line+1}): ${err.message} `,400); }
+      } catch(err) { throw new HttpException(`ERROR in iptables-save import (line: ${this.line+1})${err.message?': '+err.message:''} `,400); }
     }
 
     return this.stats;

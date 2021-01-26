@@ -1089,7 +1089,7 @@ export class IPObj extends Model {
         });
     };
 
-    //check if interface iupobj exists in and OpenVPN configuration 
+    //check if interface ipobj exists in and OpenVPN configuration 
     public static searchIpobjInterfaceInOpenvpn(_interface, fwcloud, diff_firewall) {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
@@ -1115,7 +1115,7 @@ export class IPObj extends Model {
         });
     };
 
-    //check if interface iupobj exists in and OpenVPN configuration 
+    //check if interface ipobj exists in and OpenVPN configuration 
     public static searchAddrHostInOpenvpn(dbCon, fwcloud, host) {
         return new Promise((resolve, reject) => {
             let sql = `SELECT VPN.*, CRT.cn,

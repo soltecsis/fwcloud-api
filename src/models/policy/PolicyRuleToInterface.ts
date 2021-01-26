@@ -240,7 +240,7 @@ export class PolicyRuleToInterface extends Model {
     };
 
     //Update policy_r__interface POSITION AND RULE
-    public static updatePolicy_r__interface_position(dbCon, idfirewall, rule, _interface, old_position, old_position_order, new_rule, new_position, new_order, callback) {
+    public static updatePolicy_r__interface_position(dbCon, idfirewall, rule, _interface, old_position, old_position_order, new_rule, new_position, new_order) {
         return new Promise((resolve, reject) => {
             //Check if IPOBJ TYPE is ALLOWED in this Position
             this.checkInterfacePosition(idfirewall, new_rule, _interface, new_position, (error, allowed) => {
