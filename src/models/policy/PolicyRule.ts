@@ -418,30 +418,32 @@ export class PolicyRule extends Model {
                     await this.insertPolicy_r(policy_rData);
                 }
 
-                // Allow all incoming traffic from self host.
-                policy_rData.special = 0;
-                policy_rData.rule_order = 2;
-                policy_rData.comment = 'Allow all incoming traffic from self host.';
-                policy_rData.type = 1; // INPUT IPv4
-                policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
-                policy_r__interfaceData.position = 20;
-                await PolicyRuleToInterface.insertPolicy_r__interface(fwId, policy_r__interfaceData);
-                policy_rData.type = 61; // INPUT IPv6
-                policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
-                policy_r__interfaceData.position = 51;
-                await PolicyRuleToInterface.insertPolicy_r__interface(fwId, policy_r__interfaceData);
+                if (loInterfaceId) {
+                    // Allow all incoming traffic from self host.
+                    policy_rData.special = 0;
+                    policy_rData.rule_order = 2;
+                    policy_rData.comment = 'Allow all incoming traffic from self host.';
+                    policy_rData.type = 1; // INPUT IPv4
+                    policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
+                    policy_r__interfaceData.position = 20;
+                    await PolicyRuleToInterface.insertPolicy_r__interface(fwId, policy_r__interfaceData);
+                    policy_rData.type = 61; // INPUT IPv6
+                    policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
+                    policy_r__interfaceData.position = 51;
+                    await PolicyRuleToInterface.insertPolicy_r__interface(fwId, policy_r__interfaceData);
 
-                // Allow useful ICMP traffic.
-                policy_rData.rule_order = 3;
-                policy_rData.comment = 'Allow useful ICMP.';
-                policy_rData.type = 1; // INPUT IPv4
-                policy_r__ipobjData.rule = await this.insertPolicy_r(policy_rData);
-                policy_r__ipobjData.position = 3;
-                await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
-                policy_rData.type = 61; // INPUT IPv6
-                policy_r__ipobjData.rule = await this.insertPolicy_r(policy_rData);
-                policy_r__ipobjData.position = 39;
-                await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
+                    // Allow useful ICMP traffic.
+                    policy_rData.rule_order = 3;
+                    policy_rData.comment = 'Allow useful ICMP.';
+                    policy_rData.type = 1; // INPUT IPv4
+                    policy_r__ipobjData.rule = await this.insertPolicy_r(policy_rData);
+                    policy_r__ipobjData.position = 3;
+                    await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
+                    policy_rData.type = 61; // INPUT IPv6
+                    policy_r__ipobjData.rule = await this.insertPolicy_r(policy_rData);
+                    policy_r__ipobjData.position = 39;
+                    await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
+                }
 
                 // Now create the catch all rule.
                 policy_rData.action = 2;
