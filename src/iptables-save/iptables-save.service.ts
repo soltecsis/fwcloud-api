@@ -28,6 +28,7 @@ import { NetFilterTables, IptablesSaveStats } from './iptables-save.data';
 import { Firewall } from '../models/firewall/Firewall';
 import { Channel } from '../sockets/channels/channel';
 import { ProgressNoticePayload } from '../sockets/messages/socket-message';
+import { PolicyRule } from '../models/policy/PolicyRule';
 
 export class IptablesSaveService extends IptablesSaveToFWCloud {
   public async import(request: Request): Promise<IptablesSaveStats> {
@@ -40,6 +41,12 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     this.statefulFirewall = parseInt(fwOptions) & 0x1 ? true : false;
 
     const channel = await Channel.fromRequest(request);
+
+    // Clean current firewall policy
+    await PolicyRule.deletePolicy_r_Firewall(this.req.body.firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
+    // Create default policy. The second parameter is the lo interface id. If we pass it as null the default rules
+    // for the lo interface and useful icmp types will not be created.
+    await PolicyRule.insertDefaultPolicy(this.req.body.firewall, null, fwOptions);
 
     for(this.line=0; this.line < this.data.length; this.line++) {
       channel.emit('message', new ProgressNoticePayload(`${this.line+1}/${this.data.length}`));

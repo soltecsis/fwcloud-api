@@ -97,7 +97,7 @@ export class IptablesSaveToFWCloud extends Service {
       action: 1, // By default action rule is ACCEPT
       active: 1,
       options: 0,
-      comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`,
+      //comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`,
       type: 0,
     };
 
@@ -110,11 +110,16 @@ export class IptablesSaveToFWCloud extends Service {
       let action: string;
       let itemsCopy = this.items;
       
-      if (itemsCopy[0]==='-m' && itemsCopy[1]==='comment' && itemsCopy[2]==='--comment') {
-        itemsCopy.shift(); itemsCopy.shift(); itemsCopy.shift();
-        try { 
-          await this.eatCommentString(itemsCopy); 
-        } catch(err) { throw new Error(`Error eating rule comment string: ${JSON.stringify(err)}`); }
+      // If exists, remove comment from itemsCopy.
+      for (let i=0; i<(itemsCopy.length-4); i++) {
+        if (itemsCopy[i]==='-m' && itemsCopy[i+1]==='comment' && itemsCopy[i+2]==='--comment') {
+          // Remove comment from itemsCopy.
+          let itemsCopy2 = itemsCopy.slice(i+3);
+          try { 
+            await this.eatCommentString(itemsCopy2); 
+            itemsCopy = itemsCopy.slice(0,i).concat(itemsCopy2);
+          } catch(err) { throw new Error(`Error eating rule comment string: ${JSON.stringify(err)}`); }
+        }
       }
 
       action = `${itemsCopy[0]} ${itemsCopy[1]} ${itemsCopy[2]} ${itemsCopy[3]} ${itemsCopy[4]} ${itemsCopy[5]}`;
