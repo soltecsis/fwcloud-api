@@ -990,7 +990,6 @@ export class IptablesSaveToFWCloud extends Service {
 
       if (prevPosObjs !== currPosObjs) {
         if (posDiffer.length === 1) return; // Only can merge if rules differ in one position.
-
         // It is not possible to merge rules with no objects (value any) in the differing position.
         if (previousRule.positions[i].position_objs.length===0 || currentRule.positions[i].position_objs.length===0) return;
 
