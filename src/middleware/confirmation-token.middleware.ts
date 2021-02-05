@@ -62,7 +62,8 @@ export class ConfirmationToken extends Middleware {
      */
     protected isConfirmationTokenRequired(req: Request): boolean {
         if (req.url.split('/').pop() === 'get' || req.url.split('/').pop() === 'restricted' || req.url.split('/').pop() === 'where'
-            || req.method === 'GET' || (req.method === 'POST' && req.path === '/user/login')) {
+            || req.method === 'GET' || (req.method === 'POST' && req.path === '/user/login')
+            || (req.method === 'PUT' && req.path === '/ping')) {
             return false;
         }
 
