@@ -98,6 +98,7 @@ export class IptablesSaveToFWCloud extends Service {
       active: 1,
       options: 0,
       //comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`,
+      comment: '',
       type: 0,
     };
 
@@ -527,7 +528,7 @@ export class IptablesSaveToFWCloud extends Service {
       const ruleData: any = await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
       let policy_rData = { 
         id: this.ruleId, 
-        comment: `${ruleData.comment}\n${comment}` 
+        comment: comment 
       }
 
       if (ruleMetadata) {
@@ -983,9 +984,16 @@ export class IptablesSaveToFWCloud extends Service {
       const currPosObjs = JSON.stringify(currentRule.positions[i].position_objs);
 
       // Check position negation!!!!
+      const currPosNegated = RuleCompiler.isPositionNegated(currentRule.negate,currentRule.positions[i].id);
+      const prevPosNegated = RuleCompiler.isPositionNegated(previousRule.negate,previousRule.positions[i].id);
+      if (currPosNegated !== prevPosNegated) return; // Rules with different negation status in the same position can not be merged.
 
       if (prevPosObjs !== currPosObjs) {
         if (posDiffer.length === 1) return; // Only can merge if rules differ in one position.
+
+        // It is not possible to merge rules with no objects (value any) in the differing position.
+        if (previousRule.positions[i].position_objs.length===0 || currentRule.positions[i].position_objs.length===0) return;
+
         posDiffer.push(i);
       }
     }
