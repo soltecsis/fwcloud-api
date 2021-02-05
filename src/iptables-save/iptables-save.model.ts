@@ -160,7 +160,7 @@ export class IptablesSaveToFWCloud extends Service {
       await this.eatRuleData(line, lineItems);
 
     // If rule doesn't follow the firewall stateness change its stateness options.
-    if (this.table==='filter' && this.statefulFirewall!=this.ruleWithStatus) {
+    if (this.table==='filter' && this.ruleTarget==='ACCEPT' && this.statefulFirewall!=this.ruleWithStatus ) {
       const ruleData: any = await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
       const policy_rData = { id: this.ruleId, options: ruleData.options }
       policy_rData.options = this.ruleWithStatus ? policy_rData.options | 1 : policy_rData.options | 2;
@@ -957,14 +957,13 @@ export class IptablesSaveToFWCloud extends Service {
     }
 
     let data: any = await PolicyRule.getPolicyDataDetailed(this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.previousRuleId);
+    this.previousRuleId = this.ruleId; // Important, do it here before check the data result of the previous method call.
     if (!data || !data.length || data.length!=1) return;
     const previousRule = data[0];
 
     data = await PolicyRule.getPolicyDataDetailed(this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.ruleId);
     if (!data || !data.length || data.length!=1) return;
     const currentRule = data[0];
-
-    this.previousRuleId = this.ruleId;
 
     // Compare rules.
     if (previousRule.action !== currentRule.action) return;
