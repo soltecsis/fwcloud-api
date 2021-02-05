@@ -989,7 +989,9 @@ export class IptablesSaveToFWCloud extends Service {
       if (currPosNegated !== prevPosNegated) return; // Rules with different negation status in the same position can not be merged.
 
       if (prevPosObjs !== currPosObjs) {
+        // Rules differ in more than one position.
         if (posDiffer.length === 1) return; // Only can merge if rules differ in one position.
+
         // It is not possible to merge rules with no objects (value any) in the differing position.
         if (previousRule.positions[i].position_objs.length===0 || currentRule.positions[i].position_objs.length===0) return;
 
@@ -1003,36 +1005,44 @@ export class IptablesSaveToFWCloud extends Service {
       const currPosObjs = currentRule.positions[posDiffer[0]].position_objs;
       const position =  currentRule.positions[posDiffer[0]].id;
       let allMoved = true;
+
       for(let obj of currPosObjs) {
-        const currPosNegated = RuleCompiler.isPositionNegated(currentRule.negate,position);
-        const prevPosNegated = RuleCompiler.isPositionNegated(previousRule.negate,position);
-        // Rules must have the same negation status in the differing position.
-        if (currPosNegated === prevPosNegated) {
-          /* 
-            +-----+-----------------------+-----------------+
-            | id  | type                  | protocol_number |
-            +-----+-----------------------+-----------------+
-            |   1 | IP                    |            NULL |
-            |   2 | TCP                   |               6 |
-            |   3 | ICMP                  |               1 |
-            |   4 | UDP                   |              17 |
-            |   5 | ADDRESS               |            NULL |
-            |   6 | ADDRESS RANGE         |            NULL |
-            |   7 | NETWORK               |            NULL |
-            ...
-            |  10 | INTERFACE FIREWALL    |            NULL |
-            ...
-            +-----+-----------------------+-----------------+
-          */
-          if (obj.type>=1 && obj.type<=7)
+        let policy_r__ipobjData = {
+          rule: previousRule.id,
+          ipobj: obj.id,
+          ipobj_g: -1,
+          interface: -1,
+          position: position,
+          position_order: 1
+        };
+    
+        /* 
+          +-----+-----------------------+-----------------+
+          | id  | type                  | protocol_number |
+          +-----+-----------------------+-----------------+
+          |   1 | IP                    |            NULL |
+          |   2 | TCP                   |               6 |
+          |   3 | ICMP                  |               1 |
+          |   4 | UDP                   |              17 |
+          |   5 | ADDRESS               |            NULL |
+          |   6 | ADDRESS RANGE         |            NULL |
+          |   7 | NETWORK               |            NULL |
+          ...
+          |  10 | INTERFACE FIREWALL    |            NULL |
+          ...
+          +-----+-----------------------+-----------------+
+        */
+        if (obj.type>=1 && obj.type<=7) {
+          // Verify that object doesn't already exists in position.
+          if (!(await PolicyRuleToIPObj.checkExistsInPosition(policy_r__ipobjData)))  
             await PolicyRuleToIPObj.updatePolicy_r__ipobj_position(this.req.dbCon, currentRule.id, obj.id, -1, -1, position, 99999, previousRule.id, position, 99999);
-          else if (obj.type === 10) // INTERFACE FIREWALL
+        }
+        else if (obj.type === 10) { // INTERFACE FIREWALL
+          // Verify that object doesn't already exists in position.
+          if (!(await PolicyRuleToInterface.interfaceAlreadyInRulePosition(this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, previousRule.id, position, obj.id)))
             await PolicyRuleToInterface.updatePolicy_r__interface_position(this.req.dbCon, this.req.body.firewall, currentRule.id, obj.id, position, 99999, previousRule.id, position, 99999);
-          else {
-            allMoved = false;
-            break;
-          }
-        } else {
+        }
+        else {
           allMoved = false;
           break;
         }
