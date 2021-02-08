@@ -73,7 +73,7 @@
     "sqlstring": "2.3.1",
     "ssh2": "^0.8.7",
     "ts-node": "^8.6.2",
-    "typeorm": "^0.2.30",
+    "typeorm": "^0.2.22",
     "typescript": "^3.7.4",
     "uuid": "7.0.2",
     "when": "^3.7.8",
