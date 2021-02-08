@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [1.0.1] 
-### Added
+### Added
 - Log format for http.log.
 - Rename log file from 'fwcloud.log' to 'api.log'.
 - Unify log format with all other applications (fwcloud-updater and fwcloud-websrv) logs format.
