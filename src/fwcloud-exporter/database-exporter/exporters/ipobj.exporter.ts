@@ -26,7 +26,7 @@ import { IPObj } from "../../../models/ipobj/IPObj";
 import { SelectQueryBuilder, Brackets } from "typeorm";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { FwCloudExporter } from "./fwcloud.exporter";
-import { Interface } from "readline";
+import { Interface } from "../../../models/interface/Interface";
 import { InterfaceExporter } from "./interface.exporter";
 
 export class IPObjExporter extends TableExporter {

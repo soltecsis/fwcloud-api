@@ -161,7 +161,7 @@ describe(describeName('Backup Unit tests'), () => {
             await queryRunner.release();
         });
 
-        it('should import pki directoies if it exists in the backup', async () => {
+        it('should import pki directories if it exists in the backup', async () => {
             let backup: Backup = new Backup();
 
             FSHelper.mkdirSync(path.join(app.config.get('pki').data_dir, 'test'));
@@ -172,7 +172,7 @@ describe(describeName('Backup Unit tests'), () => {
             expect(FSHelper.directoryExistsSync(path.join(app.config.get('pki').data_dir, 'test'))).to.be.true
         });
 
-        it('should import policy directoies if it exists in the backup', async () => {
+        it('should import policy directories if it exists in the backup', async () => {
             let backup: Backup = new Backup();
 
             FSHelper.mkdirSync(path.join(app.config.get('policy').data_dir, 'test'));
@@ -183,7 +183,7 @@ describe(describeName('Backup Unit tests'), () => {
             expect(FSHelper.directoryExistsSync(path.join(app.config.get('policy').data_dir, 'test'))).to.be.true
         })
 
-        it('should import snapshot directoies if it exists in the backup', async () => {
+        it('should import snapshot directories if it exists in the backup', async () => {
             let backup: Backup = new Backup();
 
             FSHelper.mkdirSync(path.join(app.config.get('snapshot').data_dir, 'test'));
