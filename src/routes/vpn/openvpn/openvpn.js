@@ -355,7 +355,10 @@ router.put('/install', async(req, res) => {
 		res.status(200).send();
 	} catch(error) { 
 		logger().error('Error installing openvpn: ' + JSON.stringify(error));
-		res.status(400).json(error);
+		if (error.message)
+			res.status(400).json({message: error.message});
+		else
+			res.status(400).json(error);
 	}
 });
 
@@ -391,7 +394,10 @@ router.put('/uninstall', async(req, res) => {
 		res.status(200).send().end();
 	} catch(error) { 
 		logger().error('Error uninstalling openvpn: ' + JSON.stringify(error));
-		res.status(400).json(error);
+		if (error.message)
+			res.status(400).json({message: error.message});
+		else
+			res.status(400).json(error);
 	}
 });
 
@@ -436,7 +442,10 @@ router.put('/ccdsync', async(req, res) => {
 		res.status(200).send().end();
 	} catch(error) {
 		logger().error('Error sync openvpn: ' + JSON.stringify(error));
-		res.status(400).json(error);
+		if (error.message)
+			res.status(400).json({message: error.message});
+		else
+			res.status(400).json(error);
 	}
 });
 
@@ -460,7 +469,10 @@ router.put('/status/get', async(req, res) => {
 		res.status(200).json(data);
 	} catch(error) { 
 		logger().error('Error getting openvpn log file: ' + JSON.stringify(error));
-		res.status(400).json(error);
+		if (error.message)
+			res.status(400).json({message: error.message});
+		else
+			res.status(400).json(error);
 	}
 });
 

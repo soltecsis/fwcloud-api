@@ -79,7 +79,7 @@ router.post('/login',async (req, res) => {
 		}
 		
 		// Validate credentials.
-		/* WARNING: As recomended in the bcrypt manual:
+		/* WARNING: As recommended in the bcrypt manual:
 		Why is async mode recommended over sync mode?
 		If you are using bcrypt on a simple script, using the sync mode is perfectly fine.
 		However, if you are using bcrypt on a server, the async mode is recommended.
@@ -93,6 +93,7 @@ router.post('/login',async (req, res) => {
 			req.session.user_id = data[0].id;
 			req.session.username = data[0].username;
 			req.session.admin_role = await User.isLoggedUserAdmin(req); 
+			req.session.keepalive_ts = Date.now();
 
 			const pgp = new PgpHelper; 
 			await pgp.init(config.get('session').pgp_rsa_bits);

@@ -32,6 +32,8 @@ import { FwCloudExportController } from "../controllers/fwclouds/fwcloud-export.
 import { OpenVPNController } from "../controllers/firewalls/openvpn/openvpn.controller";
 import { FwCloudController } from "../controllers/fwclouds/fwcloud.controller";
 import { UpdateController } from "../controllers/updates/update.controller";
+import { IptablesSaveController } from "../controllers/iptables-save/iptables-save.controller";
+import { PingController } from "../controllers/ping/ping.controller";
 
 export class Routes extends RouteCollection {
 
@@ -113,7 +115,16 @@ export class Routes extends RouteCollection {
                 });
             });
 
+            // iptables-save import/export
+            router.prefix('/iptables-save', (router: RouterParser) => {
+                router.put('/import', IptablesSaveController , 'import').name('iptables-save.import');
+                router.put('/export', IptablesSaveController, 'export').name('iptables-save.export');
+            });
 
+            // ping for keep session alive
+            router.prefix('/ping', (router: RouterParser) => {
+                router.put('/', PingController, 'ping').name('ping.pong');
+            });
         });
     }
 }

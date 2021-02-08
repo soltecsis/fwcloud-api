@@ -74,8 +74,11 @@ router.post('/', async (req, res) => {
     channel.emit('message', new ProgressPayload('end', false, 'Firewall installed'));
 		res.status(204).end();
 	} catch(error) {
-    logger().error('Error installing policies: ' + JSON.stringify(error));
-    res.status(400).json(error);
+    logger().error(`Installing policy script${error.message ? ': '+error.message : JSON.stringify(error)}`);
+    if (error.message)
+      res.status(400).json({message: error.message});
+    else
+      res.status(400).json(error);
   }
 });
 /*----------------------------------------------------------------------------------------------------------------------*/

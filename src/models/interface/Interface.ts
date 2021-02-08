@@ -440,6 +440,23 @@ export class Interface extends Model {
 		});
 	};
 
+ 
+	public static searchInterfaceInFirewallByName(dbCon, fwcloud, firewall, ifName) {        
+		return new Promise((resolve, reject) => {
+			let sql = `SELECT I.id from interface I
+			INNER JOIN ipobj_type T on T.id=I.interface_type
+			INNER JOIN firewall F on F.id=I.firewall
+			INNER JOIN fwcloud C on C.id=F.fwcloud
+			WHERE I.name=${dbCon.escape(ifName)} AND I.interface_type=10 and I.firewall=${firewall} AND F.fwcloud=${fwcloud}`;
+
+			dbCon.query(sql, (error, rows) => {
+				if (error) return reject(error);
+
+				resolve(rows.length === 0 ? '' : rows[0].id);
+			});
+		});
+	};
+
 
 	//Add new interface from user
 	public static insertInterface(dbCon, interfaceData) {
