@@ -22,7 +22,7 @@
 
 const logger = require("../fonaments/abstract-application").logger;
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
-import { ProgressNoticePayload } from '../sockets/messages/socket-message';
+import { ProgressPayload } from '../sockets/messages/socket-message';
 
 
 export default class sshTools {
@@ -121,7 +121,7 @@ export default class sshTools {
 							}
 						} else {
 							stdout_log += data;
-							if (eventEmitter) eventEmitter.emit('message', new ProgressNoticePayload(str));
+							if (eventEmitter) eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, str, null));
 						}
 					}).stderr.on('data', data => {
 						//console.log('STDERR: ' + data);
