@@ -17,7 +17,7 @@ export class SocketMessage {
 
 export class SocketMessagePayload {}
 
-export type StatusType = 'start' | 'end' | 'start_task' | 'end_task' | 'notice' | 'info' | 'success' | 'warning' | 'error';
+export type StatusType = 'start' | 'end' | 'start_task' | 'end_task' | 'notice' | 'info' | 'success' | 'warning' | 'error' | 'heartbeat' | 'ssh_cmd_output';
 
 export class ProgressPayload extends SocketMessagePayload {
     readonly task_id?: string;
