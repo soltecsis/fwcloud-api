@@ -44,7 +44,7 @@ const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
 
-const sshTools = require('../../utils/ssh');
+import sshTools from '../../utils/ssh';
 
 const tableName: string = 'firewall';
 
@@ -1127,7 +1127,8 @@ export class Firewall extends Model {
 	public static getIptablesSave(SSHconn): Promise<string[]> {
 		return new Promise(async (resolve, reject) => {
 			try {
-				const data: any = await sshTools.runCommand(SSHconn, "sudo iptables-save");
+				const sudo = SSHconn.username === 'root' ? '' : 'sudo';
+				const data: any = await sshTools.runCommand(SSHconn, `${sudo} iptables-save`);
 				let iptablesSaveOutput: string[] = data.split('\r\n');
 
 				if (iptablesSaveOutput[0].startsWith('[sudo]')) iptablesSaveOutput.shift();

@@ -32,7 +32,7 @@ import { Tree } from '../../../models/tree/Tree';
 import { Crt } from "../pki/Crt";
 import { OpenVPNOption } from "./openvpn-option.model";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
-const sshTools = require('../../../utils/ssh');
+import sshTools from '../../../utils/ssh';
 import { OpenVPNPrefix } from "./OpenVPNPrefix";
 import { ProgressInfoPayload, ProgressErrorPayload, ProgressNoticePayload, ProgressWarningPayload } from "../../../sockets/messages/socket-message";
 import { Channel } from "../../../sockets/channels/channel";
@@ -454,26 +454,28 @@ export class OpenVPN extends Model {
                 
                 await sshTools.uploadStringToFile(fwData.SSHconn, cfg, name);
 
+                const sudo = fwData.SSHconn.username === 'root' ? '' : 'sudo';
+
                 const existsDir = await sshTools.runCommand(fwData.SSHconn, `if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
                 if (existsDir === "0") {
                     channel.emit('message', new ProgressNoticePayload(`Creating install directory.\n`));
-                    await sshTools.runCommand(fwData.SSHconn, `sudo mkdir "${dir}"`);
-                    await sshTools.runCommand(fwData.SSHconn, `sudo chown root:root "${dir}"`);
-                    await sshTools.runCommand(fwData.SSHconn, `sudo chmod 755 "${dir}"`);
+                    await sshTools.runCommand(fwData.SSHconn, `${sudo} mkdir "${dir}"`);
+                    await sshTools.runCommand(fwData.SSHconn, `${sudo} chown root:root "${dir}"`);
+                    await sshTools.runCommand(fwData.SSHconn, `${sudo} chmod 755 "${dir}"`);
                 }
 
                 channel.emit('message', new ProgressNoticePayload(`Installing OpenVPN configuration file.\n`));
-                await sshTools.runCommand(fwData.SSHconn, `sudo mv ${name} ${dir}/`);
+                await sshTools.runCommand(fwData.SSHconn, `${sudo} mv ${name} ${dir}/`);
 
                 channel.emit('message', new ProgressNoticePayload(`Setting up file permissions.\n\n`));
-                await sshTools.runCommand(fwData.SSHconn, `sudo chown root:root ${dir}/${name}`);
+                await sshTools.runCommand(fwData.SSHconn, `${sudo} chown root:root ${dir}/${name}`);
 
                 if (type === 1) { 
                     // Client certificate.
-                    await sshTools.runCommand(fwData.SSHconn, `sudo chmod 644 ${dir}/${name}`);
+                    await sshTools.runCommand(fwData.SSHconn, `${sudo} chmod 644 ${dir}/${name}`);
                 } else {
                     // Server certificate.
-                    await sshTools.runCommand(fwData.SSHconn, `sudo chmod 600 ${dir}/${name}`);
+                    await sshTools.runCommand(fwData.SSHconn, `${sudo} chmod 600 ${dir}/${name}`);
                 }
 
                 resolve();
@@ -490,7 +492,8 @@ export class OpenVPN extends Model {
                 const fwData: any = await Firewall.getFirewallSSH(req);
 
                 channel.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/${name}' from: (${fwData.SSHconn.host})\n`));
-                await sshTools.runCommand(fwData.SSHconn, `sudo rm -f "${dir}/${name}"`);
+                const sudo = fwData.SSHconn.username === 'root' ? '' : 'sudo';
+                await sshTools.runCommand(fwData.SSHconn, `${sudo} rm -f "${dir}/${name}"`);
 
                 resolve();
             } catch (error) {
@@ -748,7 +751,8 @@ export class OpenVPN extends Model {
             try {
                 const fwData: any = await Firewall.getFirewallSSH(req);
 
-                let data = await sshTools.runCommand(fwData.SSHconn, `sudo cat "${status_file_path}"`);
+                const sudo = fwData.SSHconn.username === 'root' ? '' : 'sudo';
+                let data = await sshTools.runCommand(fwData.SSHconn, `${sudo} cat "${status_file_path}"`);
                 // Remove the first line ()
                 let lines = data.split('\n');
                 if (lines[0].startsWith('[sudo] password for '))
