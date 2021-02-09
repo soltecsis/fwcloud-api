@@ -22,7 +22,7 @@
 
 const logger = require("../fonaments/abstract-application").logger;
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
-import { ProgressPayload } from '../sockets/messages/socket-message';
+import { ProgressSSHCmdPayload } from '../sockets/messages/socket-message';
 
 
 export default class sshTools {
@@ -99,6 +99,9 @@ export default class sshTools {
 			conn.on('ready',() => {
 				conn.exec(cmd, {pty: true}, (err, stream) => {
 					if (err) return reject(err);
+					
+					let prevStr = '';
+
 					stream.on('close',(code, signal) => {
 						//console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
 						conn.end();
@@ -109,6 +112,7 @@ export default class sshTools {
 					}).on('data', data => {
 						//console.log('STDOUT: ' + data);
 						let str=""+data;
+
 						if (!sudo_pass_sent) {
 							let regex = new RegExp(`\\[sudo\\] .* ${SSHconn.username}: `);
 							if (str.match(regex)) {
@@ -121,7 +125,14 @@ export default class sshTools {
 							}
 						} else {
 							stdout_log += data;
-							if (eventEmitter) eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, str, null));
+							if (eventEmitter) {
+								if (prevStr==='\r\n' && str==='\r\n') // Blanc line
+									eventEmitter.emit('message', new ProgressSSHCmdPayload('\r\n'));
+								else if (str != '\r\n')
+									eventEmitter.emit('message', new ProgressSSHCmdPayload(str));
+
+								prevStr = str;
+							}
 						}
 					}).stderr.on('data', data => {
 						//console.log('STDERR: ' + data);
