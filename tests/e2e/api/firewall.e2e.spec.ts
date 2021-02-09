@@ -10,7 +10,7 @@ import StringHelper from "../../../src/utils/string.helper";
 import { Firewall } from "../../../src/models/firewall/Firewall";
 import { IPObj } from "../../../src/models/ipobj/IPObj";
 import sinon from "sinon";
-import sshTools = require("../../../src/utils/ssh");
+import sshTools from '../../../src/utils/ssh';
 
 describe.skip(describeName('Firewall E2E Tests'), () => {
     let app: Application;
