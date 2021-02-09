@@ -97,7 +97,7 @@ export class Progress {
 
             let heartbeatInterval: NodeJS.Timeout = setInterval(() => {
                 this._externalEmitter.emit('message', new ProgressPayload('heartbeat', false, '', this._id))
-            }, 1000);
+            }, 20000);
             
             this._progressEvents.emit('start')
             this._startTask.run().then(() => {
