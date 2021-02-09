@@ -15,6 +15,10 @@ export class Installer {
     public async install(sshConfig: SSHConfig, eventEmitter: EventEmitter): Promise<string> {
         return new Promise(async (resolve, reject) => {
             try {
+                /***** WARNING ******/
+                /* The original code is in PolicyScript.ts and it has been changed!!!!! */
+                /********************/
+                /*
                 eventEmitter.emit('message', new ProgressInfoPayload("Uploading firewall script (" + sshConfig.host + ")\n"));
                 await sshTools.uploadFile(sshConfig, this._firewall.getPolicyFilePath(), app().config.get('policy').script_name);
 
@@ -31,6 +35,7 @@ export class Installer {
                     "else sh" + sh_debug + " /config/scripts/post-config.d/" + app().config.get('policy').script_name + " start; fi'")
 
                 eventEmitter.emit('message', new ProgressNoticePayload(data));
+                */
                 resolve("DONE");
             } catch (error) {
                 reject(error);
