@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- For SSH connections detect if we are using the `root` user and don't use `sudo` in such cases.
 - Improve session check in socket.io connection establishment.
 - API call `PUT /ping`.
 - Improved SSH errors management.
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - By default listen to localhost.
 
 ### Fixed
+- Set the mysqldump node module format option to false for avoid long high CPU usage in backups of databases with lot of registers.
 - Multiport module, up to 15 ports limit control.
 - Bug in session expiration.
 - fwcloud-updater doesn't process update requests (for example, PUT /updates/ui) when all request headers are forwarded. Forward only the cookie header, required for the authentication middleware of the fwcloud-updater.
