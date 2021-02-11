@@ -12,6 +12,7 @@ import { User } from "../models/user/User";
 import { Responsable } from "../fonaments/contracts/responsable";
 import { SnapshotNotCompatibleException } from "../snapshots/exceptions/snapshot-not-compatible.exception";
 import { Zip } from "../utils/zip";
+import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export class FwCloudExport implements Responsable {
     static FWCLOUD_DATA_DIRECTORY = 'fwcloud';
@@ -88,8 +89,8 @@ export class FwCloudExport implements Responsable {
     /**
      * Imports a fwcloud
      */
-    public async import(): Promise<FwCloud> {
-        const importer: DatabaseImporter = new DatabaseImporter();
+    public async import(eventEmitter: EventEmitter = new EventEmitter()): Promise<FwCloud> {
+        const importer: DatabaseImporter = new DatabaseImporter(eventEmitter);
 
         const snapshot: Snapshot = await Snapshot.load(path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY));
 
