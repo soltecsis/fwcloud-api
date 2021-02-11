@@ -26,6 +26,8 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
 import { getMetadataArgsStorage, QueryRunner } from "typeorm";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
+import { EventEmitter } from "typeorm/platform/PlatformTools";
+import { ProgressPayload } from "../../../sockets/messages/socket-message";
 
 export type TerraformHandler = (mapper: ImportMapping, row: object, value: any) => number;
 
@@ -35,13 +37,13 @@ export class TableTerraformer {
     protected _mapper: ImportMapping;
     protected _customHandlers: TerraformHandlerCollection;
 
-    protected constructor(mapper: ImportMapping) {
+    protected constructor(mapper: ImportMapping, protected readonly eventEmitter: EventEmitter = new EventEmitter()) {
         this._mapper = mapper;
         this._customHandlers = this.getCustomHandlers();
     }
 
-    public static async make(mapper: ImportMapping, queryRunner: QueryRunner): Promise<TableTerraformer> {
-        const terraformer: TableTerraformer = new TableTerraformer(mapper);
+    public static async make(mapper: ImportMapping, queryRunner: QueryRunner, eventEmitter: EventEmitter = new EventEmitter()): Promise<TableTerraformer> {
+        const terraformer: TableTerraformer = new TableTerraformer(mapper, eventEmitter);
         return terraformer;
     }
 
@@ -71,6 +73,9 @@ export class TableTerraformer {
     protected async terraformTableDataWithEntity(mapper: ImportMapping, tableName: string, entity: typeof Model, rows: Array<object>): Promise<Array<object>> {
         const result: Array<object> = [];
 
+        let lastHeartbeat = new Date();
+        this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
+        
         for(let i = 0; i < rows.length; i++) {
             const row: object = rows[i];
             
@@ -103,6 +108,11 @@ export class TableTerraformer {
                         }
                     }
                 }
+
+                if (new Date().getTime() - lastHeartbeat.getTime() > 20000) {
+                    lastHeartbeat = new Date();
+                    this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
+                }
             }
             result.push(row);
         }
@@ -128,6 +138,7 @@ export class TableTerraformer {
         const joinTable: JoinTableMetadataArgs = joinTables.length > 0 ? joinTables[0]: null;
 
         if (joinTable) {
+
             const target: typeof Model = <any>joinTable.target;
             const relation: RelationMetadataArgs = target.getRelationFromPropertyName(joinTable.propertyName);
             const joinColumnName: string = joinTable.joinColumns[0].name;
@@ -135,6 +146,9 @@ export class TableTerraformer {
             const relatedTarget: typeof Model = <typeof Model>(<any>relation.type)();
             const relatedColumnName: string = joinTable.inverseJoinColumns[0].name;
 
+            let lastHeartbeat = new Date();
+            this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
+            
             for(let i = 0; i < rows.length; i++) {
                 const row: object = rows[i];
                 
@@ -145,6 +159,11 @@ export class TableTerraformer {
 
                     if (attributeName === relatedColumnName) {
                         row[attributeName] = mapper.getMappedId(relatedTarget._getTableName(), relatedTarget.getPrimaryKeys()[0].propertyName, row[attributeName]);
+                    }
+
+                    if (new Date().getTime() - lastHeartbeat.getTime() > 20000) {
+                        lastHeartbeat = new Date();
+                        this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
                     }
                 }
                 result.push(row);
