@@ -699,8 +699,8 @@ export class IptablesSaveToFWCloud extends Service {
       // Add the addr object to the rule position.
       await this.addIPObjToRulePosition(dir,addrId);
     } else {
-      // Search if the address object is part of an OpenVPN configuration.
-      const result: any = await IPObj.searchIpobjInOpenvpn(addrId, 5, this.req.body.fwcloud); // 5: ADDRESS
+      // Search if the address object is part of an OpenVPN ifconfig-push configuration option.
+      const result: any = await IPObj.addrInIfconfigPushOpenVPN(addrId, this.req.body.fwcloud); 
 
       // If it is, then add the OpenVPN config to the rule position instead of the address object.
       if (result.length && result.length>0) { 
@@ -708,7 +708,8 @@ export class IptablesSaveToFWCloud extends Service {
         this.req.body.openvpn = result[0].id;
         this.req.body.position = PositionMap.get(`${this.table}:${this.chain}:${dir}`);
         this.req.body.position_order = 999999;
-        await PolicyRuleToOpenVPN.insertInRule(this.req);
+        if (!await PolicyRuleToOpenVPN.checkExistsInPosition(this.req.dbCon,this.ruleId,result[0].id,this.req.body.position))
+          await PolicyRuleToOpenVPN.insertInRule(this.req);
       }
       else // Add the addr object to the rule position.
         await this.addIPObjToRulePosition(dir,addrId);
