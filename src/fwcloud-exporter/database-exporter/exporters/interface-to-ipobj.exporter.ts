@@ -24,7 +24,7 @@ import { TableExporter } from "./table-exporter";
 import Model from "../../../models/Model";
 import { InterfaceIPObj } from "../../../models/interface/InterfaceIPObj";
 import { SelectQueryBuilder } from "typeorm";
-import { Interface } from "readline";
+import { Interface } from "../../../models/interface/Interface";
 import { InterfaceExporter } from "./interface.exporter";
 import { IPObj } from "../../../models/ipobj/IPObj";
 import { IPObjExporter } from "./ipobj.exporter";

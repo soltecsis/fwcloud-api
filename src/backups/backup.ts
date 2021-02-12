@@ -279,7 +279,10 @@ export class Backup implements Responsable {
             },
             dump: {
                 data: {
-                    maxRowsPerInsertStatement: 50
+                    // WARNING: It is very important to set the mysqldump node module format option to false.
+                    // If not, with databases with lot of registers, the dump process may take several minutes.
+                    format: false,
+                    maxRowsPerInsertStatement: 1000
                 }
             },
             dumpToFile: path.join(this._backupPath, Backup.DUMP_FILENAME),

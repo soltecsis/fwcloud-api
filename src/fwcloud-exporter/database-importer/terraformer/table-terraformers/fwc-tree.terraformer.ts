@@ -37,6 +37,7 @@ import { IPObjGroup } from "../../../../models/ipobj/IPObjGroup";
 import { Mark } from "../../../../models/ipobj/Mark";
 import { CaPrefix } from "../../../../models/vpn/pki/CaPrefix";
 import { OpenVPNPrefix } from "../../../../models/vpn/openvpn/OpenVPNPrefix";
+import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export class FwcTreeTerraformer extends TableTerraformer {
     public ipObjTypes: Array<IPObjType>;
@@ -93,8 +94,8 @@ export class FwcTreeTerraformer extends TableTerraformer {
         'STD': null
     }
 
-    public static async make(mapper: ImportMapping, queryRunner: QueryRunner): Promise<FwcTreeTerraformer> {
-        const terraformer: FwcTreeTerraformer = new FwcTreeTerraformer(mapper);
+    public static async make(mapper: ImportMapping, queryRunner: QueryRunner, eventEmitter: EventEmitter = new EventEmitter()): Promise<FwcTreeTerraformer> {
+        const terraformer: FwcTreeTerraformer = new FwcTreeTerraformer(mapper, eventEmitter);
         terraformer.ipObjTypes = await IPObjType.find();
         return terraformer;
     }

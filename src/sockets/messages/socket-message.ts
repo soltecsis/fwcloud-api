@@ -17,7 +17,7 @@ export class SocketMessage {
 
 export class SocketMessagePayload {}
 
-export type StatusType = 'start' | 'end' | 'start_task' | 'end_task' | 'notice' | 'info' | 'success' | 'warning' | 'error';
+export type StatusType = 'start' | 'end' | 'start_task' | 'end_task' | 'notice' | 'info' | 'success' | 'warning' | 'error' | 'heartbeat' | 'ssh_cmd_output';
 
 export class ProgressPayload extends SocketMessagePayload {
     readonly task_id?: string;
@@ -61,5 +61,11 @@ export class ProgressWarningPayload extends ProgressPayload {
 export class ProgressErrorPayload extends ProgressPayload {
     constructor(message: string, highlight: boolean = false, task_id: string = null) {
         super('error', highlight, message, task_id);
+    }
+}
+
+export class ProgressSSHCmdPayload extends ProgressPayload {
+    constructor(message: string, highlight: boolean = false, task_id: string = null) {
+        super('ssh_cmd_output', highlight, message, task_id);
     }
 }

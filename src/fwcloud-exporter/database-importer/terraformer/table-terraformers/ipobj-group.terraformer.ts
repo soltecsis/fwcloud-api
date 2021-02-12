@@ -24,11 +24,12 @@ import { TableTerraformer, TerraformHandlerCollection } from "../table-terraform
 import { ImportMapping } from "../mapper/import-mapping";
 import { FwCloud } from "../../../../models/fwcloud/FwCloud";
 import { QueryRunner } from "typeorm";
+import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export class IpObjGroupTerraformer extends TableTerraformer {
     
-    public static async make(mapper: ImportMapping, queryRunner: QueryRunner): Promise<IpObjGroupTerraformer> {
-        const terraformer: IpObjGroupTerraformer = new IpObjGroupTerraformer(mapper);
+    public static async make(mapper: ImportMapping, queryRunner: QueryRunner, eventEmitter: EventEmitter = new EventEmitter()): Promise<IpObjGroupTerraformer> {
+        const terraformer: IpObjGroupTerraformer = new IpObjGroupTerraformer(mapper, eventEmitter);
         return terraformer;
     }
     

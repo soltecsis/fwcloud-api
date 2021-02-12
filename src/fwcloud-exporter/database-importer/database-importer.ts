@@ -36,11 +36,15 @@ import { PathHelper } from "../../utils/path-helpers";
 import { Ca } from "../../models/vpn/pki/Ca";
 import Model from "../../models/Model";
 import * as fs from "fs";
+import { ProgressPayload } from "../../sockets/messages/socket-message";
+import { EventEmitter } from "events";
 
 export class DatabaseImporter {
     protected _mapper: ImportMapping;
     protected _idManager: IdManager;
-    
+
+    constructor(protected readonly eventEmitter: EventEmitter = new EventEmitter()) {}
+
     get mapper(): ImportMapping {
         return this._mapper;
     }
@@ -59,7 +63,7 @@ export class DatabaseImporter {
         this._mapper = new ImportMapping(this._idManager, data);
         
 
-        const terraformedData: ExporterResult = await (new Terraformer(queryRunner, this._mapper)).terraform(data);
+        const terraformedData: ExporterResult = await (new Terraformer(queryRunner, this._mapper, this.eventEmitter)).terraform(data);
         
         await this.importToDatabase(queryRunner, terraformedData);
         
@@ -84,17 +88,35 @@ export class DatabaseImporter {
         try {
             
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
-            for(let tableName in data.getAll()) {
-                const entity: typeof Model = Model.getEntitiyDefinition(tableName);
 
-                if (entity) {
-                    await queryRunner.manager.getRepository(entity).save(data.getAll()[tableName], {chunk: 10000});
-                } else {
-                    for(let i = 0; i < data.getAll()[tableName].length; i++) {
-                        const row: object = data.getAll()[tableName][i];
-                        await queryRunner.manager.createQueryBuilder().insert().into(tableName).values(row).execute();
+            let lastHeartbeat = new Date();
+            this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
+            
+            for(let tableName in data.getAll()) {
+                const records = data.getAll()[tableName];
+
+                while(records.length > 0) {
+                    const bulk = records.slice(0, records.length <= 100 ? records.length: 100);
+
+                    const entity: typeof Model = Model.getEntitiyDefinition(tableName);
+
+                    if (entity) {
+                        await queryRunner.manager.getRepository(entity).save(bulk);
+                    } else {
+                        for(let i = 0; i < records.length; i++) {
+                            const row: object = records[i];
+                            await queryRunner.manager.createQueryBuilder().insert().into(tableName).values(row).execute();
+                        }
+                    }
+
+                    records.splice(0, records.length <= 100 ? records.length: 100);
+
+                    if (new Date().getTime() - lastHeartbeat.getTime() > 20000) {
+                        lastHeartbeat = new Date();
+                        this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
                     }
                 }
+                
             }
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
             await queryRunner.commitTransaction();

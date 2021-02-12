@@ -43,7 +43,7 @@ describe(describeName('MigrationCreateCommand tests'), () => {
         await FSHelper.rmDirectory(tmpDir);
     });
     
-    it('should create a migration file in the version migration directory', async() => {
+    it.skip('should create a migration file in the version migration directory', async() => {
         await runCLICommandIsolated(testSuite, async () => {
             return new MigrationCreateCommand().safeHandle({
             $0: "migration:create",

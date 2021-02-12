@@ -455,8 +455,24 @@ const config = convict({
       default: 'https://localhost:3132',
       env: 'FWC_UPDATER_URL'
     },
-  }
+  },
 
+  // socket.io 
+  socket_io: {
+    pingInterval: {
+      doc: 'How many ms before sending a new ping packet.',
+      format: Number,
+      default: 600000,
+      env: 'SOCKET_IO_PING_INTERVAL'
+    },
+    pingTimeout: {
+      doc: 'How many ms without a pong packet to consider the connection closed.',
+      format: Number,
+      default: 300000,
+      env: 'SOCKET_IO_PING_TIMEOUT'
+    },
+  }
+  
 });
 
 

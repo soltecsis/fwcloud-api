@@ -34,6 +34,7 @@ import { File } from "../../fonaments/validation/rules/file.rule";
 import { FileInfo } from "../../fonaments/http/files/file-info";
 import moment from "moment";
 import { Extension } from "../../fonaments/validation/rules/extension.rule";
+import { Channel } from "../../sockets/channels/channel";
 
 export class FwCloudExportController extends Controller {
     protected _fwCloudExportService: FwCloudExportService;
@@ -48,7 +49,9 @@ export class FwCloudExportController extends Controller {
 
         (await FwCloudExportPolicy.store(fwCloud, request.session.user)).authorize();
 
-        const fwCloudExport: FwCloudExport = await this._fwCloudExportService.create(fwCloud, request.session.user, 30000);
+        const channel: Channel = await Channel.fromRequest(request);
+
+        const fwCloudExport: FwCloudExport = await this._fwCloudExportService.create(fwCloud, request.session.user, 30000, channel);
 
         return ResponseBuilder.buildResponse().status(201).download(fwCloudExport.exportPath, 'fwcloud_' + fwCloud.id + '_' + moment().unix() + '.fwcloud');
     }
@@ -60,7 +63,9 @@ export class FwCloudExportController extends Controller {
 
         (await FwCloudExportPolicy.import(request.session.user)).authorize();
 
-        const fwCloud: FwCloud = await this._fwCloudExportService.import((<FileInfo>request.inputs.get('file')).filepath, request.session.user);
+        const channel: Channel = await Channel.fromRequest(request);
+
+        const fwCloud: FwCloud = await this._fwCloudExportService.import((<FileInfo>request.inputs.get('file')).filepath, request.session.user, channel);
 
         return ResponseBuilder.buildResponse().status(201).body(fwCloud);
     }

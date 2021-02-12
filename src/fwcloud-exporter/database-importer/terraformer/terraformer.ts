@@ -32,6 +32,7 @@ import { IPObjGroup } from "../../../models/ipobj/IPObjGroup";
 import { PolicyRuleToIPObj } from "../../../models/policy/PolicyRuleToIPObj";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FirewallTerraformer } from "./table-terraformers/firewall.terraformer";
+import { EventEmitter } from "events";
 
 const TERRAFORMERS: {[tableName: string]: typeof TableTerraformer} = {};
 TERRAFORMERS[FwcTree._getTableName()] = FwcTreeTerraformer;
@@ -43,7 +44,7 @@ export class Terraformer {
     protected _queryRunner: QueryRunner;
     protected _mapper: ImportMapping;
 
-    constructor(queryRunner: QueryRunner, mapper: ImportMapping) {
+    constructor(queryRunner: QueryRunner, mapper: ImportMapping, protected readonly eventEmitter = new EventEmitter()) {
         this._queryRunner = queryRunner;
         this._mapper = mapper;
     }
@@ -59,7 +60,7 @@ export class Terraformer {
         const data: ExporterResultData = exportResults.getAll();
         
         for(let tableName in data) {
-            const terraformer: TableTerraformer = await (await this.getTerraformer(tableName)).make(this._mapper, this._queryRunner);
+            const terraformer: TableTerraformer = await (await this.getTerraformer(tableName)).make(this._mapper, this._queryRunner, this.eventEmitter);
             const terraformedData: Array<object> = await terraformer.terraform(tableName, data[tableName]);
             result.addTableData(tableName, terraformedData);
         }

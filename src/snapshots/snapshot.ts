@@ -166,19 +166,19 @@ export class Snapshot implements Responsable {
         await progress.procedure('Restoring snapshot', (task: Task) => {
             task.addTask(async () => {
                 const backupService: BackupService = await app().getService<BackupService>(BackupService.name);
-                return backupService.create('Before snapshot (' + this.id + ') creation (beta)'); 
-            }, 'Backup created (only on beta)')
+                return backupService.create('Before snapshot (' + this.id + ') creation');
+            }, 'Backup created')
             task.addTask(async () => { 
                 this._restoredFwCloud = await this.restoreDatabaseData();
-            }, 'FwCloud restored from snapshot');
+            }, 'FWCloud restored from snapshot');
             task.parallel((task: Task) => {
                 task.addTask(() => { return this.resetCompiledStatus(); }, 'Firewalls compilation flags reset');
                 task.addTask(() => { 
                     return this.migrateSnapshots(this.fwCloud, this._restoredFwCloud);
                 }, 'Snapshots migrated');
             });
-            task.addTask(() => { return this.removeDatabaseData(); }, 'Deprecated FwCloud removed');
-        }, 'FwCloud snapshot restored');
+            task.addTask(() => { return this.removeDatabaseData(); }, 'Deprecated FWCloud removed');
+        }, 'FWCloud snapshot restored');
 
         return this._restoredFwCloud;
     }
@@ -289,8 +289,8 @@ export class Snapshot implements Responsable {
 
         await progress.procedure('Creating snapshot', (task: Task) => {
             task.parallel((task: Task) => {
-                task.addTask(() => { return this.copyFwCloudDataDirectories(); }, 'FwCloud data directories exported');
-                task.addTask(() => { return this.saveDataFile(); }, 'FwCloud database exported');
+                task.addTask(() => { return this.copyFwCloudDataDirectories(); }, 'FWCloud data directories exported');
+                task.addTask(() => { return this.saveDataFile(); }, 'FWCloud database exported');
             });
         }, 'Snapshot created');
 
