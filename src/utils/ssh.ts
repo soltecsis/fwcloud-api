@@ -94,6 +94,7 @@ export default class sshTools {
 		var stdout_log = "";
 		var stderr_log ="";
 		let sudo_pass_sent = cmd.trim().substr(0,5) === 'sudo ' ? false : true;
+		let regex = new RegExp(`\\[sudo\\] .* ${SSHconn.username}: `);
 
 		return new Promise((resolve,reject) => { 
 			conn.on('ready',() => {
@@ -113,16 +114,9 @@ export default class sshTools {
 						//console.log('STDOUT: ' + data);
 						let str=""+data;
 
-						if (!sudo_pass_sent) {
-							let regex = new RegExp(`\\[sudo\\] .* ${SSHconn.username}: `);
-							if (str.match(regex)) {
-								stream.write(SSHconn.password+"\n");
-								sudo_pass_sent = true;
-							} else {
-								const msg = 'SSH user must have sudo privileges';
-								logger().error(msg);
-								reject(new Error(msg));
-							}
+						if (!sudo_pass_sent && str.match(regex)) {
+							stream.write(SSHconn.password+"\n");
+							sudo_pass_sent = true;
 						} else {
 							stdout_log += data;
 							if (eventEmitter) {
