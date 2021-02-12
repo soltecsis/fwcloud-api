@@ -98,7 +98,10 @@ export class Server {
     }
 
     private async bootstrapSocketIO() {
-        const _io: io.Server = new io.Server(this._server);
+        const _io: io.Server = new io.Server(this._server, {
+            pingInterval: this._config.get('socket_io').pingInterval,
+            pingTimeout: this._config.get('socket_io').pingTimeout
+          });
         await (<Application>this._application).setSocketIO(_io);
     }
 

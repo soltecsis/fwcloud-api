@@ -177,7 +177,7 @@ export class Snapshot implements Responsable {
                     return this.migrateSnapshots(this.fwCloud, this._restoredFwCloud);
                 }, 'Snapshots migrated');
             });
-            task.addTask(() => { return this.removeDatabaseData(); }, 'Deprecated FwCloud removed');
+            task.addTask(() => { return this.removeDatabaseData(); }, 'Deprecated FWCloud removed');
         }, 'FWCloud snapshot restored');
 
         return this._restoredFwCloud;
