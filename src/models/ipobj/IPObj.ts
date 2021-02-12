@@ -1089,6 +1089,26 @@ export class IPObj extends Model {
         });
     };
 
+    //check if IPOBJ exists in and OpenVPN configuration 
+    public static addrInIfconfigPushOpenVPN(ipobj, fwcloud) {
+        return new Promise((resolve, reject) => {
+            db.get((error, connection) => {
+                if (error) return reject(error);
+
+                let sql = `SELECT VPN.id
+                    FROM openvpn AS VPN
+                    INNER JOIN openvpn_opt OPT on OPT.openvpn=VPN.id
+                    INNER JOIN firewall F on F.id=VPN.firewall
+                    inner JOIN fwcloud C on C.id=F.fwcloud
+                    WHERE OPT.ipobj=${ipobj} AND OPT.name='ifconfig-push' AND C.id=${fwcloud}`;
+                connection.query(sql, (error, rows) => {
+                    if (error) return reject(error);
+                    resolve(rows);
+                });
+            });
+        });
+    };
+
     //check if interface ipobj exists in and OpenVPN configuration 
     public static searchIpobjInterfaceInOpenvpn(_interface, fwcloud, diff_firewall) {
         return new Promise((resolve, reject) => {
