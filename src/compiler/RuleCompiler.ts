@@ -439,7 +439,8 @@ export class RuleCompiler {
     public static ruleComment(ruleData: any): string {
         let metaData = {};
         let comment:string = ruleData.comment ? ruleData.comment : '';
-        comment.trim();
+        // Avoid the presence of the ' character, used as comment delimiter for the iptables command.
+        comment = comment.trim().replace(/'/g, '"'); 
 
         if (ruleData.style) metaData['fwc_rs'] = ruleData.style;
         if (ruleData.group_name) metaData['fwc_rgn'] = ruleData.group_name;
