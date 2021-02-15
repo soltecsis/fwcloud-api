@@ -150,7 +150,7 @@ export class RuleCompiler {
                     const mask = svc[i].tcp_flags_mask;
 
                     if (!mask || mask === 0) { // No TCP flags.
-                        if (svc[i].source_port_end === 0) { // No source port.
+                        if (svc[i].source_port_end===0 || svc[i].source_port_end===null) { // No source port.
                             if (tcpPorts)
                                 tcpPorts += ",";
                             tcpPorts += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end);
@@ -163,9 +163,9 @@ export class RuleCompiler {
                     }
                     else { // Add the TCP flags.
                         tmp = "-p tcp";
-                        if (svc[i].source_port_end !== 0) // Exists source port
+                        if (svc[i].source_port_end!==0 && svc[i].source_port_end!==null) // Exists source port
                             tmp += " --sport " + ((svc[i].source_port_start === svc[i].source_port_end) ? svc[i].source_port_start : (svc[i].source_port_start + sep + svc[i].source_port_end));
-                        if (svc[i].destination_port_end !== 0) // Exists destination port
+                        if (svc[i].destination_port_end!==0 && svc[i].destination_port_end!==null) // Exists destination port
                             tmp += " --dport " + ((svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end));
                         tmp += " --tcp-flags ";
 
@@ -215,7 +215,7 @@ export class RuleCompiler {
                     break;
 
                 case 17: // UDP
-                    if (svc[i].source_port_end === 0) { // No source port.
+                    if (svc[i].source_port_end===0 || svc[i].source_port_end===null) { // No source port.
                         if (udpPorts)
                             udpPorts += ",";
                         udpPorts += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : (svc[i].destination_port_start + sep + svc[i].destination_port_end);
