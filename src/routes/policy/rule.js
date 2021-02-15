@@ -23,8 +23,6 @@
 
 var express = require('express');
 var router = express.Router();
-import db from '../../database/database-manager';
-import { RepositoryService } from '../../database/repository.service';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
@@ -32,8 +30,9 @@ import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenV
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
-import { In, getRepository } from 'typeorm';
+import { In, getRepository, getCustomRepository } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
+import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
 const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -176,12 +175,12 @@ async (req, res) => {
 router.put('/active',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
-	const policyRuleRepository = getRepository(PolicyRule);
+	const policyRuleRepository = getCustomRepository(PolicyRuleRepository);
 	rules = await policyRuleRepository.find({
 		where: {
 			id: In(req.body.rulesIds),
 			firewallId: req.body.firewall,
-			type: req.body.type
+			policyTypeId: req.body.type
 		}
 	});
 	const active = req.body.active !== 1 ? 0 : req.body.active;
@@ -200,7 +199,7 @@ async (req, res) => {
 router.put('/style',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
-	const policyRuleRepository = getRepository(PolicyRule);
+	const policyRuleRepository = getCustomRepository(PolicyRuleRepository);
 	var style = req.body.style;
 	var policyRules = await policyRuleRepository.find({where: {id: In(req.body.rulesIds)}});
 
