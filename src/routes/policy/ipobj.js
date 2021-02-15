@@ -66,7 +66,6 @@ async (req, res) => {
 
 		await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
 		var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: policy_r__ipobjData.rule };
-		PolicyRule.compilePolicy_r(accessData, (error, datac) =>  {});
 		res.status(204).end();
 	} catch(error) {
 		logger().error('Error creating ipobj: ' + JSON.stringify(error));
@@ -148,10 +147,8 @@ async (req, res) => {
 		return res.status(400).json(error);
 	}
 
-	PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
 	if (accessData.rule != new_rule) {
 		accessData.rule = new_rule;
-		PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
 	}
 
 	res.status(204).end();
@@ -174,7 +171,6 @@ utilsModel.disableFirewallCompileStatus,
 		//If saved policy_r__ipobj saved ok, get data
 		if (data && data.result) {
 			var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
-			PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
 			res.status(200).json(data);
 		} else {
 			logger().error('Error updating ipobj order: ' + JSON.stringify(fwcError.NOT_FOUND));
@@ -211,7 +207,6 @@ async (req, res) => {
 	try {
 		await PolicyRuleToIPObj.deletePolicy_r__ipobj(req.dbCon, rule, ipobj, ipobj_g, interface, position, position_order);
 		var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
-		PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
 		// If after the delete we have empty rule positions, then remove them from the negate position list.
 		await PolicyRule.allowEmptyRulePositions(req);
 		res.status(204).end();
