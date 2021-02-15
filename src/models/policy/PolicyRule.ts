@@ -824,30 +824,6 @@ export class PolicyRule extends Model {
         });
     }
 
-    //Compile rule and save it
-    public static compilePolicy_r(accessData, callback) {
-        var rule = accessData.rule;
-
-        this.getPolicy_r_id(rule, (error, data) => {
-            if (error) return callback(error, null);
-            if (data && data.length > 0) {
-
-                RuleCompiler.get(data[0].fwcloud, data[0].firewall, data[0].type, rule)
-                    .then((data: any) => {
-                        if (data && data.length > 0) {
-                            callback(null, { "result": true, "msg": "Rule compiled" });
-                        } else {
-                            callback(null, { "result": false, "msg": "CS Empty, rule NOT compiled" });
-                        }
-                    })
-                    .catch(error => {
-                        callback(null, { "result": false, "msg": "ERROR rule NOT compiled" });
-                    });
-            } else
-                callback(null, { "result": false, "msg": "rule Not found, NOT compiled" });
-        });
-    }
-
 
     public static cleanApplyTo(idfirewall, callback) {
         db.get((error, connection) => {

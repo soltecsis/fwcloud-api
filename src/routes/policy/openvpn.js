@@ -46,7 +46,6 @@ async (req, res) => {
 			throw fwcError.NOT_ALLOWED;
 
 		await PolicyRuleToOpenVPN.insertInRule(req);
-		PolicyRule.compilePolicy_r(req.body.rule, (error, datac) => {});
 
 		res.status(204).end();
 	} catch(error) {

@@ -23,8 +23,6 @@
 
 var express = require('express');
 var router = express.Router();
-import db from '../../database/database-manager';
-import { RepositoryService } from '../../database/repository.service';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
@@ -32,8 +30,9 @@ import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenV
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
-import { In } from 'typeorm';
+import { In, getRepository, getCustomRepository } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
+import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
 const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -108,21 +107,7 @@ async (req, res) => {
 		return res.status(400).json(error);
 	}
 
-	// Recompile rule.
-	var accessData = {
-		sessionID: req.sessionID,
-		iduser: req.session.user_id,
-		fwcloud: req.body.fwcloud,
-		idfirewall: req.body.firewall,
-		rule: policy_rData.id
-	};
-	PolicyRule.compilePolicy_r(accessData, (error, datac) => {
-		if (error) {
-			logger().error('Error updating a rule during compilation: ' + JSON.stringify(error));
-			return res.status(400).json(error);
-		}
-		res.status(200).json(datac);
-	});
+	res.status(204).end();
 });
 
 
@@ -190,12 +175,12 @@ async (req, res) => {
 router.put('/active',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
-	const policyRuleRepository = (await app().getService(RepositoryService.name)).for(PolicyRule);
+	const policyRuleRepository = getCustomRepository(PolicyRuleRepository);
 	rules = await policyRuleRepository.find({
 		where: {
 			id: In(req.body.rulesIds),
 			firewallId: req.body.firewall,
-			type: req.body.type,
+			policyTypeId: req.body.type
 		}
 	});
 	const active = req.body.active !== 1 ? 0 : req.body.active;
@@ -214,7 +199,7 @@ async (req, res) => {
 router.put('/style',
 utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
-	const policyRuleRepository = (await app().getService(RepositoryService.name)).for(PolicyRule);
+	const policyRuleRepository = getCustomRepository(PolicyRuleRepository);
 	var style = req.body.style;
 	var policyRules = await policyRuleRepository.find({where: {id: In(req.body.rulesIds)}});
 
@@ -292,7 +277,6 @@ async (req, res) => {
 
 		// Recompile the rule.
 		var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: req.body.rule };
-		PolicyRule.compilePolicy_r(accessData, (error, datac) => {});
 
 		res.status(204).end();
 	} catch(error) { 
@@ -351,7 +335,6 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 }
 
 async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
-	const repository = await app().getService(RepositoryService.name);
 	return new Promise(async (resolve, reject) => {
 		try {
 			// Get rule data of rule over which we are running the move action (up or down of this rule).
