@@ -27,12 +27,12 @@ import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
-import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
-import { In, getRepository, getCustomRepository } from 'typeorm';
+import { In, getCustomRepository } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
+import { PolicyGroupRepository } from '../../repositories/PolicyGroupRepository'
 const app = require('../../fonaments/abstract-application').app;
 var utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -363,11 +363,12 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			};
 			await PolicyRule.updatePolicy_r(dbCon, policy_rData);
 			
+
 			// If we have moved rule from a group, if the group is empty remove de rules group from the database.
 			if (pasteOffset!=0 && moveRule.idgroup) {
-				const policyGroup = await repository.for(PolicyGroup).findOne(moveRule.idgroup);
+				const policyGroup = await getCustomRepository(PolicyGroupRepository).findOne(moveRule.idgroup);
 				if (policyGroup) {
-					await repository.for(PolicyGroup).deleteIfEmpty(policyGroup);
+					await getCustomRepository(PolicyGroupRepository).deleteIfEmpty(policyGroup);
 				}
 			}
 

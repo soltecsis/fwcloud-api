@@ -22,7 +22,7 @@
 
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
-import PolicyGroupRepository from "../../../../src/repositories/PolicyGroupRepository";
+import { PolicyGroupRepository } from "../../../../src/repositories/PolicyGroupRepository";
 import { PolicyGroup } from "../../../../src/models/policy/PolicyGroup";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
