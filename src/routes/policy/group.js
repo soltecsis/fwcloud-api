@@ -28,7 +28,7 @@ import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { logger } from '../../fonaments/abstract-application';
 import { getCustomRepository, getRepository, In } from 'typeorm';
 import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
-import PolicyGroupRepository from "../../repositories/PolicyGroupRepository";
+import { PolicyGroupRepository } from "../../repositories/PolicyGroupRepository";
 
 const fwcError = require('../../utils/error_table');
 
