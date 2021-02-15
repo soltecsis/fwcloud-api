@@ -25,7 +25,7 @@ import { PolicyGroup } from "../models/policy/PolicyGroup";
 import { PolicyRule } from "../models/policy/PolicyRule";
 
 @EntityRepository(PolicyGroup)
-export default class PolicyGroupRepository extends Repository<PolicyGroup> {
+export class PolicyGroupRepository extends Repository<PolicyGroup> {
 
     public async moveToFirewall(id: number, firewallId: number): Promise<UpdateResult> {
         return await this.update(id, {

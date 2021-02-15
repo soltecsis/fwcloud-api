@@ -24,7 +24,7 @@ import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import { PolicyGroup } from "../../../../src/models/policy/PolicyGroup";
-import PolicyGroupRepository from "../../../../src/repositories/PolicyGroupRepository";
+import { PolicyGroupRepository } from "../../../../src/repositories/PolicyGroupRepository";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { getCustomRepository } from "typeorm";
 

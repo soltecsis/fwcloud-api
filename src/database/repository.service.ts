@@ -28,7 +28,7 @@ import { PolicyRuleRepository } from "../models/policy/policy-rule.repository";
 import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { PolicyGroup } from "../models/policy/PolicyGroup";
-import PolicyGroupRepository from "../repositories/PolicyGroupRepository";
+import { PolicyGroupRepository } from "../repositories/PolicyGroupRepository";
 import { deprecate } from "util";
 
 type RepositoryMapItem = {"entityClass": Function, "repository": Function};
