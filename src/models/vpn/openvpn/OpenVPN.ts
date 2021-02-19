@@ -370,9 +370,13 @@ export class OpenVPN extends Model {
     public static dumpCfg(dbCon, fwcloud, openvpn) {
         return new Promise((resolve, reject) => {
             // First obtain the CN of the certificate.
-            let sql = `select CRT.cn,CRT.ca,CRT.type from crt CRT
-      INNER JOIN openvpn VPN ON CRT.id=VPN.crt
-			WHERE VPN.id=${openvpn}`;
+            let sql = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
+                VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2 from crt CRT
+                INNER JOIN openvpn VPN ON VPN.crt=CRT.id
+                LEFT JOIN openvpn VPNSRV ON VPNSRV.id=VPN.openvpn
+                INNER JOIN firewall FW ON FW.id=VPN.firewall
+                LEFT JOIN cluster CL ON CL.id=FW.cluster
+			    WHERE VPN.id=${openvpn}`;
 
             dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
@@ -382,6 +386,12 @@ export class OpenVPN extends Model {
                 const crt_path = ca_dir + 'issued/' + result[0].cn + '.crt';
                 const key_path = ca_dir + 'private/' + result[0].cn + '.key';
                 let dh_path = (result[0].type === 2) ? ca_dir + 'dh.pem' : '';
+                let des = "# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n" 
+                des += `# Generated: ${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')}\n`;
+                des += `# Certificate Common Name: ${result[0].cn} \n`;
+                des += result[0].cl_name ? `# Firewall Cluster: ${result[0].cl_name}\n` : `# Firewall: ${result[0].fw_name}\n`;
+                des += `# OpenVPN Server: ${result[0].srv_config1 ? result[0].srv_config1.slice(0, -5) : result[0].srv_config2.slice(0, -5)}\n`;
+                des += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
 
                 // Get all the configuration options.
                 sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${openvpn} order by openvpn_opt.order`;
@@ -390,8 +400,8 @@ export class OpenVPN extends Model {
 
                     try {
                         // Generate the OpenVPN config file.
-                        var ovpn_cfg = '';
-                        var ovpn_ccd = '';
+                        let ovpn_cfg = des;
+                        let ovpn_ccd = '';
 
                         // First add all the configuration options.
                         for (let opt of result) {

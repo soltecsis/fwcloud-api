@@ -34,7 +34,7 @@ import { PolicyCompilation } from '../models/policy/PolicyCompilation';
  * @property RuleCompileModel
  * @type /models/compile/
  */
-import { RuleCompiler } from './RuleCompiler'
+import { IPTablesCompiler } from './iptables/iptables-compiler'
 import { Firewall } from '../models/firewall/Firewall';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressNoticePayload, ProgressErrorPayload } from '../sockets/messages/socket-message';
@@ -118,7 +118,7 @@ export class PolicyScript {
                     try {
                         // The rule compilation order is important, then we must wait until we have the promise fulfilled.
                         // For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
-                        ps += await RuleCompiler.get(req.body.fwcloud, req.body.firewall, type, data[i].id);
+                        ps += await IPTablesCompiler.get(req.body.fwcloud, req.body.firewall, type, data[i].id);
                     } catch (error) { return reject(error) }
                 }
 

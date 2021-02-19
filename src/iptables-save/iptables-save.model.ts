@@ -32,7 +32,7 @@ import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 import { StdChains, TcpFlags, PolicyTypeMap, PositionMap, GroupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../models/policy/PolicyGroup';
-import { RuleCompiler } from '../compiler/RuleCompiler';
+import { IPTablesCompiler } from '../compiler/iptables/iptables-compiler';
 import { PolicyRuleToOpenVPN } from '../models/policy/PolicyRuleToOpenVPN';
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
@@ -985,8 +985,8 @@ export class IptablesSaveToFWCloud extends Service {
       const currPosObjs = JSON.stringify(currentRule.positions[i].position_objs);
 
       // Check position negation!!!!
-      const currPosNegated = RuleCompiler.isPositionNegated(currentRule.negate,currentRule.positions[i].id);
-      const prevPosNegated = RuleCompiler.isPositionNegated(previousRule.negate,previousRule.positions[i].id);
+      const currPosNegated = IPTablesCompiler.isPositionNegated(currentRule.negate,currentRule.positions[i].id);
+      const prevPosNegated = IPTablesCompiler.isPositionNegated(previousRule.negate,previousRule.positions[i].id);
       if (currPosNegated !== prevPosNegated) return; // Rules with different negation status in the same position can not be merged.
 
       if (prevPosObjs !== currPosObjs) {

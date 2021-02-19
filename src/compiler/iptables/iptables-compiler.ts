@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-var fwcError = require('../utils/error_table');
-import { PolicyRule } from '../models/policy/PolicyRule';
-import { PolicyCompilation } from '../models/policy/PolicyCompilation';
+var fwcError = require('../../utils/error_table');
+import { PolicyRule } from '../../models/policy/PolicyRule';
+import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 var shellescape = require('shell-escape');
 
 export const POLICY_TYPE_INPUT = 1;
@@ -39,7 +39,7 @@ export const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 export const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING'];
 export const MARK_CHAIN = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 
-export class RuleCompiler {
+export class IPTablesCompiler {
 
     public static isPositionNegated(negate, position) {
         if (!negate) return false;
