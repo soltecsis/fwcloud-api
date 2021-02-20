@@ -27,7 +27,6 @@ import { app } from "../fonaments/abstract-application";
 import { DatabaseService, DatabaseConfig } from "../database/database.service";
 import moment, { Moment } from "moment";
 
-import mysqldump, { DumpReturn } from "mysqldump";
 import { BackupNotFoundException } from "./exceptions/backup-not-found-exception";
 import { Responsable } from "../fonaments/contracts/responsable";
 import { RestoreBackupException } from "./exceptions/restore-backup-exception";
@@ -35,14 +34,15 @@ import StringHelper from "../utils/string.helper";
 import { FSHelper } from "../utils/fs-helper";
 import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";
-import { FwCloud } from "../models/fwcloud/FwCloud";
-import { getCustomRepository, Migration, Repository } from "typeorm";
+import { getCustomRepository, Migration } from "typeorm";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Firewall } from "../models/firewall/Firewall";
 import { PolicyCompilation } from "../models/policy/PolicyCompilation";
 import { Task } from "../fonaments/http/progress/task";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 const mysql_import = require('mysql-import');
+
+import * as child_process from "child_process";
 
 export interface BackupMetadata {
     name: string,
@@ -265,68 +265,44 @@ export class Backup implements Responsable {
     /**
      * Exports the database into a file
      */
-    protected async exportDatabase(): Promise<DumpReturn> {
+    protected async exportDatabase(): Promise<void> {
         const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
-        const dbConfig: DatabaseConfig = databaseService.config;
 
-        return mysqldump({
-            connection: {
-                host: dbConfig.host,
-                port: dbConfig.port,
-                user: dbConfig.user,
-                password: dbConfig.pass,
-                database: dbConfig.name,
-            },
-            dump: {
-                data: {
-                    // WARNING: It is very important to set the mysqldump node module format option to false.
-                    // If not, with databases with lot of registers, the dump process may take several minutes.
-                    format: false,
-                    maxRowsPerInsertStatement: 1000
-                }
-            },
-            dumpToFile: path.join(this._backupPath, Backup.DUMP_FILENAME),
+        return new Promise((resolve, reject) => { 
+            console.time("mysqldump");
+            child_process.exec(this.buildCommand('mysqldump',databaseService),(error,stdout,stderr) => {
+                console.timeEnd("mysqldump");
+                if (error) return reject(error);
+                resolve();     
+            });
         });
     }
 
     /**
      * Imports the database from a file
      */
-    protected async importDatabase() {
+    protected async importDatabase():Promise<void> {
         return new Promise(async (resolve, reject) => {
             const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
-            const dbConfig: DatabaseConfig = databaseService.config;
-
+        
             await databaseService.emptyDatabase();
 
             if (! await databaseService.isDatabaseEmpty()) {
                 reject(new RestoreBackupException('Database can not be wiped'));
             }
 
-            // Full database restore.
-            const mydb_importer = mysql_import.config({
-                host: dbConfig.host,
-                user: dbConfig.user,
-                port: dbConfig.port,
-                password: dbConfig.pass,
-                database: dbConfig.name,
-                onerror: (err: Error) => {
-                    reject(err);
-                }
-            });
-
             try {
-                await mydb_importer.import(path.join(this._backupPath, Backup.DUMP_FILENAME));
+                console.time("db import");
+                child_process.execSync(this.buildCommand('mysql',databaseService));
+                console.timeEnd("db import");
 
                 //Change compilation status from firewalls
                 const firewallRepository: FirewallRepository = getCustomRepository(FirewallRepository);
                 const firewalls: Array<Firewall> = await Firewall.find();
                 await firewallRepository.markAsUncompiled(firewalls);
 
-                //Remove all compiled rules
-                await PolicyCompilation.remove(await PolicyCompilation.find());
-                
                 //TODO: Make all VPNs pending of install.
+
                 resolve();
             } catch (e) {
                 reject(e);
@@ -376,5 +352,25 @@ export class Backup implements Responsable {
                 await fse.copy(src_dir, dst_dir);
             }
         }
+    }
+
+    /**
+     * Builds mysqldump/mysql command
+     */
+    protected  buildCommand(cmd: 'mysqldump' | 'mysql', databaseService: DatabaseService): string {
+        const dbConfig: DatabaseConfig = databaseService.config;
+        const dumpFile = path.join(this._backupPath, Backup.DUMP_FILENAME);
+
+        const shellescape = require('shell-escape');
+        const dbPassEscaped = shellescape([dbConfig.pass]).substring(0,128);
+
+        const dir = cmd==='mysqldump' ? '>' : '<';
+
+        // WARNING: Detect if we are using MySQL communications by means of Unix socket file or TCP communications.
+        if (dbConfig.host !== 'localhost')
+            cmd += ` -h "${dbConfig.host}" -P ${dbConfig.port}`
+        cmd += ` -u ${dbConfig.user} -p"${dbPassEscaped}" ${dbConfig.name} ${dir} "${dumpFile}"`;
+
+        return cmd;
     }
 }
