@@ -37,10 +37,8 @@ import { Progress } from "../fonaments/http/progress/progress";
 import { getCustomRepository, Migration } from "typeorm";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Firewall } from "../models/firewall/Firewall";
-import { PolicyCompilation } from "../models/policy/PolicyCompilation";
 import { Task } from "../fonaments/http/progress/task";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-const mysql_import = require('mysql-import');
 
 import * as child_process from "child_process";
 
@@ -148,8 +146,6 @@ export class Backup implements Responsable {
      * @param backupPath Backup path
      */
     async load(backupPath: string): Promise<Backup> {
-        const dbConfig: DatabaseConfig = (await app().getService<DatabaseService>(DatabaseService.name)).config;
-
         if (fs.statSync(backupPath).isDirectory() && fs.statSync) {
             const metadata: BackupMetadata = this.loadMetadataFromDirectory(backupPath);
             this._date = moment(metadata.timestamp);
@@ -195,8 +191,8 @@ export class Backup implements Responsable {
 
         await progress.procedure('Creating backup', (task: Task) => {
             task.parallel((task: Task) => {
-                task.addTask(() => { return this.exportDatabase(); }, 'Database exported');
-                task.addTask(() => { return this.exportDataDirectories(); }, 'Data directories exported');
+                task.addTask(() => { return this.exportDatabase(); }, 'Database backup');
+                task.addTask(() => { return this.exportDataDirectories(); }, 'Data directories backup');
             });
         }, 'Backup created');
 
@@ -213,10 +209,10 @@ export class Backup implements Responsable {
             await progress.procedure('Restoring backup', (task: Task) => {
                 task.sequence((task: Task) => {
                     task.parallel((task: Task) => {
-                        task.addTask(() => { return this.importDatabase(); }, 'Database restored');
-                        task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restored');
+                        task.addTask(() => { return this.importDatabase(); }, 'Database restore');
+                        task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restore');
                     });
-                    task.addTask(async (_) => { return this.runMigrations(); }, 'Database migrated');
+                    task.addTask(async (_) => { return this.runMigrations(); }, 'Database migration');
                 })
                 
             }, 'Backup restored');
@@ -269,9 +265,9 @@ export class Backup implements Responsable {
         const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
 
         return new Promise((resolve, reject) => { 
-            console.time("mysqldump");
+            //console.time("mysqldump");
             child_process.exec(this.buildCommand('mysqldump',databaseService),(error,stdout,stderr) => {
-                console.timeEnd("mysqldump");
+                //console.timeEnd("mysqldump");
                 if (error) return reject(error);
                 resolve();     
             });
@@ -292,9 +288,9 @@ export class Backup implements Responsable {
             }
 
             try {
-                console.time("db import");
+                //console.time("db import");
                 child_process.execSync(this.buildCommand('mysql',databaseService));
-                console.timeEnd("db import");
+                //console.timeEnd("db import");
 
                 //Change compilation status from firewalls
                 const firewallRepository: FirewallRepository = getCustomRepository(FirewallRepository);
@@ -366,7 +362,11 @@ export class Backup implements Responsable {
 
         const dir = cmd==='mysqldump' ? '>' : '<';
 
-        // WARNING: Detect if we are using MySQL communications by means of Unix socket file or TCP communications.
+        // Detect if in configuration we are using MySQL communications by means of Unix socket file or TCP communications.
+
+        // If we are connecting to a localhost database MySQL/MariaDB engine, if we don't specify the host
+        // and port options in the command line, the mysqldump/mysql commands will use the Unix socket instead
+        // of the TCP connection, improving performance and consequently response time.
         if (dbConfig.host !== 'localhost')
             cmd += ` -h "${dbConfig.host}" -P ${dbConfig.port}`
         cmd += ` -u ${dbConfig.user} -p"${dbPassEscaped}" ${dbConfig.name} ${dir} "${dumpFile}"`;
