@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- In the OpenVPN configuration files information about the VPN (CN, type, firewall name, etc.).
+- Header description in OpenVPN configuration files.
 - Configuration parameters for socket.io pingInterval and pingTimeout.
 - Send heartbeats through socket.io in FWCloud import/export operations.
 - For SSH connections detect if we are using the `root` user and don't use `sudo` in such cases.

@@ -386,11 +386,15 @@ export class OpenVPN extends Model {
                 const crt_path = ca_dir + 'issued/' + result[0].cn + '.crt';
                 const key_path = ca_dir + 'private/' + result[0].cn + '.key';
                 let dh_path = (result[0].type === 2) ? ca_dir + 'dh.pem' : '';
+
+                // Header description.
                 let des = "# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n" 
-                des += `# Generated: ${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')}\n`;
+                des += `# Generated: ${Date()}\n`;
                 des += `# Certificate Common Name: ${result[0].cn} \n`;
                 des += result[0].cl_name ? `# Firewall Cluster: ${result[0].cl_name}\n` : `# Firewall: ${result[0].fw_name}\n`;
-                des += `# OpenVPN Server: ${result[0].srv_config1 ? result[0].srv_config1.slice(0, -5) : result[0].srv_config2.slice(0, -5)}\n`;
+                if (result[0].srv_config1 && result[0].srv_config1.endsWith('.conf')) result[0].srv_config1 = result[0].srv_config1.slice(0, -5);
+                if (result[0].srv_config2 && result[0].srv_config2.endsWith('.conf')) result[0].srv_config2 = result[0].srv_config2.slice(0, -5);
+                des += `# OpenVPN Server: ${result[0].srv_config1 ? result[0].srv_config1 : result[0].srv_config2}\n`;
                 des += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
 
                 // Get all the configuration options.
