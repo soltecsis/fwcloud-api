@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Improve backup and restore performance.
 - Header description in OpenVPN configuration files.
 - Configuration parameters for socket.io pingInterval and pingTimeout.
 - Send heartbeats through socket.io in FWCloud import/export operations.
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bug in autodiscover when the `ip a` command returns interfaces with name like this one: `ens193.40@ens193:` In such cases the interface name must be the string preceding the `@` character.
 
 ### Changed
+- Removed `mysqldump` and `mysql-import` node modules.
 - Set the maximum size of accepted data for BodyParser to 2MB.
 - Disable confirmation token for `PUT /ping` API call.
 - Clean firewall policy before iptables-save import.
