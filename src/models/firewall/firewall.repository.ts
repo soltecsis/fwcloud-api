@@ -1,5 +1,5 @@
 /*!
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -41,5 +41,14 @@ export class FirewallRepository extends Repository<Firewall> {
         }).execute();
 
         return await this.reloadEntities(oneOrMany);
+    }
+
+    public async markAllAsUncompiled(): Promise<void> {
+        await this.createQueryBuilder().update(Firewall)
+        .set({
+            status: 3,
+            installed_at: null,
+            compiled_at: null
+        }).execute();
     }
 }

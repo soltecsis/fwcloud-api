@@ -36,11 +36,11 @@ import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";
 import { getCustomRepository, Migration } from "typeorm";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
-import { Firewall } from "../models/firewall/Firewall";
 import { Task } from "../fonaments/http/progress/task";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 import * as child_process from "child_process";
+import { OpenVPNRepository } from "../models/vpn/openvpn/openvpn-repository";
 
 export interface BackupMetadata {
     name: string,
@@ -314,11 +314,10 @@ export class Backup implements Responsable {
                 //console.timeEnd("db import");
 
                 //Change compilation status from firewalls
-                const firewallRepository: FirewallRepository = getCustomRepository(FirewallRepository);
-                const firewalls: Array<Firewall> = await Firewall.find();
-                await firewallRepository.markAsUncompiled(firewalls);
+                await getCustomRepository(FirewallRepository).markAllAsUncompiled();
 
-                //TODO: Make all VPNs pending of install.
+                //Make all VPNs pending of install.
+                await getCustomRepository(OpenVPNRepository).markAllAsUninstalled();
 
                 resolve();
             } catch (e) {

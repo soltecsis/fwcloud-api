@@ -225,8 +225,8 @@ export class OpenVPN extends Model {
             // IMPORTANT: Order by CRT type for remove clients before servers. If we don't do it this way, 
             // and the OpenVPN server is removed first, we will get a database foreign key constraint fails error.
             let sql = `select VPN.id,CRT.type from ${tableName} VPN
-      inner join crt CRT on CRT.id=VPN.crt
-      where VPN.firewall=${firewall} order by CRT.type asc`;
+                inner join crt CRT on CRT.id=VPN.crt
+                where VPN.firewall=${firewall} order by CRT.type asc`;
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
 
