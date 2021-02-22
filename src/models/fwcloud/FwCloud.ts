@@ -130,42 +130,60 @@ export class FwCloud extends Model {
 		try {
 			await queryRunner.startTransaction();
 
-			let query = `
-				delete PC.* from policy_c PC inner join policy_r RULE on RULE.id=PC.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
-				delete PG.* from policy_g PG inner join firewall FW on FW.id=PG.firewall where FW.fwcloud=${this.id};
-				delete PI.* from policy_r__interface PI inner join policy_r RULE on RULE.id=PI.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
-				delete PO.* from policy_r__ipobj PO inner join policy_r RULE on RULE.id=PO.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
-				delete PVPN.* from policy_r__openvpn PVPN inner join policy_r RULE on RULE.id=PVPN.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
-				delete PPRE.* from policy_r__openvpn_prefix PPRE inner join policy_r RULE on RULE.id=PPRE.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
-				delete RULE.* from policy_r RULE inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
+      // WARNING: Don't use 'SET FOREIGN_KEY_CHECKS=0' and 'SET FOREIGN_KEY_CHECKS=1'
+      // This way we make sure that the delete procedure follows the referential integrity of the data base and
+      // avoid left rows without correct relations in a table.
+			let query =
+        // First remove the relational tables for policy rules and the policy rules themselves.
+			 `delete PC from policy_c PC inner join policy_r RULE on RULE.id=PC.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
+				delete PI from policy_r__interface PI inner join policy_r RULE on RULE.id=PI.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
+				delete PO from policy_r__ipobj PO inner join policy_r RULE on RULE.id=PO.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
+				delete PVPN from policy_r__openvpn PVPN inner join policy_r RULE on RULE.id=PVPN.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
+				delete PPRE from policy_r__openvpn_prefix PPRE inner join policy_r RULE on RULE.id=PPRE.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
+				delete RULE from policy_r RULE inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
+				delete PG from policy_g PG inner join firewall FW on FW.id=PG.firewall where FW.fwcloud=${this.id};`
 
-				delete OPT.* from openvpn_opt OPT inner join openvpn VPN on VPN.id=OPT.openvpn inner join firewall FW On FW.id=VPN.firewall where FW.fwcloud=${this.id};
-				delete PRE.* from openvpn_prefix PRE inner join ipobj_g G on G.id=PRE.ipobj_g where G.fwcloud=${this.id};
-				delete PRE.* from openvpn_prefix__ipobj_g PRE inner join openvpn VPN VPN.id=PRE.openvpn inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};
-				delete VPN.* from openvpn VPN inner join firewall FW On FW.id=VPN.firewall where FW.fwcloud=${this.id};
+        // Next the OpenVPN entities of the database.
+			+`delete OPT from openvpn_opt OPT inner join openvpn VPN on VPN.id=OPT.openvpn inner join firewall FW On FW.id=VPN.firewall where FW.fwcloud=${this.id};
+				delete PRE from openvpn_prefix__ipobj_g PRE inner join ipobj_g G on G.id=PRE.ipobj_g where G.fwcloud=${this.id};
+				delete PRE from openvpn_prefix PRE inner join openvpn VPN on VPN.id=PRE.openvpn inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};
+				delete VPN from openvpn VPN inner join firewall FW on FW.id=VPN.firewall where VPN.openvpn is not null and FW.fwcloud=${this.id};
+				delete VPN from openvpn VPN inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};`
 
-				delete CRT.* from crt CRT inner join ca CA on CA.id=CRT.ca where CA.fwcloud=${this.id};
-				delete PRE.* from ca_prefix PRE inner join ca CA on CA.id=PRE.ca where CA.fwcloud=${this.id};
-				delete from ca where fwcloud=${this.id};
+        // Now the PKI entities.
+			+`delete CRT from crt CRT inner join ca CA on CA.id=CRT.ca where CA.fwcloud=${this.id};
+				delete PRE from ca_prefix PRE inner join ca CA on CA.id=PRE.ca where CA.fwcloud=${this.id};
+				delete from ca where fwcloud=${this.id};`
 
-				delete OG.* from ipobj__ipobjg OG inner join ipobj_g G.id=OG.ipobj_g where G.fwcloud=${this.id};
-				delete from ipobj_g where fwcloud=${this.id};
+        // Object groups.
+			+`delete OG from ipobj__ipobjg OG inner join ipobj_g G on G.id=OG.ipobj_g where G.fwcloud=${this.id};
+				delete from ipobj_g where fwcloud=${this.id};`
 
-				delete II.* from interface__ipobj II inner join ipobj OBJ On OBJ.id=II.ipobj where OBJ.fwcloud=${this.id};
-        delete from ipobj where fwcloud=${this.id};
+        // Host interfaces.
+			+`delete OBJ from ipobj OBJ inner join interface__ipobj II on II.interface=OBJ.interface where OBJ.fwcloud=${this.id};
+        delete I, II, OBJ from interface__ipobj II inner join interface I on I.id=II.interface inner join ipobj OBJ on OBJ.id=II.ipobj where OBJ.fwcloud=${this.id};`
 
-        delete I.* from interface I inner join interface__ipobj II on II.interface=I.id inner join ipobj OBJ On OBJ.id=II.ipobj where OBJ.fwcloud=${this.id};
-        delete I.* from interface I inner join firewall FW on FW.id=I.firewall where FW.fwcloud=${this.id};
+        // IP objects.
+      +`delete from ipobj where fwcloud=${this.id};
+				delete from mark where fwcloud=${this.id};`
 
-				delete from fwc_tree where fwcloud=${this.id};
-				delete from mark where fwcloud=${this.id};
+        // Firewall interfaces.
+      +`delete I from interface I inner join firewall FW on FW.id=I.firewall where FW.fwcloud=${this.id};`
 
-				delete CL.* from cluster CL inner join firewall FW On FW.id=CL.firewall where FW.fwcloud=${this.id};
-				delete from firewall where fwcloud=${this.id};
+      // Trees. 
+			+`SET FOREIGN_KEY_CHECKS=0;
+        delete from fwc_tree where fwcloud=${this.id};
+        SET FOREIGN_KEY_CHECKS=1;`
 
-				delete from user__fwcloud where fwcloud=${this.id};
+        // Clusters and firewalls.
+		  +`delete from firewall where fwcloud=${this.id};
+        delete from cluster where fwcloud=${this.id};`
 
-				delete from fwcloud where id=${this.id};`;
+        // Users access to this fwcloud.
+			+`delete from user__fwcloud where fwcloud=${this.id};`
+
+        // Remove the fwcloud itself.
+			+`delete from fwcloud where id=${this.id};`;
 
 			await queryRunner.query(query);
 			await queryRunner.commitTransaction();

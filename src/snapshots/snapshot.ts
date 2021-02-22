@@ -166,7 +166,7 @@ export class Snapshot implements Responsable {
         await progress.procedure('Restoring snapshot', (task: Task) => {
             task.addTask(async () => {
                 const backupService: BackupService = await app().getService<BackupService>(BackupService.name);
-                return backupService.create('Before snapshot (' + this.id + ') creation');
+                return backupService.create('Before snapshot (' + this.id + ') restore');
             }, 'Backup created')
             task.addTask(async () => { 
                 this._restoredFwCloud = await this.restoreDatabaseData();

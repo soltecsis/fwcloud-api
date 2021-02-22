@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Improve snapshots performance.
 - Improve backup and restore performance.
 - Header description in OpenVPN configuration files.
 - Configuration parameters for socket.io pingInterval and pingTimeout.
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - By default listen to localhost.
 
 ### Fixed
+- Ignore maintenance mode for ping API requests.
 - Set the mysqldump node module format option to false for avoid long high CPU usage in backups of databases with lot of registers.
 - Multiport module, up to 15 ports limit control.
 - Bug in session expiration.
