@@ -177,7 +177,7 @@ export class Snapshot implements Responsable {
                     return this.migrateSnapshots(this.fwCloud, this._restoredFwCloud);
                 }, 'Snapshots migrated');
             });
-            task.addTask(() => { return this.removeDatabaseData(); }, 'Deprecated FWCloud removed');
+            task.addTask(() => { return this._fwCloud.remove(); }, 'Deprecated FWCloud removed');
         }, 'FWCloud snapshot restored');
 
         return this._restoredFwCloud;
@@ -300,15 +300,6 @@ export class Snapshot implements Responsable {
         }));
 
         return this;
-    }
-
-    /**
-     * Removes all data related with the fwcloud from the database
-     */
-    protected async removeDatabaseData(): Promise<void> {
-        const data: ExporterResult = await this.exportFwCloudDatabaseData();
-
-        return new BulkDatabaseDelete(data.getAll()).run();
     }
 
     /**
