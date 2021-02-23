@@ -313,8 +313,7 @@ export class Snapshot implements Responsable {
         const oldFwCloud: FwCloud = await FwCloud.findOne(this.fwCloud.id, {relations: ['users']});
 
         fwCloud.users = oldFwCloud.users;
-        oldFwCloud.users = [];
-        await FwCloud.save([fwCloud, oldFwCloud]);
+        await FwCloud.save([fwCloud]);
         
         return fwCloud;
     }
