@@ -23,7 +23,7 @@
 import { Backup } from "../../../src/backups/backup";
 import * as fs from "fs";
 import * as path from "path";
-import { DatabaseService } from "../../../src/database/database.service";
+import { DatabaseConfig, DatabaseService } from "../../../src/database/database.service";
 import { expect, testSuite, describeName } from "../../mocha/global-setup";
 import { BackupService } from "../../../src/backups/backup.service";
 import { Application } from "../../../src/Application";
@@ -279,10 +279,12 @@ describe(describeName('Backup Unit tests'), () => {
 
     describe('buildCmd()', () => {
 
-        let databaseService: DatabaseService
+        let databaseService: DatabaseService;
+        let dbConfig: DatabaseConfig;
 
         beforeEach(async () => {
             databaseService = await app.getService<DatabaseService>(DatabaseService.name);
+            dbConfig = databaseService.config;
         })
 
         it('should build the correct mysldump/mysql command', async () => {
@@ -290,8 +292,8 @@ describe(describeName('Backup Unit tests'), () => {
             await backup.create(service.config.data_dir);
 
             process.env.NODE_ENV = 'prod';
-            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump -h "localhost" -P 8888 -u fwcdbusr -p"fwcdbusr" fwcloud > "${backup.path}/db.sql"`);
-            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql -h "localhost" -P 8888 -u fwcdbusr -p"fwcdbusr" fwcloud < "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbConfig.pass}" ${dbConfig.name} > "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbConfig.pass}" ${dbConfig.name} < "${backup.path}/db.sql"`);
             process.env.NODE_ENV = 'test';
         });
 
@@ -300,8 +302,8 @@ describe(describeName('Backup Unit tests'), () => {
             await backup.create(service.config.data_dir);
 
             process.env.NODE_ENV = 'test';
-            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump --protocol=TCP -h "localhost" -P 8888 -u fwcdbusr -p"fwcdbusr" fwcloud > "${backup.path}/db.sql"`);
-            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql --protocol=TCP -h "localhost" -P 8888 -u fwcdbusr -p"fwcdbusr" fwcloud < "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump --protocol=TCP -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbConfig.pass}" ${dbConfig.name} > "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql --protocol=TCP -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbConfig.pass}" ${dbConfig.name} < "${backup.path}/db.sql"`);
         });
     });
 });
