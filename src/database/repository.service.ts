@@ -30,6 +30,8 @@ import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { PolicyGroup } from "../models/policy/PolicyGroup";
 import { PolicyGroupRepository } from "../repositories/PolicyGroupRepository";
 import { deprecate } from "util";
+import { OpenVPN } from "../models/vpn/openvpn/OpenVPN";
+import { OpenVPNRepository } from "../models/vpn/openvpn/openvpn-repository";
 
 type RepositoryMapItem = {"entityClass": Function, "repository": Function};
 export class RepositoryService extends Service {
@@ -47,8 +49,12 @@ export class RepositoryService extends Service {
          {
              "entityClass": PolicyGroup,
              "repository": PolicyGroupRepository
-         }
-    ]
+         },
+         {
+            "entityClass": OpenVPN,
+            "repository": OpenVPNRepository
+        }
+   ]
 
     public async build(): Promise<RepositoryService> {
         this._databaseService = await this._app.getService<DatabaseService>(DatabaseService.name);

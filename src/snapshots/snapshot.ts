@@ -166,7 +166,7 @@ export class Snapshot implements Responsable {
         await progress.procedure('Restoring snapshot', (task: Task) => {
             task.addTask(async () => {
                 const backupService: BackupService = await app().getService<BackupService>(BackupService.name);
-                return backupService.create('Before snapshot (' + this.id + ') creation');
+                return backupService.create('Before snapshot (' + this.id + ') restore');
             }, 'Backup created')
             task.addTask(async () => { 
                 this._restoredFwCloud = await this.restoreDatabaseData();
@@ -177,7 +177,7 @@ export class Snapshot implements Responsable {
                     return this.migrateSnapshots(this.fwCloud, this._restoredFwCloud);
                 }, 'Snapshots migrated');
             });
-            task.addTask(() => { return this.removeDatabaseData(); }, 'Deprecated FWCloud removed');
+            task.addTask(() => { return this._fwCloud.remove(); }, 'Deprecated FWCloud removed');
         }, 'FWCloud snapshot restored');
 
         return this._restoredFwCloud;
@@ -303,15 +303,6 @@ export class Snapshot implements Responsable {
     }
 
     /**
-     * Removes all data related with the fwcloud from the database
-     */
-    protected async removeDatabaseData(): Promise<void> {
-        const data: ExporterResult = await this.exportFwCloudDatabaseData();
-
-        return new BulkDatabaseDelete(data.getAll()).run();
-    }
-
-    /**
      * Restore all snapshot data into the database
      */
     protected async restoreDatabaseData(): Promise<FwCloud> {
@@ -322,8 +313,7 @@ export class Snapshot implements Responsable {
         const oldFwCloud: FwCloud = await FwCloud.findOne(this.fwCloud.id, {relations: ['users']});
 
         fwCloud.users = oldFwCloud.users;
-        oldFwCloud.users = [];
-        await FwCloud.save([fwCloud, oldFwCloud]);
+        await FwCloud.save([fwCloud]);
         
         return fwCloud;
     }

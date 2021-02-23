@@ -32,7 +32,7 @@ import { PolicyGroup } from "./PolicyGroup";
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { getRepository, Column, Entity, PrimaryGeneratedColumn, MoreThan, MoreThanOrEqual, Repository, OneToOne, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import { RuleCompiler } from "../../compiler/RuleCompiler";
+import { IPTablesCompiler } from "../../compiler/iptables/iptables-compiler";
 import { app, logger } from "../../fonaments/abstract-application";
 import { PolicyType } from "./PolicyType";
 import { Firewall } from "../firewall/Firewall";

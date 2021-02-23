@@ -93,15 +93,14 @@ export class DatabaseService extends Service {
         await queryRunner.startTransaction();
 
         try {
-            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
-
             const tables: Array<string> = await this.getTables(connection);
 
-            for (let i = 0; i < tables.length; i++) {
-                await queryRunner.dropTable(tables[i]);
-            }
+            let query = 'SET FOREIGN_KEY_CHECKS=0;'
+            for (let i = 0; i < tables.length; i++)
+                query += `DROP TABLE ${tables[i]};`;
+            query += 'SET FOREIGN_KEY_CHECKS=1;';
 
-            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
+            await queryRunner.query(query);
             await queryRunner.commitTransaction();
             await queryRunner.release();
         } catch (e) {
@@ -219,6 +218,7 @@ export class DatabaseService extends Service {
             synchronize: false,
             migrationsRun: false,
             dropSchema: false,
+            multipleStatements: true, // For optimization purposes. For example, in emptyDatabase() method.
             logger: new DatabaseLogger(loggerOptions),
             migrations: this._config.migrations,
             cli: {

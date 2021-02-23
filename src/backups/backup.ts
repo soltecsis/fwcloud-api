@@ -1,5 +1,5 @@
 /*!
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -23,11 +23,10 @@
 import * as path from "path";
 import * as fs from "fs";
 import * as fse from "fs-extra"
-import { app } from "../fonaments/abstract-application";
+import { app, logger } from "../fonaments/abstract-application";
 import { DatabaseService, DatabaseConfig } from "../database/database.service";
 import moment, { Moment } from "moment";
 
-import mysqldump, { DumpReturn } from "mysqldump";
 import { BackupNotFoundException } from "./exceptions/backup-not-found-exception";
 import { Responsable } from "../fonaments/contracts/responsable";
 import { RestoreBackupException } from "./exceptions/restore-backup-exception";
@@ -35,14 +34,13 @@ import StringHelper from "../utils/string.helper";
 import { FSHelper } from "../utils/fs-helper";
 import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";
-import { FwCloud } from "../models/fwcloud/FwCloud";
-import { getCustomRepository, Migration, Repository } from "typeorm";
+import { getCustomRepository, Migration } from "typeorm";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
-import { Firewall } from "../models/firewall/Firewall";
-import { PolicyCompilation } from "../models/policy/PolicyCompilation";
 import { Task } from "../fonaments/http/progress/task";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-const mysql_import = require('mysql-import');
+
+import * as child_process from "child_process";
+import { OpenVPNRepository } from "../models/vpn/openvpn/openvpn-repository";
 
 export interface BackupMetadata {
     name: string,
@@ -148,8 +146,6 @@ export class Backup implements Responsable {
      * @param backupPath Backup path
      */
     async load(backupPath: string): Promise<Backup> {
-        const dbConfig: DatabaseConfig = (await app().getService<DatabaseService>(DatabaseService.name)).config;
-
         if (fs.statSync(backupPath).isDirectory() && fs.statSync) {
             const metadata: BackupMetadata = this.loadMetadataFromDirectory(backupPath);
             this._date = moment(metadata.timestamp);
@@ -183,22 +179,38 @@ export class Backup implements Responsable {
      * @param backupDirectory Backup path
      */
     public async create(backupDirectory: string, eventEmitter = new EventEmitter()): Promise<Backup> {
+        // If it is not possible to run the mysqldump command, then it is not possible to run the backup procedure.
+        if (! await this.existsCmd('mysqldump')) {
+            const err = new Error('Command mysqldump not found or it is not possible to execute it');
+            logger().error(err.message);
+            throw err;
+        }
+
         const progress = new Progress(eventEmitter);
         this._date = moment();
         this._id = moment().valueOf();
         this._version = app<Application>().version.tag;
         this._name = this._date.format('YYYY-MM-DD HH:mm:ss');
         this._backupPath = path.join(backupDirectory, this.timestamp.toString());
-
+            
         this.createDirectorySync();
         this.exportMetadataFileSync();
 
-        await progress.procedure('Creating backup', (task: Task) => {
-            task.parallel((task: Task) => {
-                task.addTask(() => { return this.exportDatabase(); }, 'Database exported');
-                task.addTask(() => { return this.exportDataDirectories(); }, 'Data directories exported');
-            });
-        }, 'Backup created');
+        try {
+            await progress.procedure('Creating backup', (task: Task) => {
+                task.parallel((task: Task) => {
+                    task.addTask(() => { return this.exportDatabase(); }, 'Database backup');
+                    task.addTask(() => { return this.exportDataDirectories(); }, 'Data directories backup');
+                });
+            }, 'Backup created');
+        } catch(err) {
+            // If the backup task has fault for some reason, (for example, mysqldump command not found)
+            // then destroy it for avoid having an incomplete backup.
+            this._exists = true;
+            await this.destroy();
+
+            throw(err);
+        }
 
         return await this.load(this._backupPath);
     }
@@ -207,16 +219,23 @@ export class Backup implements Responsable {
      * Restores an existing backup
      */
     async restore(eventEmitter: EventEmitter = new EventEmitter()): Promise<Backup> {
+        // If it is not possible to run the mysql command, then it is not possible to run the restore procedure.
+        if (! await this.existsCmd('mysql')) {
+            const err = new Error('Command mysql not found or it is not possible to execute it');
+            logger().error(err.message);
+            throw err;
+        }
+
         const progress = new Progress(eventEmitter);
 
         if (this._exists) {
             await progress.procedure('Restoring backup', (task: Task) => {
                 task.sequence((task: Task) => {
                     task.parallel((task: Task) => {
-                        task.addTask(() => { return this.importDatabase(); }, 'Database restored');
-                        task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restored');
+                        task.addTask(() => { return this.importDatabase(); }, 'Database restore');
+                        task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restore');
                     });
-                    task.addTask(async (_) => { return this.runMigrations(); }, 'Database migrated');
+                    task.addTask(async (_) => { return this.runMigrations(); }, 'Database migration');
                 })
                 
             }, 'Backup restored');
@@ -265,68 +284,41 @@ export class Backup implements Responsable {
     /**
      * Exports the database into a file
      */
-    protected async exportDatabase(): Promise<DumpReturn> {
+    protected async exportDatabase(): Promise<void> {
         const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
-        const dbConfig: DatabaseConfig = databaseService.config;
 
-        return mysqldump({
-            connection: {
-                host: dbConfig.host,
-                port: dbConfig.port,
-                user: dbConfig.user,
-                password: dbConfig.pass,
-                database: dbConfig.name,
-            },
-            dump: {
-                data: {
-                    // WARNING: It is very important to set the mysqldump node module format option to false.
-                    // If not, with databases with lot of registers, the dump process may take several minutes.
-                    format: false,
-                    maxRowsPerInsertStatement: 1000
-                }
-            },
-            dumpToFile: path.join(this._backupPath, Backup.DUMP_FILENAME),
+        return new Promise((resolve, reject) => { 
+            //console.time("mysqldump");
+            child_process.exec(this.buildCmd('mysqldump',databaseService),(error,stdout,stderr) => {
+                //console.timeEnd("mysqldump");
+                if (error) return reject(error);
+                resolve();     
+            });
         });
     }
 
     /**
      * Imports the database from a file
      */
-    protected async importDatabase() {
+    protected async importDatabase():Promise<void> {
         return new Promise(async (resolve, reject) => {
-            const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
-            const dbConfig: DatabaseConfig = databaseService.config;
-
-            await databaseService.emptyDatabase();
-
-            if (! await databaseService.isDatabaseEmpty()) {
-                reject(new RestoreBackupException('Database can not be wiped'));
-            }
-
-            // Full database restore.
-            const mydb_importer = mysql_import.config({
-                host: dbConfig.host,
-                user: dbConfig.user,
-                port: dbConfig.port,
-                password: dbConfig.pass,
-                database: dbConfig.name,
-                onerror: (err: Error) => {
-                    reject(err);
-                }
-            });
-
-            try {
-                await mydb_importer.import(path.join(this._backupPath, Backup.DUMP_FILENAME));
+            try { 
+                const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
+        
+                await databaseService.emptyDatabase();
+                if (! await databaseService.isDatabaseEmpty())
+                    return reject(new RestoreBackupException('Database can not be wiped'));
+    
+                //console.time("db import");
+                child_process.execSync(this.buildCmd('mysql',databaseService));
+                //console.timeEnd("db import");
 
                 //Change compilation status from firewalls
-                const firewallRepository: FirewallRepository = getCustomRepository(FirewallRepository);
-                const firewalls: Array<Firewall> = await Firewall.find();
-                await firewallRepository.markAsUncompiled(firewalls);
+                await getCustomRepository(FirewallRepository).markAllAsUncompiled();
 
-                //Remove all compiled rules
-                await PolicyCompilation.remove(await PolicyCompilation.find());
-                
-                //TODO: Make all VPNs pending of install.
+                //Make all VPNs pending of install.
+                await getCustomRepository(OpenVPNRepository).markAllAsUninstalled();
+
                 resolve();
             } catch (e) {
                 reject(e);
@@ -376,5 +368,39 @@ export class Backup implements Responsable {
                 await fse.copy(src_dir, dst_dir);
             }
         }
+    }
+
+    /**
+     * Builds mysqldump/mysql command
+     */
+    buildCmd(cmd: 'mysqldump' | 'mysql', databaseService: DatabaseService): string {
+        const dbConfig: DatabaseConfig = databaseService.config;
+        const dumpFile = path.join(this._backupPath, Backup.DUMP_FILENAME);
+
+        const shellescape = require('shell-escape');
+        const dbPassEscaped = shellescape([dbConfig.pass]).substring(0,128);
+
+        const dir = cmd==='mysqldump' ? '>' : '<';
+
+        // This is necessary for mysqldump/mysql commands to access the docker containers of the test environment.
+        if (process.env.NODE_ENV === 'test') cmd += ' --protocol=TCP';
+
+        // If we don't specify the communications protocol and we are running the mysqldump/mysql commands in localhost,
+        // they will use by default the socket file.
+        // That is fine, because using the socket file will improve performance.
+        cmd += ` -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbPassEscaped}" ${dbConfig.name} ${dir} "${dumpFile}"`;
+
+        return cmd;
+    }
+
+    /**
+     * Check that the mysqldump/mysql command exists
+     */
+    existsCmd(cmd: 'mysqldump' | 'mysql'): Promise<boolean> {
+        return new Promise((resolve) => {
+            child_process.exec(`${cmd} --version`,(error,stdout,stderr) => {
+                resolve(error ? false : true)
+            });
+        });
     }
 }

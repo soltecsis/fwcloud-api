@@ -1,5 +1,5 @@
 /*!
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -28,10 +28,11 @@ import { expect, testSuite, describeName } from "../../mocha/global-setup";
 import { BackupService } from "../../../src/backups/backup.service";
 import { Application } from "../../../src/Application";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { Repository, QueryRunner, Migration } from "typeorm";
+import { QueryRunner, Migration } from "typeorm";
 import { Firewall } from "../../../src/models/firewall/Firewall";
 import moment from "moment";
 import { FSHelper } from "../../../src/utils/fs-helper";
+import sinon from "sinon";
 
 let app: Application;
 let service: BackupService;
@@ -52,6 +53,17 @@ describe(describeName('Backup Unit tests'), () => {
     });
 
     describe('create()', () => {
+
+        it('should throw error exception if mysqldump command doesn\'t exists', async () => {
+            let backup: Backup = new Backup();
+            sinon.stub(backup, 'existsCmd').callsFake(cmd => { return Promise.resolve(false)});
+
+            const t = () => {
+                return backup.create(service.config.data_dir); 
+            }
+
+            await expect(t()).to.be.rejectedWith('Command mysqldump not found or it is not possible to execute it');
+        });
 
         it('should create a backup directory', async () => {
             let backup: Backup = new Backup();
@@ -145,9 +157,18 @@ describe(describeName('Backup Unit tests'), () => {
             backup = await backup.create(service.config.data_dir);
 
             databaseService = await app.getService<DatabaseService>(DatabaseService.name);
-            
-            
         })
+
+        it('should throw error exception if mysql command doesn\'t exists', async () => {
+            let backup: Backup = new Backup();
+            sinon.stub(backup, 'existsCmd').callsFake(cmd => { return Promise.resolve(false)});
+
+            const t = () => {
+                return backup.restore(service.config.data_dir); 
+            }
+
+            await expect(t()).to.be.rejectedWith('Command mysql not found or it is not possible to execute it');
+        });
 
         it('should import the database', async () => {
             await databaseService.emptyDatabase();
@@ -253,6 +274,34 @@ describe(describeName('Backup Unit tests'), () => {
                 version: backup.version,
                 imported: false
             })
+        });
+    });
+
+    describe('buildCmd()', () => {
+
+        let databaseService: DatabaseService
+
+        beforeEach(async () => {
+            databaseService = await app.getService<DatabaseService>(DatabaseService.name);
+        })
+
+        it('should build the correct mysldump/mysql command', async () => {
+            let backup: Backup = new Backup();
+            await backup.create(service.config.data_dir);
+
+            process.env.NODE_ENV = 'prod';
+            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump -h "localhost" -P 8888 -u fwcdbusr -p"fwcdbusr" fwcloud > "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql -h "localhost" -P 8888 -u fwcdbusr -p"fwcdbusr" fwcloud < "${backup.path}/db.sql"`);
+            process.env.NODE_ENV = 'test';
+        });
+
+        it('should include --protocol=TCP in test environment', async () => {
+            let backup: Backup = new Backup();
+            await backup.create(service.config.data_dir);
+
+            process.env.NODE_ENV = 'test';
+            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump --protocol=TCP -h "localhost" -P 8888 -u fwcdbusr -p"fwcdbusr" fwcloud > "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql --protocol=TCP -h "localhost" -P 8888 -u fwcdbusr -p"fwcdbusr" fwcloud < "${backup.path}/db.sql"`);
         });
     });
 });

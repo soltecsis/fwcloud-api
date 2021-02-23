@@ -35,6 +35,7 @@ import { Extension } from "../../fonaments/validation/rules/extension.rule";
 import { File } from "../../fonaments/validation/rules/file.rule";
 import { FileInfo } from "../../fonaments/http/files/file-info";
 import { HttpException } from "../../fonaments/exceptions/http/http-exception";
+import e from "cors";
 
 export class BackupController extends Controller {
     protected _backupService: BackupService;
@@ -97,11 +98,14 @@ export class BackupController extends Controller {
 
         this._app.config.set('maintenance_mode', true);
 
-        backup = await this._backupService.restore(backup, channel);
-
-        this._app.config.set('maintenance_mode', false);
-
-        return ResponseBuilder.buildResponse().status(201).body(backup);
+        try {
+            backup = await this._backupService.restore(backup, channel);
+            this._app.config.set('maintenance_mode', false);
+            return ResponseBuilder.buildResponse().status(201).body(backup);
+        } catch(err) { 
+            this._app.config.set('maintenance_mode', false);
+            throw err; 
+        }
     }
 
     /**

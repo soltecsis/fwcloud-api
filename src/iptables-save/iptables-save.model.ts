@@ -32,8 +32,9 @@ import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 import { StdChains, TcpFlags, PolicyTypeMap, PositionMap, GroupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../models/policy/PolicyGroup';
-import { RuleCompiler } from '../compiler/RuleCompiler';
+import { IPTablesCompiler } from '../compiler/iptables/iptables-compiler';
 import { PolicyRuleToOpenVPN } from '../models/policy/PolicyRuleToOpenVPN';
+import moment from "moment";
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
@@ -97,7 +98,7 @@ export class IptablesSaveToFWCloud extends Service {
       action: 1, // By default action rule is ACCEPT
       active: 1,
       options: 0,
-      //comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`,
+      //comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`,
       comment: '',
       type: 0,
     };
@@ -627,7 +628,7 @@ export class IptablesSaveToFWCloud extends Service {
         name: _interface,
         type: 10,
         interface_type: 10,
-        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+        comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`
       };
       
       try {
@@ -685,7 +686,7 @@ export class IptablesSaveToFWCloud extends Service {
         address: ip,
         netmask: `/${mask}`,
         ip_version: this.req.body.ip_version,
-        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+        comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`
       };
   
       try {
@@ -737,7 +738,7 @@ export class IptablesSaveToFWCloud extends Service {
         range_start: ips[0],
         range_end: ips[1],
         ip_version: this.req.body.ip_version,
-        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+        comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`
       };
   
       try {
@@ -813,7 +814,7 @@ export class IptablesSaveToFWCloud extends Service {
         destination_port_end: dstPorts[1],
         tcp_flags_mask: tcpFlags,
         tcp_flags_settings: tcpFlagsSet,
-        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+        comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`
       };
   
       try {
@@ -857,7 +858,7 @@ export class IptablesSaveToFWCloud extends Service {
         protocol: 1,
         icmp_type: icmp[0],
         icmp_code: icmp[1],
-        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+        comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`
       };
   
       try {
@@ -985,8 +986,8 @@ export class IptablesSaveToFWCloud extends Service {
       const currPosObjs = JSON.stringify(currentRule.positions[i].position_objs);
 
       // Check position negation!!!!
-      const currPosNegated = RuleCompiler.isPositionNegated(currentRule.negate,currentRule.positions[i].id);
-      const prevPosNegated = RuleCompiler.isPositionNegated(previousRule.negate,previousRule.positions[i].id);
+      const currPosNegated = IPTablesCompiler.isPositionNegated(currentRule.negate,currentRule.positions[i].id);
+      const prevPosNegated = IPTablesCompiler.isPositionNegated(previousRule.negate,previousRule.positions[i].id);
       if (currPosNegated !== prevPosNegated) return; // Rules with different negation status in the same position can not be merged.
 
       if (prevPosObjs !== currPosObjs) {
