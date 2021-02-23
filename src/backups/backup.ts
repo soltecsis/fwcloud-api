@@ -373,7 +373,7 @@ export class Backup implements Responsable {
     /**
      * Builds mysqldump/mysql command
      */
-    protected  buildCmd(cmd: 'mysqldump' | 'mysql', databaseService: DatabaseService): string {
+    buildCmd(cmd: 'mysqldump' | 'mysql', databaseService: DatabaseService): string {
         const dbConfig: DatabaseConfig = databaseService.config;
         const dumpFile = path.join(this._backupPath, Backup.DUMP_FILENAME);
 
@@ -382,14 +382,13 @@ export class Backup implements Responsable {
 
         const dir = cmd==='mysqldump' ? '>' : '<';
 
-        // Detect if in configuration we are using MySQL communications by means of Unix socket file or TCP communications.
+        // This is necessary for mysqldump/mysql commands to access the docker containers of the test environment.
+        if (process.env.NODE_ENV === 'test') cmd += ' --protocol=TCP';
 
-        // If we are connecting to a localhost database MySQL/MariaDB engine, if we don't specify the host
-        // and port options in the command line, the mysqldump/mysql commands will use the Unix socket instead
-        // of the TCP connection, improving performance and consequently response time.
-        if (dbConfig.host !== 'localhost')
-            cmd += ` -h "${dbConfig.host}" -P ${dbConfig.port}`
-        cmd += ` -u ${dbConfig.user} -p"${dbPassEscaped}" ${dbConfig.name} ${dir} "${dumpFile}"`;
+        // If we don't specify the communications protocol and we are running the mysqldump/mysql commands in localhost,
+        // they will use by default the socket file.
+        // That is fine, because using the socket file will improve performance.
+        cmd += ` -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbPassEscaped}" ${dbConfig.name} ${dir} "${dumpFile}"`;
 
         return cmd;
     }
@@ -397,7 +396,7 @@ export class Backup implements Responsable {
     /**
      * Check that the mysqldump/mysql command exists
      */
-    protected existsCmd(cmd: 'mysqldump' | 'mysql'): Promise<boolean> {
+    existsCmd(cmd: 'mysqldump' | 'mysql'): Promise<boolean> {
         return new Promise((resolve) => {
             child_process.exec(`${cmd} --version`,(error,stdout,stderr) => {
                 resolve(error ? false : true)

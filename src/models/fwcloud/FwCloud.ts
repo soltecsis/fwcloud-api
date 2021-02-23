@@ -21,7 +21,7 @@
 */
 
 import Model from "../Model";
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMany, ManyToOne, BeforeRemove, AfterInsert, RemoveOptions, QueryRunner } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, OneToMany, ManyToOne, AfterRemove, AfterInsert, RemoveOptions, QueryRunner } from "typeorm";
 import db from '../../database/database-manager';
 import * as path from "path";
 import * as fs from "fs-extra";
@@ -107,7 +107,7 @@ export class FwCloud extends Model {
 		return tableName;
 	}
 
-	@BeforeRemove()
+	@AfterRemove()
 	public removeDataDirectories() {
 		FSHelper.rmDirectorySync(this.getPkiDirectoryPath());
 		FSHelper.rmDirectorySync(this.getPolicyDirectoryPath());
@@ -188,6 +188,9 @@ export class FwCloud extends Model {
 			await queryRunner.query(query);
 			await queryRunner.commitTransaction();
 			await queryRunner.release();
+
+			// The @AfterRemove() decorator is not working, for this reason here we must invoke the removeDataDirectories();
+			this.removeDataDirectories();
 		} catch (err) {
 			await queryRunner.rollbackTransaction();
 			await queryRunner.release();
