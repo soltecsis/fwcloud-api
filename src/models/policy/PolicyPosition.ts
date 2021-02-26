@@ -334,7 +334,16 @@ export class PolicyPosition extends Model {
             
             dbCon.query(sql, async (error, items) => {
                 if (error) return reject(error);
-                resolve(items);
+
+                resolve({
+                    content: position.content,
+                    id: position.id,
+                    name: position.name,
+                    policy_type: position.policy_type,
+                    position_order: position.position_order,
+                    single_object: position.single_object,
+                    ipobjs: items,
+                });
             });
         });
     }
