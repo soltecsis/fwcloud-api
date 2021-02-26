@@ -122,6 +122,28 @@ router.put('/type/get', async (req, res) => {
 	}
 });
 
+/* Get policy rules by firewall type and rules group */
+router.put('/type/get/ingroup', async (req, res) => {
+	try {
+		const policy = await PolicyRule.getPolicyData(req);
+		res.status(200).json(policy);
+	} catch(error) {
+		logger().error('Error finding a rule: ' + JSON.stringify(error));
+		res.status(400).json(error)
+	}
+});
+
+/* Get all policy_rs by firewall and type but don't expand group contents */
+router.put('/type/get/grouped', async (req, res) => {
+	try {
+		const policy = await PolicyRule.getPolicyData(req, true);
+		res.status(200).json(policy);
+	} catch(error) {
+		logger().error('Error finding a rule: ' + JSON.stringify(error));
+		res.status(400).json(error)
+	}
+});
+
 
 /* Get all policy_rs by firewall and type and Rule */
 router.put('/get', async (req, res) => {

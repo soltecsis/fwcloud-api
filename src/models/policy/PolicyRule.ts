@@ -176,50 +176,42 @@ export class PolicyRule extends Model {
         });
     }
 
-    public static rulesData(dbCon: any, fwcloud: number, firewall: number, type: number, rule: number): Promise<any> {
+    public static getRulesData(dbCon: any, fwcloud: number, firewall: number, type: number, rule: number, group: number): Promise<any> {
         return new Promise((resolve, reject) => {
             let sql = `SELECT ${fwcloud} as fwcloud, P.*, 
                 G.name as group_name, G.groupstyle as group_style, 
-                M.code as mark_code, M.name as mark_name,
+                M.code as mark_code, M.name as mark_name
                 FROM ${tableName} P
                 LEFT JOIN policy_g G ON G.id=P.idgroup
                 LEFT JOIN mark M ON M.id=P.mark
                 WHERE P.firewall=${firewall} AND P.type=${type}
-                ${(rule) ? ` AND P.id=${rule}` : ``} ORDER BY P.rule_order`;
+                ${rule ? ` AND P.id=${rule}` : ''} 
+                ${group ? ` AND P.idgroup=${group}` : ''} 
+                ORDER BY P.rule_order`;
 
             dbCon.query(sql, (error, rules) => {
                 if (error) return reject(error);
 
-                resolve(rules.length === 0 ? null : rules);
+                resolve(rules.length === 0 ? [] : rules);
             });
         });
     }   
 
     //Get All policy_r by firewall and type
-    public static getPolicyData(req) {
-        return new Promise((resolve, reject) => {
-            let sql = `SELECT ${req.body.fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, 
-              C.updated_at as c_updated_at, M.code as mark_code, M.name as mark_name,
-              IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled
-              FROM ${tableName} P
-              LEFT JOIN policy_g G ON G.id=P.idgroup
-              LEFT JOIN policy_c C ON C.rule=P.id
-              LEFT JOIN mark M ON M.id=P.mark
-              WHERE P.firewall=${req.body.firewall} AND P.type=${req.body.type}
-              ${(req.body.rule) ? ` AND P.id=${req.body.rule}` : ``} ORDER BY P.rule_order`;
+    public static getPolicyData(req, ignoreGroupsData?: boolean) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let rules = await this.getRulesData(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule, req.body.group);
+                
+                for (let i=0; i < rules.length; i++) {
+                    if (rules[i].idgroup && ignoreGroupsData) continue;
 
-            req.dbCon.query(sql, async (error, rules) => {
-                if (error) return reject(error);
-                if (rules.length === 0) return resolve(null);
+                    const positions: any = await PolicyPosition.getRulePositions(rules[i]);
+                    rules[i].positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionData(data)));
+                }
 
-                try {
-                    for (let rule of rules) {
-                        const positions: any = await PolicyPosition.getRulePositions(rule);
-                        rule.positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionData(data)));
-                    }
-                    resolve(rules);
-                } catch (error) { reject(error) }
-            });
+                resolve(rules);
+            } catch (error) { reject(error) }
         });
     }
 
