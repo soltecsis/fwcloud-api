@@ -202,13 +202,23 @@ export class PolicyRule extends Model {
         return new Promise(async (resolve, reject) => {
             try {
                 let rules = await this.getRulesData(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule, req.body.group);
-                
+                if (rules.length === 0) return resolve(rules);
+
+                console.time('policyData');
+
+                // Positions will be always the same for all rules of same policy type.
+                let positions: any = await PolicyPosition.getRulePositions(rules[0]);
+
                 for (let i=0; i < rules.length; i++) {
                     if (rules[i].idgroup && ignoreGroupsData) continue;
 
-                    const positions: any = await PolicyPosition.getRulePositions(rules[i]);
-                    rules[i].positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionData(data)));
+                    // Update positions rule id with the current one.
+                    for(let j=0; j<positions.length; j++)
+                        positions[j].rule = rules[i].id;
+
+                    rules[i].positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionData(req.dbCon,data)));
                 }
+                console.timeEnd('policyData');
 
                 resolve(rules);
             } catch (error) { reject(error) }
