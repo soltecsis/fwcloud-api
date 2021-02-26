@@ -176,6 +176,25 @@ export class PolicyRule extends Model {
         });
     }
 
+    public static rulesData(dbCon: any, fwcloud: number, firewall: number, type: number, rule: number): Promise<any> {
+        return new Promise((resolve, reject) => {
+            let sql = `SELECT ${fwcloud} as fwcloud, P.*, 
+                G.name as group_name, G.groupstyle as group_style, 
+                M.code as mark_code, M.name as mark_name,
+                FROM ${tableName} P
+                LEFT JOIN policy_g G ON G.id=P.idgroup
+                LEFT JOIN mark M ON M.id=P.mark
+                WHERE P.firewall=${firewall} AND P.type=${type}
+                ${(rule) ? ` AND P.id=${rule}` : ``} ORDER BY P.rule_order`;
+
+            dbCon.query(sql, (error, rules) => {
+                if (error) return reject(error);
+
+                resolve(rules.length === 0 ? null : rules);
+            });
+        });
+    }   
+
     //Get All policy_r by firewall and type
     public static getPolicyData(req) {
         return new Promise((resolve, reject) => {
