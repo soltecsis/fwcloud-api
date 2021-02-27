@@ -176,52 +176,44 @@ export class PolicyRule extends Model {
         });
     }
 
-    public static getRulesData(dbCon: any, fwcloud: number, firewall: number, type: number, rule: number, group: number): Promise<any> {
-        return new Promise((resolve, reject) => {
-            let sql = `SELECT ${fwcloud} as fwcloud, P.*, 
-                G.name as group_name, G.groupstyle as group_style, 
-                M.code as mark_code, M.name as mark_name
-                FROM ${tableName} P
-                LEFT JOIN policy_g G ON G.id=P.idgroup
-                LEFT JOIN mark M ON M.id=P.mark
-                WHERE P.firewall=${firewall} AND P.type=${type}
-                ${rule ? ` AND P.id=${rule}` : ''} 
-                ${group ? ` AND P.idgroup=${group}` : ''} 
-                ORDER BY P.rule_order`;
-
-            dbCon.query(sql, (error, rules) => {
-                if (error) return reject(error);
-
-                resolve(rules.length === 0 ? [] : rules);
-            });
-        });
-    }   
-
     //Get All policy_r by firewall and type
     public static getPolicyData(req, ignoreGroupsData?: boolean) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let rules = await this.getRulesData(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule, req.body.group);
+        return new Promise((resolve, reject) => {
+            let sql = `SELECT ${req.body.fwcloud} as fwcloud, P.*, 
+            G.name as group_name, G.groupstyle as group_style, 
+            M.code as mark_code, M.name as mark_name
+            FROM ${tableName} P
+            LEFT JOIN policy_g G ON G.id=P.idgroup
+            LEFT JOIN mark M ON M.id=P.mark
+            WHERE P.firewall=${req.body.firewall} AND P.type=${req.body.type}
+            ${req.body.rule ? ` AND P.id=${req.body.rule}` : ''} 
+            ${req.body.group ? ` AND P.idgroup=${req.body.group}` : ''} 
+            ORDER BY P.rule_order`;
+
+            req.dbCon.query(sql, async (error, rules) => {
+                if (error) return reject(error);
                 if (rules.length === 0) return resolve(rules);
 
-                console.time('policyData');
+                try {
+                    //console.time('policyData');
 
-                // Positions will be always the same for all rules of same policy type.
-                let positions: any = await PolicyPosition.getRulePositions(rules[0]);
+                    // Positions will be always the same for all rules into the same policy type.
+                    let positions: any = await PolicyPosition.getRulePositions(rules[0]);
 
-                for (let i=0; i < rules.length; i++) {
-                    if (rules[i].idgroup && ignoreGroupsData) continue;
+                    for (let i=0; i < rules.length; i++) {
+                        if (rules[i].idgroup && ignoreGroupsData) continue;
 
-                    // Update positions rule id with the current one.
-                    for(let j=0; j<positions.length; j++)
-                        positions[j].rule = rules[i].id;
+                        // Update positions rule id with the current one.
+                        for(let j=0; j<positions.length; j++)
+                            positions[j].rule = rules[i].id;
 
-                    rules[i].positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionData(req.dbCon,data)));
-                }
-                console.timeEnd('policyData');
+                        rules[i].positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionData(req.dbCon,data)));
+                    }
+                    //console.timeEnd('policyData');
 
-                resolve(rules);
-            } catch (error) { reject(error) }
+                    resolve(rules);
+                } catch (error) { reject(error) }
+            });
         });
     }
 

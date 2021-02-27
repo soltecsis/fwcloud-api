@@ -307,33 +307,40 @@ export class PolicyPosition extends Model {
 
     public static getRulePositionData(dbCon, position) {
         return new Promise((resolve, reject) => {
-            const sql = `SELECT OBJ.id, OBJ.name, OBJ.type, R.position_order 
+            const sql = `SELECT OBJ.id, OBJ.name, OBJ.type, R.position_order, '' as labelName 
                 FROM policy_r__ipobj R INNER JOIN ipobj OBJ ON OBJ.id=R.ipobj 
                 WHERE R.rule=${position.rule} AND R.position=${position.id}
 
-                UNION SELECT G.id, G.name, G.type, R.position_order 
+                UNION SELECT G.id, G.name, G.type, R.position_order, '' as labelName
                 FROM policy_r__ipobj R INNER JOIN ipobj_g G ON G.id=R.ipobj_g 
                 WHERE R.rule=${position.rule} AND R.position=${position.id}
 
-                UNION SELECT I.id, I.name, I.type, R.position_order 
+                UNION SELECT I.id, I.name, I.type, R.position_order, I.labelName 
                 FROM policy_r__ipobj R INNER JOIN interface I ON I.id=R.interface 
                 WHERE R.rule=${position.rule} AND R.position=${position.id}
 
-                UNION SELECT I.id, I.name, I.type, R.position_order  
+                UNION SELECT I.id, I.name, I.type, R.position_order, I.labelName 
                 FROM policy_r__interface R INNER JOIN interface I ON I.id=R.interface
                 WHERE R.rule=${position.rule} AND R.position=${position.id}
 
-                UNION SELECT VPN.id, CRT.cn, "311" as type, R.position_order
+                UNION SELECT VPN.id, CRT.cn, "311" as type, R.position_order, '' as labelName
                 FROM policy_r__openvpn R INNER JOIN openvpn VPN ON VPN.id=R.openvpn
                 INNER JOIN crt CRT ON CRT.id=VPN.crt
                 WHERE R.rule=${position.rule} AND R.position=${position.id}
 
-                UNION SELECT PRE.id, PRE.name, "401" as type, R.position_order
+                UNION SELECT PRE.id, PRE.name, "401" as type, R.position_order, '' as labelName
                 FROM policy_r__openvpn_prefix R INNER JOIN openvpn_prefix PRE ON PRE.id=R.prefix
-                WHERE R.rule=${position.rule} AND R.position=${position.id}`;
+                WHERE R.rule=${position.rule} AND R.position=${position.id}
+                
+                ORDER BY position_order`;
             
             dbCon.query(sql, async (error, items) => {
                 if (error) return reject(error);
+
+                for (let i=0; i<items.length; i++) {
+                    if (items[i].type === '10') // INTERFACE FIREWALL
+                        items[i].firewall_id = parseInt(position.firewall);
+                }
 
                 resolve({
                     content: position.content,
