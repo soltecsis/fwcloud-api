@@ -250,6 +250,7 @@ export class PolicyPosition extends Model {
     }
 
 
+    /*
     public static getRulePositionData_OLD(dbCon, position) {
         return new Promise((resolve, reject) => {
             var position_node = new data_policy_positions(position);
@@ -304,6 +305,7 @@ export class PolicyPosition extends Model {
             });
         });
     }
+    */
 
     public static getRulePositionData(dbCon, position) {
         return new Promise((resolve, reject) => {
