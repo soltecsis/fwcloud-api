@@ -250,60 +250,108 @@ export class PolicyPosition extends Model {
     }
 
 
-    public static getRulePositionData(position) {
+    /*
+    public static getRulePositionData_OLD(dbCon, position) {
         return new Promise((resolve, reject) => {
-            db.get((error, dbCon) => {
+            var position_node = new data_policy_positions(position);
+
+            let sql = `SELECT rule, ipobj, ipobj_g, interface, position, position_order, "O" as type 
+                FROM policy_r__ipobj WHERE rule=${position.rule} AND position=${position.id}
+
+                UNION SELECT rule, interface, 0, 0, position, position_order, "I" as type 
+                FROM policy_r__interface WHERE rule=${position.rule} AND position=${position.id}
+
+                UNION SELECT rule, openvpn, 0, 0, position, position_order, "VPN" as type 
+                FROM policy_r__openvpn WHERE rule=${position.rule} AND position=${position.id}
+
+                UNION SELECT rule, prefix, 0, 0, position, position_order, "PRO" as type 
+                FROM policy_r__openvpn_prefix WHERE rule=${position.rule} AND position=${position.id}
+                ORDER BY position_order`;
+            
+            dbCon.query(sql, async (error, items) => {
                 if (error) return reject(error);
 
-                var position_node = new data_policy_positions(position);
+                try {
+                    //obtenemos IPOBJS o INTERFACES o GROUPS
+                    //for (k = 0; k < data__rule_ipobjs.length; k++) {
+                    //creamos array de ipobj
+                    position_node.ipobjs = new Array();
 
-                let sql = `SELECT rule, ipobj, ipobj_g, interface, position, position_order, "O" as type 
-                    FROM policy_r__ipobj WHERE rule=${position.rule} AND position=${position.id}
-
-                    UNION SELECT rule, interface, 0, 0, position, position_order, "I" as type 
-                    FROM policy_r__interface WHERE rule=${position.rule} AND position=${position.id}
-
-                    UNION SELECT rule, openvpn, 0, 0, position, position_order, "VPN" as type 
-                    FROM policy_r__openvpn WHERE rule=${position.rule} AND position=${position.id}
-
-                    UNION SELECT rule, prefix, 0, 0, position, position_order, "PRO" as type 
-                    FROM policy_r__openvpn_prefix WHERE rule=${position.rule} AND position=${position.id}
-                    ORDER BY position_order`;
-                
-                dbCon.query(sql, async (error, items) => {
-                    if (error) return reject(error);
-
-                    try {
-                        //obtenemos IPOBJS o INTERFACES o GROUPS
-                        //for (k = 0; k < data__rule_ipobjs.length; k++) {
-                        //creamos array de ipobj
-                        position_node.ipobjs = new Array();
-
-                        for (let item of items) {
-                            let data = {};
-                            if (item.ipobj>0 && item.type==='O') // IPOBJ
+                    for (let item of items) {
+                        let data = {};
+                        if (item.ipobj>0 && item.type==='O') // IPOBJ
                             data = await IPObj.getIpobj(dbCon, position.fwcloud, item.ipobj);
-                            else if (item.ipobj_g>0 && item.type==='O') // IPOBJ GROUP
-                                data = await IPObjGroup.getIpobj_g(dbCon, position.fwcloud, item.ipobj_g);
-                            else if (item.interface>0 || item.type==='I') { // Network interface.
-                                data = await Interface.getInterface(position.fwcloud, (item.type==='I')?item.ipobj:item.interface);
-                                item.type='I'; // We need this when we create the data_policy_position_ipobjs object.
-                            }
-                            else if (item.ipobj>0 && item.type==='VPN') // OPENVPN
-                                data = await OpenVPN.getOpenvpnInfo(dbCon, position.fwcloud, item.ipobj,1);
-                            else if (item.ipobj>0 && item.type==='PRO') // OPENVPN PREFIXES
-                                data = await OpenVPNPrefix.getPrefixOpenvpnInfo(dbCon, position.fwcloud, item.ipobj);
-                            else data = null;
-
-                            if (data) {
-                                var ipobj_node = new data_policy_position_ipobjs(data[0], item.position_order, item.type);
-                                // Add new object node to positions array.
-                                position_node.ipobjs.push(ipobj_node);
-                            }
+                        else if (item.ipobj_g>0 && item.type==='O') // IPOBJ GROUP
+                            data = await IPObjGroup.getIpobj_g(dbCon, position.fwcloud, item.ipobj_g);
+                        else if (item.interface>0 || item.type==='I') { // Network interface.
+                            data = await Interface.getInterface(position.fwcloud, (item.type==='I')?item.ipobj:item.interface);
+                            item.type='I'; // We need this when we create the data_policy_position_ipobjs object.
                         }
+                        else if (item.ipobj>0 && item.type==='VPN') // OPENVPN
+                            data = await OpenVPN.getOpenvpnInfo(dbCon, position.fwcloud, item.ipobj,1);
+                        else if (item.ipobj>0 && item.type==='PRO') // OPENVPN PREFIXES
+                            data = await OpenVPNPrefix.getPrefixOpenvpnInfo(dbCon, position.fwcloud, item.ipobj);
+                        else data = null;
+
+                        if (data) {
+                            var ipobj_node = new data_policy_position_ipobjs(data[0], item.position_order, item.type);
+                            // Add new object node to positions array.
+                            position_node.ipobjs.push(ipobj_node);
+                        }
+                    }
+        
+                    resolve(position_node);
+                } catch(error) { reject(error) }
+            });
+        });
+    }
+    */
+
+    public static getRulePositionData(dbCon, position) {
+        return new Promise((resolve, reject) => {
+            const sql = `SELECT OBJ.id, OBJ.name, OBJ.type, R.position_order, '' as labelName 
+                FROM policy_r__ipobj R INNER JOIN ipobj OBJ ON OBJ.id=R.ipobj 
+                WHERE R.rule=${position.rule} AND R.position=${position.id}
+
+                UNION SELECT G.id, G.name, G.type, R.position_order, '' as labelName
+                FROM policy_r__ipobj R INNER JOIN ipobj_g G ON G.id=R.ipobj_g 
+                WHERE R.rule=${position.rule} AND R.position=${position.id}
+
+                UNION SELECT I.id, I.name, I.type, R.position_order, I.labelName 
+                FROM policy_r__ipobj R INNER JOIN interface I ON I.id=R.interface 
+                WHERE R.rule=${position.rule} AND R.position=${position.id}
+
+                UNION SELECT I.id, I.name, I.type, R.position_order, I.labelName 
+                FROM policy_r__interface R INNER JOIN interface I ON I.id=R.interface
+                WHERE R.rule=${position.rule} AND R.position=${position.id}
+
+                UNION SELECT VPN.id, CRT.cn, "311" as type, R.position_order, '' as labelName
+                FROM policy_r__openvpn R INNER JOIN openvpn VPN ON VPN.id=R.openvpn
+                INNER JOIN crt CRT ON CRT.id=VPN.crt
+                WHERE R.rule=${position.rule} AND R.position=${position.id}
+
+                UNION SELECT PRE.id, PRE.name, "401" as type, R.position_order, '' as labelName
+                FROM policy_r__openvpn_prefix R INNER JOIN openvpn_prefix PRE ON PRE.id=R.prefix
+                WHERE R.rule=${position.rule} AND R.position=${position.id}
+                
+                ORDER BY position_order`;
             
-                        resolve(position_node);
-                    } catch(error) { reject(error) }
+            dbCon.query(sql, async (error, items) => {
+                if (error) return reject(error);
+
+                for (let i=0; i<items.length; i++) {
+                    if (items[i].type === '10') // INTERFACE FIREWALL
+                        items[i].firewall_id = parseInt(position.firewall);
+                }
+
+                resolve({
+                    content: position.content,
+                    id: position.id,
+                    name: position.name,
+                    policy_type: position.policy_type,
+                    position_order: position.position_order,
+                    single_object: position.single_object,
+                    ipobjs: items,
                 });
             });
         });
