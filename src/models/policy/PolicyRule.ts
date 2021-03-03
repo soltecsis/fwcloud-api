@@ -187,7 +187,7 @@ export class PolicyRule extends Model {
             LEFT JOIN mark M ON M.id=P.mark
             WHERE P.firewall=${req.body.firewall} AND P.type=${req.body.type}
             ${req.body.rule ? ` AND P.id=${req.body.rule}` : ''} 
-            ${req.body.group ? ` AND P.idgroup=${req.body.group}` : ''} 
+            ${req.body.idgroup ? ` AND P.idgroup=${req.body.idgroup}` : ''} 
             ORDER BY P.rule_order`;
 
             req.dbCon.query(sql, async (error, rules) => {

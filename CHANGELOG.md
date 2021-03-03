@@ -6,8 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- New API call `PUT /policy/rule/type/get/ingroup` for get only the firewall rules into a rules group, including the data about objects into rules positions.
-- New API call `PUT /policy/rule/type/get/grouped` for get firewall policy rules of one type but without getting data about objects into rules positions into rules groups. This is very useful for speed up policy load in FWCloud-UI.
+- New API call `PUT /policy/rule/type/ingroup/get` for get only the firewall rules into a rules group, including the data about objects into rules positions.
+- New API call `PUT /policy/rule/type/grouped/get` for get firewall policy rules of one type but without getting data about objects into rules positions into rules groups. This is very useful for speed up policy load in FWCloud-UI.
 - Improved performance in the process for harvest information about each object in each rule position. It is now nearly 3 times faster.
 - Improve snapshots performance.
 - Improve backup and restore performance.

@@ -54,7 +54,7 @@ schema.validate = req => {
 		} else if (req.method === 'PUT') {
 			if (req.url === '/policy/rule/type/get' || req.url === '/policy/rule/type/get/grouped')
 				schema = schema.append({ type: sharedSch.policy_type });
-			else if (req.url === '/policy/rule/get/ingroup')
+			else if (req.url === '/policy/rule/type/get/ingroup')
 				schema = schema.append({ type: sharedSch.policy_type, idgroup: sharedSch.id });
 			else if (req.url === '/policy/rule/get')
 				schema = schema.append({ type: sharedSch.policy_type, rule: sharedSch.id });
