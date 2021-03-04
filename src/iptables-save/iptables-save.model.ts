@@ -309,7 +309,7 @@ export class IptablesSaveToFWCloud extends Service {
         if (!found) break;
       }
 
-      // Add the ingnored module to statistics information.
+      // Add the ignored module to statistics information.
       if (this.stats.modulesIgnored.indexOf(module) === -1)
         this.stats.modulesIgnored.push(module);
 

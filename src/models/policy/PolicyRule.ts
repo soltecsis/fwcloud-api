@@ -217,8 +217,9 @@ export class PolicyRule extends Model {
         });
     }
 
+
     //Get All policy_r by firewall and type
-    public static getPolicyDataDetailed(fwcloud, firewall, type, rule) {
+    public static getPolicyDataDetailed(fwcloud: number, firewall: number, type: number, rule: number) {
         return new Promise((resolve, reject) => {
             db.get((error, dbCon) => {
                 if (error) return reject(error);
@@ -241,17 +242,40 @@ export class PolicyRule extends Model {
 
                     try {
                         if (rules.length > 0) {
-                            for (let rule of rules) {
-                                const positions: any = await PolicyPosition.getRulePositions(rule);
-                                rule.positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionDataDetailed(data)));
+                            // Positions are always the same for all the rules of the same type.
+                            const positions: any = await PolicyPosition.getRulePositions(rules[0]);
+                            for (let i=0; i<rules.length; i++) {
+                                rules[i].positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionDataDetailed(dbCon,data)));
                             }
                             resolve(rules);
-                        } else resolve(null); // NO existes reglas
+                        } else resolve(null);
                     } catch (error) { reject(error) }
                 });
             });
         });
     }
+    
+    //Get All policy_r by firewall and type
+    public static getPolicyDataDetailed_NEW(dbCon: any, firewall: number, type: number, rule: number) {
+        return new Promise((resolve, reject) => {
+            let sql = `select R.position,OBJ.* from policy_r__ipobj R 
+                inner join ipobj OBJ on OBJ.id=R.ipobj 
+                inner join policy_r PR on PR.id=R.rule 
+                where PR.firewall=${firewall} and PR.type=${type}
+                ${(rule) ? ` and PR.id=${rule}` : ``} order by PR.id,R.position`;
+
+            dbCon.query(sql, async (error, rules) => {
+                if (error) return reject(error);
+
+                try {
+                    if (rules.length > 0) {
+                        resolve(rules);
+                    } else resolve(null);
+                } catch (error) { reject(error) }
+            });
+        });
+    }
+
 
     //Get policy_r by  id  and firewall
     public static getPolicy_r(dbCon, firewall, rule) {

@@ -335,41 +335,26 @@ export class IPObj extends Model {
     };
 
 
-    public static getFinalIpobjPro(position_ipobj) {
+    public static getFinalIpobjPro(dbCon, position_ipobj) {
         return new Promise((resolve, reject) => {
-            db.get((error, connection) => {
+            let sql = '';
+
+            if (position_ipobj.type === "O") {
+                //SELECT IPOBJ DATA UNDER POSITION
+                sql = `SELECT * FROM ${tableName} 
+                       WHERE id=${dbCon.escape(position_ipobj.ipobj)} AND (fwcloud=${dbCon.escape(position_ipobj.fwcloud)} OR fwcloud IS NULL)`;
+            } else {
+                sql = `SELECT * FROM interface WHERE id=${dbCon.escape(position_ipobj.interface)}`;
+            }
+
+            dbCon.query(sql, (error, row) => {
                 if (error) return reject(error);
 
-                var sql = "";
-
-                if (position_ipobj.type === "O") {
-                    //SELECT IPOBJ DATA UNDER POSITION
-                    sql = 'SELECT I.*' +
-                        ' FROM ' + tableName + ' I ' +
-                        ' WHERE I.id = ' + connection.escape(position_ipobj.ipobj) + ' AND (I.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR I.fwcloud IS NULL)';
-                } else {
-                    sql = 'SELECT I.*' +
-                        ' FROM interface I ' +
-                        ' WHERE I.id = ' + connection.escape(position_ipobj.interface);
-                }
-                //logger().debug("getIpobjPro -> ", sql);
-                connection.query(sql, (error, row) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        if (row.length > 0) {
-                            //RETURN IPOBJ DATA
-                            var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.type);
-                            //logger().debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
-                            resolve(ipobj);
-
-                        } else {
-                            resolve({});
-                        }
-
-
-                    }
-                });
+                if (row.length > 0) {
+                    //RETURN IPOBJ DATA
+                    var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.type);
+                    resolve(ipobj);
+                } else resolve({});
             });
         });
     };

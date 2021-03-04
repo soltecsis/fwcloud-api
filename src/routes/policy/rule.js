@@ -164,7 +164,7 @@ router.put('/get', async (req, res) => {
 /* Get all policy_rs by firewall and type and Rule */
 router.put('/full/get', async (req, res) => {
 	try { 
-		const data = await PolicyRule.getPolicyDataDetailed(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		const data = await PolicyRule.getPolicyDataDetailed(req.body.dbCon, req.body.firewall, req.body.type, req.body.rule);
 		if (data && data.length > 0) 
 			res.status(200).json(data);
 		else

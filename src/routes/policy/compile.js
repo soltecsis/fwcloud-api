@@ -86,8 +86,9 @@ const fwcError = require('../../utils/error_table');
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.put('/rule', async (req, res) => {
 	try {
-  	/* The get method of the RuleCompile model returns a promise. */
-  	const data = await IPTablesCompiler.get(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		console.time(`Rule compile (ID: ${req.body.rule})`);
+		const data = await IPTablesCompiler.ruleCompile(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		console.timeEnd(`Rule compile (ID: ${req.body.rule})`);
 		res.status(200).json({"result": true, "cs": data});
 	} catch(error) {
 		logger().error('Error compiling firewall rule: ' + JSON.stringify(error));
@@ -100,6 +101,8 @@ router.put('/rule', async (req, res) => {
 /* Compile a firewall. */
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.put('/', async (req, res) => {
+	console.time(`Firewall compile (ID: ${req.body.firewall})`);
+
 	var fs = require('fs');
 	var path = config.get('policy').data_dir;
 	if (!fs.existsSync(path))
@@ -245,6 +248,9 @@ router.put('/', async (req, res) => {
 			await Firewall.updateFirewallCompileDate(req.body.fwcloud,req.body.firewall);
 
 			channel.emit('message', new ProgressPayload('end', false, "Compilation finished"));
+
+			console.timeEnd(`Firewall compile (ID: ${req.body.firewall})`);
+
 			res.status(204).end();
 		} catch(error) { 
 			channel.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));

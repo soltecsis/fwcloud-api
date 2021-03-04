@@ -102,23 +102,10 @@ export class PolicyScript {
                         ps += "# " + data[i].comment.replace(/\n/g, "\n# ") + "\n";
                     }
                     
-                    // Rule compilation cache disabled until issue "Policy compilation cache invalidation problem."
-                    // is solved.
-                    /*
-                    if (!parseInt(data[i].c_status_recompile)) // The compiled string in the database is ok.
-                        ps += data[i].c_compiled;
-                    else { // We must compile the rule.
-                        try {
-                            // The rule compilation order is important, then we must wait until we have the promise fulfilled.
-                            // For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
-                            ps += await RuleCompiler.get(req.body.fwcloud, req.body.firewall, type, data[i].id);
-                        } catch (error) { return reject(error) }
-                    }
-                    */
                     try {
                         // The rule compilation order is important, then we must wait until we have the promise fulfilled.
                         // For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
-                        ps += await IPTablesCompiler.get(req.body.fwcloud, req.body.firewall, type, data[i].id);
+                        ps += await IPTablesCompiler.ruleCompile(req.dbCon, req.body.fwcloud, req.body.firewall, type, data[i].id);
                     } catch (error) { return reject(error) }
                 }
 
