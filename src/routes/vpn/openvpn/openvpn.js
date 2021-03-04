@@ -426,6 +426,8 @@ router.put('/ccdsync', async(req, res) => {
 		const clients = await OpenVPN.getOpenvpnClients(req.dbCon,req.body.openvpn);
 
 		for (let client of clients) {
+			if (req.body.onlyPending && client.status===0) continue; // Only synchronize CCD files of pending OpenVPN client configs.
+
 			let cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,client.id);
 			await OpenVPN.installCfg(req,cfgDump.ccd,client_config_dir,client.cn,1, channel);
 
