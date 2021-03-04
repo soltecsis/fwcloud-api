@@ -87,7 +87,7 @@ const fwcError = require('../../utils/error_table');
 router.put('/rule', async (req, res) => {
 	try {
 		console.time(`Rule compile (ID: ${req.body.rule})`);
-		const data = await IPTablesCompiler.ruleCompile(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		const data = await IPTablesCompiler.compile(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
 		console.timeEnd(`Rule compile (ID: ${req.body.rule})`);
 		res.status(200).json({"result": true, "cs": data});
 	} catch(error) {
@@ -101,6 +101,7 @@ router.put('/rule', async (req, res) => {
 /* Compile a firewall. */
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.put('/', async (req, res) => {
+	IPTablesCompiler.totalGetDataTime = 0;
 	console.time(`Firewall compile (ID: ${req.body.firewall})`);
 
 	var fs = require('fs');
@@ -249,6 +250,7 @@ router.put('/', async (req, res) => {
 
 			channel.emit('message', new ProgressPayload('end', false, "Compilation finished"));
 
+			console.log(`Total get data time: ${IPTablesCompiler.totalGetDataTime}ms`)
 			console.timeEnd(`Firewall compile (ID: ${req.body.firewall})`);
 
 			res.status(204).end();

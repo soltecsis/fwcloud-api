@@ -224,27 +224,37 @@ export class PolicyRule extends Model {
             db.get((error, dbCon) => {
                 if (error) return reject(error);
 
+                /*
                 let sql = `SELECT ${fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style,
-				F.name as firewall_name,
-				F.options as firewall_options,
-				C.updated_at as c_updated_at,
-				IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled,
-				IF(P.mark>0, (select code from mark where id=P.mark), 0) as mark_code
-				FROM ${tableName} P 
-				LEFT JOIN policy_g G ON G.id=P.idgroup 
-				LEFT JOIN policy_c C ON C.rule=P.id
-				LEFT JOIN firewall F ON F.id=(IF((P.fw_apply_to is NULL),${firewall},P.fw_apply_to))
-				WHERE P.firewall=${firewall} AND P.type=${type}
-				${(rule) ? ` AND P.id=${rule}` : ``} ORDER BY P.rule_order`;
+                    F.name as firewall_name,
+                    F.options as firewall_options,
+                    C.updated_at as c_updated_at,
+                    IF((P.updated_at > C.updated_at) OR C.updated_at IS NULL, 0, IFNULL(C.status_compiled,0) ) as rule_compiled,
+                    IF(P.mark>0, (select code from mark where id=P.mark), 0) as mark_code
+                    FROM ${tableName} P 
+                    LEFT JOIN policy_g G ON G.id=P.idgroup 
+                    LEFT JOIN policy_c C ON C.rule=P.id
+                    LEFT JOIN firewall F ON F.id=(IF((P.fw_apply_to is NULL),${firewall},P.fw_apply_to))
+                    WHERE P.firewall=${firewall} AND P.type=${type}
+                    ${(rule) ? ` AND P.id=${rule}` : ``} ORDER BY P.rule_order`;
+                */
+                let sql = `SELECT ${fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style,
+                    F.name as firewall_name,
+                    F.options as firewall_options,
+                    IF(P.mark>0, (select code from mark where id=P.mark), 0) as mark_code
+                    FROM ${tableName} P 
+                    LEFT JOIN policy_g G ON G.id=P.idgroup 
+                    LEFT JOIN firewall F ON F.id=(IF((P.fw_apply_to is NULL),${firewall},P.fw_apply_to))
+                    WHERE P.firewall=${firewall} AND P.type=${type}
+                    ${(rule) ? ` AND P.id=${rule}` : ``} ORDER BY P.rule_order`;
 
                 dbCon.query(sql, async (error, rules) => {
                     if (error) return reject(error);
 
                     try {
                         if (rules.length > 0) {
-                            // Positions are always the same for all the rules of the same type.
-                            const positions: any = await PolicyPosition.getRulePositions(rules[0]);
                             for (let i=0; i<rules.length; i++) {
+                                let positions: any = await PolicyPosition.getRulePositions(rules[i]);
                                 rules[i].positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionDataDetailed(dbCon,data)));
                             }
                             resolve(rules);
@@ -256,19 +266,46 @@ export class PolicyRule extends Model {
     }
     
     //Get All policy_r by firewall and type
-    public static getPolicyDataDetailed_NEW(dbCon: any, firewall: number, type: number, rule: number) {
+    /*public static getPolicyDataDetailed_NEW(dbCon: any, firewall: number, type: number, rule: number) {
         return new Promise((resolve, reject) => {
-            let sql = `select R.position,OBJ.* from policy_r__ipobj R 
+            let sql = `select PR.*,R.position,OBJ.* from policy_r__ipobj R 
                 inner join ipobj OBJ on OBJ.id=R.ipobj 
                 inner join policy_r PR on PR.id=R.rule 
                 where PR.firewall=${firewall} and PR.type=${type}
-                ${(rule) ? ` and PR.id=${rule}` : ``} order by PR.id,R.position`;
+                ${(rule) ? ` and PR.id=${rule}` : ``} order by PR.rule_order,R.position`;
 
             dbCon.query(sql, async (error, rules) => {
                 if (error) return reject(error);
 
                 try {
                     if (rules.length > 0) {
+                        resolve(rules);
+                    } else resolve(null);
+                } catch (error) { reject(error) }
+            });
+        });
+    }*/
+    public static getPolicyDataDetailed_NEW(dbCon: any, fwcloud: number, firewall: number, type: number, rule?: number) {
+        return new Promise((resolve, reject) => {
+            let sql = `SELECT ${fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style,
+                F.name as firewall_name,
+                F.options as firewall_options,
+                IF(P.mark>0, (select code from mark where id=P.mark), 0) as mark_code
+                FROM ${tableName} P 
+                LEFT JOIN policy_g G ON G.id=P.idgroup 
+                LEFT JOIN firewall F ON F.id=(IF((P.fw_apply_to is NULL),${firewall},P.fw_apply_to))
+                WHERE P.firewall=${firewall} AND P.type=${type}
+                ${(rule) ? ` AND P.id=${rule}` : ``} ORDER BY P.rule_order`;
+
+            dbCon.query(sql, async (error, rules) => {
+                if (error) return reject(error);
+
+                try {
+                    if (rules.length > 0) {
+                        for (let i=0; i<rules.length; i++) {
+                            let positions: any = await PolicyPosition.getRulePositions(rules[i]);
+                            rules[i].positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionDataDetailed(dbCon,data)));
+                        }
                         resolve(rules);
                     } else resolve(null);
                 } catch (error) { reject(error) }
