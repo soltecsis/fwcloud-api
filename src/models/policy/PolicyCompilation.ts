@@ -87,33 +87,6 @@ export class PolicyCompilation extends Model {
 		});
 	};
 
-	//Get All policy_c by policy type and firewall
-	public static getPolicy_cs_type(fwcloud, idfirewall, type, callback) {
-
-		db.get((error, connection) => {
-			if (error)
-				callback(error, null);
-			//return only: id, rule_order, c_status_recompile, c_compiled, comment
-			var sql = 'SELECT R.id,R.rule_order,  ' +
-				' ((R.updated_at>=C.updated_at) OR C.updated_at is null) as c_status_recompile, C.rule_compiled as c_compiled, ' +
-				' R.comment, R.fw_apply_to, IFNULL(FC.name , F.name) as firewall_name  ' +
-				' FROM ' + (new PolicyRule).getTableName() + ' R LEFT JOIN ' + tableName + ' C ON R.id=C.rule ' +
-				' INNER JOIN firewall F on F.id=R.firewall ' +
-				' LEFT JOIN firewall FC on FC.id=R.fw_apply_to ' +
-				' WHERE R.firewall=' + connection.escape(idfirewall) + ' AND R.type=' + connection.escape(type) +
-				' AND F.fwcloud=' + connection.escape(fwcloud) + ' AND R.active=1 ' +
-				' ORDER BY R.rule_order';
-
-			connection.query(sql, (error, rows) => {
-				if (error)
-					callback(error, null);
-				else
-					callback(null, rows);
-			});
-		});
-	};
-
-
 
 
 	//Get policy_c by  id and firewall

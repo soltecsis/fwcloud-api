@@ -34,7 +34,7 @@ import { PolicyCompilation } from '../models/policy/PolicyCompilation';
  * @property RuleCompileModel
  * @type /models/compile/
  */
-import { IPTablesCompiler } from './iptables/iptables-compiler'
+import { IPTablesCompiler, IPTablesRuleCompiled } from './iptables/iptables-compiler'
 import { Firewall } from '../models/firewall/Firewall';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressNoticePayload, ProgressErrorPayload } from '../sockets/messages/socket-message';
@@ -88,30 +88,20 @@ export class PolicyScript {
         });
     }
 
-    public static dump(req, type, eventEmitter: EventEmitter = new EventEmitter()) {
-        return new Promise((resolve, reject) => {
-            PolicyCompilation.getPolicy_cs_type(req.body.fwcloud, req.body.firewall, type, async (error, data) => {
-                if (error) return reject(error);
+    public static dump(req, type: number, eventEmitter: EventEmitter = new EventEmitter()) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // Compile all rules of the same type.
+                const rulesCompiled =  await IPTablesCompiler.compile(req.dbCon, req.body.fwcloud, req.body.firewall, type, null, eventEmitter);
 
-                for (var ps = "", i = 0; i < data.length; i++) {
-                    eventEmitter.emit('message', new ProgressNoticePayload("Rule " + (i + 1) + " (ID: " + data[i].id + ")"));
-                    
-                    ps += "\necho \"RULE " + (i + 1) + " (ID: " + data[i].id + ")\"\n";
-                    
-                    if (data[i].comment) {
-                        ps += "# " + data[i].comment.replace(/\n/g, "\n# ") + "\n";
-                    }
-                    
-                    try {
-                        // The rule compilation order is important, then we must wait until we have the promise fulfilled.
-                        // For this reason we use await and async for the callback function of Policy_cModel.getPolicy_cs_type
-                        //ps += await IPTablesCompiler.compile(req.dbCon, req.body.fwcloud, req.body.firewall, type, data[i].id);
-                        ps += await IPTablesCompiler.compile(req.dbCon, req.body.fwcloud, req.body.firewall, type);
-                    } catch (error) { return reject(error) }
+                let ps = '';
+                for (let i=0; i < rulesCompiled.length; i++) {
+                    ps += `\necho \"Rule ${i+1} (ID: ${rulesCompiled[i].id})${!(rulesCompiled[i].active) ? ' [DISABLED]' : ''}\"\n`;
+                    if (rulesCompiled[i].comment) ps += `# ${rulesCompiled[i].comment.replace(/\n/g, "\n# ")}\n`;
+                    if (rulesCompiled[i].active) ps += rulesCompiled[i].cs;
                 }
-
                 resolve(ps);
-            });
+            } catch (error) { return reject(error) }
         });
     }
 

@@ -62,7 +62,7 @@ var router = express.Router();
  * @property RuleCompileModel
  * @type ../../models/compile/
  */
-import { IPTablesCompiler } from '../../compiler/iptables/iptables-compiler';
+import { IPTablesCompiler, IPTablesRuleCompiled } from '../../compiler/iptables/iptables-compiler';
 
 /**
  * Property Model to manage policy script generation and install process
@@ -86,10 +86,14 @@ const fwcError = require('../../utils/error_table');
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.put('/rule', async (req, res) => {
 	try {
-		console.time(`Rule compile (ID: ${req.body.rule})`);
-		const data = await IPTablesCompiler.compile(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
-		console.timeEnd(`Rule compile (ID: ${req.body.rule})`);
-		res.status(200).json({"result": true, "cs": data});
+		//console.time(`Rule compile (ID: ${req.body.rule})`);
+		const rulesCompiled = await IPTablesCompiler.compile(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		//console.timeEnd(`Rule compile (ID: ${req.body.rule})`);
+
+		if (rulesCompiled.length === 0)
+			throw new Error('It was not possible to compile the rule');
+
+		res.status(200).json({"result": true, "cs": rulesCompiled[0].cs});
 	} catch(error) {
 		logger().error('Error compiling firewall rule: ' + JSON.stringify(error));
 		res.status(400).json(error);

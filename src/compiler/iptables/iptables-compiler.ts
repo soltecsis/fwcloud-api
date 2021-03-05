@@ -23,6 +23,8 @@
 var fwcError = require('../../utils/error_table');
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
+import { EventEmitter } from 'events';
+import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
 var shellescape = require('shell-escape');
 
 export const POLICY_TYPE_INPUT = 1;
@@ -38,6 +40,13 @@ export const POLICY_TYPE_DNAT_IPv6 = 65;
 export const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 export const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING'];
 export const MARK_CHAIN = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
+
+export type IPTablesRuleCompiled = {
+    id: number;
+    active: number;
+    comment: string;
+    cs: string;
+}
 
 export class IPTablesCompiler {
     static totalGetDataTime: number = 0;
@@ -630,22 +639,27 @@ export class IPTablesCompiler {
     /*----------------------------------------------------------------------------------------------------------------------*/
 
     /*----------------------------------------------------------------------------------------------------------------------*/
-    public static compile(dbCon: any, fwcloud: number, firewall: number, type: number, rule?: number): Promise<string[]> {
+    public static compile(dbCon: any, fwcloud: number, firewall: number, type: number, rule?: number, eventEmitter?: EventEmitter): Promise<IPTablesRuleCompiled[]> {
         return new Promise(async (resolve, reject) => {
             try {
-                //console.time('Get data');
                 const tsStart = Date.now();
                 //data = await PolicyRule.getPolicyDataDetailed(fwcloud, firewall, type, rule);
                 const rulesData: any = await PolicyRule.getPolicyDataDetailed_NEW(dbCon, fwcloud, firewall, type, rule);
                 IPTablesCompiler.totalGetDataTime += Date.now() - tsStart;
-                //console.timeEnd('Get data');
-                if (!rulesData) return reject(fwcError.other('Rule data not found'));
+                
+                if (!rulesData) return resolve([]);
 
-                let result: string[] = [];
-                let cs: string;
+                let result: IPTablesRuleCompiled[] = [];
                 for (let i=0; i<rulesData.length; i++) {
-                    cs = await this.ruleCompile(rulesData[i]);
-                    result.push(cs);
+                    if (eventEmitter) 
+                        eventEmitter.emit('message', new ProgressNoticePayload(`Rule ${i+1} (ID: ${rulesData[i].id})${!(rulesData[i].active) ? ' [DISABLED]' : ''}`));
+
+                    result.push({
+                        id: rulesData[i].id,
+                        active: rulesData[i].active,
+                        comment: rulesData[i].comment,
+                        cs: (rulesData[i].active || rulesData.length===1) ? await this.ruleCompile(rulesData[i]) : ''
+                    });
                 }
 
                 resolve(result);
