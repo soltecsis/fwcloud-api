@@ -267,7 +267,7 @@ export class PolicyRule extends Model {
         });
     }
     
-    public static mapPolicyDataIPOBJ(dbCon: any, rulePositionsMap: RulePosMap, firewall: number, type: number, rule: number): Promise<void> {
+    private static mapPolicyDataIPOBJ(dbCon: any, rulePositionsMap: RulePosMap, firewall: number, type: number, rule: number): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `select R.rule,R.position,OBJ.* from policy_r__ipobj R 
                 inner join ipobj OBJ on OBJ.id=R.ipobj 
@@ -290,7 +290,7 @@ export class PolicyRule extends Model {
         });
     }
 
-    public static mapPolicyDataInterface(dbCon: any, rulePositionsMap: RulePosMap, firewall: number, type: number, rule: number): Promise<void> {
+    private static mapPolicyDataInterface(dbCon: any, rulePositionsMap: RulePosMap, firewall: number, type: number, rule: number): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `select R.rule,R.position,I.* from policy_r__interface R 
                 inner join interface I on I.id=R.interface 
@@ -313,6 +313,58 @@ export class PolicyRule extends Model {
         });
     }
 
+    private static mapPolicyDataOpenVPN(dbCon: any, rulePositionsMap: RulePosMap, firewall: number, type: number, rule: number): Promise<void> {
+        return new Promise((resolve, reject) => {
+            let sql = `select R.rule,R.position,O.* from policy_r__openvpn R 
+                inner join openvpn VPN on VPN.id=R.openvpn 
+                inner join openvpn_opt OPT on OPT.openvpn=VPN.id
+                inner join ipobj O on O.id=OPT.ipobj
+                inner join policy_r PR on PR.id=R.rule 
+                where PR.firewall=${firewall} and PR.type=${type} and OPT.name='ifconfig-push'
+                ${(rule) ? ` and PR.id=${rule}` : ``}`;
+
+            dbCon.query(sql, async (error, data) => {
+                if (error) return reject(error);
+
+                try {
+                    for (let i=0; i<data.length; i++) {
+                        const position_objs: any = rulePositionsMap.get(`${data[i].rule}:${data[i].position}`);
+                        position_objs.push(data[i]);
+                    }
+                } catch(error) { return reject(error) } 
+
+                resolve();
+            });
+        });
+    }
+
+    private static mapPolicyDataOpenVPNPrefix(dbCon: any, rulePositionsMap: RulePosMap, firewall: number, type: number, rule: number): Promise<void> {
+        return new Promise((resolve, reject) => {
+            let sql = `select R.rule,R.position,O.* from policy_r__openvpn_prefix R 
+                inner join openvpn_prefix PRE on PRE.id=R.prefix
+                inner join openvpn VPN on VPN.openvpn=PRE.openvpn
+                inner join crt CRT on CRT.id=VPN.crt
+                inner join openvpn_opt OPT on OPT.openvpn=VPN.id
+                inner join ipobj O on O.id=OPT.ipobj
+                inner join policy_r PR on PR.id=R.rule 
+                where PR.firewall=${firewall} and PR.type=${type} 
+                and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%') and OPT.name='ifconfig-push'
+                ${(rule) ? ` and PR.id=${rule}` : ``}`;
+
+            dbCon.query(sql, async (error, data) => {
+                if (error) return reject(error);
+
+                try {
+                    for (let i=0; i<data.length; i++) {
+                        const position_objs: any = rulePositionsMap.get(`${data[i].rule}:${data[i].position}`);
+                        position_objs.push(data[i]);
+                    }
+                } catch(error) { return reject(error) } 
+
+                resolve();
+            });
+        });
+    }
 
     //Get All policy_r by firewall and type
     public static getPolicyDataDetailed_NEW(dbCon: any, fwcloud: number, firewall: number, type: number, rule?: number) {
@@ -349,7 +401,9 @@ export class PolicyRule extends Model {
 
                         await Promise.all([
                             this.mapPolicyDataIPOBJ(dbCon, rulePositionsMap, firewall, type, rule),
-                            this.mapPolicyDataInterface(dbCon, rulePositionsMap, firewall, type, rule)
+                            this.mapPolicyDataInterface(dbCon, rulePositionsMap, firewall, type, rule),
+                            this.mapPolicyDataOpenVPN(dbCon, rulePositionsMap, firewall, type, rule),
+                            this.mapPolicyDataOpenVPNPrefix(dbCon, rulePositionsMap, firewall, type, rule)
                         ]);
 
                         resolve(rules);
