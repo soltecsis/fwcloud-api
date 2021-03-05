@@ -269,11 +269,21 @@ export class PolicyRule extends Model {
     
     private static buildSQLs(firewall: number, type: number, rule: number): string[] {
         return [
-            //SELECT ALL IPOBJ UNDER a POSITION
+            // All ipobj under a position.
             `select R.rule,R.position,O.* from policy_r__ipobj R 
             inner join ipobj O on O.id=R.ipobj 
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type} and O.type<>8
+            ${(rule) ? ` and PR.id=${rule}` : ``}`,
+
+            // All ipobj under host.
+            `select R.rule,R.position,OIF.* from policy_r__ipobj R 
+            inner join ipobj O on O.id=R.ipobj
+            inner join interface__ipobj II on II.ipobj=O.id
+            inner join interface I on I.id=II.interface
+            inner join ipobj OIF on OIF.interface=I.id 
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type} and O.type=8
             ${(rule) ? ` and PR.id=${rule}` : ``}`,
 
             //SELECT INTERFACES in POSITION I
