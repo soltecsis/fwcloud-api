@@ -269,14 +269,14 @@ export class PolicyRule extends Model {
     
     private static buildSQLs(firewall: number, type: number, rule: number): string[] {
         return [
-            // All ipobj under a position.
+            // All ipobj under a position excluding hosts.
             `select R.rule,R.position,O.* from policy_r__ipobj R 
             inner join ipobj O on O.id=R.ipobj 
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type} and O.type<>8
             ${(rule) ? ` and PR.id=${rule}` : ``}`,
 
-            // All ipobj under host.
+            // All ipobj under host (type=8).
             `select R.rule,R.position,OIF.* from policy_r__ipobj R 
             inner join ipobj O on O.id=R.ipobj
             inner join interface__ipobj II on II.ipobj=O.id
@@ -286,14 +286,41 @@ export class PolicyRule extends Model {
             where PR.firewall=${firewall} and PR.type=${type} and O.type=8
             ${(rule) ? ` and PR.id=${rule}` : ``}`,
 
-            //SELECT INTERFACES in POSITION I
+            // All ipobj under group excluding hosts (type=8)
+            `select R.rule,R.position,O.* from policy_r__ipobj R 
+            inner join ipobj__ipobjg G on G.ipobj_g=R.ipobj_g
+            inner join ipobj O on O.id=G.ipobj
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type} and O.type<>8
+            ${(rule) ? ` and PR.id=${rule}` : ``}`,
+
+            // All ipobj under host (type=8) included in IP objects groups 
+            `select R.rule,R.position,OIF.* from policy_r__ipobj R 
+            inner join ipobj__ipobjg G on G.ipobj_g=R.ipobj_g
+            inner join ipobj O on O.id=G.ipobj
+            inner join interface__ipobj II on II.ipobj=O.id
+            inner join interface I on I.id=II.interface
+            inner join ipobj OIF on OIF.interface=I.id
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type} and O.type=8
+            ${(rule) ? ` and PR.id=${rule}` : ``}`,
+            
+            // All interfaces in positions I
             `select R.rule,R.position,I.* from policy_r__interface R 
             inner join interface I on I.id=R.interface 
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type}
             ${(rule) ? ` and PR.id=${rule}` : ``}`,
 
-            //SELECT IPOBJ UNDER OPENVPN POSITION O
+            // All ipobj under interfaces in position O
+            `select R.rule,R.position,O.* from policy_r__ipobj R 
+            inner join interface I on I.id=R.interface
+            inner join ipobj O on O.interface=I.id
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${(rule) ? ` and PR.id=${rule}` : ``}`,
+
+            // All ipobj under OpenVPNs in type O positions
             `select R.rule,R.position,O.* from policy_r__openvpn R 
             inner join openvpn VPN on VPN.id=R.openvpn 
             inner join openvpn_opt OPT on OPT.openvpn=VPN.id
@@ -302,7 +329,7 @@ export class PolicyRule extends Model {
             where PR.firewall=${firewall} and PR.type=${type} and OPT.name='ifconfig-push'
             ${(rule) ? ` and PR.id=${rule}` : ``}`,
 
-            //SELECT IPOBJ UNDER OPENVPN PREFIX POSITION O
+            // All ipobj under OpenVPN prefix into type O positions
             `select R.rule,R.position,O.* from policy_r__openvpn_prefix R 
             inner join openvpn_prefix PRE on PRE.id=R.prefix
             inner join openvpn VPN on VPN.openvpn=PRE.openvpn
@@ -353,17 +380,20 @@ export class PolicyRule extends Model {
                     if (rules.length > 0) {
                         // Positions array data is the same for all the rules of the same type.
                         const positions: any = await PolicyPosition.getPolicyTypePositions(dbCon,type);
-                        for (let i=0; i<positions.length; i++) positions[i].position_objs = [];
 
                         // Init the map for access the position objects array for each rule and position.
                         const rulePositionsMap: RulePosMap = new Map<string, []>();
                         for (let i=0; i<rules.length; i++) {
-                            //let positions: any = await PolicyPosition.getRulePositions(rules[i]);
-                            //rules[i].positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionDataDetailed(dbCon,data)));
-                            rules[i].positions = [...positions];
-                            for(let j=0; j<positions.length; j++) {
+                            // Clone the positions array and generate new position_objs arrays for each position.
+                            rules[i].positions = positions.map(a => ({...a}));
+                            for (let j=0; j<positions.length; j++)
+                                rules[i].positions[j].position_objs = [];
+
+                            // Map each rule id and position with it's corresponding position_objs array.
+                            // These position_objs array will be filled with objects data in the Promise.all()
+                            // next to the outer for loop.
+                            for(let j=0; j<positions.length; j++)
                                 rulePositionsMap.set(`${rules[i].id}:${positions[j].id}`, rules[i].positions[j].position_objs);
-                            }
                         }
 
                         const sqls = this.buildSQLs(firewall, type, rule);
