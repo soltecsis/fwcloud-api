@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Huge improvement in IPTables compiler process. Nearly 40 times faster. 
 - Option for only sync the CCD files of the OpenVPN clients pending of install.
 - New API call `PUT /policy/rule/type/ingroup/get` for get only the firewall rules into a rules group, including the data about objects into rules positions.
 - New API call `PUT /policy/rule/type/grouped/get` for get firewall policy rules of one type but without getting data about objects into rules positions into rules groups. This is very useful for speed up policy load in FWCloud-UI.

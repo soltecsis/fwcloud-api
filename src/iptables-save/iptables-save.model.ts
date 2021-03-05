@@ -959,12 +959,12 @@ export class IptablesSaveToFWCloud extends Service {
       return;
     }
 
-    let data: any = await PolicyRule.getPolicyDataDetailed(this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.previousRuleId);
+    let data: any = await PolicyRule.getPolicyDataDetailed(this.req.body.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.previousRuleId);
     this.previousRuleId = this.ruleId; // Important, do it here before check the data result of the previous method call.
     if (!data || !data.length || data.length!=1) return;
     const previousRule = data[0];
 
-    data = await PolicyRule.getPolicyDataDetailed(this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.ruleId);
+    data = await PolicyRule.getPolicyDataDetailed(this.req.body.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.ruleId);
     if (!data || !data.length || data.length!=1) return;
     const currentRule = data[0];
 

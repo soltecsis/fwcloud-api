@@ -644,7 +644,7 @@ export class IPTablesCompiler {
             try {
                 const tsStart = Date.now();
                 //data = await PolicyRule.getPolicyDataDetailed(fwcloud, firewall, type, rule);
-                const rulesData: any = await PolicyRule.getPolicyDataDetailed_NEW(dbCon, fwcloud, firewall, type, rule);
+                const rulesData: any = await PolicyRule.getPolicyDataDetailed(dbCon, fwcloud, firewall, type, rule);
                 IPTablesCompiler.totalGetDataTime += Date.now() - tsStart;
                 
                 if (!rulesData) return resolve([]);
