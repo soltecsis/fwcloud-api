@@ -369,6 +369,15 @@ export class PolicyPosition extends Model {
         });
     }
 
+    public static getPolicyTypePositions(dbCon, type: number) {
+        return new Promise((resolve, reject) => {
+            dbCon.query(`SELECT id,name,position_order FROM ${tableName} WHERE policy_type=${type} ORDER BY position_order`, (error, positions) => {
+                if (error) return reject(error);
+                resolve(positions);
+            });
+        });
+    }
+
 
 
     //Get policy_position by  id

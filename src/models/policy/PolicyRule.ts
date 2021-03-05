@@ -43,6 +43,8 @@ const fwcError = require('../../utils/error_table');
 
 var tableName: string = "policy_r";
 
+type RulePosMap = Map<string, []>;
+
 @Entity(tableName)
 export class PolicyRule extends Model {
 
@@ -265,26 +267,54 @@ export class PolicyRule extends Model {
         });
     }
     
-    //Get All policy_r by firewall and type
-    /*public static getPolicyDataDetailed_NEW(dbCon: any, firewall: number, type: number, rule: number) {
+    public static mapPolicyDataIPOBJ(dbCon: any, rulePositionsMap: RulePosMap, firewall: number, type: number, rule: number): Promise<void> {
         return new Promise((resolve, reject) => {
-            let sql = `select PR.*,R.position,OBJ.* from policy_r__ipobj R 
+            let sql = `select R.rule,R.position,OBJ.* from policy_r__ipobj R 
                 inner join ipobj OBJ on OBJ.id=R.ipobj 
                 inner join policy_r PR on PR.id=R.rule 
                 where PR.firewall=${firewall} and PR.type=${type}
-                ${(rule) ? ` and PR.id=${rule}` : ``} order by PR.rule_order,R.position`;
+                ${(rule) ? ` and PR.id=${rule}` : ``}`;
 
-            dbCon.query(sql, async (error, rules) => {
+            dbCon.query(sql, async (error, data) => {
                 if (error) return reject(error);
 
                 try {
-                    if (rules.length > 0) {
-                        resolve(rules);
-                    } else resolve(null);
-                } catch (error) { reject(error) }
+                    for (let i=0; i<data.length; i++) {
+                        const position_objs: any = rulePositionsMap.get(`${data[i].rule}:${data[i].position}`);
+                        position_objs.push(data[i]);
+                    }
+                } catch(error) { return reject(error) } 
+
+                resolve();
             });
         });
-    }*/
+    }
+
+    public static mapPolicyDataInterface(dbCon: any, rulePositionsMap: RulePosMap, firewall: number, type: number, rule: number): Promise<void> {
+        return new Promise((resolve, reject) => {
+            let sql = `select R.rule,R.position,I.* from policy_r__interface R 
+                inner join interface I on I.id=R.interface 
+                inner join policy_r PR on PR.id=R.rule 
+                where PR.firewall=${firewall} and PR.type=${type}
+                ${(rule) ? ` and PR.id=${rule}` : ``}`;
+
+            dbCon.query(sql, async (error, data) => {
+                if (error) return reject(error);
+
+                try {
+                    for (let i=0; i<data.length; i++) {
+                        const position_objs: any = rulePositionsMap.get(`${data[i].rule}:${data[i].position}`);
+                        position_objs.push(data[i]);
+                    }
+                } catch(error) { return reject(error) } 
+
+                resolve();
+            });
+        });
+    }
+
+
+    //Get All policy_r by firewall and type
     public static getPolicyDataDetailed_NEW(dbCon: any, fwcloud: number, firewall: number, type: number, rule?: number) {
         return new Promise((resolve, reject) => {
             let sql = `SELECT ${fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style,
@@ -302,10 +332,26 @@ export class PolicyRule extends Model {
 
                 try {
                     if (rules.length > 0) {
+                        // Positions array data is the same for all the rules of the same type.
+                        const positions: any = await PolicyPosition.getPolicyTypePositions(dbCon,type);
+                        for (let i=0; i<positions.length; i++) positions[i].position_objs = [];
+
+                        // Init the map for access the position objects array for each rule and position.
+                        const rulePositionsMap: RulePosMap = new Map<string, []>();
                         for (let i=0; i<rules.length; i++) {
-                            let positions: any = await PolicyPosition.getRulePositions(rules[i]);
-                            rules[i].positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionDataDetailed(dbCon,data)));
+                            //let positions: any = await PolicyPosition.getRulePositions(rules[i]);
+                            //rules[i].positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionDataDetailed(dbCon,data)));
+                            rules[i].positions = [...positions];
+                            for(let j=0; j<positions.length; j++) {
+                                rulePositionsMap.set(`${rules[i].id}:${positions[j].id}`, rules[i].positions[j].position_objs);
+                            }
                         }
+
+                        await Promise.all([
+                            this.mapPolicyDataIPOBJ(dbCon, rulePositionsMap, firewall, type, rule),
+                            this.mapPolicyDataInterface(dbCon, rulePositionsMap, firewall, type, rule)
+                        ]);
+
                         resolve(rules);
                     } else resolve(null);
                 } catch (error) { reject(error) }

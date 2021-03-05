@@ -651,8 +651,7 @@ export class IPTablesCompiler {
 
                 let result: IPTablesRuleCompiled[] = [];
                 for (let i=0; i<rulesData.length; i++) {
-                    if (eventEmitter) 
-                        eventEmitter.emit('message', new ProgressNoticePayload(`Rule ${i+1} (ID: ${rulesData[i].id})${!(rulesData[i].active) ? ' [DISABLED]' : ''}`));
+                    if (eventEmitter) eventEmitter.emit('message', new ProgressNoticePayload(`Rule ${i+1} (ID: ${rulesData[i].id})${!(rulesData[i].active) ? ' [DISABLED]' : ''}`));
 
                     result.push({
                         id: rulesData[i].id,
