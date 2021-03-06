@@ -25,7 +25,6 @@ var express = require('express');
 var router = express.Router();
 
 import { Mark } from '../../models/ipobj/Mark';
-import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Tree } from '../../models/tree/Tree';
 import { logger } from '../../fonaments/abstract-application';
 const restrictedCheck = require('../../middleware/restricted');
@@ -67,10 +66,6 @@ router.put('/', async (req, res) => {
 		const existsId = await Mark.existsMark(req.dbCon,req.body.fwcloud,req.body.code);
 		if (existsId && existsId!==req.body.mark) 
 			throw fwcError.ALREADY_EXISTS;
-
-		// Invalidate the compilation of the rules that use this mark.
-		const search = await Mark.searchMarkUsage(req.dbCon,req.body.fwcloud,req.body.mark);
-		await PolicyCompilation.deleteRulesCompilation(req.body.fwcloud,search.restrictions.MarkInRule);
 
    	// Modify the mark data.
 		await Mark.modifyMark(req);

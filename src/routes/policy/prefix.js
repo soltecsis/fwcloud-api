@@ -26,10 +26,8 @@ var router = express.Router();
 
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
-import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-import { PolicyRule } from '../../models/policy/PolicyRule';
 import { logger } from '../../fonaments/abstract-application';
 const utilsModel = require("../../utils/utils.js");
 const fwcError = require('../../utils/error_table');
@@ -71,9 +69,6 @@ async (req, res) => {
 		if (content.content1!=='O' || content.content2!=='O')
 			throw fwcError.BAD_POSITION;
 
-		// Invalidate compilation of the affected rules.
-		await PolicyCompilation.deletePolicy_c(req.body.rule);
-		if (req.body.rule != req.body.new_rule) await PolicyCompilation.deletePolicy_c(req.body.new_rule);
 		await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"|3");
 
 		// Move OpenVPN configuration object to the new position.

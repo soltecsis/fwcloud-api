@@ -21,9 +21,7 @@
 */
 
 import Model from "../Model";
-import { Entity, Column, getRepository, PrimaryColumn, Repository, ManyToOne, JoinColumn } from "typeorm";
-import { PolicyCompilation } from "./PolicyCompilation";
-import { app } from "../../fonaments/abstract-application";
+import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
 import { PolicyPosition } from "./PolicyPosition";
 import { OpenVPN } from "../vpn/openvpn/OpenVPN";
 import { PolicyRule } from "./PolicyRule";

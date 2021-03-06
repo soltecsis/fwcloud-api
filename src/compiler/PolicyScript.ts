@@ -21,14 +21,6 @@
 */
 
 /**
-* Property Model to manage Policy Compiled Data
-*
-* @property Policy_cModel
-* @type /models/policy_c
-*/
-import { PolicyCompilation } from '../models/policy/PolicyCompilation';
-
-/**
  * Property Model to manage compilation process
  *
  * @property RuleCompileModel

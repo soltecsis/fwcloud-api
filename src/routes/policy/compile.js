@@ -254,8 +254,8 @@ router.put('/', async (req, res) => {
 
 			channel.emit('message', new ProgressPayload('end', false, "Compilation finished"));
 
-			console.log(`Total get data time: ${IPTablesCompiler.totalGetDataTime}ms`)
-			console.timeEnd(`Firewall compile (ID: ${req.body.firewall})`);
+			//console.log(`Total get data time: ${IPTablesCompiler.totalGetDataTime}ms`)
+			//console.timeEnd(`Firewall compile (ID: ${req.body.firewall})`);
 
 			res.status(204).end();
 		} catch(error) { 

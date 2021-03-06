@@ -26,7 +26,6 @@ var router = express.Router();
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
 import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
@@ -69,9 +68,6 @@ async(req, res) => {
 	var firewall = req.body.firewall;
 
 	try {
-		// Invalidate compilation of the affected rules.
-		await PolicyCompilation.deletePolicy_c(rule);
-		if (rule != new_rule) await PolicyCompilation.deletePolicy_c(new_rule);
 		await Firewall.updateFirewallStatus(req.body.fwcloud,firewall,"|3");
 
 		// Get positions content.

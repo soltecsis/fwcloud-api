@@ -22,7 +22,6 @@
 
 var fwcError = require('../../utils/error_table');
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { EventEmitter } from 'events';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
 var shellescape = require('shell-escape');
@@ -642,10 +641,9 @@ export class IPTablesCompiler {
     public static compile(dbCon: any, fwcloud: number, firewall: number, type: number, rule?: number, eventEmitter?: EventEmitter): Promise<IPTablesRuleCompiled[]> {
         return new Promise(async (resolve, reject) => {
             try {
-                const tsStart = Date.now();
-                //data = await PolicyRule.getPolicyDataDetailed(fwcloud, firewall, type, rule);
+                //const tsStart = Date.now();
                 const rulesData: any = await PolicyRule.getPolicyDataDetailed(dbCon, fwcloud, firewall, type, rule);
-                IPTablesCompiler.totalGetDataTime += Date.now() - tsStart;
+                //IPTablesCompiler.totalGetDataTime += Date.now() - tsStart;
                 
                 if (!rulesData) return resolve([]);
 

@@ -27,18 +27,14 @@ import db from '../../database/database-manager';
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
 import { PolicyPosition } from './PolicyPosition';
-import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { PolicyGroup } from "./PolicyGroup";
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-import { getRepository, Column, Entity, PrimaryGeneratedColumn, MoreThan, MoreThanOrEqual, Repository, OneToOne, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import { IPTablesCompiler } from "../../compiler/iptables/iptables-compiler";
-import { app, logger } from "../../fonaments/abstract-application";
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { logger } from "../../fonaments/abstract-application";
 import { PolicyType } from "./PolicyType";
 import { Firewall } from "../firewall/Firewall";
 import { Mark } from "../ipobj/Mark";
-import { DatabaseService } from "../../database/database.service";
-import Query from "../../database/Query";
 const fwcError = require('../../utils/error_table');
 
 var tableName: string = "policy_r";
@@ -98,9 +94,6 @@ export class PolicyRule extends Model {
 
     @Column()
     updated_by: number;
-
-    @OneToOne(type => PolicyCompilation, policyCompilation => policyCompilation.policyRule)
-    compilation: PolicyCompilation;
 
     @Column({name: 'idgroup'})
     policyGroupId: number;
@@ -925,8 +918,6 @@ export class PolicyRule extends Model {
                         try {
                             await PolicyRuleToOpenVPN.deleteFromRule(dbCon, rule);
                             await PolicyRuleToOpenVPNPrefix.deleteFromRule(dbCon, rule);
-                            //DELETE POLICY_C compilation
-                            await PolicyCompilation.deletePolicy_c(rule);
                         } catch (error) { return reject(error) }
 
                         // DELETE FULE
