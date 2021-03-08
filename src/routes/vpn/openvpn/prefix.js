@@ -24,7 +24,6 @@
 var express = require('express');
 var router = express.Router();
 import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
-import { PolicyCompilation } from '../../../models/policy/PolicyCompilation';
 import { logger } from '../../../fonaments/abstract-application';
 const restrictedCheck = require('../../../middleware/restricted');
 const fwcError = require('../../../utils/error_table');
@@ -71,12 +70,6 @@ router.put('/', async (req, res) => {
 		const search = await OpenVPNPrefix.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
 		if (search.result && (await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.body.name)).length < 1)
 			throw fwcError.IPOBJ_EMPTY_CONTAINER;
-
-		// Invalidate the compilation of the rules that use this prefix.
-		await PolicyCompilation.deleteRulesCompilation(req.body.fwcloud,search.restrictions.PrefixInRule);
-
-		// Invalidate the compilation of the rules that use a group that use this prefix.
-		await PolicyCompilation.deleteGroupsInRulesCompilation(req.dbCon,req.body.fwcloud,search.restrictions.PrefixInGroup);
 
    	// Modify the prefix name.
 		await OpenVPNPrefix.modifyPrefix(req);

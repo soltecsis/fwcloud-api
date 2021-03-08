@@ -114,7 +114,7 @@ async (req, res) => {
 /* Get all policy_rs by firewall and type */
 router.put('/type/get', async (req, res) => {
 	try {
-		const policy = await PolicyRule.getPolicyData(req);
+		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, null, null);
 		res.status(200).json(policy);
 	} catch(error) {
 		logger().error('Error finding a rule: ' + JSON.stringify(error));
@@ -125,7 +125,7 @@ router.put('/type/get', async (req, res) => {
 /* Get policy rules by firewall type and rules group */
 router.put('/type/ingroup/get', async (req, res) => {
 	try {
-		const policy = await PolicyRule.getPolicyData(req);
+		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, null, req.body.idgroup);
 		res.status(200).json(policy);
 	} catch(error) {
 		logger().error('Error finding a rule: ' + JSON.stringify(error));
@@ -136,7 +136,7 @@ router.put('/type/ingroup/get', async (req, res) => {
 /* Get all policy_rs by firewall and type but don't expand group contents */
 router.put('/type/grouped/get', async (req, res) => {
 	try {
-		const policy = await PolicyRule.getPolicyData(req, true);
+		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, null, null, true);
 		res.status(200).json(policy);
 	} catch(error) {
 		logger().error('Error finding a rule: ' + JSON.stringify(error));
@@ -148,7 +148,7 @@ router.put('/type/grouped/get', async (req, res) => {
 /* Get all policy_rs by firewall and type and Rule */
 router.put('/get', async (req, res) => {
 	try {
-		const policy = await PolicyRule.getPolicyData(req);
+		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule, null);
 		//If exists policy_r get data
 		if (policy && policy.length > 0) 
 			res.status(200).json(policy[0]);
@@ -164,7 +164,7 @@ router.put('/get', async (req, res) => {
 /* Get all policy_rs by firewall and type and Rule */
 router.put('/full/get', async (req, res) => {
 	try { 
-		const data = await PolicyRule.getPolicyDataDetailed(req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		const data = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule, null);
 		if (data && data.length > 0) 
 			res.status(200).json(data);
 		else

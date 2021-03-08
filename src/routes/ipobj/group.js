@@ -37,7 +37,6 @@ import { Firewall } from '../../models/firewall/Firewall';
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
-import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../models/tree/Tree';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
@@ -200,8 +199,6 @@ router.put('/addto', async(req, res) => {
 		//INSERT IN TREE
 		await Tree.newNode(req.dbCon, req.body.fwcloud, dataIpobj[0].name, req.body.node_parent, req.body.node_type, req.body.ipobj, dataIpobj[0].type);
 
-		// Invalidate the policy compilation of all affected rules.
-		await PolicyCompilation.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
 		// Update affected firewalls status.
 		await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 
@@ -233,8 +230,6 @@ router.put('/delfrom', async(req, res) => {
 
 		await Tree.deleteFwc_TreeGroupChild(req.dbCon, req.body.fwcloud, req.body.ipobj_g, req.body.ipobj);
 
-		// Invalidate the policy compilation of all affected rules.
-		await PolicyCompilation.deleteFullGroupPolicy_c(req.dbCon, req.body.ipobj_g);
 		await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
 
 		const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(req.body.fwcloud, null);

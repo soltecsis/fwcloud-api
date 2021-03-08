@@ -26,7 +26,6 @@ var router = express.Router();
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
 import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
@@ -109,9 +108,6 @@ async (req, res) => {
 	};
 
 	try {
-		// Invalidate compilation of the affected rules and change compilation/installation status.
-		await PolicyCompilation.deletePolicy_c(rule);
-		if (rule != new_rule) await PolicyCompilation.deletePolicy_c(new_rule);
 		await Firewall.updateFirewallStatus(req.body.fwcloud,firewall,"|3");
 
 		if (await PolicyRuleToIPObj.checkExistsInPosition(policy_r__ipobjData))

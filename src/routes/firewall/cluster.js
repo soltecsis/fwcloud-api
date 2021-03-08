@@ -68,7 +68,6 @@ var utilsModel = require("../../utils/utils.js");
 
 import { Tree } from '../../models/tree/Tree';
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Firewall } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
 import { logger } from '../../fonaments/abstract-application';
@@ -419,7 +418,6 @@ router.put('/', async (req, res) => {
 
 	try {
 		const masterFirewallID = await Firewall.getMasterFirewallId(clusterData.fwcloud, clusterData.id);
-		await PolicyCompilation.deleteFullFirewallPolicy_c(req.dbCon,masterFirewallID);
 		await Cluster.updateCluster(req.dbCon, req.body.fwcloud, clusterData);
 
 		// If this a stateful cluster verify that the stateful special rules exists.

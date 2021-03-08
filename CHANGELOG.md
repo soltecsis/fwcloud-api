@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Huge improvement in IPTables compiler process. Nearly 40 times faster. 
 - Option for only sync the CCD files of the OpenVPN clients pending of install.
 - New API call `PUT /policy/rule/type/ingroup/get` for get only the firewall rules into a rules group, including the data about objects into rules positions.
 - New API call `PUT /policy/rule/type/grouped/get` for get firewall policy rules of one type but without getting data about objects into rules positions into rules groups. This is very useful for speed up policy load in FWCloud-UI.
@@ -36,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bug in autodiscover when the `ip a` command returns interfaces with name like this one: `ens193.40@ens193:` In such cases the interface name must be the string preceding the `@` character.
 
 ### Changed
+- Removed table policy_c and all the code that uses it.
 - Removed `mysqldump` and `mysql-import` node modules.
 - Set the maximum size of accepted data for BodyParser to 2MB.
 - Disable confirmation token for `PUT /ping` API call.

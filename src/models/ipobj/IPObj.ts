@@ -27,12 +27,11 @@ import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { Interface } from '../../models/interface/Interface';
 import Model from '../Model';
-import { PrimaryGeneratedColumn, Column, Entity, getRepository, Repository, ManyToOne, JoinColumn, OneToMany, ManyToMany } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany, ManyToMany } from 'typeorm';
 import { FwCloud } from '../fwcloud/FwCloud';
-import { app, logger } from '../../fonaments/abstract-application';
+import { logger } from '../../fonaments/abstract-application';
 import { IPObjType } from './IPObjType';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
-import { PolicyRule } from '../policy/PolicyRule';
 import { RoutingRuleToIPObj } from '../routing/routing-rule-to-ipobj.model';
 const ip = require('ip');
 var asyncMod = require('async');
@@ -334,45 +333,6 @@ export class IPObj extends Model {
         });
     };
 
-
-    public static getFinalIpobjPro(position_ipobj) {
-        return new Promise((resolve, reject) => {
-            db.get((error, connection) => {
-                if (error) return reject(error);
-
-                var sql = "";
-
-                if (position_ipobj.type === "O") {
-                    //SELECT IPOBJ DATA UNDER POSITION
-                    sql = 'SELECT I.*' +
-                        ' FROM ' + tableName + ' I ' +
-                        ' WHERE I.id = ' + connection.escape(position_ipobj.ipobj) + ' AND (I.fwcloud=' + connection.escape(position_ipobj.fwcloud) + ' OR I.fwcloud IS NULL)';
-                } else {
-                    sql = 'SELECT I.*' +
-                        ' FROM interface I ' +
-                        ' WHERE I.id = ' + connection.escape(position_ipobj.interface);
-                }
-                //logger().debug("getIpobjPro -> ", sql);
-                connection.query(sql, (error, row) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        if (row.length > 0) {
-                            //RETURN IPOBJ DATA
-                            var ipobj = new data_policy_position_ipobjs(row[0], position_ipobj.position_order, position_ipobj.type);
-                            //logger().debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
-                            resolve(ipobj);
-
-                        } else {
-                            resolve({});
-                        }
-
-
-                    }
-                });
-            });
-        });
-    };
 
     //Get ipobj HOST by  id and ALL IPOBjs
     /**
