@@ -126,56 +126,6 @@ export class PolicyPosition extends Model {
     }
 
 
-    public static getRulePositionData(dbCon, position) {
-        return new Promise((resolve, reject) => {
-            const sql = `SELECT OBJ.id, OBJ.name, OBJ.type, R.position_order, '' as labelName 
-                FROM policy_r__ipobj R INNER JOIN ipobj OBJ ON OBJ.id=R.ipobj 
-                WHERE R.rule=${position.rule} AND R.position=${position.id}
-
-                UNION SELECT G.id, G.name, G.type, R.position_order, '' as labelName
-                FROM policy_r__ipobj R INNER JOIN ipobj_g G ON G.id=R.ipobj_g 
-                WHERE R.rule=${position.rule} AND R.position=${position.id}
-
-                UNION SELECT I.id, I.name, I.type, R.position_order, I.labelName 
-                FROM policy_r__ipobj R INNER JOIN interface I ON I.id=R.interface 
-                WHERE R.rule=${position.rule} AND R.position=${position.id}
-
-                UNION SELECT I.id, I.name, I.type, R.position_order, I.labelName 
-                FROM policy_r__interface R INNER JOIN interface I ON I.id=R.interface
-                WHERE R.rule=${position.rule} AND R.position=${position.id}
-
-                UNION SELECT VPN.id, CRT.cn, "311" as type, R.position_order, '' as labelName
-                FROM policy_r__openvpn R INNER JOIN openvpn VPN ON VPN.id=R.openvpn
-                INNER JOIN crt CRT ON CRT.id=VPN.crt
-                WHERE R.rule=${position.rule} AND R.position=${position.id}
-
-                UNION SELECT PRE.id, PRE.name, "401" as type, R.position_order, '' as labelName
-                FROM policy_r__openvpn_prefix R INNER JOIN openvpn_prefix PRE ON PRE.id=R.prefix
-                WHERE R.rule=${position.rule} AND R.position=${position.id}
-                
-                ORDER BY position_order`;
-            
-            dbCon.query(sql, async (error, items) => {
-                if (error) return reject(error);
-
-                for (let i=0; i<items.length; i++) {
-                    if (items[i].type === '10') // INTERFACE FIREWALL
-                        items[i].firewall_id = parseInt(position.firewall);
-                }
-
-                resolve({
-                    content: position.content,
-                    id: position.id,
-                    name: position.name,
-                    policy_type: position.policy_type,
-                    position_order: position.position_order,
-                    single_object: position.single_object,
-                    ipobjs: items,
-                });
-            });
-        });
-    }
-
     //Get policy_position by type
     public static getRulePositions(rule) {
         return new Promise((resolve, reject) => {
@@ -183,7 +133,8 @@ export class PolicyPosition extends Model {
                 if (error) return reject(error);
                 
                 let sql = `SELECT ${rule.fwcloud} as fwcloud,${rule.firewall} as firewall,${rule.id} as rule, P.* 
-                    FROM ${tableName} P WHERE P.policy_type=${rule.type} ORDER BY P.position_order`;
+                    FROM ${tableName} P 
+                    WHERE P.policy_type=${rule.type} ORDER BY P.position_order`;
                 connection.query(sql, async (error, positions) => {
                     if (error) return reject(error);
                     resolve(positions);
@@ -191,16 +142,6 @@ export class PolicyPosition extends Model {
             });
         });
     }
-
-    public static getPolicyTypePositions(dbCon, type: number) {
-        return new Promise((resolve, reject) => {
-            dbCon.query(`SELECT id,name,position_order FROM ${tableName} WHERE policy_type=${type} ORDER BY position_order`, (error, positions) => {
-                if (error) return reject(error);
-                resolve(positions);
-            });
-        });
-    }
-
 
 
     //Get policy_position by  id

@@ -285,33 +285,33 @@ export class IPTablesCompiler {
         // The positions first in the array will be used first in the conditions.
         // INTERFACE IN / OUT
         dir = (policy_type === POLICY_TYPE_OUTPUT || policy_type === POLICY_TYPE_SNAT) ? "-o " : "-i ";
-        objs = rule.positions[0].position_objs;
+        objs = rule.positions[0].ipobjs;
         negated = this.isPositionNegated(rule.negate, rule.positions[0].id);
         if (items = this.pre_compile_if(dir, objs, negated))
             position_items.push(items);
 
         // INTERFACE OUT
         if (policy_type === POLICY_TYPE_FORWARD) {
-            objs = rule.positions[1].position_objs;
+            objs = rule.positions[1].ipobjs;
             negated = this.isPositionNegated(rule.negate, rule.positions[1].id);
             if (items = this.pre_compile_if("-o ", objs, negated))
                 position_items.push(items);
         }
 
         // SERVICE
-        objs = rule.positions[svc_position].position_objs;
+        objs = rule.positions[svc_position].ipobjs;
         negated = this.isPositionNegated(rule.negate, rule.positions[svc_position].id);
         if (items = this.pre_compile_svc(":", objs, negated, rule.ip_version))
             position_items.push(items);
 
         // SOURCE
-        objs = rule.positions[src_position].position_objs;
+        objs = rule.positions[src_position].ipobjs;
         negated = this.isPositionNegated(rule.negate, rule.positions[src_position].id);
         if (items = this.pre_compile_sd("-s ", objs, negated, rule.ip_version))
             position_items.push(items);
 
         // DESTINATION
-        objs = rule.positions[dst_position].position_objs;
+        objs = rule.positions[dst_position].ipobjs;
         negated = this.isPositionNegated(rule.negate, rule.positions[dst_position].id);
         if (items = this.pre_compile_sd("-d ", objs, negated, rule.ip_version))
             position_items.push(items);
@@ -510,17 +510,17 @@ export class IPTablesCompiler {
                 if (policy_type === POLICY_TYPE_SNAT) { // SNAT
                     table = "-t nat";
                     cs += table + ` -A POSTROUTING ${comment}`;
-                    action = await this.nat_action(policy_type, ruleData.positions[4].position_objs, ruleData.positions[5].position_objs, ruleData.ip_version);
+                    action = await this.nat_action(policy_type, ruleData.positions[4].ipobjs, ruleData.positions[5].ipobjs, ruleData.ip_version);
                 }
                 else if (policy_type === POLICY_TYPE_DNAT) { // DNAT
                     table = "-t nat";
                     cs += table + ` -A PREROUTING ${comment}`;
-                    action = await this.nat_action(policy_type, ruleData.positions[4].position_objs, ruleData.positions[5].position_objs, ruleData.ip_version);
+                    action = await this.nat_action(policy_type, ruleData.positions[4].ipobjs, ruleData.positions[5].ipobjs, ruleData.ip_version);
                 }
                 else { // Filter policy
                     if (!(ruleData.positions)
-                        || !(ruleData.positions[0].position_objs) || !(ruleData.positions[1].position_objs) || !(ruleData.positions[2].position_objs)
-                        || (policy_type === POLICY_TYPE_FORWARD && !(ruleData.positions[3].position_objs))) {
+                        || !(ruleData.positions[0].ipobjs) || !(ruleData.positions[1].ipobjs) || !(ruleData.positions[2].ipobjs)
+                        || (policy_type === POLICY_TYPE_FORWARD && !(ruleData.positions[3].ipobjs))) {
                         return reject("Bad rule data");
                     }
 
@@ -570,11 +570,11 @@ export class IPTablesCompiler {
 
                 // If we are using UDP or TCP ports in translated service position for NAT rules, 
                 // make sure that the -p tcp or -p udp is included in the compilation string.
-                if ((policy_type === POLICY_TYPE_SNAT || policy_type === POLICY_TYPE_DNAT) && ruleData.positions[5].position_objs.length === 1) { // SNAT or DNAT
+                if ((policy_type === POLICY_TYPE_SNAT || policy_type === POLICY_TYPE_DNAT) && ruleData.positions[5].ipobjs.length === 1) { // SNAT or DNAT
                     var substr = "";
-                    if (ruleData.positions[5].position_objs[0].protocol === 6) // TCP
+                    if (ruleData.positions[5].ipobjs[0].protocol === 6) // TCP
                         substr += " -p tcp ";
-                    else if (ruleData.positions[5].position_objs[0].protocol === 17) // UDP
+                    else if (ruleData.positions[5].ipobjs[0].protocol === 17) // UDP
                         substr += " -p udp ";
 
                     if (cs.indexOf(substr) === -1) {
@@ -642,7 +642,7 @@ export class IPTablesCompiler {
         return new Promise(async (resolve, reject) => {
             try {
                 //const tsStart = Date.now();
-                const rulesData: any = await PolicyRule.getPolicyDataDetailed(dbCon, fwcloud, firewall, type, rule);
+                const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, firewall, type, rule, null);
                 //IPTablesCompiler.totalGetDataTime += Date.now() - tsStart;
                 
                 if (!rulesData) return resolve([]);

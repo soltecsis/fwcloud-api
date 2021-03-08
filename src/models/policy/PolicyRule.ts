@@ -171,49 +171,58 @@ export class PolicyRule extends Model {
         });
     }
 
-    //Get All policy_r by firewall and type
-    public static getPolicyData(req, ignoreGroupsData?: boolean) {
-        return new Promise((resolve, reject) => {
-            let sql = `SELECT ${req.body.fwcloud} as fwcloud, P.*, 
-            G.name as group_name, G.groupstyle as group_style, 
-            M.code as mark_code, M.name as mark_name
-            FROM ${tableName} P
-            LEFT JOIN policy_g G ON G.id=P.idgroup
-            LEFT JOIN mark M ON M.id=P.mark
-            WHERE P.firewall=${req.body.firewall} AND P.type=${req.body.type}
-            ${req.body.rule ? ` AND P.id=${req.body.rule}` : ''} 
-            ${req.body.idgroup ? ` AND P.idgroup=${req.body.idgroup}` : ''} 
-            ORDER BY P.rule_order`;
 
-            req.dbCon.query(sql, async (error, rules) => {
-                if (error) return reject(error);
-                if (rules.length === 0) return resolve(rules);
+    private static buildSQLsForGrid(firewall: number, type: number, rule: number): string[] {
+        return [
+            `SELECT R.rule, R.position, OBJ.id, OBJ.name, OBJ.type, R.position_order, '' as labelName, ${firewall} as firewall_id 
+            FROM policy_r__ipobj R 
+            INNER JOIN ipobj OBJ ON OBJ.id=R.ipobj 
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${(rule) ? ` and PR.id=${rule}` : ``}
 
-                try {
-                    //console.time('policyData');
+            UNION SELECT R.rule, R.position, G.id, G.name, G.type, R.position_order, '' as labelName, ${firewall} as firewall_id 
+            FROM policy_r__ipobj R 
+            INNER JOIN ipobj_g G ON G.id=R.ipobj_g
+            inner join policy_r PR on PR.id=R.rule  
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${(rule) ? ` and PR.id=${rule}` : ``}
 
-                    // Positions will be always the same for all rules into the same policy type.
-                    let positions: any = await PolicyPosition.getRulePositions(rules[0]);
+            UNION SELECT R.rule, R.position, I.id, I.name, I.type, R.position_order, I.labelName, ${firewall} as firewall_id 
+            FROM policy_r__ipobj R 
+            INNER JOIN interface I ON I.id=R.interface
+            inner join policy_r PR on PR.id=R.rule  
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${(rule) ? ` and PR.id=${rule}` : ``}
 
-                    for (let i=0; i < rules.length; i++) {
-                        if (rules[i].idgroup && ignoreGroupsData) continue;
+            UNION SELECT R.rule, R.position, I.id, I.name, I.type, R.position_order, I.labelName, ${firewall} as firewall_id 
+            FROM policy_r__interface R 
+            INNER JOIN interface I ON I.id=R.interface
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${(rule) ? ` and PR.id=${rule}` : ``}
 
-                        // Update positions rule id with the current one.
-                        for(let j=0; j<positions.length; j++)
-                            positions[j].rule = rules[i].id;
+            UNION SELECT R.rule, R.position, VPN.id, CRT.cn, "311" as type, R.position_order, '' as labelName, ${firewall} as firewall_id 
+            FROM policy_r__openvpn R 
+            INNER JOIN openvpn VPN ON VPN.id=R.openvpn
+            INNER JOIN crt CRT ON CRT.id=VPN.crt
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${(rule) ? ` and PR.id=${rule}` : ``}
 
-                        rules[i].positions = await Promise.all(positions.map(data => PolicyPosition.getRulePositionData(req.dbCon,data)));
-                    }
-                    //console.timeEnd('policyData');
-
-                    resolve(rules);
-                } catch (error) { reject(error) }
-            });
-        });
+            UNION SELECT R.rule, R.position, PRE.id, PRE.name, "401" as type, R.position_order, '' as labelName, ${firewall} as firewall_id 
+            FROM policy_r__openvpn_prefix R 
+            INNER JOIN openvpn_prefix PRE ON PRE.id=R.prefix
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type}
+            ${(rule) ? ` and PR.id=${rule}` : ``}
+            
+            ORDER BY position_order`
+        ];
     }
 
 
-    private static buildSQLs(firewall: number, type: number, rule: number): string[] {
+    private static buildSQLsForCompiler(firewall: number, type: number, rule: number): string[] {
         return [
             // All ipobj under a position excluding hosts.
             `select R.rule,R.position,O.* from policy_r__ipobj R 
@@ -296,8 +305,8 @@ export class PolicyRule extends Model {
 
                 try {
                     for (let i=0; i<data.length; i++) {
-                        const position_objs: any = rulePositionsMap.get(`${data[i].rule}:${data[i].position}`);
-                        position_objs.push(data[i]);
+                        const ipobjs: any = rulePositionsMap.get(`${data[i].rule}:${data[i].position}`);
+                        ipobjs?.push(data[i]);
                     }
                 } catch(error) { return reject(error) } 
 
@@ -306,47 +315,52 @@ export class PolicyRule extends Model {
         });
     }
 
-    //Get All policy_r by firewall and type
-    public static getPolicyDataDetailed(dbCon: any, fwcloud: number, firewall: number, type: number, rule?: number) {
+    // Get all the policy data necessary for the compilation process.
+    public static getPolicyData(dst: 'grid' | 'compiler', dbCon: any, fwcloud: number, firewall: number, type: number, rule: number, idgroup: number, ignoreGroupsData?: boolean) {
         return new Promise((resolve, reject) => {
-            let sql = `SELECT ${fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style,
-                F.name as firewall_name,
-                F.options as firewall_options,
-                IF(P.mark>0, (select code from mark where id=P.mark), 0) as mark_code
-                FROM ${tableName} P 
-                LEFT JOIN policy_g G ON G.id=P.idgroup 
+            let sql = `SELECT ${fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, 
+                F.name as firewall_name, F.options as firewall_options,
+                IF(P.mark>0, (select code from mark where id=P.mark), 0) as mark_code,
+                IF(P.mark>0, (select name from mark where id=P.mark), 0) as mark_name
+                FROM ${tableName} P
+                LEFT JOIN policy_g G ON G.id=P.idgroup
                 LEFT JOIN firewall F ON F.id=(IF((P.fw_apply_to is NULL),${firewall},P.fw_apply_to))
                 WHERE P.firewall=${firewall} AND P.type=${type}
-                ${(rule) ? ` AND P.id=${rule}` : ``} ORDER BY P.rule_order`;
-
+                ${rule ? ` AND P.id=${rule}` : ''}
+                ${idgroup ? ` AND P.idgroup=${idgroup}` : ''} 
+                ORDER BY P.rule_order`;
+    
             dbCon.query(sql, async (error, rules) => {
                 if (error) return reject(error);
+                if (rules.length === 0) return resolve(null);
 
                 try {
-                    if (rules.length > 0) {
-                        // Positions array data is the same for all the rules of the same type.
-                        const positions: any = await PolicyPosition.getPolicyTypePositions(dbCon,type);
+                    // Positions will be always the same for all rules into the same policy type.
+                    let positions: any = await PolicyPosition.getRulePositions(rules[0]);
 
-                        // Init the map for access the position objects array for each rule and position.
-                        const rulePositionsMap: RulePosMap = new Map<string, []>();
-                        for (let i=0; i<rules.length; i++) {
-                            // Clone the positions array and generate new position_objs arrays for each position.
-                            rules[i].positions = positions.map(a => ({...a}));
-                            for (let j=0; j<positions.length; j++)
-                                rules[i].positions[j].position_objs = [];
+                    // Init the map for access the position objects array for each rule and position.
+                    const rulePositionsMap: RulePosMap = new Map<string, []>();
+                    for (let i=0; i<rules.length; i++) {
+                        if (rules[i].idgroup && ignoreGroupsData) continue;
 
-                            // Map each rule id and position with it's corresponding position_objs array.
-                            // These position_objs array will be filled with objects data in the Promise.all()
-                            // next to the outer for loop.
-                            for(let j=0; j<positions.length; j++)
-                                rulePositionsMap.set(`${rules[i].id}:${positions[j].id}`, rules[i].positions[j].position_objs);
-                        }
+                        // Clone the positions array and generate new ipobjs arrays for each position.
+                        rules[i].positions = positions.map(a => ({...a}));
+                        for (let j=0; j<positions.length; j++)
+                            rules[i].positions[j].ipobjs = [];
 
-                        const sqls = this.buildSQLs(firewall, type, rule);
-                        await Promise.all(sqls.map(sql => this.mapPolicyData(dbCon,rulePositionsMap,sql)));
+                        // Map each rule id and position with it's corresponding ipobjs array.
+                        // These ipobjs array will be filled with objects data in the Promise.all()
+                        // next to the outer for loop.
+                        for(let j=0; j<positions.length; j++)
+                            rulePositionsMap.set(`${rules[i].id}:${positions[j].id}`, rules[i].positions[j].ipobjs);
+                    }
 
-                        resolve(rules);
-                    } else resolve(null);
+                    const sqls = (dst === 'compiler') ? 
+                                    this.buildSQLsForCompiler(firewall, type, rule) :
+                                    this.buildSQLsForGrid(firewall, type, rule);
+                    await Promise.all(sqls.map(sql => this.mapPolicyData(dbCon,rulePositionsMap,sql)));
+
+                    resolve(rules);
                 } catch (error) { reject(error) }
             });
         });
@@ -1056,7 +1070,7 @@ public static allowEmptyRulePositions(req) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			req.body.type = await this.getPolicyRuleType(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.rule);
-			let data = await this.getPolicyData(req);
+			let data = await this.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule, null);
 			for (let pos of data[0].positions) {
 				if (pos.ipobjs.length===0)
 					await this.allowRulePosition(req.dbCon, req.body.firewall, req.body.rule, pos.id);

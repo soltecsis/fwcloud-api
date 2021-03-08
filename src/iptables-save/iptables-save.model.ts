@@ -959,12 +959,12 @@ export class IptablesSaveToFWCloud extends Service {
       return;
     }
 
-    let data: any = await PolicyRule.getPolicyDataDetailed(this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.previousRuleId);
+    let data: any = await PolicyRule.getPolicyData('compiler', this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.previousRuleId, null);
     this.previousRuleId = this.ruleId; // Important, do it here before check the data result of the previous method call.
     if (!data || !data.length || data.length!=1) return;
     const previousRule = data[0];
 
-    data = await PolicyRule.getPolicyDataDetailed(this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.ruleId);
+    data = await PolicyRule.getPolicyData('compiler', this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.ruleId, null);
     if (!data || !data.length || data.length!=1) return;
     const currentRule = data[0];
 
@@ -982,8 +982,8 @@ export class IptablesSaveToFWCloud extends Service {
     for (let i=0; i<previousRule.positions.length; i++) {
       if (previousRule.positions[i].id != currentRule.positions[i].id) return;
 
-      const prevPosObjs = JSON.stringify(previousRule.positions[i].position_objs);
-      const currPosObjs = JSON.stringify(currentRule.positions[i].position_objs);
+      const prevPosObjs = JSON.stringify(previousRule.positions[i].ipobjs);
+      const currPosObjs = JSON.stringify(currentRule.positions[i].ipobjs);
 
       // Check position negation!!!!
       const currPosNegated = IPTablesCompiler.isPositionNegated(currentRule.negate,currentRule.positions[i].id);
@@ -995,7 +995,7 @@ export class IptablesSaveToFWCloud extends Service {
         if (posDiffer.length === 1) return; // Only can merge if rules differ in one position.
 
         // It is not possible to merge rules with no objects (value any) in the differing position.
-        if (previousRule.positions[i].position_objs.length===0 || currentRule.positions[i].position_objs.length===0) return;
+        if (previousRule.positions[i].ipobjs.length===0 || currentRule.positions[i].ipobjs.length===0) return;
 
         posDiffer.push(i);
       }
@@ -1004,7 +1004,7 @@ export class IptablesSaveToFWCloud extends Service {
     // If only differ in one position then current rule can be merged with the previous one.
     if (posDiffer.length === 1) {
       // Move items in the differing position from the new rule to the same position of the previous one.
-      const currPosObjs = currentRule.positions[posDiffer[0]].position_objs;
+      const currPosObjs = currentRule.positions[posDiffer[0]].ipobjs;
       const position =  currentRule.positions[posDiffer[0]].id;
       let allMoved = true;
 

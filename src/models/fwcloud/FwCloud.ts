@@ -135,8 +135,7 @@ export class FwCloud extends Model {
       // avoid left rows without correct relations in a table.
 			let query =
         // First remove the relational tables for policy rules and the policy rules themselves.
-			 `delete PC from policy_c PC inner join policy_r RULE on RULE.id=PC.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
-				delete PI from policy_r__interface PI inner join policy_r RULE on RULE.id=PI.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
+			 `delete PI from policy_r__interface PI inner join policy_r RULE on RULE.id=PI.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
 				delete PO from policy_r__ipobj PO inner join policy_r RULE on RULE.id=PO.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
 				delete PVPN from policy_r__openvpn PVPN inner join policy_r RULE on RULE.id=PVPN.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
 				delete PPRE from policy_r__openvpn_prefix PPRE inner join policy_r RULE on RULE.id=PPRE.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
