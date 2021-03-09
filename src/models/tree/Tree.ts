@@ -34,6 +34,19 @@ var fwc_tree_node = require("./node.js");
 
 const tableName: string = "fwc_tree";
 
+export type TreeNode = {
+    id: number;
+    pid: number;
+    node_type: string;
+    text: string;
+    id_obj: number;
+    obj_type: number;
+    fwcloud: number;
+    children: TreeNode[]
+}
+
+export type TreeType = 'FIREWALLS' | 'OBJECTS' | 'SERVICES' | 'CA'; 
+
 export class Tree extends Model {
 
     @PrimaryGeneratedColumn()
@@ -141,45 +154,59 @@ export class Tree extends Model {
         });
     };
 
-    //Get COMPLETE TREE from idparent
-    public static getTree(req, idparent, tree, objStandard, objCloud, order_mode) {
+
+    private static nodesUnderNodes(dbCon: any, nodes: TreeNode[]): Promise<TreeNode[]> {
         return new Promise((resolve, reject) => {
-            var sqlfwcloud = "";
-            if (objStandard === 1 && objCloud === 0) // Only Standard objects
-                sqlfwcloud = ` AND (T.fwcloud is null OR (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `;
-            else if (objStandard === 0 && objCloud === 1) // Only fwcloud objects
-                sqlfwcloud = ` AND (T.fwcloud=${req.body.fwcloud} OR (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `;
-            else if (objStandard === 1 && objCloud === 1) // All objects
-                sqlfwcloud = ` AND (T.fwcloud=${req.body.fwcloud} OR T.fwcloud is null OR (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `;
-            else // No objects.
-                sqlfwcloud = ` AND (T.fwcloud is not null AND (T.id_obj is null AND T.fwcloud=${req.body.fwcloud})) `;
+            const sql = `select id, name as text, id_parent as pid, node_type, id_obj, obj_type, fwcloud
+                from fwc_tree where id_parent in (${nodes.map(obj => obj.id)})`
 
-            const sqlorder = (order_mode === 2) ? 'name' : 'id';
-
-            //Get ALL CHILDREN NODES FROM idparent
-            const sql = `SELECT T.*, P.order_mode FROM ${tableName} T
-			LEFT JOIN fwc_tree_node_types P on T.node_type=P.node_type
-			WHERE T.id_parent=${idparent} ${sqlfwcloud} ORDER BY ${sqlorder}`;
-
-            req.dbCon.query(sql, async (error, nodes) => {
+            dbCon.query(sql, async (error, nodes) => {
                 if (error) return reject(error);
 
-                try {
-                    for (let node of nodes) {
-                        var tree_node = new fwc_tree_node(node);
+                resolve(nodes);
+            });
+        });
+     }
 
-                        if (await this.hasChilds(req, node.id)) {
-                            var subtree = new _Tree(tree_node);
-                            tree.append([], subtree);
-                            await this.getTree(req, node.id, subtree, objStandard, objCloud, node.order_mode);
-                        } else
-                            tree.append([], tree_node);
-                    }
-                    resolve(tree);
+    
+    public static dumpTree(dbCon: any, treeType: TreeType, fwcloud: number): Promise<TreeNode>{
+        return new Promise((resolve, reject) => {
+            // Query for get the root node.
+            const sql = `select id, name as text, id_parent as pid, node_type, id_obj, obj_type, fwcloud  
+                from fwc_tree where fwcloud=${fwcloud} and id_parent is null and name='${treeType}'`;
+
+            dbCon.query(sql, async (error, nodes) => {
+                if (error) return reject(error);
+                if (nodes.lenght === 0) return reject(new Error('Root node not found'));
+
+                try {
+                    const rootNode: TreeNode = nodes[0];
+                    rootNode.children = []; 
+                    
+                    const childrenArrayMap: Map<number, TreeNode[]> = new Map<number, TreeNode[]>();
+                    childrenArrayMap.set(rootNode.id, rootNode.children);
+
+                    // Next levels nodes.
+                    while(nodes.length > 0){
+                        nodes = await this.nodesUnderNodes(dbCon,nodes) as TreeNode[];
+
+                        for(let i=0; i<nodes.length; i++) {
+                            // Add the new nodes children arrays to the map.
+                            nodes[i].children = [];
+                            childrenArrayMap.set(nodes[i].id, nodes[i].children);
+
+                            // Add the new nodes to the children arrays of its parent node.
+                            const parentChildren: TreeNode[] = childrenArrayMap.get(nodes[i].pid);
+                            parentChildren.push(nodes[i]);
+                        }
+                    }   
+                    
+                    resolve(rootNode);
                 } catch (error) { reject(error) }
             });
         });
     }
+
 
     // Put STD folders first.
     public static stdFoldersFirst(root_node) {
