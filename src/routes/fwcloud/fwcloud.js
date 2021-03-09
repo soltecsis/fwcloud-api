@@ -239,9 +239,13 @@ async(req, res) => {
 		if (!await User.isLoggedUserAdmin(req))
 			throw fwcError.NOT_ADMIN_USER;
 
+		// Remove all the fwcloud database related information.
+		const fwc = new FwCloud();
+		fwc.id = req.body.fwcloud;
+		await fwc.remove();
+
 		// Remove the fwcloud data dir.
 		await utilsModel.removeFwcloudDataDir(req.body.fwcloud);
-		await FwCloud.deleteFwcloud(req);
 
 		res.status(204).end();
 	} catch (error) {

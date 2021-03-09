@@ -74,13 +74,14 @@ const fwcError = require('../../utils/error_table');
 
 router.put('/firewalls/get', async (req, res) => {
 	try {
-		const node_data = await Tree.getRootNodeByType(req, 'FDF');
-		var root_node = new fwc_tree_node(node_data);
-		var tree = new _Tree(root_node);
-		await Tree.getTree(req, root_node.id, tree, 1, 1, node_data.order_mode);                    
+		console.time('FW');
+		const tree = await Tree.dumpTree(req.dbCon, 'FIREWALLS', req.body.fwcloud);
+		console.timeEnd('FW');
+
 		await Firewall.getFirewallStatusNotZero(req.body.fwcloud,tree);
 		await OpenVPN.getOpenvpnStatusNotZero(req,tree);
 		await Ca.storePkiInfo(req,tree);
+
 		res.status(200).json(tree);
 	} catch(error) {
 		logger().error('Error getting firewall tree: ' + JSON.stringify(error));
@@ -136,10 +137,7 @@ router.put('/firewalls/get', async (req, res) => {
  */
 router.put('/objects/get', async (req, res) => {
 	try {
-		const node_data = await Tree.getRootNodeByType(req, 'FDO');
-		var root_node = new fwc_tree_node(node_data);
-		var tree = new _Tree(root_node);
-		await Tree.getTree(req, root_node.id, tree, req.body.objStandard, req.body.objCloud, node_data.order_mode);
+		const tree = await Tree.dumpTree(req.dbCon, 'OBJECTS', req.body.fwcloud);
 		await Tree.stdFoldersFirst(tree);
 		res.status(200).json(tree);
 	} catch(error) {
@@ -154,10 +152,7 @@ router.put('/objects/get', async (req, res) => {
 //objc -> fwcloud services
 router.put('/services/get', async (req, res) => {
 	try {
-		const node_data = await Tree.getRootNodeByType(req, 'FDS');
-		var root_node = new fwc_tree_node(node_data);
-		var tree = new _Tree(root_node);
-		await Tree.getTree(req, root_node.id, tree, req.body.objStandard, req.body.objCloud, node_data.order_mode);
+		const tree = await Tree.dumpTree(req.dbCon, 'SERVICES', req.body.fwcloud);
 		await Tree.stdFoldersFirst(tree);
 		res.status(200).json(tree);
 	} catch(error) {
@@ -170,10 +165,7 @@ router.put('/services/get', async (req, res) => {
 /* Get nodes for the CA tree */
 router.put('/ca/get', async (req, res) => {
 	try {
-		const node_data = await Tree.getRootNodeByType(req, 'FCA');
-		var root_node = new fwc_tree_node(node_data);
-		var tree = new _Tree(root_node);
-		await Tree.getTree(req, root_node.id, tree, 1, 1, node_data.order_mode);
+		const tree = await Tree.dumpTree(req.dbCon, 'CA', req.body.fwcloud);
 		await Ca.getCAStatusNotZero(req,tree);
 		res.status(200).json(tree);
 	} catch(error) {

@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Optimizations in API calls for policy and trees (firewalls, objects, services and CA) get.
 - Huge improvement in IPTables compiler process. Nearly 40 times faster. 
 - Option for only sync the CCD files of the OpenVPN clients pending of install.
 - New API call `PUT /policy/rule/type/ingroup/get` for get only the firewall rules into a rules group, including the data about objects into rules positions.
@@ -27,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - By default listen to localhost.
 
 ### Fixed
+- Remove standard objects when a fwcloud is removed.
 - Ignore maintenance mode for ping API requests.
 - Set the mysqldump node module format option to false for avoid long high CPU usage in backups of databases with lot of registers.
 - Multiport module, up to 15 ports limit control.
