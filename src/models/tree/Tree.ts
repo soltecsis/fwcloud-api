@@ -155,10 +155,27 @@ export class Tree extends Model {
     };
 
 
-    private static nodesUnderNodes(dbCon: any, nodes: TreeNode[]): Promise<TreeNode[]> {
+    private static oderNodeBy(node: TreeNode, nodeType: string[], orderBy: string): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            if (nodeType.includes(node.node_type)) {                
+                node.children.sort((a: TreeNode, b: TreeNode) => {
+                    if (a[orderBy] < b[orderBy]) return -1;
+                    if (a[orderBy] > b[orderBy]) return 1;
+                    return 0;
+                });
+            }
+
+            // Recursively apply the ordering to all nodes in the tree.
+            await Promise.all(node.children.map(node => this.oderNodeBy(node,nodeType,orderBy)));
+
+            resolve();
+        });
+    }
+
+    private static nodesUnderNodes(dbCon: any, nodes: TreeNode[], orderBy: string): Promise<TreeNode[]> {
         return new Promise((resolve, reject) => {
             const sql = `select id, name as text, id_parent as pid, node_type, id_obj, obj_type, fwcloud
-                from fwc_tree where id_parent in (${nodes.map(obj => obj.id)})`
+                from fwc_tree where id_parent in (${nodes.map(obj => obj.id)}) order by ${orderBy}`
 
             dbCon.query(sql, async (error, nodes) => {
                 if (error) return reject(error);
@@ -166,8 +183,7 @@ export class Tree extends Model {
                 resolve(nodes);
             });
         });
-     }
-
+    }
     
     public static dumpTree(dbCon: any, treeType: TreeType, fwcloud: number): Promise<TreeNode>{
         return new Promise((resolve, reject) => {
@@ -186,9 +202,14 @@ export class Tree extends Model {
                     const childrenArrayMap: Map<number, TreeNode[]> = new Map<number, TreeNode[]>();
                     childrenArrayMap.set(rootNode.id, rootNode.children);
 
+                    let orderBy: string;
                     // Next levels nodes.
-                    while(nodes.length > 0){
-                        nodes = await this.nodesUnderNodes(dbCon,nodes) as TreeNode[];
+                    for(let level=1; nodes.length > 0; level++) {
+                        if (treeType==='FIREWALLS' && level>1) orderBy='id';
+                        else if ((treeType==='OBJECTS' || treeType==='SERVICES') && level===1) orderBy='id';
+                        else orderBy = 'name'
+
+                        nodes = await this.nodesUnderNodes(dbCon,nodes,orderBy);
 
                         for(let i=0; i<nodes.length; i++) {
                             // Add the new nodes children arrays to the map.
@@ -200,7 +221,11 @@ export class Tree extends Model {
                             parentChildren.push(nodes[i]);
                         }
                     }   
-                    
+
+                    // Sort nodes into FD type nodes (folders) by name.
+                    if (treeType==='FIREWALLS')
+                        await Promise.all(rootNode.children.map(node => this.oderNodeBy(node,['FD','FDI'],'text')));
+
                     resolve(rootNode);
                 } catch (error) { reject(error) }
             });

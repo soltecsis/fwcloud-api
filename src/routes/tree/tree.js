@@ -74,7 +74,9 @@ const fwcError = require('../../utils/error_table');
 
 router.put('/firewalls/get', async (req, res) => {
 	try {
+		console.time('FW');
 		const tree = await Tree.dumpTree(req.dbCon, 'FIREWALLS', req.body.fwcloud);
+		console.timeEnd('FW');
 
 		await Firewall.getFirewallStatusNotZero(req.body.fwcloud,tree);
 		await OpenVPN.getOpenvpnStatusNotZero(req,tree);

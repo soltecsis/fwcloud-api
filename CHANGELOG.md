@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Optimizations in API calls for policy and trees (firewalls, objects, services and CA) get.
 - Huge improvement in IPTables compiler process. Nearly 40 times faster. 
 - Option for only sync the CCD files of the OpenVPN clients pending of install.
 - New API call `PUT /policy/rule/type/ingroup/get` for get only the firewall rules into a rules group, including the data about objects into rules positions.
