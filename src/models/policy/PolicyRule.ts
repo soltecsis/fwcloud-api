@@ -26,7 +26,7 @@ import db from '../../database/database-manager';
 
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
-import { PolicyPosition } from './PolicyPosition';
+import { PolicyPosition, PositionNode } from './PolicyPosition';
 import { PolicyGroup } from "./PolicyGroup";
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
@@ -174,35 +174,35 @@ export class PolicyRule extends Model {
 
     private static buildSQLsForGrid(firewall: number, type: number, rule: number): string[] {
         return [
-            `SELECT R.rule, R.position, OBJ.id, OBJ.name, OBJ.type, R.position_order, '' as labelName, ${firewall} as firewall_id 
+            `SELECT R.rule, R.position, OBJ.id, OBJ.name, OBJ.type, R.position_order, '' as labelName, PR.firewall as firewall_id 
             FROM policy_r__ipobj R 
             INNER JOIN ipobj OBJ ON OBJ.id=R.ipobj 
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type}
             ${(rule) ? ` and PR.id=${rule}` : ``}
 
-            UNION SELECT R.rule, R.position, G.id, G.name, G.type, R.position_order, '' as labelName, ${firewall} as firewall_id 
+            UNION SELECT R.rule, R.position, G.id, G.name, G.type, R.position_order, '' as labelName, PR.firewall as firewall_id 
             FROM policy_r__ipobj R 
             INNER JOIN ipobj_g G ON G.id=R.ipobj_g
             inner join policy_r PR on PR.id=R.rule  
             where PR.firewall=${firewall} and PR.type=${type}
             ${(rule) ? ` and PR.id=${rule}` : ``}
 
-            UNION SELECT R.rule, R.position, I.id, I.name, I.type, R.position_order, I.labelName, ${firewall} as firewall_id 
+            UNION SELECT R.rule, R.position, I.id, I.name, I.type, R.position_order, I.labelName, PR.firewall as firewall_id 
             FROM policy_r__ipobj R 
             INNER JOIN interface I ON I.id=R.interface
             inner join policy_r PR on PR.id=R.rule  
             where PR.firewall=${firewall} and PR.type=${type}
             ${(rule) ? ` and PR.id=${rule}` : ``}
 
-            UNION SELECT R.rule, R.position, I.id, I.name, I.type, R.position_order, I.labelName, ${firewall} as firewall_id 
+            UNION SELECT R.rule, R.position, I.id, I.name, I.type, R.position_order, I.labelName, PR.firewall as firewall_id 
             FROM policy_r__interface R 
             INNER JOIN interface I ON I.id=R.interface
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type}
             ${(rule) ? ` and PR.id=${rule}` : ``}
 
-            UNION SELECT R.rule, R.position, VPN.id, CRT.cn, "311" as type, R.position_order, '' as labelName, ${firewall} as firewall_id 
+            UNION SELECT R.rule, R.position, VPN.id, CRT.cn, "311" as type, R.position_order, '' as labelName, PR.firewall as firewall_id 
             FROM policy_r__openvpn R 
             INNER JOIN openvpn VPN ON VPN.id=R.openvpn
             INNER JOIN crt CRT ON CRT.id=VPN.crt
@@ -210,7 +210,7 @@ export class PolicyRule extends Model {
             where PR.firewall=${firewall} and PR.type=${type}
             ${(rule) ? ` and PR.id=${rule}` : ``}
 
-            UNION SELECT R.rule, R.position, PRE.id, PRE.name, "401" as type, R.position_order, '' as labelName, ${firewall} as firewall_id 
+            UNION SELECT R.rule, R.position, PRE.id, PRE.name, "401" as type, R.position_order, '' as labelName, PR.firewall as firewall_id 
             FROM policy_r__openvpn_prefix R 
             INNER JOIN openvpn_prefix PRE ON PRE.id=R.prefix
             inner join policy_r PR on PR.id=R.rule 
@@ -318,7 +318,7 @@ export class PolicyRule extends Model {
     // Get all the policy data necessary for the compilation process.
     public static getPolicyData(dst: 'grid' | 'compiler', dbCon: any, fwcloud: number, firewall: number, type: number, rule: number, idgroup: number, ignoreGroupsData?: boolean) {
         return new Promise((resolve, reject) => {
-            let sql = `SELECT ${fwcloud} as fwcloud, P.*, G.name as group_name, G.groupstyle as group_style, 
+            let sql = `SELECT P.*, G.name as group_name, G.groupstyle as group_style, 
                 F.name as firewall_name, F.options as firewall_options,
                 IF(P.mark>0, (select code from mark where id=P.mark), 0) as mark_code,
                 IF(P.mark>0, (select name from mark where id=P.mark), 0) as mark_name
@@ -336,7 +336,7 @@ export class PolicyRule extends Model {
 
                 try {
                     // Positions will be always the same for all rules into the same policy type.
-                    let positions: any = await PolicyPosition.getRulePositions(rules[0]);
+                    let positions: PositionNode[] = await PolicyPosition.getRulePositions(dbCon, fwcloud, rules[0].firewall, rules[0].id, rules[0].type);
 
                     // Init the map for access the position objects array for each rule and position.
                     const rulePositionsMap: RulePosMap = new Map<string, []>();
