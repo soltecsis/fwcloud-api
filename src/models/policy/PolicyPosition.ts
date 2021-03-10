@@ -34,6 +34,19 @@ import { logger } from "../../fonaments/abstract-application";
 
 const tableName: string = 'policy_position';
 
+export type PositionNode = {
+    id: number;
+    name: string;
+    content: string;
+    policy_type: number;
+    position_order: number;
+    single_object: number;
+    fwcloud: number;
+    firewall: number;
+    rule: number;
+    ipobjs: []
+}
+
 @Entity(tableName)
 export class PolicyPosition extends Model {
 
@@ -127,18 +140,18 @@ export class PolicyPosition extends Model {
 
 
     //Get policy_position by type
-    public static getRulePositions(rule) {
+    public static getRulePositions(dbCon: any, fwcloud: number, firewall: number, rule: number, type: number): Promise<PositionNode[]> {
         return new Promise((resolve, reject) => {
-            db.get((error, connection) => {
+            dbCon.query(`select * from ${tableName} WHERE policy_type=${type} order by position_order`, (error, positions) => {
                 if (error) return reject(error);
-                
-                let sql = `SELECT ${rule.fwcloud} as fwcloud,${rule.firewall} as firewall,${rule.id} as rule, P.* 
-                    FROM ${tableName} P 
-                    WHERE P.policy_type=${rule.type} ORDER BY P.position_order`;
-                connection.query(sql, async (error, positions) => {
-                    if (error) return reject(error);
-                    resolve(positions);
-                });
+
+                for (let i=0; i<positions.length; i++) {
+                    positions[i].fwcloud = fwcloud; 
+                    positions[i].firewall = firewall; 
+                    positions[i].rule = rule;
+                }
+
+                resolve(positions);
             });
         });
     }
