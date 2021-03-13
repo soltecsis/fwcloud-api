@@ -37,8 +37,10 @@ schema.validate = req => {
     });
     
     if (req.method==='PUT') {
-      if (req.url==='/fwcloud/get' || req.url==='/fwcloud/del' || req.url==='/fwcloud/restricted')
+      if (req.url==='/fwcloud/get' || req.url==='/fwcloud/del' || req.url==='/fwcloud/restricted') {
         schema = Joi.object().keys({ fwcloud: sharedSch.id });
+        if (req.url==='/fwcloud/del') schema =  schema.append({ force: Joi.number().integer().valid([0, 1]).optional() });
+      }
       else if (req.url==='/fwcloud' || req.url==='/fwcloud/lock' || req.url==='/fwcloud/unlock' || req.url==='/fwcloud/lock/get')
         schema = schema.append({ fwcloud: sharedSch.id });
       else return reject(fwcError.BAD_API_CALL);
