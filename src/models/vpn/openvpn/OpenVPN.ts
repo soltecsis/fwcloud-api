@@ -337,18 +337,21 @@ export class OpenVPN extends Model {
     public static getOpenvpnInfo(dbCon, fwcloud, openvpn, type) {
         return new Promise((resolve, reject) => {
             let sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.address, FW.cluster cluster_id,
-      IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
-      IF(VPN.openvpn is null,VPN.openvpn,(select crt.cn from openvpn inner join crt on crt.id=openvpn.crt where openvpn.id=VPN.openvpn)) as openvpn_server_cn
-      ${(type === 2) ? `,O.netmask` : ``}, ${(type === 1) ? `311` : `312`} as type
-      from openvpn VPN 
-      inner join crt CRT on CRT.id=VPN.crt
-      inner join ca CA on CA.id=CRT.ca
-      inner join firewall FW on FW.id=VPN.firewall
-      inner join openvpn_opt OPT on OPT.openvpn=${openvpn}
-      inner join ipobj O on O.id=OPT.ipobj
-      where FW.fwcloud=${fwcloud} and VPN.id=${openvpn} ${(type === 1) ? `and OPT.name='ifconfig-push'` : ``}`;
+                IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
+                IF(VPN.openvpn is null,VPN.openvpn,(select crt.cn from openvpn inner join crt on crt.id=openvpn.crt where openvpn.id=VPN.openvpn)) as openvpn_server_cn
+                ${(type === 2) ? `,O.netmask` : ``}
+                from openvpn VPN 
+                inner join crt CRT on CRT.id=VPN.crt
+                inner join ca CA on CA.id=CRT.ca
+                inner join firewall FW on FW.id=VPN.firewall
+                inner join openvpn_opt OPT on OPT.openvpn=${openvpn}
+                inner join ipobj O on O.id=OPT.ipobj
+                where FW.fwcloud=${fwcloud} and VPN.id=${openvpn} ${(type === 1) ? `and OPT.name='ifconfig-push'` : ``}`;
             dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
+                for(let i=0; i<result.length; i++) {
+                    result[i].type = (type === 1) ? 311 : 312;
+                }
                 resolve(result);
             });
         });
@@ -357,9 +360,9 @@ export class OpenVPN extends Model {
     public static getOpenvpnServersByCloud(dbCon, fwcloud) {
         return new Promise((resolve, reject) => {
             let sql = `select VPN.id,CRT.cn from openvpn VPN 
-      inner join crt CRT on CRT.id=VPN.crt
-      inner join ca CA on CA.id=CRT.ca
-      where CA.fwcloud=${fwcloud} and CRT.type=2`; // 2 = Server certificate.
+                inner join crt CRT on CRT.id=VPN.crt
+                inner join ca CA on CA.id=CRT.ca
+                where CA.fwcloud=${fwcloud} and CRT.type=2`; // 2 = Server certificate.
             dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
                 resolve(result);
