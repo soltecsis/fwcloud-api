@@ -225,8 +225,8 @@ export class OpenVPN extends Model {
             // IMPORTANT: Order by CRT type for remove clients before servers. If we don't do it this way, 
             // and the OpenVPN server is removed first, we will get a database foreign key constraint fails error.
             let sql = `select VPN.id,CRT.type from ${tableName} VPN
-      inner join crt CRT on CRT.id=VPN.crt
-      where VPN.firewall=${firewall} order by CRT.type asc`;
+                inner join crt CRT on CRT.id=VPN.crt
+                where VPN.firewall=${firewall} order by CRT.type asc`;
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
 
@@ -309,9 +309,9 @@ export class OpenVPN extends Model {
     // Get data of an OpenVPN server clients.
     public static getOpenvpnClients(dbCon, openvpn) {
         return new Promise((resolve, reject) => {
-            let sql = `select VPN.id,CRT.cn from openvpn VPN 
-      inner join crt CRT on CRT.id=VPN.crt
-      where openvpn=${openvpn}`;
+            let sql = `select VPN.id,CRT.cn,VPN.status from openvpn VPN 
+                inner join crt CRT on CRT.id=VPN.crt
+                where openvpn=${openvpn}`;
             dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
                 resolve(result);
@@ -370,9 +370,13 @@ export class OpenVPN extends Model {
     public static dumpCfg(dbCon, fwcloud, openvpn) {
         return new Promise((resolve, reject) => {
             // First obtain the CN of the certificate.
-            let sql = `select CRT.cn,CRT.ca,CRT.type from crt CRT
-      INNER JOIN openvpn VPN ON CRT.id=VPN.crt
-			WHERE VPN.id=${openvpn}`;
+            let sql = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
+                VPN.install_name as srv_config1, VPNSRV.install_name as srv_config2 from crt CRT
+                INNER JOIN openvpn VPN ON VPN.crt=CRT.id
+                LEFT JOIN openvpn VPNSRV ON VPNSRV.id=VPN.openvpn
+                INNER JOIN firewall FW ON FW.id=VPN.firewall
+                LEFT JOIN cluster CL ON CL.id=FW.cluster
+			    WHERE VPN.id=${openvpn}`;
 
             dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
@@ -383,6 +387,16 @@ export class OpenVPN extends Model {
                 const key_path = ca_dir + 'private/' + result[0].cn + '.key';
                 let dh_path = (result[0].type === 2) ? ca_dir + 'dh.pem' : '';
 
+                // Header description.
+                let des = "# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n" 
+                des += `# Generated: ${Date()}\n`;
+                des += `# Certificate Common Name: ${result[0].cn} \n`;
+                des += result[0].cl_name ? `# Firewall Cluster: ${result[0].cl_name}\n` : `# Firewall: ${result[0].fw_name}\n`;
+                if (result[0].srv_config1 && result[0].srv_config1.endsWith('.conf')) result[0].srv_config1 = result[0].srv_config1.slice(0, -5);
+                if (result[0].srv_config2 && result[0].srv_config2.endsWith('.conf')) result[0].srv_config2 = result[0].srv_config2.slice(0, -5);
+                des += `# OpenVPN Server: ${result[0].srv_config1 ? result[0].srv_config1 : result[0].srv_config2}\n`;
+                des += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
+
                 // Get all the configuration options.
                 sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${openvpn} order by openvpn_opt.order`;
                 dbCon.query(sql, async (error, result) => {
@@ -390,8 +404,8 @@ export class OpenVPN extends Model {
 
                     try {
                         // Generate the OpenVPN config file.
-                        var ovpn_cfg = '';
-                        var ovpn_ccd = '';
+                        let ovpn_cfg = des;
+                        let ovpn_ccd = '';
 
                         // First add all the configuration options.
                         for (let opt of result) {

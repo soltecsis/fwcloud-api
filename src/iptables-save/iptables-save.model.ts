@@ -32,8 +32,9 @@ import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 import { StdChains, TcpFlags, PolicyTypeMap, PositionMap, GroupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../models/policy/PolicyGroup';
-import { RuleCompiler } from '../compiler/RuleCompiler';
+import { IPTablesCompiler } from '../compiler/iptables/iptables-compiler';
 import { PolicyRuleToOpenVPN } from '../models/policy/PolicyRuleToOpenVPN';
+import moment from "moment";
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
@@ -97,7 +98,7 @@ export class IptablesSaveToFWCloud extends Service {
       action: 1, // By default action rule is ACCEPT
       active: 1,
       options: 0,
-      //comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`,
+      //comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`,
       comment: '',
       type: 0,
     };
@@ -308,7 +309,7 @@ export class IptablesSaveToFWCloud extends Service {
         if (!found) break;
       }
 
-      // Add the ingnored module to statistics information.
+      // Add the ignored module to statistics information.
       if (this.stats.modulesIgnored.indexOf(module) === -1)
         this.stats.modulesIgnored.push(module);
 
@@ -627,7 +628,7 @@ export class IptablesSaveToFWCloud extends Service {
         name: _interface,
         type: 10,
         interface_type: 10,
-        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+        comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`
       };
       
       try {
@@ -685,7 +686,7 @@ export class IptablesSaveToFWCloud extends Service {
         address: ip,
         netmask: `/${mask}`,
         ip_version: this.req.body.ip_version,
-        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+        comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`
       };
   
       try {
@@ -737,7 +738,7 @@ export class IptablesSaveToFWCloud extends Service {
         range_start: ips[0],
         range_end: ips[1],
         ip_version: this.req.body.ip_version,
-        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+        comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`
       };
   
       try {
@@ -813,7 +814,7 @@ export class IptablesSaveToFWCloud extends Service {
         destination_port_end: dstPorts[1],
         tcp_flags_mask: tcpFlags,
         tcp_flags_settings: tcpFlagsSet,
-        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+        comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`
       };
   
       try {
@@ -857,7 +858,7 @@ export class IptablesSaveToFWCloud extends Service {
         protocol: 1,
         icmp_type: icmp[0],
         icmp_code: icmp[1],
-        comment: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')} - iptables-save import`
+        comment: `${moment().format('YYYY-MM-DD HH:mm:ss')} - iptables-save import`
       };
   
       try {
@@ -958,12 +959,12 @@ export class IptablesSaveToFWCloud extends Service {
       return;
     }
 
-    let data: any = await PolicyRule.getPolicyDataDetailed(this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.previousRuleId);
+    let data: any = await PolicyRule.getPolicyData('compiler', this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.previousRuleId, null);
     this.previousRuleId = this.ruleId; // Important, do it here before check the data result of the previous method call.
     if (!data || !data.length || data.length!=1) return;
     const previousRule = data[0];
 
-    data = await PolicyRule.getPolicyDataDetailed(this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.ruleId);
+    data = await PolicyRule.getPolicyData('compiler', this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.ruleId, null);
     if (!data || !data.length || data.length!=1) return;
     const currentRule = data[0];
 
@@ -981,12 +982,12 @@ export class IptablesSaveToFWCloud extends Service {
     for (let i=0; i<previousRule.positions.length; i++) {
       if (previousRule.positions[i].id != currentRule.positions[i].id) return;
 
-      const prevPosObjs = JSON.stringify(previousRule.positions[i].position_objs);
-      const currPosObjs = JSON.stringify(currentRule.positions[i].position_objs);
+      const prevPosObjs = JSON.stringify(previousRule.positions[i].ipobjs);
+      const currPosObjs = JSON.stringify(currentRule.positions[i].ipobjs);
 
       // Check position negation!!!!
-      const currPosNegated = RuleCompiler.isPositionNegated(currentRule.negate,currentRule.positions[i].id);
-      const prevPosNegated = RuleCompiler.isPositionNegated(previousRule.negate,previousRule.positions[i].id);
+      const currPosNegated = IPTablesCompiler.isPositionNegated(currentRule.negate,currentRule.positions[i].id);
+      const prevPosNegated = IPTablesCompiler.isPositionNegated(previousRule.negate,previousRule.positions[i].id);
       if (currPosNegated !== prevPosNegated) return; // Rules with different negation status in the same position can not be merged.
 
       if (prevPosObjs !== currPosObjs) {
@@ -994,7 +995,7 @@ export class IptablesSaveToFWCloud extends Service {
         if (posDiffer.length === 1) return; // Only can merge if rules differ in one position.
 
         // It is not possible to merge rules with no objects (value any) in the differing position.
-        if (previousRule.positions[i].position_objs.length===0 || currentRule.positions[i].position_objs.length===0) return;
+        if (previousRule.positions[i].ipobjs.length===0 || currentRule.positions[i].ipobjs.length===0) return;
 
         posDiffer.push(i);
       }
@@ -1003,7 +1004,7 @@ export class IptablesSaveToFWCloud extends Service {
     // If only differ in one position then current rule can be merged with the previous one.
     if (posDiffer.length === 1) {
       // Move items in the differing position from the new rule to the same position of the previous one.
-      const currPosObjs = currentRule.positions[posDiffer[0]].position_objs;
+      const currPosObjs = currentRule.positions[posDiffer[0]].ipobjs;
       const position =  currentRule.positions[posDiffer[0]].id;
       let allMoved = true;
 

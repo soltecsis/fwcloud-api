@@ -60,8 +60,6 @@
     "moment": "2.24.0",
     "moment-timezone": "^0.5.27",
     "mysql": "^2.17.1",
-    "mysql-import": "^3.0.6",
-    "mysqldump": "^3.1.0",
     "openpgp": "^4.10.4",
     "passport": "^0.4.1",
     "passport-local": "*",

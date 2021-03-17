@@ -63,6 +63,9 @@ restrictedCheck.user = async(req, res, next) => {
 
 
 restrictedCheck.fwcloud = (req, res, next) => {
+	// If force parameter is set, don't check restrictions.
+	if (req.body.force)	return next();
+
 	var sql = `Select (SELECT count(*) FROM firewall where fwcloud=${req.body.fwcloud} AND cluster is null) as CF,
 		(SELECT count(*) FROM cluster where fwcloud=${req.body.fwcloud}) as CC,
 		(SELECT count(*) FROM ca where fwcloud=${req.body.fwcloud}) as CCA`;

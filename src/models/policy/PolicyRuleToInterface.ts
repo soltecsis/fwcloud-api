@@ -23,9 +23,8 @@
 
 import db from '../../database/database-manager';
 import Model from '../Model';
-import { Column, PrimaryColumn, Entity, Between, Not, Repository, OneToMany, JoinColumn, ManyToOne } from 'typeorm';
-import { PolicyCompilation } from './PolicyCompilation';
-import { app, logger } from '../../fonaments/abstract-application';
+import { Column, PrimaryColumn, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { logger } from '../../fonaments/abstract-application';
 import { PolicyRule } from './PolicyRule';
 import { Interface } from '../interface/Interface';
 import { PolicyPosition } from './PolicyPosition';

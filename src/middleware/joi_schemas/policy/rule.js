@@ -52,8 +52,10 @@ schema.validate = req => {
 			});
 			if (req.method === 'PUT') schema = schema.append({ rule: sharedSch.id });
 		} else if (req.method === 'PUT') {
-			if (req.url === '/policy/rule/type/get')
+			if (req.url === '/policy/rule/type/get' || req.url === '/policy/rule/type/grouped/get')
 				schema = schema.append({ type: sharedSch.policy_type });
+			else if (req.url === '/policy/rule/type/ingroup/get')
+				schema = schema.append({ type: sharedSch.policy_type, idgroup: sharedSch.id });
 			else if (req.url === '/policy/rule/get')
 				schema = schema.append({ type: sharedSch.policy_type, rule: sharedSch.id });
 			else if (req.url === '/policy/rule/position/negate' || req.url === '/policy/rule/position/allow')

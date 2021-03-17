@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -20,9 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-var fwcError = require('../utils/error_table');
-import { PolicyRule } from '../models/policy/PolicyRule';
-import { PolicyCompilation } from '../models/policy/PolicyCompilation';
+var fwcError = require('../../utils/error_table');
+import { PolicyRule } from '../../models/policy/PolicyRule';
+import { EventEmitter } from 'events';
+import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
 var shellescape = require('shell-escape');
 
 export const POLICY_TYPE_INPUT = 1;
@@ -39,7 +40,15 @@ export const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 export const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING'];
 export const MARK_CHAIN = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 
-export class RuleCompiler {
+export type IPTablesRuleCompiled = {
+    id: number;
+    active: number;
+    comment: string;
+    cs: string;
+}
+
+export class IPTablesCompiler {
+    static totalGetDataTime: number = 0;
 
     public static isPositionNegated(negate, position) {
         if (!negate) return false;
@@ -276,33 +285,33 @@ export class RuleCompiler {
         // The positions first in the array will be used first in the conditions.
         // INTERFACE IN / OUT
         dir = (policy_type === POLICY_TYPE_OUTPUT || policy_type === POLICY_TYPE_SNAT) ? "-o " : "-i ";
-        objs = rule.positions[0].position_objs;
+        objs = rule.positions[0].ipobjs;
         negated = this.isPositionNegated(rule.negate, rule.positions[0].id);
         if (items = this.pre_compile_if(dir, objs, negated))
             position_items.push(items);
 
         // INTERFACE OUT
         if (policy_type === POLICY_TYPE_FORWARD) {
-            objs = rule.positions[1].position_objs;
+            objs = rule.positions[1].ipobjs;
             negated = this.isPositionNegated(rule.negate, rule.positions[1].id);
             if (items = this.pre_compile_if("-o ", objs, negated))
                 position_items.push(items);
         }
 
         // SERVICE
-        objs = rule.positions[svc_position].position_objs;
+        objs = rule.positions[svc_position].ipobjs;
         negated = this.isPositionNegated(rule.negate, rule.positions[svc_position].id);
         if (items = this.pre_compile_svc(":", objs, negated, rule.ip_version))
             position_items.push(items);
 
         // SOURCE
-        objs = rule.positions[src_position].position_objs;
+        objs = rule.positions[src_position].ipobjs;
         negated = this.isPositionNegated(rule.negate, rule.positions[src_position].id);
         if (items = this.pre_compile_sd("-s ", objs, negated, rule.ip_version))
             position_items.push(items);
 
         // DESTINATION
-        objs = rule.positions[dst_position].position_objs;
+        objs = rule.positions[dst_position].ipobjs;
         negated = this.isPositionNegated(rule.negate, rule.positions[dst_position].id);
         if (items = this.pre_compile_sd("-d ", objs, negated, rule.ip_version))
             position_items.push(items);
@@ -467,17 +476,13 @@ export class RuleCompiler {
      * @param fwcloud 
      * @param firewall 
      * @param type 
-     * @param rule 
+     * @param ruleData.id 
      */
     /*----------------------------------------------------------------------------------------------------------------------*/
-    public static rule_compile(fwcloud, firewall, type, rule) {
+    public static ruleCompile(ruleData: any): Promise<string> {
         return new Promise(async (resolve, reject) => {
-            let data;
             try {
-                data = await PolicyRule.getPolicyDataDetailed(fwcloud, firewall, type, rule);
-                if (!data) return reject(fwcError.other('Rule data not found'));
-
-                let policy_type = data[0].type;
+                let policy_type = ruleData.type;
                 if (!policy_type ||
                     (policy_type !== POLICY_TYPE_INPUT && policy_type !== POLICY_TYPE_OUTPUT && policy_type !== POLICY_TYPE_FORWARD && policy_type !== POLICY_TYPE_SNAT && policy_type !== POLICY_TYPE_DNAT
                         && policy_type !== POLICY_TYPE_INPUT_IPv6 && policy_type !== POLICY_TYPE_OUTPUT_IPv6 && policy_type !== POLICY_TYPE_FORWARD_IPv6 && policy_type !== POLICY_TYPE_SNAT_IPv6 && policy_type !== POLICY_TYPE_DNAT_IPv6)) {
@@ -493,57 +498,57 @@ export class RuleCompiler {
                 let stateful = ""; 
                 let table = ""; 
                 let action:string = "";
-                let comment: string = this.ruleComment(data[0]);
+                let comment: string = this.ruleComment(ruleData);
 
                 // Since now, all the compilation process for IPv6 is the same that the one for IPv4.
                 if (policy_type >= POLICY_TYPE_INPUT_IPv6) {
                     policy_type -= 60;
-                    data[0].type -= 60;
-                    data[0].ip_version = 6;
-                } else data[0].ip_version = 4;
+                    ruleData.type -= 60;
+                    ruleData.ip_version = 6;
+                } else ruleData.ip_version = 4;
 
                 if (policy_type === POLICY_TYPE_SNAT) { // SNAT
                     table = "-t nat";
                     cs += table + ` -A POSTROUTING ${comment}`;
-                    action = await this.nat_action(policy_type, data[0].positions[4].position_objs, data[0].positions[5].position_objs, data[0].ip_version);
+                    action = await this.nat_action(policy_type, ruleData.positions[4].ipobjs, ruleData.positions[5].ipobjs, ruleData.ip_version);
                 }
                 else if (policy_type === POLICY_TYPE_DNAT) { // DNAT
                     table = "-t nat";
                     cs += table + ` -A PREROUTING ${comment}`;
-                    action = await this.nat_action(policy_type, data[0].positions[4].position_objs, data[0].positions[5].position_objs, data[0].ip_version);
+                    action = await this.nat_action(policy_type, ruleData.positions[4].ipobjs, ruleData.positions[5].ipobjs, ruleData.ip_version);
                 }
                 else { // Filter policy
-                    if (data.length != 1 || !(data[0].positions)
-                        || !(data[0].positions[0].position_objs) || !(data[0].positions[1].position_objs) || !(data[0].positions[2].position_objs)
-                        || (policy_type === POLICY_TYPE_FORWARD && !(data[0].positions[3].position_objs))) {
+                    if (!(ruleData.positions)
+                        || !(ruleData.positions[0].ipobjs) || !(ruleData.positions[1].ipobjs) || !(ruleData.positions[2].ipobjs)
+                        || (policy_type === POLICY_TYPE_FORWARD && !(ruleData.positions[3].ipobjs))) {
                         return reject("Bad rule data");
                     }
 
                     cs += `-A ${POLICY_TYPE[policy_type]} ${comment}`;
 
-                    if (data[0].special === 1) // Special rule for ESTABLISHED,RELATED packages.
+                    if (ruleData.special === 1) // Special rule for ESTABLISHED,RELATED packages.
                         action = "ACCEPT";
-                    else if (data[0].special === 2) // Special rule for catch-all.
-                        action = ACTION[data[0].action];
+                    else if (ruleData.special === 2) // Special rule for catch-all.
+                        action = ACTION[ruleData.action];
                     else {
-                        action = ACTION[data[0].action];
+                        action = ACTION[ruleData.action];
                         if (action === "ACCEPT") {
-                            if (data[0].options & 0x0001) // Stateful rule.
+                            if (ruleData.options & 0x0001) // Stateful rule.
                                 //stateful = "-m state --state NEW ";
                                 stateful = "-m conntrack --ctstate  NEW ";
-                            else if ((data[0].firewall_options & 0x0001) && !(data[0].options & 0x0002)) // Statefull firewall and this rule is not stateless.
+                            else if ((ruleData.firewall_options & 0x0001) && !(ruleData.options & 0x0002)) // Statefull firewall and this rule is not stateless.
                                 //stateful = "-m state --state NEW ";
                                 stateful = "-m conntrack --ctstate  NEW ";
                             }
                         else if (action === "ACCOUNTING") {
-                            acc_chain = "FWCRULE" + rule + ".ACC";
+                            acc_chain = "FWCRULE" + ruleData.id + ".ACC";
                             action = acc_chain;
                         }
                     }
 
                     // If log all rules option is enabled or log option for this rule is enabled.
-                    if ((data[0].firewall_options & 0x0010) || (data[0].options & 0x0004)) {
-                        log_chain = "FWCRULE" + rule + ".LOG";
+                    if ((ruleData.firewall_options & 0x0010) || (ruleData.options & 0x0004)) {
+                        log_chain = "FWCRULE" + ruleData.id + ".LOG";
                         if (!acc_chain) {
                             after_log_action = action;
                             action = log_chain;
@@ -552,24 +557,24 @@ export class RuleCompiler {
                     }
                 }
 
-                if (parseInt(data[0].special) === 1) // Special rule for ESTABLISHED,RELATED packages.
+                if (parseInt(ruleData.special) === 1) // Special rule for ESTABLISHED,RELATED packages.
                     //cs_trail = `-m state --state ESTABLISHED,RELATED -j ${action}\n`;
                     cs_trail = `-m conntrack --ctstate ESTABLISHED,RELATED -j ${action}\n`;
                 else
                     cs_trail = `${stateful} -j ${action}\n`;
 
-                const position_items = this.pre_compile(data[0]);
+                const position_items = this.pre_compile(ruleData);
 
                 // Generate the compilation string.
-                cs = this.generate_compilation_string(rule, position_items, cs, cs_trail, table, stateful, action, iptables_cmd);
+                cs = this.generate_compilation_string(ruleData.id, position_items, cs, cs_trail, table, stateful, action, iptables_cmd);
 
                 // If we are using UDP or TCP ports in translated service position for NAT rules, 
                 // make sure that the -p tcp or -p udp is included in the compilation string.
-                if ((policy_type === POLICY_TYPE_SNAT || policy_type === POLICY_TYPE_DNAT) && data[0].positions[5].position_objs.length === 1) { // SNAT or DNAT
+                if ((policy_type === POLICY_TYPE_SNAT || policy_type === POLICY_TYPE_DNAT) && ruleData.positions[5].ipobjs.length === 1) { // SNAT or DNAT
                     var substr = "";
-                    if (data[0].positions[5].position_objs[0].protocol === 6) // TCP
+                    if (ruleData.positions[5].ipobjs[0].protocol === 6) // TCP
                         substr += " -p tcp ";
-                    else if (data[0].positions[5].position_objs[0].protocol === 17) // UDP
+                    else if (ruleData.positions[5].ipobjs[0].protocol === 17) // UDP
                         substr += " -p udp ";
 
                     if (cs.indexOf(substr) === -1) {
@@ -590,30 +595,30 @@ export class RuleCompiler {
 
                     if (log_chain) {
                         cs = `${iptables_cmd} -N ${log_chain}\n` +
-                            `${iptables_cmd} -A ${log_chain} -m limit --limit 60/minute -j LOG --log-level info --log-prefix "RULE ID ${rule} [${after_log_action}] "\n` +
+                            `${iptables_cmd} -A ${log_chain} -m limit --limit 60/minute -j LOG --log-level info --log-prefix "RULE ID ${ruleData.id} [${after_log_action}] "\n` +
                             `${iptables_cmd} -A ${log_chain} -j ${after_log_action}\n` +
                             `${cs}`;
                     }
 
-                    if (parseInt(data[0].mark_code) !== 0) {
+                    if (parseInt(ruleData.mark_code) !== 0) {
                         table = '-t mangle';
 
-                        action = `MARK --set-mark ${data[0].mark_code}`;
+                        action = `MARK --set-mark ${ruleData.mark_code}`;
                         cs_trail = `${stateful} -j ${action}\n`
-                        cs += this.generate_compilation_string(`${rule}-M1`, position_items, `${iptables_cmd} -t mangle -A ${MARK_CHAIN[policy_type]} `, cs_trail, table, stateful, action, iptables_cmd);
+                        cs += this.generate_compilation_string(`${ruleData.id}-M1`, position_items, `${iptables_cmd} -t mangle -A ${MARK_CHAIN[policy_type]} `, cs_trail, table, stateful, action, iptables_cmd);
                         // Add the mark to the PREROUTING chain of the mangle table.
                         if (policy_type === POLICY_TYPE_FORWARD) {
-                            let str:string = this.generate_compilation_string(`${rule}-M1`, position_items, `${iptables_cmd} -t mangle -A PREROUTING `, cs_trail, table, stateful, action, iptables_cmd);
+                            let str:string = this.generate_compilation_string(`${ruleData.id}-M1`, position_items, `${iptables_cmd} -t mangle -A PREROUTING `, cs_trail, table, stateful, action, iptables_cmd);
                             str = str.replace(/-o \w+ /g, "")
                             cs += str;
                         }
 
                         action = `CONNMARK --save-mark`;
                         cs_trail = `${stateful} -j ${action}\n`
-                        cs += this.generate_compilation_string(`${rule}-M2`, position_items, `${iptables_cmd} -t mangle -A ${MARK_CHAIN[policy_type]} `, cs_trail, table, stateful, action, iptables_cmd);
+                        cs += this.generate_compilation_string(`${ruleData.id}-M2`, position_items, `${iptables_cmd} -t mangle -A ${MARK_CHAIN[policy_type]} `, cs_trail, table, stateful, action, iptables_cmd);
                         // Add the mark to the PREROUTING chain of the mangle table.
                         if (policy_type === POLICY_TYPE_FORWARD) {
-                            let str:string = this.generate_compilation_string(`${rule}-M2`, position_items, `${iptables_cmd} -t mangle -A PREROUTING `, cs_trail, table, stateful, action, iptables_cmd);
+                            let str:string = this.generate_compilation_string(`${ruleData.id}-M2`, position_items, `${iptables_cmd} -t mangle -A PREROUTING `, cs_trail, table, stateful, action, iptables_cmd);
                             str = str.replace(/-o \w+ /g, "")
                             cs += str;
                         }
@@ -621,20 +626,10 @@ export class RuleCompiler {
                 }
 
                 // Apply rule only to the selected firewall.
-                if (data[0].fw_apply_to && data[0].firewall_name)
-                    cs = "if [ \"$HOSTNAME\" = \"" + data[0].firewall_name + "\" ]; then\n" + cs + "fi\n";
+                if (ruleData.fw_apply_to && ruleData.firewall_name)
+                    cs = "if [ \"$HOSTNAME\" = \"" + ruleData.firewall_name + "\" ]; then\n" + cs + "fi\n";
 
                 cs = cs.replace(/  +/g, ' ');
-
-                //Save compilation
-                var policy_cData = {
-                    rule: rule,
-                    rule_compiled: cs,
-                    status_compiled: 1
-                };
-
-                // Store compilation string in the database
-                await PolicyCompilation.insertPolicy_c(policy_cData);
 
                 resolve(cs);
             } catch (error) { return reject(error) }
@@ -643,27 +638,30 @@ export class RuleCompiler {
     /*----------------------------------------------------------------------------------------------------------------------*/
 
     /*----------------------------------------------------------------------------------------------------------------------*/
-    /* Get the rule compilation string or compile it if this string is not uptodate.
-    /*----------------------------------------------------------------------------------------------------------------------*/
-    public static get(fwcloud, firewall, type, rule) {
+    public static compile(dbCon: any, fwcloud: number, firewall: number, type: number, rule?: number, eventEmitter?: EventEmitter): Promise<IPTablesRuleCompiled[]> {
         return new Promise(async (resolve, reject) => {
             try {
-                // Rule compilation cache disabled until issue "Policy compilation cache invalidation problem."
-                // is solved.
-                /*
-                let data: any = await PolicyCompilation.getPolicy_c(fwcloud, firewall, rule);
-                if (data && data.length > 0) {
-                    if (parseInt(data[0].c_status_recompile) === 0)
-                        resolve(data[0].c_compiled);
-                    else
-                        resolve(await this.rule_compile(fwcloud, firewall, type, rule));
-                }
-                else
-                    resolve("");
-                */
-                resolve(await this.rule_compile(fwcloud, firewall, type, rule));
+                //const tsStart = Date.now();
+                const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, firewall, type, rule, null);
+                //IPTablesCompiler.totalGetDataTime += Date.now() - tsStart;
+                
+                if (!rulesData) return resolve([]);
 
-            } catch (error) { reject(error) }
+                let result: IPTablesRuleCompiled[] = [];
+                for (let i=0; i<rulesData.length; i++) {
+                    if (eventEmitter) eventEmitter.emit('message', new ProgressNoticePayload(`Rule ${i+1} (ID: ${rulesData[i].id})${!(rulesData[i].active) ? ' [DISABLED]' : ''}`));
+
+                    result.push({
+                        id: rulesData[i].id,
+                        active: rulesData[i].active,
+                        comment: rulesData[i].comment,
+                        cs: (rulesData[i].active || rulesData.length===1) ? await this.ruleCompile(rulesData[i]) : ''
+                    });
+                }
+
+                resolve(result);
+            } catch (error) { return reject(error) }
         });
     }
+    /*----------------------------------------------------------------------------------------------------------------------*/
 }

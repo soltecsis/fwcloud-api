@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Optimizations in API calls for policy and trees (firewalls, objects, services and CA) get.
+- Huge improvement in IPTables compiler process. Nearly 40 times faster. 
+- Option for only sync the CCD files of the OpenVPN clients pending of install.
+- New API call `PUT /policy/rule/type/ingroup/get` for get only the firewall rules into a rules group, including the data about objects into rules positions.
+- New API call `PUT /policy/rule/type/grouped/get` for get firewall policy rules of one type but without getting data about objects into rules positions into rules groups. This is very useful for speed up policy load in FWCloud-UI.
+- Improved performance in the process for harvest information about each object in each rule position. It is now nearly 3 times faster.
+- Improve snapshots performance.
+- Improve backup and restore performance.
+- Header description in OpenVPN configuration files.
 - Configuration parameters for socket.io pingInterval and pingTimeout.
 - Send heartbeats through socket.io in FWCloud import/export operations.
 - For SSH connections detect if we are using the `root` user and don't use `sudo` in such cases.
@@ -19,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - By default listen to localhost.
 
 ### Fixed
+- Remove standard objects when a fwcloud is removed.
+- Ignore maintenance mode for ping API requests.
 - Set the mysqldump node module format option to false for avoid long high CPU usage in backups of databases with lot of registers.
 - Multiport module, up to 15 ports limit control.
 - Bug in session expiration.
@@ -28,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bug in autodiscover when the `ip a` command returns interfaces with name like this one: `ens193.40@ens193:` In such cases the interface name must be the string preceding the `@` character.
 
 ### Changed
+- Removed table policy_c and all the code that uses it.
+- Removed `mysqldump` and `mysql-import` node modules.
 - Set the maximum size of accepted data for BodyParser to 2MB.
 - Disable confirmation token for `PUT /ping` API call.
 - Clean firewall policy before iptables-save import.

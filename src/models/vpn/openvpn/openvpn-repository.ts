@@ -1,5 +1,5 @@
-/*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+/*!
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -20,22 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { Repository } from "../../../database/repository";
+import { OpenVPN } from "./OpenVPN";
+import { EntityRepository } from "typeorm";
 
-//create object
-function fwc_tree_node(node_data) {
-	try {
-		this.id = node_data.id;
-		this.text = node_data.name;
-		this.pid = node_data.id_parent;
-		this.node_type = node_data.node_type;
-		this.obj_type = node_data.obj_type;
-		this.id_obj = node_data.id_obj;
-		this.fwcloud = node_data.fwcloud;
-	} catch (err) {
-		// Handle the error here.
-	}
+@EntityRepository(OpenVPN)
+export class OpenVPNRepository extends Repository<OpenVPN> {
+  public async markAllAsUninstalled(): Promise<void> {
+    await this.createQueryBuilder().update(OpenVPN)
+      .set({
+          status: 1,
+          installed_at: null
+      }).execute();
+  }
 }
-
-//Export the object
-module.exports = fwc_tree_node;
-

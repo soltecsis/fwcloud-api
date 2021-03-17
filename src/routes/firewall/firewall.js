@@ -75,7 +75,6 @@ import { FirewallExport } from '../../export/FirewallExport';
  */
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { Interface } from '../../models/interface/Interface';
-import { PolicyCompilation } from '../../models/policy/PolicyCompilation';
 import { Tree } from '../../models/tree/Tree';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { logger } from '../../fonaments/abstract-application';
@@ -258,7 +257,6 @@ router.put('/', async (req, res) => {
 	};
 
 	try {
-		await PolicyCompilation.deleteFullFirewallPolicy_c(req.dbCon,req.body.firewall);
 		await Firewall.updateFirewallStatus(req.body.fwcloud, req.body.firewall, "|3");
 		await Firewall.checkBodyFirewall(firewallData, false);
 
