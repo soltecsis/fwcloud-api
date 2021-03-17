@@ -154,17 +154,18 @@ export class OpenVPNPrefix extends Model {
     public static getPrefixOpenvpnInfo(dbCon, fwcloud, prefix) {
         return new Promise((resolve, reject) => {
             let sql = `select P.*, FW.id as firewall_id, FW.name as firewall_name, CRT.cn, CA.cn as ca_cn, FW.cluster as cluster_id,
-        IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name, 401 as type
-        from openvpn_prefix P
-        inner join openvpn VPN on VPN.id=P.openvpn
-        inner join crt CRT on CRT.id=VPN.crt
-        inner join ca CA on CA.id=CRT.ca
-        inner join firewall FW on FW.id=VPN.firewall 
-        where FW.fwcloud=${fwcloud} and P.id=${prefix}`;
+                IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
+                from openvpn_prefix P
+                inner join openvpn VPN on VPN.id=P.openvpn
+                inner join crt CRT on CRT.id=VPN.crt
+                inner join ca CA on CA.id=CRT.ca
+                inner join firewall FW on FW.id=VPN.firewall 
+                where FW.fwcloud=${fwcloud} and P.id=${prefix}`;
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
                 if (result.length === 0) return reject(fwcError.NOT_FOUND);
 
+                result[0].type = 401;
                 result[0].openvpn_clients = [];
                 try {
                     let openvpn_clients: any = await this.getOpenvpnClientesUnderPrefix(dbCon, result[0].openvpn, result[0].name);

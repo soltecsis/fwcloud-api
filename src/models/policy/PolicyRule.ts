@@ -284,6 +284,29 @@ export class PolicyRule extends Model {
             where PR.firewall=${firewall} and PR.type=${type} and OPT.name='ifconfig-push'
             ${(rule) ? ` and PR.id=${rule}` : ``}`,
 
+            // All ipobj under OpenVPNs in groups into type O positions
+            `select R.rule,R.position,O.* from policy_r__ipobj R
+            inner join openvpn__ipobj_g G on G.ipobj_g=R.ipobj_g
+            inner join openvpn VPN on VPN.id=G.openvpn 
+            inner join openvpn_opt OPT on OPT.openvpn=VPN.id
+            inner join ipobj O on O.id=OPT.ipobj
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type} and OPT.name='ifconfig-push'
+            ${(rule) ? ` and PR.id=${rule}` : ``}`,            
+
+            // All ipobj under OpenVPN prefix in groups into type O positions
+            `select R.rule,R.position,O.* from policy_r__ipobj R
+            inner join openvpn_prefix__ipobj_g G on G.ipobj_g=R.ipobj_g
+            inner join openvpn_prefix PRE on PRE.id=G.prefix
+            inner join openvpn VPN on VPN.openvpn=PRE.openvpn
+            inner join crt CRT on CRT.id=VPN.crt
+            inner join openvpn_opt OPT on OPT.openvpn=VPN.id
+            inner join ipobj O on O.id=OPT.ipobj
+            inner join policy_r PR on PR.id=R.rule 
+            where PR.firewall=${firewall} and PR.type=${type} 
+            and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%') and OPT.name='ifconfig-push'
+            ${(rule) ? ` and PR.id=${rule}` : ``}`,
+            
             // All ipobj under OpenVPN prefix into type O positions
             `select R.rule,R.position,O.* from policy_r__openvpn_prefix R 
             inner join openvpn_prefix PRE on PRE.id=R.prefix
