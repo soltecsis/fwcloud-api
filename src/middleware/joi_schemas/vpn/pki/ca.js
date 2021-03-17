@@ -37,8 +37,7 @@ schema.validate = req => {
         cn: sharedSch.cn,
         days: sharedSch.days,
         node_id: sharedSch.id,
-        comment: sharedSch.comment,
-        socketid: sharedSch.socketio_id.optional()
+        comment: sharedSch.comment
       });
     }
     else if (req.method==="PUT") {

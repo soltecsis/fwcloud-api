@@ -54,12 +54,14 @@ router.post('/', async(req, res) => {
 		Ca.runEasyRsaCmd(req, 'gen-dh')
 			.then(() => {
 				req.dbCon.query(`update ca set status=0 where id=${req.caId}`, async (error, result) => {
-					const webSocketService = await app().getService(WebSocketService.name);
+					try {
+						const webSocketService = await app().getService(WebSocketService.name);
 
-					if (webSocketService.hasSocket(req.body.socketid)) {
-						const socket = webSocketService.getSocket([req.body.socketid]);
-						socket.emit('ca:dh:created', { caId: req.caId, caCn: req.body.cn });
-					}
+						if (webSocketService.hasSocket(req.session.socketId)) {
+							const socket = webSocketService.getSocket(req.session.socketId);
+							socket.emit('ca:dh:created', { caId: req.caId, caCn: req.body.cn });
+						}
+					} catch (error) { logger().error('Error sending ca created notification: ' + JSON.stringify(error)); }
 				});
 			});
 
