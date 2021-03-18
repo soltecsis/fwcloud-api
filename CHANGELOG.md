@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2021-03-18
 ### Added
-- Optimizations in API calls for policy and trees (firewalls, objects, services and CA) get.
+- Optimizations in API calls for policy and trees (firewalls, objects, services and CA) get. Around 10 times faster.
 - Huge improvement in IPTables compiler process. Nearly 40 times faster. 
 - Option for only sync the CCD files of the OpenVPN clients pending of install.
 - New API call `PUT /policy/rule/type/ingroup/get` for get only the firewall rules into a rules group, including the data about objects into rules positions.
