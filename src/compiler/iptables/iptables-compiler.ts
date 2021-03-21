@@ -36,7 +36,7 @@ export const POLICY_TYPE_OUTPUT_IPv6 = 62;
 export const POLICY_TYPE_FORWARD_IPv6 = 63;
 export const POLICY_TYPE_SNAT_IPv6 = 64;
 export const POLICY_TYPE_DNAT_IPv6 = 65;
-export const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
+export const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'POSTROUTING', 'PREROUTING'];
 export const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING'];
 export const MARK_CHAIN = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 
