@@ -40,7 +40,7 @@ function positionsEmpty(data: any): boolean {
     return true;
 }
 
-describe.only(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
+describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
     const sandbox = sinon.createSandbox();
     let spy: SinonSpy;
 
@@ -99,6 +99,12 @@ describe.only(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
         }
     }
     
+    before(async () => {
+        dbCon = db.getQuery();
+
+        fwcloud = (await getRepository(FwCloud).save(getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id;
+        ruleData.firewall = (await getRepository(Firewall).save(getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
+    });
         
     beforeEach(async () => {
         spy = sandbox.spy(IPTablesCompiler, "ruleCompile");
@@ -106,13 +112,6 @@ describe.only(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
 
     afterEach(() => {
         sandbox.restore();
-    });
-
-    before(async () => {
-        dbCon = db.getQuery();
-
-        fwcloud = (await getRepository(FwCloud).save(getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id;
-        ruleData.firewall = (await getRepository(Firewall).save(getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
     });
 
 
