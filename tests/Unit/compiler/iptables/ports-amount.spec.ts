@@ -29,7 +29,7 @@ import sinon, { SinonSpy } from "sinon";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
 import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
-import { IPTablesCompiler, ACTION, POLICY_TYPE, POLICY_TYPE_INPUT, POLICY_TYPE_OUTPUT, POLICY_TYPE_FORWARD, POLICY_TYPE_SNAT, POLICY_TYPE_DNAT } from '../../../../src/compiler/iptables/iptables-compiler';
+import { IPTablesCompiler } from '../../../../src/compiler/iptables/iptables-compiler';
 
 describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount control'), () => {
   const sandbox = sinon.createSandbox();
