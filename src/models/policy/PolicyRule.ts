@@ -665,7 +665,7 @@ export class PolicyRule extends Model {
     }
 
     //Add new policy_r from user
-    public static insertPolicy_r(policy_rData) {
+    public static insertPolicy_r(policy_rData):Promise<number> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
