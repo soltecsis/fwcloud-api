@@ -28,9 +28,7 @@ import { Firewall } from '../../models/firewall/Firewall';
 import { Ca } from '../../models/vpn/pki/Ca';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { logger } from '../../fonaments/abstract-application';
-var _Tree = require('easy-tree');
 var fwc_tree_node = require("../../models/tree/node.js");
-const fwcError = require('../../utils/error_table');
 
 
 /**
@@ -74,9 +72,9 @@ const fwcError = require('../../utils/error_table');
 
 router.put('/firewalls/get', async (req, res) => {
 	try {
-		console.time('FW');
+		//console.time('FW');
 		const tree = await Tree.dumpTree(req.dbCon, 'FIREWALLS', req.body.fwcloud);
-		console.timeEnd('FW');
+		//console.timeEnd('FW');
 
 		await Firewall.getFirewallStatusNotZero(req.body.fwcloud,tree);
 		await OpenVPN.getOpenvpnStatusNotZero(req,tree);
