@@ -172,7 +172,7 @@ router.put('/addto', async(req, res) => {
 		if (req.body.node_type === 'OCL') {
 			if (groupIPv === 6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
-			await OpenVPN.addToGroup(req);
+			await OpenVPN.addToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
 			dataIpobj = await OpenVPN.getOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.ipobj, 1);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].name = dataIpobj[0].cn;

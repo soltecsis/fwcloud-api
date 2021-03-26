@@ -29,16 +29,7 @@ import sinon, { SinonSpy } from "sinon";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
 import { IPTablesCompiler, ACTION, POLICY_TYPE, POLICY_TYPE_INPUT, POLICY_TYPE_OUTPUT, POLICY_TYPE_FORWARD, POLICY_TYPE_SNAT, POLICY_TYPE_DNAT } from '../../../../src/compiler/iptables/iptables-compiler';
-
-function positionsEmpty(data: any): boolean {
-    if (!data || !data.positions) return false;
-
-    for(let i=0; i<data.positions.length; i++) {
-        if (data.positions[i].ipobjs.length !== 0) return false;
-    }
-
-    return true;
-}
+import { positionsEmpty } from "./utils"
 
 describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
     const sandbox = sinon.createSandbox();
@@ -57,38 +48,38 @@ describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
         options: 0    
     }
 
-    async function runTest(type: number): Promise<void> {
-        ruleData.type = type;
+    async function runTest(policyType: number): Promise<void> {
+        ruleData.type = policyType;
         const rule = await PolicyRule.insertPolicy_r(ruleData);
         let result: any;
         let error: any;
 
         try {
-            result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, type, rule);
+            result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, policyType, rule);
         } catch(err) { error = err }
         
         expect(spy.calledOnce).to.be.true;
         expect(positionsEmpty(spy.getCall(0).args[0])).to.be.true;
 
-        if (type === POLICY_TYPE_DNAT) { 
+        if (policyType === POLICY_TYPE_DNAT) { 
             expect(error).to.eql({
                 fwcErr: 999999,
                 msg: "For DNAT 'Translated Destination' is mandatory"
             });
         } else {
             let cs: string;
-            let action = (type===POLICY_TYPE_SNAT) ? 'MASQUERADE' : ACTION[ruleData.action];
+            let action = (policyType===POLICY_TYPE_SNAT) ? 'MASQUERADE' : ACTION[ruleData.action];
             if (action==='ACCOUNTING') action = 'RETURN';
-            const st = (ruleData.action===1 && ruleData.options&0x0001 && type!==POLICY_TYPE_SNAT && type!==POLICY_TYPE_DNAT) ? '-m conntrack --ctstate NEW ' : '' ;
+            const st = (ruleData.action===1 && ruleData.options&0x0001 && policyType!==POLICY_TYPE_SNAT && policyType!==POLICY_TYPE_DNAT) ? '-m conntrack --ctstate NEW ' : '' ;
             
             // Accounting ,logging and marking is not allowed with SNAT and DNAT chains.
-            const log = (ruleData.options&0x0004 && type!==POLICY_TYPE_SNAT && type!==POLICY_TYPE_DNAT) ? `$IPTABLES -N FWCRULE${rule}.LOG\n$IPTABLES -A FWCRULE${rule}.LOG -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID ${rule} [${action}] \"\n$IPTABLES -A FWCRULE${rule}.LOG -j ${action}\n`: '';
+            const log = (ruleData.options&0x0004 && policyType!==POLICY_TYPE_SNAT && policyType!==POLICY_TYPE_DNAT) ? `$IPTABLES -N FWCRULE${rule}.LOG\n$IPTABLES -A FWCRULE${rule}.LOG -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID ${rule} [${action}] \"\n$IPTABLES -A FWCRULE${rule}.LOG -j ${action}\n`: '';
             if (log) action = `FWCRULE${rule}.LOG`;
 
-            if (ruleData.action===4 && type!==POLICY_TYPE_SNAT && type!==POLICY_TYPE_DNAT) // Accounting
-                cs = `${log}$IPTABLES -N FWCRULE${rule}.ACC\n$IPTABLES -A FWCRULE${rule}.ACC -j ${action}\n$IPTABLES -A ${POLICY_TYPE[type]} ${st}-j FWCRULE${rule}.ACC\n`
+            if (ruleData.action===4 && policyType!==POLICY_TYPE_SNAT && policyType!==POLICY_TYPE_DNAT) // Accounting
+                cs = `${log}$IPTABLES -N FWCRULE${rule}.ACC\n$IPTABLES -A FWCRULE${rule}.ACC -j ${action}\n$IPTABLES -A ${POLICY_TYPE[policyType]} ${st}-j FWCRULE${rule}.ACC\n`
             else
-                cs = `${log}$IPTABLES ${type===POLICY_TYPE_SNAT?'-t nat ':''}-A ${POLICY_TYPE[type]} ${st}-j ${action}\n`;
+                cs = `${log}$IPTABLES ${policyType===POLICY_TYPE_SNAT?'-t nat ':''}-A ${POLICY_TYPE[policyType]} ${st}-j ${action}\n`;
             
             expect(result).to.eql([{
                 id: rule,

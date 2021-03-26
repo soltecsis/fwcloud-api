@@ -743,9 +743,9 @@ export class OpenVPN extends Model {
         });
     };
 
-    public static addToGroup(req) {
+    public static addToGroup(dbCon: any, openvpn: number, ipobj_g: number) {
         return new Promise((resolve, reject) => {
-            req.dbCon.query(`INSERT INTO openvpn__ipobj_g values(${req.body.ipobj},${req.body.ipobj_g})`, (error, result) => {
+            dbCon.query(`INSERT INTO openvpn__ipobj_g values(${openvpn},${ipobj_g})`, (error, result) => {
                 if (error) return reject(error);
                 resolve(result.insertId);
             });
