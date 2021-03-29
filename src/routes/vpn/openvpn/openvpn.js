@@ -64,6 +64,8 @@ import { IPObj } from '../../../models/ipobj/IPObj';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { logger } from '../../../fonaments/abstract-application';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { Cluster } from '../../../models/firewall/Cluster';
 const fwcError = require('../../../utils/error_table');
 
 
@@ -395,6 +397,9 @@ router.put('/ccdsync', async(req, res) => {
 		// Get all client configurations for this OpenVPN server configuration.
 		const clients = await OpenVPN.getOpenvpnClients(req.dbCon,req.body.openvpn);
 
+		const cluster = await Firewall.getClusterId(req.dbCon, req.body.firewall);
+		let lastClusterNodeId = cluster ? await Firewall.getLastClusterNodeId(req.dbCon, cluster) : null;
+
 		for (let client of clients) {
 			if (req.body.onlyPending && client.status===0) continue; // Only synchronize CCD files of pending OpenVPN client configs.
 
@@ -402,7 +407,8 @@ router.put('/ccdsync', async(req, res) => {
 			await OpenVPN.installCfg(req,cfgDump.ccd,client_config_dir,client.cn,1, channel);
 
 			// Update the status flag for the OpenVPN configuration.
-			await OpenVPN.updateOpenvpnStatus(req.dbCon,client.id,"&~1");
+			if (!cluster || req.body.firewall===lastClusterNodeId) // In a cluster update only if this is the last cluster node.
+				await OpenVPN.updateOpenvpnStatus(req.dbCon,client.id,"&~1");
 		}
 
 		// Get the list of files into the client-config-dir directory.
