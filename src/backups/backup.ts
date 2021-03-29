@@ -382,8 +382,6 @@ export class Backup implements Responsable {
 
         const dir = cmd==='mysqldump' ? '>' : '<';
 
-        if (cmd === 'mysqldump') cmd += ' --column-statistics=0';
-        
         // This is necessary for mysqldump/mysql commands to access the docker containers of the test environment.
         if (process.env.NODE_ENV === 'test') cmd += ' --protocol=TCP';
 

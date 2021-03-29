@@ -9,7 +9,7 @@ jobs:
 
     services:
       mysql:
-        image: mysql:5.7
+        image: mysql:latest
         ports:
           - 8888:3306
         env:
@@ -18,7 +18,7 @@ jobs:
           MYSQL_PASSWORD: "fwcdbusr"
           MYSQL_DATABASE: "fwcloud"
       mariadb:
-        image: mariadb:10.1
+        image: mariadb:latest
         ports:
           - 8889:3306
         env:
