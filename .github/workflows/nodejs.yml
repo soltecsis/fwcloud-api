@@ -6,6 +6,7 @@ jobs:
   test:
     name: 'FwCloud Test'
     runs-on: ubuntu-latest
+    options: --user 0
 
     services:
       mysql:
