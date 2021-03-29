@@ -29,7 +29,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: ['14']
+        node-version: ['10', '12', '14']
         database: [mysql, mariadb]
         include:
           - database: mysql
@@ -56,6 +56,8 @@ jobs:
           ${{ runner.os }}-build-${{ env.cache-name }}-
           ${{ runner.os }}-build-
           ${{ runner.os }}-
+    - name: Disable mysqldump column statistics
+      run: echo 'column-statistics=0' | sudo tee -a /etc/mysql/conf.d/mysqldump.cnf
     - name: Install dependencies
       run: npm install
     - name: Build FwCloud
