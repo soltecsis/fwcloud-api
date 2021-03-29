@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional info (TCP/UDP port and IPv4/IPv6 address) in tree's nodes.
 - Hundreds of new software tests for IPTables compiler.
 
+### Fixed
+- Bug in OpenVPN pending CCD files synchronization.
+
 
 ## [1.1.0] - 2021-03-18
 ### Added
