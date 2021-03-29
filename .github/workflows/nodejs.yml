@@ -6,7 +6,6 @@ jobs:
   test:
     name: 'FwCloud Test'
     runs-on: ubuntu-latest
-    options: --user 0
 
     services:
       mysql:
@@ -39,7 +38,7 @@ jobs:
             port: 8889
 
     steps:
-    - uses: actions/checkout@v2
+    #- uses: actions/checkout@v2
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
