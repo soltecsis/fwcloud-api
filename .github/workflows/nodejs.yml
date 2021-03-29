@@ -9,7 +9,7 @@ jobs:
 
     services:
       mysql:
-        image: mysql:latest
+        image: mysql:5.7
         ports:
           - 8888:3306
         env:
@@ -18,7 +18,7 @@ jobs:
           MYSQL_PASSWORD: "fwcdbusr"
           MYSQL_DATABASE: "fwcloud"
       mariadb:
-        image: mariadb:latest
+        image: mariadb:10.1
         ports:
           - 8889:3306
         env:
@@ -56,6 +56,8 @@ jobs:
           ${{ runner.os }}-build-${{ env.cache-name }}-
           ${{ runner.os }}-build-
           ${{ runner.os }}-
+    - name: Disable mysqldump column statistics
+      run: echo "column-statistics=0" >> /etc/mysql/conf.d/mysqldump.cnf
     - name: Install dependencies
       run: npm install
     - name: Build FwCloud
