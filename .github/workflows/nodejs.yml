@@ -57,7 +57,7 @@ jobs:
           ${{ runner.os }}-build-
           ${{ runner.os }}-
     - name: Disable mysqldump column statistics
-      run: sudo chmod 666 /etc/mysql/conf.d/mysqldump.cnf && echo "column-statistics=0" >> /etc/mysql/conf.d/mysqldump.cnf
+      run: echo 'column-statistics=0' | sudo tee -a /etc/mysql/conf.d/mysqldump.cnf
     - name: Install dependencies
       run: npm install
     - name: Build FwCloud
