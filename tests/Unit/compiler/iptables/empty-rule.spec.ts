@@ -28,17 +28,9 @@ import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import sinon, { SinonSpy } from "sinon";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
-import { IPTablesCompiler, ACTION, POLICY_TYPE, POLICY_TYPE_INPUT, POLICY_TYPE_OUTPUT, POLICY_TYPE_FORWARD, POLICY_TYPE_SNAT, POLICY_TYPE_DNAT } from '../../../../src/compiler/iptables/iptables-compiler';
-
-function positionsEmpty(data: any): boolean {
-    if (!data || !data.positions) return false;
-
-    for(let i=0; i<data.positions.length; i++) {
-        if (data.positions[i].ipobjs.length !== 0) return false;
-    }
-
-    return true;
-}
+import { IPTablesCompiler, RuleActionsMap, ACTION, POLICY_TYPE } from '../../../../src/compiler/iptables/iptables-compiler';
+import { positionsEmpty } from "./utils"
+import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 
 describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
     const sandbox = sinon.createSandbox();
@@ -46,6 +38,8 @@ describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
 
     let fwcloud: number;
     let dbCon: any;
+
+    let IPv: string;
 
     let ruleData = {
         firewall: 0,
@@ -57,38 +51,39 @@ describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
         options: 0    
     }
 
-    async function runTest(type: number): Promise<void> {
-        ruleData.type = type;
+    async function runTest(policyType: number): Promise<void> {
+        ruleData.type = policyType;
         const rule = await PolicyRule.insertPolicy_r(ruleData);
+        const cmd = IPv === 'IPv4' ? '$IPTABLES' : '$IP6TABLES';
         let result: any;
         let error: any;
 
         try {
-            result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, type, rule);
+            result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, policyType, rule);
         } catch(err) { error = err }
         
         expect(spy.calledOnce).to.be.true;
         expect(positionsEmpty(spy.getCall(0).args[0])).to.be.true;
 
-        if (type === POLICY_TYPE_DNAT) { 
+        if (policyType === PolicyTypesMap.get(`${IPv}:DNAT`)) { 
             expect(error).to.eql({
                 fwcErr: 999999,
                 msg: "For DNAT 'Translated Destination' is mandatory"
             });
         } else {
             let cs: string;
-            let action = (type===POLICY_TYPE_SNAT) ? 'MASQUERADE' : ACTION[ruleData.action];
+            let action = (policyType===PolicyTypesMap.get(`${IPv}:SNAT`)) ? 'MASQUERADE' : ACTION[ruleData.action];
             if (action==='ACCOUNTING') action = 'RETURN';
-            const st = (ruleData.action===1 && ruleData.options&0x0001 && type!==POLICY_TYPE_SNAT && type!==POLICY_TYPE_DNAT) ? '-m conntrack --ctstate NEW ' : '' ;
+            const st = (ruleData.action===RuleActionsMap.get('ACCEPT') && ruleData.options&0x0001 && policyType!==PolicyTypesMap.get(`${IPv}:SNAT`) && policyType!==PolicyTypesMap.get(`${IPv}:DNAT`)) ? '-m conntrack --ctstate NEW ' : '' ;
             
             // Accounting ,logging and marking is not allowed with SNAT and DNAT chains.
-            const log = (ruleData.options&0x0004 && type!==POLICY_TYPE_SNAT && type!==POLICY_TYPE_DNAT) ? `$IPTABLES -N FWCRULE${rule}.LOG\n$IPTABLES -A FWCRULE${rule}.LOG -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID ${rule} [${action}] \"\n$IPTABLES -A FWCRULE${rule}.LOG -j ${action}\n`: '';
+            const log = (ruleData.options&0x0004 && policyType!==PolicyTypesMap.get(`${IPv}:SNAT`) && policyType!==PolicyTypesMap.get(`${IPv}:DNAT`)) ? `${cmd} -N FWCRULE${rule}.LOG\n${cmd} -A FWCRULE${rule}.LOG -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID ${rule} [${action}] \"\n${cmd} -A FWCRULE${rule}.LOG -j ${action}\n`: '';
             if (log) action = `FWCRULE${rule}.LOG`;
 
-            if (ruleData.action===4 && type!==POLICY_TYPE_SNAT && type!==POLICY_TYPE_DNAT) // Accounting
-                cs = `${log}$IPTABLES -N FWCRULE${rule}.ACC\n$IPTABLES -A FWCRULE${rule}.ACC -j ${action}\n$IPTABLES -A ${POLICY_TYPE[type]} ${st}-j FWCRULE${rule}.ACC\n`
+            if (ruleData.action===4 && policyType!==PolicyTypesMap.get(`${IPv}:SNAT`) && policyType!==PolicyTypesMap.get(`${IPv}:DNAT`)) // Accounting
+                cs = `${log}${cmd} -N FWCRULE${rule}.ACC\n${cmd} -A FWCRULE${rule}.ACC -j ${action}\n${cmd} -A ${POLICY_TYPE[policyType]} ${st}-j FWCRULE${rule}.ACC\n`
             else
-                cs = `${log}$IPTABLES ${type===POLICY_TYPE_SNAT?'-t nat ':''}-A ${POLICY_TYPE[type]} ${st}-j ${action}\n`;
+                cs = `${log}${cmd} ${policyType===PolicyTypesMap.get(`${IPv}:SNAT`)?'-t nat ':''}-A ${POLICY_TYPE[policyType]} ${st}-j ${action}\n`;
             
             expect(result).to.eql([{
                 id: rule,
@@ -106,7 +101,7 @@ describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
         ruleData.firewall = (await getRepository(Firewall).save(getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
     });
         
-    beforeEach(async () => {
+    beforeEach(() => {
         spy = sandbox.spy(IPTablesCompiler, "ruleCompile");
     });
 
@@ -115,178 +110,363 @@ describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
     });
 
 
-    describe('Empty rule with ACCEPT action', () => {
-        before(async () => { ruleData.action = 1 });
+    describe('Empty rule in IPv4', () => {
+        beforeEach(() => { IPv = 'IPv4' });
 
-        describe('statefull', () => {
-            describe('without log', () => {
-                before(async () => { ruleData.options = 0x01 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
+        describe('Empty rule with ACCEPT action', () => {
+            before(async () => { ruleData.action = RuleActionsMap.get('ACCEPT') });
+
+            describe('statefull', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x01 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x05 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
             });
 
-            describe('with log', () => {
-                before(async () => { ruleData.options = 0x05 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
+            describe('stateless', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x02 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x06 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
             });
         });
 
-        describe('stateless', () => {
-            describe('without log', () => {
-                before(async () => { ruleData.options = 0x02 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
+        describe('Empty rule with DROP action', () => {
+            before(async () => { ruleData.action = RuleActionsMap.get('DROP') });
+
+            describe('statefull', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x01 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x05 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
             });
 
-            describe('with log', () => {
-                before(async () => { ruleData.options = 0x06 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
+            describe('stateless', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x02 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x06 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+            });
+        });
+
+        describe('Empty rule with REJECT action', () => {
+            before(async () => { ruleData.action = RuleActionsMap.get('REJECT') });
+
+            describe('statefull', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x01 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x05 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+            });
+
+            describe('stateless', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x02 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x06 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+            });
+        });
+
+        describe('Empty rule with ACCOUNTING action', () => {
+            before(async () => { ruleData.action = RuleActionsMap.get('ACCOUNTING') });
+
+            describe('statefull', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x01 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x05 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+            });
+
+            describe('stateless', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x02 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x06 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
             });
         });
     });
 
-    describe('Empty rule with DROP action', () => {
-        before(async () => { ruleData.action = 2 });
 
-        describe('statefull', () => {
-            describe('without log', () => {
-                before(async () => { ruleData.options = 0x01 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
+    describe('Empty rule in IPv6', () => {
+        beforeEach(() => { IPv = 'IPv6' });
+
+        describe('Empty rule with ACCEPT action', () => {
+            before(async () => { ruleData.action = RuleActionsMap.get('ACCEPT') });
+
+            describe('statefull', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x01 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x05 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
             });
 
-            describe('with log', () => {
-                before(async () => { ruleData.options = 0x05 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
-            });
-        });
+            describe('stateless', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x02 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
 
-        describe('stateless', () => {
-            describe('without log', () => {
-                before(async () => { ruleData.options = 0x02 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
-            });
-
-            describe('with log', () => {
-                before(async () => { ruleData.options = 0x06 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
-            });
-        });
-    });
-
-    describe('Empty rule with REJECT action', () => {
-        before(async () => { ruleData.action = 3 });
-
-        describe('statefull', () => {
-            describe('without log', () => {
-                before(async () => { ruleData.options = 0x01 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
-            });
-
-            describe('with log', () => {
-                before(async () => { ruleData.options = 0x05 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x06 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
             });
         });
 
-        describe('stateless', () => {
-            describe('without log', () => {
-                before(async () => { ruleData.options = 0x02 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
+        describe('Empty rule with DROP action', () => {
+            before(async () => { ruleData.action = RuleActionsMap.get('DROP') });
+
+            describe('statefull', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x01 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x05 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
             });
 
-            describe('with log', () => {
-                before(async () => { ruleData.options = 0x06 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
+            describe('stateless', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x02 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x06 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
             });
         });
-    });
 
-    describe('Empty rule with ACCOUNTING action', () => {
-        before(async () => { ruleData.action = 4 });
+        describe('Empty rule with REJECT action', () => {
+            before(async () => { ruleData.action = RuleActionsMap.get('REJECT') });
 
-        describe('statefull', () => {
-            describe('without log', () => {
-                before(async () => { ruleData.options = 0x01 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
+            describe('statefull', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x01 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x05 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
             });
 
-            describe('with log', () => {
-                before(async () => { ruleData.options = 0x05 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
+            describe('stateless', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x02 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x06 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
             });
         });
 
-        describe('stateless', () => {
-            describe('without log', () => {
-                before(async () => { ruleData.options = 0x02 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
+        describe('Empty rule with ACCOUNTING action', () => {
+            before(async () => { ruleData.action = RuleActionsMap.get('ACCOUNTING') });
+
+            describe('statefull', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x01 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x05 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
             });
 
-            describe('with log', () => {
-                before(async () => { ruleData.options = 0x06 });
-                it('in INPUT chain', async () => { await runTest(POLICY_TYPE_INPUT) });
-                it('in OUTPUT chain', async () => { await runTest(POLICY_TYPE_OUTPUT) });   
-                it('in FORWARD chain', async () => { await runTest(POLICY_TYPE_FORWARD) });
-                it('in SNAT', async () => { await runTest(POLICY_TYPE_SNAT) });
-                it('in DNAT', async () => { await runTest(POLICY_TYPE_DNAT) });
+            describe('stateless', () => {
+                describe('without log', () => {
+                    before(async () => { ruleData.options = 0x02 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
+
+                describe('with log', () => {
+                    before(async () => { ruleData.options = 0x06 });
+                    it('in INPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:INPUT`)) });
+                    it('in OUTPUT chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:OUTPUT`)) });   
+                    it('in FORWARD chain', async () => { await runTest(PolicyTypesMap.get(`${IPv}:FORWARD`)) });
+                    it('in SNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:SNAT`)) });
+                    it('in DNAT', async () => { await runTest(PolicyTypesMap.get(`${IPv}:DNAT`)) });
+                });
             });
         });
     });

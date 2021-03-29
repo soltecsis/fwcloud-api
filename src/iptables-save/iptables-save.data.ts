@@ -62,7 +62,7 @@ mysql> select * from policy_type;
 | 65 | D6   | DNAT IPv6    |          5 |           0 |
 +----+------+--------------+------------+-------------+
 */
-export const PolicyTypeMap = new Map<string, number>([
+export const NetfilterTablePolicyTypeMap = new Map<string, number>([
   ['filter:INPUT', 1],
   ['filter:OUTPUT', 2],
   ['filter:FORWARD', 3],
