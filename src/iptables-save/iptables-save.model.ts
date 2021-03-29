@@ -29,7 +29,7 @@ import { PolicyRuleToInterface } from '../models/policy/PolicyRuleToInterface';
 import { IPObj } from '../models/ipobj/IPObj';
 import { PolicyRuleToIPObj } from "../models/policy/PolicyRuleToIPObj";
 import { IPObjGroup } from '../models/ipobj/IPObjGroup';
-import { StdChains, TcpFlags, PolicyTypeMap, PositionMap, GroupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
+import { StdChains, TcpFlags, NetfilterTablePolicyTypeMap, PositionMap, GroupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../models/policy/PolicyGroup';
 import { IPTablesCompiler } from '../compiler/iptables/iptables-compiler';
@@ -104,7 +104,7 @@ export class IptablesSaveToFWCloud extends Service {
     };
 
     // If don't find type map, ignore this rule.
-    this.policyType = PolicyTypeMap.get(`${this.table}:${this.chain}`);
+    this.policyType = NetfilterTablePolicyTypeMap.get(`${this.table}:${this.chain}`);
     if (!this.policyType) return false;
     policy_rData.type = this.policyType ;
 

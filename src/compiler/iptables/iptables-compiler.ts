@@ -24,20 +24,21 @@ var fwcError = require('../../utils/error_table');
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { EventEmitter } from 'events';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
+import { PolicyTypesMap } from '../../models/policy/PolicyType';
 var shellescape = require('shell-escape');
 
-export const POLICY_TYPE_INPUT = 1;
-export const POLICY_TYPE_OUTPUT = 2;
-export const POLICY_TYPE_FORWARD = 3;
-export const POLICY_TYPE_SNAT = 4;
-export const POLICY_TYPE_DNAT = 5;
-export const POLICY_TYPE_INPUT_IPv6 = 61;
-export const POLICY_TYPE_OUTPUT_IPv6 = 62;
-export const POLICY_TYPE_FORWARD_IPv6 = 63;
-export const POLICY_TYPE_SNAT_IPv6 = 64;
-export const POLICY_TYPE_DNAT_IPv6 = 65;
+export const RuleActionsMap = new Map<string, number>([
+    ['ACCEPT',1],  ['DROP',2],  ['REJECT',3],  ['ACCOUNTING',4]
+]);
+export const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING' ];
+
 export const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'POSTROUTING', 'PREROUTING'];
-export const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING'];
+POLICY_TYPE[61] = 'INPUT'; // IPv6
+POLICY_TYPE[62] = 'OUTPUT'; // IPv6
+POLICY_TYPE[63] = 'FORWARD'; // IPv6
+POLICY_TYPE[64] = 'POSTROUTING'; // IPv6
+POLICY_TYPE[65] = 'PREROUTING'; // IPv6
+
 export const MARK_CHAIN = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 
 export type IPTablesRuleCompiled = {
@@ -277,21 +278,21 @@ export class IPTablesCompiler {
         let items, src_position, dst_position, svc_position, dir, objs, negated;
         let i, j, p;
 
-        if (policy_type === POLICY_TYPE_FORWARD) { src_position = 2; dst_position = 3; svc_position = 4; }
+        if (policy_type === PolicyTypesMap.get('IPv4:FORWARD')) { src_position = 2; dst_position = 3; svc_position = 4; }
         else { src_position = 1; dst_position = 2; svc_position = 3; }
 
         // Generate items strings for all the rule positions.
         // WARNING: The order of creation of the arrays is important for optimization!!!!
         // The positions first in the array will be used first in the conditions.
         // INTERFACE IN / OUT
-        dir = (policy_type === POLICY_TYPE_OUTPUT || policy_type === POLICY_TYPE_SNAT) ? "-o " : "-i ";
+        dir = (policy_type === PolicyTypesMap.get('IPv4:OUTPUT') || policy_type === PolicyTypesMap.get('IPv4:SNAT')) ? "-o " : "-i ";
         objs = rule.positions[0].ipobjs;
         negated = this.isPositionNegated(rule.negate, rule.positions[0].id);
         if (items = this.pre_compile_if(dir, objs, negated))
             position_items.push(items);
 
         // INTERFACE OUT
-        if (policy_type === POLICY_TYPE_FORWARD) {
+        if (policy_type === PolicyTypesMap.get('IPv4:FORWARD')) {
             objs = rule.positions[1].ipobjs;
             negated = this.isPositionNegated(rule.negate, rule.positions[1].id);
             if (items = this.pre_compile_if("-o ", objs, negated))
@@ -354,13 +355,13 @@ export class IPTablesCompiler {
             if (trans_addr.length > 1 || trans_port.length > 1)
                 return reject(fwcError.other('Translated fields must contain a maximum of one item'));
 
-            if (policy_type === POLICY_TYPE_SNAT && trans_addr.length === 0) {
+            if (policy_type === PolicyTypesMap.get('IPv4:SNAT') && trans_addr.length === 0) {
                 if (trans_port.length === 0) return resolve('MASQUERADE');
                 return reject(fwcError.other("For SNAT 'Translated Service' must be empty if 'Translated Source' is empty"));
             }
 
             // For DNAT the translated destination is mandatory.
-            if (policy_type === POLICY_TYPE_DNAT && trans_addr.length === 0)
+            if (policy_type === PolicyTypesMap.get('IPv4:DNAT') && trans_addr.length === 0)
                 return reject(fwcError.other("For DNAT 'Translated Destination' is mandatory"));
 
             // Only TCP and UDP protocols are allowed for the translated service position.
@@ -372,7 +373,7 @@ export class IPTablesCompiler {
                 protocol = (trans_port[0].protocol==6) ? ' -p tcp ' : ' -p udp ';
 
             let action:string = '';
-            if (policy_type === POLICY_TYPE_SNAT)
+            if (policy_type === PolicyTypesMap.get('IPv4:SNAT'))
                 action = `SNAT${protocol}--to-source `;
             else
                 action = `DNAT${protocol}--to-destination `;
@@ -484,12 +485,12 @@ export class IPTablesCompiler {
             try {
                 let policy_type = ruleData.type;
                 if (!policy_type ||
-                    (policy_type !== POLICY_TYPE_INPUT && policy_type !== POLICY_TYPE_OUTPUT && policy_type !== POLICY_TYPE_FORWARD && policy_type !== POLICY_TYPE_SNAT && policy_type !== POLICY_TYPE_DNAT
-                        && policy_type !== POLICY_TYPE_INPUT_IPv6 && policy_type !== POLICY_TYPE_OUTPUT_IPv6 && policy_type !== POLICY_TYPE_FORWARD_IPv6 && policy_type !== POLICY_TYPE_SNAT_IPv6 && policy_type !== POLICY_TYPE_DNAT_IPv6)) {
+                    (policy_type !== PolicyTypesMap.get('IPv4:INPUT') && policy_type !== PolicyTypesMap.get('IPv4:OUTPUT') && policy_type !== PolicyTypesMap.get('IPv4:FORWARD') && policy_type !== PolicyTypesMap.get('IPv4:SNAT') && policy_type !== PolicyTypesMap.get('IPv4:DNAT')
+                        && policy_type !== PolicyTypesMap.get('IPv6:INPUT') && policy_type !== PolicyTypesMap.get('IPv6:OUTPUT') && policy_type !== PolicyTypesMap.get('IPv6:FORWARD') && policy_type !== PolicyTypesMap.get('IPv6:SNAT') && policy_type !== PolicyTypesMap.get('IPv6:DNAT'))) {
                     return reject('Invalid policy type');
                 }
 
-                let iptables_cmd = (policy_type < POLICY_TYPE_INPUT_IPv6) ? "$IPTABLES" : "$IP6TABLES"; // iptables command variable.
+                let iptables_cmd = (policy_type < PolicyTypesMap.get('IPv6:INPUT')) ? "$IPTABLES" : "$IP6TABLES"; // iptables command variable.
                 let cs = `${iptables_cmd} `; // Compile string.
                 let after_log_action = "";
                 let log_chain = ""; 
@@ -501,18 +502,18 @@ export class IPTablesCompiler {
                 let comment: string = this.ruleComment(ruleData);
 
                 // Since now, all the compilation process for IPv6 is the same that the one for IPv4.
-                if (policy_type >= POLICY_TYPE_INPUT_IPv6) {
+                if (policy_type >= PolicyTypesMap.get('IPv6:INPUT')) {
                     policy_type -= 60;
                     ruleData.type -= 60;
                     ruleData.ip_version = 6;
                 } else ruleData.ip_version = 4;
 
-                if (policy_type === POLICY_TYPE_SNAT) { // SNAT
+                if (policy_type === PolicyTypesMap.get('IPv4:SNAT')) { // SNAT
                     table = "-t nat";
                     cs += table + ` -A POSTROUTING ${comment}`;
                     action = await this.nat_action(policy_type, ruleData.positions[4].ipobjs, ruleData.positions[5].ipobjs, ruleData.ip_version);
                 }
-                else if (policy_type === POLICY_TYPE_DNAT) { // DNAT
+                else if (policy_type === PolicyTypesMap.get('IPv4:DNAT')) { // DNAT
                     table = "-t nat";
                     cs += table + ` -A PREROUTING ${comment}`;
                     action = await this.nat_action(policy_type, ruleData.positions[4].ipobjs, ruleData.positions[5].ipobjs, ruleData.ip_version);
@@ -520,7 +521,7 @@ export class IPTablesCompiler {
                 else { // Filter policy
                     if (!(ruleData.positions)
                         || !(ruleData.positions[0].ipobjs) || !(ruleData.positions[1].ipobjs) || !(ruleData.positions[2].ipobjs)
-                        || (policy_type === POLICY_TYPE_FORWARD && !(ruleData.positions[3].ipobjs))) {
+                        || (policy_type === PolicyTypesMap.get('IPv4:FORWARD') && !(ruleData.positions[3].ipobjs))) {
                         return reject("Bad rule data");
                     }
 
@@ -570,7 +571,7 @@ export class IPTablesCompiler {
 
                 // If we are using UDP or TCP ports in translated service position for NAT rules, 
                 // make sure that the -p tcp or -p udp is included in the compilation string.
-                if ((policy_type === POLICY_TYPE_SNAT || policy_type === POLICY_TYPE_DNAT) && ruleData.positions[5].ipobjs.length === 1) { // SNAT or DNAT
+                if ((policy_type === PolicyTypesMap.get('IPv4:SNAT') || policy_type === PolicyTypesMap.get('IPv4:DNAT')) && ruleData.positions[5].ipobjs.length === 1) { // SNAT or DNAT
                     var substr = "";
                     if (ruleData.positions[5].ipobjs[0].protocol === 6) // TCP
                         substr += " -p tcp ";
@@ -578,7 +579,7 @@ export class IPTablesCompiler {
                         substr += " -p udp ";
 
                     if (cs.indexOf(substr) === -1) {
-                        if (policy_type === POLICY_TYPE_SNAT)  // SNAT
+                        if (policy_type === PolicyTypesMap.get('IPv4:SNAT'))  // SNAT
                             cs = cs.replace(/-A POSTROUTING/g, "-A POSTROUTING" + substr);
                         else // DNAT
                             cs = cs.replace(/-A PREROUTING/g, "-A PREROUTING" + substr);
@@ -586,7 +587,7 @@ export class IPTablesCompiler {
                 }
 
                 // Accounting ,logging and marking is not allowed with SNAT and DNAT chains.
-                if (policy_type <= POLICY_TYPE_FORWARD) {
+                if (policy_type <= PolicyTypesMap.get('IPv4:FORWARD')) {
                     if (acc_chain) {
                         cs = `${iptables_cmd} -N ${acc_chain}\n` +
                             `${iptables_cmd} -A ${acc_chain} -j ${(log_chain) ? log_chain : "RETURN"}\n` +
@@ -607,7 +608,7 @@ export class IPTablesCompiler {
                         cs_trail = `${stateful} -j ${action}\n`
                         cs += this.generate_compilation_string(`${ruleData.id}-M1`, position_items, `${iptables_cmd} -t mangle -A ${MARK_CHAIN[policy_type]} `, cs_trail, table, stateful, action, iptables_cmd);
                         // Add the mark to the PREROUTING chain of the mangle table.
-                        if (policy_type === POLICY_TYPE_FORWARD) {
+                        if (policy_type === PolicyTypesMap.get('IPv4:FORWARD')) {
                             let str:string = this.generate_compilation_string(`${ruleData.id}-M1`, position_items, `${iptables_cmd} -t mangle -A PREROUTING `, cs_trail, table, stateful, action, iptables_cmd);
                             str = str.replace(/-o \w+ /g, "")
                             cs += str;
@@ -617,7 +618,7 @@ export class IPTablesCompiler {
                         cs_trail = `${stateful} -j ${action}\n`
                         cs += this.generate_compilation_string(`${ruleData.id}-M2`, position_items, `${iptables_cmd} -t mangle -A ${MARK_CHAIN[policy_type]} `, cs_trail, table, stateful, action, iptables_cmd);
                         // Add the mark to the PREROUTING chain of the mangle table.
-                        if (policy_type === POLICY_TYPE_FORWARD) {
+                        if (policy_type === PolicyTypesMap.get('IPv4:FORWARD')) {
                             let str:string = this.generate_compilation_string(`${ruleData.id}-M2`, position_items, `${iptables_cmd} -t mangle -A PREROUTING `, cs_trail, table, stateful, action, iptables_cmd);
                             str = str.replace(/-o \w+ /g, "")
                             cs += str;

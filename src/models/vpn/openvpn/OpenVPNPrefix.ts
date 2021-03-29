@@ -234,13 +234,9 @@ export class OpenVPNPrefix extends Model {
     }
 
 
-    public static addPrefixToGroup(req) {
+    public static addPrefixToGroup(dbCon:any, prefix: number, ipobj_g: number) {
         return new Promise((resolve, reject) => {
-            const data = {
-                prefix: req.body.ipobj,
-                ipobj_g: req.body.ipobj_g
-            }
-            req.dbCon.query(`INSERT INTO openvpn_prefix__ipobj_g SET ?`, data, (error, result) => {
+            dbCon.query(`INSERT INTO openvpn_prefix__ipobj_g values(${prefix},${ipobj_g})`, (error, result) => {
                 if (error) return reject(error);
                 resolve(result.insertId);
             });

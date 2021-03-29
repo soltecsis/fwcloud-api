@@ -184,7 +184,7 @@ router.put('/addto', async(req, res) => {
 			if ((await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon, req.prefix.openvpn, req.prefix.name)).length < 1)
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
-			await OpenVPNPrefix.addPrefixToGroup(req);
+			await OpenVPNPrefix.addPrefixToGroup(req.dbCon,req.body.ipobj,req.body.ipobj_g);
 			dataIpobj = await OpenVPNPrefix.getPrefixOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.prefix);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].type = 401;

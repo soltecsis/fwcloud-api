@@ -6,8 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
-- Software tests for IPTables compiler.
-- 
+- Include VPN connection status (enabled/disabled) in tree's nodes for the OpenVPN connections.
+- Additional info (TCP/UDP port and IPv4/IPv6 address) in tree's nodes.
+- Hundreds of new software tests for IPTables compiler.
 
 
 ## [1.1.0] - 2021-03-18

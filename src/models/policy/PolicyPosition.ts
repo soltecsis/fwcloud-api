@@ -34,6 +34,21 @@ import { logger } from "../../fonaments/abstract-application";
 
 const tableName: string = 'policy_position';
 
+export const RulePositionsMap = new Map<string, number>([
+    ['IPv4:INPUT:In',20],                             ['IPv4:INPUT:Source',1],       ['IPv4:INPUT:Destination',2],    ['IPv4:INPUT:Service',3],
+                            ['IPv4:OUTPUT:Out',21],   ['IPv4:OUTPUT:Source',4],      ['IPv4:OUTPUT:Destination',5],   ['IPv4:OUTPUT:Service',6],
+    ['IPv4:FORWARD:In',22], ['IPv4:FORWARD:Out',25],  ['IPv4:FORWARD:Source',7],     ['IPv4:FORWARD:Destination',8],  ['IPv4:FORWARD:Service',9],
+                            ['IPv4:SNAT:Out',24],     ['IPv4:SNAT:Source',11],       ['IPv4:SNAT:Destination',12],    ['IPv4:SNAT:Service',13],    ['IPv4:SNAT:Translated Source',14],      ['IPv4:SNAT:Translated Service',16],
+    ['IPv4:DNAT:In',36],                              ['IPv4:DNAT:Source',30],       ['IPv4:DNAT:Destination',31],    ['IPv4:DNAT:Service',32],    ['IPv4:DNAT:Translated Destination',34], ['IPv4:DNAT:Translated Service',35],
+
+
+    ['IPv6:INPUT:In',51],                             ['IPv6:INPUT:Source',37],      ['IPv6:INPUT:Destination',38],   ['IPv6:INPUT:Service',39],
+                            ['IPv6:OUTPUT:Out',52],   ['IPv6:OUTPUT:Source',40],     ['IPv6:OUTPUT:Destination',41],  ['IPv6:OUTPUT:Service',42],
+    ['IPv6:FORWARD:In',53], ['IPv6:FORWARD:Out',55],  ['IPv6:FORWARD:Source',43],    ['IPv6:FORWARD:Destination',44], ['IPv6:FORWARD:Service',45],
+                            ['IPv6:SNAT:Out',54],     ['IPv6:SNAT:Source',46],       ['IPv6:SNAT:Destination',47],    ['IPv6:SNAT:Service',48],    ['IPv6:SNAT:Translated Source',49],      ['IPv6:SNAT:Translated Service',50],
+    ['IPv6:DNAT:In',61],                              ['IPv6:DNAT:Source',56],       ['IPv6:DNAT:Destination',57],    ['IPv6:DNAT:Service',58],    ['IPv6:DNAT:Translated Destination',59], ['IPv6:DNAT:Translated Service',60],
+]);
+
 export type PositionNode = {
     id: number;
     name: string;
