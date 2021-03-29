@@ -382,13 +382,15 @@ export class Backup implements Responsable {
 
         const dir = cmd==='mysqldump' ? '>' : '<';
 
+        if (cmd === 'mysqldump') cmd += ' --column-statistics=0';
+        
         // This is necessary for mysqldump/mysql commands to access the docker containers of the test environment.
         if (process.env.NODE_ENV === 'test') cmd += ' --protocol=TCP';
 
         // If we don't specify the communications protocol and we are running the mysqldump/mysql commands in localhost,
         // they will use by default the socket file.
         // That is fine, because using the socket file will improve performance.
-        cmd += `${cmd==='mysqldump' ? ' --column-statistics=0' : ''} -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbPassEscaped}" ${dbConfig.name} ${dir} "${dumpFile}"`;
+        cmd += ` -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbPassEscaped}" ${dbConfig.name} ${dir} "${dumpFile}"`;
 
         return cmd;
     }
