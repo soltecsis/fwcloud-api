@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
+- In the "where used" search, include the policy rules with groups that contains the object.
 - Include VPN connection status (enabled/disabled) in tree's nodes for the OpenVPN connections.
 - Additional info (TCP/UDP port and IPv4/IPv6 address) in tree's nodes.
 - Hundreds of new software tests for IPTables compiler.

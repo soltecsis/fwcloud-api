@@ -141,7 +141,7 @@ router.put("/del",
 /* Search where is used Group  */
 router.put('/where', async(req, res) => {
 	try {
-		const data = await IPObjGroup.searchGroup(req.body.id, req.body.fwcloud);
+		const data = await IPObjGroup.searchGroupUsage(req.body.id, req.body.fwcloud);
 		if (data.result > 0)
 			res.status(200).json(data);
 		else
