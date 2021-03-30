@@ -368,15 +368,11 @@ export class IPTablesCompiler {
             if (trans_port.length === 1 && trans_port[0].protocol !== 6 && trans_port[0].protocol !== 17)
                 return reject(fwcError.other("For 'Translated Service' only protocols TCP and UDP are allowed"));
 
-            let protocol:string = ' ';
+            let protocol = ' ';
             if (trans_port.length === 1) 
                 protocol = (trans_port[0].protocol==6) ? ' -p tcp ' : ' -p udp ';
 
-            let action:string = '';
-            if (policy_type === PolicyTypesMap.get('IPv4:SNAT'))
-                action = `SNAT${protocol}--to-source `;
-            else
-                action = `DNAT${protocol}--to-destination `;
+            let action = (policy_type === PolicyTypesMap.get('IPv4:SNAT')) ? `SNAT${protocol}--to-source ` : `DNAT${protocol}--to-destination `;
 
             if (trans_addr.length === 1)
                 action += (this.pre_compile_sd("", trans_addr, false, rule_ip_version)).str[0];
@@ -570,19 +566,17 @@ export class IPTablesCompiler {
                 cs = this.generate_compilation_string(ruleData.id, position_items, cs, cs_trail, table, stateful, action, iptables_cmd);
 
                 // If we are using UDP or TCP ports in translated service position for NAT rules, 
-                // make sure that the -p tcp or -p udp is included in the compilation string.
+                // make sure that we have only one -p flag per line into the compilation string.
                 if ((policy_type === PolicyTypesMap.get('IPv4:SNAT') || policy_type === PolicyTypesMap.get('IPv4:DNAT')) && ruleData.positions[5].ipobjs.length === 1) { // SNAT or DNAT
-                    var substr = "";
-                    if (ruleData.positions[5].ipobjs[0].protocol === 6) // TCP
-                        substr += " -p tcp ";
-                    else if (ruleData.positions[5].ipobjs[0].protocol === 17) // UDP
-                        substr += " -p udp ";
-
-                    if (cs.indexOf(substr) === -1) {
-                        if (policy_type === PolicyTypesMap.get('IPv4:SNAT'))  // SNAT
-                            cs = cs.replace(/-A POSTROUTING/g, "-A POSTROUTING" + substr);
-                        else // DNAT
-                            cs = cs.replace(/-A PREROUTING/g, "-A PREROUTING" + substr);
+                    const lines = cs.split('\n');
+                    cs = '';
+                    for(let i=0; i<lines.length; i++) {
+                        if (lines[i] === '') continue; // Ignore empty lines.
+                        if ((lines[i].match(/ -p tcp /g) || []).length > 1)
+                            cs += `${policy_type===PolicyTypesMap.get('IPv4:SNAT') ? lines[i].replace(/ -j SNAT -p tcp /, ' -j SNAT ') : lines[i].replace(/ -j DNAT -p tcp /, ' -j DNAT ')}\n`;
+                        else if ((lines[i].match(/ -p udp /g) || []).length > 1)
+                            cs += `${policy_type===PolicyTypesMap.get('IPv4:SNAT') ? lines[i].replace(/ -j SNAT -p udp /, ' -j SNAT ') : lines[i].replace(/ -j DNAT -p udp /, ' -j DNAT ')}\n`;
+                        else cs += `${lines[i]}\n`;
                     }
                 }
 
