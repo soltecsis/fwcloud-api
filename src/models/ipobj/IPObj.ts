@@ -935,7 +935,7 @@ export class IPObj extends Model {
      }
      *      
      * */
-    public static searchIpobjUsage(dbCon, fwcloud, id, type) {
+    public static searchIpobjUsage(dbCon: any, fwcloud: number, id: number, type: number) {
         return new Promise(async (resolve, reject) => {
             try {
                 let search: any = {};
@@ -944,6 +944,7 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInRule = await PolicyRuleToIPObj.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
                 search.restrictions.IpobjInGroup = await IPObjToIPObjGroup.searchIpobjInGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
                 search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchIpobjInGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+                search.restrictions.IpobjInterface = await PolicyRuleToIPObj.searchIpobjInterfaces(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES 'O' POSITONS
                 search.restrictions.IpobjInOpenVPN = await this.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
                 if (type === 8) { // HOST
@@ -958,60 +959,6 @@ export class IPObj extends Model {
                     search.restrictions.LastAddrInInterfaceInRule = await PolicyRuleToIPObj.searchLastAddrInInterfaceInRule(dbCon, id, type, fwcloud);
                     search.restrictions.LastAddrInHostInRule = await PolicyRuleToIPObj.searchLastAddrInHostInRule(dbCon, id, type, fwcloud);
                 }
-
-                for (let key in search.restrictions) {
-                    if (search.restrictions[key].length > 0) {
-                        search.result = true;
-                        break;
-                    }
-                }
-                resolve(search);
-            } catch (error) { reject(error) }
-        });
-    };
-
-    /**
-     * ### searchIpobj
-     * Search where is used IPOBJ
-     * 
-     * @method searchIpobj
-     * 
-     * @param {Integer} id id ipobj identifier
-     * @param {Integer} type ipobj type
-     * @param {Integer} fwcloud FwCloud identifier
-     * 
-     * @return {JSON} Returns JSON result
-     * @example #### JSON RESPONSE OK
-     * 
-     *          {"result": true, "msg": "IPOBJ FOUND", 
-     *              "search": {
-     *                  "IpobjInRules": data_ipobj, 
-     *                  "IpobjInGroup": data_group, 
-     *                  "IpobjInterfaces": data_ipobj_interfaces
-     *                  }
-     *          }
-     * 
-     * #### JSON RESPONSE ERROR NOT EXIST:
-     * 
-     *      {"result": false, "msg": "IPOBJ NOT FOUND", 
-     *              "search": {
-     *                  "IpobjInRules": "", 
-     *                  "IpobjInGroup": "", 
-     *                  "IpobjInterfaces": ""
-     *               }
-     *      }
-     *      
-     * */
-    public static searchIpobj(id, type, fwcloud) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let search: any = {};
-                search.result = false;
-                search.restrictions = {};
-                search.restrictions.IpobjInRule = await PolicyRuleToIPObj.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
-                search.restrictions.IpobjInGroup = await IPObjToIPObjGroup.searchIpobjInGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
-                search.restrictions.IpobjInterface = await PolicyRuleToIPObj.searchIpobjInterfaces(id, type, fwcloud); //SEARCH IPOBJ UNDER INTERFACES UNDER IPOBJ HOST IN RULES 'O' POSITONS
-                search.restrictions.IpobjInOpenVPN = await this.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
                 for (let key in search.restrictions) {
                     if (search.restrictions[key].length > 0) {

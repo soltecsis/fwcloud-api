@@ -154,9 +154,9 @@ export class OpenVPN extends Model {
     public static updateCfg(req) {
         return new Promise((resolve, reject) => {
             let sql = `UPDATE ${tableName} SET install_dir=${req.dbCon.escape(req.body.install_dir)},
-      install_name=${req.dbCon.escape(req.body.install_name)},
-      comment=${req.dbCon.escape(req.body.comment)}
-      WHERE id=${req.body.openvpn}`
+                install_name=${req.dbCon.escape(req.body.install_name)},
+                comment=${req.dbCon.escape(req.body.comment)}
+                WHERE id=${req.body.openvpn}`
             req.dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
                 resolve();
@@ -187,8 +187,8 @@ export class OpenVPN extends Model {
         return new Promise((resolve, reject) => {
             // Get all the ipobj referenced by this OpenVPN configuration.
             let sql = `select OBJ.id,OBJ.type from openvpn_opt OPT
-      inner join ipobj OBJ on OBJ.id=OPT.ipobj
-      where OPT.openvpn=${openvpn} and OPT.name!='remote'`;
+                inner join ipobj OBJ on OBJ.id=OPT.ipobj
+                where OPT.openvpn=${openvpn} and OPT.name!='remote'`;
             dbCon.query(sql, (error, ipobj_list) => {
                 if (error) return reject(error);
 
@@ -579,10 +579,10 @@ export class OpenVPN extends Model {
     public static updateOpenvpnStatusIPOBJ(req, ipobj, status_action) {
         return new Promise((resolve, reject) => {
             var sql = `UPDATE openvpn VPN
-      INNER JOIN openvpn_opt OPT ON OPT.openvpn=VPN.id
-      INNER JOIN ipobj O ON O.id=OPT.ipobj
-      SET VPN.status=VPN.status${status_action}
-      WHERE O.fwcloud=${req.body.fwcloud} AND O.id=${ipobj}`;
+                INNER JOIN openvpn_opt OPT ON OPT.openvpn=VPN.id
+                INNER JOIN ipobj O ON O.id=OPT.ipobj
+                SET VPN.status=VPN.status${status_action}
+                WHERE O.fwcloud=${req.body.fwcloud} AND O.id=${ipobj}`;
             req.dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
                 resolve();
@@ -636,7 +636,7 @@ export class OpenVPN extends Model {
         });
     };
 
-    public static searchOpenvpnUsage(dbCon, fwcloud, openvpn) {
+    public static searchOpenvpnUsage(dbCon: any, fwcloud: number, openvpn: number, extendedSearch?: boolean) {
         return new Promise(async (resolve, reject) => {
             try {
                 let search: any = {};
@@ -652,6 +652,26 @@ export class OpenVPN extends Model {
                 search.restrictions.OpenvpnInGroup = await PolicyRuleToOpenVPN.searchOpenvpnInGroup(dbCon, fwcloud, openvpn);
                 search.restrictions.LastOpenvpnInPrefixInRule = await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInRule(dbCon, fwcloud, openvpn);
                 search.restrictions.LastOpenvpnInPrefixInGroup = await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInGroup(dbCon, fwcloud, openvpn);
+
+                if (extendedSearch) {
+                    // Include the rules that use the groups in which the OpenVPN is being used.
+                    search.restrictions.OpenvpnInGroupInRule = [];
+                    for (let i=0; i<search.restrictions.OpenvpnInGroup.length; i++) {
+                        const data: any = await IPObjGroup.searchGroupUsage(search.restrictions.OpenvpnInGroup[i].group_id, fwcloud);
+                        search.restrictions.OpenvpnInGroupInRule.push(...data.restrictions.GroupInRule);
+                    }
+
+                    // Include the rules that use prefixes in which the OpenVPN is being used, including the
+                    // groups (used in rules) in which these prefixes are being used.
+                    const prefixes = await OpenVPNPrefix.getOpenvpnClientPrefixes(dbCon, openvpn);
+                    search.restrictions.OpenvpnInPrefixInRule = [];
+                    search.restrictions.OpenvpnInPrefixInGroupInRule = [];
+                    for (let i=0; i<prefixes.length; i++) {
+                        const data: any = await OpenVPNPrefix.searchPrefixUsage(dbCon, fwcloud, prefixes[i].id, true);
+                        search.restrictions.OpenvpnInPrefixInRule.push(...data.restrictions.PrefixInRule);
+                        search.restrictions.OpenvpnInPrefixInGroupInRule.push(...data.restrictions.PrefixInGroupInRule);
+                    }
+                }
 
                 for (let key in search.restrictions) {
                     if (search.restrictions[key].length > 0) {
@@ -705,8 +725,8 @@ export class OpenVPN extends Model {
     public static searchOpenvpnChild(dbCon, fwcloud, openvpn) {
         return new Promise((resolve, reject) => {
             let sql = `SELECT VPN.id FROM openvpn VPN
-      INNER JOIN firewall FW ON FW.id=VPN.firewall
-      WHERE FW.fwcloud=${fwcloud} AND VPN.openvpn=${openvpn}`;
+                INNER JOIN firewall FW ON FW.id=VPN.firewall
+                WHERE FW.fwcloud=${fwcloud} AND VPN.openvpn=${openvpn}`;
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
 
@@ -733,8 +753,8 @@ export class OpenVPN extends Model {
     public static getOpenvpnStatusNotZero(req, data) {
         return new Promise((resolve, reject) => {
             const sql = `SELECT VPN.id,VPN.status FROM openvpn VPN
-      INNER JOIN firewall FW on FW.id=VPN.firewall
-      WHERE VPN.status!=0 AND FW.fwcloud=${req.body.fwcloud}`
+                INNER JOIN firewall FW on FW.id=VPN.firewall
+                WHERE VPN.status!=0 AND FW.fwcloud=${req.body.fwcloud}`
             req.dbCon.query(sql, (error, rows) => {
                 if (error) return reject(error);
                 data.openvpn_status = rows;

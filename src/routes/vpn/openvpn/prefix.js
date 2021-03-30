@@ -125,7 +125,7 @@ router.put('/restricted', restrictedCheck.openvpn_prefix, (req, res) => res.stat
 
 router.put('/where', async (req, res) => {
 	try {
-		const data = await OpenVPNPrefix.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
+		const data = await OpenVPNPrefix.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix, true);
 		if (data.result)
 			res.status(200).json(data);
 		else

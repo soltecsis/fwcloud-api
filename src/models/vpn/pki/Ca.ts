@@ -141,7 +141,7 @@ export class Ca extends Model {
      */
     public static storePkiInfo(req, tree) {
         return new Promise((resolve, reject) => {
-            let sql = `SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca, OPT.name as disable 
+            let sql = `SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca, OPT.name as openvpn_disabled 
                 FROM crt CRT
                 INNER JOIN openvpn VPN on VPN.crt=CRT.id
                 INNER JOIN firewall FW on FW.id=VPN.firewall

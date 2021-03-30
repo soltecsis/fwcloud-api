@@ -293,35 +293,13 @@ export class IPObjGroup extends Model {
         });
     }
 
-    /* Search where is used GROUP  */
-    public static searchGroup(id, fwcloud, callback) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let search: any = {};
-                search.result = false;
-                search.restrictions = {};
-                search.restrictions.GroupInRule = await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
-
-                for (let key in search.restrictions) {
-                    if (search.restrictions[key].length > 0) {
-                        search.result = true;
-                        break;
-                    }
-                }
-                resolve(search);
-            } catch (error) { reject(error) }
-        });
-    }
-
-
-    /* Search where is used GROUP IN RULES AND MEMBERS */
     public static searchGroupUsage(id, fwcloud) {
         return new Promise(async (resolve, reject) => {
             try {
                 let search: any = {};
                 search.result = false;
                 search.restrictions = {};
-                search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+                //search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
                 search.restrictions.GroupInRule = await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
 
                 for (let key in search.restrictions) {

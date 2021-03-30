@@ -452,7 +452,7 @@ router.put('/del',
  * */
 router.put('/where', async(req, res) => {
 	try {
-		const data = await IPObj.searchIpobj(req.body.id, req.body.type, req.body.fwcloud);
+		const data = await IPObj.searchIpobjUsage(req.dbCon, req.body.fwcloud, req.body.id, req.body.type);
 		if (data.result)
 			res.status(200).json(data);
 		else

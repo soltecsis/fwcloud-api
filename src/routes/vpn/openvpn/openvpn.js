@@ -280,7 +280,7 @@ router.put('/restricted', restrictedCheck.openvpn, (req, res) => res.status(204)
 
 router.put('/where', async (req, res) => {
 	try {
-		const data = await OpenVPN.searchOpenvpnUsage(req.dbCon,req.body.fwcloud,req.body.openvpn);
+		const data = await OpenVPN.searchOpenvpnUsage(req.dbCon, req.body.fwcloud, req.body.openvpn, true);
     if (data.result > 0)
       res.status(200).json(data);
     else
