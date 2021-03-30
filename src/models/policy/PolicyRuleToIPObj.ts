@@ -28,6 +28,8 @@ import { PolicyRule } from '../../models/policy/PolicyRule';
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyPosition } from './PolicyPosition';
+import { RulePositionsMap } from '../../models/policy/PolicyPosition';
+import { IPObj } from '../ipobj/IPObj';
 var asyncMod = require('async');
 const fwcError = require('../../utils/error_table');
 

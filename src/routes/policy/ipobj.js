@@ -64,7 +64,6 @@ async (req, res) => {
 			throw fwcError.IPOBJ_BAD_IP_VERSION;
 
 		await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
-		var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: policy_r__ipobjData.rule };
 		res.status(204).end();
 	} catch(error) {
 		logger().error('Error creating ipobj: ' + JSON.stringify(error));
