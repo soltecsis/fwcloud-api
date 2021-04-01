@@ -26,6 +26,7 @@ import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import { PolicyRuleToOpenVPNPrefix } from "../../policy/PolicyRuleToOpenVPNPrefix";
+import { Firewall } from "../../firewall/Firewall";
 const fwcError = require('../../../utils/error_table');
 
 const tableName: string = 'openvpn_prefix';
@@ -170,6 +171,47 @@ export class OpenVPNPrefix extends Model {
 
                 resolve(matches);
             });
+        });
+    }
+
+    // Activate the compile/install flags of all the firewalls that use prefixes that contains the OpenVPN.
+    public static updateOpenvpnClientPrefixesFWStatus(dbCon: any, fwcloud: number, openvpn: number): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const prefixMatch = await OpenVPNPrefix.getOpenvpnClientPrefixes(dbCon, openvpn);
+                for (let i=0; i<prefixMatch.length; i++) {
+                    const search: any = await OpenVPNPrefix.searchPrefixUsage(dbCon, fwcloud, prefixMatch[i].id, true);
+                    const PrefixInRule: any = search.restrictions.PrefixInRule;
+                    const PrefixInGroupIpRule: any = search.restrictions.PrefixInGroupInRule;
+                    
+                    for (let j=0; j<PrefixInRule.length; j++)
+                        await Firewall.updateFirewallStatus(fwcloud, PrefixInRule[j].firewall_id, "|3");
+    
+                    for (let j=0; j<PrefixInGroupIpRule.length; j++)
+                        await Firewall.updateFirewallStatus(fwcloud, PrefixInGroupIpRule[j].firewall_id, "|3");
+                }    
+            } catch(error) { return reject(error) }
+
+            resolve();
+        });
+    }
+
+    // Activate the compile/install flags of all the firewalls that use this OpenVPN prefix.
+    public static updatePrefixesFWStatus(dbCon: any, fwcloud: number, prefix: number): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const search: any = await OpenVPNPrefix.searchPrefixUsage(dbCon, fwcloud, prefix, true);
+                const PrefixInRule: any = search.restrictions.PrefixInRule;
+                const PrefixInGroupIpRule: any = search.restrictions.PrefixInGroupInRule;
+                
+                for (let j=0; j<PrefixInRule.length; j++)
+                    await Firewall.updateFirewallStatus(fwcloud, PrefixInRule[j].firewall_id, "|3");
+
+                for (let j=0; j<PrefixInGroupIpRule.length; j++)
+                    await Firewall.updateFirewallStatus(fwcloud, PrefixInGroupIpRule[j].firewall_id, "|3");
+            } catch(error) { return reject(error) }
+
+            resolve();
         });
     }
     
