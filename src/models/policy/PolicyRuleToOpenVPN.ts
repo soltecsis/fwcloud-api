@@ -165,7 +165,7 @@ export class PolicyRuleToOpenVPN extends Model {
         return new Promise((resolve, reject) => {
             var sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, 
                 O.openvpn obj_id, CRT.cn obj_name,
-                R.id as rule_id, R.type rule_type, 311 as obj_type_id,
+                R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=311) as obj_type_id,
                 PT.name rule_type_name, O.position as rule_position_id, P.name rule_position_name,
                 FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
             from policy_r__openvpn O
@@ -186,7 +186,7 @@ export class PolicyRuleToOpenVPN extends Model {
     public static searchOpenvpnInGroup(dbCon,fwcloud,openvpn) {
         return new Promise((resolve, reject) => {
             var sql = `select P.*, P.ipobj_g group_id, G.name group_name,
-                311 obj_type_id, CRT.cn obj_name
+                (select id from ipobj_type where id=311) as obj_type_id, CRT.cn obj_name
                 from openvpn__ipobj_g P
                 inner join openvpn VPN on VPN.id=P.openvpn			
                 inner join crt CRT on CRT.id=VPN.crt
@@ -215,7 +215,7 @@ export class PolicyRuleToOpenVPN extends Model {
     public static searchLastOpenvpnInPrefixInRule(dbCon,fwcloud,openvpn) {
         return new Promise((resolve, reject) => {
             // Fisrt get all the OpenVPN prefixes in rules to which the openvpn configuration belongs.
-            var sql = `select P.rule rule_id, P.prefix, PRE.openvpn, PRE.name, R.type rule_type, 311 obj_type_id, CRT.cn obj_name,
+            var sql = `select P.rule rule_id, P.prefix, PRE.openvpn, PRE.name, R.type rule_type, (select id from ipobj_type where id=311) as obj_type_id, CRT.cn obj_name,
                 PT.name rule_type_name, P.position rule_position_id, PP.name rule_position_name, R.firewall firewall_id, F.name firewall_name,
                 F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
                 from policy_r__openvpn_prefix P
