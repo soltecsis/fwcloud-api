@@ -185,7 +185,7 @@ export class PolicyRuleToOpenVPN extends Model {
 
     public static searchOpenvpnInGroup(dbCon,fwcloud,openvpn) {
         return new Promise((resolve, reject) => {
-            var sql = `select P.*, P.ipobj_g group_id, G.name group_name,
+            var sql = `select P.*, P.ipobj_g group_id, G.name group_name, G.type as group_type,
                 (select id from ipobj_type where id=311) as obj_type_id, CRT.cn obj_name
                 from openvpn__ipobj_g P
                 inner join openvpn VPN on VPN.id=P.openvpn			
