@@ -154,8 +154,9 @@ describe(describeName('FwCloud E2E Tests'), () => {
                     .expect(200)
                     .then(async (response) => {
                         const persistedFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id);
+                        const persistedFwCloudObj: any = persistedFwCloud.toJSON()
                         
-                        expect(response.body.data).to.be.deep.eq(persistedFwCloud.toJSON());
+                        expect(response.body.data.name).to.be.deep.eq(persistedFwCloudObj.name);
                     });
             });
         })
