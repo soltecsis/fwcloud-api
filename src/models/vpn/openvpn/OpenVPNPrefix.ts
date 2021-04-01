@@ -282,7 +282,7 @@ export class OpenVPNPrefix extends Model {
         return new Promise((resolve, reject) => {
             var sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name,
                 O.prefix obj_id, PRE.name obj_name,
-                R.id as rule_id, R.type rule_type, 401 as obj_type_id,
+                R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=401) as obj_type_id,
                 PT.name rule_type_name, O.position as rule_position_id, P.name rule_position_name,
                 FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
                 from policy_r__openvpn_prefix O
@@ -301,8 +301,8 @@ export class OpenVPNPrefix extends Model {
 
     public static searchPrefixInGroup(dbCon, fwcloud, prefix) {
         return new Promise((resolve, reject) => {
-            var sql = `select P.*, P.ipobj_g as group_id, G.name as group_name,
-                401 obj_type_id, PRE.name obj_name
+            var sql = `select P.*, P.ipobj_g as group_id, G.name as group_name, G.type as group_type,
+                (select id from ipobj_type where id=401) as obj_type_id, PRE.name obj_name
                 from openvpn_prefix__ipobj_g P
                 inner join openvpn_prefix PRE on PRE.id=P.prefix
                 inner join ipobj_g G on G.id=P.ipobj_g
