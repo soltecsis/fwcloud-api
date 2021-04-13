@@ -12,8 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hundreds of new software tests for IPTables compiler.
 
 ### Fixed
+- Restore related firewall, cluster and host information for objects in rules.
 - Bug in OpenVPN pending CCD files synchronization.
 - IPTables compiler error when using a service in the Translated `Service position` of a DNAT rule.
+
+### Security
+- Updated npm module y18n from 3.2.1 to 3.2.2.
 
 
 ## [1.1.0] - 2021-03-18
