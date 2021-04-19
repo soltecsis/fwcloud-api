@@ -20,6 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
+
 export function positionsEmpty(data: any): boolean {
   if (!data || !data.positions) return false;
 
@@ -42,3 +44,15 @@ export function searchInPolicyData(data: any, position:number, id: number): bool
 
   return false;
 }
+
+export async function populateRule(rule: number, position: number, ipobj: number): Promise<void> {
+  await PolicyRuleToIPObj.insertPolicy_r__ipobj({
+    rule: rule,
+    ipobj: ipobj, // TCP or UDP std objects
+    ipobj_g: -1,
+    interface: -1,
+    position: position,
+    position_order: 1
+  });
+}
+

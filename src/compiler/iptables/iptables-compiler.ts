@@ -626,6 +626,10 @@ export class IPTablesCompiler {
 
                 cs = cs.replace(/  +/g, ' ');
 
+                // Include before and/or after rule script code.
+                if (ruleData.run_before) cs = `# Before rule load code:\n${ruleData.run_before}\n${cs}`;
+                if (ruleData.run_after) cs += `# After rule load code:\n${ruleData.run_after}`;
+
                 resolve(cs);
             } catch (error) { return reject(error) }
         });
