@@ -262,6 +262,7 @@ export class Tree extends Model {
                     }
                 }
             }
+            if (ids.length===0) return resolve();
             ids = ids.slice(0,-1);
             
             const sql = `select id, ${fields} from ipobj where id in (${ids})`
