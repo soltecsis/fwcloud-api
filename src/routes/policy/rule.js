@@ -55,7 +55,9 @@ async (req, res) => {
 		comment: req.body.comment,
 		type: req.body.type,
 		style: req.body.style,
-		fw_apply_to: req.body.fw_apply_to
+		fw_apply_to: req.body.fw_apply_to,
+		run_before: req.body.run_before,
+		run_after: req.body.run_after
 	};
 
 	try {
@@ -87,7 +89,9 @@ async (req, res) => {
 		style: req.body.style,
 		fw_apply_to: req.body.fw_apply_to,
 		options: req.body.options,
-		mark: (req.body.mark===0) ? null : req.body.mark
+		mark: (req.body.mark===0) ? null : req.body.mark,
+		run_before: req.body.run_before,
+		run_after: req.body.run_after
 	};
 
 	try {
