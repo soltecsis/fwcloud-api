@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
+- Hook scripts feature at the rule level. It allows to add shell script code before and/or after a policy rule load.
 - Extended the information displayed by the "where used" search feature. For example, if we use this feature over an OpenVPN, display the rules with groups that include OpenVPN prefixes that include this OpenVPN.
 - Include VPN connection status (enabled/disabled) in tree's nodes for the OpenVPN connections.
 - Additional info (TCP/UDP port and IPv4/IPv6 address) in tree's nodes.
