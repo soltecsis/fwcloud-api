@@ -33,7 +33,7 @@ import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
 import { populateRule } from "./utils";
 
-describe.only(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
+describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
   const sandbox = sinon.createSandbox();
   let spy: SinonSpy;
 
