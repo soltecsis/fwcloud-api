@@ -342,7 +342,9 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 				options: copyRule.options,
 				comment: copyRule.comment,
 				type: copyRule.type,
-				style: copyRule.style
+				style: copyRule.style,
+				run_before: copyRule.run_before,
+				run_after: copyRule.run_after
 			};
 			newRuleId = await PolicyRule.insertPolicy_r(policy_rData);
 

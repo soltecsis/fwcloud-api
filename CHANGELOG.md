@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hundreds of new software tests for IPTables compiler.
 
 ### Fixed
+- Bug removing a firewall cloud with OpenVPN in group (table openvpn__ipobj_g).
 - Restore related firewall, cluster and host information for objects in rules.
 - Bug in OpenVPN pending CCD files synchronization.
 - IPTables compiler error when using a service in the Translated `Service position` of a DNAT rule.

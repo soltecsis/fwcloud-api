@@ -41,8 +41,9 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
   let dbCon: any;
   const IPv = 'IPv4' ;
 
-  const code_before_cmt = '# Before rule load code:';
-  const code_after_cmt = '# After rule load code:';
+  const code_before_cmt = '###########################\n# Before rule load code:';
+  const code_after_cmt = '###########################\n# After rule load code:';
+  const code_end_cmt = '###########################\n';
 
   const code_before = 'echo "Code before policy rule load"';
   const code_after = 'echo "Code before policy rule load"';
@@ -97,15 +98,15 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
     before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`) });
 
     it('before policy rule load', async () => {
-      await runTest('B',`${code_before_cmt}\n${code_before}\n$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT\n`);
+      await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT\n`);
     });
 
     it('after policy rule load', async () => {
-      await runTest('A',`$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT\n${code_after_cmt}\n${code_after}`);
+      await runTest('A',`$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
     });
 
     it('before and after policy rule load', async () => {
-      await runTest('BA',`${code_before_cmt}\n${code_before}\n$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT\n${code_after_cmt}\n${code_after}`);
+      await runTest('BA',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
     });
 
   });
@@ -114,15 +115,15 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
     before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`) });
 
     it('before policy rule load', async () => {
-      await runTest('B',`${code_before_cmt}\n${code_before}\n$IPTABLES -A OUTPUT -m conntrack --ctstate NEW -j ACCEPT\n`);
+      await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -A OUTPUT -m conntrack --ctstate NEW -j ACCEPT\n`);
     });
 
     it('after policy rule load', async () => {
-      await runTest('A',`$IPTABLES -A OUTPUT -m conntrack --ctstate NEW -j ACCEPT\n${code_after_cmt}\n${code_after}`);
+      await runTest('A',`$IPTABLES -A OUTPUT -m conntrack --ctstate NEW -j ACCEPT\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
     });
 
     it('before and after policy rule load', async () => {
-      await runTest('BA',`${code_before_cmt}\n${code_before}\n$IPTABLES -A OUTPUT -m conntrack --ctstate NEW -j ACCEPT\n${code_after_cmt}\n${code_after}`);
+      await runTest('BA',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -A OUTPUT -m conntrack --ctstate NEW -j ACCEPT\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
     });
   });
 
@@ -130,15 +131,15 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
     before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`) });
 
     it('before policy rule load', async () => {
-      await runTest('B',`${code_before_cmt}\n${code_before}\n$IPTABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT\n`);
+      await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT\n`);
     });
 
     it('after policy rule load', async () => {
-      await runTest('A',`$IPTABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT\n${code_after_cmt}\n${code_after}`);
+      await runTest('A',`$IPTABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
     });
 
     it('before and after policy rule load', async () => {
-      await runTest('BA',`${code_before_cmt}\n${code_before}\n$IPTABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT\n${code_after_cmt}\n${code_after}`);
+      await runTest('BA',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
     });
   });
 
@@ -146,15 +147,15 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
     before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`) });
 
     it('before policy rule load', async () => {
-      await runTest('B',`${code_before_cmt}\n${code_before}\n$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n`);
+      await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n`);
     });
 
     it('after policy rule load', async () => {
-      await runTest('A',`$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n${code_after_cmt}\n${code_after}`);
+      await runTest('A',`$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
     });
 
     it('before and after policy rule load', async () => {
-      await runTest('BA',`${code_before_cmt}\n${code_before}\n$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n${code_after_cmt}\n${code_after}`);
+      await runTest('BA',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
     });
   });
 
@@ -162,15 +163,15 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
     before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`) });
 
     it('before policy rule load', async () => {
-      await runTest('B',`${code_before_cmt}\n${code_before}\n$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 224.0.0.18\n`);
+      await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 224.0.0.18\n`);
     });
 
     it('after policy rule load', async () => {
-      await runTest('A',`$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 224.0.0.18\n${code_after_cmt}\n${code_after}`);
+      await runTest('A',`$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 224.0.0.18\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
     });
 
     it('before and after policy rule load', async () => {
-      await runTest('BA',`${code_before_cmt}\n${code_before}\n$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 224.0.0.18\n${code_after_cmt}\n${code_after}`);
+      await runTest('BA',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 224.0.0.18\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
     });
   });
 });
