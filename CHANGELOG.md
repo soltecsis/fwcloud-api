@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- Hook scripts feature at the rule level. It allows to add shell script code before and/or after a policy rule load.
+- Extended the information displayed by the "where used" search feature. For example, if we use this feature over an OpenVPN, display the rules with groups that include OpenVPN prefixes that include this OpenVPN.
+- Include VPN connection status (enabled/disabled) in tree's nodes for the OpenVPN connections.
+- Additional info (TCP/UDP port and IPv4/IPv6 address) in tree's nodes.
+- Hundreds of new software tests for IPTables compiler.
+
+### Fixed
+- Bug removing a firewall cloud with OpenVPN in group (table openvpn__ipobj_g).
+- Restore related firewall, cluster and host information for objects in rules.
+- Bug in OpenVPN pending CCD files synchronization.
+- IPTables compiler error when using a service in the Translated `Service position` of a DNAT rule.
+
+### Security
+- Updated npm module y18n from 3.2.1 to 3.2.2.
+
+
 ## [1.1.0] - 2021-03-18
 ### Added
 - Optimizations in API calls for policy and trees (firewalls, objects, services and CA) get. Around 10 times faster.

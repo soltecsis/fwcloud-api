@@ -48,7 +48,9 @@ schema.validate = req => {
 				type: sharedSch.policy_type.optional(),
 				style: sharedSch.style.optional(),
 				fw_apply_to: sharedSch.id.allow(null).optional(),
-				mark: sharedSch.mark_id.allow(null).optional()
+				mark: sharedSch.mark_id.allow(null).optional(),
+				run_before: sharedSch.script_code.optional(),
+				run_after: sharedSch.script_code.optional()
 			});
 			if (req.method === 'PUT') schema = schema.append({ rule: sharedSch.id });
 		} else if (req.method === 'PUT') {

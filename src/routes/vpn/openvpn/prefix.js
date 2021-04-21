@@ -77,6 +77,9 @@ router.put('/', async (req, res) => {
 		// Apply the new CRT prefix container.
 		await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, req.prefix.openvpn);
 
+		// Update the compilation/installation flags of all firewalls that use this prefix.
+		await OpenVPNPrefix.updatePrefixesFWStatus(req.dbCon, req.body.fwcloud, req.body.prefix);
+
 		res.status(204).end();
 	} catch(error) {
 		logger().error('Error updating a prefix: ' + JSON.stringify(error));
@@ -125,7 +128,7 @@ router.put('/restricted', restrictedCheck.openvpn_prefix, (req, res) => res.stat
 
 router.put('/where', async (req, res) => {
 	try {
-		const data = await OpenVPNPrefix.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
+		const data = await OpenVPNPrefix.searchPrefixUsage(req.dbCon, req.body.fwcloud, req.body.prefix, true);
 		if (data.result)
 			res.status(200).json(data);
 		else

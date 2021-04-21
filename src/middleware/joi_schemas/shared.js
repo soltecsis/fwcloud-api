@@ -45,6 +45,8 @@ sharedSchema.cn = Joi.string().regex(/^[a-zA-Z0-9\-_\.]{1,64}$/);
 sharedSchema.name = Joi.string().regex(/^[ -~\x80-\xFE]{1,64}$/);
 sharedSchema.comment = Joi.string().allow('').allow(null).regex(/^[\x09-\x0D -~\x80-\xFE]{1,254}$/).optional();
 
+sharedSchema.script_code = Joi.string().allow('').allow(null).regex(/^[\x09-\x0D -~\x80-\xFE]{1,65535}$/).optional();
+
 sharedSchema.img = Joi.string().allow('').allow(null).dataUri().min(3).max(64);
 
 sharedSchema.style = Joi.string().allow('').allow(null).max(50);

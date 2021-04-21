@@ -87,8 +87,8 @@ export class Tree extends Model {
 
             req.dbCon.query(sql, (error, rows) => {
                 if (error) return reject(error);
-                if (rows.lenght === 0) return reject(fwcError.other(`Root node of type '${type}' not found`));
-                if (rows.lenght > 1) return reject(fwcError.other(`Found more than one root nodes of type '${type}'`));
+                if (rows.length === 0) return reject(fwcError.other(`Root node of type '${type}' not found`));
+                if (rows.length > 1) return reject(fwcError.other(`Found more than one root nodes of type '${type}'`));
                 resolve(rows[0]);
             });
         });
@@ -106,8 +106,8 @@ export class Tree extends Model {
 
             dbCon.query(sql, (error, rows) => {
                 if (error) return reject(error);
-                if (rows.lenght === 0) return reject(fwcError.other(`Node not found`));
-                if (rows.lenght > 1) return reject(fwcError.other(`Found more than one nodes`));
+                if (rows.length === 0) return reject(fwcError.other(`Node not found`));
+                if (rows.length > 1) return reject(fwcError.other(`Found more than one nodes`));
                 resolve(rows[0]);
             });
         });
@@ -175,7 +175,7 @@ export class Tree extends Model {
     private static nodesUnderNodes(dbCon: any, nodes: TreeNode[], orderBy: string): Promise<TreeNode[]> {
         return new Promise((resolve, reject) => {
             const sql = `select id, name as text, id_parent as pid, node_type, id_obj, obj_type, fwcloud
-                from fwc_tree where id_parent in (${nodes.map(obj => obj.id)}) order by ${orderBy}`
+                from fwc_tree where id_parent in (${nodes.map(node => node.id)}) order by ${orderBy}`
 
             dbCon.query(sql, async (error, nodes) => {
                 if (error) return reject(error);
@@ -185,7 +185,7 @@ export class Tree extends Model {
         });
     }
     
-    public static dumpTree(dbCon: any, treeType: TreeType, fwcloud: number): Promise<TreeNode>{
+    public static dumpTree(dbCon: any, treeType: TreeType, fwcloud: number): Promise<TreeNode> {
         return new Promise((resolve, reject) => {
             // Query for get the root node.
             const sql = `select id, name as text, id_parent as pid, node_type, id_obj, obj_type, fwcloud  
@@ -193,7 +193,7 @@ export class Tree extends Model {
 
             dbCon.query(sql, async (error, nodes) => {
                 if (error) return reject(error);
-                if (nodes.lenght === 0) return reject(new Error('Root node not found'));
+                if (nodes.length === 0) return reject(new Error('Root node not found'));
 
                 try {
                     const rootNode: TreeNode = nodes[0];
@@ -221,13 +221,62 @@ export class Tree extends Model {
                             parentChildren.push(nodes[i]);
                         }
                     }   
-
-                    // Sort nodes into FD type nodes (folders) by name.
-                    if (treeType==='FIREWALLS')
+                    
+                    if (treeType==='FIREWALLS') // Sort nodes into FD type nodes (folders) by name.
                         await Promise.all(rootNode.children.map(node => this.oderNodeBy(node,['FD','FDI'],'text')));
+                    else if (treeType==='SERVICES' || treeType==='OBJECTS') // Include data for advanced search.
+                        await this.addSearchInfo(dbCon, childrenArrayMap, treeType);
 
                     resolve(rootNode);
                 } catch (error) { reject(error) }
+            });
+        });
+    }
+
+    private static addSearchInfo(dbCon: any, childrenArrayMap: Map<number, TreeNode[]>, treeType: TreeType): Promise<void> {
+        return new Promise((resolve, reject) => {
+            let fields = '';
+            let nodeTypes: string[];
+
+            if (treeType==='SERVICES') {
+                fields = 'source_port_start, source_port_end, destination_port_start, destination_port_end';
+                nodeTypes = ['SOT', 'SOU'];
+            }
+            else if (treeType==='OBJECTS')  {
+                fields = 'address, range_start, range_end';
+                nodeTypes = ['OIA', 'OIN', 'OIR'];
+            }
+            else return resolve();
+
+            // Map each id_obj that matches the node_type with its tree node.
+            const nodesMap: Map<number, TreeNode> = new Map<number, TreeNode>();
+
+            let item: [number, TreeNode[]];
+            let ids = '';
+            for (let mapIter = childrenArrayMap.entries(); item = mapIter.next().value; ) {
+                const nodesArray = item[1];
+                for (let i=0; i<nodesArray.length; i++) {
+                    if (nodeTypes.indexOf(nodesArray[i].node_type) !== -1 && nodesArray[i].id_obj) {
+                        nodesMap.set(nodesArray[i].id_obj,nodesArray[i]);
+                        ids += `${nodesArray[i].id_obj},`      
+                    }
+                }
+            }
+            if (ids.length===0) return resolve();
+            ids = ids.slice(0,-1);
+            
+            const sql = `select id, ${fields} from ipobj where id in (${ids})`
+
+            dbCon.query(sql, async (error, ipobjs) => {
+                if (error) return reject(error);
+
+                for (let i=0; i<ipobjs.length; i++) {
+                    let node: TreeNode = <TreeNode>nodesMap.get(ipobjs[i].id);
+                    delete ipobjs[i].id;
+                    Object.assign(node, ipobjs[i]);
+                }
+
+                resolve();
             });
         });
     }

@@ -141,7 +141,7 @@ router.put("/del",
 /* Search where is used Group  */
 router.put('/where', async(req, res) => {
 	try {
-		const data = await IPObjGroup.searchGroup(req.body.id, req.body.fwcloud);
+		const data = await IPObjGroup.searchGroupUsage(req.body.id, req.body.fwcloud);
 		if (data.result > 0)
 			res.status(200).json(data);
 		else
@@ -172,7 +172,7 @@ router.put('/addto', async(req, res) => {
 		if (req.body.node_type === 'OCL') {
 			if (groupIPv === 6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
-			await OpenVPN.addToGroup(req);
+			await OpenVPN.addToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
 			dataIpobj = await OpenVPN.getOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.ipobj, 1);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].name = dataIpobj[0].cn;
@@ -184,7 +184,7 @@ router.put('/addto', async(req, res) => {
 			if ((await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon, req.prefix.openvpn, req.prefix.name)).length < 1)
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
-			await OpenVPNPrefix.addPrefixToGroup(req);
+			await OpenVPNPrefix.addPrefixToGroup(req.dbCon,req.body.ipobj,req.body.ipobj_g);
 			dataIpobj = await OpenVPNPrefix.getPrefixOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.prefix);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 			dataIpobj[0].type = 401;

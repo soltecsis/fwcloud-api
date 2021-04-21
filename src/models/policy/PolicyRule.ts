@@ -84,6 +84,12 @@ export class PolicyRule extends Model {
     special: number;
 
     @Column()
+    run_before: string;
+
+    @Column()
+    run_after: string;
+
+    @Column()
     created_at: Date;
 
     @Column()
@@ -174,50 +180,72 @@ export class PolicyRule extends Model {
 
     private static buildSQLsForGrid(firewall: number, type: number, rule: number): string[] {
         return [
-            `SELECT R.rule, R.position, OBJ.id, OBJ.name, OBJ.type, R.position_order, '' as labelName, PR.firewall as firewall_id 
-            FROM policy_r__ipobj R 
-            INNER JOIN ipobj OBJ ON OBJ.id=R.ipobj 
+            `select R.rule, R.position, OBJ.id, OBJ.name, OBJ.type, R.position_order, '' as labelName, 
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, H.id as host_id, H.name as host_name 
+            from policy_r__ipobj R 
+            inner join ipobj OBJ on OBJ.id=R.ipobj 
             inner join policy_r PR on PR.id=R.rule 
+            left join interface I on I.id=OBJ.interface
+            left join firewall FW on FW.id=I.firewall  
+            left join cluster CL on CL.id=FW.cluster   
+            left join interface__ipobj II on II.interface=I.id  
+            left join ipobj H on H.id=II.ipobj  
             where PR.firewall=${firewall} and PR.type=${type}
             ${(rule) ? ` and PR.id=${rule}` : ``}
 
-            UNION SELECT R.rule, R.position, G.id, G.name, G.type, R.position_order, '' as labelName, PR.firewall as firewall_id 
-            FROM policy_r__ipobj R 
-            INNER JOIN ipobj_g G ON G.id=R.ipobj_g
+            union select R.rule, R.position, G.id, G.name, G.type, R.position_order, '' as labelName, 
+            null as firewall_id, null as firewall_name, null as cluster_id, null as cluster_name, null as host_id, null as host_name 
+            from policy_r__ipobj R 
+            inner join ipobj_g G on G.id=R.ipobj_g
             inner join policy_r PR on PR.id=R.rule  
             where PR.firewall=${firewall} and PR.type=${type}
             ${(rule) ? ` and PR.id=${rule}` : ``}
 
-            UNION SELECT R.rule, R.position, I.id, I.name, I.type, R.position_order, I.labelName, PR.firewall as firewall_id 
-            FROM policy_r__ipobj R 
-            INNER JOIN interface I ON I.id=R.interface
+            union select R.rule, R.position, I.id, I.name, I.type, R.position_order, I.labelName, 
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, H.id as host_id, H.name as host_name 
+            from policy_r__ipobj R 
+            inner join interface I on I.id=R.interface
             inner join policy_r PR on PR.id=R.rule  
+            left join firewall FW on FW.id=I.firewall  
+            left join cluster CL on CL.id=FW.cluster   
+            left join interface__ipobj II on II.interface=R.interface  
+            left join ipobj H on H.id=II.ipobj  
             where PR.firewall=${firewall} and PR.type=${type}
             ${(rule) ? ` and PR.id=${rule}` : ``}
 
-            UNION SELECT R.rule, R.position, I.id, I.name, I.type, R.position_order, I.labelName, PR.firewall as firewall_id 
-            FROM policy_r__interface R 
-            INNER JOIN interface I ON I.id=R.interface
-            inner join policy_r PR on PR.id=R.rule 
+            union select R.rule, R.position, I.id, I.name, I.type, R.position_order, I.labelName, 
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
+            from policy_r__interface R 
+            inner join interface I on I.id=R.interface
+            inner join policy_r PR on PR.id=R.rule
+            inner join firewall FW on FW.id=I.firewall  
+            left join cluster CL on CL.id=FW.cluster   
             where PR.firewall=${firewall} and PR.type=${type}
             ${(rule) ? ` and PR.id=${rule}` : ``}
 
-            UNION SELECT R.rule, R.position, VPN.id, CRT.cn, "311" as type, R.position_order, '' as labelName, PR.firewall as firewall_id 
-            FROM policy_r__openvpn R 
-            INNER JOIN openvpn VPN ON VPN.id=R.openvpn
-            INNER JOIN crt CRT ON CRT.id=VPN.crt
-            inner join policy_r PR on PR.id=R.rule 
+            union select R.rule, R.position, VPN.id, CRT.cn, "311" as type, R.position_order, '' as labelName, 
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
+            from policy_r__openvpn R
+            inner join openvpn VPN on VPN.id=R.openvpn
+            inner join crt CRT ON CRT.id=VPN.crt
+            inner join policy_r PR on PR.id=R.rule
+            inner join firewall FW on FW.id=VPN.firewall  
+            left join cluster CL on CL.id=FW.cluster  
             where PR.firewall=${firewall} and PR.type=${type}
             ${(rule) ? ` and PR.id=${rule}` : ``}
 
-            UNION SELECT R.rule, R.position, PRE.id, PRE.name, "401" as type, R.position_order, '' as labelName, PR.firewall as firewall_id 
-            FROM policy_r__openvpn_prefix R 
-            INNER JOIN openvpn_prefix PRE ON PRE.id=R.prefix
+            union select R.rule, R.position, PRE.id, PRE.name, "401" as type, R.position_order, '' as labelName, 
+            FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
+            from policy_r__openvpn_prefix R 
+            inner join openvpn_prefix PRE on PRE.id=R.prefix
             inner join policy_r PR on PR.id=R.rule 
+            inner join openvpn VPN on VPN.id=PRE.openvpn
+            inner join firewall FW on FW.id=VPN.firewall  
+            left join cluster CL on CL.id=FW.cluster  
             where PR.firewall=${firewall} and PR.type=${type}
             ${(rule) ? ` and PR.id=${rule}` : ``}
             
-            ORDER BY position_order`
+            order by position_order`
         ];
     }
 
@@ -665,7 +693,7 @@ export class PolicyRule extends Model {
     }
 
     //Add new policy_r from user
-    public static insertPolicy_r(policy_rData) {
+    public static insertPolicy_r(policy_rData):Promise<number> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
@@ -825,6 +853,8 @@ export class PolicyRule extends Model {
             if (policy_rData.style) sql += 'style=' + dbCon.escape(policy_rData.style) + ',';
             if (typeof policy_rData.mark !== 'undefined') sql += 'mark=' + policy_rData.mark + ',';
             if (typeof policy_rData.fw_apply_to !== 'undefined') sql += 'fw_apply_to=' + policy_rData.fw_apply_to + ',';
+            if (typeof policy_rData.run_before !== 'undefined') sql += 'run_before=' + dbCon.escape(policy_rData.run_before) + ',';
+            if (typeof policy_rData.run_after !== 'undefined') sql += 'run_after=' + dbCon.escape(policy_rData.run_after) + ',';
             sql = sql.slice(0, -1) + ' WHERE id=' + policy_rData.id;
 
             dbCon.query(sql, async (error, result) => {

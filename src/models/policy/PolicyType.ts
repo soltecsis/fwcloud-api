@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -28,6 +28,11 @@ import { PolicyRule } from "./PolicyRule";
 import { logger } from "../../fonaments/abstract-application";
 
 const tableName: string = 'policy_type';
+
+export const PolicyTypesMap = new Map<string, number>([
+    ['IPv4:INPUT',1],  ['IPv4:OUTPUT',2],  ['IPv4:FORWARD',3],  ['IPv4:SNAT',4],  ['IPv4:DNAT',5],
+    ['IPv6:INPUT',61], ['IPv6:OUTPUT',62], ['IPv6:FORWARD',63], ['IPv6:SNAT',64], ['IPv6:DNAT',65],
+]);
 
 @Entity(tableName)
 export class PolicyType extends Model {

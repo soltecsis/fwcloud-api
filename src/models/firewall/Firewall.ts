@@ -171,6 +171,29 @@ export class Firewall extends Model {
 		})).length > 0;
 	}
 
+
+	public static getClusterId(dbCon: any, firewall: number): Promise<number | null> {
+		return new Promise((resolve, reject) => {
+			dbCon.query(`select cluster from ${tableName} where id=${firewall}`, (error, rows) => {
+				if (error) return reject(error);
+				if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
+				resolve(rows[0].cluster);
+			});
+		});
+	}
+
+	public static getLastClusterNodeId(dbCon: any, cluster: number): Promise<number> {
+		return new Promise((resolve, reject) => {
+			dbCon.query(`select id from ${tableName} where cluster=${cluster} order by id desc limit 1`, (error, rows) => {
+				if (error) return reject(error);
+				if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
+				resolve(rows[0].id);
+			});
+		});
+}
+
+
+
 	/**
 	 * Get Firewall by User and ID
 	 *  

@@ -28,6 +28,8 @@ import { PolicyRule } from '../../models/policy/PolicyRule';
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyPosition } from './PolicyPosition';
+import { RulePositionsMap } from '../../models/policy/PolicyPosition';
+import { IPObj } from '../ipobj/IPObj';
 var asyncMod = require('async');
 const fwcError = require('../../utils/error_table');
 
@@ -1180,7 +1182,7 @@ export class PolicyRuleToIPObj extends Model {
             db.get((error, connection) => {
                 if (error) return reject(error);
                 var sql = `SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name,
-				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
+				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name, O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 				O.position rule_position_id, P.name rule_position_name, R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
 				FROM policy_r__ipobj O
@@ -1342,27 +1344,6 @@ export class PolicyRuleToIPObj extends Model {
                 } catch (error) { return reject(error) }
 
                 resolve(result);
-            });
-        });
-    };
-
-    //check if Exist IPOBJS under INTERFACES  
-    public static searchIpobjInterfaces = (ipobj, type, fwcloud) => {
-        return new Promise((resolve, reject) => {
-            db.get((error, connection) => {
-                if (error) return reject(error);
-                var sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
-                    'C.id cloud_id, C.name cloud_name, K.id interface_id, K.name interface_name, K.interface_type interface_type_id, TK.type interface_type ' +
-                    'FROM ipobj I ' +
-                    'INNER JOIN interface K on K.id=I.interface ' +
-                    'inner join ipobj_type T on T.id=I.type ' +
-                    'inner join ipobj_type TK on TK.id=K.interface_type ' +
-                    'left join fwcloud C on C.id=I.fwcloud ' +
-                    ' WHERE I.id=' + ipobj + ' AND I.type=' + type + ' AND (I.fwcloud=' + fwcloud + ' OR I.fwcloud IS NULL)';
-                connection.query(sql, (error, rows) => {
-                    if (error) return reject(error);
-                    resolve(rows);
-                });
             });
         });
     };

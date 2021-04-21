@@ -135,14 +135,14 @@ export class Mark extends Model {
     public static searchMarkInRule(dbCon, fwcloud, mark) {
         return new Promise((resolve, reject) => {
             var sql = `select R.id as rule, R.firewall, FW.id as firewall_id, FW.name as firewall_name,
-	  M.id obj_id, M.name obj_name,
-	  R.id as rule_id, R.type rule_type, 30 as obj_type_id,
+	        M.id obj_id, M.name obj_name,
+	        R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=30) as obj_type_id,
 			PT.name rule_type_name,
 			FW.cluster as cluster_id, IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
 		 	from policy_r R
 			inner join mark M on M.id=R.mark
 			inner join firewall FW on FW.id=R.firewall
-	  inner join policy_type PT on PT.id=R.type
+	        inner join policy_type PT on PT.id=R.type
 			where FW.fwcloud=${fwcloud} and R.mark=${mark}`;
             dbCon.query(sql, (error, rows) => {
                 if (error) return reject(error);

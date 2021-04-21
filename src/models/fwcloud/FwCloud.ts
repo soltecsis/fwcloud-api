@@ -171,6 +171,7 @@ export class FwCloud extends Model {
 
         // Next the OpenVPN entities of the database.
 			+`delete OPT from openvpn_opt OPT inner join openvpn VPN on VPN.id=OPT.openvpn inner join firewall FW On FW.id=VPN.firewall where FW.fwcloud=${this.id};
+				delete VPN from openvpn__ipobj_g VPN inner join ipobj_g G on G.id=VPN.ipobj_g where G.fwcloud=${this.id};
 				delete PRE from openvpn_prefix__ipobj_g PRE inner join ipobj_g G on G.id=PRE.ipobj_g where G.fwcloud=${this.id};
 				delete PRE from openvpn_prefix PRE inner join openvpn VPN on VPN.id=PRE.openvpn inner join firewall FW on FW.id=VPN.firewall where FW.fwcloud=${this.id};
 				delete VPN from openvpn VPN inner join firewall FW on FW.id=VPN.firewall where VPN.openvpn is not null and FW.fwcloud=${this.id};

@@ -106,7 +106,7 @@ router.put('/rule', async (req, res) => {
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.put('/', async (req, res) => {
 	IPTablesCompiler.totalGetDataTime = 0;
-	console.time(`Firewall compile (ID: ${req.body.firewall})`);
+	//console.time(`Firewall compile (ID: ${req.body.firewall})`);
 
 	var fs = require('fs');
 	var path = config.get('policy').data_dir;
