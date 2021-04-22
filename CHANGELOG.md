@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hundreds of new software tests for IPTables compiler.
 
 ### Fixed
+- In iptables-save import process lines like this `-A CHAIN.NAME -j RETURN`.
+- Detect FWCloud accounting rules in the iptables-save import procedure.
 - Bug removing a firewall cloud with OpenVPN in group (table openvpn__ipobj_g).
 - Restore related firewall, cluster and host information for objects in rules.
 - Bug in OpenVPN pending CCD files synchronization.
