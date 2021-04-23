@@ -57,6 +57,7 @@ export class IptablesSaveToFWCloud extends Service {
   protected ruleWithStatus: boolean;
   protected ruleGroupId: number;
   protected ruleGroupName: string;
+  protected accountingRule: boolean;
   protected customChainsMap: Map<string, number[]>;
   protected stats: IptablesSaveStats;
 
@@ -144,6 +145,7 @@ export class IptablesSaveToFWCloud extends Service {
     this.ruleTarget = null;
     this.ruleTargetSet = false;
     this.ruleWithStatus = false;
+    this.accountingRule = false;
 
     this.stats.rules++;
 
@@ -172,10 +174,27 @@ export class IptablesSaveToFWCloud extends Service {
     let lines: number[] = this.customChainsMap.get(this.ruleTarget);
     if (lines) { // Target is a custom chain.
       for(let l of lines) {
+        // If we found a FWCloud accounting chain, then this is an accounting rule.
+        if (this.ruleTarget.startsWith('FWCRULE') && this.ruleTarget.endsWith('.ACC'))
+          this.accountingRule = true;
+
         await this.fillRulePositions(l); // RECURSIVE CALL!!!
       }
-    } else if (this.ruleTarget !== 'ACCEPT') { // Target is a builtin one or an extension.
-      const policy_rData = { id: this.ruleId, action: 1 }
+      return;
+    }
+
+    if (this.accountingRule) {
+      await PolicyRule.updatePolicy_r(this.req.dbCon, { id: this.ruleId, action: 4 });
+      return;
+    }
+    
+    // Don't change current rule action.
+    if (this.ruleTarget === 'RETURN')
+      return;
+
+    // Target is a builtin one or an extension.
+    if (this.ruleTarget !== 'ACCEPT') { 
+      const policy_rData = { id: this.ruleId, action: 1 };
     
       if (this.ruleTarget === 'DROP')
         policy_rData.action = 2;

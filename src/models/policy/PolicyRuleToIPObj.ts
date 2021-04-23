@@ -1348,27 +1348,6 @@ export class PolicyRuleToIPObj extends Model {
         });
     };
 
-    //check if Exist IPOBJS under INTERFACES  
-    public static searchIpobjInterfaces = (ipobj, type, fwcloud) => {
-        return new Promise((resolve, reject) => {
-            db.get((error, connection) => {
-                if (error) return reject(error);
-                var sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
-                    'C.id cloud_id, C.name cloud_name, K.id interface_id, K.name interface_name, K.interface_type interface_type_id, TK.type interface_type ' +
-                    'FROM ipobj I ' +
-                    'INNER JOIN interface K on K.id=I.interface ' +
-                    'inner join ipobj_type T on T.id=I.type ' +
-                    'inner join ipobj_type TK on TK.id=K.interface_type ' +
-                    'left join fwcloud C on C.id=I.fwcloud ' +
-                    ' WHERE I.id=' + ipobj + ' AND I.type=' + type + ' AND (I.fwcloud=' + fwcloud + ' OR I.fwcloud IS NULL)';
-                connection.query(sql, (error, rows) => {
-                    if (error) return reject(error);
-                    resolve(rows);
-                });
-            });
-        });
-    };
-
     //check if Exist IPOBJS under INTERFACES  IN RULES 
     public static searchIpobjInterfaceInRule = (_interface, type, fwcloud, firewall, diff_firewall) => {
         return new Promise((resolve, reject) => {

@@ -28,11 +28,10 @@ import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import sinon, { SinonSpy } from "sinon";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
-import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
 import { IPTablesCompiler } from '../../../../src/compiler/iptables/iptables-compiler';
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
-import { searchInPolicyData } from "./utils";
+import { searchInPolicyData, populateRule } from "./utils";
 
 describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
   const sandbox = sinon.createSandbox();
@@ -57,20 +56,9 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
       options: 1    
   }
 
-  async function populateRule(position: number, ipobj: number): Promise<void> {
-    await PolicyRuleToIPObj.insertPolicy_r__ipobj({
-      rule: rule,
-      ipobj: ipobj, // TCP or UDP std objects
-      ipobj_g: -1,
-      interface: -1,
-      position: position,
-      position_order: 1
-    });
-  }
-
   async function runTest(posData: [number, number][], cs: string): Promise<void> {
     for (let i=0; i<posData.length; i++)
-      await populateRule(posData[i][0],posData[i][1]); 
+      await populateRule(rule,posData[i][0],posData[i][1]); 
     
     const result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
     
@@ -112,7 +100,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedService = 20029; // Standard https service.
       rule = await PolicyRule.insertPolicy_r(ruleData);
-      await populateRule(RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService);
+      await populateRule(rule, RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService);
       let error: any;
       
       try {
@@ -130,7 +118,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedService = 20029; // Standard https service.
       rule = await PolicyRule.insertPolicy_r(ruleData);
-      await populateRule(RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService);
+      await populateRule(rule, RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService);
       let error: any;
       
       try {
@@ -156,8 +144,8 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
 
     beforeEach(async () => {
       rule = await PolicyRule.insertPolicy_r(ruleData);
-      await populateRule(RulePositionsMap.get(`${IPv}:${nat}:Translated Source`),translatedAddr);      
-      await populateRule(RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService); 
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Source`),translatedAddr);      
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService); 
     });
   
     it('only with translated source and translated service', async () => {
@@ -193,8 +181,8 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
 
     beforeEach(async () => {
       rule = await PolicyRule.insertPolicy_r(ruleData);
-      await populateRule(RulePositionsMap.get(`${IPv}:${nat}:Translated Source`),translatedAddr);      
-      await populateRule(RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService); 
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Source`),translatedAddr);      
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService); 
     });
   
     it('only with translated source and translated service', async () => {
@@ -230,8 +218,8 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
 
     beforeEach(async () => {
       rule = await PolicyRule.insertPolicy_r(ruleData);
-      await populateRule(RulePositionsMap.get(`${IPv}:${nat}:Translated Destination`),translatedAddr);      
-      await populateRule(RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService); 
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Destination`),translatedAddr);      
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService); 
     });
   
     it('only with translated source and translated service', async () => {
@@ -267,8 +255,8 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
 
     beforeEach(async () => {
       rule = await PolicyRule.insertPolicy_r(ruleData);
-      await populateRule(RulePositionsMap.get(`${IPv}:${nat}:Translated Destination`),translatedAddr);      
-      await populateRule(RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService); 
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Destination`),translatedAddr);      
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService); 
     });
   
     it('only with translated source and translated service', async () => {

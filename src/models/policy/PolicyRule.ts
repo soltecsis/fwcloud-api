@@ -84,6 +84,12 @@ export class PolicyRule extends Model {
     special: number;
 
     @Column()
+    run_before: string;
+
+    @Column()
+    run_after: string;
+
+    @Column()
     created_at: Date;
 
     @Column()
@@ -847,6 +853,8 @@ export class PolicyRule extends Model {
             if (policy_rData.style) sql += 'style=' + dbCon.escape(policy_rData.style) + ',';
             if (typeof policy_rData.mark !== 'undefined') sql += 'mark=' + policy_rData.mark + ',';
             if (typeof policy_rData.fw_apply_to !== 'undefined') sql += 'fw_apply_to=' + policy_rData.fw_apply_to + ',';
+            if (typeof policy_rData.run_before !== 'undefined') sql += 'run_before=' + dbCon.escape(policy_rData.run_before) + ',';
+            if (typeof policy_rData.run_after !== 'undefined') sql += 'run_after=' + dbCon.escape(policy_rData.run_after) + ',';
             sql = sql.slice(0, -1) + ' WHERE id=' + policy_rData.id;
 
             dbCon.query(sql, async (error, result) => {

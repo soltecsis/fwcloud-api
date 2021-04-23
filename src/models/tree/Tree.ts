@@ -87,8 +87,8 @@ export class Tree extends Model {
 
             req.dbCon.query(sql, (error, rows) => {
                 if (error) return reject(error);
-                if (rows.lenght === 0) return reject(fwcError.other(`Root node of type '${type}' not found`));
-                if (rows.lenght > 1) return reject(fwcError.other(`Found more than one root nodes of type '${type}'`));
+                if (rows.length === 0) return reject(fwcError.other(`Root node of type '${type}' not found`));
+                if (rows.length > 1) return reject(fwcError.other(`Found more than one root nodes of type '${type}'`));
                 resolve(rows[0]);
             });
         });
@@ -106,8 +106,8 @@ export class Tree extends Model {
 
             dbCon.query(sql, (error, rows) => {
                 if (error) return reject(error);
-                if (rows.lenght === 0) return reject(fwcError.other(`Node not found`));
-                if (rows.lenght > 1) return reject(fwcError.other(`Found more than one nodes`));
+                if (rows.length === 0) return reject(fwcError.other(`Node not found`));
+                if (rows.length > 1) return reject(fwcError.other(`Found more than one nodes`));
                 resolve(rows[0]);
             });
         });
@@ -193,7 +193,7 @@ export class Tree extends Model {
 
             dbCon.query(sql, async (error, nodes) => {
                 if (error) return reject(error);
-                if (nodes.lenght === 0) return reject(new Error('Root node not found'));
+                if (nodes.length === 0) return reject(new Error('Root node not found'));
 
                 try {
                     const rootNode: TreeNode = nodes[0];
@@ -262,6 +262,7 @@ export class Tree extends Model {
                     }
                 }
             }
+            if (ids.length===0) return resolve();
             ids = ids.slice(0,-1);
             
             const sql = `select id, ${fields} from ipobj where id in (${ids})`
