@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restore related firewall, cluster and host information for objects in rules.
 - Bug in OpenVPN pending CCD files synchronization.
 - IPTables compiler error when using a service in the Translated `Service position` of a DNAT rule.
+- Performance improvements in `snapshot` import process.
 
 ### Security
 - Updated npm module y18n from 3.2.1 to 3.2.2.

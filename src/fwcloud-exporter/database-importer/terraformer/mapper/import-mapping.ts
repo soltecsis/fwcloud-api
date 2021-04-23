@@ -24,12 +24,10 @@ import { IdManager } from "./id-manager";
 import { ExporterResult } from "../../../database-exporter/exporter-result";
 
 export type IdMap = {old: any, new: any}
-export type EntityMap = {[propertyName: string]: Array<IdMap>};
-export type ImportMap = {[tableName: string]: EntityMap}
 
 export class ImportMapping {
     _idManager: IdManager;
-    maps: ImportMap = {}
+    maps: Map<string, number> = new Map<string, number>();
     _data: ExporterResult;
 
     constructor(idManager: IdManager, data: ExporterResult) {
@@ -45,31 +43,18 @@ export class ImportMapping {
      * @param old 
      */
     public getMappedId(tableName: string, propertyName: string, old: number): number {
-        if (!this.maps[tableName]) {
-            this.maps[tableName] = {};
+        const key: string = this.generateKey(tableName, propertyName, old);
+        const newId: number = this.maps.get(key);
+
+        if (newId) {
+            return newId;
         }
 
-        if (!this.maps[tableName][propertyName]) {
-            this.maps[tableName][propertyName] = [];
-        }
-
-        const matched: Array<IdMap> = this.maps[tableName][propertyName].filter((mappedId: IdMap) => {
-            return mappedId.old === old;
-        });
-
-        if (matched.length > 1) {
-            throw new Error(`Multiple id mappings for the ${tableName}:${propertyName}`);
-        }
-
-        if (matched.length === 1) {
-            return matched[0].new;
-        }
-        
         if (this.shouldGenerateNewId(tableName, propertyName, old)) {
             return this.generateNewId(tableName, propertyName, old);
         }
 
-        this.maps[tableName][propertyName].push({old: old, new: old});
+        this.maps.set(key, old);
         return old;
     }
 
@@ -104,63 +89,12 @@ export class ImportMapping {
         if (!newId) {
             newId = old;
         }
-        this.maps[tableName][propertyName].push({old: old, new: newId});
+        this.maps.set(this.generateKey(tableName, propertyName, old), newId);
 
         return newId;
     }
 
-    /*public newItem(tableName: string, map: {[property_name: string]: IdMap}): void {
-        if (!this.maps[tableName]) {
-            this.maps[tableName] = {};
-        }
-
-        for(let propertyName in map) {
-            if (!this.maps[tableName][propertyName]) {
-                this.maps[tableName][propertyName] = [];
-            }
-
-            const index: number = this.findIndexOfItem(tableName, propertyName, {old: map[propertyName].old});
-
-            if( index < 0) {
-                this.maps[tableName][propertyName].push({old: map[propertyName].old, new: map[propertyName].new});
-            } else {
-                this.maps[tableName][propertyName][index] = {old: map[propertyName].old, new: map[propertyName].new};
-            }
-        }
-
-        return;
+    protected generateKey(tableName: string, propertyName: string, old: number): string {
+        return `${tableName}:${propertyName}:${old}`
     }
-
-    public findItem(tableName: string, propertyName: string, match: Partial<IdMap>): IdMap {
-        if (this.maps[tableName] && this.maps[tableName][propertyName]) {
-            
-            const matches: Array<IdMap> = this.maps[tableName][propertyName].filter((element: IdMap) => {
-                let found: boolean = true;
-                
-                if (match.new) {
-                    if (match.new !== element.new) { found = false;}
-                }
-
-                if (match.old) {
-                    if (match.old !== element.old) { found = false;}
-                }
-
-                return found;
-            });
-
-            return matches.length > 0 ? matches[0]: null;
-        }
-
-        return null;
-    }
-
-    public findIndexOfItem(tableName: string, propertyName: string, match: Partial<IdMap>): number {
-        const element: IdMap = this.findItem(tableName, propertyName, match);
-
-        if (element) {
-            return this.maps[tableName] && this.maps[tableName][propertyName].indexOf(element);
-        }
-
-        return -1;
-    }*/
 }

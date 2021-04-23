@@ -23,7 +23,7 @@
 import { Snapshot } from "../../snapshots/snapshot";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { ExporterResult } from "../database-exporter/exporter-result";
-import { QueryRunner, DeepPartial } from "typeorm";
+import { QueryRunner, DeepPartial, createQueryBuilder } from "typeorm";
 import { app } from "../../fonaments/abstract-application";
 import { DatabaseService } from "../../database/database.service";
 import { Terraformer } from "./terraformer/terraformer";
@@ -54,78 +54,45 @@ export class DatabaseImporter {
     }
 
 
-    public async import(snapshot: Snapshot): Promise<FwCloud> { 
+    public async import(snapshot: Snapshot): Promise<FwCloud> {
+        const t1: number = Date.now();
+        const promises: Promise<any>[] = [];
         const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
-        
         let data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME)).toString()));
+        let fwCloudId: number = null;
+        await queryRunner.startTransaction();
         
-        this._idManager = await IdManager.make(queryRunner, data.getTableNames())
-        this._mapper = new ImportMapping(this._idManager, data);
-        
+        try {
+            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
 
-        const terraformedData: ExporterResult = await (new Terraformer(queryRunner, this._mapper, this.eventEmitter)).terraform(data);
-        
-        await this.importToDatabase(queryRunner, terraformedData);
-        
-        const fwCloud: FwCloud = await FwCloud.findOne((<DeepPartial<FwCloud>>data.getAll()[FwCloud._getTableName()][0]).id);
+            this._idManager = await IdManager.make(queryRunner, data.getTableNames())
+            this._mapper = new ImportMapping(this._idManager, data);
+
+            for (const tableName of data.getTableNames()) {
+                const terraformedData: object[] = await (new Terraformer(queryRunner, this._mapper, this.eventEmitter)).terraform(tableName, data.getTableResults(tableName));
+                if (tableName === FwCloud._getTableName()) {
+                    fwCloudId = (terraformedData as any)[0].id;
+                }
+                const pquery: Promise<any> = queryRunner.manager.createQueryBuilder().insert().into(tableName).values(terraformedData).execute();
+                promises.push(pquery);
+            };
+
+            await Promise.all(promises);
+
+            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
+            await queryRunner.commitTransaction();
+        } catch(e) {
+            await queryRunner.rollbackTransaction();
+            throw e;
+        } finally {
+            await queryRunner.release();
+        }
+
+        const fwCloud: FwCloud = await FwCloud.findOne(fwCloudId);
 
         await DatabaseImporter.importDataDirectories(snapshot.path, fwCloud, this._mapper);
 
-        await queryRunner.release();
-
         return fwCloud;
-    }
-
-    /**
-     * Import data into the database
-     * 
-     * @param queryRunner 
-     * @param data 
-     */
-    protected async importToDatabase(queryRunner: QueryRunner, data: ExporterResult): Promise<void> {
-        
-        await queryRunner.startTransaction()
-        try {
-            
-            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
-
-            let lastHeartbeat = new Date();
-            this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
-            
-            for(let tableName in data.getAll()) {
-                const records = data.getAll()[tableName];
-
-                while(records.length > 0) {
-                    const bulk = records.slice(0, records.length <= 100 ? records.length: 100);
-
-                    const entity: typeof Model = Model.getEntitiyDefinition(tableName);
-
-                    if (entity) {
-                        await queryRunner.manager.getRepository(entity).save(bulk);
-                    } else {
-                        for(let i = 0; i < records.length; i++) {
-                            const row: object = records[i];
-                            await queryRunner.manager.createQueryBuilder().insert().into(tableName).values(row).execute();
-                        }
-                    }
-
-                    records.splice(0, records.length <= 100 ? records.length: 100);
-
-                    if (new Date().getTime() - lastHeartbeat.getTime() > 20000) {
-                        lastHeartbeat = new Date();
-                        this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
-                    }
-                }
-                
-            }
-            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
-            await queryRunner.commitTransaction();
-        } catch (e) {
-            await queryRunner.rollbackTransaction();
-            throw e;
-        }
-        
-        return null;
     }
 
     protected static async importDataDirectories(snapshotPath: string, fwCloud: FwCloud, mapper: ImportMapping): Promise<void> {
