@@ -55,7 +55,6 @@ export class DatabaseImporter {
 
 
     public async import(snapshot: Snapshot): Promise<FwCloud> {
-        const t1: number = Date.now();
         const promises: Promise<any>[] = [];
         const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
         let data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME)).toString()));
