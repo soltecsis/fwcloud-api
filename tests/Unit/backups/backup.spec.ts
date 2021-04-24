@@ -292,8 +292,8 @@ describe(describeName('Backup Unit tests'), () => {
             await backup.create(service.config.data_dir);
 
             process.env.NODE_ENV = 'prod';
-            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbConfig.pass}" ${dbConfig.name} > "${backup.path}/db.sql"`);
-            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbConfig.pass}" ${dbConfig.name} < "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} > "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} < "${backup.path}/db.sql"`);
             process.env.NODE_ENV = 'test';
         });
 
@@ -302,8 +302,8 @@ describe(describeName('Backup Unit tests'), () => {
             await backup.create(service.config.data_dir);
 
             process.env.NODE_ENV = 'test';
-            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump --protocol=TCP -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbConfig.pass}" ${dbConfig.name} > "${backup.path}/db.sql"`);
-            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql --protocol=TCP -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbConfig.pass}" ${dbConfig.name} < "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump --protocol=TCP -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} > "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql --protocol=TCP -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} < "${backup.path}/db.sql"`);
         });
     });
 });
