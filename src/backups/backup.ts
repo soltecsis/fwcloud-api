@@ -378,7 +378,7 @@ export class Backup implements Responsable {
         const dumpFile = path.join(this._backupPath, Backup.DUMP_FILENAME);
 
         const shellescape = require('shell-escape');
-        const dbPassEscaped = shellescape([dbConfig.pass]).substring(0,128);
+        process.env.MYSQL_PWD = shellescape([dbConfig.pass]).substring(0,128);
 
         const dir = cmd==='mysqldump' ? '>' : '<';
 
@@ -388,7 +388,7 @@ export class Backup implements Responsable {
         // If we don't specify the communications protocol and we are running the mysqldump/mysql commands in localhost,
         // they will use by default the socket file.
         // That is fine, because using the socket file will improve performance.
-        cmd += ` -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} -p"${dbPassEscaped}" ${dbConfig.name} ${dir} "${dumpFile}"`;
+        cmd += ` -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} ${dir} "${dumpFile}"`;
 
         return cmd;
     }

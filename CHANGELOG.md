@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hundreds of new software tests for IPTables compiler.
 
 ### Fixed
+- Set `MYSQL_PWD` environment variable for database password (mysqldump and mysql commands) instead of using it in command line.
 - In iptables-save import process lines like this `-A CHAIN.NAME -j RETURN`.
 - Detect FWCloud accounting rules in the iptables-save import procedure.
 - Bug removing a firewall cloud with OpenVPN in group (table openvpn__ipobj_g).
