@@ -27,10 +27,9 @@ export type IdMap = {old: any, new: any}
 
 export class ImportMapping {
     _idManager: IdManager;
-    maps: Map<string, number> = new Map<string, number>();
     _data: ExporterResult;
 
-    constructor(idManager: IdManager, data: ExporterResult) {
+    constructor(idManager: IdManager, data: ExporterResult, public maps: Map<string, number> = new Map<string, number>()) {
         this._idManager = idManager;
         this._data = data;
     }

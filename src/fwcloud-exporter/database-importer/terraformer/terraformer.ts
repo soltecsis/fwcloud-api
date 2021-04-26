@@ -41,11 +41,9 @@ TERRAFORMERS[PolicyRuleToIPObj._getTableName()] = PolicyRuleToIpObjTerraformer;
 TERRAFORMERS[Firewall._getTableName()] = FirewallTerraformer;
 
 export class Terraformer {
-    protected _queryRunner: QueryRunner;
     protected _mapper: ImportMapping;
 
-    constructor(queryRunner: QueryRunner, mapper: ImportMapping, protected readonly eventEmitter = new EventEmitter()) {
-        this._queryRunner = queryRunner;
+    constructor(mapper: ImportMapping, protected readonly eventEmitter = new EventEmitter()) {
         this._mapper = mapper;
     }
     
@@ -55,7 +53,7 @@ export class Terraformer {
      * @param exportResults 
      */
     public async terraform(tableName: string, data: object[]): Promise<object[]> {
-        const terraformer: TableTerraformer = await (await this.getTerraformer(tableName)).make(this._mapper, this._queryRunner, this.eventEmitter);
+        const terraformer: TableTerraformer = await (await this.getTerraformer(tableName)).make(this._mapper, this.eventEmitter);
         return await terraformer.terraform(tableName, data);
     }
 

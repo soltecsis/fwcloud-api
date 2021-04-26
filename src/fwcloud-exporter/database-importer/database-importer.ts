@@ -34,10 +34,10 @@ import { Firewall } from "../../models/firewall/Firewall";
 import { FSHelper } from "../../utils/fs-helper";
 import { PathHelper } from "../../utils/path-helpers";
 import { Ca } from "../../models/vpn/pki/Ca";
-import Model from "../../models/Model";
 import * as fs from "fs";
-import { ProgressPayload } from "../../sockets/messages/socket-message";
 import { EventEmitter } from "events";
+import { Worker } from 'worker_threads';
+import { InputData } from "./terraform_table.service";
 
 export class DatabaseImporter {
     protected _mapper: ImportMapping;
@@ -68,12 +68,17 @@ export class DatabaseImporter {
             this._mapper = new ImportMapping(this._idManager, data);
 
             for (const tableName of data.getTableNames()) {
-                const terraformedData: object[] = await (new Terraformer(queryRunner, this._mapper, this.eventEmitter)).terraform(tableName, data.getTableResults(tableName));
+                const terraformedData: object[] = await this.handleTableResultTerraform(tableName, this._mapper, this._idManager, data);
+
                 if (tableName === FwCloud._getTableName()) {
                     fwCloudId = (terraformedData as any)[0].id;
                 }
-                const pquery: Promise<any> = queryRunner.manager.createQueryBuilder().insert().into(tableName).values(terraformedData).execute();
-                promises.push(pquery);
+
+                while(terraformedData.length > 0) {
+                    const chunk = terraformedData.splice(0, 10000);
+                    const pquery: Promise<any> = queryRunner.manager.createQueryBuilder().insert().into(tableName).values(chunk).execute();
+                    promises.push(pquery);
+                }
             };
 
             await Promise.all(promises);
@@ -94,6 +99,28 @@ export class DatabaseImporter {
         return fwCloud;
     }
 
+    protected async handleTableResultTerraform(tableName: string, mapper: ImportMapping, idManager: IdManager, data: ExporterResult): Promise<object[]> {
+        return new Promise<object[]>((resolve, reject) => {
+            const wData: InputData = {
+                tableName: tableName,
+                data: data.getAll(),
+                idMaps: mapper.maps,
+                idState: idManager.getIdState()
+            }
+
+            const worker = new Worker(path.join(__dirname, 'terraform_table.service.js'), {
+                workerData: wData
+            });
+
+            worker.on('message', (data) => {
+                return resolve(data)
+            });
+
+            worker.on('error', err => {
+                return reject(err);
+            })
+        });
+    }
     protected static async importDataDirectories(snapshotPath: string, fwCloud: FwCloud, mapper: ImportMapping): Promise<void> {
         FSHelper.rmDirectorySync(fwCloud.getPkiDirectoryPath());
         FSHelper.rmDirectorySync(fwCloud.getPolicyDirectoryPath());

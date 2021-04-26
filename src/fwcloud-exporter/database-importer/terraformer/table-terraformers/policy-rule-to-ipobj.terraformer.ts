@@ -25,12 +25,11 @@ import { ImportMapping } from "../mapper/import-mapping";
 import { Interface } from "../../../../models/interface/Interface";
 import { IPObj } from "../../../../models/ipobj/IPObj";
 import { IPObjGroup } from "../../../../models/ipobj/IPObjGroup";
-import { QueryRunner } from "typeorm";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export class PolicyRuleToIpObjTerraformer extends TableTerraformer {
     
-    public static async make(mapper: ImportMapping, queryRunner: QueryRunner, eventEmitter: EventEmitter = new EventEmitter()): Promise<PolicyRuleToIpObjTerraformer> {
+    public static async make(mapper: ImportMapping, eventEmitter: EventEmitter = new EventEmitter()): Promise<PolicyRuleToIpObjTerraformer> {
         const terraformer: PolicyRuleToIpObjTerraformer = new PolicyRuleToIpObjTerraformer(mapper, eventEmitter);
         return terraformer;
     }
