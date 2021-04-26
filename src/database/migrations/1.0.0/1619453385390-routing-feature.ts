@@ -26,17 +26,12 @@ import { findForeignKeyInTable } from "../../../utils/typeorm/TableUtils";
 export class routingFeature1619453385390 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<any> {
-        let table: Table;
-
         // Drop old database routing tables.
+        await queryRunner.dropTable('ipobj_type__routing_position', true);
         await queryRunner.dropTable('routing_r__ipobj', true);
         await queryRunner.dropTable('routing_r__interface', true);
-        await queryRunner.dropTable('routing_r', true);
-        
-        table = await queryRunner.getTable('ipobj_type__routing_position');
-        await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'position'));
+        await queryRunner.dropTable('routing_r', true);      
         await queryRunner.dropTable('routing_position', true);
-        
         await queryRunner.dropTable('routing_g', true);
 
         // Create new database routing tables.
@@ -118,61 +113,6 @@ export class routingFeature1619453385390 implements MigrationInterface {
                 {
                     columnNames: ['firewall'],
                     referencedTableName: 'firewall',
-                    referencedColumnNames: ['id']
-                }
-            ]
-        }));
-
-        //route
-        await queryRunner.createTable(new Table({
-            name: 'route',
-            columns: [
-                {
-                    name: 'id',
-                    type: 'int',
-                    length: '11',
-                    isGenerated: true,
-                    generationStrategy: 'increment',
-                    isPrimary: true
-                },
-                {
-                    name: 'group',
-                    type: 'int',
-                    length: '11',
-                    isNullable: true
-                },
-                {
-                    name: 'routing_table',
-                    type: 'int',
-                    length: '11',
-                    isNullable: false
-                },
-                {
-                    name: 'gateway',
-                    type: 'int',
-                    length: '11',
-                    isNullable: false
-                },
-                {
-                    name: 'comment',
-                    type: 'text',
-                    isNullable: true
-                }
-            ],
-            foreignKeys: [
-                {
-                    columnNames: ['group'],
-                    referencedTableName: 'route_g',
-                    referencedColumnNames: ['id']
-                },
-                {
-                    columnNames: ['routing_table'],
-                    referencedTableName: 'routing_table',
-                    referencedColumnNames: ['id']
-                },
-                {
-                    columnNames: ['gateway'],
-                    referencedTableName: 'ipobj',
                     referencedColumnNames: ['id']
                 }
             ]
@@ -640,11 +580,11 @@ export class routingFeature1619453385390 implements MigrationInterface {
         await queryRunner.dropTable('route__openvpn', true);
         await queryRunner.dropTable('route__openvpn_prefix', true);
 
-        await queryRunner.dropTable('route_g', true);
-        await queryRunner.dropTable('routing_g', true);
         await queryRunner.dropTable('route', true);
         await queryRunner.dropTable('routing_r', true);
         await queryRunner.dropTable('routing_table', true);
+        await queryRunner.dropTable('route_g', true);
+        await queryRunner.dropTable('routing_g', true);
 
         //routing_g
         await queryRunner.createTable(new Table({
@@ -766,12 +706,6 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     default: 0,
                 }
             ]
-        }));
-
-        await queryRunner.createForeignKey('ipobj_type__routing_position', new TableForeignKey({
-            columnNames: ['position'],
-            referencedTableName: 'routing_position',
-            referencedColumnNames: ['id']
         }));
 
         //routing_r
@@ -1013,5 +947,42 @@ export class routingFeature1619453385390 implements MigrationInterface {
                 },
             ]
         }));
+
+        //ipobj_type__routing_position
+        await queryRunner.createTable(new Table({
+            name: 'ipobj_type__routing_position',
+            columns: [
+                {
+                    name: 'type',
+                    type: 'int',
+                    length: '11',
+                    isPrimary: true
+                },
+                {
+                    name: 'position',
+                    type: 'int',
+                    length: '11',
+                    isPrimary: true
+                },
+                {
+                    name: 'allowed',
+                    type: 'tinyint',
+                    length: '1',
+                    isNullable: false
+                }
+            ],
+            foreignKeys: [
+                {
+                    columnNames: ['type'],
+                    referencedTableName: 'ipobj_type',
+                    referencedColumnNames: ['id']
+                },
+                {
+                    columnNames: ['position'],
+                    referencedTableName: 'routing_position',
+                    referencedColumnNames: ['id']
+                }
+            ]
+        }), true);
     }
 }
