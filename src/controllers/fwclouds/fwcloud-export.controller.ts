@@ -35,6 +35,7 @@ import { FileInfo } from "../../fonaments/http/files/file-info";
 import moment from "moment";
 import { Extension } from "../../fonaments/validation/rules/extension.rule";
 import { Channel } from "../../sockets/channels/channel";
+import { String } from "../../fonaments/validation/rules/string.rule";
 
 export class FwCloudExportController extends Controller {
     protected _fwCloudExportService: FwCloudExportService;
@@ -57,7 +58,8 @@ export class FwCloudExportController extends Controller {
     }
 
     @Validate({
-        file: [new Required(), new File(), new Extension('fwcloud')]
+        file: [new Required(), new File(), new Extension('fwcloud')],
+        channel_id: [new String()]
     })
     public async import(request: Request): Promise<ResponseBuilder> {
 
