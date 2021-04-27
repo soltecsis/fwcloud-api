@@ -55,7 +55,7 @@ export class DatabaseImporter {
     }
 
 
-    public async import(snapshot: Snapshot, eventEmitter: EventEmitter = new EventEmitter()): Promise<FwCloud> {
+    public async import(snapshot: Snapshot): Promise<FwCloud> {
         const promises: Promise<any>[] = [];
         const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
         let data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME)).toString()));
@@ -70,7 +70,7 @@ export class DatabaseImporter {
             this._mapper = new ImportMapping(this._idManager, data);
 
             for (const tableName of data.getTableNames()) {
-                eventEmitter.emit('message', new ProgressNoticePayload(`Processing ${tableName}: ${data.getTableResults(tableName).length} records.`));
+                this.eventEmitter.emit('message', new ProgressNoticePayload(`Processing ${tableName}: ${data.getTableResults(tableName).length} records.`));
                 const terraformedData: object[] = await this.handleTableResultTerraform(tableName, this._mapper, this._idManager, data);
 
                 if (tableName === FwCloud._getTableName()) {

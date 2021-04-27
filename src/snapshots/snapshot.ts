@@ -306,9 +306,9 @@ export class Snapshot implements Responsable {
      * Restore all snapshot data into the database
      */
     protected async restoreDatabaseData(eventEmitter: EventEmitter = new EventEmitter()): Promise<FwCloud> {
-        const importer: DatabaseImporter = new DatabaseImporter();
+        const importer: DatabaseImporter = new DatabaseImporter(eventEmitter);
         
-        const fwCloud: FwCloud = await importer.import(this, eventEmitter);
+        const fwCloud: FwCloud = await importer.import(this);
 
         const oldFwCloud: FwCloud = await FwCloud.findOne(this.fwCloud.id, {relations: ['users']});
 
