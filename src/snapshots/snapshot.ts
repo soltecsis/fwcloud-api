@@ -169,7 +169,7 @@ export class Snapshot implements Responsable {
                 return backupService.create('Before snapshot (' + this.id + ') restore');
             }, 'Backup created')
             task.addTask(async () => { 
-                this._restoredFwCloud = await this.restoreDatabaseData();
+                this._restoredFwCloud = await this.restoreDatabaseData(eventEmitter);
             }, 'FWCloud restored from snapshot');
             task.parallel((task: Task) => {
                 task.addTask(() => { return this.resetCompiledStatus(); }, 'Firewalls compilation flags reset');
@@ -305,10 +305,10 @@ export class Snapshot implements Responsable {
     /**
      * Restore all snapshot data into the database
      */
-    protected async restoreDatabaseData(): Promise<FwCloud> {
+    protected async restoreDatabaseData(eventEmitter: EventEmitter = new EventEmitter()): Promise<FwCloud> {
         const importer: DatabaseImporter = new DatabaseImporter();
         
-        const fwCloud: FwCloud = await importer.import(this);
+        const fwCloud: FwCloud = await importer.import(this, eventEmitter);
 
         const oldFwCloud: FwCloud = await FwCloud.findOne(this.fwCloud.id, {relations: ['users']});
 

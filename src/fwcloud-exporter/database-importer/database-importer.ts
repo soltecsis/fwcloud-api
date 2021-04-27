@@ -38,6 +38,7 @@ import * as fs from "fs";
 import { EventEmitter } from "events";
 import { Worker } from 'worker_threads';
 import { InputData } from "./terraform_table.service";
+import { ProgressNoticePayload } from "../../sockets/messages/socket-message";
 
 export class DatabaseImporter {
     protected _mapper: ImportMapping;
@@ -54,11 +55,12 @@ export class DatabaseImporter {
     }
 
 
-    public async import(snapshot: Snapshot): Promise<FwCloud> {
+    public async import(snapshot: Snapshot, eventEmitter: EventEmitter = new EventEmitter()): Promise<FwCloud> {
         const promises: Promise<any>[] = [];
         const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
         let data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME)).toString()));
         let fwCloudId: number = null;
+
         await queryRunner.startTransaction();
         
         try {
@@ -68,6 +70,7 @@ export class DatabaseImporter {
             this._mapper = new ImportMapping(this._idManager, data);
 
             for (const tableName of data.getTableNames()) {
+                eventEmitter.emit('message', new ProgressNoticePayload(`Processing ${tableName}: ${data.getTableResults(tableName).length} records.`));
                 const terraformedData: object[] = await this.handleTableResultTerraform(tableName, this._mapper, this._idManager, data);
 
                 if (tableName === FwCloud._getTableName()) {
