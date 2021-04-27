@@ -20,8 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {MigrationInterface, QueryRunner, Table, TableForeignKey} from "typeorm";
-import { findForeignKeyInTable } from "../../../utils/typeorm/TableUtils";
+import {MigrationInterface, QueryRunner, Table } from "typeorm";
 
 export class routingFeature1619453385390 implements MigrationInterface {
 
@@ -149,6 +148,19 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     isNullable: false
                 },
                 {
+                    name: 'interface',
+                    type: 'int',
+                    length: '11',
+                    isNullable: true
+                },
+                {
+                    name: 'active',
+                    type: 'tinyint',
+                    length: '1',
+                    isNullable: false,
+                    default: 1
+                },
+                {
                     name: 'comment',
                     type: 'text',
                     isNullable: true
@@ -168,6 +180,11 @@ export class routingFeature1619453385390 implements MigrationInterface {
                 {
                     columnNames: ['gateway'],
                     referencedTableName: 'ipobj',
+                    referencedColumnNames: ['id']
+                },
+                {
+                    columnNames: ['interface'],
+                    referencedTableName: 'interface',
                     referencedColumnNames: ['id']
                 }
             ]
@@ -237,10 +254,11 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     isNullable: false
                 },
                 {
-                    name: 'interface',
-                    type: 'int',
-                    length: '11',
-                    isNullable: true
+                    name: 'active',
+                    type: 'tinyint',
+                    length: '1',
+                    isNullable: false,
+                    default: 1
                 },
                 {
                     name: 'comment',
@@ -259,11 +277,6 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     referencedTableName: 'routing_table',
                     referencedColumnNames: ['id']
                 },
-                {
-                    columnNames: ['interface'],
-                    referencedTableName: 'interface',
-                    referencedColumnNames: ['id']
-                }
             ]
         }));
 
