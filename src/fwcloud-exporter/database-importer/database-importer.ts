@@ -71,7 +71,7 @@ export class DatabaseImporter {
             let index: number = 1;
             for (const tableName of data.getTableNames()) {
                 this.eventEmitter.emit('message', new ProgressNoticePayload(`${index}/${data.getTableNames().length}`));
-                const terraformedData: object[] = await this.handleTableResultTerraform(tableName, this._mapper, this._idManager, data);
+                const terraformedData: object[] = data.getTableResults(tableName).length === 0 ? [] : await this.handleTableResultTerraform(tableName, this._mapper, this._idManager, data);
 
                 if (tableName === FwCloud._getTableName()) {
                     fwCloudId = (terraformedData as any)[0].id;
