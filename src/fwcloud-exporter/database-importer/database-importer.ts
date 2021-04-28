@@ -68,9 +68,9 @@ export class DatabaseImporter {
 
             this._idManager = await IdManager.make(queryRunner, data.getTableNames())
             this._mapper = new ImportMapping(this._idManager, data);
-
+            let index: number = 1;
             for (const tableName of data.getTableNames()) {
-                this.eventEmitter.emit('message', new ProgressNoticePayload(`Processing ${tableName}: ${data.getTableResults(tableName).length} records.`));
+                this.eventEmitter.emit('message', new ProgressNoticePayload(`${index}/${data.getTableNames().length}`));
                 const terraformedData: object[] = await this.handleTableResultTerraform(tableName, this._mapper, this._idManager, data);
 
                 if (tableName === FwCloud._getTableName()) {
@@ -82,6 +82,7 @@ export class DatabaseImporter {
                     const pquery: Promise<any> = queryRunner.manager.createQueryBuilder().insert().into(tableName).values(chunk).execute();
                     promises.push(pquery);
                 }
+                index++;
             };
 
             await Promise.all(promises);
