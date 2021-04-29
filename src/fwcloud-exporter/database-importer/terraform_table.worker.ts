@@ -13,6 +13,10 @@ export type InputData = {
 
 export type OutputData = {
     result: object[];
+    error?: {
+        message: string,
+        stack: string
+    }
     idMaps: Map<string, number>;
     idState: TableIdState
 }
@@ -37,5 +41,15 @@ terraformTable(sharedData.tableName, mapper, result.getTableResults(sharedData.t
         parentPort.postMessage(output);
     })
     .catch(err => {
-        throw err;
+        const output: OutputData = {
+            result: null,
+            error: {
+                message: err.message,
+                stack: err.stack ?? null
+            },
+            idMaps: mapper.maps,
+            idState: idManager.getIdState()
+        }
+        
+        parentPort.postMessage(output)
     })

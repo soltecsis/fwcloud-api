@@ -37,7 +37,7 @@ import { Ca } from "../../models/vpn/pki/Ca";
 import * as fs from "fs";
 import { EventEmitter } from "events";
 import { Worker } from 'worker_threads';
-import { InputData, OutputData } from "./terraform_table.service";
+import { InputData, OutputData } from "./terraform_table.worker";
 import { ProgressNoticePayload } from "../../sockets/messages/socket-message";
 
 export class DatabaseImporter {
@@ -71,11 +71,14 @@ export class DatabaseImporter {
             let index: number = 1;
             for (const tableName of data.getTableNames()) {
                 this.eventEmitter.emit('message', new ProgressNoticePayload(`${index}/${data.getTableNames().length}`));
+
                 const outputData: OutputData = data.getTableResults(tableName).length === 0 ? {result: [], idMaps: this._mapper.maps, idState: this._idManager.getIdState()} : await this.handleTableResultTerraform(tableName, this._mapper, this._idManager, data);
 
-                //Refresh mapper after calling service
+                //Update mapper and id manager after worker run
                 this._mapper.maps = outputData.idMaps;
                 this._idManager = IdManager.restore(outputData.idState);
+
+                // Get the data terraformed by the worker
                 const terraformedData: object[] = outputData.result;
 
                 if (tableName === FwCloud._getTableName()) {
@@ -89,9 +92,7 @@ export class DatabaseImporter {
                 }
                 index++;
             };
-
             await Promise.all(promises);
-
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
             await queryRunner.commitTransaction();
         } catch(e) {
@@ -108,6 +109,16 @@ export class DatabaseImporter {
         return fwCloud;
     }
 
+    /**
+     * Spawns a worker to terraform table records.
+     * It returns mapper state, id manager state and the table records terraformed
+     *
+     * @param tableName
+     * @param mapper
+     * @param idManager
+     * @param data
+     * @returns
+     */
     protected async handleTableResultTerraform(tableName: string, mapper: ImportMapping, idManager: IdManager, data: ExporterResult): Promise<OutputData> {
         return new Promise<OutputData>((resolve, reject) => {
             const wData: InputData = {
@@ -117,11 +128,16 @@ export class DatabaseImporter {
                 idState: idManager.getIdState()
             }
 
-            const worker = new Worker(path.join(__dirname, 'terraform_table.service.js'), {
+            const worker = new Worker(path.join(__dirname, 'terraform_table.worker.js'), {
                 workerData: wData
             });
 
             worker.on('message', (data: OutputData) => {
+                if (data.error) {
+                    const error = new Error(data.error.message);
+                    error.stack = data.error.stack
+                    return reject(error);
+                }
                 return resolve(data)
             });
 
@@ -130,6 +146,8 @@ export class DatabaseImporter {
             })
         });
     }
+
+
     protected static async importDataDirectories(snapshotPath: string, fwCloud: FwCloud, mapper: ImportMapping): Promise<void> {
         FSHelper.rmDirectorySync(fwCloud.getPkiDirectoryPath());
         FSHelper.rmDirectorySync(fwCloud.getPolicyDirectoryPath());
