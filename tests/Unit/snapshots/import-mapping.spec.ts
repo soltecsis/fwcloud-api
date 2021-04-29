@@ -56,14 +56,6 @@ describe(describeName('Import mapping tests'), () => {
             const newId: number = mapper.getMappedId('fwcloud', 'id', 0);
 
             expect(newId).to.be.deep.eq(maxId + 1);
-            expect(mapper.maps).to.be.deep.eq({
-                'fwcloud': {
-                    'id': [{
-                        old: 0,
-                        new: maxId + 1
-                    }]
-                }
-            })
         });
 
         it('should not map a new id if the id is not exported', async () => {
@@ -76,14 +68,6 @@ describe(describeName('Import mapping tests'), () => {
             const newId: number = mapper.getMappedId('fwcloud', 'id', 1);
 
             expect(newId).to.be.deep.eq(1);
-            expect(mapper.maps).to.be.deep.eq({
-                'fwcloud': {
-                    'id': [{
-                        old: 1,
-                        new: 1
-                    }]
-                }
-            })
         });
 
         it('should not map a new id if the table is not exported', async () => {
@@ -94,14 +78,6 @@ describe(describeName('Import mapping tests'), () => {
             const newId: number = mapper.getMappedId('fwcloud', 'id', 1);
 
             expect(newId).to.be.deep.eq(1);
-            expect(mapper.maps).to.be.deep.eq({
-                'fwcloud': {
-                    'id': [{
-                        old: 1,
-                        new: 1
-                    }]
-                }
-            })
         });
     });
 });
