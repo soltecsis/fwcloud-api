@@ -23,7 +23,7 @@
 import { Snapshot } from "../../snapshots/snapshot";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { ExporterResult } from "../database-exporter/exporter-result";
-import { QueryRunner, DeepPartial } from "typeorm";
+import { QueryRunner, DeepPartial, createQueryBuilder } from "typeorm";
 import { app } from "../../fonaments/abstract-application";
 import { DatabaseService } from "../../database/database.service";
 import { Terraformer } from "./terraformer/terraformer";
@@ -34,10 +34,11 @@ import { Firewall } from "../../models/firewall/Firewall";
 import { FSHelper } from "../../utils/fs-helper";
 import { PathHelper } from "../../utils/path-helpers";
 import { Ca } from "../../models/vpn/pki/Ca";
-import Model from "../../models/Model";
 import * as fs from "fs";
-import { ProgressPayload } from "../../sockets/messages/socket-message";
 import { EventEmitter } from "events";
+import { Worker } from 'worker_threads';
+import { InputData, OutputData } from "./terraform_table.worker";
+import { ProgressNoticePayload } from "../../sockets/messages/socket-message";
 
 export class DatabaseImporter {
     protected _mapper: ImportMapping;
@@ -54,79 +55,98 @@ export class DatabaseImporter {
     }
 
 
-    public async import(snapshot: Snapshot): Promise<FwCloud> { 
+    public async import(snapshot: Snapshot): Promise<FwCloud> {
+        const promises: Promise<any>[] = [];
         const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
-        
         let data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME)).toString()));
-        
-        this._idManager = await IdManager.make(queryRunner, data.getTableNames())
-        this._mapper = new ImportMapping(this._idManager, data);
-        
+        let fwCloudId: number = null;
 
-        const terraformedData: ExporterResult = await (new Terraformer(queryRunner, this._mapper, this.eventEmitter)).terraform(data);
+        await queryRunner.startTransaction();
         
-        await this.importToDatabase(queryRunner, terraformedData);
-        
-        const fwCloud: FwCloud = await FwCloud.findOne((<DeepPartial<FwCloud>>data.getAll()[FwCloud._getTableName()][0]).id);
+        try {
+            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
+
+            this._idManager = await IdManager.make(queryRunner, data.getTableNames())
+            this._mapper = new ImportMapping(this._idManager, data);
+            let index: number = 1;
+            for (const tableName of data.getTableNames()) {
+                this.eventEmitter.emit('message', new ProgressNoticePayload(`${index}/${data.getTableNames().length}`));
+
+                const outputData: OutputData = data.getTableResults(tableName).length === 0 ? {result: [], idMaps: this._mapper.maps, idState: this._idManager.getIdState()} : await this.handleTableResultTerraform(tableName, this._mapper, this._idManager, data);
+
+                //Update mapper and id manager after worker run
+                this._mapper.maps = outputData.idMaps;
+                this._idManager = IdManager.restore(outputData.idState);
+
+                // Get the data terraformed by the worker
+                const terraformedData: object[] = outputData.result;
+
+                if (tableName === FwCloud._getTableName()) {
+                    fwCloudId = (terraformedData as any)[0].id;
+                }
+
+                while(terraformedData.length > 0) {
+                    const chunk = terraformedData.splice(0, 10000);
+                    const pquery: Promise<any> = queryRunner.manager.createQueryBuilder().insert().into(tableName).values(chunk).execute();
+                    promises.push(pquery);
+                }
+                index++;
+            };
+            await Promise.all(promises);
+            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
+            await queryRunner.commitTransaction();
+        } catch(e) {
+            await queryRunner.rollbackTransaction();
+            throw e;
+        } finally {
+            await queryRunner.release();
+        }
+
+        const fwCloud: FwCloud = await FwCloud.findOne(fwCloudId);
 
         await DatabaseImporter.importDataDirectories(snapshot.path, fwCloud, this._mapper);
-
-        await queryRunner.release();
 
         return fwCloud;
     }
 
     /**
-     * Import data into the database
-     * 
-     * @param queryRunner 
-     * @param data 
+     * Spawns a worker to terraform table records.
+     * It returns mapper state, id manager state and the table records terraformed
+     *
+     * @param tableName
+     * @param mapper
+     * @param idManager
+     * @param data
+     * @returns
      */
-    protected async importToDatabase(queryRunner: QueryRunner, data: ExporterResult): Promise<void> {
-        
-        await queryRunner.startTransaction()
-        try {
-            
-            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
-
-            let lastHeartbeat = new Date();
-            this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
-            
-            for(let tableName in data.getAll()) {
-                const records = data.getAll()[tableName];
-
-                while(records.length > 0) {
-                    const bulk = records.slice(0, records.length <= 100 ? records.length: 100);
-
-                    const entity: typeof Model = Model.getEntitiyDefinition(tableName);
-
-                    if (entity) {
-                        await queryRunner.manager.getRepository(entity).save(bulk);
-                    } else {
-                        for(let i = 0; i < records.length; i++) {
-                            const row: object = records[i];
-                            await queryRunner.manager.createQueryBuilder().insert().into(tableName).values(row).execute();
-                        }
-                    }
-
-                    records.splice(0, records.length <= 100 ? records.length: 100);
-
-                    if (new Date().getTime() - lastHeartbeat.getTime() > 20000) {
-                        lastHeartbeat = new Date();
-                        this.eventEmitter.emit('message', new ProgressPayload('heartbeat', false, '', null));
-                    }
-                }
-                
+    protected async handleTableResultTerraform(tableName: string, mapper: ImportMapping, idManager: IdManager, data: ExporterResult): Promise<OutputData> {
+        return new Promise<OutputData>((resolve, reject) => {
+            const wData: InputData = {
+                tableName: tableName,
+                data: data.getAll(),
+                idMaps: mapper.maps,
+                idState: idManager.getIdState()
             }
-            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
-            await queryRunner.commitTransaction();
-        } catch (e) {
-            await queryRunner.rollbackTransaction();
-            throw e;
-        }
-        
-        return null;
+
+            const worker = new Worker(path.join(__dirname, 'terraform_table.worker.js'), {
+                workerData: wData
+            });
+
+            worker.on('message', (data: OutputData) => {
+                if (data.error) {
+                    const error = new Error(data.error.message);
+                    error.stack = data.error.stack
+                    return reject(error);
+                }
+                return resolve(data)
+            });
+
+            worker.on('error', err => {
+                return reject(err);
+            })
+        });
     }
+
 
     protected static async importDataDirectories(snapshotPath: string, fwCloud: FwCloud, mapper: ImportMapping): Promise<void> {
         FSHelper.rmDirectorySync(fwCloud.getPkiDirectoryPath());

@@ -24,7 +24,7 @@ import { ImportMapping } from "./mapper/import-mapping";
 import Model from "../../../models/Model";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
-import { getMetadataArgsStorage, QueryRunner } from "typeorm";
+import { getMetadataArgsStorage } from "typeorm";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 import { ProgressPayload } from "../../../sockets/messages/socket-message";
@@ -42,7 +42,7 @@ export class TableTerraformer {
         this._customHandlers = this.getCustomHandlers();
     }
 
-    public static async make(mapper: ImportMapping, queryRunner: QueryRunner, eventEmitter: EventEmitter = new EventEmitter()): Promise<TableTerraformer> {
+    public static async make(mapper: ImportMapping, eventEmitter: EventEmitter = new EventEmitter()): Promise<TableTerraformer> {
         const terraformer: TableTerraformer = new TableTerraformer(mapper, eventEmitter);
         return terraformer;
     }

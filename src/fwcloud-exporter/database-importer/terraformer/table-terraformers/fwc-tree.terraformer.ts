@@ -22,9 +22,7 @@
 
 import { TableTerraformer, TerraformHandlerCollection } from "../table-terraformer";
 import { ImportMapping } from "../mapper/import-mapping";
-import { QueryRunner } from "typeorm";
 import { IPObjType } from "../../../../models/ipobj/IPObjType";
-import { app } from "../../../../fonaments/abstract-application";
 import { Firewall } from "../../../../models/firewall/Firewall";
 import { Ca } from "../../../../models/vpn/pki/Ca";
 import { Cluster } from "../../../../models/firewall/Cluster";
@@ -40,8 +38,6 @@ import { OpenVPNPrefix } from "../../../../models/vpn/openvpn/OpenVPNPrefix";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export class FwcTreeTerraformer extends TableTerraformer {
-    public ipObjTypes: Array<IPObjType>;
-
     protected _typeToTableNameMapping: {[type: string]: typeof Model} = {
         'CA': Ca,
         'CL': Cluster,
@@ -94,9 +90,8 @@ export class FwcTreeTerraformer extends TableTerraformer {
         'STD': null
     }
 
-    public static async make(mapper: ImportMapping, queryRunner: QueryRunner, eventEmitter: EventEmitter = new EventEmitter()): Promise<FwcTreeTerraformer> {
+    public static async make(mapper: ImportMapping, eventEmitter: EventEmitter = new EventEmitter()): Promise<FwcTreeTerraformer> {
         const terraformer: FwcTreeTerraformer = new FwcTreeTerraformer(mapper, eventEmitter);
-        terraformer.ipObjTypes = await IPObjType.find();
         return terraformer;
     }
 

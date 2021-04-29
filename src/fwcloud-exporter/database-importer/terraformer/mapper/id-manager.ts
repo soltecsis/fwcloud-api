@@ -24,13 +24,17 @@ import Model from "../../../../models/Model";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { QueryRunner } from "typeorm";
 
-type TableIdState = { [tableName: string]: { [propertyName: string]: number } };
+export type TableIdState = { [tableName: string]: { [propertyName: string]: number } };
 
 export class IdManager {
     protected _ids: TableIdState
 
     protected constructor(ids: TableIdState) {
         this._ids = ids;
+    }
+
+    public getIdState(): TableIdState {
+        return this._ids;
     }
 
     getNewId(tableName: string, propertyName: string): number {
@@ -40,6 +44,10 @@ export class IdManager {
         }
 
         return null;
+    }
+
+    public static restore(ids: TableIdState): IdManager {
+        return new this(ids);
     }
 
     /**
