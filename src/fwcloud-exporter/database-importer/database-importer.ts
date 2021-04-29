@@ -37,7 +37,7 @@ import { Ca } from "../../models/vpn/pki/Ca";
 import * as fs from "fs";
 import { EventEmitter } from "events";
 import { Worker } from 'worker_threads';
-import { InputData } from "./terraform_table.service";
+import { InputData, OutputData } from "./terraform_table.service";
 import { ProgressNoticePayload } from "../../sockets/messages/socket-message";
 
 export class DatabaseImporter {
@@ -71,7 +71,12 @@ export class DatabaseImporter {
             let index: number = 1;
             for (const tableName of data.getTableNames()) {
                 this.eventEmitter.emit('message', new ProgressNoticePayload(`${index}/${data.getTableNames().length}`));
-                const terraformedData: object[] = data.getTableResults(tableName).length === 0 ? [] : await this.handleTableResultTerraform(tableName, this._mapper, this._idManager, data);
+                const outputData: OutputData = data.getTableResults(tableName).length === 0 ? {result: [], idMaps: this._mapper.maps, idState: this._idManager.getIdState()} : await this.handleTableResultTerraform(tableName, this._mapper, this._idManager, data);
+
+                //Refresh mapper after calling service
+                this._mapper.maps = outputData.idMaps;
+                this._idManager = IdManager.restore(outputData.idState);
+                const terraformedData: object[] = outputData.result;
 
                 if (tableName === FwCloud._getTableName()) {
                     fwCloudId = (terraformedData as any)[0].id;
@@ -103,8 +108,8 @@ export class DatabaseImporter {
         return fwCloud;
     }
 
-    protected async handleTableResultTerraform(tableName: string, mapper: ImportMapping, idManager: IdManager, data: ExporterResult): Promise<object[]> {
-        return new Promise<object[]>((resolve, reject) => {
+    protected async handleTableResultTerraform(tableName: string, mapper: ImportMapping, idManager: IdManager, data: ExporterResult): Promise<OutputData> {
+        return new Promise<OutputData>((resolve, reject) => {
             const wData: InputData = {
                 tableName: tableName,
                 data: data.getAll(),
@@ -116,7 +121,7 @@ export class DatabaseImporter {
                 workerData: wData
             });
 
-            worker.on('message', (data) => {
+            worker.on('message', (data: OutputData) => {
                 return resolve(data)
             });
 

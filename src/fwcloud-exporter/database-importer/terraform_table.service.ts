@@ -11,6 +11,12 @@ export type InputData = {
     idState: TableIdState
 }
 
+export type OutputData = {
+    result: object[];
+    idMaps: Map<string, number>;
+    idState: TableIdState
+}
+
 async function terraformTable(tableName: string, mapper: ImportMapping, data: object[]): Promise<object[]> {
     return await (new Terraformer(mapper, this.eventEmitter))
         .terraform(tableName, data);
@@ -23,7 +29,12 @@ const mapper: ImportMapping = new ImportMapping(idManager, result, sharedData.id
 
 terraformTable(sharedData.tableName, mapper, result.getTableResults(sharedData.tableName))
     .then( data => {
-        parentPort.postMessage(data);
+        const output: OutputData = {
+            result: data,
+            idMaps: mapper.maps,
+            idState: idManager.getIdState()
+        }
+        parentPort.postMessage(output);
     })
     .catch(err => {
         throw err;
