@@ -746,6 +746,9 @@ export class Interface extends Model {
 				let currentData: string = "";
 
 				try {
+					// Remove \r\n at the beginning of the data to be processed.
+					rawData = rawData.trimLeft();
+
 					// Set the pointer over the first interface.
 					// If we don't found it return empty result.
 					if (!(match = rawData.match(/^[0-9]{1,4}\: /))) return resolve([]);

@@ -6,7 +6,7 @@ import { Interface } from "../../../../models/interface/Interface";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export class FirewallTerraformer extends TableTerraformer {
-    public static async make(mapper: ImportMapping, queryRunner: QueryRunner, eventEmitter: EventEmitter = new EventEmitter()): Promise<FirewallTerraformer> {
+    public static async make(mapper: ImportMapping, eventEmitter: EventEmitter = new EventEmitter()): Promise<FirewallTerraformer> {
         const terraformer: FirewallTerraformer = new FirewallTerraformer(mapper, eventEmitter);
         return terraformer;
     }
