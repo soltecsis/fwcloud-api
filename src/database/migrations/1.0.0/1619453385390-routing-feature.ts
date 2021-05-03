@@ -47,16 +47,16 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     isPrimary: true
                 },
                 {
-                    name: 'number',
-                    type: 'int',
-                    length: '11',
-                    isNullable: false,
-                },
-                {
                     name: 'firewall',
                     type: 'int',
                     length: '11',
                     isNullable: false
+                },
+                {
+                    name: 'number',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false,
                 },
                 {
                     name: 'name',
@@ -69,6 +69,7 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     isNullable: true
                 }
             ],
+            indices: [{ columnNames: ['firewall', 'number'], isUnique: true }],
             foreignKeys: [
                 {
                     columnNames: ['firewall'],
