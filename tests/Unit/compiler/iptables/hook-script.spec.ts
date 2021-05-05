@@ -32,6 +32,7 @@ import { IPTablesCompiler } from '../../../../src/compiler/iptables/iptables-com
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
 import { populateRule } from "./utils";
+import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
 describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
   const sandbox = sinon.createSandbox();
@@ -67,7 +68,7 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
     const rule = await PolicyRule.insertPolicy_r(ruleData);
     if (ruleData.type === PolicyTypesMap.get(`${IPv}:DNAT`))
       await populateRule(rule,RulePositionsMap.get(`${IPv}:DNAT:Translated Destination`),50010); // 50010 = Standard VRRP IP
-    const result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+    const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
     
     expect(spy.calledOnce).to.be.true;
     expect(result).to.eql([{

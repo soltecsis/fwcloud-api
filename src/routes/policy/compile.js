@@ -62,7 +62,7 @@ var router = express.Router();
  * @property RuleCompileModel
  * @type ../../models/compile/
  */
-import { IPTablesCompiler, IPTablesRuleCompiled } from '../../compiler/iptables/iptables-compiler';
+import { IPTablesCompiler } from '../../compiler/iptables/iptables-compiler';
 
 /**
  * Property Model to manage policy script generation and install process
@@ -71,6 +71,9 @@ import { IPTablesCompiler, IPTablesRuleCompiled } from '../../compiler/iptables/
  * @type ../../models/compile/
  */
 import { PolicyScript } from '../../compiler/PolicyScript';
+
+import { PolicyCompiler } from '../../compiler/PolicyCompiler';
+
 
 const config = require('../../config/config');
 import { Firewall } from '../../models/firewall/Firewall';
@@ -87,7 +90,7 @@ const fwcError = require('../../utils/error_table');
 router.put('/rule', async (req, res) => {
 	try {
 		//console.time(`Rule compile (ID: ${req.body.rule})`);
-		const rulesCompiled = await IPTablesCompiler.compile(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		const rulesCompiled = await PolicyCompiler.compile(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
 		//console.timeEnd(`Rule compile (ID: ${req.body.rule})`);
 
 		if (rulesCompiled.length === 0)

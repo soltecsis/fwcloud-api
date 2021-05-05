@@ -32,6 +32,7 @@ import { IPTablesCompiler } from '../../../../src/compiler/iptables/iptables-com
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
 import { searchInPolicyData, populateRule } from "./utils";
+import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
 describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
   const sandbox = sinon.createSandbox();
@@ -60,7 +61,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     for (let i=0; i<posData.length; i++)
       await populateRule(rule,posData[i][0],posData[i][1]); 
     
-    const result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+    const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
     
     expect(spy.calledOnce).to.be.true;
     for (let i=0; i<posData.length; i++)
@@ -104,7 +105,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
       let error: any;
       
       try {
-        const result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+        const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
       } catch(err) { error = err }
 
       expect(error).to.eql({
@@ -122,7 +123,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
       let error: any;
       
       try {
-        const result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+        const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
       } catch(err) { error = err }
 
       expect(error).to.eql({

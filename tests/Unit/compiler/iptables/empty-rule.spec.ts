@@ -31,6 +31,7 @@ import db from "../../../../src/database/database-manager";
 import { IPTablesCompiler, RuleActionsMap, ACTION, POLICY_TYPE } from '../../../../src/compiler/iptables/iptables-compiler';
 import { positionsEmpty } from "./utils"
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
+import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
 describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
     const sandbox = sinon.createSandbox();
@@ -59,7 +60,7 @@ describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
         let error: any;
 
         try {
-            result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, policyType, rule);
+            result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, policyType, rule);
         } catch(err) { error = err }
         
         expect(spy.calledOnce).to.be.true;

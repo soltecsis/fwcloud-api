@@ -42,6 +42,7 @@ import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
 import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
 import { PolicyRuleToOpenVPNPrefix } from "../../../../src/models/policy/PolicyRuleToOpenVPNPrefix";
+import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
 describe(describeName('IPTables Compiler Unit Tests - OpenVPN'), () => {
   const sandbox = sinon.createSandbox();
@@ -119,7 +120,7 @@ describe(describeName('IPTables Compiler Unit Tests - OpenVPN'), () => {
     }
 
     try {
-        result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, policyType, rule);
+        result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, policyType, rule);
     } catch(err) { error = err }
 
       

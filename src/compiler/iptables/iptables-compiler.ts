@@ -635,32 +635,4 @@ export class IPTablesCompiler {
         });
     }
     /*----------------------------------------------------------------------------------------------------------------------*/
-
-    /*----------------------------------------------------------------------------------------------------------------------*/
-    public static compile(dbCon: any, fwcloud: number, firewall: number, type: number, rule?: number, eventEmitter?: EventEmitter): Promise<IPTablesRuleCompiled[]> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                //const tsStart = Date.now();
-                const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, firewall, type, rule, null);
-                //IPTablesCompiler.totalGetDataTime += Date.now() - tsStart;
-                
-                if (!rulesData) return resolve([]);
-
-                let result: IPTablesRuleCompiled[] = [];
-                for (let i=0; i<rulesData.length; i++) {
-                    if (eventEmitter) eventEmitter.emit('message', new ProgressNoticePayload(`Rule ${i+1} (ID: ${rulesData[i].id})${!(rulesData[i].active) ? ' [DISABLED]' : ''}`));
-
-                    result.push({
-                        id: rulesData[i].id,
-                        active: rulesData[i].active,
-                        comment: rulesData[i].comment,
-                        cs: (rulesData[i].active || rulesData.length===1) ? await this.ruleCompile(rulesData[i]) : ''
-                    });
-                }
-
-                resolve(result);
-            } catch (error) { return reject(error) }
-        });
-    }
-    /*----------------------------------------------------------------------------------------------------------------------*/
 }

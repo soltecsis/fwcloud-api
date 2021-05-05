@@ -32,6 +32,7 @@ import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressNoticePayload, ProgressErrorPayload } from '../sockets/messages/socket-message';
 
 import sshTools from '../utils/ssh';
+import { PolicyCompiler } from './PolicyCompiler';
 
 var config = require('../config/config');
 
@@ -84,7 +85,7 @@ export class PolicyScript {
         return new Promise(async (resolve, reject) => {
             try {
                 // Compile all rules of the same type.
-                const rulesCompiled =  await IPTablesCompiler.compile(req.dbCon, req.body.fwcloud, req.body.firewall, type, null, eventEmitter);
+                const rulesCompiled =  await PolicyCompiler.compile(req.dbCon, req.body.fwcloud, req.body.firewall, type, null, eventEmitter);
 
                 let ps = '';
                 for (let i=0; i < rulesCompiled.length; i++) {

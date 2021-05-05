@@ -15,6 +15,7 @@ LSMOD=`which lsmod`
 MODPROBE=`which modprobe`
 IPTABLES=`which iptables`
 IP6TABLES=`which ip6tables`
+NFT=`which nft`
 IP=`which ip`
 SYSTEMCTL=`which systemctl`
 SYSTEMD_FILE="/etc/systemd/system/fwcloud.service"
@@ -83,9 +84,20 @@ reset_iptables_v6() {
   done
 }
 
+reset_nft() {
+  if [ -f "$NFT" ]; then
+    $NFT flush ruleset arp
+    $NFT flush ruleset ip
+    $NFT flush ruleset ip6
+    $NFT flush ruleset bridge
+    $NFT flush ruleset inet
+  fi
+}
+
 policy_empty() {
   reset_iptables_v4
   reset_iptables_v6
+  reset_nft
 }
 
 create_systemd_service() {
