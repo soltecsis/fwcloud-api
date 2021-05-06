@@ -17,7 +17,7 @@ export class RoutingTableController extends Controller {
 
     public async make(request: Request): Promise<void> {
         this.routingTableService = await this._app.getService<RoutingTableService>(RoutingTableService.name);
-        this._firewall = await Firewall.findOneOrFail(parseInt(request.params.fwcloud));
+        this._firewall = await Firewall.findOneOrFail(parseInt(request.params.firewall));
     }
 
     @Validate({})
