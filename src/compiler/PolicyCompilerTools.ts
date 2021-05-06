@@ -47,6 +47,20 @@ export type IPTablesRuleCompiled = {
 }
 
 export class PolicyCompilerTools {
+  public static validPolicyType(type: number): boolean {
+    return (type === PolicyTypesMap.get('IPv4:INPUT') || 
+            type === PolicyTypesMap.get('IPv4:OUTPUT') ||
+            type === PolicyTypesMap.get('IPv4:FORWARD') ||
+            type === PolicyTypesMap.get('IPv4:SNAT') ||
+            type === PolicyTypesMap.get('IPv4:DNAT') ||
+            type === PolicyTypesMap.get('IPv6:INPUT') ||
+            type === PolicyTypesMap.get('IPv6:OUTPUT') || 
+            type === PolicyTypesMap.get('IPv6:FORWARD') ||
+            type === PolicyTypesMap.get('IPv6:SNAT') ||
+            type === PolicyTypesMap.get('IPv6:DNAT'));
+  }
+
+
   public static ruleComment(ruleData: any): string {
     let metaData = {};
     let comment:string = ruleData.comment ? ruleData.comment : '';
@@ -71,6 +85,7 @@ export class PolicyCompilerTools {
     return comment;
   }
 
+
   public static isPositionNegated(negate, position) {
     if (!negate) return false;
 
@@ -84,39 +99,19 @@ export class PolicyCompilerTools {
   }
 
 
-  public static pre_compile_sd(dir, sd, negate, rule_ip_version) {
-    var items = {
-      'negate': negate,
-      'str': []
-    };
+  public static afterCompilation(ruleData: any, cs: string): string {
+    // Replace two consecutive spaces by only one.
+    cs = cs.replace(/  +/g, ' ');
 
-    for (var i = 0; i < sd.length; i++) {
-      if (sd[i].type === 9) // DNS
-        items.str.push(dir + sd[i].name);
-      else if (rule_ip_version === sd[i].ip_version) { // Only add this type of IP objects if they have the same IP version than the compiled rule.
-        if (sd[i].type === 5) // Address
-          items.str.push(dir + sd[i].address);
-        else if (sd[i].type === 7) // Network
-          items.str.push(dir + sd[i].address + "/" + sd[i].netmask.replace('/', ''));
-        else if (sd[i].type === 6) // Address range
-          items.str.push((dir !== "" ? ("-m iprange " + (dir === "-s " ? "--src-range " : "--dst-range ")) : " ") + sd[i].range_start + "-" + sd[i].range_end);
-      }
-    }
+    // Apply rule only to the selected firewall.
+    if (ruleData.fw_apply_to && ruleData.firewall_name)
+      cs = "if [ \"$HOSTNAME\" = \"" + ruleData.firewall_name + "\" ]; then\n" + cs + "fi\n";
 
-    return ((items.str.length > 0) ? items : null);
-  }
-
-
-  public static pre_compile_if(dir, ifs, negate) {
-    var items = {
-      'negate': negate,
-      'str': []
-    };
-
-    for (var i = 0; i < ifs.length; i++)
-      items.str.push(dir + ifs[i].name);
-
-    return ((items.str.length > 0) ? items : null);
+    // Include before and/or after rule script code.
+    if (ruleData.run_before) cs = `###########################\n# Before rule load code:\n${ruleData.run_before}\n###########################\n${cs}`;
+    if (ruleData.run_after) cs += `###########################\n# After rule load code:\n${ruleData.run_after}\n###########################\n`;
+  
+    return cs;
   }
 
 
@@ -156,6 +151,42 @@ export class PolicyCompilerTools {
       items.str.push(`-p ${proto} -m multiport --dports ${currentPorts.join(',')}`);
     }
   }
+          
+
+  public static preCompileSrcDst(dir, sd, negate, rule_ip_version) {
+    var items = {
+      'negate': negate,
+      'str': []
+    };
+
+    for (var i = 0; i < sd.length; i++) {
+      if (sd[i].type === 9) // DNS
+        items.str.push(dir + sd[i].name);
+      else if (rule_ip_version === sd[i].ip_version) { // Only add this type of IP objects if they have the same IP version than the compiled rule.
+        if (sd[i].type === 5) // Address
+          items.str.push(dir + sd[i].address);
+        else if (sd[i].type === 7) // Network
+          items.str.push(dir + sd[i].address + "/" + sd[i].netmask.replace('/', ''));
+        else if (sd[i].type === 6) // Address range
+          items.str.push((dir !== "" ? ("-m iprange " + (dir === "-s " ? "--src-range " : "--dst-range ")) : " ") + sd[i].range_start + "-" + sd[i].range_end);
+      }
+    }
+
+    return ((items.str.length > 0) ? items : null);
+  }
+
+
+  public static preCompileInterface(dir, ifs, negate) {
+    var items = {
+      'negate': negate,
+      'str': []
+    };
+
+    for (var i = 0; i < ifs.length; i++)
+      items.str.push(dir + ifs[i].name);
+
+    return ((items.str.length > 0) ? items : null);
+  }
 
 
   /**
@@ -167,7 +198,7 @@ export class PolicyCompilerTools {
    * @param negate 
    * @param rule_ip_version 
    */
-  public static pre_compile_svc(sep, svc, negate, rule_ip_version) {
+  public static preCompileSvc(sep, svc, negate, rule_ip_version) {
     var items = {
       'negate': negate,
       'str': []
@@ -295,7 +326,7 @@ export class PolicyCompilerTools {
    * 
    * @param rule 
    */
-  public static pre_compile(rule) {
+  public static preCompile(rule) {
     let position_items = [];
     const policy_type = rule.type;
     let items, src_position, dst_position, svc_position, dir, objs, negated;
@@ -311,33 +342,33 @@ export class PolicyCompilerTools {
     dir = (policy_type === PolicyTypesMap.get('IPv4:OUTPUT') || policy_type === PolicyTypesMap.get('IPv4:SNAT')) ? "-o " : "-i ";
     objs = rule.positions[0].ipobjs;
     negated = this.isPositionNegated(rule.negate, rule.positions[0].id);
-    if (items = this.pre_compile_if(dir, objs, negated))
+    if (items = this.preCompileInterface(dir, objs, negated))
         position_items.push(items);
 
     // INTERFACE OUT
     if (policy_type === PolicyTypesMap.get('IPv4:FORWARD')) {
         objs = rule.positions[1].ipobjs;
         negated = this.isPositionNegated(rule.negate, rule.positions[1].id);
-        if (items = this.pre_compile_if("-o ", objs, negated))
+        if (items = this.preCompileInterface("-o ", objs, negated))
             position_items.push(items);
     }
 
     // SERVICE
     objs = rule.positions[svc_position].ipobjs;
     negated = this.isPositionNegated(rule.negate, rule.positions[svc_position].id);
-    if (items = this.pre_compile_svc(":", objs, negated, rule.ip_version))
+    if (items = this.preCompileSvc(":", objs, negated, rule.ip_version))
         position_items.push(items);
 
     // SOURCE
     objs = rule.positions[src_position].ipobjs;
     negated = this.isPositionNegated(rule.negate, rule.positions[src_position].id);
-    if (items = this.pre_compile_sd("-s ", objs, negated, rule.ip_version))
+    if (items = this.preCompileSrcDst("-s ", objs, negated, rule.ip_version))
         position_items.push(items);
 
     // DESTINATION
     objs = rule.positions[dst_position].ipobjs;
     negated = this.isPositionNegated(rule.negate, rule.positions[dst_position].id);
-    if (items = this.pre_compile_sd("-d ", objs, negated, rule.ip_version))
+    if (items = this.preCompileSrcDst("-d ", objs, negated, rule.ip_version))
         position_items.push(items);
 
     // Order the resulting array by number of strings into each array.
@@ -372,41 +403,39 @@ export class PolicyCompilerTools {
   }
 
 
-  public static nat_action(policy_type, trans_addr, trans_port, rule_ip_version) {
-    return new Promise<string>((resolve, reject) => {
-        if (trans_addr.length > 1 || trans_port.length > 1)
-            return reject(fwcError.other('Translated fields must contain a maximum of one item'));
+  public static natAction(policy_type, trans_addr, trans_port, rule_ip_version): string {
+    if (trans_addr.length > 1 || trans_port.length > 1)
+      throw(fwcError.other('Translated fields must contain a maximum of one item'));
 
-        if (policy_type === PolicyTypesMap.get('IPv4:SNAT') && trans_addr.length === 0) {
-            if (trans_port.length === 0) return resolve('MASQUERADE');
-            return reject(fwcError.other("For SNAT 'Translated Service' must be empty if 'Translated Source' is empty"));
-        }
+    if (policy_type === PolicyTypesMap.get('IPv4:SNAT') && trans_addr.length === 0) {
+      if (trans_port.length === 0) return 'MASQUERADE';
+      throw(fwcError.other("For SNAT 'Translated Service' must be empty if 'Translated Source' is empty"));
+    }
 
-        // For DNAT the translated destination is mandatory.
-        if (policy_type === PolicyTypesMap.get('IPv4:DNAT') && trans_addr.length === 0)
-            return reject(fwcError.other("For DNAT 'Translated Destination' is mandatory"));
+    // For DNAT the translated destination is mandatory.
+    if (policy_type === PolicyTypesMap.get('IPv4:DNAT') && trans_addr.length === 0)
+      throw(fwcError.other("For DNAT 'Translated Destination' is mandatory"));
 
-        // Only TCP and UDP protocols are allowed for the translated service position.
-        if (trans_port.length === 1 && trans_port[0].protocol !== 6 && trans_port[0].protocol !== 17)
-            return reject(fwcError.other("For 'Translated Service' only protocols TCP and UDP are allowed"));
+    // Only TCP and UDP protocols are allowed for the translated service position.
+    if (trans_port.length === 1 && trans_port[0].protocol !== 6 && trans_port[0].protocol !== 17)
+      throw(fwcError.other("For 'Translated Service' only protocols TCP and UDP are allowed"));
 
-        let protocol = ' ';
-        if (trans_port.length === 1) 
-            protocol = (trans_port[0].protocol==6) ? ' -p tcp ' : ' -p udp ';
+    let protocol = ' ';
+    if (trans_port.length === 1) 
+      protocol = (trans_port[0].protocol==6) ? ' -p tcp ' : ' -p udp ';
 
-        let action = (policy_type === PolicyTypesMap.get('IPv4:SNAT')) ? `SNAT${protocol}--to-source ` : `DNAT${protocol}--to-destination `;
+    let action = (policy_type === PolicyTypesMap.get('IPv4:SNAT')) ? `SNAT${protocol}--to-source ` : `DNAT${protocol}--to-destination `;
 
-        if (trans_addr.length === 1)
-            action += (this.pre_compile_sd("", trans_addr, false, rule_ip_version)).str[0];
-        if (trans_port.length === 1)
-            action += ":" + (this.pre_compile_svc("-", trans_port, false, rule_ip_version)).str[0];
+    if (trans_addr.length === 1)
+      action += (this.preCompileSrcDst("", trans_addr, false, rule_ip_version)).str[0];
+    if (trans_port.length === 1)
+      action += ":" + (this.preCompileSvc("-", trans_port, false, rule_ip_version)).str[0];
 
-        resolve(action);
-    });
+    return action;
   }
 
 
-  public static generate_compilation_string(rule, position_items, cs, cs_trail, table, stateful, action, iptables_cmd) {
+  public static generateCompilationString(rule, position_items, cs, cs_trail, table, stateful, action, iptables_cmd) {
     // Rule compilation process.
     if (position_items.length === 0) // No conditions rule.
         cs += cs_trail;
