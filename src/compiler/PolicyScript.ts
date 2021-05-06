@@ -26,7 +26,6 @@
  * @property RuleCompileModel
  * @type /models/compile/
  */
-import { IPTablesCompiler, IPTablesRuleCompiled } from './iptables/iptables-compiler'
 import { Firewall } from '../models/firewall/Firewall';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressNoticePayload, ProgressErrorPayload } from '../sockets/messages/socket-message';

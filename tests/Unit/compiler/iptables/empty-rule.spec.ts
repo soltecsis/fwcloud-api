@@ -28,7 +28,8 @@ import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import sinon, { SinonSpy } from "sinon";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
-import { IPTablesCompiler, RuleActionsMap, ACTION, POLICY_TYPE } from '../../../../src/compiler/iptables/iptables-compiler';
+import { IPTablesCompiler } from '../../../../src/compiler/iptables/iptables-compiler';
+import { RuleActionsMap, ACTION, POLICY_TYPE } from '../../../../src/compiler/PolicyCompilerTools';
 import { positionsEmpty } from "./utils"
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";

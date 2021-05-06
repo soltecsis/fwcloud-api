@@ -20,7 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IPTablesCompiler, IPTablesRuleCompiled } from './iptables/iptables-compiler'
+import { IPTablesCompiler } from './iptables/iptables-compiler'
+import { IPTablesRuleCompiled } from './PolicyCompilerTools'
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressNoticePayload } from '../sockets/messages/socket-message';
 import { PolicyRule } from '../models/policy/PolicyRule';
