@@ -12,7 +12,7 @@ import { _URL } from "../../../../../src/fonaments/http/router/router.service";
 import { RoutingTable } from "../../../../../src/models/routing/routing-table/routing-table.model";
 import { RoutingTableService } from "../../../../../src/models/routing/routing-table/routing-table.service";
 
-describe.only(describeName('Routing Table E2E Tests'), () => {
+describe(describeName('Routing Table E2E Tests'), () => {
     let app: Application;
     let loggedUser: User;
     let loggedUserSessionId: string;
