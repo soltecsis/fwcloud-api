@@ -34,6 +34,7 @@ import { FwCloudController } from "../controllers/fwclouds/fwcloud.controller";
 import { UpdateController } from "../controllers/updates/update.controller";
 import { IptablesSaveController } from "../controllers/iptables-save/iptables-save.controller";
 import { PingController } from "../controllers/ping/ping.controller";
+import { RoutingTableController } from "../controllers/routing/routing-tables.controller";
 
 export class Routes extends RouteCollection {
 
@@ -87,7 +88,17 @@ export class Routes extends RouteCollection {
                                 router.prefix('/:openvpn(\\d+)', (router: RouterParser) => {
                                     router.post('/installer', OpenVPNController, 'installer').name('fwclouds.firewalls.openvpns.installer');
                                 })
-                            })
+                            });
+
+                            router.prefix('/routing/tables', (router: RouterParser) => {
+                                router.post('/', RoutingTableController, 'create').name('fwclouds.firewalls.routing.tables.store');
+                                router.get('/', RoutingTableController, 'index').name('fwclouds.firewalls.routing.tables.index');
+                                router.prefix('/:routingTable(\\d+)', (router:RouterParser) => {
+                                    router.get('/', RoutingTableController, 'show').name('fwclouds.firewalls.routing.tables.show');
+                                    router.put('/', RoutingTableController, 'update').name('fwclouds.firewalls.routing.tables.update');
+                                    router.delete('/', RoutingTableController, 'remove').name('fwclouds.firewalls.routing.tables.delete');
+                                });
+                            });
                         })
                     })
 

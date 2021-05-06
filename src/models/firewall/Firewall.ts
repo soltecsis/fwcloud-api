@@ -45,6 +45,7 @@ var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
 
 import sshTools from '../../utils/ssh';
+import { RoutingTable } from "../routing/routing-table/routing-table.model";
 
 const tableName: string = 'firewall';
 
@@ -137,6 +138,9 @@ export class Firewall extends Model {
 
 	@OneToMany(type => RoutingRule, routingRule => routingRule.firewall)
 	routingRules: Array<RoutingRule>;
+
+	@OneToMany(type => RoutingTable, routingTable => routingTable.firewall)
+	routingTables: RoutingTable[];
 
 	
 	public getTableName(): string {
