@@ -13,9 +13,10 @@ export class RoutingTableRepository extends Repository<RoutingTable> {
 
     protected getFindOneWithinFwCloudQueryBuilder(id: number, firewallId: number, fwCloudId: number): SelectQueryBuilder<RoutingTable> {
         return this.createQueryBuilder("table")
-            .leftJoinAndSelect("table.firewall", "firewall")
+            .innerJoinAndSelect("table.firewall", "firewall")
+            .innerJoinAndSelect("firewall.fwCloud", "fwcloud")
             .where("table.id = :id", {id})
-            .where("table.firewallId = :firewallId", {firewallId})
-            .andWhere("firewall.fwCloud = :fwCloudId", {fwCloudId})
+            .andWhere("firewall.id = :firewallId", {firewallId})
+            .andWhere("fwcloud.id = :fwCloudId", {fwCloudId})
     }
 }

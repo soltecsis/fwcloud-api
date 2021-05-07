@@ -35,6 +35,7 @@ import { UpdateController } from "../controllers/updates/update.controller";
 import { IptablesSaveController } from "../controllers/iptables-save/iptables-save.controller";
 import { PingController } from "../controllers/ping/ping.controller";
 import { RoutingTableController } from "../controllers/routing/routing-tables.controller";
+import { RouteController } from "../controllers/routing/route.controller";
 
 export class Routes extends RouteCollection {
 
@@ -97,6 +98,15 @@ export class Routes extends RouteCollection {
                                     router.get('/', RoutingTableController, 'show').name('fwclouds.firewalls.routing.tables.show');
                                     router.put('/', RoutingTableController, 'update').name('fwclouds.firewalls.routing.tables.update');
                                     router.delete('/', RoutingTableController, 'remove').name('fwclouds.firewalls.routing.tables.delete');
+                                    router.prefix('/routes', (router: RouterParser) => {
+                                        router.get('/', RouteController, 'index').name('fwclouds.firewalls.routing.tables.routes.index');
+                                        router.post('/', RouteController, 'store').name('fwclouds.firewalls.routing.tables.routes.store');
+                                        router.prefix('/:route(\\d+)', (router:RouterParser) => {
+                                            router.get('/', RouteController, 'show').name('fwclouds.firewalls.routing.tables.routes.show');
+                                            router.put('/', RouteController, 'update').name('fwclouds.firewalls.routing.tables.routes.update');
+                                            router.delete('/', RouteController, 'remove').name('fwclouds.firewalls.routing.tables.routes.delete');
+                                        });
+                                    });
                                 });
                             });
                         })

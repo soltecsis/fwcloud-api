@@ -34,6 +34,7 @@ import { PolicyRule } from "../policy/PolicyRule";
 import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface.model";
 import { string } from "joi";
 import { FwCloudError } from "../../fonaments/exceptions/error";
+import { Route } from "../routing/route/route.model";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -94,6 +95,9 @@ export class Interface extends Model {
 
 	@OneToMany(type => RoutingRuleToInterface, routingRuleToInterface => routingRuleToInterface.routingRuleInterface)
 	routingRuleToInterfaces: Array<RoutingRuleToInterface>;
+
+	@OneToMany(type => Route, model => model.routingTable)
+	routes: Route[];
 
 	/**
 	* Pending foreign keys.

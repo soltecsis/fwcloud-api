@@ -1,6 +1,7 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Firewall } from "../../firewall/Firewall";
 import Model from "../../Model";
+import { Route } from "../route/route.model";
 const tableName: string = 'routing_table';
 
 @Entity(tableName)
@@ -25,6 +26,9 @@ export class RoutingTable extends Model {
 
     @Column()
     comment?: string;
+
+    @OneToMany(type => Route, model => model.routingTable)
+	routes: Route[];
     
     public getTableName(): string {
         return tableName;

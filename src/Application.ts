@@ -58,6 +58,7 @@ import { IptablesSaveServiceProvider } from "./iptables-save/iptables-save.provi
 import { logger } from "./fonaments/abstract-application";
 import * as fs from 'fs';
 import { RoutingTableServiceProvider } from "./models/routing/routing-table/routing-table.provider";
+import { RouteServiceProvider } from "./models/routing/route/route.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -117,7 +118,8 @@ export class Application extends HTTPApplication {
             FwCloudServiceProvider,
             UpdateServiceProvider,
             IptablesSaveServiceProvider,
-            RoutingTableServiceProvider
+            RoutingTableServiceProvider,
+            RouteServiceProvider
         ]
     }
 

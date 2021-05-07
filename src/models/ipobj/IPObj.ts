@@ -33,6 +33,7 @@ import { logger } from '../../fonaments/abstract-application';
 import { IPObjType } from './IPObjType';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { RoutingRuleToIPObj } from '../routing/routing-rule-to-ipobj.model';
+import { Route } from '../routing/route/route.model';
 const ip = require('ip');
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
@@ -159,6 +160,9 @@ export class IPObj extends Model {
 
     @OneToMany(type => RoutingRuleToIPObj, routingRuleToIPObj => routingRuleToIPObj.ipObj)
     routingRuleToIPObjs: Array<RoutingRuleToIPObj>;
+
+    @OneToMany(type => Route, model => model.routingTable)
+	routes: Route[];
 
     public getTableName(): string {
         return tableName;
