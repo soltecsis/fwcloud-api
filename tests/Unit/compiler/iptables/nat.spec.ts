@@ -25,19 +25,14 @@ import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import sinon, { SinonSpy } from "sinon";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
-import { IPTablesCompiler } from '../../../../src/compiler/iptables/iptables-compiler';
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
-import { searchInPolicyData, populateRule } from "./utils";
+import { populateRule } from "./utils";
 import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
 describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
-  const sandbox = sinon.createSandbox();
-  let spy: SinonSpy;
-
   let fwcloud: number;
   let dbCon: any;
   let rule: number;
@@ -63,12 +58,6 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     
     const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
     
-    expect(spy.calledOnce).to.be.true;
-    for (let i=0; i<posData.length; i++)
-      expect(searchInPolicyData(spy.getCall(0).args[0],posData[i][0],posData[i][1])).to.be.true;
-    expect(searchInPolicyData(spy.getCall(0).args[0],RulePositionsMap.get(`${IPv}:${nat}:Translated ${nat==='SNAT'?'Source':'Destination'}`),translatedAddr)).to.be.true;
-    expect(searchInPolicyData(spy.getCall(0).args[0],RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService)).to.be.true;
-
     expect(result).to.eql([{
       id: rule,
       active: ruleData.active,
@@ -85,14 +74,6 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     ruleData.firewall = (await getRepository(Firewall).save(getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
   });
   
-  beforeEach(async () => {
-    spy = sandbox.spy(IPTablesCompiler, "ruleCompile");
-  });
-  
-  afterEach(() => {
-    sandbox.restore();
-  });
-
   describe('Not allowed combinations', () => {
     before(() => { IPv = 'IPv4' });
 

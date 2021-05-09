@@ -47,17 +47,30 @@ export type IPTablesRuleCompiled = {
 }
 
 export class PolicyCompilerTools {
-  public static validPolicyType(type: number): boolean {
-    return (type === PolicyTypesMap.get('IPv4:INPUT') || 
-            type === PolicyTypesMap.get('IPv4:OUTPUT') ||
-            type === PolicyTypesMap.get('IPv4:FORWARD') ||
-            type === PolicyTypesMap.get('IPv4:SNAT') ||
-            type === PolicyTypesMap.get('IPv4:DNAT') ||
-            type === PolicyTypesMap.get('IPv6:INPUT') ||
-            type === PolicyTypesMap.get('IPv6:OUTPUT') || 
-            type === PolicyTypesMap.get('IPv6:FORWARD') ||
-            type === PolicyTypesMap.get('IPv6:SNAT') ||
-            type === PolicyTypesMap.get('IPv6:DNAT'));
+  protected _ruleData: any;
+	protected _policyType: number;
+	protected _cs: string;
+	protected _cmd: string;
+	protected _afterLogAction: string;
+	protected _logChain: string; 
+	protected _accChain: string; 
+	protected _csEnd: string; 
+	protected _stateful: string; 
+	protected _table: string; 
+	protected _action: string;
+	protected _comment: string;
+
+  protected validPolicyType(): boolean {
+    return (this._policyType === PolicyTypesMap.get('IPv4:INPUT') || 
+            this._policyType === PolicyTypesMap.get('IPv4:OUTPUT') ||
+            this._policyType === PolicyTypesMap.get('IPv4:FORWARD') ||
+            this._policyType === PolicyTypesMap.get('IPv4:SNAT') ||
+            this._policyType === PolicyTypesMap.get('IPv4:DNAT') ||
+            this._policyType === PolicyTypesMap.get('IPv6:INPUT') ||
+            this._policyType === PolicyTypesMap.get('IPv6:OUTPUT') || 
+            this._policyType === PolicyTypesMap.get('IPv6:FORWARD') ||
+            this._policyType === PolicyTypesMap.get('IPv6:SNAT') ||
+            this._policyType === PolicyTypesMap.get('IPv6:DNAT'));
   }
 
 
@@ -324,11 +337,11 @@ export class PolicyCompilerTools {
    * This function will return an array of arrays of strings. 
    * Each array will contain the pre-compiled strings for the items of each rule position.
    * 
-   * @param rule 
+   * @param ruleData 
    */
-  public static preCompile(rule) {
+  public static preCompile(ruleData: any): string[][] {
     let position_items = [];
-    const policy_type = rule.type;
+    const policy_type = ruleData.type;
     let items, src_position, dst_position, svc_position, dir, objs, negated;
     let i, j, p;
 
@@ -340,35 +353,35 @@ export class PolicyCompilerTools {
     // The positions first in the array will be used first in the conditions.
     // INTERFACE IN / OUT
     dir = (policy_type === PolicyTypesMap.get('IPv4:OUTPUT') || policy_type === PolicyTypesMap.get('IPv4:SNAT')) ? "-o " : "-i ";
-    objs = rule.positions[0].ipobjs;
-    negated = this.isPositionNegated(rule.negate, rule.positions[0].id);
+    objs = ruleData.positions[0].ipobjs;
+    negated = this.isPositionNegated(ruleData.negate, ruleData.positions[0].id);
     if (items = this.preCompileInterface(dir, objs, negated))
         position_items.push(items);
 
     // INTERFACE OUT
     if (policy_type === PolicyTypesMap.get('IPv4:FORWARD')) {
-        objs = rule.positions[1].ipobjs;
-        negated = this.isPositionNegated(rule.negate, rule.positions[1].id);
+        objs = ruleData.positions[1].ipobjs;
+        negated = this.isPositionNegated(ruleData.negate, ruleData.positions[1].id);
         if (items = this.preCompileInterface("-o ", objs, negated))
             position_items.push(items);
     }
 
     // SERVICE
-    objs = rule.positions[svc_position].ipobjs;
-    negated = this.isPositionNegated(rule.negate, rule.positions[svc_position].id);
-    if (items = this.preCompileSvc(":", objs, negated, rule.ip_version))
+    objs = ruleData.positions[svc_position].ipobjs;
+    negated = this.isPositionNegated(ruleData.negate, ruleData.positions[svc_position].id);
+    if (items = this.preCompileSvc(":", objs, negated, ruleData.ip_version))
         position_items.push(items);
 
     // SOURCE
-    objs = rule.positions[src_position].ipobjs;
-    negated = this.isPositionNegated(rule.negate, rule.positions[src_position].id);
-    if (items = this.preCompileSrcDst("-s ", objs, negated, rule.ip_version))
+    objs = ruleData.positions[src_position].ipobjs;
+    negated = this.isPositionNegated(ruleData.negate, ruleData.positions[src_position].id);
+    if (items = this.preCompileSrcDst("-s ", objs, negated, ruleData.ip_version))
         position_items.push(items);
 
     // DESTINATION
-    objs = rule.positions[dst_position].ipobjs;
-    negated = this.isPositionNegated(rule.negate, rule.positions[dst_position].id);
-    if (items = this.preCompileSrcDst("-d ", objs, negated, rule.ip_version))
+    objs = ruleData.positions[dst_position].ipobjs;
+    negated = this.isPositionNegated(ruleData.negate, ruleData.positions[dst_position].id);
+    if (items = this.preCompileSrcDst("-d ", objs, negated, ruleData.ip_version))
         position_items.push(items);
 
     // Order the resulting array by number of strings into each array.
@@ -435,55 +448,55 @@ export class PolicyCompilerTools {
   }
 
 
-  public static generateCompilationString(rule, position_items, cs, cs_trail, table, stateful, action, iptables_cmd) {
+  public static generateCompilationString(ruleData: any, positionItems: any, cs: string, csEnd: string, table: string, stateful: string, action: string, cmd: string): string {
     // Rule compilation process.
-    if (position_items.length === 0) // No conditions rule.
-        cs += cs_trail;
-    else if (position_items.length === 1 && !(position_items[0].negate)) { // One condition rule and no negated position.
-        if (position_items[0].str.length === 1) // Only one item in the condition.
-            cs += position_items[0].str[0] + " " + cs_trail;
+    if (positionItems.length === 0) // No conditions rule.
+        cs += csEnd;
+    else if (positionItems.length === 1 && !(positionItems[0].negate)) { // One condition rule and no negated position.
+        if (positionItems[0].str.length === 1) // Only one item in the condition.
+            cs += positionItems[0].str[0] + " " + csEnd;
         else { // Multiple items in the condition.
             var cs1 = cs;
             cs = "";
-            for (var i = 0; i < position_items[0].str.length; i++)
-                cs += cs1 + position_items[0].str[i] + " " + cs_trail;
+            for (var i = 0; i < positionItems[0].str.length; i++)
+                cs += cs1 + positionItems[0].str[i] + " " + csEnd;
         }
     } else { // Multiple condition rules or one condition rule with the condition (position) negated.
-        for (var i = 0, j, chain_number = 1, chain_name = "", chain_next = ""; i < position_items.length; i++) {
+        for (var i = 0, j, chain_number = 1, chain_name = "", chain_next = ""; i < positionItems.length; i++) {
             // We have the position_items array ordered by arrays length.
-            if (position_items[i].str.length === 1 && !(position_items[i].negate))
-                cs += position_items[i].str[0] + " ";
+            if (positionItems[i].str.length === 1 && !(positionItems[i].negate))
+                cs += positionItems[i].str[0] + " ";
             else {
-                chain_name = "FWCRULE" + rule + ".CH" + chain_number;
+                chain_name = "FWCRULE" + ruleData + ".CH" + chain_number;
                 // If we are in the first condition and it is not negated.
-                if (i === 0 && !(position_items[i].negate)) {
+                if (i === 0 && !(positionItems[i].negate)) {
                     var cs1 = cs;
                     cs = "";
-                    for (let j = 0; j < position_items[0].str.length; j++)
-                        cs += cs1 + position_items[0].str[j] + ((j < (position_items[0].str.length - 1)) ? " " + stateful + " -j " + chain_name + "\n" : " ");
+                    for (let j = 0; j < positionItems[0].str.length; j++)
+                        cs += cs1 + positionItems[0].str[j] + ((j < (positionItems[0].str.length - 1)) ? " " + stateful + " -j " + chain_name + "\n" : " ");
                 } else {
-                    if (!(position_items[i].negate)) {
+                    if (!(positionItems[i].negate)) {
                         // If we are at the end of the array, the next chain will be the rule action.
-                        chain_next = (i === ((position_items.length) - 1)) ? action : "FWCRULE" + rule + ".CH" + (chain_number + 1);
+                        chain_next = (i === ((positionItems.length) - 1)) ? action : "FWCRULE" + ruleData + ".CH" + (chain_number + 1);
                     } else { // If the position is negated.
                         chain_next = "RETURN";
                     }
 
-                    cs = `${iptables_cmd} ${table} -N ${chain_name}\n${cs}${((chain_number === 1) ? stateful + " -j " + chain_name + "\n" : "")}`;
-                    for (j = 0; j < position_items[i].str.length; j++) {
-                        cs += `${iptables_cmd} ${table} -A ${chain_name} ${position_items[i].str[j]} -j ${chain_next}\n`;
+                    cs = `${cmd} ${table} -N ${chain_name}\n${cs}${((chain_number === 1) ? stateful + " -j " + chain_name + "\n" : "")}`;
+                    for (j = 0; j < positionItems[i].str.length; j++) {
+                        cs += `${cmd} ${table} -A ${chain_name} ${positionItems[i].str[j]} -j ${chain_next}\n`;
                     }
                     chain_number++;
 
-                    if (position_items[i].negate)
-                        cs += `${iptables_cmd} ${table} -A ${chain_name} -j ${((i === ((position_items.length) - 1)) ? action : "FWCRULE" + rule + ".CH" + chain_number)}\n`;
+                    if (positionItems[i].negate)
+                        cs += `${cmd} ${table} -A ${chain_name} -j ${((i === ((positionItems.length) - 1)) ? action : "FWCRULE" + ruleData + ".CH" + chain_number)}\n`;
                 }
             }
         }
 
         // If we have not used IPTABLES user defined chains.
         if (chain_number === 1)
-            cs += cs_trail;
+            cs += csEnd;
     }
 
     return cs;

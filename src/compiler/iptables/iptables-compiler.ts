@@ -23,144 +23,174 @@
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { PolicyCompilerTools, ACTION, POLICY_TYPE, MARK_CHAIN } from '../PolicyCompilerTools';
 
-export class IPTablesCompiler {
-   public static ruleCompile(ruleData: any): string {
-		let policy_type = ruleData.type;
+export class IPTablesCompiler extends PolicyCompilerTools {
+	
+	constructor(ruleData: any) {
+		super();
 
-		if (!PolicyCompilerTools.validPolicyType(policy_type)) throw(new Error('Invalid policy type'));
+		this._ruleData = ruleData;
+		this._policyType = ruleData.type;
+		this._cmd = (this._policyType < PolicyTypesMap.get('IPv6:INPUT')) ? "$IPTABLES" : "$IP6TABLES"; // iptables command variable.
+		this._cs = `${this._cmd} `; // Compilation string.
+		this._afterLogAction = '';
+		this._logChain = ''; 
+		this._accChain = ''; 
+		this._csEnd = ''; 
+		this._stateful = ''; 
+		this._table = ''; 
+		this._action = '';
+		this._comment = PolicyCompilerTools.ruleComment(this._ruleData);
+	}
 
-		let cmd = (policy_type < PolicyTypesMap.get('IPv6:INPUT')) ? "$IPTABLES" : "$IP6TABLES"; // iptables command variable.
-		let cs = `${cmd} `; // Compile string.
-		let after_log_action = "";
-		let log_chain = ""; 
-		let acc_chain = ""; 
-		let cs_trail = ""; 
-		let stateful = ""; 
-		let table = ""; 
-		let action = "";
-		let comment = PolicyCompilerTools.ruleComment(ruleData);
 
-		// Since now, all the compilation process for IPv6 is the same that the one for IPv4.
-		if (policy_type >= PolicyTypesMap.get('IPv6:INPUT')) {
-			policy_type -= 60;
-			ruleData.type -= 60;
-			ruleData.ip_version = 6;
-		} else ruleData.ip_version = 4;
+	private beforeCompilation(): void {
+		if (!this.validPolicyType()) throw(new Error('Invalid policy type'));
 
-		if (policy_type === PolicyTypesMap.get('IPv4:SNAT')) { // SNAT
-			table = "-t nat";
-			cs += table + ` -A POSTROUTING ${comment}`;
-			action = PolicyCompilerTools.natAction(policy_type, ruleData.positions[4].ipobjs, ruleData.positions[5].ipobjs, ruleData.ip_version);
+		// The compilation process for IPv6 is the same that the one for IPv4.
+		if (this._policyType >= PolicyTypesMap.get('IPv6:INPUT')) {
+			this._policyType -= 60;
+			this._ruleData.type -= 60;
+			this._ruleData.ip_version = 6;
+		} else this._ruleData.ip_version = 4;	
+
+		if (this._policyType === PolicyTypesMap.get('IPv4:SNAT')) { // SNAT
+			this._table = "-t nat";
+			this._cs += this._table + ` -A POSTROUTING ${this._comment}`;
+			this._action = PolicyCompilerTools.natAction(this._policyType, this._ruleData.positions[4].ipobjs, this._ruleData.positions[5].ipobjs, this._ruleData.ip_version);
 		}
-		else if (policy_type === PolicyTypesMap.get('IPv4:DNAT')) { // DNAT
-			table = "-t nat";
-			cs += table + ` -A PREROUTING ${comment}`;
-			action = PolicyCompilerTools.natAction(policy_type, ruleData.positions[4].ipobjs, ruleData.positions[5].ipobjs, ruleData.ip_version);
+		else if (this._policyType === PolicyTypesMap.get('IPv4:DNAT')) { // DNAT
+			this._table = "-t nat";
+			this._cs += this._table + ` -A PREROUTING ${this._comment}`;
+			this._action = PolicyCompilerTools.natAction(this._policyType, this._ruleData.positions[4].ipobjs, this._ruleData.positions[5].ipobjs, this._ruleData.ip_version);
 		}
 		else { // Filter policy
-			if (!(ruleData.positions)
-				|| !(ruleData.positions[0].ipobjs) || !(ruleData.positions[1].ipobjs) || !(ruleData.positions[2].ipobjs)
-				|| (policy_type === PolicyTypesMap.get('IPv4:FORWARD') && !(ruleData.positions[3].ipobjs))) {
+			if (!(this._ruleData.positions)
+				|| !(this._ruleData.positions[0].ipobjs) || !(this._ruleData.positions[1].ipobjs) || !(this._ruleData.positions[2].ipobjs)
+				|| (this._policyType === PolicyTypesMap.get('IPv4:FORWARD') && !(this._ruleData.positions[3].ipobjs))) {
 				throw(new Error("Bad rule data"));
 			}
 
-			cs += `-A ${POLICY_TYPE[policy_type]} ${comment}`;
+			this._cs += `-A ${POLICY_TYPE[this._policyType]} ${this._comment}`;
 
-			if (ruleData.special === 1) // Special rule for ESTABLISHED,RELATED packages.
-				action = "ACCEPT";
-			else if (ruleData.special === 2) // Special rule for catch-all.
-				action = ACTION[ruleData.action];
+			if (this._ruleData.special === 1) // Special rule for ESTABLISHED,RELATED packages.
+				this._action = "ACCEPT";
+			else if (this._ruleData.special === 2) // Special rule for catch-all.
+				this._action = ACTION[this._ruleData.action];
 			else {
-				action = ACTION[ruleData.action];
-				if (action === "ACCEPT") {
-					if (ruleData.options & 0x0001) // Stateful rule.
-						stateful = "-m conntrack --ctstate  NEW ";
-					else if ((ruleData.firewall_options & 0x0001) && !(ruleData.options & 0x0002)) // Statefull firewall and this rule is not stateless.
-						stateful = "-m conntrack --ctstate  NEW ";
+				this._action = ACTION[this._ruleData.action];
+				if (this._action === "ACCEPT") {
+					if (this._ruleData.options & 0x0001) // Stateful rule.
+						this._stateful = "-m conntrack --ctstate  NEW ";
+					else if ((this._ruleData.firewall_options & 0x0001) && !(this._ruleData.options & 0x0002)) // Statefull firewall and this rule is not stateless.
+						this._stateful = "-m conntrack --ctstate  NEW ";
 					}
-				else if (action === "ACCOUNTING") {
-					acc_chain = "FWCRULE" + ruleData.id + ".ACC";
-					action = acc_chain;
+				else if (this._action === "ACCOUNTING") {
+					this._accChain = "FWCRULE" + this._ruleData.id + ".ACC";
+					this._action = this._accChain;
 				}
 			}
 
 			// If log all rules option is enabled or log option for this rule is enabled.
-			if ((ruleData.firewall_options & 0x0010) || (ruleData.options & 0x0004)) {
-				log_chain = "FWCRULE" + ruleData.id + ".LOG";
-				if (!acc_chain) {
-					after_log_action = action;
-					action = log_chain;
+			if ((this._ruleData.firewall_options & 0x0010) || (this._ruleData.options & 0x0004)) {
+				this._logChain = "FWCRULE" + this._ruleData.id + ".LOG";
+				if (!this._accChain) {
+					this._afterLogAction = this._action;
+					this._action = this._logChain;
 				} else
-					after_log_action = "RETURN";
+					this._afterLogAction = "RETURN";
 			}
 		}
 
-		if (parseInt(ruleData.special) === 1) // Special rule for ESTABLISHED,RELATED packages.
-			//cs_trail = `-m state --state ESTABLISHED,RELATED -j ${action}\n`;
-			cs_trail = `-m conntrack --ctstate ESTABLISHED,RELATED -j ${action}\n`;
+		if (parseInt(this._ruleData.special) === 1) // Special rule for ESTABLISHED,RELATED packages.
+			this._csEnd = `-m conntrack --ctstate ESTABLISHED,RELATED -j ${this._action}\n`;
 		else
-			cs_trail = `${stateful} -j ${action}\n`;
+			this._csEnd = `${this._stateful} -j ${this._action}\n`;
+	}
 
-		const position_items = PolicyCompilerTools.preCompile(ruleData);
 
-		// Generate the compilation string.
-		cs = PolicyCompilerTools.generateCompilationString(ruleData.id, position_items, cs, cs_trail, table, stateful, action, cmd);
-
-		// If we are using UDP or TCP ports in translated service position for NAT rules, 
-		// make sure that we have only one -p flag per line into the compilation string.
-		if ((policy_type === PolicyTypesMap.get('IPv4:SNAT') || policy_type === PolicyTypesMap.get('IPv4:DNAT')) && ruleData.positions[5].ipobjs.length === 1) { // SNAT or DNAT
-			const lines = cs.split('\n');
-			cs = '';
+	private natCheck(): void {
+		if ((this._policyType === PolicyTypesMap.get('IPv4:SNAT') || this._policyType === PolicyTypesMap.get('IPv4:DNAT')) && this._ruleData.positions[5].ipobjs.length === 1) { // SNAT or DNAT
+			const lines = this._cs.split('\n');
+			this._cs = '';
 			for(let i=0; i<lines.length; i++) {
 				if (lines[i] === '') continue; // Ignore empty lines.
 				if ((lines[i].match(/ -p tcp /g) || []).length > 1)
-					cs += `${policy_type===PolicyTypesMap.get('IPv4:SNAT') ? lines[i].replace(/ -j SNAT -p tcp /, ' -j SNAT ') : lines[i].replace(/ -j DNAT -p tcp /, ' -j DNAT ')}\n`;
+					this._cs += `${this._policyType===PolicyTypesMap.get('IPv4:SNAT') ? lines[i].replace(/ -j SNAT -p tcp /, ' -j SNAT ') : lines[i].replace(/ -j DNAT -p tcp /, ' -j DNAT ')}\n`;
 				else if ((lines[i].match(/ -p udp /g) || []).length > 1)
-					cs += `${policy_type===PolicyTypesMap.get('IPv4:SNAT') ? lines[i].replace(/ -j SNAT -p udp /, ' -j SNAT ') : lines[i].replace(/ -j DNAT -p udp /, ' -j DNAT ')}\n`;
-				else cs += `${lines[i]}\n`;
+					this._cs += `${this._policyType===PolicyTypesMap.get('IPv4:SNAT') ? lines[i].replace(/ -j SNAT -p udp /, ' -j SNAT ') : lines[i].replace(/ -j DNAT -p udp /, ' -j DNAT ')}\n`;
+				else this._cs += `${lines[i]}\n`;
 			}
 		}
+	}
 
-		// Accounting ,logging and marking is not allowed with SNAT and DNAT chains.
-		if (policy_type <= PolicyTypesMap.get('IPv4:FORWARD')) {
-			if (acc_chain) {
-				cs = `${cmd} -N ${acc_chain}\n` +
-					`${cmd} -A ${acc_chain} -j ${(log_chain) ? log_chain : "RETURN"}\n` +
-					`${cs}`;
+
+	private addAccounting(): void {
+		// Accounting, logging and marking is not allowed with SNAT and DNAT chains.
+		if (this._accChain && this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')) {
+			this._cs = `${this._cmd} -N ${this._accChain}\n` +
+				`${this._cmd} -A ${this._accChain} -j ${(this._logChain) ? this._logChain : "RETURN"}\n` +
+				`${this._cs}`;
+		}
+	}
+
+
+	private addLog(): void {
+		// Accounting, logging and marking is not allowed with SNAT and DNAT chains.
+		if (this._logChain && this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')) {
+			this._cs = `${this._cmd} -N ${this._logChain}\n` +
+				`${this._cmd} -A ${this._logChain} -m limit --limit 60/minute -j LOG --log-level info --log-prefix "RULE ID ${this._ruleData.id} [${this._afterLogAction}] "\n` +
+				`${this._cmd} -A ${this._logChain} -j ${this._afterLogAction}\n` +
+				`${this._cs}`;
+		}
+	}
+
+
+	private addMark(positionItems: string[][]): void {
+		// Accounting, logging and marking is not allowed with SNAT and DNAT chains.
+		if (parseInt(this._ruleData.mark_code) !== 0 && this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')) {
+			this._table = '-t mangle';
+
+			this._action = `MARK --set-mark ${this._ruleData.mark_code}`;
+			this._csEnd = `${this._stateful} -j ${this._action}\n`
+			this._cs += PolicyCompilerTools.generateCompilationString(`${this._ruleData.id}-M1`, positionItems, `${this._cmd} -t mangle -A ${MARK_CHAIN[this._policyType]} `, this._csEnd, this._table, this._stateful, this._action, this._cmd);
+			// Add the mark to the PREROUTING chain of the mangle table.
+			if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
+				let str:string = PolicyCompilerTools.generateCompilationString(`${this._ruleData.id}-M1`, positionItems, `${this._cmd} -t mangle -A PREROUTING `, this._csEnd, this._table, this._stateful, this._action, this._cmd);
+				str = str.replace(/-o \w+ /g, "")
+				this._cs += str;
 			}
 
-			if (log_chain) {
-				cs = `${cmd} -N ${log_chain}\n` +
-					`${cmd} -A ${log_chain} -m limit --limit 60/minute -j LOG --log-level info --log-prefix "RULE ID ${ruleData.id} [${after_log_action}] "\n` +
-					`${cmd} -A ${log_chain} -j ${after_log_action}\n` +
-					`${cs}`;
-			}
-
-			if (parseInt(ruleData.mark_code) !== 0) {
-				table = '-t mangle';
-
-				action = `MARK --set-mark ${ruleData.mark_code}`;
-				cs_trail = `${stateful} -j ${action}\n`
-				cs += PolicyCompilerTools.generateCompilationString(`${ruleData.id}-M1`, position_items, `${cmd} -t mangle -A ${MARK_CHAIN[policy_type]} `, cs_trail, table, stateful, action, cmd);
-				// Add the mark to the PREROUTING chain of the mangle table.
-				if (policy_type === PolicyTypesMap.get('IPv4:FORWARD')) {
-					let str:string = PolicyCompilerTools.generateCompilationString(`${ruleData.id}-M1`, position_items, `${cmd} -t mangle -A PREROUTING `, cs_trail, table, stateful, action, cmd);
-					str = str.replace(/-o \w+ /g, "")
-					cs += str;
-				}
-
-				action = `CONNMARK --save-mark`;
-				cs_trail = `${stateful} -j ${action}\n`
-				cs += PolicyCompilerTools.generateCompilationString(`${ruleData.id}-M2`, position_items, `${cmd} -t mangle -A ${MARK_CHAIN[policy_type]} `, cs_trail, table, stateful, action, cmd);
-				// Add the mark to the PREROUTING chain of the mangle table.
-				if (policy_type === PolicyTypesMap.get('IPv4:FORWARD')) {
-					let str:string = PolicyCompilerTools.generateCompilationString(`${ruleData.id}-M2`, position_items, `${cmd} -t mangle -A PREROUTING `, cs_trail, table, stateful, action, cmd);
-					str = str.replace(/-o \w+ /g, "")
-					cs += str;
-				}
+			this._action = `CONNMARK --save-mark`;
+			this._csEnd = `${this._stateful} -j ${this._action}\n`
+			this._cs += PolicyCompilerTools.generateCompilationString(`${this._ruleData.id}-M2`, positionItems, `${this._cmd} -t mangle -A ${MARK_CHAIN[this._policyType]} `, this._csEnd, this._table, this._stateful, this._action, this._cmd);
+			// Add the mark to the PREROUTING chain of the mangle table.
+			if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
+				let str:string = PolicyCompilerTools.generateCompilationString(`${this._ruleData.id}-M2`, positionItems, `${this._cmd} -t mangle -A PREROUTING `, this._csEnd, this._table, this._stateful, this._action, this._cmd);
+				str = str.replace(/-o \w+ /g, "")
+				this._cs += str;
 			}
 		}
+	}
+
+
+  public ruleCompile(): string {
+		// Prepare for compilation.
+		this.beforeCompilation();
+
+		// Pre-compile items of each rule position.
+		const positionItems = PolicyCompilerTools.preCompile(this._ruleData);
+
+		// Generate the compilation string.
+		this._cs = PolicyCompilerTools.generateCompilationString(this._ruleData.id, positionItems, this._cs, this._csEnd, this._table, this._stateful, this._action, this._cmd);
+
+		// If we are using UDP or TCP ports in translated service position for NAT rules, 
+		// make sure that we have only one -p flag per line into the compilation string.
+		this.natCheck();
+
+		this.addAccounting();
+		this.addLog();
+		this.addMark(positionItems);
 		
-		return PolicyCompilerTools.afterCompilation(ruleData,cs);
+		return PolicyCompilerTools.afterCompilation(this._ruleData,this._cs);
 	}
 }

@@ -25,17 +25,12 @@ import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import sinon, { SinonSpy } from "sinon";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
 import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
-import { IPTablesCompiler } from '../../../../src/compiler/iptables/iptables-compiler';
 import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
 describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount control'), () => {
-  const sandbox = sinon.createSandbox();
-  let spy: SinonSpy;
-
   let fwcloud: number;
   let dbCon: any;
   let rule: number;
@@ -72,12 +67,7 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
   });
   
   beforeEach(async () => {
-    spy = sandbox.spy(IPTablesCompiler, "ruleCompile");
     rule = await PolicyRule.insertPolicy_r(ruleData);
-  });
-
-  afterEach(() => {
-    sandbox.restore();
   });
 
 
@@ -86,7 +76,6 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
       await populateRule('TCP',15);
       const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
       
-      expect(spy.calledOnce).to.be.true;
       expect(result).to.eql([{
         id: rule,
         active: ruleData.active,
@@ -99,7 +88,6 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
       await populateRule('TCP',16);
       const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
       
-      expect(spy.calledOnce).to.be.true;
       expect(result).to.eql([{
         id: rule,
         active: ruleData.active,
@@ -120,7 +108,6 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
       });
       const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
       
-      expect(spy.calledOnce).to.be.true;
       expect(result).to.eql([{
         id: rule,
         active: ruleData.active,
@@ -138,7 +125,6 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
       await populateRule('UDP',15);
       const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
       
-      expect(spy.calledOnce).to.be.true;
       expect(result).to.eql([{
         id: rule,
         active: ruleData.active,
@@ -151,7 +137,6 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
       await populateRule('UDP',16);
       const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
       
-      expect(spy.calledOnce).to.be.true;
       expect(result).to.eql([{
         id: rule,
         active: ruleData.active,
@@ -172,7 +157,6 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
       });
       const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
       
-      expect(spy.calledOnce).to.be.true;
       expect(result).to.eql([{
         id: rule,
         active: ruleData.active,
