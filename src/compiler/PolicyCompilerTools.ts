@@ -61,7 +61,7 @@ export abstract class PolicyCompilerTools {
 	protected _comment: string;
   protected _compiledPositionItems: any;
 
-  protected validPolicyType(): boolean {
+  private validPolicyType(): boolean {
     return (this._policyType === PolicyTypesMap.get('IPv4:INPUT') || 
             this._policyType === PolicyTypesMap.get('IPv4:OUTPUT') ||
             this._policyType === PolicyTypesMap.get('IPv4:FORWARD') ||
@@ -113,6 +113,71 @@ export abstract class PolicyCompilerTools {
   }
 
 
+	protected beforeCompilation(): void {
+		if (!this.validPolicyType()) throw(new Error('Invalid policy type'));
+
+		// The compilation process for IPv6 is the same that the one for IPv4.
+		if (this._policyType >= PolicyTypesMap.get('IPv6:INPUT')) {
+			this._policyType -= 60;
+			this._ruleData.type -= 60;
+			this._ruleData.ip_version = 6;
+		} else this._ruleData.ip_version = 4;	
+
+		if (this._policyType === PolicyTypesMap.get('IPv4:SNAT')) { // SNAT
+			this._table = "-t nat";
+			this._cs += this._table + ` -A POSTROUTING ${this._comment}`;
+			this._action = this.natAction();
+		}
+		else if (this._policyType === PolicyTypesMap.get('IPv4:DNAT')) { // DNAT
+			this._table = "-t nat";
+			this._cs += this._table + ` -A PREROUTING ${this._comment}`;
+			this._action = this.natAction();
+		}
+		else { // Filter policy
+			if (!(this._ruleData.positions)
+				|| !(this._ruleData.positions[0].ipobjs) || !(this._ruleData.positions[1].ipobjs) || !(this._ruleData.positions[2].ipobjs)
+				|| (this._policyType === PolicyTypesMap.get('IPv4:FORWARD') && !(this._ruleData.positions[3].ipobjs))) {
+				throw(new Error("Bad rule data"));
+			}
+
+			this._cs += `-A ${POLICY_TYPE[this._policyType]} ${this._comment}`;
+
+			if (this._ruleData.special === 1) // Special rule for ESTABLISHED,RELATED packages.
+				this._action = "ACCEPT";
+			else if (this._ruleData.special === 2) // Special rule for catch-all.
+				this._action = ACTION[this._ruleData.action];
+			else {
+				this._action = ACTION[this._ruleData.action];
+				if (this._action === "ACCEPT") {
+					if (this._ruleData.options & 0x0001) // Stateful rule.
+						this._stateful = "-m conntrack --ctstate  NEW ";
+					else if ((this._ruleData.firewall_options & 0x0001) && !(this._ruleData.options & 0x0002)) // Statefull firewall and this rule is not stateless.
+						this._stateful = "-m conntrack --ctstate  NEW ";
+					}
+				else if (this._action === "ACCOUNTING") {
+					this._accChain = "FWCRULE" + this._ruleData.id + ".ACC";
+					this._action = this._accChain;
+				}
+			}
+
+			// If log all rules option is enabled or log option for this rule is enabled.
+			if ((this._ruleData.firewall_options & 0x0010) || (this._ruleData.options & 0x0004)) {
+				this._logChain = "FWCRULE" + this._ruleData.id + ".LOG";
+				if (!this._accChain) {
+					this._afterLogAction = this._action;
+					this._action = this._logChain;
+				} else
+					this._afterLogAction = "RETURN";
+			}
+		}
+
+		if (parseInt(this._ruleData.special) === 1) // Special rule for ESTABLISHED,RELATED packages.
+			this._csEnd = `-m conntrack --ctstate ESTABLISHED,RELATED -j ${this._action}\n`;
+		else
+			this._csEnd = `${this._stateful} -j ${this._action}\n`;
+	}
+
+
   protected afterCompilation(): string {
     // Replace two consecutive spaces by only one.
     this._cs = this._cs.replace(/  +/g, ' ');
@@ -140,7 +205,7 @@ export abstract class PolicyCompilerTools {
       --ports [!] port[,port[,port:port...]]
       Match if either the source or destination ports are equal to one of the given ports.
   */
-  protected portsLimitControl(proto: 'tcp' | 'udp', portsStr: string, items) {
+  private portsLimitControl(proto: 'tcp' | 'udp', portsStr: string, items) {
     const portsList = portsStr.split(',');
 
     //tcpPorts = tcpPorts.indexOf(",") > -1 ? `-p ${proto} -m multiport --dports ${tcpPorts}` : ;
@@ -167,7 +232,7 @@ export abstract class PolicyCompilerTools {
   }
           
 
-  protected preCompileSrcDst(dir, sd, negate, rule_ip_version) {
+  private preCompileSrcDst(dir, sd, negate, rule_ip_version) {
     var items = {
       'negate': negate,
       'str': []
@@ -190,7 +255,7 @@ export abstract class PolicyCompilerTools {
   }
 
 
-  protected preCompileInterface(dir, ifs, negate) {
+  private preCompileInterface(dir, ifs, negate) {
     var items = {
       'negate': negate,
       'str': []
@@ -212,7 +277,7 @@ export abstract class PolicyCompilerTools {
    * @param negate 
    * @param rule_ip_version 
    */
-  protected preCompileSvc(sep, svc, negate, rule_ip_version) {
+  private preCompileSvc(sep, svc, negate, rule_ip_version) {
     var items = {
       'negate': negate,
       'str': []
@@ -334,7 +399,7 @@ export abstract class PolicyCompilerTools {
   }
 
 
-  protected natAction(): string {
+  private natAction(): string {
     if (this._ruleData.positions[4].ipobjs.length > 1 || this._ruleData.positions[5].ipobjs.length > 1)
       throw(fwcError.other('Translated fields must contain a maximum of one item'));
 
@@ -365,14 +430,14 @@ export abstract class PolicyCompilerTools {
     return action;
   }
 
-  
+
   /**
    * This function will return an array of arrays of strings. 
    * Each array will contain the pre-compiled strings for the items of each rule position.
    * 
    * @param this._ruleData 
    */
-   protected preCompile(): void {
+  protected preCompile(): void {
     this._compiledPositionItems = [];
     let items, src_position, dst_position, svc_position, dir, objs, negated;
     let i, j, p;
