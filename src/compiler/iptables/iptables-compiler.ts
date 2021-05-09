@@ -39,7 +39,7 @@ export class IPTablesCompiler extends PolicyCompilerTools {
 		this._stateful = ''; 
 		this._table = ''; 
 		this._action = '';
-		this._comment = PolicyCompilerTools.ruleComment(this._ruleData);
+		this._comment = this.ruleComment();
 	}
 
 
@@ -56,12 +56,12 @@ export class IPTablesCompiler extends PolicyCompilerTools {
 		if (this._policyType === PolicyTypesMap.get('IPv4:SNAT')) { // SNAT
 			this._table = "-t nat";
 			this._cs += this._table + ` -A POSTROUTING ${this._comment}`;
-			this._action = PolicyCompilerTools.natAction(this._policyType, this._ruleData.positions[4].ipobjs, this._ruleData.positions[5].ipobjs, this._ruleData.ip_version);
+			this._action = this.natAction();
 		}
 		else if (this._policyType === PolicyTypesMap.get('IPv4:DNAT')) { // DNAT
 			this._table = "-t nat";
 			this._cs += this._table + ` -A PREROUTING ${this._comment}`;
-			this._action = PolicyCompilerTools.natAction(this._policyType, this._ruleData.positions[4].ipobjs, this._ruleData.positions[5].ipobjs, this._ruleData.ip_version);
+			this._action = this.natAction();
 		}
 		else { // Filter policy
 			if (!(this._ruleData.positions)
@@ -124,64 +124,15 @@ export class IPTablesCompiler extends PolicyCompilerTools {
 	}
 
 
-	private addAccounting(): void {
-		// Accounting, logging and marking is not allowed with SNAT and DNAT chains.
-		if (this._accChain && this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')) {
-			this._cs = `${this._cmd} -N ${this._accChain}\n` +
-				`${this._cmd} -A ${this._accChain} -j ${(this._logChain) ? this._logChain : "RETURN"}\n` +
-				`${this._cs}`;
-		}
-	}
-
-
-	private addLog(): void {
-		// Accounting, logging and marking is not allowed with SNAT and DNAT chains.
-		if (this._logChain && this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')) {
-			this._cs = `${this._cmd} -N ${this._logChain}\n` +
-				`${this._cmd} -A ${this._logChain} -m limit --limit 60/minute -j LOG --log-level info --log-prefix "RULE ID ${this._ruleData.id} [${this._afterLogAction}] "\n` +
-				`${this._cmd} -A ${this._logChain} -j ${this._afterLogAction}\n` +
-				`${this._cs}`;
-		}
-	}
-
-
-	private addMark(positionItems: string[][]): void {
-		// Accounting, logging and marking is not allowed with SNAT and DNAT chains.
-		if (parseInt(this._ruleData.mark_code) !== 0 && this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')) {
-			this._table = '-t mangle';
-
-			this._action = `MARK --set-mark ${this._ruleData.mark_code}`;
-			this._csEnd = `${this._stateful} -j ${this._action}\n`
-			this._cs += PolicyCompilerTools.generateCompilationString(`${this._ruleData.id}-M1`, positionItems, `${this._cmd} -t mangle -A ${MARK_CHAIN[this._policyType]} `, this._csEnd, this._table, this._stateful, this._action, this._cmd);
-			// Add the mark to the PREROUTING chain of the mangle table.
-			if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
-				let str:string = PolicyCompilerTools.generateCompilationString(`${this._ruleData.id}-M1`, positionItems, `${this._cmd} -t mangle -A PREROUTING `, this._csEnd, this._table, this._stateful, this._action, this._cmd);
-				str = str.replace(/-o \w+ /g, "")
-				this._cs += str;
-			}
-
-			this._action = `CONNMARK --save-mark`;
-			this._csEnd = `${this._stateful} -j ${this._action}\n`
-			this._cs += PolicyCompilerTools.generateCompilationString(`${this._ruleData.id}-M2`, positionItems, `${this._cmd} -t mangle -A ${MARK_CHAIN[this._policyType]} `, this._csEnd, this._table, this._stateful, this._action, this._cmd);
-			// Add the mark to the PREROUTING chain of the mangle table.
-			if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
-				let str:string = PolicyCompilerTools.generateCompilationString(`${this._ruleData.id}-M2`, positionItems, `${this._cmd} -t mangle -A PREROUTING `, this._csEnd, this._table, this._stateful, this._action, this._cmd);
-				str = str.replace(/-o \w+ /g, "")
-				this._cs += str;
-			}
-		}
-	}
-
-
   public ruleCompile(): string {
 		// Prepare for compilation.
 		this.beforeCompilation();
 
 		// Pre-compile items of each rule position.
-		const positionItems = PolicyCompilerTools.preCompile(this._ruleData);
+		this.preCompile();
 
 		// Generate the compilation string.
-		this._cs = PolicyCompilerTools.generateCompilationString(this._ruleData.id, positionItems, this._cs, this._csEnd, this._table, this._stateful, this._action, this._cmd);
+		this._cs = this.generateCompilationString(this._ruleData.id, this._cs);
 
 		// If we are using UDP or TCP ports in translated service position for NAT rules, 
 		// make sure that we have only one -p flag per line into the compilation string.
@@ -189,8 +140,8 @@ export class IPTablesCompiler extends PolicyCompilerTools {
 
 		this.addAccounting();
 		this.addLog();
-		this.addMark(positionItems);
+		this.addMark();
 		
-		return PolicyCompilerTools.afterCompilation(this._ruleData,this._cs);
+		return this.afterCompilation();
 	}
 }
