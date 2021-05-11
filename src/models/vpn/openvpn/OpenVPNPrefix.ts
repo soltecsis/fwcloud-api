@@ -27,6 +27,8 @@ import { Tree } from '../../../models/tree/Tree';
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import { PolicyRuleToOpenVPNPrefix } from "../../policy/PolicyRuleToOpenVPNPrefix";
 import { Firewall } from "../../firewall/Firewall";
+import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
+import { Route } from "../../routing/route/route.model";
 const fwcError = require('../../../utils/error_table');
 
 const tableName: string = 'openvpn_prefix';
@@ -63,6 +65,12 @@ export class OpenVPNPrefix extends Model {
 
     @OneToMany(type => PolicyRuleToOpenVPNPrefix, policyRuleToOpenVPNPrefix => policyRuleToOpenVPNPrefix.openVPNPrefix)
     policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
+
+    @ManyToMany(type => RoutingRule, routingRule => routingRule.openVPNPrefixes)
+    routingRules: RoutingRule[]
+
+    @ManyToMany(type => Route, route => route.openVPNPrefixes)
+    routes: Route[];
 
     public getTableName(): string {
         return tableName;

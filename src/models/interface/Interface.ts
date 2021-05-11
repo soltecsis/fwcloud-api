@@ -27,14 +27,11 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
-import { getRepository, Column, PrimaryGeneratedColumn, Entity, Repository, ManyToOne, JoinColumn, OneToMany, JoinTable } from "typeorm";
+import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Firewall } from "../firewall/Firewall";
-import { app, logger } from "../../fonaments/abstract-application";
-import { PolicyRule } from "../policy/PolicyRule";
-import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface.model";
-import { string } from "joi";
-import { FwCloudError } from "../../fonaments/exceptions/error";
+import { logger } from "../../fonaments/abstract-application";
 import { Route } from "../routing/route/route.model";
+import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface/routing-rule-to-interface.model";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -93,11 +90,11 @@ export class Interface extends Model {
 	@OneToMany(type => PolicyRuleToInterface, policyRuleToInterface => policyRuleToInterface.policyRuleInterface)
 	policyRuleToInterfaces: Array<PolicyRuleToInterface>;
 
-	@OneToMany(type => RoutingRuleToInterface, routingRuleToInterface => routingRuleToInterface.routingRuleInterface)
-	routingRuleToInterfaces: Array<RoutingRuleToInterface>;
-
 	@OneToMany(type => Route, model => model.routingTable)
 	routes: Route[];
+
+	@OneToMany(() => RoutingRuleToInterface, routingRuleToInterface => routingRuleToInterface.interface)
+	routingRuleToInterfaces: RoutingRuleToInterface[]
 
 	/**
 	* Pending foreign keys.

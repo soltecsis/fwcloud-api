@@ -34,8 +34,6 @@ import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { Tree } from '../tree/Tree';
 import { FwCloud } from "../fwcloud/FwCloud";
 import { Cluster } from "./Cluster";
-import { RoutingRule } from "../routing/routing-rule.model";
-import { RoutingGroup } from "../routing/routing-group.model";
 import { DatabaseService } from "../../database/database.service";
 import { app } from "../../fonaments/abstract-application";
 import * as path from "path";
@@ -46,6 +44,7 @@ const fwcError = require('../../utils/error_table');
 
 import sshTools from '../../utils/ssh';
 import { RoutingTable } from "../routing/routing-table/routing-table.model";
+import { RoutingGroup } from "../routing/routing-group/routing-group.model";
 
 const tableName: string = 'firewall';
 
@@ -133,15 +132,11 @@ export class Firewall extends Model {
 	@OneToMany(type => PolicyRule, policyRule => policyRule.firewall)
 	policyRules: Array<PolicyRule>;
 
-	@OneToMany(type => RoutingGroup, routingGroup => routingGroup.firewall)
-	routingGroup: Array<RoutingGroup>;
-
-	@OneToMany(type => RoutingRule, routingRule => routingRule.firewall)
-	routingRules: Array<RoutingRule>;
-
 	@OneToMany(type => RoutingTable, routingTable => routingTable.firewall)
 	routingTables: RoutingTable[];
 
+	@OneToMany(type => RoutingGroup, routingGroup => routingGroup.firewall)
+	routingGroups: RoutingGroup[];
 	
 	public getTableName(): string {
 		return tableName;

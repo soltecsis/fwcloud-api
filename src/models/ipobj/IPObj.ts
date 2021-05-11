@@ -32,8 +32,8 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { logger } from '../../fonaments/abstract-application';
 import { IPObjType } from './IPObjType';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
-import { RoutingRuleToIPObj } from '../routing/routing-rule-to-ipobj.model';
 import { Route } from '../routing/route/route.model';
+import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
 const ip = require('ip');
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
@@ -158,11 +158,14 @@ export class IPObj extends Model {
     policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
     */
 
-    @OneToMany(type => RoutingRuleToIPObj, routingRuleToIPObj => routingRuleToIPObj.ipObj)
-    routingRuleToIPObjs: Array<RoutingRuleToIPObj>;
+    @OneToMany(type => Route, model => model.gateway)
+	routeGateways: Route[];
 
-    @OneToMany(type => Route, model => model.routingTable)
-	routes: Route[];
+    @ManyToMany(type => RoutingRule, routingRule => routingRule.ipObjs)
+    routingRules: RoutingRule[]
+
+    @ManyToMany(type => Route, route => route.ipObjs)
+    routes: Route[]
 
     public getTableName(): string {
         return tableName;

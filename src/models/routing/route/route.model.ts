@@ -1,8 +1,12 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Interface } from "../../interface/Interface";
 import { IPObj } from "../../ipobj/IPObj";
+import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import Model from "../../Model";
+import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
+import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { RoutingTable } from "../routing-table/routing-table.model";
+import { RoutingGroup } from "../routing-group/routing-group.model";
 
 const tableName: string = 'route';
 
@@ -17,7 +21,14 @@ export class Route extends Model {
         type: Number,
         name: 'group'
     })
-    groupId: number;
+    routingGroupId: number;
+
+    @ManyToOne(type => RoutingGroup, routingGrup => routingGrup.routes)
+    @JoinColumn({
+        name: 'group'
+    })
+    routingGroup: RoutingGroup;
+
 
     @Column({name: 'routing_table'})
     routingTableId: number;
@@ -32,13 +43,11 @@ export class Route extends Model {
     @Column({name: 'gateway'})
     gatewayId: number;
 
-    @ManyToOne(type => IPObj, model => model.routes)
+    @ManyToOne(type => IPObj, model => model.routeGateways)
     @JoinColumn({
         name: 'gateway'
     })
     gateway: IPObj;
-
-
 
     @Column({name: 'interface'})
     interfaceId: number;
@@ -56,6 +65,38 @@ export class Route extends Model {
 
     @Column()
     comment: string;
+
+    @ManyToMany(type => IPObj, ipobj => ipobj.routes)
+	@JoinTable({
+		name: 'route__ipobj',
+		joinColumn: { name: 'route'},
+		inverseJoinColumn: { name: 'ipobj'}
+	})
+    ipObjs: IPObj[]
+
+    @ManyToMany(type => IPObjGroup, group => group.routes)
+	@JoinTable({
+		name: 'route__ipobj_g',
+		joinColumn: { name: 'route'},
+		inverseJoinColumn: { name: 'ipobj_g'}
+	})
+    ipObjGroups: IPObjGroup[]
+
+    @ManyToMany(type => OpenVPN, openVPN => openVPN.routes)
+	@JoinTable({
+		name: 'route__openvpn',
+		joinColumn: { name: 'route'},
+		inverseJoinColumn: { name: 'openvpn'}
+	})
+    openVPNs: OpenVPN[];
+
+    @ManyToMany(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.routes)
+	@JoinTable({
+		name: 'route__openvpn_prefix',
+		joinColumn: { name: 'route'},
+		inverseJoinColumn: { name: 'openvpn_prefix'}
+	})
+    openVPNPrefixes: OpenVPNPrefix[]
 
     public getTableName(): string {
         return tableName;

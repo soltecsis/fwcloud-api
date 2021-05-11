@@ -28,9 +28,9 @@ import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { Entity, Column, getRepository, PrimaryGeneratedColumn, Repository, OneToMany, ManyToMany, ManyToOne } from "typeorm";
-import { FwCloud } from "../fwcloud/FwCloud";
-import { app, logger } from "../../fonaments/abstract-application";
-import { RoutingRuleToIPObj } from "../routing/routing-rule-to-ipobj.model";
+import { logger } from "../../fonaments/abstract-application";
+import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
+import { Route } from "../routing/route/route.model";
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
@@ -72,8 +72,12 @@ export class IPObjGroup extends Model {
     @ManyToMany(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.ipObjGroups)
     openVPNPrefixes: Array<OpenVPNPrefix>;
 
-    @OneToMany(type => RoutingRuleToIPObj, routingRuleToIPObj => routingRuleToIPObj.ipObjGroup)
-    routingRuleToIPObjs: Array<RoutingRuleToIPObj>;
+    @ManyToMany(type => RoutingRule, routingRule => routingRule.ipObjGroups)
+    routingRules: RoutingRule[];
+
+    @ManyToMany(type => Route, route => route.ipObjGroups)
+    routes: Route[]
+
 
     /**
     * Pending foreign keys.
