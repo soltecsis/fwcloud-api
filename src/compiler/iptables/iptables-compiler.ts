@@ -63,8 +63,8 @@ export class IPTablesCompiler extends PolicyCompilerTools {
 		// Prepare for compilation.
 		this.beforeCompilation();
 
-		// Pre-compile items of each rule position.
-		this.preCompile();
+		// Compile items of each rule position.
+		this.compileRulePositions();
 
 		// Generate the compilation string.
 		this._cs = this.generateCompilationString(this._ruleData.id, this._cs);

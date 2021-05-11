@@ -21,8 +21,8 @@
 */
 
 import { PolicyTypesMap } from '../models/policy/PolicyType';
-var fwcError = require('../utils/error_table');
-var shellescape = require('shell-escape');
+let fwcError = require('../utils/error_table');
+let shellescape = require('shell-escape');
 
 export const RuleActionsMap = new Map<string, number>([
   ['ACCEPT',1],  ['DROP',2],  ['REJECT',3],  ['ACCOUNTING',4]
@@ -48,7 +48,7 @@ export type IPTablesRuleCompiled = {
 
 type CompiledPosition = {
   negate: boolean;
-  str: string[];
+  items: string[];
 }
 
 export abstract class PolicyCompilerTools {
@@ -105,12 +105,12 @@ export abstract class PolicyCompilerTools {
   }
 
 
-  public static isPositionNegated(negate, position) {
+  public static isPositionNegated(negate: string, position: number): boolean {
     if (!negate) return false;
 
-    let negate_position_list = negate.split(' ').map(val => { return parseInt(val) });
+    let negatedPositionsList = negate.split(' ').map(val => { return parseInt(val) });
     // If the position that we want negate is already in the list, don't add again to the list.
-    for (let pos of negate_position_list) {
+    for (let pos of negatedPositionsList) {
         if (pos === position) return true;
     }
 
@@ -210,12 +210,12 @@ export abstract class PolicyCompilerTools {
       --ports [!] port[,port[,port:port...]]
       Match if either the source or destination ports are equal to one of the given ports.
   */
-  private portsLimitControl(proto: 'tcp' | 'udp', portsStr: string, items) {
+  private portsLimitControl(proto: 'tcp' | 'udp', portsStr: string, cmpPos: CompiledPosition): void {
     const portsList = portsStr.split(',');
 
     //tcpPorts = tcpPorts.indexOf(",") > -1 ? `-p ${proto} -m multiport --dports ${tcpPorts}` : ;
     if (portsList.length === 1)
-      items.str.push(`-p ${proto} --dport ${portsStr}`);
+      cmpPos.items.push(`-p ${proto} --dport ${portsStr}`);
     else { // Up to 15 ports can be specified. A port range (port:port) counts as two ports.
       let n = 0;
       let currentPorts: string[] = [];
@@ -226,63 +226,54 @@ export abstract class PolicyCompilerTools {
         if (n <= 15) 
           currentPorts.push(port);
         else {
-          items.str.push(`-p ${proto} -m multiport --dports ${currentPorts.join(',')}`);
+          cmpPos.items.push(`-p ${proto} -m multiport --dports ${currentPorts.join(',')}`);
           currentPorts = [];
           currentPorts.push(port);
           n = port.indexOf(':') === -1 ? 1 : 2;
         }
       } 
-      items.str.push(`-p ${proto} -m multiport --dports ${currentPorts.join(',')}`);
+      cmpPos.items.push(`-p ${proto} -m multiport --dports ${currentPorts.join(',')}`);
     }
   }
           
 
-  private preCompileSrcDst(dir: '' | '-s ' | '-d ', sd: any, negate: boolean, ipv: 4 | 6) {
-    let items: CompiledPosition = { negate: negate, str: [] };
+  private compileSrcDst(dir: '' | '-s ' | '-d ', sd: any, negate: boolean, ipv: 4 | 6): void {
+    let cmpPos: CompiledPosition = { negate: negate, items: [] };
 
     for (let i = 0; i < sd.length; i++) {
       if (sd[i].type === 9) // DNS
-        items.str.push(`${dir}${sd[i].name}`);
+        cmpPos.items.push(`${dir}${sd[i].name}`);
       else if (ipv === sd[i].ip_version) { // Only add this type of IP objects if they have the same IP version than the compiled rule.
         if (sd[i].type === 5) // Address
-          items.str.push(`${dir}${sd[i].address}`);
+          cmpPos.items.push(`${dir}${sd[i].address}`);
         else if (sd[i].type === 7) // Network
-          items.str.push(`${dir}${sd[i].address}/${sd[i].netmask.replace('/', '')}`);
+          cmpPos.items.push(`${dir}${sd[i].address}/${sd[i].netmask.replace('/', '')}`);
         else if (sd[i].type === 6) // Address range
-          items.str.push((dir !== '' ? `-m iprange ${(dir === '-s ' ? '--src-range ' : '--dst-range ')}` : ' ') + `${sd[i].range_start}-${sd[i].range_end}`);
+          cmpPos.items.push((dir !== '' ? `-m iprange ${(dir === '-s ' ? '--src-range ' : '--dst-range ')}` : ' ') + `${sd[i].range_start}-${sd[i].range_end}`);
       }
     }
 
-    return ((items.str.length > 0) ? items : null);
+    if (cmpPos.items.length > 0) this._compiledPositions.push(cmpPos);
   }
 
 
-  private preCompileInterface(dir: '-o ' | '-i ', ifs: any, negate: boolean) {
-    let items: CompiledPosition = { negate: negate, str: [] };
+  private compileInterface(dir: '-o ' | '-i ', ifs: any, negate: boolean): void {
+    let cmpPos: CompiledPosition = { negate: negate, items: [] };
 
     for (var i = 0; i < ifs.length; i++)
-      items.str.push(`${dir}${ifs[i].name}`);
+      cmpPos.items.push(`${dir}${ifs[i].name}`);
 
-    return ((items.str.length > 0) ? items : null);
+    if (cmpPos.items.length > 0) this._compiledPositions.push(cmpPos);
   }
 
 
-  /**
-   * Group services position by protocol number (TCP, UDP, ICMP, etc.) 
-   * Returns an array of strings with the services grouped by protocol.
-   * 
-   * @param sep 
-   * @param svc 
-   * @param negate 
-   * @param ipv 
-   */
-  private preCompileSvc(sep: '-' | ':', svc: any, negate: boolean, ipv: 4 | 6) {
-    let items: CompiledPosition = { negate: negate, str: [] };
+  private compileSvc(sep: '-' | ':', svc: any, negate: boolean, ipv: 4 | 6): void {
+    let cmpPos: CompiledPosition = { negate: negate, items: [] };
     let tcpPorts = '';
     let udpPorts = '';
     let tmp = '';
 
-    for (var i = 0; i < svc.length; i++) {
+    for (let i = 0; i < svc.length; i++) {
       switch (svc[i].protocol) { // PROTOCOL NUMBER
         case 6: // TCP
           const mask = svc[i].tcp_flags_mask;
@@ -296,7 +287,7 @@ export abstract class PolicyCompilerTools {
               tmp = `-p tcp --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
               if (svc[i].destination_port_end !== 0)
                 tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
-              items.str.push(tmp);
+              cmpPos.items.push(tmp);
             }
           }
           else { // Add the TCP flags.
@@ -348,7 +339,7 @@ export abstract class PolicyCompilerTools {
               tmp = tmp.substring(0, tmp.length - 1);
             }
 
-            items.str.push(tmp);
+            cmpPos.items.push(tmp);
           }
           break;
 
@@ -361,7 +352,7 @@ export abstract class PolicyCompilerTools {
             tmp = `-p udp --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
             if (svc[i].destination_port_end !== 0)
               tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
-            items.str.push(tmp);
+            cmpPos.items.push(tmp);
           }
           break;
 
@@ -369,29 +360,29 @@ export abstract class PolicyCompilerTools {
           const shared = (ipv === 4) ? '-p icmp -m icmp --icmp-type' : '-p icmpv6 -m ipv6-icmp --icmpv6-type';
 
           if (svc[i].icmp_type === -1 && svc[i].icmp_code === -1) // Any ICMP
-            items.str.push(`${shared} any`);
+            cmpPos.items.push(`${shared} any`);
           else if (svc[i].icmp_type !== -1 && svc[i].icmp_code === -1)
-            items.str.push(`${shared} ${svc[i].icmp_type}`);
+            cmpPos.items.push(`${shared} ${svc[i].icmp_type}`);
           else if (svc[i].icmp_type !== -1 && svc[i].icmp_code !== -1)
-            items.str.push(`${shared} ${svc[i].icmp_type}/${svc[i].icmp_code}`);
+            cmpPos.items.push(`${shared} ${svc[i].icmp_type}/${svc[i].icmp_code}`);
           break;
 
         default: // Other IP protocols.
-          items.str.push(`-p ${svc[i].protocol}`);
+          cmpPos.items.push(`-p ${svc[i].protocol}`);
           break;
       }
     }
 
     if (tcpPorts) {
-      if (sep === ':') this.portsLimitControl('tcp',tcpPorts,items);
-      else items.str.push(tcpPorts);
+      if (sep === ':') this.portsLimitControl('tcp',tcpPorts,cmpPos);
+      else cmpPos.items.push(tcpPorts);
     }
     if (udpPorts) {
-      if (sep === ':') this.portsLimitControl('udp',udpPorts,items);
-      else items.str.push(udpPorts);
+      if (sep === ':') this.portsLimitControl('udp',udpPorts,cmpPos);
+      else cmpPos.items.push(udpPorts);
     }
 
-    return ((items.str.length > 0) ? items : null);
+    if (cmpPos.items.length > 0) this._compiledPositions.push(cmpPos);
   }
 
 
@@ -418,25 +409,26 @@ export abstract class PolicyCompilerTools {
 
     let action = (this._policyType === PolicyTypesMap.get('IPv4:SNAT')) ? `SNAT${protocol}--to-source ` : `DNAT${protocol}--to-destination `;
 
-    if (this._ruleData.positions[4].ipobjs.length === 1)
-      action += (this.preCompileSrcDst('', this._ruleData.positions[4].ipobjs, false, this._ruleData.ip_version)).str[0];
-    if (this._ruleData.positions[5].ipobjs.length === 1)
-      action += ":" + (this.preCompileSvc('-', this._ruleData.positions[5].ipobjs, false, this._ruleData.ip_version)).str[0];
+    this._compiledPositions = [];
+    if (this._ruleData.positions[4].ipobjs.length === 1) {
+      this.compileSrcDst('', this._ruleData.positions[4].ipobjs, false, this._ruleData.ip_version);
+      action += this._compiledPositions[this._compiledPositions.length-1].items[0];
+    }
+    if (this._ruleData.positions[5].ipobjs.length === 1) {
+      this.compileSvc('-', this._ruleData.positions[5].ipobjs, false, this._ruleData.ip_version);
+      action += `:${this._compiledPositions[this._compiledPositions.length-1].items[0]}`;
+    }
+    this._compiledPositions = [];
 
     return action;
   }
 
 
-  /**
-   * This function will return an array of arrays of strings. 
-   * Each array will contain the pre-compiled strings for the items of each rule position.
-   * 
-   * @param this._ruleData 
-   */
-  protected preCompile(): void {
+  protected compileRulePositions(): void {
     this._compiledPositions = [];
-    let items, src_position, dst_position, svc_position, dir, objs, negated;
-    let i, j, p;
+    let src_position: number, dst_position: number, svc_position: number, objs: any, negated: boolean;
+    let dir: '' | '-o ' | '-i ';
+    let i: number, j: number, p: number;
 
     if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) { src_position = 2; dst_position = 3; svc_position = 4; }
     else { src_position = 1; dst_position = 2; svc_position = 3; }
@@ -448,41 +440,36 @@ export abstract class PolicyCompilerTools {
     dir = (this._policyType === PolicyTypesMap.get('IPv4:OUTPUT') || this._policyType === PolicyTypesMap.get('IPv4:SNAT')) ? '-o ' : '-i ';
     objs = this._ruleData.positions[0].ipobjs;
     negated = PolicyCompilerTools.isPositionNegated(this._ruleData.negate, this._ruleData.positions[0].id);
-    if (items = this.preCompileInterface(dir, objs, negated))
-        this._compiledPositions.push(items);
+    this.compileInterface(dir, objs, negated);
 
     // INTERFACE OUT
     if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
-        objs = this._ruleData.positions[1].ipobjs;
-        negated = PolicyCompilerTools.isPositionNegated(this._ruleData.negate, this._ruleData.positions[1].id);
-        if (items = this.preCompileInterface('-o ', objs, negated))
-            this._compiledPositions.push(items);
+      objs = this._ruleData.positions[1].ipobjs;
+      negated = PolicyCompilerTools.isPositionNegated(this._ruleData.negate, this._ruleData.positions[1].id);
+      this.compileInterface('-o ', objs, negated);
     }
 
     // SERVICE
     objs = this._ruleData.positions[svc_position].ipobjs;
     negated = PolicyCompilerTools.isPositionNegated(this._ruleData.negate, this._ruleData.positions[svc_position].id);
-    if (items = this.preCompileSvc(":", objs, negated, this._ruleData.ip_version))
-        this._compiledPositions.push(items);
+    this.compileSvc(":", objs, negated, this._ruleData.ip_version);
 
     // SOURCE
     objs = this._ruleData.positions[src_position].ipobjs;
     negated = PolicyCompilerTools.isPositionNegated(this._ruleData.negate, this._ruleData.positions[src_position].id);
-    if (items = this.preCompileSrcDst('-s ', objs, negated, this._ruleData.ip_version))
-        this._compiledPositions.push(items);
+    this.compileSrcDst('-s ', objs, negated, this._ruleData.ip_version);
 
     // DESTINATION
     objs = this._ruleData.positions[dst_position].ipobjs;
     negated = PolicyCompilerTools.isPositionNegated(this._ruleData.negate, this._ruleData.positions[dst_position].id);
-    if (items = this.preCompileSrcDst('-d ', objs, negated, this._ruleData.ip_version))
-        this._compiledPositions.push(items);
+    this.compileSrcDst('-d ', objs, negated, this._ruleData.ip_version);
 
     // Order the resulting array by number of strings into each array.
     if (this._compiledPositions.length < 2) // Don't need ordering.
         return;
     for (i = 0; i < this._compiledPositions.length; i++) {
         for (p = i, j = i + 1; j < this._compiledPositions.length; j++) {
-            if (this._compiledPositions[j].str.length < this._compiledPositions[p].str.length)
+            if (this._compiledPositions[j].items.length < this._compiledPositions[p].items.length)
                 p = j;
         }
         const tmp = this._compiledPositions[i];
@@ -495,8 +482,8 @@ export abstract class PolicyCompilerTools {
         return;
 
     // If we have negated positions and not negated positions, then move the negated positions to the end of the array.
-    var position_items_not_negate = [];
-    var position_items_negate = [];
+    let position_items_not_negate = [];
+    let position_items_negate = [];
     for (i = 0; i < this._compiledPositions.length; i++) {
         // Is this position item is negated, search for the next one no negated.
         if (!(this._compiledPositions[i].negate))
@@ -510,54 +497,56 @@ export abstract class PolicyCompilerTools {
 
 
   protected generateCompilationString(id: string, cs: string): string {
+    let chainNumber = 1;
+
     // Rule compilation process.
     if (this._compiledPositions.length === 0) // No conditions rule.
-        cs += this._csEnd;
+      cs += this._csEnd;
     else if (this._compiledPositions.length === 1 && !(this._compiledPositions[0].negate)) { // One condition rule and no negated position.
-        if (this._compiledPositions[0].str.length === 1) // Only one item in the condition.
-            cs += this._compiledPositions[0].str[0] + " " + this._csEnd;
-        else { // Multiple items in the condition.
-            var cs1 = cs;
-            cs = "";
-            for (var i = 0; i < this._compiledPositions[0].str.length; i++)
-                cs += cs1 + this._compiledPositions[0].str[i] + " " + this._csEnd;
-        }
+      if (this._compiledPositions[0].items.length === 1) // Only one item in the condition.
+        cs += this._compiledPositions[0].items[0] + " " + this._csEnd;
+      else { // Multiple items in the condition.
+        let cs1 = cs;
+        cs = "";
+        for (let i = 0; i < this._compiledPositions[0].items.length; i++)
+          cs += cs1 + this._compiledPositions[0].items[i] + " " + this._csEnd;
+      }
     } else { // Multiple condition rules or one condition rule with the condition (position) negated.
-        for (var i = 0, j, chain_number = 1, chain_name = "", chain_next = ""; i < this._compiledPositions.length; i++) {
-            // We have the position_items array ordered by arrays length.
-            if (this._compiledPositions[i].str.length === 1 && !(this._compiledPositions[i].negate))
-                cs += this._compiledPositions[i].str[0] + " ";
-            else {
-                chain_name = "FWCRULE" + id + ".CH" + chain_number;
-                // If we are in the first condition and it is not negated.
-                if (i === 0 && !(this._compiledPositions[i].negate)) {
-                    var cs1 = cs;
-                    cs = "";
-                    for (let j = 0; j < this._compiledPositions[0].str.length; j++)
-                        cs += cs1 + this._compiledPositions[0].str[j] + ((j < (this._compiledPositions[0].str.length - 1)) ? " " + this._stateful + " -j " + chain_name + "\n" : " ");
-                } else {
-                    if (!(this._compiledPositions[i].negate)) {
-                        // If we are at the end of the array, the next chain will be the rule action.
-                        chain_next = (i === ((this._compiledPositions.length) - 1)) ? this._action : "FWCRULE" + id + ".CH" + (chain_number + 1);
-                    } else { // If the position is negated.
-                        chain_next = "RETURN";
-                    }
-
-                    cs = `${this._cmd} ${this._table} -N ${chain_name}\n${cs}${((chain_number === 1) ? this._stateful + " -j " + chain_name + "\n" : "")}`;
-                    for (j = 0; j < this._compiledPositions[i].str.length; j++) {
-                        cs += `${this._cmd} ${this._table} -A ${chain_name} ${this._compiledPositions[i].str[j]} -j ${chain_next}\n`;
-                    }
-                    chain_number++;
-
-                    if (this._compiledPositions[i].negate)
-                        cs += `${this._cmd} ${this._table} -A ${chain_name} -j ${((i === ((this._compiledPositions.length) - 1)) ? this._action : "FWCRULE" + id + ".CH" + chain_number)}\n`;
-                }
+      for (let i = 0, j, chainName = "", chainNext = ""; i < this._compiledPositions.length; i++) {
+        // We have the position_items array ordered by arrays length.
+        if (this._compiledPositions[i].items.length === 1 && !(this._compiledPositions[i].negate))
+            cs += this._compiledPositions[i].items[0] + " ";
+        else {
+          chainName = "FWCRULE" + id + ".CH" + chainNumber;
+          // If we are in the first condition and it is not negated.
+          if (i === 0 && !(this._compiledPositions[i].negate)) {
+            let cs1 = cs;
+            cs = "";
+            for (let j = 0; j < this._compiledPositions[0].items.length; j++)
+              cs += cs1 + this._compiledPositions[0].items[j] + ((j < (this._compiledPositions[0].items.length - 1)) ? " " + this._stateful + " -j " + chainName + "\n" : " ");
+          } else {
+            if (!(this._compiledPositions[i].negate)) {
+              // If we are at the end of the array, the next chain will be the rule action.
+              chainNext = (i === ((this._compiledPositions.length) - 1)) ? this._action : "FWCRULE" + id + ".CH" + (chainNumber + 1);
+            } else { // If the position is negated.
+              chainNext = "RETURN";
             }
-        }
 
-        // If we have not used IPTABLES user defined chains.
-        if (chain_number === 1)
-          cs += this._csEnd;
+            cs = `${this._cmd} ${this._table} -N ${chainName}\n${cs}${((chainNumber === 1) ? this._stateful + " -j " + chainName + "\n" : "")}`;
+            for (j = 0; j < this._compiledPositions[i].items.length; j++) {
+              cs += `${this._cmd} ${this._table} -A ${chainName} ${this._compiledPositions[i].items[j]} -j ${chainNext}\n`;
+            }
+            chainNumber++;
+
+            if (this._compiledPositions[i].negate)
+              cs += `${this._cmd} ${this._table} -A ${chainName} -j ${((i === ((this._compiledPositions.length) - 1)) ? this._action : "FWCRULE" + id + ".CH" + chainNumber)}\n`;
+          }
+        }
+      }
+
+      // If we have not used IPTABLES user defined chains.
+      if (chainNumber === 1)
+        cs += this._csEnd;
     }
 
     return cs;
@@ -594,7 +583,7 @@ export abstract class PolicyCompilerTools {
 			this._cs += this.generateCompilationString(`${this._ruleData.id}-M1`, `${this._cmd} -t mangle -A ${MARK_CHAIN[this._policyType]} `);
 			// Add the mark to the PREROUTING chain of the mangle table.
 			if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
-				let str:string = this.generateCompilationString(`${this._ruleData.id}-M1`, `${this._cmd} -t mangle -A PREROUTING `);
+				let str  = this.generateCompilationString(`${this._ruleData.id}-M1`, `${this._cmd} -t mangle -A PREROUTING `);
 				str = str.replace(/-o \w+ /g, "")
 				this._cs += str;
 			}
@@ -604,7 +593,7 @@ export abstract class PolicyCompilerTools {
 			this._cs += this.generateCompilationString(`${this._ruleData.id}-M2`, `${this._cmd} -t mangle -A ${MARK_CHAIN[this._policyType]} `);
 			// Add the mark to the PREROUTING chain of the mangle table.
 			if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
-				let str:string = this.generateCompilationString(`${this._ruleData.id}-M2`, `${this._cmd} -t mangle -A PREROUTING `);
+				let str  = this.generateCompilationString(`${this._ruleData.id}-M2`, `${this._cmd} -t mangle -A PREROUTING `);
 				str = str.replace(/-o \w+ /g, "")
 				this._cs += str;
 			}
