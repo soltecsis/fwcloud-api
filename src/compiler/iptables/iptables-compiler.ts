@@ -21,24 +21,18 @@
 */
 
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
-import { PolicyCompilerTools, ACTION, POLICY_TYPE, MARK_CHAIN } from '../PolicyCompilerTools';
+import { PolicyCompilerTools } from '../PolicyCompilerTools';
 
 export class IPTablesCompiler extends PolicyCompilerTools {
 	
 	constructor(ruleData: any) {
 		super();
 
+		this._compiler = 'IPTables';
 		this._ruleData = ruleData;
 		this._policyType = ruleData.type;
 		this._cmd = (this._policyType < PolicyTypesMap.get('IPv6:INPUT')) ? "$IPTABLES" : "$IP6TABLES"; // iptables command variable.
 		this._cs = `${this._cmd} `; // Compilation string.
-		this._afterLogAction = '';
-		this._logChain = ''; 
-		this._accChain = ''; 
-		this._csEnd = ''; 
-		this._stateful = ''; 
-		this._table = ''; 
-		this._action = '';
 		this._comment = this.ruleComment();
 	}
 

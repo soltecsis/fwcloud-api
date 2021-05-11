@@ -39,7 +39,7 @@ POLICY_TYPE[65] = 'PREROUTING'; // IPv6
 
 export const MARK_CHAIN = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 
-export type IPTablesRuleCompiled = {
+export type RuleCompilationResult = {
     id: number;
     active: number;
     comment: string;
@@ -52,17 +52,18 @@ type CompiledPosition = {
 }
 
 export abstract class PolicyCompilerTools {
+  protected _compiler: string;
   protected _ruleData: any;
 	protected _policyType: number;
 	protected _cs: string;
 	protected _cmd: string;
-	protected _afterLogAction: string;
-	protected _logChain: string; 
-	protected _accChain: string; 
-	protected _csEnd: string; 
-	protected _stateful: string; 
-	protected _table: string; 
-	protected _action: string;
+	protected _afterLogAction = '';
+	protected _logChain = ''; 
+	protected _accChain = ''; 
+	protected _csEnd = ''; 
+	protected _stateful = ''; 
+	protected _table = ''; 
+	protected _action = '';
 	protected _comment: string;
   private _compiledPositions: CompiledPosition[];
 
