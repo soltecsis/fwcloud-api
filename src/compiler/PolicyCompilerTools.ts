@@ -39,6 +39,13 @@ POLICY_TYPE[65] = 'PREROUTING'; // IPv6
 
 export const MARK_CHAIN = ['', 'INPUT', 'OUTPUT', 'FORWARD'];
 
+const CompilerDir = new Map<string, string>([
+  ['IPTables:IN', '-i'],     ['NFTables:IN', 'iifname'],
+  ['IPTables:OUT', '-o'],    ['NFTables:OUT', 'oifname'],
+  ['IPTables:SRC', '-s'],    ['NFTables:SRC', 'saddr'],
+  ['IPTables:DST', '-d'],    ['NFTables:DST', 'daddr'],
+]);
+
 export type RuleCompilationResult = {
     id: number;
     active: number;
@@ -52,7 +59,7 @@ type CompiledPosition = {
 }
 
 export abstract class PolicyCompilerTools {
-  protected _compiler: string;
+  protected _compiler: 'IPTables' | 'NFTables';
   protected _ruleData: any;
 	protected _policyType: number;
 	protected _cs: string;
@@ -238,19 +245,25 @@ export abstract class PolicyCompilerTools {
   }
           
 
-  private compileSrcDst(dir: '' | '-s ' | '-d ', sd: any, negate: boolean, ipv: 4 | 6): void {
+  private compileSrcDst(dir: 'SRC' | 'DST', sd: any, negate: boolean, ipv: 4 | 6): void {
     let cmpPos: CompiledPosition = { negate: negate, items: [] };
+    const opt = CompilerDir.get(`${this._compiler}:${dir}`);
 
     for (let i = 0; i < sd.length; i++) {
       if (sd[i].type === 9) // DNS
-        cmpPos.items.push(`${dir}${sd[i].name}`);
+        cmpPos.items.push(`${opt} ${sd[i].name}`);
       else if (ipv === sd[i].ip_version) { // Only add this type of IP objects if they have the same IP version than the compiled rule.
         if (sd[i].type === 5) // Address
-          cmpPos.items.push(`${dir}${sd[i].address}`);
+          cmpPos.items.push(`${opt} ${sd[i].address}`);
         else if (sd[i].type === 7) // Network
-          cmpPos.items.push(`${dir}${sd[i].address}/${sd[i].netmask.replace('/', '')}`);
-        else if (sd[i].type === 6) // Address range
-          cmpPos.items.push((dir !== '' ? `-m iprange ${(dir === '-s ' ? '--src-range ' : '--dst-range ')}` : ' ') + `${sd[i].range_start}-${sd[i].range_end}`);
+          cmpPos.items.push(`${opt} ${sd[i].address}/${sd[i].netmask.replace('/', '')}`);
+        else if (sd[i].type === 6) { // Address range
+          const range = `${sd[i].range_start}-${sd[i].range_end}`;
+          if (this._compiler === 'IPTables') 
+            cmpPos.items.push(`-m iprange ${(dir === 'SRC' ? '--src-range' : '--dst-range')} ${range}`);
+          else
+            cmpPos.items.push(`${opt} ${range}`);
+        }
       }
     }
 
@@ -258,17 +271,18 @@ export abstract class PolicyCompilerTools {
   }
 
 
-  private compileInterface(dir: '-o ' | '-i ', ifs: any, negate: boolean): void {
+  private compileInterface(dir: 'IN' | 'OUT', ifs: any, negate: boolean): void {
     let cmpPos: CompiledPosition = { negate: negate, items: [] };
+    const opt = CompilerDir.get(`${this._compiler}:${dir}`);
 
     for (var i = 0; i < ifs.length; i++)
-      cmpPos.items.push(`${dir}${ifs[i].name}`);
+      cmpPos.items.push(`${opt} ${this._compiler==='NFTables' ? '"' : ''}${ifs[i].name}${this._compiler==='NFTables' ? '"' : ''}`);
 
     if (cmpPos.items.length > 0) this._compiledPositions.push(cmpPos);
   }
 
 
-  private compileSvc(sep: '-' | ':', svc: any, negate: boolean, ipv: 4 | 6): void {
+  private compileSvc(svc: any, negate: boolean, ipv: 4 | 6): void {
     let cmpPos: CompiledPosition = { negate: negate, items: [] };
     let tcpPorts = '';
     let udpPorts = '';
@@ -283,20 +297,20 @@ export abstract class PolicyCompilerTools {
             if (svc[i].source_port_end===0 || svc[i].source_port_end===null) { // No source port.
               if (tcpPorts)
                 tcpPorts += ',';
-              tcpPorts += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`;
+              tcpPorts += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : `${svc[i].destination_port_start}:${svc[i].destination_port_end}`;
             } else {
-              tmp = `-p tcp --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
+              tmp = `-p tcp --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}:${svc[i].source_port_end}`}`;
               if (svc[i].destination_port_end !== 0)
-                tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
+                tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}:${svc[i].destination_port_end}`}`;
               cmpPos.items.push(tmp);
             }
           }
           else { // Add the TCP flags.
             tmp = '-p tcp';
             if (svc[i].source_port_end!==0 && svc[i].source_port_end!==null) // Exists source port
-              tmp += ` --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
+              tmp += ` --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}:${svc[i].source_port_end}`}`;
             if (svc[i].destination_port_end!==0 && svc[i].destination_port_end!==null) // Exists destination port
-              tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
+              tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}:${svc[i].destination_port_end}`}`;
             tmp += ` --tcp-flags `;
 
             // If all mask bits are set.
@@ -348,11 +362,11 @@ export abstract class PolicyCompilerTools {
           if (svc[i].source_port_end===0 || svc[i].source_port_end===null) { // No source port.
             if (udpPorts)
               udpPorts += ',';
-            udpPorts += `${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
+            udpPorts += `${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}:${svc[i].destination_port_end}`}`;
           } else {
-            tmp = `-p udp --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
+            tmp = `-p udp --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}:${svc[i].source_port_end}`}`;
             if (svc[i].destination_port_end !== 0)
-              tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
+              tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}:${svc[i].destination_port_end}`}`;
             cmpPos.items.push(tmp);
           }
           break;
@@ -374,14 +388,8 @@ export abstract class PolicyCompilerTools {
       }
     }
 
-    if (tcpPorts) {
-      if (sep === ':') this.portsLimitControl('tcp',tcpPorts,cmpPos);
-      else cmpPos.items.push(tcpPorts);
-    }
-    if (udpPorts) {
-      if (sep === ':') this.portsLimitControl('udp',udpPorts,cmpPos);
-      else cmpPos.items.push(udpPorts);
-    }
+    if (tcpPorts) this.portsLimitControl('tcp',tcpPorts,cmpPos);
+    if (udpPorts) this.portsLimitControl('udp',udpPorts,cmpPos);
 
     if (cmpPos.items.length > 0) this._compiledPositions.push(cmpPos);
   }
@@ -410,16 +418,15 @@ export abstract class PolicyCompilerTools {
 
     let action = (this._policyType === PolicyTypesMap.get('IPv4:SNAT')) ? `SNAT${protocol}--to-source ` : `DNAT${protocol}--to-destination `;
 
-    this._compiledPositions = [];
     if (this._ruleData.positions[4].ipobjs.length === 1) {
-      this.compileSrcDst('', this._ruleData.positions[4].ipobjs, false, this._ruleData.ip_version);
-      action += this._compiledPositions[this._compiledPositions.length-1].items[0];
+      const ipobj = this._ruleData.positions[4].ipobjs[0];
+      action += ` ${ipobj.address ? ipobj.address : `${ipobj.range_start}-${ipobj.range_end}`}`;
     }
+
     if (this._ruleData.positions[5].ipobjs.length === 1) {
-      this.compileSvc('-', this._ruleData.positions[5].ipobjs, false, this._ruleData.ip_version);
-      action += `:${this._compiledPositions[this._compiledPositions.length-1].items[0]}`;
+      const ipobj = this._ruleData.positions[5].ipobjs[0];
+      action += `:${ipobj.destination_port_start === ipobj.destination_port_end ? ipobj.destination_port_start : `${ipobj.destination_port_start}-${ipobj.destination_port_end}`}`;
     }
-    this._compiledPositions = [];
 
     return action;
   }
@@ -428,7 +435,7 @@ export abstract class PolicyCompilerTools {
   protected compileRulePositions(): void {
     this._compiledPositions = [];
     let src_position: number, dst_position: number, svc_position: number, objs: any, negated: boolean;
-    let dir: '' | '-o ' | '-i ';
+    let dir: 'IN' | 'OUT';
     let i: number, j: number, p: number;
 
     if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) { src_position = 2; dst_position = 3; svc_position = 4; }
@@ -438,7 +445,7 @@ export abstract class PolicyCompilerTools {
     // WARNING: The order of creation of the arrays is important for optimization!!!!
     // The positions first in the array will be used first in the conditions.
     // INTERFACE IN / OUT
-    dir = (this._policyType === PolicyTypesMap.get('IPv4:OUTPUT') || this._policyType === PolicyTypesMap.get('IPv4:SNAT')) ? '-o ' : '-i ';
+    dir = (this._policyType === PolicyTypesMap.get('IPv4:OUTPUT') || this._policyType === PolicyTypesMap.get('IPv4:SNAT')) ? 'OUT' : 'IN';
     objs = this._ruleData.positions[0].ipobjs;
     negated = PolicyCompilerTools.isPositionNegated(this._ruleData.negate, this._ruleData.positions[0].id);
     this.compileInterface(dir, objs, negated);
@@ -447,23 +454,23 @@ export abstract class PolicyCompilerTools {
     if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
       objs = this._ruleData.positions[1].ipobjs;
       negated = PolicyCompilerTools.isPositionNegated(this._ruleData.negate, this._ruleData.positions[1].id);
-      this.compileInterface('-o ', objs, negated);
+      this.compileInterface('OUT', objs, negated);
     }
 
     // SERVICE
     objs = this._ruleData.positions[svc_position].ipobjs;
     negated = PolicyCompilerTools.isPositionNegated(this._ruleData.negate, this._ruleData.positions[svc_position].id);
-    this.compileSvc(":", objs, negated, this._ruleData.ip_version);
+    this.compileSvc(objs, negated, this._ruleData.ip_version);
 
     // SOURCE
     objs = this._ruleData.positions[src_position].ipobjs;
     negated = PolicyCompilerTools.isPositionNegated(this._ruleData.negate, this._ruleData.positions[src_position].id);
-    this.compileSrcDst('-s ', objs, negated, this._ruleData.ip_version);
+    this.compileSrcDst('SRC', objs, negated, this._ruleData.ip_version);
 
     // DESTINATION
     objs = this._ruleData.positions[dst_position].ipobjs;
     negated = PolicyCompilerTools.isPositionNegated(this._ruleData.negate, this._ruleData.positions[dst_position].id);
-    this.compileSrcDst('-d ', objs, negated, this._ruleData.ip_version);
+    this.compileSrcDst('DST', objs, negated, this._ruleData.ip_version);
 
     // Order the resulting array by number of strings into each array.
     if (this._compiledPositions.length < 2) // Don't need ordering.

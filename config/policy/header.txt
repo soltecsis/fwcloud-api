@@ -85,7 +85,7 @@ reset_iptables_v6() {
 }
 
 reset_nft() {
-  if [ -f "$NFT" ]; then
+  if [ -f "$NFT" ]; then
     $NFT flush ruleset arp
     $NFT flush ruleset ip
     $NFT flush ruleset ip6

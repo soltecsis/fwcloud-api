@@ -21,6 +21,7 @@
 */
 
 import { IPTablesCompiler } from './iptables/iptables-compiler'
+import { NFTablesCompiler } from './nftables/nftables-compiler'
 import { RuleCompilationResult } from './PolicyCompilerTools'
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressNoticePayload } from '../sockets/messages/socket-message';
@@ -40,6 +41,7 @@ export class PolicyCompiler {
           if (eventEmitter) eventEmitter.emit('message', new ProgressNoticePayload(`Rule ${i+1} (ID: ${rulesData[i].id})${!(rulesData[i].active) ? ' [DISABLED]' : ''}`));
 
           const compiler = new IPTablesCompiler(rulesData[i]);
+          //const compiler = new NFTablesCompiler(rulesData[i]);
 
           result.push({
             id: rulesData[i].id,
