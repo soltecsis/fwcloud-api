@@ -28,8 +28,6 @@ export const RuleActionsMap = new Map<string, number>([
   ['ACCEPT',1],  ['DROP',2],  ['REJECT',3],  ['ACCOUNTING',4]
 ]);
 
-export const ACTION = ['', 'ACCEPT', 'DROP', 'REJECT', 'ACCOUNTING' ];
-
 export const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'POSTROUTING', 'PREROUTING'];
 POLICY_TYPE[61] = 'INPUT'; // IPv6
 POLICY_TYPE[62] = 'OUTPUT'; // IPv6
@@ -44,6 +42,13 @@ const CompilerDir = new Map<string, string>([
   ['IPTables:OUT', '-o'],    ['NFTables:OUT', 'oifname'],
   ['IPTables:SRC', '-s'],    ['NFTables:SRC', 'saddr'],
   ['IPTables:DST', '-d'],    ['NFTables:DST', 'daddr'],
+]);
+
+export const CompilerAction = new Map<string, string>([
+  ['IPTables:1', 'ACCEPT'],     ['NFTables:1', 'counter accept'],
+  ['IPTables:2', 'DROP'],       ['NFTables:2', 'counter drop'],
+  ['IPTables:3', 'REJECT'],     ['NFTables:3', 'counter reject'],
+  ['IPTables:4', 'ACCOUNTING'], ['NFTables:4', 'counter'],
 ]);
 
 export type RuleCompilationResult = {
@@ -64,13 +69,13 @@ export abstract class PolicyCompilerTools {
 	protected _policyType: number;
 	protected _cs: string;
 	protected _cmd: string;
-	protected _afterLogAction = '';
-	protected _logChain = ''; 
-	protected _accChain = ''; 
-	protected _csEnd = ''; 
-	protected _stateful = ''; 
-	protected _table = ''; 
-	protected _action = '';
+	private _afterLogAction = '';
+	private _logChain = ''; 
+	private _accChain = ''; 
+	private _csEnd = ''; 
+	private _stateful = ''; 
+	private _table = ''; 
+	private _action = '';
 	protected _comment: string;
   private _compiledPositions: CompiledPosition[];
 
@@ -91,8 +96,6 @@ export abstract class PolicyCompilerTools {
   protected ruleComment(): string {
     let metaData = {};
     let comment:string = this._ruleData.comment ? this._ruleData.comment : '';
-    // Avoid the presence of the ' character, used as comment delimiter for the iptables command.
-    comment = comment.trim().replace(/'/g, '"'); 
 
     if (this._ruleData.style) metaData['fwc_rs'] = this._ruleData.style;
     if (this._ruleData.group_name) metaData['fwc_rgn'] = this._ruleData.group_name;
@@ -101,12 +104,28 @@ export abstract class PolicyCompilerTools {
     if (JSON.stringify(metaData) !== '{}') comment = `${JSON.stringify(metaData)}${comment}`;
 
     if (comment) {
-      // IPTables comment extension allows you to add comments (up to 256 characters) to any rule.
-      comment = shellescape([comment]).substring(0,250);
-      // Comment must start and and end with ' character.
-      if (comment.charAt(0) !== "'") comment =`'${comment}`;
-      if (comment.charAt(comment.length-1) !== "'") comment =`${comment}'`;
-      comment = `-m comment --comment ${comment.replace(/\r/g,' ').replace(/\n/g,' ')} `;
+      if (this._compiler === 'IPTables') {
+        // Avoid the presence of the ' character, used as comment delimiter for the iptables command.
+        comment = comment.trim().replace(/'/g, '"'); 
+
+        // IPTables comment extension allows you to add comments (up to 256 characters) to any rule.
+        comment = shellescape([comment]).substring(0,250);
+        // Comment must start and and end with ' character.
+        if (comment.charAt(0) !== "'") comment =`'${comment}`;
+        if (comment.charAt(comment.length-1) !== "'") comment =`${comment}'`;
+        comment = `-m comment --comment ${comment.replace(/\r/g,' ').replace(/\n/g,' ')} `;
+      } else { // NFTables compiler.
+        // Avoid the presence of the " character, used as comment delimiter for the iptables command.
+        comment = comment.trim().replace(/"/g, "'"); 
+
+        // NFTables comment extension allows you to add comments (up to 128 characters) to any rule.
+        comment = shellescape([comment]).substring(0,120);
+
+        // Comment must start and and end with \" characters.
+        if (comment.charAt(0) !== '\\' && comment.charAt(1) !== '"') comment =`\\"${comment}`;
+        if (comment.charAt(comment.length-2) !== '\\' && comment.charAt(comment.length-1) !== '"') comment =`${comment}\\"`;
+        comment = ` comment ${comment.replace(/\r/g,' ').replace(/\n/g,' ')}`;
+      }
     }
 
     return comment;
@@ -153,15 +172,15 @@ export abstract class PolicyCompilerTools {
 				throw(new Error("Bad rule data"));
 			}
 
-			this._cs += `-A ${POLICY_TYPE[this._policyType]} ${this._comment}`;
+			this._cs += `${this._compiler==='IPTables' ? `-A ${POLICY_TYPE[this._policyType]} ${this._comment}` : `add rule ip filter ${POLICY_TYPE[this._policyType]} `}`;
 
 			if (this._ruleData.special === 1) // Special rule for ESTABLISHED,RELATED packages.
-				this._action = "ACCEPT";
+				this._action = CompilerAction.get(`${this._compiler}:1`); // 1 = ACCEPT
 			else if (this._ruleData.special === 2) // Special rule for catch-all.
-				this._action = ACTION[this._ruleData.action];
+				this._action = CompilerAction.get(`${this._compiler}:${this._ruleData.action}`);
 			else {
-				this._action = ACTION[this._ruleData.action];
-				if (this._action === "ACCEPT") {
+				this._action = CompilerAction.get(`${this._compiler}:${this._ruleData.action}`);
+				if (this._action === CompilerAction.get(`${this._compiler}:1`)) {
 					if (this._ruleData.options & 0x0001) // Stateful rule.
 						this._stateful = "-m conntrack --ctstate  NEW ";
 					else if ((this._ruleData.firewall_options & 0x0001) && !(this._ruleData.options & 0x0002)) // Statefull firewall and this rule is not stateless.
@@ -192,6 +211,9 @@ export abstract class PolicyCompilerTools {
 
 
   protected afterCompilation(): string {
+    // In NFTables comment goes at the end.
+    if (this._compiler === 'NFTables') this._cs += this._comment;
+
     // Replace two consecutive spaces by only one.
     this._cs = this._cs.replace(/  +/g, ' ');
 
@@ -207,47 +229,9 @@ export abstract class PolicyCompilerTools {
   }
 
 
-  /*
-      multiport
-
-      This module matches a set of source or destination ports. Up to 15 ports can be specified. A port range (port:port) counts as two ports. It can only be used in conjunction with -p tcp or -p udp.
-      --source-ports [!] port[,port[,port:port...]]
-      Match if the source port is one of the given ports. The flag --sports is a convenient alias for this option.
-      --destination-ports [!] port[,port[,port:port...]]
-      Match if the destination port is one of the given ports. The flag --dports is a convenient alias for this option.
-      --ports [!] port[,port[,port:port...]]
-      Match if either the source or destination ports are equal to one of the given ports.
-  */
-  private portsLimitControl(proto: 'tcp' | 'udp', portsStr: string, cmpPos: CompiledPosition): void {
-    const portsList = portsStr.split(',');
-
-    //tcpPorts = tcpPorts.indexOf(",") > -1 ? `-p ${proto} -m multiport --dports ${tcpPorts}` : ;
-    if (portsList.length === 1)
-      cmpPos.items.push(`-p ${proto} --dport ${portsStr}`);
-    else { // Up to 15 ports can be specified. A port range (port:port) counts as two ports.
-      let n = 0;
-      let currentPorts: string[] = [];
-      for(let port of portsList) {
-        // Is the current port a port range (port:port)?
-        n += port.indexOf(':') === -1 ? 1 : 2;
-
-        if (n <= 15) 
-          currentPorts.push(port);
-        else {
-          cmpPos.items.push(`-p ${proto} -m multiport --dports ${currentPorts.join(',')}`);
-          currentPorts = [];
-          currentPorts.push(port);
-          n = port.indexOf(':') === -1 ? 1 : 2;
-        }
-      } 
-      cmpPos.items.push(`-p ${proto} -m multiport --dports ${currentPorts.join(',')}`);
-    }
-  }
-          
-
   private compileSrcDst(dir: 'SRC' | 'DST', sd: any, negate: boolean, ipv: 4 | 6): void {
     let cmpPos: CompiledPosition = { negate: negate, items: [] };
-    const opt = CompilerDir.get(`${this._compiler}:${dir}`);
+    const opt = `${this._compiler === 'NFTables' ? (ipv===4 ? 'ip ' : 'ip6 '): ''}${CompilerDir.get(`${this._compiler}:${dir}`)}`;
 
     for (let i = 0; i < sd.length; i++) {
       if (sd[i].type === 9) // DNS
@@ -282,11 +266,51 @@ export abstract class PolicyCompilerTools {
   }
 
 
+  /*
+      multiport
+
+      This module matches a set of source or destination ports. Up to 15 ports can be specified. A port range (port:port) counts as two ports. It can only be used in conjunction with -p tcp or -p udp.
+      --source-ports [!] port[,port[,port:port...]]
+      Match if the source port is one of the given ports. The flag --sports is a convenient alias for this option.
+      --destination-ports [!] port[,port[,port:port...]]
+      Match if the destination port is one of the given ports. The flag --dports is a convenient alias for this option.
+      --ports [!] port[,port[,port:port...]]
+      Match if either the source or destination ports are equal to one of the given ports.
+  */
+  private portsLimitControl(proto: 'tcp' | 'udp', portsStr: string, cmpPos: CompiledPosition): void {
+    const portsList = portsStr.split(',');
+    const sep = this._compiler==='IPTables' ? ':' : '-';
+
+    //tcpPorts = tcpPorts.indexOf(",") > -1 ? `-p ${proto} -m multiport --dports ${tcpPorts}` : ;
+    if (portsList.length === 1)
+      cmpPos.items.push(`${this._compiler==='IPTables' ? `-p ${proto} --dport ${portsStr}` : `${proto} dport ${portsStr}`}`);
+    else { // Up to 15 ports can be specified. A port range (port:port) counts as two ports.
+      let n = 0;
+      let currentPorts: string[] = [];
+      for(let port of portsList) {
+        // Is the current port a port range (port:port)?
+        n += port.indexOf(sep) === -1 ? 1 : 2;
+
+        if (n <= 15) 
+          currentPorts.push(port);
+        else {
+          cmpPos.items.push(`${this._compiler==='IPTables' ? `-p ${proto} -m multiport --dports ${currentPorts.join(',')}` : `ip protocol ${proto} ${proto} dport { ${currentPorts.join(',')}}`}`);
+          currentPorts = [];
+          currentPorts.push(port);
+          n = port.indexOf(sep) === -1 ? 1 : 2;
+        }
+      } 
+      cmpPos.items.push(`${this._compiler==='IPTables' ? `-p ${proto} -m multiport --dports ${currentPorts.join(',')}` : `ip protocol ${proto} ${proto} dport { ${currentPorts.join(',')}}`}`);
+    }
+  }
+              
+    
   private compileSvc(svc: any, negate: boolean, ipv: 4 | 6): void {
     let cmpPos: CompiledPosition = { negate: negate, items: [] };
     let tcpPorts = '';
     let udpPorts = '';
     let tmp = '';
+    const sep = this._compiler === 'IPTables' ? ':' : '-';
 
     for (let i = 0; i < svc.length; i++) {
       switch (svc[i].protocol) { // PROTOCOL NUMBER
@@ -297,20 +321,20 @@ export abstract class PolicyCompilerTools {
             if (svc[i].source_port_end===0 || svc[i].source_port_end===null) { // No source port.
               if (tcpPorts)
                 tcpPorts += ',';
-              tcpPorts += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : `${svc[i].destination_port_start}:${svc[i].destination_port_end}`;
+              tcpPorts += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`;
             } else {
-              tmp = `-p tcp --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}:${svc[i].source_port_end}`}`;
+              tmp = `-p tcp --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
               if (svc[i].destination_port_end !== 0)
-                tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}:${svc[i].destination_port_end}`}`;
+                tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
               cmpPos.items.push(tmp);
             }
           }
           else { // Add the TCP flags.
             tmp = '-p tcp';
             if (svc[i].source_port_end!==0 && svc[i].source_port_end!==null) // Exists source port
-              tmp += ` --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}:${svc[i].source_port_end}`}`;
+              tmp += ` --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
             if (svc[i].destination_port_end!==0 && svc[i].destination_port_end!==null) // Exists destination port
-              tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}:${svc[i].destination_port_end}`}`;
+              tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
             tmp += ` --tcp-flags `;
 
             // If all mask bits are set.
@@ -362,11 +386,11 @@ export abstract class PolicyCompilerTools {
           if (svc[i].source_port_end===0 || svc[i].source_port_end===null) { // No source port.
             if (udpPorts)
               udpPorts += ',';
-            udpPorts += `${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}:${svc[i].destination_port_end}`}`;
+            udpPorts += `${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
           } else {
-            tmp = `-p udp --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}:${svc[i].source_port_end}`}`;
+            tmp = `${this._compiler==='IPTables' ? '-p udp --sport' : 'udp sport'} ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
             if (svc[i].destination_port_end !== 0)
-              tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}:${svc[i].destination_port_end}`}`;
+              tmp += ` ${this._compiler==='IPTables' ? '--dport' : 'udp dport'} ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
             cmpPos.items.push(tmp);
           }
           break;

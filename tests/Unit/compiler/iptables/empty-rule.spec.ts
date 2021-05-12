@@ -27,7 +27,7 @@ import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
-import { RuleActionsMap, ACTION, POLICY_TYPE } from '../../../../src/compiler/PolicyCompilerTools';
+import { RuleActionsMap, POLICY_TYPE, CompilerAction } from '../../../../src/compiler/PolicyCompilerTools';
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
@@ -65,7 +65,7 @@ describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
             });
         } else {
             let cs: string;
-            let action = (policyType===PolicyTypesMap.get(`${IPv}:SNAT`)) ? 'MASQUERADE' : ACTION[ruleData.action];
+            let action = (policyType===PolicyTypesMap.get(`${IPv}:SNAT`)) ? 'MASQUERADE' : CompilerAction.get(`IPTables:${ruleData.action}`);
             if (action==='ACCOUNTING') action = 'RETURN';
             const st = (ruleData.action===RuleActionsMap.get('ACCEPT') && ruleData.options&0x0001 && policyType!==PolicyTypesMap.get(`${IPv}:SNAT`) && policyType!==PolicyTypesMap.get(`${IPv}:DNAT`)) ? '-m conntrack --ctstate NEW ' : '' ;
             
