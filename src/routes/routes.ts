@@ -36,6 +36,7 @@ import { IptablesSaveController } from "../controllers/iptables-save/iptables-sa
 import { PingController } from "../controllers/ping/ping.controller";
 import { RoutingTableController } from "../controllers/routing/routing-tables.controller";
 import { RouteController } from "../controllers/routing/route.controller";
+import { RoutingRuleController } from "../controllers/routing/routing-rule.controller";
 
 export class Routes extends RouteCollection {
 
@@ -91,7 +92,7 @@ export class Routes extends RouteCollection {
                                 })
                             });
 
-                            router.prefix('/routing/tables', (router: RouterParser) => {
+                            router.prefix('/routingTables', (router: RouterParser) => {
                                 router.post('/', RoutingTableController, 'create').name('fwclouds.firewalls.routing.tables.store');
                                 router.get('/', RoutingTableController, 'index').name('fwclouds.firewalls.routing.tables.index');
                                 router.prefix('/:routingTable(\\d+)', (router:RouterParser) => {
@@ -107,6 +108,16 @@ export class Routes extends RouteCollection {
                                             router.delete('/', RouteController, 'remove').name('fwclouds.firewalls.routing.tables.routes.delete');
                                         });
                                     });
+                                });
+                            });
+
+                            router.prefix('/routingRules', (router: RouterParser) => {
+                                router.post('/', RoutingRuleController, 'create').name('fwclouds.firewalls.routing.rules.store');
+                                router.get('/', RoutingRuleController, 'index').name('fwclouds.firewalls.routing.rules.index');
+                                router.prefix('/:rule(\\d+)', (router:RouterParser) => {
+                                    router.get('/', RoutingRuleController, 'show').name('fwclouds.firewalls.routing.rules.show');
+                                    router.put('/', RoutingRuleController, 'update').name('fwclouds.firewalls.routing.rules.update');
+                                    router.delete('/', RoutingRuleController, 'remove').name('fwclouds.firewalls.routing.rules.delete');
                                 });
                             });
                         })

@@ -59,6 +59,7 @@ import { logger } from "./fonaments/abstract-application";
 import * as fs from 'fs';
 import { RoutingTableServiceProvider } from "./models/routing/routing-table/routing-table.provider";
 import { RouteServiceProvider } from "./models/routing/route/route.provider";
+import { RoutingRuleServiceProvider } from "./models/routing/routing-rule/routing-rule.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -119,7 +120,8 @@ export class Application extends HTTPApplication {
             UpdateServiceProvider,
             IptablesSaveServiceProvider,
             RoutingTableServiceProvider,
-            RouteServiceProvider
+            RouteServiceProvider,
+            RoutingRuleServiceProvider
         ]
     }
 
