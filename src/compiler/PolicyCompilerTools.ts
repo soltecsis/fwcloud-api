@@ -73,7 +73,8 @@ export abstract class PolicyCompilerTools {
 	private _logChain = ''; 
 	private _accChain = ''; 
 	private _csEnd = ''; 
-	private _stateful = ''; 
+	private _stateful = '';
+  private _family: string; 
 	private _table = ''; 
 	private _action = '';
 	protected _comment: string;
@@ -120,11 +121,12 @@ export abstract class PolicyCompilerTools {
 
         // NFTables comment extension allows you to add comments (up to 128 characters) to any rule.
         comment = shellescape([comment]).substring(0,120);
+        comment = comment.slice(1,-1);
 
         // Comment must start and and end with \" characters.
         if (comment.charAt(0) !== '\\' && comment.charAt(1) !== '"') comment =`\\"${comment}`;
         if (comment.charAt(comment.length-2) !== '\\' && comment.charAt(comment.length-1) !== '"') comment =`${comment}\\"`;
-        comment = ` comment ${comment.replace(/\r/g,' ').replace(/\n/g,' ')}`;
+        comment = ` comment ${comment.replace(/\r/g,' ').replace(/\n/g,' ')}\n`;
       }
     }
 
@@ -153,15 +155,19 @@ export abstract class PolicyCompilerTools {
 			this._policyType -= 60;
 			this._ruleData.type -= 60;
 			this._ruleData.ip_version = 6;
-		} else this._ruleData.ip_version = 4;	
+      this._family = 'ip6';
+		} else {
+      this._family = 'ip';
+      this._ruleData.ip_version = 4;
+    }	
 
 		if (this._policyType === PolicyTypesMap.get('IPv4:SNAT')) { // SNAT
-			this._table = "-t nat";
+			this._table = this._compiler==='IPTables' ? '-t nat' : 'nat';
 			this._cs += this._table + ` -A POSTROUTING ${this._comment}`;
 			this._action = this.natAction();
 		}
 		else if (this._policyType === PolicyTypesMap.get('IPv4:DNAT')) { // DNAT
-			this._table = "-t nat";
+			this._table = this._compiler==='IPTables' ? '-t nat' : 'nat';
 			this._cs += this._table + ` -A PREROUTING ${this._comment}`;
 			this._action = this.natAction();
 		}
@@ -172,7 +178,12 @@ export abstract class PolicyCompilerTools {
 				throw(new Error("Bad rule data"));
 			}
 
-			this._cs += `${this._compiler==='IPTables' ? `-A ${POLICY_TYPE[this._policyType]} ${this._comment}` : `add rule ip filter ${POLICY_TYPE[this._policyType]} `}`;
+      if (this._compiler === 'IPTables')
+			  this._cs += `-A ${POLICY_TYPE[this._policyType]} ${this._comment}`;
+      else { // NFTables
+        this._table = 'filter';
+        this._cs += `add rule ${this._family} ${this._table} ${POLICY_TYPE[this._policyType]} `;  
+      }
 
 			if (this._ruleData.special === 1) // Special rule for ESTABLISHED,RELATED packages.
 				this._action = CompilerAction.get(`${this._compiler}:1`); // 1 = ACCEPT
@@ -180,11 +191,11 @@ export abstract class PolicyCompilerTools {
 				this._action = CompilerAction.get(`${this._compiler}:${this._ruleData.action}`);
 			else {
 				this._action = CompilerAction.get(`${this._compiler}:${this._ruleData.action}`);
-				if (this._action === CompilerAction.get(`${this._compiler}:1`)) {
+				if (this._action === CompilerAction.get(`${this._compiler}:1`)) { // 1 = ACCEPT
 					if (this._ruleData.options & 0x0001) // Stateful rule.
-						this._stateful = "-m conntrack --ctstate  NEW ";
+						this._stateful = this._compiler==='IPTables' ? '-m conntrack --ctstate  NEW ' : 'ct state new ';
 					else if ((this._ruleData.firewall_options & 0x0001) && !(this._ruleData.options & 0x0002)) // Statefull firewall and this rule is not stateless.
-						this._stateful = "-m conntrack --ctstate  NEW ";
+            this._stateful = this._compiler==='IPTables' ? '-m conntrack --ctstate  NEW ' : 'ct state new ';
 					}
 				else if (this._action === "ACCOUNTING") {
 					this._accChain = "FWCRULE" + this._ruleData.id + ".ACC";
@@ -199,20 +210,21 @@ export abstract class PolicyCompilerTools {
 					this._afterLogAction = this._action;
 					this._action = this._logChain;
 				} else
-					this._afterLogAction = "RETURN";
+					this._afterLogAction = this._compiler==='IPTables' ? 'RETURN' : 'counter jump return';
 			}
 		}
 
 		if (parseInt(this._ruleData.special) === 1) // Special rule for ESTABLISHED,RELATED packages.
-			this._csEnd = `-m conntrack --ctstate ESTABLISHED,RELATED -j ${this._action}\n`;
+			this._csEnd = `${this._compiler==='IPTables' ? '-m conntrack --ctstate ESTABLISHED,RELATED -j' : 'ct state related,established'} ${this._action}\n`;
 		else
-			this._csEnd = `${this._stateful} -j ${this._action}\n`;
+			this._csEnd = `${this._stateful} ${this._compiler==='IPTables' ? '-j ' :''}${this._action}\n`;
 	}
 
 
   protected afterCompilation(): string {
     // In NFTables comment goes at the end.
-    if (this._compiler === 'NFTables') this._cs += this._comment;
+    if (this._compiler==='NFTables' && this._comment)
+      this._cs = `${this._cs.slice(0,-1)} ${this._comment}`;
 
     // Replace two consecutive spaces by only one.
     this._cs = this._cs.replace(/  +/g, ' ');
@@ -294,13 +306,13 @@ export abstract class PolicyCompilerTools {
         if (n <= 15) 
           currentPorts.push(port);
         else {
-          cmpPos.items.push(`${this._compiler==='IPTables' ? `-p ${proto} -m multiport --dports ${currentPorts.join(',')}` : `ip protocol ${proto} ${proto} dport { ${currentPorts.join(',')}}`}`);
+          cmpPos.items.push(`${this._compiler==='IPTables' ? `-p ${proto} -m multiport --dports ${currentPorts.join(',')}` : `ip protocol ${proto} ${proto} dport {${currentPorts.join(',')}}`}`);
           currentPorts = [];
           currentPorts.push(port);
           n = port.indexOf(sep) === -1 ? 1 : 2;
         }
       } 
-      cmpPos.items.push(`${this._compiler==='IPTables' ? `-p ${proto} -m multiport --dports ${currentPorts.join(',')}` : `ip protocol ${proto} ${proto} dport { ${currentPorts.join(',')}}`}`);
+      cmpPos.items.push(`${this._compiler==='IPTables' ? `-p ${proto} -m multiport --dports ${currentPorts.join(',')}` : `ip protocol ${proto} ${proto} dport {${currentPorts.join(',')}}`}`);
     }
   }
               
@@ -322,60 +334,60 @@ export abstract class PolicyCompilerTools {
               if (tcpPorts)
                 tcpPorts += ',';
               tcpPorts += (svc[i].destination_port_start === svc[i].destination_port_end) ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`;
-            } else {
-              tmp = `-p tcp --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
+            } else { // With source port.
+              tmp = `${this._compiler==='IPTables' ? '-p tcp --sport' : 'tcp sport'} ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
               if (svc[i].destination_port_end !== 0)
-                tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
+                tmp += ` ${this._compiler==='IPTables' ? '--dport' : 'tcp dport'} ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
               cmpPos.items.push(tmp);
             }
           }
           else { // Add the TCP flags.
-            tmp = '-p tcp';
+            tmp = this._compiler==='IPTables' ? '-p tcp' : '';
             if (svc[i].source_port_end!==0 && svc[i].source_port_end!==null) // Exists source port
-              tmp += ` --sport ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
+              tmp += ` ${this._compiler==='IPTables' ? '--sport' : 'tcp sport'} ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
             if (svc[i].destination_port_end!==0 && svc[i].destination_port_end!==null) // Exists destination port
-              tmp += ` --dport ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
-            tmp += ` --tcp-flags `;
+              tmp += ` ${this._compiler==='IPTables' ? '--dport' : 'tcp dport'} ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
+            tmp += this._compiler==='IPTables' ? ' --tcp-flags ' : ' tcp flags \\& \\(';
 
             // If all mask bits are set.
             if (mask === 0b00111111)
-              tmp += 'ALL ';
+              tmp += this._compiler==='IPTables' ? 'ALL ' : 'fin\\|syn\\|rst\\|psh\\|ack\\|urg\\) == ';
             else {
               // Compose the mask.
               if (mask & 0b00000001) // URG
-                tmp += 'URG,';
+                tmp += this._compiler==='IPTables' ? 'URG,' : 'urg\\|';
               if (mask & 0b00000010) // ACK
-                tmp += 'ACK,';
+                tmp += this._compiler==='IPTables' ? 'ACK,' : 'ack\\|';
               if (mask & 0b00000100) // PSH
-                tmp += 'PSH,';
+                tmp += this._compiler==='IPTables' ? 'PSH,' : 'psh\\|';
               if (mask & 0b00001000) // RST
-                tmp += 'RST,';
+                tmp += this._compiler==='IPTables' ? 'RST,' : 'rst\\|';
               if (mask & 0b00010000) // SYN
-                tmp += 'SYN,';
+                tmp += this._compiler==='IPTables' ? 'SYN,' : 'syn\\|';
               if (mask & 0b00100000) // FIN
-                tmp += 'FIN,';
-              tmp = tmp.replace(/.$/, ' ');
+                tmp += this._compiler==='IPTables' ? 'FIN,' : 'fin\\|';
+              tmp = this._compiler==='IPTables' ? tmp.replace(/.$/, ' ') : tmp.replace(/..$/, '\\) == ');
             }
 
             // Compose the flags that must be set.
             const settings = svc[i].tcp_flags_settings;
             if (!settings || settings === 0)
-              tmp += ' NONE';
+              tmp += this._compiler==='IPTables' ? ' NONE' : '0x0';
             else {
               // Compose the mask.
               if (settings & 0b00000001) // URG
-                tmp += 'URG,';
+                tmp += this._compiler==='IPTables' ? 'URG,' : 'urg\\|';
               if (settings & 0b00000010) // ACK
-                tmp += 'ACK,';
+                tmp += this._compiler==='IPTables' ? 'ACK,' : 'ack\\|';
               if (settings & 0b00000100) // PSH
-                tmp += 'PSH,';
+                tmp += this._compiler==='IPTables' ? 'PSH,' : 'psh\\|';
               if (settings & 0b00001000) // RST
-                tmp += 'RST,';
+                tmp += this._compiler==='IPTables' ? 'RST,' : 'rst\\|';
               if (settings & 0b00010000) // SYN
-                tmp += 'SYN,';
+                tmp += this._compiler==='IPTables' ? 'SYN,' : 'syn\\|';
               if (settings & 0b00100000) // FIN
-                tmp += 'FIN,';
-              tmp = tmp.substring(0, tmp.length - 1);
+                tmp += this._compiler==='IPTables' ? 'FIN,' : 'fin\\|';
+              tmp = this._compiler==='IPTables' ? tmp.substring(0, tmp.length - 1) : tmp.substring(0, tmp.length - 2);
             }
 
             cmpPos.items.push(tmp);
@@ -396,18 +408,18 @@ export abstract class PolicyCompilerTools {
           break;
 
         case 1: // ICMP
-          const shared = (ipv === 4) ? '-p icmp -m icmp --icmp-type' : '-p icmpv6 -m ipv6-icmp --icmpv6-type';
+          const iptablesOpt = (ipv === 4) ? '-p icmp -m icmp --icmp-type' : '-p icmpv6 -m ipv6-icmp --icmpv6-type';
 
           if (svc[i].icmp_type === -1 && svc[i].icmp_code === -1) // Any ICMP
-            cmpPos.items.push(`${shared} any`);
+            cmpPos.items.push(`${this._compiler==='IPTables' ? `${iptablesOpt} any` : `${this._family} protocol icmp`}`);
           else if (svc[i].icmp_type !== -1 && svc[i].icmp_code === -1)
-            cmpPos.items.push(`${shared} ${svc[i].icmp_type}`);
+            cmpPos.items.push(this._compiler==='IPTables' ? `${iptablesOpt} ${svc[i].icmp_type}` : `icmp type ${svc[i].icmp_type}`);
           else if (svc[i].icmp_type !== -1 && svc[i].icmp_code !== -1)
-            cmpPos.items.push(`${shared} ${svc[i].icmp_type}/${svc[i].icmp_code}`);
+            cmpPos.items.push(this._compiler==='IPTables' ?  `${iptablesOpt} ${svc[i].icmp_type}/${svc[i].icmp_code}` : `icmp type ${svc[i].icmp_type} icmp code ${svc[i].icmp_code}`);
           break;
 
         default: // Other IP protocols.
-          cmpPos.items.push(`-p ${svc[i].protocol}`);
+          cmpPos.items.push(`${this._compiler==='IPTables' ? '-p' : 'ip protocol'} ${svc[i].protocol}`);
           break;
       }
     }
@@ -536,47 +548,55 @@ export abstract class PolicyCompilerTools {
       cs += this._csEnd;
     else if (this._compiledPositions.length === 1 && !(this._compiledPositions[0].negate)) { // One condition rule and no negated position.
       if (this._compiledPositions[0].items.length === 1) // Only one item in the condition.
-        cs += this._compiledPositions[0].items[0] + " " + this._csEnd;
+        cs += `${this._compiledPositions[0].items[0]} ${this._csEnd}`;
       else { // Multiple items in the condition.
         let cs1 = cs;
-        cs = "";
+        cs = '';
         for (let i = 0; i < this._compiledPositions[0].items.length; i++)
-          cs += cs1 + this._compiledPositions[0].items[i] + " " + this._csEnd;
+          cs += `${cs1}${this._compiledPositions[0].items[i]} ${this._csEnd}`;
       }
     } else { // Multiple condition rules or one condition rule with the condition (position) negated.
-      for (let i = 0, j, chainName = "", chainNext = ""; i < this._compiledPositions.length; i++) {
+      for (let i = 0, j: number, chainName = '', chainNext = ''; i < this._compiledPositions.length; i++) {
         // We have the position_items array ordered by arrays length.
         if (this._compiledPositions[i].items.length === 1 && !(this._compiledPositions[i].negate))
-            cs += this._compiledPositions[i].items[0] + " ";
+            cs += `${this._compiledPositions[i].items[0]} `;
         else {
-          chainName = "FWCRULE" + id + ".CH" + chainNumber;
+          chainName = `FWCRULE${id}.CH${chainNumber}`;
           // If we are in the first condition and it is not negated.
           if (i === 0 && !(this._compiledPositions[i].negate)) {
             let cs1 = cs;
-            cs = "";
+            cs = '';
             for (let j = 0; j < this._compiledPositions[0].items.length; j++)
-              cs += cs1 + this._compiledPositions[0].items[j] + ((j < (this._compiledPositions[0].items.length - 1)) ? " " + this._stateful + " -j " + chainName + "\n" : " ");
+              cs += `${cs1}${this._compiledPositions[0].items[j]} ${j < (this._compiledPositions[0].items.length - 1) ? `${this._stateful} ${this._compiler==='IPTables' ? '-j':'jump'} ${chainName}\n` : ''}`;
           } else {
             if (!(this._compiledPositions[i].negate)) {
               // If we are at the end of the array, the next chain will be the rule action.
-              chainNext = (i === ((this._compiledPositions.length) - 1)) ? this._action : "FWCRULE" + id + ".CH" + (chainNumber + 1);
+              chainNext = (i === (this._compiledPositions.length - 1)) ? this._action : `FWCRULE${id}.CH${chainNumber+1}`;
             } else { // If the position is negated.
-              chainNext = "RETURN";
+              chainNext = this._compiler==='IPTables' ? 'RETURN' : 'return';
             }
 
-            cs = `${this._cmd} ${this._table} -N ${chainName}\n${cs}${((chainNumber === 1) ? this._stateful + " -j " + chainName + "\n" : "")}`;
+            cs = `${this._cmd} ${this._compiler==='IPTables' ? `${this._table} -N` : `add chain ${this._family} ${this._table}`} ${chainName}\n${cs}`;
+            cs += `${chainNumber === 1 ? `${this._stateful} ${this._compiler==='IPTables' ? '-j':'counter jump'} ${chainName}\n` : ''}`;
             for (j = 0; j < this._compiledPositions[i].items.length; j++) {
-              cs += `${this._cmd} ${this._table} -A ${chainName} ${this._compiledPositions[i].items[j]} -j ${chainNext}\n`;
+              if (this._compiler === 'IPTables')
+                cs += `${this._cmd} ${this._table} -A ${chainName} ${this._compiledPositions[i].items[j]} -j ${chainNext}\n`;
+              else // NFTables
+                cs += `${this._cmd} add rule ${this._family} ${this._table} ${chainName} ${this._compiledPositions[i].items[j]} counter jump ${chainNext}\n`;
             }
             chainNumber++;
 
-            if (this._compiledPositions[i].negate)
-              cs += `${this._cmd} ${this._table} -A ${chainName} -j ${((i === ((this._compiledPositions.length) - 1)) ? this._action : "FWCRULE" + id + ".CH" + chainNumber)}\n`;
+            if (this._compiledPositions[i].negate) {
+              if (this._compiler === 'IPTables')
+                cs += `${this._cmd} ${this._table} -A ${chainName} -j ${((i === ((this._compiledPositions.length) - 1)) ? this._action : `FWCRULE${id}.CH${chainNumber}`)}\n`;
+              else // NFTables
+                cs += `${this._cmd} add rule ${this._family} ${this._table} ${chainName} ${((i === ((this._compiledPositions.length) - 1)) ? this._action : `counter jump FWCRULE${id}.CH${chainNumber}`)}\n`;
+            }
           }
         }
       }
 
-      // If we have not used IPTABLES user defined chains.
+      // If we have not used user defined chains.
       if (chainNumber === 1)
         cs += this._csEnd;
     }
