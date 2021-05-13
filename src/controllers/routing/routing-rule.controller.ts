@@ -37,8 +37,7 @@ export class RoutingRuleController extends Controller {
                 }
             },
             where: qb => {
-                qb.where('firewall.id = :id', {id: this._firewall.id})
-                qb.andWhere('firewall.fwCloudId = :id', {id: this._fwCloud.id})
+                qb.where('firewall.id = :firewallId AND firewall.fwCloudId = :fwcloudId', {firewallId: this._firewall.id, fwcloudId: this._fwCloud.id})
             }
         });
 

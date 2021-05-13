@@ -9,12 +9,9 @@ import { attachSession, createUser, generateSession } from "../../../../utils/ut
 import request = require("supertest");
 import { _URL } from "../../../../../src/fonaments/http/router/router.service";
 import { RoutingTable } from "../../../../../src/models/routing/routing-table/routing-table.model";
-import { Route } from "../../../../../src/models/routing/route/route.model";
-import { RouteService } from "../../../../../src/models/routing/route/route.service";
-import { IPObj } from "../../../../../src/models/ipobj/IPObj";
-import { RouteController } from "../../../../../src/controllers/routing/route.controller";
 import { RoutingRule } from "../../../../../src/models/routing/routing-rule/routing-rule.model";
 import { RoutingRuleService } from "../../../../../src/models/routing/routing-rule/routing-rule.service";
+import { RoutingRuleController } from "../../../../../src/controllers/routing/routing-rule.controller";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;
@@ -56,7 +53,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
         });
     });
 
-    describe(RouteController.name, () => {
+    describe(RoutingRuleController.name, () => {
         describe('@index', () => {
             let rule: RoutingRule;
             
@@ -66,7 +63,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 });
             });
 
-            it('guest user should not see a routes', async () => {
+            it('guest user should not see a rules', async () => {
 				return await request(app.express)
 					.get(_URL().getURL('fwclouds.firewalls.routing.rules.index', {
                         fwcloud: fwCloud.id,
@@ -76,7 +73,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.expect(401);
 			});
 
-            it('regular user which does not belong to the fwcloud should not see routes', async () => {
+            it('regular user which does not belong to the fwcloud should not see rules', async () => {
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.index', {
                         fwcloud: fwCloud.id,
@@ -87,7 +84,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .expect(401)
             });
 
-            it('regular user which belongs to the fwcloud should see routes', async () => {
+            it('regular user which belongs to the fwcloud should see rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
                 await getRepository(User).save(loggedUser);
 
@@ -104,7 +101,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     });
             });
 
-            it('admin user should see routes', async () => {
+            it('admin user should see rules', async () => {
                 return await request(app.express)
                 .get(_URL().getURL('fwclouds.firewalls.routing.rules.index', {
                     fwcloud: fwCloud.id,
@@ -130,7 +127,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 });
             });   
 
-            it('guest user should not see a route', async () => {
+            it('guest user should not see a rules', async () => {
 				return await request(app.express)
 					.get(_URL().getURL('fwclouds.firewalls.routing.rules.show', {
                         fwcloud: fwCloud.id,
@@ -140,7 +137,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.expect(401);
 			});
 
-            it('regular user which does not belong to the fwcloud should not see a route', async () => {
+            it('regular user which does not belong to the fwcloud should not see a rules', async () => {
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.show', {
                         fwcloud: fwCloud.id,
@@ -151,7 +148,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .expect(401)
             });
 
-            it('regular user which belongs to the fwcloud should see a route', async () => {
+            it('regular user which belongs to the fwcloud should see a rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
                 await getRepository(User).save(loggedUser);
 
@@ -168,7 +165,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     });
             });
 
-            it('admin user should see a route', async () => {
+            it('admin user should see a rules', async () => {
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.show', {
                         fwcloud: fwCloud.id,
@@ -185,7 +182,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
         });
 
         describe('@create', () => {
-            it('guest user should not create a route', async () => {
+            it('guest user should not create a rules', async () => {
 				return await request(app.express)
 					.post(_URL().getURL('fwclouds.firewalls.routing.rules.store', {
                         fwcloud: fwCloud.id,
@@ -197,7 +194,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.expect(401);
 			});
 
-            it('regular user which does not belong to the fwcloud should not create a route', async () => {
+            it('regular user which does not belong to the fwcloud should not create a rules', async () => {
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.routing.rules.store', {
                         fwcloud: fwCloud.id,
@@ -210,7 +207,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .expect(401)
             });
 
-            it('regular user which belongs to the fwcloud should create a route', async () => {
+            it('regular user which belongs to the fwcloud should create a rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
                 await getRepository(User).save(loggedUser);
 
@@ -229,7 +226,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     });
             });
 
-            it('admin user should create a route', async () => {
+            it('admin user should create a rules', async () => {
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.routing.rules.store', {
                         fwcloud: fwCloud.id,
@@ -257,7 +254,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 });
             });
 
-            it('guest user should not update a route', async () => {
+            it('guest user should not update a rules', async () => {
 				return await request(app.express)
 					.put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
@@ -270,7 +267,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.expect(401);
 			});
 
-            it('regular user which does not belong to the fwcloud should not create a route', async () => {
+            it('regular user which does not belong to the fwcloud should not create a rules', async () => {
                 return await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
@@ -285,7 +282,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .expect(401)
             });
 
-            it('regular user which belongs to the fwcloud should update a route', async () => {
+            it('regular user which belongs to the fwcloud should update a rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
                 await getRepository(User).save(loggedUser);
 
@@ -306,7 +303,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     });
             });
 
-            it('admin user should create a route', async () => {
+            it('admin user should create a rules', async () => {
                 return await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
@@ -336,7 +333,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 });
             });
 
-            it('guest user should not remove a route', async () => {
+            it('guest user should not remove a rules', async () => {
 				return await request(app.express)
 					.delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
@@ -346,7 +343,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.expect(401);
 			});
 
-            it('regular user which does not belong to the fwcloud should not remove a route', async () => {
+            it('regular user which does not belong to the fwcloud should not remove a rules', async () => {
                 return await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
@@ -357,7 +354,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .expect(401)
             });
 
-            it('regular user which belongs to the fwcloud should remove a route', async () => {
+            it('regular user which belongs to the fwcloud should remove a rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
                 await getRepository(User).save(loggedUser);
 
@@ -374,7 +371,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     });
             });
 
-            it('admin user should create a route', async () => {
+            it('admin user should create a rules', async () => {
                 return await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
