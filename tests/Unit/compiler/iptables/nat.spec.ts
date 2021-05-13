@@ -56,7 +56,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     for (let i=0; i<posData.length; i++)
       await populateRule(rule,posData[i][0],posData[i][1]); 
     
-    const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+    const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
     
     expect(result).to.eql([{
       id: rule,
@@ -86,7 +86,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
       let error: any;
       
       try {
-        const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+        const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
       } catch(err) { error = err }
 
       expect(error).to.eql({
@@ -104,7 +104,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
       let error: any;
       
       try {
-        const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+        const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
       } catch(err) { error = err }
 
       expect(error).to.eql({
@@ -137,7 +137,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
 
     it('with translated source, translated service and one source', async () => {
       // 70003 - Net 10.0.0.0/8
-      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]], `$IPTABLES -t nat -A POSTROUTING -s 10.0.0.0/255.0.0.0 -j ${nat} -p tcp --to-source 224.0.0.18:443\n`);
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]], `$IPTABLES -t nat -A POSTROUTING -s 10.0.0.0/8 -j ${nat} -p tcp --to-source 224.0.0.18:443\n`);
     });
 
     it('with translated source, translated service and one service', async () => {
@@ -148,7 +148,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     it('with translated source, translated service, one source and one service', async () => {
       // 70003 - Net 10.0.0.0/8
       // 20020 - Auth service
-      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 20020]], `$IPTABLES -t nat -A POSTROUTING -p tcp --dport 113 -s 10.0.0.0/255.0.0.0 -j ${nat} --to-source 224.0.0.18:443\n`);
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 20020]], `$IPTABLES -t nat -A POSTROUTING -p tcp --dport 113 -s 10.0.0.0/8 -j ${nat} --to-source 224.0.0.18:443\n`);
     });
   });
 
@@ -174,7 +174,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
 
     it('with translated source, translated service and one source', async () => {
       // 70003 - Net 10.0.0.0/8
-      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]], `$IPTABLES -t nat -A POSTROUTING -s 10.0.0.0/255.0.0.0 -j ${nat} -p udp --to-source 224.0.0.18:53\n`);
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]], `$IPTABLES -t nat -A POSTROUTING -s 10.0.0.0/8 -j ${nat} -p udp --to-source 224.0.0.18:53\n`);
     });
 
     it('with translated source, translated service and one service', async () => {
@@ -185,7 +185,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     it('with translated source, translated service, one source and one service', async () => {
       // 70003 - Net 10.0.0.0/8
       // 40031 - Rsync service
-      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]], `$IPTABLES -t nat -A POSTROUTING -p udp --dport 873 -s 10.0.0.0/255.0.0.0 -j ${nat} --to-source 224.0.0.18:53\n`);
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]], `$IPTABLES -t nat -A POSTROUTING -p udp --dport 873 -s 10.0.0.0/8 -j ${nat} --to-source 224.0.0.18:53\n`);
     });
   });
 
@@ -211,7 +211,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
 
     it('with translated source, translated service and one source', async () => {
       // 70003 - Net 10.0.0.0/8
-      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]], `$IPTABLES -t nat -A PREROUTING -s 10.0.0.0/255.0.0.0 -j ${nat} -p tcp --to-destination 224.0.0.18:443\n`);
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]], `$IPTABLES -t nat -A PREROUTING -s 10.0.0.0/8 -j ${nat} -p tcp --to-destination 224.0.0.18:443\n`);
     });
 
     it('with translated source, translated service and one service', async () => {
@@ -222,7 +222,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     it('with translated source, translated service, one source and one service', async () => {
       // 70003 - Net 10.0.0.0/8
       // 20020 - Auth service
-      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 20020]], `$IPTABLES -t nat -A PREROUTING -p tcp --dport 113 -s 10.0.0.0/255.0.0.0 -j ${nat} --to-destination 224.0.0.18:443\n`);
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 20020]], `$IPTABLES -t nat -A PREROUTING -p tcp --dport 113 -s 10.0.0.0/8 -j ${nat} --to-destination 224.0.0.18:443\n`);
     });
   });
 
@@ -248,7 +248,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
 
     it('with translated source, translated service and one source', async () => {
       // 70003 - Net 10.0.0.0/8
-      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]], `$IPTABLES -t nat -A PREROUTING -s 10.0.0.0/255.0.0.0 -j ${nat} -p udp --to-destination 224.0.0.18:53\n`);
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]], `$IPTABLES -t nat -A PREROUTING -s 10.0.0.0/8 -j ${nat} -p udp --to-destination 224.0.0.18:53\n`);
     });
 
     it('with translated source, translated service and one service', async () => {
@@ -259,7 +259,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     it('with translated source, translated service, one source and one service', async () => {
       // 70003 - Net 10.0.0.0/8
       // 40031 - Rsync service
-      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]], `$IPTABLES -t nat -A PREROUTING -p udp --dport 873 -s 10.0.0.0/255.0.0.0 -j ${nat} --to-destination 224.0.0.18:53\n`);
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]], `$IPTABLES -t nat -A PREROUTING -p udp --dport 873 -s 10.0.0.0/8 -j ${nat} --to-destination 224.0.0.18:53\n`);
     });
   });
 });

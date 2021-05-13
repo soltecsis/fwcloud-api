@@ -26,10 +26,13 @@ import { RuleCompilationResult } from './PolicyCompilerTools'
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressNoticePayload } from '../sockets/messages/socket-message';
 import { PolicyRule } from '../models/policy/PolicyRule';
+
+export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler;
+export type AvailablePolicyCompilers = 'IPTables' | 'NFTables';
  
 export class PolicyCompiler {
 
-  public static compile(dbCon: any, fwcloud: number, firewall: number, type: number, rule?: number, eventEmitter?: EventEmitter): Promise<RuleCompilationResult[]> {
+  public static compile(compileFor: AvailablePolicyCompilers, dbCon: any, fwcloud: number, firewall: number, type: number, rule?: number, eventEmitter?: EventEmitter): Promise<RuleCompilationResult[]> {
     return new Promise(async (resolve, reject) => {
       try {
         const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, firewall, type, rule, null);
@@ -40,8 +43,12 @@ export class PolicyCompiler {
         for (let i=0; i<rulesData.length; i++) {
           if (eventEmitter) eventEmitter.emit('message', new ProgressNoticePayload(`Rule ${i+1} (ID: ${rulesData[i].id})${!(rulesData[i].active) ? ' [DISABLED]' : ''}`));
 
-          const compiler = new IPTablesCompiler(rulesData[i]);
-          //const compiler = new NFTablesCompiler(rulesData[i]);
+          let compiler: PolicyCompilerClasses;
+
+          if (compileFor == 'IPTables')
+            compiler = new IPTablesCompiler(rulesData[i]);
+          else // NFTables
+            compiler = new NFTablesCompiler(rulesData[i]);
 
           result.push({
             id: rulesData[i].id,

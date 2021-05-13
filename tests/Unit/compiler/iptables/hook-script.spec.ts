@@ -63,7 +63,7 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
     const rule = await PolicyRule.insertPolicy_r(ruleData);
     if (ruleData.type === PolicyTypesMap.get(`${IPv}:DNAT`))
       await populateRule(rule,RulePositionsMap.get(`${IPv}:DNAT:Translated Destination`),50010); // 50010 = Standard VRRP IP
-    const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+    const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
     
     expect(result).to.eql([{
       id: rule,

@@ -55,7 +55,7 @@ describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
         let error: any;
 
         try {
-            result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, policyType, rule);
+            result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, policyType, rule);
         } catch(err) { error = err }
         
         if (policyType === PolicyTypesMap.get(`${IPv}:DNAT`)) { 

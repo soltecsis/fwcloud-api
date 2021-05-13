@@ -114,7 +114,7 @@ describe(describeName('IPTables Compiler Unit Tests - OpenVPN'), () => {
     }
 
     try {
-        result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, policyType, rule);
+        result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, policyType, rule);
     } catch(err) { error = err }
 
     if (usePrefix && vpnCli2 && 

@@ -90,7 +90,7 @@ const fwcError = require('../../utils/error_table');
 router.put('/rule', async (req, res) => {
 	try {
 		//console.time(`Rule compile (ID: ${req.body.rule})`);
-		const rulesCompiled = await PolicyCompiler.compile(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		const rulesCompiled = await PolicyCompiler.compile('IPTables', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
 		//console.timeEnd(`Rule compile (ID: ${req.body.rule})`);
 
 		if (rulesCompiled.length === 0)

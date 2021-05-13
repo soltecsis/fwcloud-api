@@ -21,8 +21,10 @@
 */
 
 import { PolicyTypesMap } from '../models/policy/PolicyType';
-let fwcError = require('../utils/error_table');
-let shellescape = require('shell-escape');
+import { AvailablePolicyCompilers } from './PolicyCompiler';
+const ip = require('ip');
+const fwcError = require('../utils/error_table');
+const shellescape = require('shell-escape');
 
 export const RuleActionsMap = new Map<string, number>([
   ['ACCEPT',1],  ['DROP',2],  ['REJECT',3],  ['ACCOUNTING',4]
@@ -48,7 +50,7 @@ export const CompilerAction = new Map<string, string>([
   ['IPTables:1', 'ACCEPT'],     ['NFTables:1', 'counter accept'],
   ['IPTables:2', 'DROP'],       ['NFTables:2', 'counter drop'],
   ['IPTables:3', 'REJECT'],     ['NFTables:3', 'counter reject'],
-  ['IPTables:4', 'ACCOUNTING'], ['NFTables:4', 'counter'],
+  ['IPTables:4', 'ACCOUNTING'], ['NFTables:4', 'ACCOUNTING'],
 ]);
 
 export type RuleCompilationResult = {
@@ -64,7 +66,7 @@ type CompiledPosition = {
 }
 
 export abstract class PolicyCompilerTools {
-  protected _compiler: 'IPTables' | 'NFTables';
+  protected _compiler: AvailablePolicyCompilers;
   protected _ruleData: any;
 	protected _policyType: number;
 	protected _cs: string;
@@ -168,7 +170,7 @@ export abstract class PolicyCompilerTools {
         this._cs += this._table + ` -A ${chain} ${this._comment}`;
       } else { // NFTables
         this._table = 'nat';
-        this._cs += `add rule ${this._family} ${this._table} ${chain}`;
+        this._cs += `add rule ${this._family} ${this._table} ${chain} `;
       }
 			this._action = this.natAction();
 		}
@@ -200,7 +202,7 @@ export abstract class PolicyCompilerTools {
 					}
 				else if (this._action === "ACCOUNTING") {
 					this._accChain = "FWCRULE" + this._ruleData.id + ".ACC";
-					this._action = this._accChain;
+					this._action = `${this._compiler == 'NFTables' ? 'jump ' : ''}${this._accChain}`;
 				}
 			}
 
@@ -209,9 +211,9 @@ export abstract class PolicyCompilerTools {
 				this._logChain = "FWCRULE" + this._ruleData.id + ".LOG";
 				if (!this._accChain) {
 					this._afterLogAction = this._action;
-					this._action = this._logChain;
+					this._action = `${this._compiler=='NFTables' ? 'jump ' : ''}${this._logChain}`;
 				} else
-					this._afterLogAction = this._compiler=='IPTables' ? 'RETURN' : 'counter jump return';
+					this._afterLogAction = this._compiler=='IPTables' ? 'RETURN' : 'counter return';
 			}
 		}
 
@@ -252,8 +254,16 @@ export abstract class PolicyCompilerTools {
       else if (ipv === sd[i].ip_version) { // Only add this type of IP objects if they have the same IP version than the compiled rule.
         if (sd[i].type === 5) // Address
           cmpPos.items.push(`${opt} ${sd[i].address}`);
-        else if (sd[i].type === 7) // Network
-          cmpPos.items.push(`${opt} ${sd[i].address}/${sd[i].netmask.replace('/', '')}`);
+        else if (sd[i].type === 7) { // Network
+          // We have two formats for the netmask (for example, 255.255.255.0 or /24).
+          // IPTables support both formats, but NFTables only the CIDR format, for this reason we use only CIDR format.
+          if (sd[i].netmask[0] === '/')
+            cmpPos.items.push(`${opt} ${sd[i].address}${sd[i].netmask}`); 
+          else { 
+            const net = ip.subnet(sd[i].address, sd[i].netmask);
+            cmpPos.items.push(`${opt} ${sd[i].address}/${net.subnetMaskLength}`); 
+          }
+        }
         else if (sd[i].type === 6) { // Address range
           const range = `${sd[i].range_start}-${sd[i].range_end}`;
           if (this._compiler === 'IPTables') 
@@ -307,13 +317,13 @@ export abstract class PolicyCompilerTools {
         if (n <= 15) 
           currentPorts.push(port);
         else {
-          cmpPos.items.push(`${this._compiler=='IPTables' ? `-p ${proto} -m multiport --dports ${currentPorts.join(',')}` : `ip protocol ${proto} ${proto} dport {${currentPorts.join(',')}}`}`);
+          cmpPos.items.push(`${this._compiler=='IPTables' ? `-p ${proto} -m multiport --dports ${currentPorts.join(',')}` : `ip protocol ${proto} ${proto} dport { ${currentPorts.join(',')}}`}`);
           currentPorts = [];
           currentPorts.push(port);
           n = port.indexOf(sep) === -1 ? 1 : 2;
         }
       } 
-      cmpPos.items.push(`${this._compiler=='IPTables' ? `-p ${proto} -m multiport --dports ${currentPorts.join(',')}` : `ip protocol ${proto} ${proto} dport {${currentPorts.join(',')}}`}`);
+      cmpPos.items.push(`${this._compiler=='IPTables' ? `-p ${proto} -m multiport --dports ${currentPorts.join(',')}` : `ip protocol ${proto} ${proto} dport { ${currentPorts.join(',')}}`}`);
     }
   }
               
@@ -449,15 +459,17 @@ export abstract class PolicyCompilerTools {
     if (this._ruleData.positions[5].ipobjs.length === 1 && this._ruleData.positions[5].ipobjs[0].protocol !== 6 && this._ruleData.positions[5].ipobjs[0].protocol !== 17)
       throw(fwcError.other("For 'Translated Service' only protocols TCP and UDP are allowed"));
 
-    let protocol = ' ';
-    if (this._ruleData.positions[5].ipobjs.length === 1) 
-      protocol = (this._ruleData.positions[5].ipobjs[0].protocol==6) ? ' -p tcp ' : ' -p udp ';
-
+    let protocol = '';
     let action: string;
-    if (this._compiler == 'IPTables')
-      action = (this._policyType === PolicyTypesMap.get('IPv4:SNAT')) ? `SNAT${protocol}--to-source ` : `DNAT${protocol}--to-destination `;
-    else // NFTables
-      action = (this._policyType === PolicyTypesMap.get('IPv4:SNAT')) ? `snat to ` : `dnat to `;
+    if (this._compiler == 'IPTables') {
+      if (this._ruleData.positions[5].ipobjs.length === 1) 
+        protocol = (this._ruleData.positions[5].ipobjs[0].protocol==6) ? '-p tcp ' : '-p udp ';
+      action = (this._policyType === PolicyTypesMap.get('IPv4:SNAT')) ? `SNAT ${protocol}--to-source ` : `DNAT ${protocol}--to-destination `;
+    } else { // NFTables
+      if (this._ruleData.positions[5].ipobjs.length === 1) 
+        protocol = `${this._family} protocol ${this._ruleData.positions[5].ipobjs[0].protocol==6 ? 'tcp ' : 'udp '}`;
+      action = `${protocol}counter ${this._policyType === PolicyTypesMap.get('IPv4:SNAT') ? 'snat to ' : 'dnat to '}`;
+    }
 
     if (this._ruleData.positions[4].ipobjs.length === 1) {
       const ipobj = this._ruleData.positions[4].ipobjs[0];
@@ -587,7 +599,7 @@ export abstract class PolicyCompilerTools {
               if (this._compiler === 'IPTables')
                 cs += `${this._cmd} ${this._table} -A ${chainName} ${this._compiledPositions[i].items[j]} -j ${chainNext}\n`;
               else // NFTables
-                cs += `${this._cmd} add rule ${this._family} ${this._table} ${chainName} ${this._compiledPositions[i].items[j]} counter jump ${chainNext}\n`;
+                cs += `${this._cmd} add rule ${this._family} ${this._table} ${chainName} ${this._compiledPositions[i].items[j]} ${i != (this._compiledPositions.length - 1) ? 'counter jump ' : ''}${chainNext}\n`;
             }
             chainNumber++;
 
@@ -612,9 +624,18 @@ export abstract class PolicyCompilerTools {
 	protected addAccounting(): void {
 		// Accounting, logging and marking is not allowed with SNAT and DNAT chains.
 		if (this._accChain && this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')) {
-			this._cs = `${this._cmd} -N ${this._accChain}\n` +
-				`${this._cmd} -A ${this._accChain} -j ${(this._logChain) ? this._logChain : "RETURN"}\n` +
-				`${this._cs}`;
+      let createChain: string;
+      let chainAction: string;
+
+      if (this._compiler == 'IPTables') {
+        createChain = `${this._cmd} -N ${this._accChain}`;
+        chainAction =	`${this._cmd} -A ${this._accChain} -j ${(this._logChain) ? this._logChain : "RETURN"}`;  
+      } else { // NFTables
+        createChain = `${this._cmd} add chain ${this._family} ${this._table} ${this._accChain}`;
+        chainAction =	`${this._cmd} add rule ${this._family} ${this._table} ${this._accChain} counter ${this._logChain ? `jump ${this._logChain}` : 'return'}`;  
+      }
+
+      this._cs = `${createChain}\n${chainAction}\n${this._cs}`;
 		}
 	}
 
@@ -622,10 +643,21 @@ export abstract class PolicyCompilerTools {
 	protected addLog(): void {
 		// Accounting, logging and marking is not allowed with SNAT and DNAT chains.
 		if (this._logChain && this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')) {
-			this._cs = `${this._cmd} -N ${this._logChain}\n` +
-				`${this._cmd} -A ${this._logChain} -m limit --limit 60/minute -j LOG --log-level info --log-prefix "RULE ID ${this._ruleData.id} [${this._afterLogAction}] "\n` +
-				`${this._cmd} -A ${this._logChain} -j ${this._afterLogAction}\n` +
-				`${this._cs}`;
+      let createChain: string;
+      let chainAction: string;
+      let afterLog: string;
+
+      if (this._compiler == 'IPTables') {
+        createChain = `${this._cmd} -N ${this._logChain}`;
+        chainAction =	`${this._cmd} -A ${this._logChain} -m limit --limit 60/minute -j LOG --log-level info --log-prefix "RULE ID ${this._ruleData.id} [${this._afterLogAction}] "`;  
+        afterLog = `${this._cmd} -A ${this._logChain} -j ${this._afterLogAction}`
+      } else { // NFTables
+        createChain = `${this._cmd} add chain ${this._family} ${this._table} ${this._logChain}`;
+        chainAction =	`${this._cmd} add rule ${this._family} ${this._table} ${this._logChain} limit rate 1/second burst 5 packets counter log prefix \\"RULE ID 101393 [${this._afterLogAction}]\\" level info`;  
+        afterLog = `${this._cmd} add rule ${this._family} ${this._table} ${this._logChain} ${this._afterLogAction}`
+      }
+
+      this._cs = `${createChain}\n${chainAction}\n${afterLog}\n${this._cs}`;
 		}
 	}
 
@@ -633,24 +665,43 @@ export abstract class PolicyCompilerTools {
 	protected addMark(): void {
 		// Accounting, logging and marking is not allowed with SNAT and DNAT chains.
 		if (parseInt(this._ruleData.mark_code) !== 0 && this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')) {
-			this._table = '-t mangle';
+      let cs1: string;
+      let cs2: string;
 
-			this._action = `MARK --set-mark ${this._ruleData.mark_code}`;
-			this._csEnd = `${this._stateful} -j ${this._action}\n`
-			this._cs += this.generateCompilationString(`${this._ruleData.id}-M1`, `${this._cmd} -t mangle -A ${MARK_CHAIN[this._policyType]} `);
+      if (this._compiler == 'IPTables') {
+        this._table = '-t mangle';
+        this._action = `MARK --set-mark ${this._ruleData.mark_code}`;
+        this._csEnd = `${this._stateful} -j ${this._action}\n`;
+        cs1 = `${this._cmd} -t mangle -A ${MARK_CHAIN[this._policyType]} `; 
+        cs2 = `${this._cmd} -t mangle -A PREROUTING `; 
+      } else { // NFTables
+        this._table = 'mangle';
+        this._action = `counter meta mark set ${this._ruleData.mark_code}`;
+        this._csEnd = `${this._stateful} ${this._action}\n`;
+        cs1 = `${this._cmd} add rule ${this._family} ${this._table} ${MARK_CHAIN[this._policyType]} `; 
+        cs2 = `${this._cmd} add rule ${this._family} ${this._table} PREROUTING `; 
+      }
+
+			this._cs += this.generateCompilationString(`${this._ruleData.id}-M1`, cs1);
 			// Add the mark to the PREROUTING chain of the mangle table.
 			if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
-				let str  = this.generateCompilationString(`${this._ruleData.id}-M1`, `${this._cmd} -t mangle -A PREROUTING `);
+				let str  = this.generateCompilationString(`${this._ruleData.id}-M1`, cs2);
 				str = str.replace(/-o \w+ /g, "")
 				this._cs += str;
 			}
 
-			this._action = `CONNMARK --save-mark`;
-			this._csEnd = `${this._stateful} -j ${this._action}\n`
-			this._cs += this.generateCompilationString(`${this._ruleData.id}-M2`, `${this._cmd} -t mangle -A ${MARK_CHAIN[this._policyType]} `);
+      if (this._compiler == 'IPTables') {
+			  this._action = `CONNMARK --save-mark`;
+			  this._csEnd = `${this._stateful} -j ${this._action}\n`;
+      } else { // NFTables
+        this._action = `counter meta mark set mark`;
+        this._csEnd = `${this._stateful} ${this._action}\n`;
+      }
+
+			this._cs += this.generateCompilationString(`${this._ruleData.id}-M2`, cs1);
 			// Add the mark to the PREROUTING chain of the mangle table.
 			if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
-				let str  = this.generateCompilationString(`${this._ruleData.id}-M2`, `${this._cmd} -t mangle -A PREROUTING `);
+				let str  = this.generateCompilationString(`${this._ruleData.id}-M2`, cs2);
 				str = str.replace(/-o \w+ /g, "")
 				this._cs += str;
 			}

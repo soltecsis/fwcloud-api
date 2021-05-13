@@ -74,7 +74,7 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
   describe('TCP ports limit control', () => {
     it('should accept 15 TCP ports per iptables command', async () => { 
       await populateRule('TCP',15);
-      const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
+      const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, 1, rule);
       
       expect(result).to.eql([{
         id: rule,
@@ -86,7 +86,7 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
 
     it('16 TCP ports should be split in two iptables commands', async () => { 
       await populateRule('TCP',16);
-      const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
+      const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, 1, rule);
       
       expect(result).to.eql([{
         id: rule,
@@ -106,7 +106,7 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
         position: 3,
         position_order: 15
       });
-      const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
+      const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, 1, rule);
       
       expect(result).to.eql([{
         id: rule,
@@ -123,7 +123,7 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
   describe('UDP ports limit control', () => {
     it('should accept 15 UDP ports per iptables command', async () => { 
       await populateRule('UDP',15);
-      const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
+      const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, 1, rule);
       
       expect(result).to.eql([{
         id: rule,
@@ -135,7 +135,7 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
 
     it('16 UDP ports should be split in two iptables commands', async () => { 
       await populateRule('UDP',16);
-      const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
+      const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, 1, rule);
       
       expect(result).to.eql([{
         id: rule,
@@ -155,7 +155,7 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
         position: 3,
         position_order: 15
       });
-      const result = await PolicyCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
+      const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, 1, rule);
       
       expect(result).to.eql([{
         id: rule,
