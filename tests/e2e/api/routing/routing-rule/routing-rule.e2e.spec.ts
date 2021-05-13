@@ -56,7 +56,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
         });
     });
 
-    describe.only(RouteController.name, () => {
+    describe(RouteController.name, () => {
         describe('@index', () => {
             let rule: RoutingRule;
             
