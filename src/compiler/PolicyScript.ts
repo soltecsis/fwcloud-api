@@ -156,25 +156,25 @@ export class PolicyScript {
 					if (compiler == 'NFTables') {
 						// Code for create the standard nftables tables and chain.
 						stream.write("\n\necho\n");
-						stream.write("echo \"**********************************\"\n");
-						stream.write("echo \"* NFTABLES STD TABLES AND CHAINS *\"\n");
-						stream.write("echo \"**********************************\"\n");
+						stream.write("echo \"******************************\"\n");
+						stream.write("echo \"* NFTABLES TABLES AND CHAINS *\"\n");
+						stream.write("echo \"******************************\"\n");
 						const families = ['ip', 'ip6'];
 						for (let family of families) {
 							stream.write(`$NFT add table ${family} filter\n`);
 							stream.write(`$NFT add chain ${family} filter INPUT { type filter hook input priority 0; }\n`);
-							stream.write(`$NFT add chain ${family} filter FORWARD { type filter hook forward priority 0; }\n`);
 							stream.write(`$NFT add chain ${family} filter OUTPUT { type filter hook output priority 0; }\n`);
+							stream.write(`$NFT add chain ${family} filter FORWARD { type filter hook forward priority 0; }\n`);
 							stream.write(`$NFT add table ${family} nat\n`);
 							stream.write(`$NFT add chain ${family} nat OUTPUT { type filter hook postrouting priority 0; }\n`);
 							stream.write(`$NFT add chain ${family} nat PREROUTING { type filter hook prerouting priority 0; }\n`);
 							stream.write(`$NFT add chain ${family} nat POSTROUTING { type filter hook postrouting priority 0; }\n`);
 							stream.write(`$NFT add table ${family} mangle\n`);
 							stream.write(`$NFT add chain ${family} mangle INPUT { type filter hook input priority 0; }\n`);
-							stream.write(`$NFT add chain ${family} mangle FORWARD { type filter hook forward priority 0; }\n`);
 							stream.write(`$NFT add chain ${family} mangle OUTPUT { type filter hook output priority 0; }\n`);
-							stream.write(`$NFT add chain ${family} mangle POSTROUTING { type filter hook postrouting priority 0; }\n`);
+							stream.write(`$NFT add chain ${family} mangle FORWARD { type filter hook forward priority 0; }\n`);
 							stream.write(`$NFT add chain ${family} mangle PREROUTING { type filter hook prerouting priority 0; }\n`);
+							stream.write(`$NFT add chain ${family} mangle POSTROUTING { type filter hook postrouting priority 0; }\n`);
 						}
 					}
 		
