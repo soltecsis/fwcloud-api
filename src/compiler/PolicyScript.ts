@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
 	https://soltecsis.com
 	info@soltecsis.com
 
@@ -162,19 +162,20 @@ export class PolicyScript {
 						const families = ['ip', 'ip6'];
 						for (let family of families) {
 							stream.write(`$NFT add table ${family} filter\n`);
-							stream.write(`$NFT add chain ${family} filter INPUT { type filter hook input priority 0; }\n`);
-							stream.write(`$NFT add chain ${family} filter OUTPUT { type filter hook output priority 0; }\n`);
-							stream.write(`$NFT add chain ${family} filter FORWARD { type filter hook forward priority 0; }\n`);
+							stream.write(`$NFT add chain ${family} filter INPUT { type filter hook input priority 0; policy drop; }\n`);
+							stream.write(`$NFT add chain ${family} filter FORWARD { type filter hook forward priority 0; policy drop; }\n`);
+							stream.write(`$NFT add chain ${family} filter OUTPUT { type filter hook output priority 0; policy drop; }\n`);
 							stream.write(`$NFT add table ${family} nat\n`);
-							stream.write(`$NFT add chain ${family} nat OUTPUT { type filter hook postrouting priority 0; }\n`);
-							stream.write(`$NFT add chain ${family} nat PREROUTING { type filter hook prerouting priority 0; }\n`);
-							stream.write(`$NFT add chain ${family} nat POSTROUTING { type filter hook postrouting priority 0; }\n`);
+							stream.write(`$NFT add chain ${family} nat PREROUTING { type nat hook prerouting priority -100; policy accept; }\n`);
+							stream.write(`$NFT add chain ${family} nat INPUT { type nat hook input priority 100; policy accept; }\n`);
+							stream.write(`$NFT add chain ${family} nat OUTPUT { type nat hook output priority -100; policy accept; }\n`);
+							stream.write(`$NFT add chain ${family} nat POSTROUTING { type nat hook postrouting priority 100; policy accept; }\n`);
 							stream.write(`$NFT add table ${family} mangle\n`);
-							stream.write(`$NFT add chain ${family} mangle INPUT { type filter hook input priority 0; }\n`);
-							stream.write(`$NFT add chain ${family} mangle OUTPUT { type filter hook output priority 0; }\n`);
-							stream.write(`$NFT add chain ${family} mangle FORWARD { type filter hook forward priority 0; }\n`);
-							stream.write(`$NFT add chain ${family} mangle PREROUTING { type filter hook prerouting priority 0; }\n`);
-							stream.write(`$NFT add chain ${family} mangle POSTROUTING { type filter hook postrouting priority 0; }\n`);
+							stream.write(`$NFT add chain ${family} mangle PREROUTING { type filter hook prerouting priority -150; policy accept; }\n`);
+							stream.write(`$NFT add chain ${family} mangle INPUT { type filter hook input priority -150; policy accept; }\n`);
+							stream.write(`$NFT add chain ${family} mangle FORWARD { type filter hook forward priority -150; policy accept; }\n`);
+							stream.write(`$NFT add chain ${family} mangle OUTPUT { type route hook output priority -150; policy accept; }\n`);
+							stream.write(`$NFT add chain ${family} mangle POSTROUTING { type filter hook postrouting priority -150; policy accept; }\n`);
 						}
 					}
 		

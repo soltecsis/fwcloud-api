@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -110,7 +110,7 @@ router.put('/rule', async (req, res) => {
 router.put('/', async (req, res) => {
 	try {
 		const channel = await Channel.fromRequest(req);
-		await PolicyScript.generate('IPTables', req.dbCon, req.body.fwcloud, req.body.firewall, channel);
+		await PolicyScript.generate('NFTables', req.dbCon, req.body.fwcloud, req.body.firewall, channel);
 		res.status(204).end();
 	} catch(error) {
 		channel.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));
