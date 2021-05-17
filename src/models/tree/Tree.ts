@@ -808,7 +808,9 @@ export class Tree extends Model {
                         id2 = await this.newNode(connection, fwcloud, 'OpenVPN', id1, 'OPN', firewallId, 0);
                         await this.openvpnServerTree(connection, fwcloud, firewallId, id2);
 
-                        //await this.newNode(connection,fwcloud,'Routing',id1,'RR',firewallId,6);					
+                        id2 = await this.newNode(connection, fwcloud, 'Routing', id1, 'ROU', firewallId, null);
+                        await this.newNode(connection, fwcloud, 'POLICY', id2, 'RR', firewallId, null);
+                        await this.newNode(connection, fwcloud, 'TABLES', id2, 'RTS', firewallId, null);
                     } catch (error) { return reject(error) }
                     resolve();
                 });
@@ -874,7 +876,9 @@ export class Tree extends Model {
                         id2 = await this.newNode(connection, fwcloud, 'OpenVPN', id1, 'OPN', clusters[0].fwmaster_id, 0);
                         await this.openvpnServerTree(connection, fwcloud, clusters[0].fwmaster_id, id2);
 
-                        //await this.newNode(connection,fwcloud,'Routing',id1,'RR',clusters[0].fwmaster_id,6);					
+                        id2 = await this.newNode(connection, fwcloud, 'Routing', id1, 'ROU', clusters[0].fwmaster_id, null);
+                        await this.newNode(connection, fwcloud, 'POLICY', id2, 'RR', clusters[0].fwmaster_id, null);
+                        await this.newNode(connection, fwcloud, 'TABLES', id2, 'RTS', clusters[0].fwmaster_id, null);
 
                         id2 = await this.newNode(connection, fwcloud, 'NODES', id1, 'FCF', clusters[0].fwmaster_id, null);
 
