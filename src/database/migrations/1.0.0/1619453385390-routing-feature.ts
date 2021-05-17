@@ -93,8 +93,7 @@ export class routingFeature1619453385390 implements MigrationInterface {
                 },
                 {
                     name: 'name',
-                    type: 'int',
-                    length: '11',
+                    type: 'varchar',
                     isNullable: false
                 },
                 {
@@ -205,8 +204,7 @@ export class routingFeature1619453385390 implements MigrationInterface {
                 },
                 {
                     name: 'name',
-                    type: 'int',
-                    length: '11',
+                    type: 'varchar',
                     isNullable: false
                 },
                 {

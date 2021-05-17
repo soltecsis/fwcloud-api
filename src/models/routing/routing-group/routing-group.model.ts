@@ -27,7 +27,9 @@ export class RoutingGroup extends Model {
     })
     firewall: Firewall;
 
-    @OneToMany(type => RoutingRule, routingRule => routingRule.routingGroup)
+    @OneToMany(type => RoutingRule, routingRule => routingRule.routingGroup, {
+        eager: true
+    })
 	routingRules: RoutingRule[];
 
     @OneToMany(type => Route, route => route.routingGroup)
@@ -35,6 +37,10 @@ export class RoutingGroup extends Model {
 
     public getTableName(): string {
         return tableName;
+    }
+
+    toJSON(): any {
+        return this;
     }
 
 }
