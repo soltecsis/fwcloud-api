@@ -25,28 +25,23 @@ import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import sinon, { SinonSpy } from "sinon";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
-import { IPTablesCompiler } from '../../../../src/compiler/iptables/iptables-compiler';
 import { Ca } from "../../../../src/models/vpn/pki/Ca";
 import { Crt } from "../../../../src/models/vpn/pki/Crt";
 import { OpenVPN } from "../../../../src/models/vpn/openvpn/OpenVPN";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
 import { OpenVPNOption } from "../../../../src/models/vpn/openvpn/openvpn-option.model";
 import { PolicyRuleToOpenVPN } from "../../../../src/models/policy/PolicyRuleToOpenVPN";
-import { searchInPolicyData } from "./utils"
 import { PolicyRuleToIPObj } from "../../../../src/models/policy/PolicyRuleToIPObj";
 import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
 import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
 import { PolicyRuleToOpenVPNPrefix } from "../../../../src/models/policy/PolicyRuleToOpenVPNPrefix";
+import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
 describe(describeName('IPTables Compiler Unit Tests - OpenVPN'), () => {
-  const sandbox = sinon.createSandbox();
-  let spy: SinonSpy;
-
   let dbCon: any;
   let fwcloud: number;
   let vpnSrv: number;
@@ -119,15 +114,8 @@ describe(describeName('IPTables Compiler Unit Tests - OpenVPN'), () => {
     }
 
     try {
-        result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, policyType, rule);
+        result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, policyType, rule);
     } catch(err) { error = err }
-
-      
-    expect(spy.calledOnce).to.be.true;
-    expect(searchInPolicyData(spy.getCall(0).args[0],rulePosition,vpnCli1IP)).to.be.true;
-
-    if (rulePosition!=14 && rulePosition!=34 && (policyType===PolicyTypesMap.get(`${IPv}:SNAT`) || policyType===PolicyTypesMap.get(`${IPv}:DNAT`)))
-      expect(searchInPolicyData(spy.getCall(0).args[0],policyType===PolicyTypesMap.get(`${IPv}:SNAT`)?14:34,natIP)).to.be.true;
 
     if (usePrefix && vpnCli2 && 
         ((policyType===PolicyTypesMap.get(`${IPv}:SNAT`) && rulePosition===RulePositionsMap.get(`${IPv}:${policy}:Translated Source`)) || 
@@ -165,14 +153,6 @@ describe(describeName('IPTables Compiler Unit Tests - OpenVPN'), () => {
     natIP = (await getRepository(IPObj).save(getRepository(IPObj).create({ fwCloudId: fwcloud, name: '192.168.0.50', ipObjTypeId: 5, address: '192.168.0.50', netmask: '/32', ip_version: 4  }))).id;
   });
   
-  beforeEach(async () => {
-    spy = sandbox.spy(IPTablesCompiler, "ruleCompile");
-  });
-
-  afterEach(() => {
-    sandbox.restore();
-  });
-
 
   describe('OpenVPN in policy rule', () => {
     before(() => { 

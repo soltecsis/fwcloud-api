@@ -25,17 +25,13 @@ import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import sinon, { SinonSpy } from "sinon";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
-import { IPTablesCompiler, RuleActionsMap, ACTION, POLICY_TYPE } from '../../../../src/compiler/iptables/iptables-compiler';
-import { positionsEmpty } from "./utils"
+import { RuleActionsMap, POLICY_TYPE, CompilerAction } from '../../../../src/compiler/PolicyCompilerTools';
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
+import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
 describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
-    const sandbox = sinon.createSandbox();
-    let spy: SinonSpy;
-
     let fwcloud: number;
     let dbCon: any;
 
@@ -59,12 +55,9 @@ describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
         let error: any;
 
         try {
-            result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, policyType, rule);
+            result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, policyType, rule);
         } catch(err) { error = err }
         
-        expect(spy.calledOnce).to.be.true;
-        expect(positionsEmpty(spy.getCall(0).args[0])).to.be.true;
-
         if (policyType === PolicyTypesMap.get(`${IPv}:DNAT`)) { 
             expect(error).to.eql({
                 fwcErr: 999999,
@@ -72,7 +65,7 @@ describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
             });
         } else {
             let cs: string;
-            let action = (policyType===PolicyTypesMap.get(`${IPv}:SNAT`)) ? 'MASQUERADE' : ACTION[ruleData.action];
+            let action = (policyType===PolicyTypesMap.get(`${IPv}:SNAT`)) ? 'MASQUERADE' : CompilerAction.get(`IPTables:${ruleData.action}`);
             if (action==='ACCOUNTING') action = 'RETURN';
             const st = (ruleData.action===RuleActionsMap.get('ACCEPT') && ruleData.options&0x0001 && policyType!==PolicyTypesMap.get(`${IPv}:SNAT`) && policyType!==PolicyTypesMap.get(`${IPv}:DNAT`)) ? '-m conntrack --ctstate NEW ' : '' ;
             
@@ -101,14 +94,6 @@ describe(describeName('IPTables Compiler Unit Tests - Empty rule'), () => {
         ruleData.firewall = (await getRepository(Firewall).save(getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
     });
         
-    beforeEach(() => {
-        spy = sandbox.spy(IPTablesCompiler, "ruleCompile");
-    });
-
-    afterEach(() => {
-        sandbox.restore();
-    });
-
 
     describe('Empty rule in IPv4', () => {
         beforeEach(() => { IPv = 'IPv4' });

@@ -25,16 +25,12 @@ import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import sinon, { SinonSpy } from "sinon";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
 import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
-import { IPTablesCompiler } from '../../../../src/compiler/iptables/iptables-compiler';
+import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
 describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount control'), () => {
-  const sandbox = sinon.createSandbox();
-  let spy: SinonSpy;
-
   let fwcloud: number;
   let dbCon: any;
   let rule: number;
@@ -71,21 +67,15 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
   });
   
   beforeEach(async () => {
-    spy = sandbox.spy(IPTablesCompiler, "ruleCompile");
     rule = await PolicyRule.insertPolicy_r(ruleData);
-  });
-
-  afterEach(() => {
-    sandbox.restore();
   });
 
 
   describe('TCP ports limit control', () => {
     it('should accept 15 TCP ports per iptables command', async () => { 
       await populateRule('TCP',15);
-      const result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
+      const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, 1, rule);
       
-      expect(spy.calledOnce).to.be.true;
       expect(result).to.eql([{
         id: rule,
         active: ruleData.active,
@@ -96,9 +86,8 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
 
     it('16 TCP ports should be split in two iptables commands', async () => { 
       await populateRule('TCP',16);
-      const result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
+      const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, 1, rule);
       
-      expect(spy.calledOnce).to.be.true;
       expect(result).to.eql([{
         id: rule,
         active: ruleData.active,
@@ -117,9 +106,8 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
         position: 3,
         position_order: 15
       });
-      const result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
+      const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, 1, rule);
       
-      expect(spy.calledOnce).to.be.true;
       expect(result).to.eql([{
         id: rule,
         active: ruleData.active,
@@ -135,9 +123,8 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
   describe('UDP ports limit control', () => {
     it('should accept 15 UDP ports per iptables command', async () => { 
       await populateRule('UDP',15);
-      const result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
+      const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, 1, rule);
       
-      expect(spy.calledOnce).to.be.true;
       expect(result).to.eql([{
         id: rule,
         active: ruleData.active,
@@ -148,9 +135,8 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
 
     it('16 UDP ports should be split in two iptables commands', async () => { 
       await populateRule('UDP',16);
-      const result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
+      const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, 1, rule);
       
-      expect(spy.calledOnce).to.be.true;
       expect(result).to.eql([{
         id: rule,
         active: ruleData.active,
@@ -169,9 +155,8 @@ describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount contr
         position: 3,
         position_order: 15
       });
-      const result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, 1, rule);
+      const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, 1, rule);
       
-      expect(spy.calledOnce).to.be.true;
       expect(result).to.eql([{
         id: rule,
         active: ruleData.active,
