@@ -695,7 +695,7 @@ export class Tree extends Model {
     };
 
     //Generate the interfaces nodes.
-    public static interfacesTree(connection, fwcloud, nodeId, ownerId, ownerType) {
+    public static interfacesTree(connection, fwcloud, nodeId, ownerId, ownerType): Promise<void> {
         return new Promise((resolve, reject) => {
             // Get firewall interfaces.  
             let sql = '';
@@ -716,7 +716,7 @@ export class Tree extends Model {
 
             connection.query(sql, async (error, interfaces) => {
                 if (error) return reject(error);
-                if (interfaces.length === 0) resolve();
+                if (interfaces.length === 0) return resolve();
 
                 try {
                     for (let _interface of interfaces) {
@@ -730,7 +730,7 @@ export class Tree extends Model {
     };
 
     //Generate the OpenVPN client nodes.
-    public static openvpnClientTree(connection, fwcloud, firewall, server_vpn, node) {
+    public static openvpnClientTree(connection, fwcloud, firewall, server_vpn, node): Promise<void> {
         return new Promise((resolve, reject) => {
             // Get client OpenVPN configurations.
             const sql = `SELECT VPN.id,CRT.cn FROM openvpn VPN
@@ -738,7 +738,7 @@ export class Tree extends Model {
 			WHERE VPN.firewall=${firewall} and VPN.openvpn=${server_vpn}`
             connection.query(sql, async (error, vpns) => {
                 if (error) return reject(error);
-                if (vpns.length === 0) resolve();
+                if (vpns.length === 0) return resolve();
 
                 try {
                     for (let vpn of vpns) {
@@ -751,7 +751,7 @@ export class Tree extends Model {
     };
 
     //Generate the OpenVPN server nodes.
-    public static openvpnServerTree(connection, fwcloud, firewall, node) {
+    public static openvpnServerTree(connection, fwcloud, firewall, node): Promise<void> {
         return new Promise((resolve, reject) => {
             // Get server OpenVPN configurations.
             const sql = `SELECT VPN.id,CRT.cn FROM openvpn VPN
@@ -759,7 +759,7 @@ export class Tree extends Model {
 			WHERE VPN.firewall=${firewall} and VPN.openvpn is null`
             connection.query(sql, async (error, vpns) => {
                 if (error) return reject(error);
-                if (vpns.length === 0) resolve();
+                if (vpns.length === 0) return resolve();
 
                 try {
                     for (let vpn of vpns) {
@@ -769,6 +769,61 @@ export class Tree extends Model {
                 } catch (error) { return reject(error) }
                 resolve();
             });
+        });
+    };
+
+    //Generate the routing nodes.
+    public static routingTree(connection: any, fwcloud: number, firewall: number, node: number): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            let id3: any;
+            try {
+                const id2 = await this.newNode(connection, fwcloud, 'Routing', node, 'ROU', firewall, null);
+                await this.newNode(connection, fwcloud, 'POLICY', id2, 'RR', firewall, null);
+                id3 = await this.newNode(connection, fwcloud, 'TABLES', id2, 'RTS', firewall, null);
+            } catch(error) { return reject(error) }
+
+            const sql = `SELECT id,name FROM routing_table WHERE firewall=${firewall}`
+            connection.query(sql, async (error, tables) => {
+                if (error) return reject(error);
+                if (tables.length === 0) return resolve();
+
+                try {
+                    for (let table of tables)
+                        await this.newNode(connection, fwcloud, table.name, id3, 'RT', table.id, null);
+                } catch (error) { return reject(error) }
+                resolve();
+            });
+        });
+    };
+
+    //Generate the routing nodes.
+    public static makeSureRoutingTreeExists(connection: any, fwcloud: number, children: any): Promise<boolean> {
+        return new Promise(async (resolve, reject) => {
+            if (!children) return resolve(false);
+
+            let treeReload = false;
+            for (let i=0; i<children.length; i++) {
+                if (children[i].node_type === 'FW' || children[i].node_type === 'CL') {
+                    // Search for the routing node.
+                    const grandchild = children[i].children;
+                    let found = false;
+                    for (let j=grandchild.length-1; j!=0; j--) {
+                        if (grandchild[j].node_type === 'ROU') {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found) {
+                        // create the routing nodes.
+                        await this.routingTree(connection, fwcloud, children[i].id_obj, children[i].id);
+                        treeReload = true;
+                    }
+                } else if (children[i].node_type === 'FD') // Recursive call for firewall folders.
+                    treeReload = await this.makeSureRoutingTreeExists(connection, fwcloud, children[i].children);
+            }
+
+            resolve(treeReload);
         });
     };
 
@@ -786,7 +841,7 @@ export class Tree extends Model {
 
                     try {
                         // Create root firewall node
-                        let id1 = await this.newNode(connection, fwcloud, firewalls[0].name, nodeId, 'FW', firewallId, 0);
+                        let id1: any = await this.newNode(connection, fwcloud, firewalls[0].name, nodeId, 'FW', firewallId, 0);
 
                         let id2 = await this.newNode(connection, fwcloud, 'IPv4 POLICY', id1, 'FP', firewallId, null);
                         await this.newNode(connection, fwcloud, 'INPUT', id2, 'PI', firewallId, null);
@@ -808,9 +863,7 @@ export class Tree extends Model {
                         id2 = await this.newNode(connection, fwcloud, 'OpenVPN', id1, 'OPN', firewallId, 0);
                         await this.openvpnServerTree(connection, fwcloud, firewallId, id2);
 
-                        id2 = await this.newNode(connection, fwcloud, 'Routing', id1, 'ROU', firewallId, null);
-                        await this.newNode(connection, fwcloud, 'POLICY', id2, 'RR', firewallId, null);
-                        await this.newNode(connection, fwcloud, 'TABLES', id2, 'RTS', firewallId, null);
+                        await this.routingTree(connection, fwcloud, firewallId, id1);
                     } catch (error) { return reject(error) }
                     resolve();
                 });
@@ -854,7 +907,7 @@ export class Tree extends Model {
 
                     try {
                         // Create root cluster node
-                        let id1 = await this.newNode(connection, fwcloud, clusters[0].name, nodeId, 'CL', clusters[0].id, 100);
+                        let id1: any = await this.newNode(connection, fwcloud, clusters[0].name, nodeId, 'CL', clusters[0].id, 100);
 
                         let id2 = await this.newNode(connection, fwcloud, 'IPv4 POLICY', id1, 'FP', clusters[0].fwmaster_id, null);
                         await this.newNode(connection, fwcloud, 'INPUT', id2, 'PI', clusters[0].fwmaster_id, null);
@@ -876,10 +929,8 @@ export class Tree extends Model {
                         id2 = await this.newNode(connection, fwcloud, 'OpenVPN', id1, 'OPN', clusters[0].fwmaster_id, 0);
                         await this.openvpnServerTree(connection, fwcloud, clusters[0].fwmaster_id, id2);
 
-                        id2 = await this.newNode(connection, fwcloud, 'Routing', id1, 'ROU', clusters[0].fwmaster_id, null);
-                        await this.newNode(connection, fwcloud, 'POLICY', id2, 'RR', clusters[0].fwmaster_id, null);
-                        await this.newNode(connection, fwcloud, 'TABLES', id2, 'RTS', clusters[0].fwmaster_id, null);
-
+                        await this.routingTree(connection, fwcloud, clusters[0].fwmaster_id, id1);
+                        
                         id2 = await this.newNode(connection, fwcloud, 'NODES', id1, 'FCF', clusters[0].fwmaster_id, null);
 
                         // Create the nodes for the cluster firewalls.
