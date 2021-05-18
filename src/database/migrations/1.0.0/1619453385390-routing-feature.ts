@@ -25,6 +25,11 @@ import {MigrationInterface, QueryRunner, Table } from "typeorm";
 export class routingFeature1619453385390 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<any> {
+        // New tree node types.
+        await queryRunner.query(`INSERT INTO fwc_tree_node_types VALUES('ROU',NULL,'Routing',NULL,1)`);
+        await queryRunner.query(`INSERT INTO fwc_tree_node_types VALUES('RTS',NULL,'Routing tables',NULL,1)`);
+        await queryRunner.query(`INSERT INTO fwc_tree_node_types VALUES('RT',NULL,'Routing table',NULL,1)`);
+
         // Drop old database routing tables.
         await queryRunner.dropTable('ipobj_type__routing_position', true);
         await queryRunner.dropTable('routing_r__ipobj', true);
@@ -581,6 +586,10 @@ export class routingFeature1619453385390 implements MigrationInterface {
 
 
     public async down(queryRunner: QueryRunner): Promise<any> {
+        await queryRunner.query(`DELETE FROM fwc_tree_node_types WHERE node_type='ROU'`);
+        await queryRunner.query(`DELETE FROM fwc_tree_node_types WHERE node_type='RTS'`);
+        await queryRunner.query(`DELETE FROM fwc_tree_node_types WHERE node_type='RT'`);
+        
         await queryRunner.dropTable('routing_r__mark', true);
         await queryRunner.dropTable('routing_r__ipobj', true);
         await queryRunner.dropTable('routing_r__ipobj_g', true);
