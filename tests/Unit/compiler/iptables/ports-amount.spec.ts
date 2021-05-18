@@ -30,7 +30,7 @@ import db from "../../../../src/database/database-manager";
 import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
 import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
-describe(describeName('IPTables Compiler Unit Tests - TCP/UDP ports amount control'), () => {
+describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control'), () => {
   let fwcloud: number;
   let dbCon: any;
   let rule: number;

@@ -653,7 +653,7 @@ export abstract class PolicyCompilerTools {
         afterLog = `${this._cmd} -A ${this._logChain} -j ${this._afterLogAction}`
       } else { // NFTables
         createChain = `${this._cmd} add chain ${this._family} ${this._table} ${this._logChain}`;
-        chainAction =	`${this._cmd} add rule ${this._family} ${this._table} ${this._logChain} limit rate 1/second burst 5 packets counter log prefix \\"RULE ID 101393 [${this._afterLogAction}]\\" level info`;  
+        chainAction =	`${this._cmd} add rule ${this._family} ${this._table} ${this._logChain} limit rate 1/second burst 5 packets counter log prefix \\"RULE ID ${this._ruleData.id} [${this._afterLogAction}]\\" level info`;  
         afterLog = `${this._cmd} add rule ${this._family} ${this._table} ${this._logChain} ${this._afterLogAction}`
       }
 

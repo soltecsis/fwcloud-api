@@ -41,7 +41,7 @@ import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix"
 import { PolicyRuleToOpenVPNPrefix } from "../../../../src/models/policy/PolicyRuleToOpenVPNPrefix";
 import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
-describe(describeName('IPTables Compiler Unit Tests - OpenVPN'), () => {
+describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
   let dbCon: any;
   let fwcloud: number;
   let vpnSrv: number;
