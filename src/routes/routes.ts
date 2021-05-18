@@ -38,6 +38,7 @@ import { RoutingTableController } from "../controllers/routing/routing-tables.co
 import { RouteController } from "../controllers/routing/route.controller";
 import { RoutingRuleController } from "../controllers/routing/routing-rule.controller";
 import { RoutingGroupController } from "../controllers/routing/routing-group.controller";
+import { RouteGroupController } from "../controllers/routing/route-group.controller";
 
 export class Routes extends RouteCollection {
 
@@ -110,6 +111,16 @@ export class Routes extends RouteCollection {
                                         });
                                     });
                                 });
+                            });
+
+                            router.prefix('/routeGroups', (router: RouterParser) => {
+                                router.get('/', RouteGroupController, 'index').name('fwclouds.firewalls.routing.routeGroups.index');
+                                router.post('/', RouteGroupController, 'create').name('fwclouds.firewalls.routing.routeGroups.create');
+                                router.prefix('/:routeGroup(\\d+)', (router: RouterParser) => {
+                                    router.get('/', RouteGroupController, 'show').name('fwclouds.firewalls.routing.routeGroups.show');
+                                    router.put('/', RouteGroupController, 'update').name('fwclouds.firewalls.routing.routeGroups.update');
+                                    router.delete('/', RouteGroupController, 'remove').name('fwclouds.firewalls.routing.routeGroups.delete');
+                                })
                             });
 
                             router.prefix('/routingGroups', (router: RouterParser) => {

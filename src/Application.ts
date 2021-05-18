@@ -61,6 +61,7 @@ import { RoutingTableServiceProvider } from "./models/routing/routing-table/rout
 import { RouteServiceProvider } from "./models/routing/route/route.provider";
 import { RoutingRuleServiceProvider } from "./models/routing/routing-rule/routing-rule.provider";
 import { RoutingGroupServiceProvider } from "./models/routing/routing-group/routing-group.provider";
+import { RouteGroupServiceProvider } from "./models/routing/route-group/route-group.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -123,7 +124,8 @@ export class Application extends HTTPApplication {
             RoutingTableServiceProvider,
             RouteServiceProvider,
             RoutingRuleServiceProvider,
-            RoutingGroupServiceProvider
+            RoutingGroupServiceProvider,
+            RouteGroupServiceProvider
         ]
     }
 
