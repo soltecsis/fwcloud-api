@@ -188,7 +188,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
 					.send({
-                        number: 0,
+                        number: 1,
                         name: 'table'
                     })
 					.expect(401);
@@ -201,7 +201,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
                     .send({
-                        number: 0,
+                        number: 1,
                         name: 'table'
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -218,7 +218,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
                     .send({
-                        number: 0,
+                        number: 1,
                         name: 'table'
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -237,7 +237,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
                     .send({
-                        number: 0,
+                        number: 1,
                         name: 'table'
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
@@ -275,6 +275,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         routingTable: table.id
                     }))
 					.send({
+                        name: 'table',
                         comment: 'table'
                     })
 					.expect(401);
@@ -288,6 +289,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         routingTable: table.id
                     }))
                     .send({
+                        name: 'table',
                         comment: 'table'
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -323,6 +325,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         routingTable: table.id
                     }))
                     .send({
+                        name: 'table',
                         comment: 'other_table'
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])

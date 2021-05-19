@@ -288,7 +288,7 @@ describe(describeName('Backup E2E tests'), () => {
                     .expect(401)
             });
 
-            it('regular user should not download a backup', async () => {
+            it('regular user should not import a backup', async () => {
                 await request(app.express)
                     .post(_URL().getURL('backups.import'))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -296,7 +296,7 @@ describe(describeName('Backup E2E tests'), () => {
                     .expect(401)
             });
 
-            it('admin user should download a backup', async () => {
+            it('admin user should import a backup', async () => {
                 await request(app.express)
                     .post(_URL().getURL('backups.import'))
                     .set('Cookie', [attachSession(adminUserSessionId)])

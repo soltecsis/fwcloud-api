@@ -9,12 +9,12 @@ describe(describeName('File Rule Unit Test'), () => {
     let rule: ValidatorConstraintInterface = new IsFile();
 
     describe('passes()', () => {
-        it('should return true if the value is null', async () => {
-            expect(await rule.validate(undefined)).to.be.true;
+        it('should return false if the value is null', async () => {
+            expect(await rule.validate(undefined)).to.be.false;
         });
 
-        it('should return true if the value is undefined', async () => {
-            expect(await rule.validate(null)).to.be.true;
+        it('should return false if the value is undefined', async () => {
+            expect(await rule.validate(null)).to.be.false;
         })
 
         it('should return true if the value is FileInfo', async () => {

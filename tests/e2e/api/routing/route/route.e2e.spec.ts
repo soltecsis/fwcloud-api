@@ -302,6 +302,8 @@ describe(describeName('Route E2E Tests'), () => {
                         route: route.id
                     }))
                     .send({
+                        routingTableId: table.id,
+                        gatewayId: gateway.id,
                         comment: 'route'
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -320,6 +322,8 @@ describe(describeName('Route E2E Tests'), () => {
                         route: route.id
                     }))
                     .send({
+                        routingTableId: table.id,
+                        gatewayId: gateway.id,
                         comment: 'route'
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -338,6 +342,8 @@ describe(describeName('Route E2E Tests'), () => {
                         route: route.id
                     }))
                     .send({
+                        routingTableId: table.id,
+                        gatewayId: gateway.id,
                         comment: 'other_route'
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
