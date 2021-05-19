@@ -11,7 +11,7 @@ import { _URL } from "../../../../../src/fonaments/http/router/router.service";
 import { RoutingTable } from "../../../../../src/models/routing/routing-table/routing-table.model";
 import { RoutingRule } from "../../../../../src/models/routing/routing-rule/routing-rule.model";
 import { RoutingRuleService } from "../../../../../src/models/routing/routing-rule/routing-rule.service";
-import { RoutingRuleController } from "../../../../../src/controllers/routing/routing-rule.controller";
+import { RoutingRuleController } from "../../../../../src/controllers/routing/routing-rule/routing-rule.controller";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;

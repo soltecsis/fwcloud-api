@@ -1,6 +1,6 @@
 import { getRepository } from "typeorm";
 import { Application } from "../../../../../src/Application";
-import { RoutingTableController } from "../../../../../src/controllers/routing/routing-tables.controller";
+import { RoutingTableController } from "../../../../../src/controllers/routing/routing-tables/routing-tables.controller";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
 import { User } from "../../../../../src/models/user/User";
@@ -305,6 +305,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         routingTable: table.id
                     }))
                     .send({
+                        name: 'table',
                         comment: 'table'
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])

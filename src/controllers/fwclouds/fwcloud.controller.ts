@@ -6,8 +6,8 @@ import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { colorUsage } from "../../models/fwcloud/FwCloud-colors";
 import { Validate } from "../../decorators/validate.decorator";
 import { FwCloudPolicy } from "../../policies/fwcloud.policy";
-import { Required } from "../../fonaments/validation/rules/required.rule";
-import { String } from "../../fonaments/validation/rules/string.rule";
+import { FwCloudControllerStoreDto } from "./dtos/store.dto";
+import { FwCloudControllerUpdateDto } from "./dtos/update.dto";
 
 export class FwCloudController extends Controller {
     protected _fwCloudService: FwCloudService;
@@ -16,11 +16,7 @@ export class FwCloudController extends Controller {
         this._fwCloudService = await this._app.getService<FwCloudService>(FwCloudService.name);
     }
 
-    @Validate({
-        name: [new Required(), new String()],
-        image: [new String()],
-        comment: [new String()]
-    })
+    @Validate(FwCloudControllerStoreDto)
     public async store(request: Request): Promise<ResponseBuilder> {
         
         (await FwCloudPolicy.store(request.session.user)).authorize();
@@ -34,11 +30,7 @@ export class FwCloudController extends Controller {
         return ResponseBuilder.buildResponse().status(201).body(fwCloud);
     }
 
-    @Validate({
-        name: [new Required(), new String()],
-        image: [new String()],
-        comment: [new String()] 
-    })
+    @Validate(FwCloudControllerUpdateDto)
     public async update(request: Request): Promise<ResponseBuilder> {
 
         (await FwCloudPolicy.update(request.session.user)).authorize();
@@ -54,7 +46,7 @@ export class FwCloudController extends Controller {
         return ResponseBuilder.buildResponse().status(200).body(fwCloud);
     }
 
-    @Validate({})
+    @Validate()
     public async colors(request: Request): Promise<ResponseBuilder> {
        
         let fwCloud: FwCloud = await FwCloud.findOneOrFail(request.params.fwcloud);
