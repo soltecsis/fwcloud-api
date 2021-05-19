@@ -30,9 +30,9 @@ import db from "../../../../src/database/database-manager";
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
 import { populateRule } from "./utils";
-import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
+import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
-describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
+describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
   let fwcloud: number;
   let dbCon: any;
   let rule: number;
@@ -40,6 +40,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
   let translatedService: number;
 
   let IPv: string;
+  let compiler: AvailablePolicyCompilers;
   let nat: string;
 
   let ruleData = {
@@ -56,7 +57,7 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     for (let i=0; i<posData.length; i++)
       await populateRule(rule,posData[i][0],posData[i][1]); 
     
-    const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+    const result = await PolicyCompiler.compile(compiler, dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
     
     expect(result).to.eql([{
       id: rule,
@@ -74,8 +75,8 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     ruleData.firewall = (await getRepository(Firewall).save(getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
   });
   
-  describe('Not allowed combinations', () => {
-    before(() => { IPv = 'IPv4' });
+  describe('Not allowed combinations (IPTables)', () => {
+    before(() => { IPv = 'IPv4'; compiler = 'IPTables'; });
 
     it('in SNAT should throw error if translated service is empty', async () => {
       nat = 'SNAT'
@@ -114,10 +115,50 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     });
   });
 
+  describe('Not allowed combinations (NFTables)', () => {
+    before(() => { IPv = 'IPv4'; compiler = 'NFTables'; });
 
-  describe('SNAT with TCP translated service', () => {
+    it('in SNAT should throw error if translated service is empty', async () => {
+      nat = 'SNAT'
+      ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
+      translatedService = 20029; // Standard https service.
+      rule = await PolicyRule.insertPolicy_r(ruleData);
+      await populateRule(rule, RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService);
+      let error: any;
+      
+      try {
+        const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+      } catch(err) { error = err }
+
+      expect(error).to.eql({
+        fwcErr: 999999,
+        msg: "For SNAT 'Translated Service' must be empty if 'Translated Source' is empty"
+      });
+    });
+
+    it('in DNAT should throw error if translated destination is empty', async () => {
+      nat = 'DNAT'
+      ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
+      translatedService = 20029; // Standard https service.
+      rule = await PolicyRule.insertPolicy_r(ruleData);
+      await populateRule(rule, RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService);
+      let error: any;
+      
+      try {
+        const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+      } catch(err) { error = err }
+
+      expect(error).to.eql({
+        fwcErr: 999999,
+        msg: "For DNAT 'Translated Destination' is mandatory"
+      });
+    });
+  });
+
+  describe('SNAT with TCP translated service (IPTables)', () => {
     before(() => {
       IPv = 'IPv4';
+      compiler = 'IPTables';
       nat = 'SNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedAddr = 50010; // Standard VRRP IP
@@ -152,9 +193,48 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     });
   });
 
-  describe('SNAT with UDP translated service', () => {
+  describe('SNAT with TCP translated service (NFTables)', () => {
     before(() => {
       IPv = 'IPv4';
+      compiler = 'NFTables';
+      nat = 'SNAT';
+      ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
+      translatedAddr = 50010; // Standard VRRP IP
+      translatedService = 20029; // Standard https service.
+    });
+
+    beforeEach(async () => {
+      rule = await PolicyRule.insertPolicy_r(ruleData);
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Source`),translatedAddr);      
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService); 
+    });
+  
+    it('only with translated source and translated service', async () => {
+      await runTest([], `$NFT add rule ip nat POSTROUTING ip protocol tcp counter ${nat.toLowerCase()} to 224.0.0.18:443\n`);
+    });
+
+
+    it('with translated source, translated service and one source', async () => {
+      // 70003 - Net 10.0.0.0/8
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]], `$NFT add rule ip nat POSTROUTING ip saddr 10.0.0.0/8 ip protocol tcp counter ${nat.toLowerCase()} to 224.0.0.18:443\n`);
+    });
+
+    it('with translated source, translated service and one service', async () => {
+      // 20020 - Auth service
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Service`), 20020]], `$NFT add rule ip nat POSTROUTING tcp dport 113 ip protocol tcp counter ${nat.toLowerCase()} to 224.0.0.18:443\n`);
+    });
+
+    it('with translated source, translated service, one source and one service', async () => {
+      // 70003 - Net 10.0.0.0/8
+      // 20020 - Auth service
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 20020]], `$NFT add rule ip nat POSTROUTING tcp dport 113 ip saddr 10.0.0.0/8 ip protocol tcp counter ${nat.toLowerCase()} to 224.0.0.18:443\n`);
+    });
+  });
+
+  describe('SNAT with UDP translated service (IPTables)', () => {
+    before(() => {
+      IPv = 'IPv4';
+      compiler = 'IPTables';
       nat = 'SNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedAddr = 50010; // Standard VRRP IP
@@ -189,9 +269,48 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     });
   });
 
-  describe('DNAT with TCP translated service', () => {
+  describe('SNAT with UDP translated service (NFTables)', () => {
     before(() => {
       IPv = 'IPv4';
+      compiler = 'NFTables';
+      nat = 'SNAT';
+      ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
+      translatedAddr = 50010; // Standard VRRP IP
+      translatedService = 40011; // Standard domain service.
+    });
+
+    beforeEach(async () => {
+      rule = await PolicyRule.insertPolicy_r(ruleData);
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Source`),translatedAddr);      
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService); 
+    });
+  
+    it('only with translated source and translated service', async () => {
+      await runTest([], `$NFT add rule ip nat POSTROUTING ip protocol udp counter ${nat.toLowerCase()} to 224.0.0.18:53\n`);
+    });
+
+
+    it('with translated source, translated service and one source', async () => {
+      // 70003 - Net 10.0.0.0/8
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]], `$NFT add rule ip nat POSTROUTING ip saddr 10.0.0.0/8 ip protocol udp counter ${nat.toLowerCase()} to 224.0.0.18:53\n`);
+    });
+
+    it('with translated source, translated service and one service', async () => {
+      // 40031 - Rsync service
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]], `$NFT add rule ip nat POSTROUTING udp dport 873 ip protocol udp counter ${nat.toLowerCase()} to 224.0.0.18:53\n`);
+    });
+
+    it('with translated source, translated service, one source and one service', async () => {
+      // 70003 - Net 10.0.0.0/8
+      // 40031 - Rsync service
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]], `$NFT add rule ip nat POSTROUTING udp dport 873 ip saddr 10.0.0.0/8 ip protocol udp counter ${nat.toLowerCase()} to 224.0.0.18:53\n`);
+    });
+  });
+
+  describe('DNAT with TCP translated service (IPTables)', () => {
+    before(() => {
+      IPv = 'IPv4';
+      compiler = 'IPTables';
       nat = 'DNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedAddr = 50010; // Standard VRRP IP
@@ -226,9 +345,48 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
     });
   });
 
-  describe('SNAT with UDP translated service', () => {
+  describe('DNAT with TCP translated service (NFTables)', () => {
     before(() => {
       IPv = 'IPv4';
+      compiler = 'NFTables';
+      nat = 'DNAT';
+      ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
+      translatedAddr = 50010; // Standard VRRP IP
+      translatedService = 20029; // Standard https service.
+    });
+
+    beforeEach(async () => {
+      rule = await PolicyRule.insertPolicy_r(ruleData);
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Destination`),translatedAddr);      
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService); 
+    });
+  
+    it('only with translated source and translated service', async () => {
+      await runTest([], `$NFT add rule ip nat PREROUTING ip protocol tcp counter ${nat.toLowerCase()} to 224.0.0.18:443\n`);
+    });
+
+
+    it('with translated source, translated service and one source', async () => {
+      // 70003 - Net 10.0.0.0/8
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]], `$NFT add rule ip nat PREROUTING ip saddr 10.0.0.0/8 ip protocol tcp counter ${nat.toLowerCase()} to 224.0.0.18:443\n`);
+    });
+
+    it('with translated source, translated service and one service', async () => {
+      // 20020 - Auth service
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Service`), 20020]], `$NFT add rule ip nat PREROUTING tcp dport 113 ip protocol tcp counter ${nat.toLowerCase()} to 224.0.0.18:443\n`);
+    });
+
+    it('with translated source, translated service, one source and one service', async () => {
+      // 70003 - Net 10.0.0.0/8
+      // 20020 - Auth service
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 20020]], `$NFT add rule ip nat PREROUTING tcp dport 113 ip saddr 10.0.0.0/8 ip protocol tcp counter ${nat.toLowerCase()} to 224.0.0.18:443\n`);
+    });
+  });
+
+  describe('SNAT with UDP translated service (IPTables)', () => {
+    before(() => {
+      IPv = 'IPv4';
+      compiler = 'IPTables';
       nat = 'DNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedAddr = 50010; // Standard VRRP IP
@@ -260,6 +418,44 @@ describe(describeName('IPTables Compiler Unit Tests - SNAT and DNAT'), () => {
       // 70003 - Net 10.0.0.0/8
       // 40031 - Rsync service
       await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]], `$IPTABLES -t nat -A PREROUTING -p udp --dport 873 -s 10.0.0.0/8 -j ${nat} --to-destination 224.0.0.18:53\n`);
+    });
+  });
+
+  describe('SNAT with UDP translated service (NFTables)', () => {
+    before(() => {
+      IPv = 'IPv4';
+      compiler = 'NFTables';
+      nat = 'DNAT';
+      ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
+      translatedAddr = 50010; // Standard VRRP IP
+      translatedService = 40011; // Standard domain service.
+    });
+
+    beforeEach(async () => {
+      rule = await PolicyRule.insertPolicy_r(ruleData);
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Destination`),translatedAddr);      
+      await populateRule(rule,RulePositionsMap.get(`${IPv}:${nat}:Translated Service`),translatedService); 
+    });
+  
+    it('only with translated source and translated service', async () => {
+      await runTest([], `$NFT add rule ip nat PREROUTING ip protocol udp counter ${nat.toLowerCase()} to 224.0.0.18:53\n`);
+    });
+
+
+    it('with translated source, translated service and one source', async () => {
+      // 70003 - Net 10.0.0.0/8
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]], `$NFT add rule ip nat PREROUTING ip saddr 10.0.0.0/8 ip protocol udp counter ${nat.toLowerCase()} to 224.0.0.18:53\n`);
+    });
+
+    it('with translated source, translated service and one service', async () => {
+      // 40031 - Rsync service
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]], `$NFT add rule ip nat PREROUTING udp dport 873 ip protocol udp counter ${nat.toLowerCase()} to 224.0.0.18:53\n`);
+    });
+
+    it('with translated source, translated service, one source and one service', async () => {
+      // 70003 - Net 10.0.0.0/8
+      // 40031 - Rsync service
+      await runTest([[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003],[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]], `$NFT add rule ip nat PREROUTING udp dport 873 ip saddr 10.0.0.0/8 ip protocol udp counter ${nat.toLowerCase()} to 224.0.0.18:53\n`);
     });
   });
 });
