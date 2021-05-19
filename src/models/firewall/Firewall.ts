@@ -45,6 +45,7 @@ const fwcError = require('../../utils/error_table');
 import sshTools from '../../utils/ssh';
 import { RoutingTable } from "../routing/routing-table/routing-table.model";
 import { RoutingGroup } from "../routing/routing-group/routing-group.model";
+import { RouteGroup } from "../routing/route-group/route-group.model";
 
 const tableName: string = 'firewall';
 
@@ -137,6 +138,9 @@ export class Firewall extends Model {
 
 	@OneToMany(type => RoutingGroup, routingGroup => routingGroup.firewall)
 	routingGroups: RoutingGroup[];
+
+	@OneToMany(type => RouteGroup, model => model.firewall)
+	routeGroups: RouteGroup[]
 	
 	public getTableName(): string {
 		return tableName;

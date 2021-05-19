@@ -6,7 +6,7 @@ import Model from "../../Model";
 import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
 import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { RoutingTable } from "../routing-table/routing-table.model";
-import { RoutingGroup } from "../routing-group/routing-group.model";
+import { RouteGroup } from "../route-group/route-group.model";
 
 const tableName: string = 'route';
 
@@ -16,19 +16,6 @@ export class Route extends Model {
     
     @PrimaryGeneratedColumn()
     id: number;
-
-    @Column({
-        type: Number,
-        name: 'group'
-    })
-    routingGroupId: number;
-
-    @ManyToOne(type => RoutingGroup, routingGrup => routingGrup.routes)
-    @JoinColumn({
-        name: 'group'
-    })
-    routingGroup: RoutingGroup;
-
 
     @Column({name: 'routing_table'})
     routingTableId: number;
@@ -65,6 +52,17 @@ export class Route extends Model {
 
     @Column()
     comment: string;
+
+    @Column({
+        name: 'group'
+    })
+    routeGroupId: number;
+
+    @ManyToOne(type => RouteGroup, model => model.routes)
+    @JoinColumn({
+        name: 'group'
+    })
+    routeGroup: RouteGroup;
 
     @ManyToMany(type => IPObj, ipobj => ipobj.routes)
 	@JoinTable({
