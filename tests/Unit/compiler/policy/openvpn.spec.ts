@@ -39,7 +39,7 @@ import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
 import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
 import { PolicyRuleToOpenVPNPrefix } from "../../../../src/models/policy/PolicyRuleToOpenVPNPrefix";
-import { PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
+import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
 
 describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
   let dbCon: any;
@@ -57,6 +57,7 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
   let usePrefix = false;
 
   let IPv: string;
+  let compiler: AvailablePolicyCompilers;
   let policy: string;
 
   let ruleData = {
@@ -114,10 +115,10 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
     }
 
     try {
-        result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, policyType, rule);
+        result = await PolicyCompiler.compile(compiler, dbCon, fwcloud, ruleData.firewall, policyType, rule);
     } catch(err) { error = err }
 
-    if (usePrefix && vpnCli2 && 
+    if (!cs && usePrefix && vpnCli2 && 
         ((policyType===PolicyTypesMap.get(`${IPv}:SNAT`) && rulePosition===RulePositionsMap.get(`${IPv}:${policy}:Translated Source`)) || 
         (policyType===PolicyTypesMap.get(`${IPv}:DNAT`) && rulePosition===RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`)))) 
     { 
@@ -154,9 +155,10 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
   });
   
 
-  describe('OpenVPN in policy rule', () => {
+  describe('OpenVPN in policy rule (IPTables)', () => {
     before(() => { 
-      IPv = 'IPv4'; 
+      IPv = 'IPv4';
+      compiler = 'IPTables'; 
       useGroup = false; 
       usePrefix = false; 
     });
@@ -225,10 +227,83 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
     });
   });
 
+  describe('OpenVPN in policy rule (NFTables)', () => {
+    before(() => { 
+      IPv = 'IPv4';
+      compiler = 'NFTables'; 
+      useGroup = false; 
+      usePrefix = false; 
+    });
 
-  describe('OpenVPN in group in policy rule', () => {
+    describe('in INPUT chain', () => {
+      before(() => { policy = 'INPUT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`);
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`);
+      });
+    });
+
+    describe('in OUTPUT chain', () => {
+      before(() => { policy = 'OUTPUT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`);
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`);
+      });
+    });
+
+    describe('in FORWARD chain', () => {
+      before(() => { policy = 'FORWARD' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`);
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`);
+      });
+    });
+
+    describe('in SNAT', () => {
+      before(() => { policy = 'SNAT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (translated source)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),'$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n');
+      });
+    });
+
+    describe('in DNAT', () => {
+      before(() => { policy = 'DNAT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (translated destination)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),'$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n');
+      });
+    });
+  });
+
+
+  describe('OpenVPN in group in policy rule (IPTables)', () => {
     before(async () => { 
-      IPv = 'IPv4'; 
+      IPv = 'IPv4';
+      compiler = 'IPTables';  
       useGroup = true;
       usePrefix = false;
       group = (await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({ name: StringHelper.randomize(10), type: 21, fwCloudId: fwcloud}))).id; 
@@ -299,9 +374,85 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
     });
   });
 
-  describe('OpenVPN prefix in policy rule', () => {
+  describe('OpenVPN in group in policy rule (NFTables)', () => {
+    before(async () => { 
+      IPv = 'IPv4';
+      compiler = 'NFTables';  
+      useGroup = true;
+      usePrefix = false;
+      group = (await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({ name: StringHelper.randomize(10), type: 21, fwCloudId: fwcloud}))).id; 
+      await OpenVPN.addToGroup(dbCon,vpnCli1,group); 
+    });
+
+    describe('in INPUT chain', () => {
+      before(() => { policy = 'INPUT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`);
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`);
+      });
+    });
+
+    describe('in OUTPUT chain', () => {
+      before(() => { policy = 'OUTPUT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`);
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`);
+      });
+    });
+
+    describe('in FORWARD chain', () => {
+      before(() => { policy = 'FORWARD' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`);
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`);
+      });
+    });
+
+    describe('in SNAT', () => {
+      before(() => { policy = 'SNAT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (translated source)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),'$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n');
+      });
+    });
+
+    describe('in DNAT', () => {
+      before(() => { policy = 'DNAT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (translated destination)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),'$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n');
+      });
+    });
+  });
+
+
+  describe('OpenVPN prefix in policy rule (IPTables)', () => {
     before(() => { 
-      IPv = 'IPv4'; 
+      IPv = 'IPv4';
+      compiler = 'IPTables';  
       useGroup = false; 
       usePrefix = true; 
     });
@@ -370,9 +521,83 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
     });
   });
 
-  describe('OpenVPN in group in policy rule', () => {
+  describe('OpenVPN prefix in policy rule (NFTables)', () => {
+    before(() => { 
+      IPv = 'IPv4';
+      compiler = 'NFTables';  
+      useGroup = false; 
+      usePrefix = true; 
+    });
+
+    describe('in INPUT chain', () => {
+      before(() => { policy = 'INPUT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`);
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`);
+      });
+    });
+
+    describe('in OUTPUT chain', () => {
+      before(() => { policy = 'OUTPUT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`);
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`);
+      });
+    });
+
+    describe('in FORWARD chain', () => {
+      before(() => { policy = 'FORWARD' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`);
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`);
+      });
+    });
+
+    describe('in SNAT', () => {
+      before(() => { policy = 'SNAT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (translated source)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),'$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n');
+      });
+    });
+
+    describe('in DNAT', () => {
+      before(() => { policy = 'DNAT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (translated destination)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),'$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n');
+      });
+    });
+  });
+
+
+  describe('OpenVPN in group in policy rule (IPTables)', () => {
     before(async () => { 
-      IPv = 'IPv4'; 
+      IPv = 'IPv4';
+      compiler = 'IPTables';  
       useGroup = true;
       usePrefix = true;
       group = (await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({ name: StringHelper.randomize(10), type: 21, fwCloudId: fwcloud}))).id;  
@@ -443,153 +668,379 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
     });
   });
 
-  describe('OpenVPN prefix with several IPs', () => {
+  describe('OpenVPN in group in policy rule (NFTables)', () => {
     before(async () => { 
+      IPv = 'IPv4';
+      compiler = 'NFTables';  
+      useGroup = true;
+      usePrefix = true;
+      group = (await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({ name: StringHelper.randomize(10), type: 21, fwCloudId: fwcloud}))).id;  
+      await OpenVPNPrefix.addPrefixToGroup(dbCon,vpnPrefix,group); 
+    });
+
+    describe('in INPUT chain', () => {
+      before(() => { policy = 'INPUT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`);
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`);
+      });
+    });
+
+    describe('in OUTPUT chain', () => {
+      before(() => { policy = 'OUTPUT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`);
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`);
+      });
+    });
+
+    describe('in FORWARD chain', () => {
+      before(() => { policy = 'FORWARD' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n`);
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n`);
+      });
+    });
+
+    describe('in SNAT', () => {
+      before(() => { policy = 'SNAT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (translated source)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),'$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n');
+      });
+    });
+
+    describe('in DNAT', () => {
+      before(() => { policy = 'DNAT' });
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n');
+      });
+
+      it('should include the OpenVPN client IP in compilation string (translated destination)', async () => { 
+        await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),'$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n');
+      });
+    });
+  });
+
+
+  describe('OpenVPN prefix with several IPs', () => {
+    before(async () => {
       vpnCli2 = (await getRepository(OpenVPN).save(getRepository(OpenVPN).create({ firewallId: ruleData.firewall, crtId: crtCli2, parentId: vpnSrv }))).id;
       vpnCli2IP = (await getRepository(IPObj).save(getRepository(IPObj).create({ fwCloudId: fwcloud, name: '10.20.30.3', ipObjTypeId: 5, address: '10.20.30.3', netmask: '/32', ip_version: 4  }))).id;  
       await getRepository(OpenVPNOption).save(getRepository(OpenVPNOption).create({ openVPNId: vpnCli2, ipObjId: vpnCli2IP, name: 'ifconfig-push', order: 1, scope: 0 }));
     });
 
-    describe('In policy rule', () => {
-      before(() => { 
-        IPv = 'IPv4'; 
-        useGroup = false; 
-        usePrefix = true;
+    describe('IPTables compiler', () => {
+      before(() => { compiler = 'IPTables' });
+
+      describe('In policy rule', () => {
+        before(() => { 
+          IPv = 'IPv4'; 
+          useGroup = false; 
+          usePrefix = true;
+        });
+
+        describe('in INPUT chain', () => {
+          before(() => { policy = 'INPUT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          });
+        });
+
+        describe('in OUTPUT chain', () => {
+          before(() => { policy = 'OUTPUT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          });
+        });
+
+        describe('in FORWARD chain', () => {
+          before(() => { policy = 'FORWARD' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          });
+        });
+
+        describe('in SNAT', () => {
+          before(() => { policy = 'SNAT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -s 10.20.30.3 -j SNAT --to-source 192.168.0.50\n');
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -d 10.20.30.3 -j SNAT --to-source 192.168.0.50\n');
+          });
+
+          it('should generate error (translated source)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),null);
+          });
+        });
+
+        describe('in DNAT', () => {
+          before(() => { policy = 'DNAT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -s 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n');
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -d 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n');
+          });
+
+          it('should generate error (translated destination)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),null);
+          });
+        });
       });
 
-      describe('in INPUT chain', () => {
-        before(() => { policy = 'INPUT' });
-        it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+      describe('In group in policy rule', () => {
+        before(() => { 
+          IPv = 'IPv4'; 
+          useGroup = true; 
+          usePrefix = true;
         });
 
-        it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
-        });
-      });
+        describe('in INPUT chain', () => {
+          before(() => { policy = 'INPUT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          });
 
-      describe('in OUTPUT chain', () => {
-        before(() => { policy = 'OUTPUT' });
-        it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
-        });
-
-        it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
-        });
-      });
-
-      describe('in FORWARD chain', () => {
-        before(() => { policy = 'FORWARD' });
-        it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          });
         });
 
-        it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
-        });
-      });
+        describe('in OUTPUT chain', () => {
+          before(() => { policy = 'OUTPUT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          });
 
-      describe('in SNAT', () => {
-        before(() => { policy = 'SNAT' });
-        it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -s 10.20.30.3 -j SNAT --to-source 192.168.0.50\n');
-        });
-
-        it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -d 10.20.30.3 -j SNAT --to-source 192.168.0.50\n');
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          });
         });
 
-        it('should include the OpenVPN client IP in compilation string (translated source)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),'$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n');
-        });
-      });
+        describe('in FORWARD chain', () => {
+          before(() => { policy = 'FORWARD' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          });
 
-      describe('in DNAT', () => {
-        before(() => { policy = 'DNAT' });
-        it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -s 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n');
-        });
-
-        it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -d 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n');
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+          });
         });
 
-        it('should include the OpenVPN client IP in compilation string (translated destination)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),'$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n');
+        describe('in SNAT', () => {
+          before(() => { policy = 'SNAT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -s 10.20.30.3 -j SNAT --to-source 192.168.0.50\n');
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -d 10.20.30.3 -j SNAT --to-source 192.168.0.50\n');
+          });
+
+          it('should generate error (translated source)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),null);
+          });
+        });
+
+        describe('in DNAT', () => {
+          before(() => { policy = 'DNAT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -s 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n');
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -d 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n');
+          });
+
+          it('should generate error (translated destination)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),null);
+          });
         });
       });
     });
 
-    describe('In group in policy rule', () => {
-      before(() => { 
-        IPv = 'IPv4'; 
-        useGroup = true; 
-        usePrefix = true;
+    describe('NFTables compiler', () => {
+      before(() => { compiler = 'NFTables' });
+
+      describe('In policy rule', () => {
+        before(() => { 
+          IPv = 'IPv4'; 
+          useGroup = false; 
+          usePrefix = true;
+        });
+
+        describe('in INPUT chain', () => {
+          before(() => { policy = 'INPUT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip saddr 10.20.30.3 ct state new counter accept\n`);
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip daddr 10.20.30.3 ct state new counter accept\n`);
+          });
+        });
+
+        describe('in OUTPUT chain', () => {
+          before(() => { policy = 'OUTPUT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip saddr 10.20.30.3 ct state new counter accept\n`);
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip daddr 10.20.30.3 ct state new counter accept\n`);
+          });
+        });
+
+        describe('in FORWARD chain', () => {
+          before(() => { policy = 'FORWARD' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip saddr 10.20.30.3 ct state new counter accept\n`);
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip daddr 10.20.30.3 ct state new counter accept\n`);
+          });
+        });
+
+        describe('in SNAT', () => {
+          before(() => { policy = 'SNAT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.3 counter snat to 192.168.0.50\n');
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.3 counter snat to 192.168.0.50\n');
+          });
+
+          it('should generate error (translated source)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),null);
+          });
+        });
+
+        describe('in DNAT', () => {
+          before(() => { policy = 'DNAT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip saddr 10.20.30.3 counter dnat to 192.168.0.50\n');
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip daddr 10.20.30.3 counter dnat to 192.168.0.50\n');
+          });
+
+          it('should generate error (translated destination)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),null);
+          });
+        });
       });
 
-      describe('in INPUT chain', () => {
-        before(() => { policy = 'INPUT' });
-        it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+      describe('In group in policy rule', () => {
+        before(() => { 
+          IPv = 'IPv4'; 
+          useGroup = true; 
+          usePrefix = true;
         });
 
-        it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
+        describe('in INPUT chain', () => {
+          before(() => { policy = 'INPUT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip saddr 10.20.30.3 ct state new counter accept\n`);
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip daddr 10.20.30.3 ct state new counter accept\n`);
+          });
+        });
+
+        describe('in OUTPUT chain', () => {
+          before(() => { policy = 'OUTPUT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip saddr 10.20.30.3 ct state new counter accept\n`);
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip daddr 10.20.30.3 ct state new counter accept\n`);
+          });
+        });
+
+        describe('in FORWARD chain', () => {
+          before(() => { policy = 'FORWARD' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$NFT add rule ip filter ${policy} ip saddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip saddr 10.20.30.3 ct state new counter accept\n`);
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$NFT add rule ip filter ${policy} ip daddr 10.20.30.2 ct state new counter accept\n$NFT add rule ip filter ${policy} ip daddr 10.20.30.3 ct state new counter accept\n`);
+          });
+        });
+
+        describe('in SNAT', () => {
+          before(() => { policy = 'SNAT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.3 counter snat to 192.168.0.50\n');
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.3 counter snat to 192.168.0.50\n');
+          });
+
+          it('should generate error (translated source)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),null);
+          });
+        });
+
+        describe('in DNAT', () => {
+          before(() => { policy = 'DNAT' });
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip saddr 10.20.30.3 counter dnat to 192.168.0.50\n');
+          });
+
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip daddr 10.20.30.3 counter dnat to 192.168.0.50\n');
+          });
+
+          it('should generate error (translated destination)', async () => { 
+            await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),null);
+          });
         });
       });
 
-      describe('in OUTPUT chain', () => {
-        before(() => { policy = 'OUTPUT' });
-        it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
-        });
-
-        it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
-        });
-      });
-
-      describe('in FORWARD chain', () => {
-        before(() => { policy = 'FORWARD' });
-        it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),`$IPTABLES -A ${policy} -s 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -s 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
-        });
-
-        it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),`$IPTABLES -A ${policy} -d 10.20.30.2 -m conntrack --ctstate NEW -j ACCEPT\n$IPTABLES -A ${policy} -d 10.20.30.3 -m conntrack --ctstate NEW -j ACCEPT\n`);
-        });
-      });
-
-      describe('in SNAT', () => {
-        before(() => { policy = 'SNAT' });
-        it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -s 10.20.30.3 -j SNAT --to-source 192.168.0.50\n');
-        });
-
-        it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -d 10.20.30.3 -j SNAT --to-source 192.168.0.50\n');
-        });
-
-        it('should include the OpenVPN client IP in compilation string (translated source)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),'$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n');
-        });
-      });
-
-      describe('in DNAT', () => {
-        before(() => { policy = 'DNAT' });
-        it('should include the OpenVPN client IP in compilation string (source position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Source`),'$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -s 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n');
-        });
-
-        it('should include the OpenVPN client IP in compilation string (destination position)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Destination`),'$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -d 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n');
-        });
-
-        it('should include the OpenVPN client IP in compilation string (translated destination)', async () => { 
-          await runTest(PolicyTypesMap.get(`${IPv}:${policy}`),RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),'$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n');
-        });
-      });
     });
   });
 
