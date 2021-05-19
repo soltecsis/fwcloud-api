@@ -6,7 +6,7 @@ import { IsFile } from "../../../fonaments/validation/rules/file.validation";
 
 export class BackupControllerImportDto {
     @Validate(IsFile)
-    @Validate(HasExtension, ['fwcloud'])
+    @Validate(HasExtension, ['zip'])
     @Transform(({ value }) => {
         return new FileInfo((value as FileInfo).filepath);
     })
