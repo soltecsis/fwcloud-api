@@ -226,7 +226,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.firewallId).to.eq(firewall.id);
                         expect(response.body.data.name).to.eq('table');
-                        expect(response.body.data.number).to.eq(0);
+                        expect(response.body.data.number).to.eq(1);
                     });
             });
 
@@ -245,7 +245,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.firewallId).to.eq(firewall.id);
                         expect(response.body.data.name).to.eq('table');
-                        expect(response.body.data.number).to.eq(0);
+                        expect(response.body.data.number).to.eq(1);
                     });
             });
 
