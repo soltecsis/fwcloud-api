@@ -5,7 +5,7 @@ import { FileInfo } from "../../http/files/file-info";
 export class IsFile implements ValidatorConstraintInterface {
     
     validate(value: any, validationArguments?: ValidationArguments): boolean | Promise<boolean> {
-        if (value === undefined || value === null || value instanceof FileInfo) {
+        if (value instanceof FileInfo) {
             return true;
         }
 
