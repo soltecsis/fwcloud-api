@@ -56,32 +56,13 @@ var express = require('express');
 var router = express.Router();
 
 
-/**
- * Property Model to manage compilation process
- *
- * @property RuleCompileModel
- * @type ../../models/compile/
- */
-import { IPTablesCompiler } from '../../compiler/iptables/iptables-compiler';
-
-/**
- * Property Model to manage policy script generation and install process
- *
- * @property PolicyScript
- * @type ../../models/compile/
- */
-import { PolicyScript } from '../../compiler/PolicyScript';
-
-import { PolicyCompiler } from '../../compiler/PolicyCompiler';
-
 
 const config = require('../../config/config');
-import { Firewall } from '../../models/firewall/Firewall';
-import { PolicyRule } from '../../models/policy/PolicyRule';
+import { PolicyScript } from '../../compiler/PolicyScript';
+import { PolicyCompiler } from '../../compiler/PolicyCompiler';
 import { Channel } from '../../sockets/channels/channel';
-import { ProgressPayload, ProgressNoticePayload, ProgressErrorPayload } from '../../sockets/messages/socket-message';
+import { ProgressErrorPayload } from '../../sockets/messages/socket-message';
 import { logger } from '../../fonaments/abstract-application';
-const fwcError = require('../../utils/error_table');
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
