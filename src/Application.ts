@@ -57,6 +57,11 @@ import { UpdateServiceProvider } from "./updates/updates.provider";
 import { IptablesSaveServiceProvider } from "./iptables-save/iptables-save.provider";
 import { logger } from "./fonaments/abstract-application";
 import * as fs from 'fs';
+import { RoutingTableServiceProvider } from "./models/routing/routing-table/routing-table.provider";
+import { RouteServiceProvider } from "./models/routing/route/route.provider";
+import { RoutingRuleServiceProvider } from "./models/routing/routing-rule/routing-rule.provider";
+import { RoutingGroupServiceProvider } from "./models/routing/routing-group/routing-group.provider";
+import { RouteGroupServiceProvider } from "./models/routing/route-group/route-group.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -115,7 +120,12 @@ export class Application extends HTTPApplication {
             OpenVPNServiceProvider,
             FwCloudServiceProvider,
             UpdateServiceProvider,
-            IptablesSaveServiceProvider
+            IptablesSaveServiceProvider,
+            RoutingTableServiceProvider,
+            RouteServiceProvider,
+            RoutingRuleServiceProvider,
+            RoutingGroupServiceProvider,
+            RouteGroupServiceProvider
         ]
     }
 

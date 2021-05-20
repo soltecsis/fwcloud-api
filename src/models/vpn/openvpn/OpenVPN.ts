@@ -37,6 +37,8 @@ import { OpenVPNPrefix } from "./OpenVPNPrefix";
 import { ProgressInfoPayload, ProgressErrorPayload, ProgressNoticePayload, ProgressWarningPayload } from "../../../sockets/messages/socket-message";
 import { Channel } from "../../../sockets/channels/channel";
 import { EventEmitter } from "events";
+import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
+import { Route } from "../../routing/route/route.model";
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -126,6 +128,12 @@ export class OpenVPN extends Model {
 
     @OneToMany(type => OpenVPNPrefix, model => model.openVPN)
     openVPNPrefixes: Array<OpenVPNPrefix>;
+
+    @ManyToMany(type => RoutingRule, routingRule => routingRule.openVPNs)
+    routingRules: RoutingRule[]
+
+    @ManyToMany(type => Route, route => route.openVPNs)
+    routes: Route[]
 
 
     public getTableName(): string {

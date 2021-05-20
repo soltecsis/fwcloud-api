@@ -34,8 +34,8 @@ export class RequestInputs {
     /**
      * Returns all inputs
      */
-    public all(): Object {
-        return ObjectHelpers.merge(this._req.body, this._req.query);;
+    public all<T extends object>(): T {
+        return ObjectHelpers.merge(this._req.body, this._req.query) as T;
     }
 
     /**

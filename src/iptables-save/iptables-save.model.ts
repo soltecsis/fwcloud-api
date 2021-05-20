@@ -32,9 +32,9 @@ import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 import { StdChains, TcpFlags, NetfilterTablePolicyTypeMap, PositionMap, GroupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../models/policy/PolicyGroup';
-import { IPTablesCompiler } from '../compiler/iptables/iptables-compiler';
 import { PolicyRuleToOpenVPN } from '../models/policy/PolicyRuleToOpenVPN';
 import moment from "moment";
+import { PolicyCompilerTools } from "../compiler/PolicyCompilerTools";
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
@@ -1005,8 +1005,8 @@ export class IptablesSaveToFWCloud extends Service {
       const currPosObjs = JSON.stringify(currentRule.positions[i].ipobjs);
 
       // Check position negation!!!!
-      const currPosNegated = IPTablesCompiler.isPositionNegated(currentRule.negate,currentRule.positions[i].id);
-      const prevPosNegated = IPTablesCompiler.isPositionNegated(previousRule.negate,previousRule.positions[i].id);
+      const currPosNegated = PolicyCompilerTools.isPositionNegated(currentRule.negate,currentRule.positions[i].id);
+      const prevPosNegated = PolicyCompilerTools.isPositionNegated(previousRule.negate,previousRule.positions[i].id);
       if (currPosNegated !== prevPosNegated) return; // Rules with different negation status in the same position can not be merged.
 
       if (prevPosObjs !== currPosObjs) {
