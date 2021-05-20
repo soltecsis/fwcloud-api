@@ -100,7 +100,7 @@ export class PolicyScript {
 		});
 	}
 
-	public static generate(compiler: AvailablePolicyCompilers, dbCon:any, fwcloud: number, firewall: number, channel: Channel): Promise<void> {
+	public static generate(dbCon:any, fwcloud: number, firewall: number, channel: Channel): Promise<void> {
 		return new Promise(async (resolve, reject) => {
 			try {
 				var fs = require('fs');
@@ -120,6 +120,7 @@ export class PolicyScript {
 			stream.on('open', async fd => {
 				try {
 					/* Generate the policy script. */
+					const compiler = await Firewall.getFirewallCompiler(fwcloud, firewall);
 					let data: any = await PolicyScript.append(config.get('policy').header_file);
 					data = await PolicyScript.dumpFirewallOptions(fwcloud, firewall, data);
 					stream.write(data.cs + "greeting_msg() {\n" +
@@ -130,6 +131,32 @@ export class PolicyScript {
 						channel.emit('message', new ProgressNoticePayload('--- STATEFUL FIREWALL ---', true));
 					} else {
 						channel.emit('message', new ProgressNoticePayload('--- STATELESS FIREWALL ---', true));
+					}
+		
+					if (compiler == 'NFTables') {
+						// Code for create the standard nftables tables and chain.
+						stream.write("\n\necho\n");
+						stream.write("echo \"******************************\"\n");
+						stream.write("echo \"* NFTABLES TABLES AND CHAINS *\"\n");
+						stream.write("echo \"******************************\"\n");
+						const families = ['ip', 'ip6'];
+						for (let family of families) {
+							stream.write(`$NFT add table ${family} filter\n`);
+							stream.write(`$NFT add chain ${family} filter INPUT { type filter hook input priority 0\\; policy drop\\; }\n`);
+							stream.write(`$NFT add chain ${family} filter FORWARD { type filter hook forward priority 0\\; policy drop\\; }\n`);
+							stream.write(`$NFT add chain ${family} filter OUTPUT { type filter hook output priority 0\\; policy drop\\; }\n`);
+							stream.write(`$NFT add table ${family} nat\n`);
+							stream.write(`$NFT add chain ${family} nat PREROUTING { type nat hook prerouting priority - 100\\; policy accept\\; }\n`);
+							stream.write(`$NFT add chain ${family} nat INPUT { type nat hook input priority 100\\; policy accept\\; }\n`);
+							stream.write(`$NFT add chain ${family} nat OUTPUT { type nat hook output priority - 100\\; policy accept\\; }\n`);
+							stream.write(`$NFT add chain ${family} nat POSTROUTING { type nat hook postrouting priority 100\\; policy accept\\; }\n`);
+							stream.write(`$NFT add table ${family} mangle\n`);
+							stream.write(`$NFT add chain ${family} mangle PREROUTING { type filter hook prerouting priority - 150\\; policy accept\\; }\n`);
+							stream.write(`$NFT add chain ${family} mangle INPUT { type filter hook input priority - 150\\; policy accept\\; }\n`);
+							stream.write(`$NFT add chain ${family} mangle FORWARD { type filter hook forward priority - 150\\; policy accept\\; }\n`);
+							stream.write(`$NFT add chain ${family} mangle OUTPUT { type route hook output priority - 150\\; policy accept\\; }\n`);
+							stream.write(`$NFT add chain ${family} mangle POSTROUTING { type filter hook postrouting priority - 150\\; policy accept\\; }\n`);
+						}
 					}
 		
 					// Generate default rules for mangle table
@@ -148,37 +175,16 @@ export class PolicyScript {
 							stream.write("$IPTABLES -t mangle -A OUTPUT -m mark ! --mark 0 -j ACCEPT\n\n");
 							stream.write("$IPTABLES -t mangle -A POSTROUTING -j CONNMARK --restore-mark\n");
 							stream.write("$IPTABLES -t mangle -A POSTROUTING -m mark ! --mark 0 -j ACCEPT\n\n");
-						} else { // NFtables
-
+						} else { // NFTables
+							stream.write("$NFT add rule ip mangle PREROUTING counter meta mark set ct mark\n");
+							stream.write("$NFT add rule ip mangle PREROUTING mark != 0x0 counter accept\n");
+							stream.write("$NFT add rule ip mangle OUTPUT counter meta mark set ct mark\n");
+							stream.write("$NFT add rule ip mangle OUTPUT mark != 0x0 counter accept\n");
+							stream.write("$NFT add rule ip mangle POSTROUTING counter meta mark set ct mark\n");
+							stream.write("$NFT add rule ip mangle POSTROUTING mark != 0x0 counter accept\n");
 						}
 					}
 					
-					if (compiler == 'NFTables') {
-						// Code for create the standard nftables tables and chain.
-						stream.write("\n\necho\n");
-						stream.write("echo \"******************************\"\n");
-						stream.write("echo \"* NFTABLES TABLES AND CHAINS *\"\n");
-						stream.write("echo \"******************************\"\n");
-						const families = ['ip', 'ip6'];
-						for (let family of families) {
-							stream.write(`$NFT add table ${family} filter\n`);
-							stream.write(`$NFT add chain ${family} filter INPUT { type filter hook input priority 0; policy drop; }\n`);
-							stream.write(`$NFT add chain ${family} filter FORWARD { type filter hook forward priority 0; policy drop; }\n`);
-							stream.write(`$NFT add chain ${family} filter OUTPUT { type filter hook output priority 0; policy drop; }\n`);
-							stream.write(`$NFT add table ${family} nat\n`);
-							stream.write(`$NFT add chain ${family} nat PREROUTING { type nat hook prerouting priority -100; policy accept; }\n`);
-							stream.write(`$NFT add chain ${family} nat INPUT { type nat hook input priority 100; policy accept; }\n`);
-							stream.write(`$NFT add chain ${family} nat OUTPUT { type nat hook output priority -100; policy accept; }\n`);
-							stream.write(`$NFT add chain ${family} nat POSTROUTING { type nat hook postrouting priority 100; policy accept; }\n`);
-							stream.write(`$NFT add table ${family} mangle\n`);
-							stream.write(`$NFT add chain ${family} mangle PREROUTING { type filter hook prerouting priority -150; policy accept; }\n`);
-							stream.write(`$NFT add chain ${family} mangle INPUT { type filter hook input priority -150; policy accept; }\n`);
-							stream.write(`$NFT add chain ${family} mangle FORWARD { type filter hook forward priority -150; policy accept; }\n`);
-							stream.write(`$NFT add chain ${family} mangle OUTPUT { type route hook output priority -150; policy accept; }\n`);
-							stream.write(`$NFT add chain ${family} mangle POSTROUTING { type filter hook postrouting priority -150; policy accept; }\n`);
-						}
-					}
-		
 					stream.write("\n\necho\n");
 					stream.write("echo \"***********************\"\n");
 					stream.write("echo \"* FILTER TABLE (IPv4) *\"\n");

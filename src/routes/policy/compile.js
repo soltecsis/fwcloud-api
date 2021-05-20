@@ -56,32 +56,13 @@ var express = require('express');
 var router = express.Router();
 
 
-/**
- * Property Model to manage compilation process
- *
- * @property RuleCompileModel
- * @type ../../models/compile/
- */
-import { IPTablesCompiler } from '../../compiler/iptables/iptables-compiler';
-
-/**
- * Property Model to manage policy script generation and install process
- *
- * @property PolicyScript
- * @type ../../models/compile/
- */
-import { PolicyScript } from '../../compiler/PolicyScript';
-
-import { PolicyCompiler } from '../../compiler/PolicyCompiler';
-
 
 const config = require('../../config/config');
-import { Firewall } from '../../models/firewall/Firewall';
-import { PolicyRule } from '../../models/policy/PolicyRule';
+import { PolicyScript } from '../../compiler/PolicyScript';
+import { PolicyCompiler } from '../../compiler/PolicyCompiler';
 import { Channel } from '../../sockets/channels/channel';
-import { ProgressPayload, ProgressNoticePayload, ProgressErrorPayload } from '../../sockets/messages/socket-message';
+import { ProgressErrorPayload } from '../../sockets/messages/socket-message';
 import { logger } from '../../fonaments/abstract-application';
-const fwcError = require('../../utils/error_table');
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -90,7 +71,7 @@ const fwcError = require('../../utils/error_table');
 router.put('/rule', async (req, res) => {
 	try {
 		//console.time(`Rule compile (ID: ${req.body.rule})`);
-		const rulesCompiled = await PolicyCompiler.compile('IPTables', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		const rulesCompiled = await PolicyCompiler.compile(req.body.compiler, req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
 		//console.timeEnd(`Rule compile (ID: ${req.body.rule})`);
 
 		if (rulesCompiled.length === 0)
@@ -110,7 +91,7 @@ router.put('/rule', async (req, res) => {
 router.put('/', async (req, res) => {
 	try {
 		const channel = await Channel.fromRequest(req);
-		await PolicyScript.generate('NFTables', req.dbCon, req.body.fwcloud, req.body.firewall, channel);
+		await PolicyScript.generate(req.dbCon, req.body.fwcloud, req.body.firewall, channel);
 		res.status(204).end();
 	} catch(error) {
 		channel.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));

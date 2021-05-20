@@ -118,12 +118,8 @@ export abstract class PolicyCompilerTools {
         if (comment.charAt(comment.length-1) !== "'") comment =`${comment}'`;
         comment = `-m comment --comment ${comment.replace(/\r/g,' ').replace(/\n/g,' ')} `;
       } else { // NFTables compiler.
-        // Avoid the presence of the " character, used as comment delimiter for the iptables command.
-        comment = comment.trim().replace(/"/g, "'"); 
-
-        // NFTables comment extension allows you to add comments (up to 128 characters) to any rule.
-        comment = shellescape([comment]).substring(0,120);
-        comment = comment.slice(1,-1);
+        comment = comment.trim().replace(/"/g,"'"); 
+        comment = comment.trim().replace(/(['$`\\&><!()|])/g,'\\$1'); 
 
         // Comment must start and and end with \" characters.
         if (comment.charAt(0) !== '\\' && comment.charAt(1) !== '"') comment =`\\"${comment}`;
@@ -599,7 +595,7 @@ export abstract class PolicyCompilerTools {
               if (this._compiler === 'IPTables')
                 cs += `${this._cmd} ${this._table} -A ${chainName} ${this._compiledPositions[i].items[j]} -j ${chainNext}\n`;
               else // NFTables
-                cs += `${this._cmd} add rule ${this._family} ${this._table} ${chainName} ${this._compiledPositions[i].items[j]} ${i != (this._compiledPositions.length - 1) ? 'counter jump ' : ''}${chainNext}\n`;
+                cs += `${this._cmd} add rule ${this._family} ${this._table} ${chainName} ${this._compiledPositions[i].items[j]} ${i != (this._compiledPositions.length - 1) ? `counter ${chainNext!='return' ? 'jump ' : ''}` : ''}${chainNext}\n`;
             }
             chainNumber++;
 
