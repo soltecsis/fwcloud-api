@@ -26,17 +26,17 @@
  * @property RuleCompileModel
  * @type /models/compile/
  */
-import { Firewall } from '../models/firewall/Firewall';
+import { Firewall } from '../../models/firewall/Firewall';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
-import { ProgressNoticePayload, ProgressErrorPayload, ProgressPayload } from '../sockets/messages/socket-message';
+import { ProgressNoticePayload, ProgressErrorPayload, ProgressPayload } from '../../sockets/messages/socket-message';
 
-import sshTools from '../utils/ssh';
+import sshTools from '../../utils/ssh';
 import { AvailablePolicyCompilers, PolicyCompiler } from './PolicyCompiler';
-import { Channel } from '../sockets/channels/channel';
-import { PolicyTypesMap } from '../models/policy/PolicyType';
-import { PolicyRule } from '../models/policy/PolicyRule';
+import { Channel } from '../../sockets/channels/channel';
+import { PolicyTypesMap } from '../../models/policy/PolicyType';
+import { PolicyRule } from '../../models/policy/PolicyRule';
 
-var config = require('../config/config');
+var config = require('../../config/config');
 
 export class PolicyScript {
 

@@ -30,7 +30,7 @@ import db from "../../../../src/database/database-manager";
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
 import { populateRule } from "./utils";
-import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
+import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/policy/PolicyCompiler";
 
 describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
   let fwcloud: number;

@@ -58,8 +58,8 @@ var router = express.Router();
 
 
 const config = require('../../config/config');
-import { PolicyScript } from '../../compiler/PolicyScript';
-import { PolicyCompiler } from '../../compiler/PolicyCompiler';
+import { PolicyScript } from '../../compiler/policy/PolicyScript';
+import { PolicyCompiler } from '../../compiler/policy/PolicyCompiler';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressErrorPayload } from '../../sockets/messages/socket-message';
 import { logger } from '../../fonaments/abstract-application';

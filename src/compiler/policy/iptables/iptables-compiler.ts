@@ -20,7 +20,7 @@
 	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { PolicyTypesMap } from '../../models/policy/PolicyType';
+import { PolicyTypesMap } from '../../../models/policy/PolicyType';
 import { PolicyCompilerTools } from '../PolicyCompilerTools';
 
 export class IPTablesCompiler extends PolicyCompilerTools {

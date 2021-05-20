@@ -28,7 +28,7 @@ import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
 import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
-import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
+import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/policy/PolicyCompiler";
 
 describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control'), () => {
   let fwcloud: number;

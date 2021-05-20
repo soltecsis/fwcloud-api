@@ -1,5 +1,5 @@
 import { Firewall } from "./Firewall";
-import { PolicyScript } from "../../compiler/PolicyScript";
+import { PolicyScript } from "../../compiler/policy/PolicyScript";
 import * as fs from "fs";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 import { ProgressNoticePayload } from "../../sockets/messages/socket-message";

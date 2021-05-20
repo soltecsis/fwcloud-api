@@ -34,7 +34,7 @@ import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../models/policy/PolicyGroup';
 import { PolicyRuleToOpenVPN } from '../models/policy/PolicyRuleToOpenVPN';
 import moment from "moment";
-import { PolicyCompilerTools } from "../compiler/PolicyCompilerTools";
+import { PolicyCompilerTools } from "../compiler/policy/PolicyCompilerTools";
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
