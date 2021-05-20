@@ -34,14 +34,14 @@ export class UpdateController extends Controller {
         this._updateUpdaterService = await app().getService<UpdateService>(UpdateService.name);
     }
 
-    @Validate({})
+    @Validate()
     public async proxy(request: Request): Promise<ResponseBuilder> {
         const data = await this._updateUpdaterService.proxyUpdate(request);
 
         return data ? ResponseBuilder.buildResponse().status(200).body(data) : ResponseBuilder.buildResponse().status(200);
     }
 
-    @Validate({})
+    @Validate()
     public async update(): Promise<ResponseBuilder> {
         await this._updateUpdaterService.runUpdate();
 

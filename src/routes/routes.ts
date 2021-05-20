@@ -22,23 +22,23 @@
 
 import { RouteCollection } from "../fonaments/http/router/route-collection";
 import { BackupController } from "../controllers/backups/backup.controller";
-import { BackupConfigController } from "../controllers/backups/backup-config.controller";
+import { BackupConfigController } from "../controllers/backups/backup-config/backup-config.controller";
 import { RouterParser } from "../fonaments/http/router/router-parser";
 import { isAdmin } from "../gates/isAdmin";
 import { VersionController } from "../controllers/version.controller";
 import { SnapshotController } from "../controllers/snapshots/snapshot.controller";
 import { isLoggedIn } from "../gates/isLoggedIn";
-import { FwCloudExportController } from "../controllers/fwclouds/fwcloud-export.controller";
+import { FwCloudExportController } from "../controllers/fwclouds/fwcloud-export/fwcloud-export.controller";
 import { OpenVPNController } from "../controllers/firewalls/openvpn/openvpn.controller";
 import { FwCloudController } from "../controllers/fwclouds/fwcloud.controller";
 import { UpdateController } from "../controllers/updates/update.controller";
 import { IptablesSaveController } from "../controllers/iptables-save/iptables-save.controller";
 import { PingController } from "../controllers/ping/ping.controller";
-import { RoutingTableController } from "../controllers/routing/routing-tables.controller";
-import { RouteController } from "../controllers/routing/route.controller";
-import { RoutingRuleController } from "../controllers/routing/routing-rule.controller";
-import { RoutingGroupController } from "../controllers/routing/routing-group.controller";
-import { RouteGroupController } from "../controllers/routing/route-group.controller";
+import { RoutingTableController } from "../controllers/routing/routing-tables/routing-tables.controller";
+import { RouteController } from "../controllers/routing/route/route.controller";
+import { RoutingRuleController } from "../controllers/routing/routing-rule/routing-rule.controller";
+import { RoutingGroupController } from "../controllers/routing/routing-group/routing-group.controller";
+import { RouteGroupController } from "../controllers/routing/route-group/route-group.controller";
 
 export class Routes extends RouteCollection {
 

@@ -1,75 +1,35 @@
 import { describeName, expect } from "../../../../mocha/global-setup";
 import { Validator } from "../../../../../src/fonaments/validation/validator";
-import { Rule } from "../../../../../src/fonaments/validation/rules/rule";
-import { ErrorBag } from "../../../../../src/fonaments/validation/error-bag";
-
-class ValidRule extends Rule {
-    public async passes(attribute: string, value: any): Promise<boolean> {
-        return true;
-    }
-    public message(attribute: string, value: any): string {
-        throw new Error("Method not implemented.");
-    }
-}
-
-class InvalidRule extends Rule {
-    public async passes(attribute: string, value: any): Promise<boolean> {
-        return false;
-    }
-    
-    public message(attribute: string, value: any): string {
-        return `${attribute} is invalid.`
-    }
-    
-}
+import { IsNumber, IsString } from "class-validator";
+import { ValidationException } from "../../../../../src/fonaments/exceptions/validation-exception";
 
 describe(describeName('Validator Unit Test'), () => {
-    describe('isValid()', () => {
-        it('should return false if a rule is not valid', async () => {
-            const validator: Validator = new Validator({"input": "value"}, {
-                "input": [new InvalidRule()]
-            })
+    class ValidDto {
+        @IsString()
+        input: string;
+    }
+    
+    class InvalidDto {
+        @IsNumber()
+        input: number
+    }
+    
+    describe('validate()', () => {
+        it('should throw an exception if validation fails', async () => {
+            const validator: Validator = new Validator({"input": "value"}, InvalidDto)
 
-            expect(await validator.isValid()).to.be.false;
+            try {
+                await validator.validate()
+            } catch(e) {
+                expect(e).to.be.instanceOf(ValidationException);
+            }
         });
 
-        it('should return true if a rule is valid', async() => {
-            const validator: Validator = new Validator({"input": "value"}, {
-                "input": [new ValidRule()]
-            })
+        it('should not throw an exception if the data is valid', async() => {
+            const validator: Validator = new Validator({"input": "value"}, ValidDto)
 
-            expect(await validator.isValid()).to.be.true;
+            expect(await validator.validate()).to.be.undefined;
         });
 
-        it('should return false if at least one rule is not valid', async () => {
-            const validator: Validator = new Validator({"input": "value"}, {
-                "input": [new ValidRule(), new InvalidRule()]
-            })
-
-            expect(await validator.isValid()).to.be.false;
-        });
-
-        it('should create an error bag with the error messages', async () => {
-            const validator: Validator = new Validator({"input": "value"}, {
-                "input": [new ValidRule(), new InvalidRule()]
-            })
-
-            expect(await validator.isValid()).to.be.false;
-            expect(validator.errors).to.be.instanceOf(ErrorBag);
-            expect(validator.errors.get("input")).to.be.deep.eq([
-                "input is invalid."
-            ])
-        });
-
-        it('should return false if an input does not have validation and is strict mode', async () => {
-            const validator: Validator = new Validator({"input": "value", "input2": "input"}, {
-                "input": [new ValidRule()]
-            });
-
-            expect(await validator.isValid()).to.be.false;
-            expect(validator.errors.get("input2")).to.be.deep.eq([
-                "input2 unexpected."
-            ]);
-        });
     });
 });

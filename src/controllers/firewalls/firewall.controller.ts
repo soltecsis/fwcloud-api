@@ -8,7 +8,8 @@ import { FirewallPolicy } from "../../policies/firewall.policy";
 import { Channel } from "../../sockets/channels/channel";
 import { ProgressPayload } from "../../sockets/messages/socket-message";
 import { Validate } from "../../decorators/validate.decorator";
-import { String } from "../../fonaments/validation/rules/string.rule";
+import { FirewallControllerCompileDto } from "./dtos/compile.dto";
+import { FirewallControllerInstallDto } from "./dtos/install.dto";
 
 export class FirewallController extends Controller {
     
@@ -18,9 +19,7 @@ export class FirewallController extends Controller {
         this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
     }
     
-    @Validate({
-        channel_id: [new String()]
-    })
+    @Validate(FirewallControllerCompileDto)
     public async compile(request: Request): Promise<ResponseBuilder> {
         /**
          * This method is not used temporarily
@@ -41,9 +40,7 @@ export class FirewallController extends Controller {
         return ResponseBuilder.buildResponse().status(201).body(firewall);
     }
 
-    @Validate({
-        channel_id: [new String()]
-    })
+    @Validate(FirewallControllerInstallDto)
     public async install(request: Request): Promise<ResponseBuilder> {
         /**
          * This method is not used temporarily

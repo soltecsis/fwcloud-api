@@ -28,14 +28,11 @@ import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { Request } from "express";
 import { Channel } from "../../sockets/channels/channel";
 import { Validate } from "../../decorators/validate.decorator";
-import { Max } from "../../fonaments/validation/rules/max.rule";
-import { String } from "../../fonaments/validation/rules/string.rule";
-import { Required } from "../../fonaments/validation/rules/required.rule";
-import { Extension } from "../../fonaments/validation/rules/extension.rule";
-import { File } from "../../fonaments/validation/rules/file.rule";
 import { FileInfo } from "../../fonaments/http/files/file-info";
 import { HttpException } from "../../fonaments/exceptions/http/http-exception";
-import e from "cors";
+import { BackupControllerStoreDto } from "./dtos/store.dto";
+import { BackupControllerRestoreDto } from "./dtos/restore.dto";
+import { BackupControllerImportDto } from "./dtos/import.dto";
 
 export class BackupController extends Controller {
     protected _backupService: BackupService;
@@ -50,14 +47,14 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
-    @Validate({})
+    @Validate()
      public async index(request: Request): Promise<ResponseBuilder> {
         const backups: Array<Backup> = await this._backupService.getAll();
 
         return ResponseBuilder.buildResponse().status(200).body(backups);
     }
 
-    @Validate({})
+    @Validate()
     public async show(request: Request): Promise<ResponseBuilder> {
         const backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
 
@@ -70,10 +67,7 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
-    @Validate({
-        comment: [new String(), new Max(255)],
-        channel_id: [new String(), new Max(255)]
-    })
+    @Validate(BackupControllerStoreDto)
     public async store(request: Request): Promise<ResponseBuilder> {
         const channel: Channel = await Channel.fromRequest(request);
 
@@ -88,9 +82,7 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
-    @Validate({
-        channel_id: [new String()]
-    })
+    @Validate(BackupControllerRestoreDto)
     public async restore(request: Request): Promise<ResponseBuilder> {
         let backup: Backup = await this._backupService.findOne(parseInt(request.params.backup));
 
@@ -114,7 +106,7 @@ export class BackupController extends Controller {
      * @param request 
      * @param response 
      */
-    @Validate({})
+    @Validate()
     public async destroy(request: Request): Promise<ResponseBuilder> {
         let backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
 
@@ -123,7 +115,7 @@ export class BackupController extends Controller {
         return ResponseBuilder.buildResponse().status(200).body(backup);
     }
 
-    @Validate({})
+    @Validate()
     public async export(request: Request): Promise<ResponseBuilder> {
         let backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
 
@@ -132,9 +124,7 @@ export class BackupController extends Controller {
         return ResponseBuilder.buildResponse().status(201).download(exportFilePath, `backup_${backup.id}.zip`);
     }
 
-    @Validate({
-        file: [new Required(), new File(), new Extension('zip')]
-    })
+    @Validate(BackupControllerImportDto)
     public async import(request: Request): Promise<ResponseBuilder> {
         try {
             const backup: Backup = await this._backupService.import((<FileInfo>request.inputs.get('file')).filepath);

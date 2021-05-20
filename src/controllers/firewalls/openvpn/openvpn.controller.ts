@@ -11,16 +11,11 @@ import { app } from "../../../fonaments/abstract-application";
 import * as uuid from "uuid";
 import * as path from "path";
 import { Validate } from "../../../decorators/validate.decorator";
-import { Regexp } from "../../../fonaments/validation/rules/regexp.rule";
-import { String } from "../../../fonaments/validation/rules/string.rule";
-import { InstallerGenerator } from "../../../openvpn-installer/installer-generator";
-import { Required } from "../../../fonaments/validation/rules/required.rule";
+import { OpenVPNControllerInstallerDto } from "./dtos/installer.dto";
 
 export class OpenVPNController extends Controller {
     
-    @Validate({
-        connection_name: [new Required(), new String(), new Regexp(InstallerGenerator.connectionNameRegExp)]
-    })
+    @Validate(OpenVPNControllerInstallerDto)
     public async installer(req: Request): Promise<ResponseBuilder> {
         const openVPN: OpenVPN = await getRepository(OpenVPN).createQueryBuilder("openvpn")
             .leftJoinAndSelect("openvpn.firewall", "firewall")

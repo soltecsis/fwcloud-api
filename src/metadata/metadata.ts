@@ -1,7 +1,7 @@
-import { RequestRules } from "../fonaments/validation/validator"
+import { ClassConstructor } from "class-transformer";
 
 export type Metadata = {
-    validations: {[signature: string]: RequestRules}
+    validations: {[signature: string]: ClassConstructor<object>}
 }
 
 const _metadata: Metadata = {

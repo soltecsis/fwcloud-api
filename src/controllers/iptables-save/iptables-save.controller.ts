@@ -35,7 +35,7 @@ export class IptablesSaveController extends Controller {
     }
 
     // WARNING: We are validating input wit Joi middleware, ignore this validation.
-    //@Validate({})
+    //@Validate()
     public async import(request: Request): Promise<ResponseBuilder> {
         // If request.body.fwcloud and request.body.firewall exists, we have already checked in the access control middleware 
         // that the user has access to the indicated fwcloud and firewall.
@@ -51,7 +51,7 @@ export class IptablesSaveController extends Controller {
     }
 
     // WARNING: We are validating input wit Joi middleware, ignore this validation.
-    //@Validate({})
+    //@Validate()
     public async export(request: Request): Promise<ResponseBuilder> {
         const result = await this._iptablesSaveService.export(request);
 

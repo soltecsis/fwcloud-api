@@ -1,6 +1,6 @@
 import { getRepository } from "typeorm";
 import { Application } from "../../../../../src/Application";
-import { RoutingTableController } from "../../../../../src/controllers/routing/routing-tables.controller";
+import { RoutingTableController } from "../../../../../src/controllers/routing/routing-tables/routing-tables.controller";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
 import { User } from "../../../../../src/models/user/User";
@@ -11,6 +11,7 @@ import request = require("supertest");
 import { _URL } from "../../../../../src/fonaments/http/router/router.service";
 import { RoutingTable } from "../../../../../src/models/routing/routing-table/routing-table.model";
 import { RoutingTableService } from "../../../../../src/models/routing/routing-table/routing-table.service";
+import { Tree } from "../../../../../src/models/tree/Tree";
 
 describe(describeName('Routing Table E2E Tests'), () => {
     let app: Application;
@@ -41,6 +42,9 @@ describe(describeName('Routing Table E2E Tests'), () => {
             fwCloudId: fwCloud.id
         }));
 
+        await Tree.createAllTreeCloud(fwCloud) as {id: number};
+        const node: {id: number} = await Tree.getNodeByNameAndType(fwCloud.id, 'FIREWALLS', 'FDF') as {id: number};
+        await Tree.insertFwc_Tree_New_firewall(fwCloud.id, node.id, firewall.id);
     });
 
     describe(RoutingTableController.name, () => {
@@ -188,7 +192,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
 					.send({
-                        number: 0,
+                        number: 1,
                         name: 'table'
                     })
 					.expect(401);
@@ -201,7 +205,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
                     .send({
-                        number: 0,
+                        number: 1,
                         name: 'table'
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -218,7 +222,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
                     .send({
-                        number: 0,
+                        number: 1,
                         name: 'table'
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -226,7 +230,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.firewallId).to.eq(firewall.id);
                         expect(response.body.data.name).to.eq('table');
-                        expect(response.body.data.number).to.eq(0);
+                        expect(response.body.data.number).to.eq(1);
                     });
             });
 
@@ -237,7 +241,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
                     .send({
-                        number: 0,
+                        number: 1,
                         name: 'table'
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
@@ -245,7 +249,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.firewallId).to.eq(firewall.id);
                         expect(response.body.data.name).to.eq('table');
-                        expect(response.body.data.number).to.eq(0);
+                        expect(response.body.data.number).to.eq(1);
                     });
             });
 
@@ -275,6 +279,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         routingTable: table.id
                     }))
 					.send({
+                        name: 'table',
                         comment: 'table'
                     })
 					.expect(401);
@@ -288,6 +293,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         routingTable: table.id
                     }))
                     .send({
+                        name: 'table',
                         comment: 'table'
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -305,6 +311,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         routingTable: table.id
                     }))
                     .send({
+                        name: 'table',
                         comment: 'table'
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -322,6 +329,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         routingTable: table.id
                     }))
                     .send({
+                        name: 'table',
                         comment: 'other_table'
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])

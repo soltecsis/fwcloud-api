@@ -38,6 +38,8 @@
     "busboy": "^0.3.1",
     "chalk": "^4.1.0",
     "child-process-promise": "^2.2.1",
+    "class-transformer": "^0.4.0",
+    "class-validator": "^0.13.1",
     "compression": "^1.7.4",
     "convict": "^6.0.0",
     "convict-format-with-moment": "^6.0.0",

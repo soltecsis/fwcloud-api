@@ -12,7 +12,7 @@ import { RoutingTable } from "../../../../../src/models/routing/routing-table/ro
 import { Route } from "../../../../../src/models/routing/route/route.model";
 import { RouteService } from "../../../../../src/models/routing/route/route.service";
 import { IPObj } from "../../../../../src/models/ipobj/IPObj";
-import { RouteController } from "../../../../../src/controllers/routing/route.controller";
+import { RouteController } from "../../../../../src/controllers/routing/route/route.controller";
 
 describe(describeName('Route E2E Tests'), () => {
     let app: Application;
@@ -302,6 +302,8 @@ describe(describeName('Route E2E Tests'), () => {
                         route: route.id
                     }))
                     .send({
+                        routingTableId: table.id,
+                        gatewayId: gateway.id,
                         comment: 'route'
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -320,6 +322,8 @@ describe(describeName('Route E2E Tests'), () => {
                         route: route.id
                     }))
                     .send({
+                        routingTableId: table.id,
+                        gatewayId: gateway.id,
                         comment: 'route'
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
@@ -338,6 +342,8 @@ describe(describeName('Route E2E Tests'), () => {
                         route: route.id
                     }))
                     .send({
+                        routingTableId: table.id,
+                        gatewayId: gateway.id,
                         comment: 'other_route'
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
