@@ -1083,11 +1083,11 @@ export class Firewall extends Model {
 		return new Promise(async (resolve, reject) => {
 			try {
 				// Compiler defined for the firewall is stored in the 3 more significative bits of the 16 bit options field.
-				const compilerNumber = (await this.getFirewallOptions(fwcloud, firewall)) & 0xE000;
+				const compilerNumber = (await this.getFirewallOptions(fwcloud, firewall)) & 0xF000;
 
 				if (compilerNumber == 0x0000)
 					resolve('IPTables');
-				else if (compilerNumber == 0x2000)
+				else if (compilerNumber == 0x1000)
 					resolve('NFTables');
 				else
 					reject(fwcError.NOT_FOUND);

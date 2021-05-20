@@ -71,7 +71,7 @@ import { logger } from '../../fonaments/abstract-application';
 router.put('/rule', async (req, res) => {
 	try {
 		//console.time(`Rule compile (ID: ${req.body.rule})`);
-		const rulesCompiled = await PolicyCompiler.compile('NFTables', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		const rulesCompiled = await PolicyCompiler.compile(req.body.compiler, req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
 		//console.timeEnd(`Rule compile (ID: ${req.body.rule})`);
 
 		if (rulesCompiled.length === 0)
