@@ -1,6 +1,10 @@
-import { FindManyOptions, getCustomRepository, getRepository, Repository } from "typeorm";
+import { Connection, FindManyOptions, getConnection, getCustomRepository, getRepository, Repository } from "typeorm";
 import { Application } from "../../../Application";
+import db from "../../../database/database-manager";
+import Query from "../../../database/Query";
 import { Service } from "../../../fonaments/services/service";
+import { Firewall } from "../../firewall/Firewall";
+import { Tree } from "../../tree/Tree";
 import { RoutingTable } from "./routing-table.model";
 import { RoutingTableRepository } from "./routing-table.repository";
 
@@ -44,8 +48,15 @@ export class RoutingTableService extends Service {
         return this._repository.find(options);
     }
 
-    create(data: ICreateRoutingTable): Promise<RoutingTable> {
-        return this._repository.save(data);
+    async create(data: ICreateRoutingTable): Promise<RoutingTable> {
+        const routingTable: RoutingTable = await this._repository.save(data);
+        const firewall: Firewall = await getRepository(Firewall).findOne(routingTable.firewallId, {relations: ['fwCloud']});
+
+        const node: {id: number} = await Tree.getNodeUnderFirewall(db.getQuery(), firewall.fwCloud.id, firewall.id, 'RTS') as {id: number};
+        await Tree.newNode(db.getQuery(), firewall.fwCloud.id, routingTable.name, node.id, 'IR', routingTable.id, null);
+
+
+        return routingTable;
     }
 
     async update(criteria: number | RoutingTable, values: IUpdateRoutingTable): Promise<RoutingTable> {

@@ -11,6 +11,7 @@ import request = require("supertest");
 import { _URL } from "../../../../../src/fonaments/http/router/router.service";
 import { RoutingTable } from "../../../../../src/models/routing/routing-table/routing-table.model";
 import { RoutingTableService } from "../../../../../src/models/routing/routing-table/routing-table.service";
+import { Tree } from "../../../../../src/models/tree/Tree";
 
 describe(describeName('Routing Table E2E Tests'), () => {
     let app: Application;
@@ -41,6 +42,9 @@ describe(describeName('Routing Table E2E Tests'), () => {
             fwCloudId: fwCloud.id
         }));
 
+        await Tree.createAllTreeCloud(fwCloud) as {id: number};
+        const node: {id: number} = await Tree.getNodeByNameAndType(fwCloud.id, 'FIREWALLS', 'FDF') as {id: number};
+        await Tree.insertFwc_Tree_New_firewall(fwCloud.id, node.id, firewall.id);
     });
 
     describe(RoutingTableController.name, () => {
