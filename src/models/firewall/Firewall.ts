@@ -45,6 +45,7 @@ var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
 
 import sshTools from '../../utils/ssh';
+import { AvailablePolicyCompilers } from "../../compiler/PolicyCompiler";
 
 const tableName: string = 'firewall';
 
@@ -1064,19 +1065,34 @@ export class Firewall extends Model {
 	};
 
 
-	public static getFirewallOptions(fwcloud, fw) {
+	public static getFirewallOptions(fwcloud: number, firewall: number): Promise<number> {
 		return new Promise((resolve, reject) => {
 			db.get((error, connection) => {
 				if (error) return reject(error);
 
-				let sql = 'SELECT options FROM ' + tableName +
-					' WHERE fwcloud=' + connection.escape(fwcloud) + ' AND id=' + connection.escape(fw);
-				connection.query(sql, (error, rows) => {
+				connection.query(`SELECT options FROM ${tableName} WHERE fwcloud=${fwcloud} AND id=${firewall}`, (error, rows) => {
 					if (error) return reject(error);
 					if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
 					resolve(rows[0].options);
 				});
 			});
+		});
+	}
+
+	public static getFirewallCompiler(fwcloud: number, firewall: number): Promise<AvailablePolicyCompilers> {
+		return new Promise(async (resolve, reject) => {
+			try {
+				// Compiler defined for the firewall is stored in the 3 more significative bits of the 16 bit options field.
+				const compilerNumber = (await this.getFirewallOptions(fwcloud, firewall)) & 0xE000;
+
+				if (compilerNumber == 0x0000)
+					resolve('IPTables');
+				else if (compilerNumber == 0x2000)
+					resolve('NFTables');
+				else
+					reject(fwcError.NOT_FOUND);
+
+			} catch(error) { reject(error) }
 		});
 	}
 

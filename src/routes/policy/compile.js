@@ -71,7 +71,7 @@ import { logger } from '../../fonaments/abstract-application';
 router.put('/rule', async (req, res) => {
 	try {
 		//console.time(`Rule compile (ID: ${req.body.rule})`);
-		const rulesCompiled = await PolicyCompiler.compile('IPTables', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		const rulesCompiled = await PolicyCompiler.compile('NFTables', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
 		//console.timeEnd(`Rule compile (ID: ${req.body.rule})`);
 
 		if (rulesCompiled.length === 0)
@@ -91,7 +91,7 @@ router.put('/rule', async (req, res) => {
 router.put('/', async (req, res) => {
 	try {
 		const channel = await Channel.fromRequest(req);
-		await PolicyScript.generate('NFTables', req.dbCon, req.body.fwcloud, req.body.firewall, channel);
+		await PolicyScript.generate(req.dbCon, req.body.fwcloud, req.body.firewall, channel);
 		res.status(204).end();
 	} catch(error) {
 		channel.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));

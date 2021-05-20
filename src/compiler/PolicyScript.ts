@@ -100,7 +100,7 @@ export class PolicyScript {
 		});
 	}
 
-	public static generate(compiler: AvailablePolicyCompilers, dbCon:any, fwcloud: number, firewall: number, channel: Channel): Promise<void> {
+	public static generate(dbCon:any, fwcloud: number, firewall: number, channel: Channel): Promise<void> {
 		return new Promise(async (resolve, reject) => {
 			try {
 				var fs = require('fs');
@@ -120,6 +120,7 @@ export class PolicyScript {
 			stream.on('open', async fd => {
 				try {
 					/* Generate the policy script. */
+					const compiler = await Firewall.getFirewallCompiler(fwcloud, firewall);
 					let data: any = await PolicyScript.append(config.get('policy').header_file);
 					data = await PolicyScript.dumpFirewallOptions(fwcloud, firewall, data);
 					stream.write(data.cs + "greeting_msg() {\n" +
@@ -132,27 +133,6 @@ export class PolicyScript {
 						channel.emit('message', new ProgressNoticePayload('--- STATELESS FIREWALL ---', true));
 					}
 		
-					// Generate default rules for mangle table
-					if (await PolicyRule.firewallWithMarkRules(dbCon,firewall)) {
-						channel.emit('message', new ProgressNoticePayload("MANGLE TABLE:", true));
-						channel.emit('message', new ProgressNoticePayload("Automatic rules."));
-						stream.write("\n\necho\n");
-						stream.write("echo \"****************\"\n");
-						stream.write("echo \"* MANGLE TABLE *\"\n");
-						stream.write("echo \"****************\"\n");
-						stream.write("#Automatic rules for mangle table.\n");
-						if (compiler == 'IPTables') {
-							stream.write("$IPTABLES -t mangle -A PREROUTING -j CONNMARK --restore-mark\n");
-							stream.write("$IPTABLES -t mangle -A PREROUTING -m mark ! --mark 0 -j ACCEPT\n\n");
-							stream.write("$IPTABLES -t mangle -A OUTPUT -j CONNMARK --restore-mark\n");
-							stream.write("$IPTABLES -t mangle -A OUTPUT -m mark ! --mark 0 -j ACCEPT\n\n");
-							stream.write("$IPTABLES -t mangle -A POSTROUTING -j CONNMARK --restore-mark\n");
-							stream.write("$IPTABLES -t mangle -A POSTROUTING -m mark ! --mark 0 -j ACCEPT\n\n");
-						} else { // NFtables
-
-						}
-					}
-					
 					if (compiler == 'NFTables') {
 						// Code for create the standard nftables tables and chain.
 						stream.write("\n\necho\n");
@@ -179,6 +159,32 @@ export class PolicyScript {
 						}
 					}
 		
+					// Generate default rules for mangle table
+					if (await PolicyRule.firewallWithMarkRules(dbCon,firewall)) {
+						channel.emit('message', new ProgressNoticePayload("MANGLE TABLE:", true));
+						channel.emit('message', new ProgressNoticePayload("Automatic rules."));
+						stream.write("\n\necho\n");
+						stream.write("echo \"****************\"\n");
+						stream.write("echo \"* MANGLE TABLE *\"\n");
+						stream.write("echo \"****************\"\n");
+						stream.write("#Automatic rules for mangle table.\n");
+						if (compiler == 'IPTables') {
+							stream.write("$IPTABLES -t mangle -A PREROUTING -j CONNMARK --restore-mark\n");
+							stream.write("$IPTABLES -t mangle -A PREROUTING -m mark ! --mark 0 -j ACCEPT\n\n");
+							stream.write("$IPTABLES -t mangle -A OUTPUT -j CONNMARK --restore-mark\n");
+							stream.write("$IPTABLES -t mangle -A OUTPUT -m mark ! --mark 0 -j ACCEPT\n\n");
+							stream.write("$IPTABLES -t mangle -A POSTROUTING -j CONNMARK --restore-mark\n");
+							stream.write("$IPTABLES -t mangle -A POSTROUTING -m mark ! --mark 0 -j ACCEPT\n\n");
+						} else { // NFTables
+							stream.write("$NFT add rule ip mangle PREROUTING counter meta mark set ct mark\n");
+							stream.write("$NFT add rule ip mangle PREROUTING mark != 0x0 counter accept\n");
+							stream.write("$NFT add rule ip mangle OUTPUT counter meta mark set ct mark\n");
+							stream.write("$NFT add rule ip mangle OUTPUT mark != 0x0 counter accept\n");
+							stream.write("$NFT add rule ip mangle POSTROUTING counter meta mark set ct mark\n");
+							stream.write("$NFT add rule ip mangle POSTROUTING mark != 0x0 counter accept\n");
+						}
+					}
+					
 					stream.write("\n\necho\n");
 					stream.write("echo \"***********************\"\n");
 					stream.write("echo \"* FILTER TABLE (IPv4) *\"\n");
