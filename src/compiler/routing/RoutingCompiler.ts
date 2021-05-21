@@ -93,7 +93,7 @@ export class RoutingCompiler {
   }
 
   private async mapPolicyData(sql: SelectQueryBuilder<IPObj>): Promise<void> {
-    console.log(sql.getQueryAndParameters);
+    console.log(sql.getQueryAndParameters());
     const data: IPObjData[] = await sql.getMany() as IPObjData[];
 
     for (let i=0; i<data.length; i++) {

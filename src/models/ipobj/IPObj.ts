@@ -1230,9 +1230,10 @@ export class IPObj extends Model {
 
     public static getIpobjsUnderRoutingTableRoutes(fwCloudId: number, firewallId: number, routingTable: number): SelectQueryBuilder<IPObj> {
         return getRepository(IPObj).createQueryBuilder("ipobj")
-            .innerJoin("routes.route", "route")
-            .innerJoin("route.routing_table", "id")
-            .innerJoin("routing_table.firewall", "firewall")
+            .innerJoin("ipobj.routes", "route")
+            .innerJoin("route.ipObjs", "routes")
+            .innerJoin("route.routingTable", "table")
+            .innerJoin("table.firewall", "firewall")
             .innerJoin("firewall.fwCloud", "fwcloud")
             .where("table.id = :routingTable", {routingTable})
             .andWhere("firewall.id = :firewallId", {firewallId})
