@@ -19,6 +19,13 @@ export interface ICreateRouteGroup {
     firewallId: number;
     name: string;
     comment?: string;
+    routes: Partial<Route>[];
+}
+
+export interface IUpdateRouteGroup {
+    name: string;
+    comment?: string;
+    routes: Partial<Route>[];
 }
 
 export class RouteGroupService extends Service {
@@ -63,9 +70,21 @@ export class RouteGroupService extends Service {
         return this._repository.findOne(group.id);
     }
 
-    async update(id: number, data: QueryDeepPartialEntity<RouteGroup>): Promise<RouteGroup> {
-        await this._repository.update(id, data);
-        return this._repository.findOne(id);
+    async update(id: number, data: IUpdateRouteGroup): Promise<RouteGroup> {
+        let group: RouteGroup = await this._repository.preload(Object.assign(data, {id}));
+
+        group.routes = data.routes as Route[];
+        group = await this._repository.save(group);
+
+        if (group.routes.length === 0) {
+            return this.remove({
+                id: group.id,
+                firewallId: group.firewallId,
+                fwCloudId: group.firewall.fwCloudId
+            });
+        }
+
+        return group;
     }
 
     async remove(path: IFindOnePath): Promise<RouteGroup> {

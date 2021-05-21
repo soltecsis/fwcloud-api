@@ -206,7 +206,8 @@ describe(describeName('Route Group E2E Tests'), () => {
             beforeEach(async () => {
                 data = {
                     name: Date.now().toString(),
-                    comment: Date.now().toString()
+                    comment: Date.now().toString(),
+                    routes: [route.id]
                 }
             });
 
@@ -246,6 +247,7 @@ describe(describeName('Route Group E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.name).to.equal(data.name);
                         expect(response.body.data.comment).to.equal(data.comment);
+                        expect(response.body.data.routes).to.have.length(1);
                     });
             });
 
@@ -261,6 +263,7 @@ describe(describeName('Route Group E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.name).to.equal(data.name);
                         expect(response.body.data.comment).to.equal(data.comment);
+                        expect(response.body.data.routes).to.have.length(1);
                     });
             });
         });
@@ -278,7 +281,8 @@ describe(describeName('Route Group E2E Tests'), () => {
 
                 data = {
                     name: Date.now().toString(),
-                    comment: Date.now().toString()
+                    comment: Date.now().toString(),
+                    routes: [route.id]
                 }
             });
 
@@ -321,6 +325,7 @@ describe(describeName('Route Group E2E Tests'), () => {
                         expect(response.body.data.id).to.equal(group.id);
                         expect(response.body.data.name).to.equal(data.name);
                         expect(response.body.data.comment).to.equal(data.comment);
+                        expect(response.body.data.routes).to.have.length(1);
                     });
             });
 
@@ -338,6 +343,7 @@ describe(describeName('Route Group E2E Tests'), () => {
                         expect(response.body.data.id).to.equal(group.id);
                         expect(response.body.data.name).to.equal(data.name);
                         expect(response.body.data.comment).to.equal(data.comment);
+                        expect(response.body.data.routes).to.have.length(1);
                     });
             });
         });

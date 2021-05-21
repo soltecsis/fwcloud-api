@@ -56,7 +56,8 @@ export class RouteGroupController extends Controller {
         const group: RouteGroup = await this._routeGroupService.create({
             name: request.inputs.get('name'),
             comment: request.inputs.get('comment'),
-            firewallId: this._firewall.id
+            firewallId: this._firewall.id,
+            routes: request.inputs.get('routes').map((id) => ({id}))
         });
 
         return ResponseBuilder.buildResponse().status(201).body(group);
@@ -74,7 +75,8 @@ export class RouteGroupController extends Controller {
 
         const result: RouteGroup = await this._routeGroupService.update(group.id, {
             name: request.inputs.get('name'),
-            comment: request.inputs.get('comment')
+            comment: request.inputs.get('comment'),
+            routes: request.inputs.get('routes').map((id) => ({id}))
         });
 
         return ResponseBuilder.buildResponse().status(200).body(result);
