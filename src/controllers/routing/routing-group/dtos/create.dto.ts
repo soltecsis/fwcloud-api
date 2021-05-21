@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from "class-validator";
+import { ArrayMinSize, IsNumber, IsOptional, IsString, MinLength } from "class-validator";
 
 export class RoutingGroupControllerCreateDto {
     @IsString()
@@ -7,4 +7,8 @@ export class RoutingGroupControllerCreateDto {
     @IsString()
     @IsOptional()
     comment: string;
+
+    @IsNumber({}, {each: true})
+    @ArrayMinSize(1)
+    routingRules: number[]
 }

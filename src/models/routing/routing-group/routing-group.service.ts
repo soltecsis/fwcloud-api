@@ -1,10 +1,8 @@
-import { FindOneOptions, getCustomRepository, getRepository, SelectQueryBuilder } from "typeorm";
-import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import { FindOneOptions, getCustomRepository, getRepository, Repository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
 import { RoutingRule } from "../routing-rule/routing-rule.model";
 import { RoutingGroup } from "./routing-group.model";
-import { RoutingGroupRepository } from "./routing-group.repository";
 
 export interface IFindManyPath {
     firewallId?: number,
@@ -19,14 +17,21 @@ export interface ICreateRoutingGroup {
     firewallId: number;
     name: string;
     comment?: string;
+    routingRules: Partial<RoutingRule>[]
+}
+
+export interface IUpdateRoutingGroup {
+    name: string;
+    comment?: string;
+    routingRules: Partial<RoutingRule>[]
 }
 
 export class RoutingGroupService extends Service {
-    protected _repository: RoutingGroupRepository;
+    protected _repository: Repository<RoutingGroup>;
 
     constructor(app: Application) {
         super(app);
-        this._repository = getCustomRepository(RoutingGroupRepository);
+        this._repository = getRepository(RoutingGroup);
     }
 
     findManyInPath(path: IFindManyPath): Promise<RoutingGroup[]> {
@@ -63,9 +68,20 @@ export class RoutingGroupService extends Service {
         return this._repository.findOne(group.id);
     }
 
-    async update(id: number, data: QueryDeepPartialEntity<RoutingGroup>): Promise<RoutingGroup> {
-        await this._repository.update(id, data);
-        return this._repository.findOne(id);
+    async update(id: number, data: IUpdateRoutingGroup): Promise<RoutingGroup> {
+        let group: RoutingGroup = await this._repository.preload(Object.assign(data, {id}));
+        group.routingRules = data.routingRules as RoutingRule[];
+        group = await this._repository.save(group);
+
+        if (group.routingRules.length === 0) {
+            return this.remove({
+                id: group.id,
+                firewallId: group.firewallId,
+                fwCloudId: group.firewall.fwCloudId
+            });
+        }
+
+        return group;
     }
 
     async remove(path: IFindOnePath): Promise<RoutingGroup> {

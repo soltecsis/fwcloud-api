@@ -123,9 +123,7 @@ describe(describeName('Routing Group E2E Tests'), () => {
                     });
             });
         });
-    });
 
-    describe(RoutingGroup.name, () => {
         describe('@show', () => {
             let group: RoutingGroup;
 
@@ -191,16 +189,15 @@ describe(describeName('Routing Group E2E Tests'), () => {
                     });
             });
         });
-    });
 
-    describe(RoutingGroup.name, () => {
         describe('@create', () => {
             let data: Record<string, unknown>;
 
             beforeEach(async () => {
                 data = {
                     name: Date.now().toString(),
-                    comment: Date.now().toString()
+                    comment: Date.now().toString(),
+                    routingRules: [rule.id]
                 }
             });
 
@@ -240,6 +237,7 @@ describe(describeName('Routing Group E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.name).to.equal(data.name);
                         expect(response.body.data.comment).to.equal(data.comment);
+                        expect(response.body.data.routingRules).to.have.length(1);
                     });
             });
 
@@ -255,12 +253,11 @@ describe(describeName('Routing Group E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.name).to.equal(data.name);
                         expect(response.body.data.comment).to.equal(data.comment);
+                        expect(response.body.data.routingRules).to.have.length(1);
                     });
             });
         });
-    });
 
-    describe(RoutingGroup.name, () => {
         describe('@update', () => {
             let group: RoutingGroup;
             let data: Record<string, unknown>;
@@ -274,7 +271,8 @@ describe(describeName('Routing Group E2E Tests'), () => {
 
                 data = {
                     name: Date.now().toString(),
-                    comment: Date.now().toString()
+                    comment: Date.now().toString(),
+                    routingRules: [rule.id]
                 }
             });
 
@@ -337,9 +335,7 @@ describe(describeName('Routing Group E2E Tests'), () => {
                     });
             });
         });
-    });
 
-    describe(RoutingGroup.name, () => {
         describe('@remove', () => {
             let group: RoutingGroup;
             let data: Record<string, unknown>;

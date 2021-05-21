@@ -53,7 +53,8 @@ export class RoutingGroupController extends Controller {
         const group: RoutingGroup = await this._routingGroupService.create({
             name: request.inputs.get('name'),
             comment: request.inputs.get('comment'),
-            firewallId: this._firewall.id
+            firewallId: this._firewall.id,
+            routingRules: request.inputs.get('routingRules').map((id) => ({id}))
         });
 
         return ResponseBuilder.buildResponse().status(201).body(group);
@@ -71,7 +72,8 @@ export class RoutingGroupController extends Controller {
 
         const updated: RoutingGroup = await this._routingGroupService.update(group.id, {
             name: request.inputs.get('name'),
-            comment: request.inputs.get('comment')
+            comment: request.inputs.get('comment'),
+            routingRules: request.inputs.get('routingRules').map((id) => ({id}))
         })
 
         return ResponseBuilder.buildResponse().status(200).body(updated);
