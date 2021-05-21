@@ -22,6 +22,10 @@
 
 import { EventEmitter } from 'events';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
+import { getCustomRepository, SelectQueryBuilder } from "typeorm";
+import { RouteRepository } from '../../models/routing/route/route.repository';
+import { Route } from '../../models/routing/route/route.model';
+import { IPObj } from '../../models/ipobj/IPObj';
 
 export type RoutingRuleData = {
   id: number;
@@ -32,14 +36,8 @@ export type RoutingRuleData = {
   marks: number[];
 }
 
-export type RouteData = {
-  id: number;
-  routing_table: number;
-  active: number;
-  gateway: string;
-  interface: string;
-  comment: string;
-  ips: string[];
+interface RouteData extends Route {
+  ipobjs: any[];
 }
 
 export type RoutingCompiled = {
@@ -49,9 +47,53 @@ export type RoutingCompiled = {
   cs: string;
 }
 
+type IpobjsArrayMap = Map<number, any[]>;
 
 export class RoutingCompiler {
-  public static getPolicyRoutingData(dst: 'grid' | 'compiler', dbCon: any, fwcloud: number, firewall: number, rule: number): Promise<RoutingRuleData[]> {
+  private routeRepository: RouteRepository;
+  private ipobjsArrayMap: IpobjsArrayMap;
+
+  constructor () {
+    this.routeRepository = getCustomRepository(RouteRepository);
+    this.ipobjsArrayMap = new Map<number, []>();
+  }
+
+  public async getRoutingTableData(dst: 'grid' | 'compiler', fwcloud: number, firewall: number, routingTable: number): Promise<RouteData[]> {
+    const rules: RouteData[] = await this.routeRepository.getRoutingTableRoutes(fwcloud, firewall, routingTable) as RouteData[];
+     
+    // Init the map for access the objects array for each route.
+    for (let i=0; i<rules.length; i++) {
+      rules[i].ipobjs = [];
+
+      // Map each rule id and position with it's corresponding ipobjs array.
+      // These ipobjs array will be filled with objects data in the Promise.all()
+      // next to the outer for loop.
+      this.ipobjsArrayMap.set(rules[i].id, rules[i].ipobjs);
+    }
+
+    const sqls = (dst === 'compiler') ? 
+                    this.buildSQLsForCompiler(firewall, type, rule) :
+                    this.buildSQLsForGrid(firewall, type, rule);
+    await Promise.all(sqls.map(sql => this.mapPolicyData(dbCon,ipobjsArrayMap,sql)));
+    
+    return rules;
+  }
+
+  private buildSQLsForCompiler(firewall: number, type: number, rule: number): SelectQueryBuilder<IPObj>[] {
+    return [];
+  }
+
+  private buildSQLsForGrid(firewall: number, type: number, rule: number): SelectQueryBuilder<IPObj>[] {
+    return [];
+  }
+
+  private async mapPolicyData(sql: SelectQueryBuilder<IPObj>): Promise<void> {
+    const data = await sql.getMany();
+    for (let i=0; i<data.length; i++) {
+        //const ipobjs: any = this.ipobjsArrayMap.get(data[i].route_id);
+        //ipobjs?.push(data[i]);
+    }
+
     return;
   }
 
@@ -67,9 +109,9 @@ export class RoutingCompiler {
     return;
   }
 
-  public static async compile(dbCon: any, fwcloud: number, firewall: number, rule?: number, eventEmitter?: EventEmitter): Promise<RoutingCompiled[]> {
+  public async compile(fwcloud: number, firewall: number, routingTable: number, eventEmitter?: EventEmitter): Promise<RoutingCompiled[]> {
     //const tsStart = Date.now();
-    const rulesData: any = await this.getPolicyRoutingData('compiler', dbCon, fwcloud, firewall, rule);
+    const rulesData: any = await this.getRoutingTableData('compiler', fwcloud, firewall, routingTable);
     //IPTablesCompiler.totalGetDataTime += Date.now() - tsStart;
     
     let result: RoutingCompiled[] = [];
@@ -83,7 +125,7 @@ export class RoutingCompiler {
             id: rulesData[i].id,
             active: rulesData[i].active,
             comment: rulesData[i].comment,
-            cs: (rulesData[i].active || rulesData.length===1) ? await this.ruleCompile(rulesData[i]) : ''
+            cs: (rulesData[i].active || rulesData.length===1) ? await this.routeCompile(rulesData[i]) : ''
         });
     }
 

@@ -63,6 +63,7 @@ import { PolicyCompiler } from '../../compiler/policy/PolicyCompiler';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressErrorPayload } from '../../sockets/messages/socket-message';
 import { logger } from '../../fonaments/abstract-application';
+import { RoutingCompiler } from '../../compiler/routing/RoutingCompiler';
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -89,6 +90,10 @@ router.put('/rule', async (req, res) => {
 /* Compile a firewall. */
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.put('/', async (req, res) => {
+	//TEST!!!!!
+	await RoutingCompiler.getRoutingTableData('compiler', req.body.fwcloud, req.body.firewall, 4);
+
+
 	try {
 		const channel = await Channel.fromRequest(req);
 		await PolicyScript.generate(req.dbCon, req.body.fwcloud, req.body.firewall, channel);
