@@ -27,7 +27,7 @@ import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { Interface } from '../../models/interface/Interface';
 import Model from '../Model';
-import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany, ManyToMany } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany, ManyToMany, getRepository, SelectQueryBuilder } from 'typeorm';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { logger } from '../../fonaments/abstract-application';
 import { IPObjType } from './IPObjType';
@@ -1227,5 +1227,15 @@ export class IPObj extends Model {
             });
         });
     };
-    
+
+    public static getIpobjsUnderRoutingTableRoutes(fwCloudId: number, firewallId: number, routingTable: number): SelectQueryBuilder<IPObj> {
+        return getRepository(IPObj).createQueryBuilder("ipobj")
+            .innerJoin("routes.route", "route")
+            .innerJoin("route.routing_table", "id")
+            .innerJoin("routing_table.firewall", "firewall")
+            .innerJoin("firewall.fwCloud", "fwcloud")
+            .where("table.id = :routingTable", {routingTable})
+            .andWhere("firewall.id = :firewallId", {firewallId})
+            .andWhere("fwcloud.id = :fwCloudId", {fwCloudId});
+    }    
 }

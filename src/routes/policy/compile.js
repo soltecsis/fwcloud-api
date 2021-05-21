@@ -90,16 +90,20 @@ router.put('/rule', async (req, res) => {
 /* Compile a firewall. */
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.put('/', async (req, res) => {
-	//TEST!!!!!
-	await RoutingCompiler.getRoutingTableData('compiler', req.body.fwcloud, req.body.firewall, 4);
-
+	const channel = await Channel.fromRequest(req);
 
 	try {
-		const channel = await Channel.fromRequest(req);
+		//TEST!!!!!
+		///////////////////////////////////////////////////////////////////
+		const routingCompiler = new RoutingCompiler('compiler', req.body.fwcloud, req.body.firewall, 4);
+		await routingCompiler.getRoutingTableData();
+		///////////////////////////////////////////////////////////////////
+
+
 		await PolicyScript.generate(req.dbCon, req.body.fwcloud, req.body.firewall, channel);
 		res.status(204).end();
 	} catch(error) {
-		channel.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));
+		if (channel) channel.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));
 		logger().error('Error compiling firewall: ' + JSON.stringify(error));
 		res.status(400).json(error);		
 	}		
