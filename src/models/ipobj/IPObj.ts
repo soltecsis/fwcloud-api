@@ -175,6 +175,18 @@ export class IPObj extends Model {
         return this.id < 100000;
     }
 
+    public static getIpobjsUnderRoutingTableRoutes(fwCloudId: number, firewallId: number, routingTable: number): SelectQueryBuilder<IPObj> {
+        return getRepository(IPObj).createQueryBuilder("ipobj")
+            .addSelect("route.id")
+            .innerJoin("ipobj.routes", "route")
+            .innerJoin("route.routingTable", "table")
+            .innerJoin("table.firewall", "firewall")
+            .innerJoin("firewall.fwCloud", "fwcloud")
+            .where("table.id = :routingTable", {routingTable})
+            .andWhere("firewall.id = :firewallId", {firewallId})
+            .andWhere("fwcloud.id = :fwCloudId", {fwCloudId});
+    }    
+
     /**
      * Get ipobj by Ipobj id
      * 
@@ -1227,16 +1239,4 @@ export class IPObj extends Model {
             });
         });
     };
-
-    public static getIpobjsUnderRoutingTableRoutes(fwCloudId: number, firewallId: number, routingTable: number): SelectQueryBuilder<IPObj> {
-        return getRepository(IPObj).createQueryBuilder("ipobj")
-            .innerJoin("ipobj.routes", "route")
-            .innerJoin("route.ipObjs", "routes")
-            .innerJoin("route.routingTable", "table")
-            .innerJoin("table.firewall", "firewall")
-            .innerJoin("firewall.fwCloud", "fwcloud")
-            .where("table.id = :routingTable", {routingTable})
-            .andWhere("firewall.id = :firewallId", {firewallId})
-            .andWhere("fwcloud.id = :fwCloudId", {fwCloudId});
-    }    
 }

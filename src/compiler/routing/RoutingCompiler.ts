@@ -35,11 +35,7 @@ export type RoutingCompiled = {
 }
 
 interface RouteData extends Route {
-  ipobjs: any[];
-}
-
-interface IPObjData extends IPObj {
-  relatedId: number;
+  ipobjs: IPObj[];
 }
 
 type IpobjsArrayMap = Map<number, any[]>;
@@ -94,11 +90,13 @@ export class RoutingCompiler {
 
   private async mapPolicyData(sql: SelectQueryBuilder<IPObj>): Promise<void> {
     console.log(sql.getQueryAndParameters());
-    const data: IPObjData[] = await sql.getMany() as IPObjData[];
+    const data: IPObj[] = await sql.getMany();
 
     for (let i=0; i<data.length; i++) {
-        const ipobjs: any = this._ipobjsArrayMap.get(data[i].relatedId);
+      for (let j=0; j<data[i].routes.length; j++) {
+        const ipobjs: IPObj[] = this._ipobjsArrayMap.get(data[i].routes[j].id);
         ipobjs?.push(data[i]);
+      }
     }
 
     return;

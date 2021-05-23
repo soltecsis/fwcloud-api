@@ -1,5 +1,4 @@
 import { EntityRepository, Repository, SelectQueryBuilder } from "typeorm";
-import { IPObj } from "../../ipobj/IPObj";
 import { Route } from "./route.model";
 
 export interface FindOneWithinFwCloud {
@@ -32,6 +31,8 @@ export class RouteRepository extends Repository<Route> {
 
     getRoutingTableRoutes(fwCloudId: number, firewallId: number, routingTable: number): Promise<Route[]> {
         return this.createQueryBuilder("route")
+            .innerJoinAndSelect("route.gateway","gateway")
+            .leftJoinAndSelect("route.interface","interface")
             .innerJoin("route.routingTable", "table")
             .innerJoin("table.firewall", "firewall")
             .innerJoin("firewall.fwCloud", "fwcloud")
