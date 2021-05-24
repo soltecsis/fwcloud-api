@@ -425,7 +425,12 @@ describe(describeName('Route E2E Tests'), () => {
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
                     .then(async () => {
-                        expect(await routeService.findOne(route.id)).to.be.undefined
+                        expect(await routeService.findOneInPath({
+                            fwCloudId: fwCloud.id,
+                            firewallId: firewall.id,
+                            routingTableId: table.id,
+                            id: route.id
+                        })).to.be.undefined
                     });
             });
 
@@ -440,7 +445,12 @@ describe(describeName('Route E2E Tests'), () => {
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
                     .then(async () => {
-                        expect(await routeService.findOne(route.id)).to.be.undefined
+                        expect(await routeService.findOneInPath({
+                            fwCloudId: fwCloud.id,
+                            firewallId: firewall.id,
+                            routingTableId: table.id,
+                            id: route.id
+                        })).to.be.undefined
                     });
             });
 
