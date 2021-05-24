@@ -20,70 +20,52 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindOneOptions, getCustomRepository, getRepository, SelectQueryBuilder } from "typeorm";
+import { FindOneOptions, getRepository, Repository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
 import { Route } from "../route/route.model";
 import { RouteGroup } from "./route-group.model";
-import { RouteGroupRepository } from "./route-group.repository";
 
-export interface IFindManyPath {
+interface IFindManyRouteGroupPath {
     firewallId?: number,
     fwCloudId?: number
 }
 
-export interface IFindOnePath extends IFindManyPath {
+interface IFindOneRouteGroupPath extends IFindManyRouteGroupPath {
     id: number
 }
 
-export interface ICreateRouteGroup {
+interface ICreateRouteGroup {
     firewallId: number;
     name: string;
     comment?: string;
     routes: Partial<Route>[];
 }
 
-export interface IUpdateRouteGroup {
+interface IUpdateRouteGroup {
     name: string;
     comment?: string;
     routes: Partial<Route>[];
 }
 
 export class RouteGroupService extends Service {
-    protected _repository: RouteGroupRepository;
+    protected _repository: Repository<RouteGroup>;
 
     constructor(app: Application) {
         super(app);
-        this._repository = getCustomRepository(RouteGroupRepository);
+        this._repository = getRepository(RouteGroup);
     }
 
-    findManyInPath(path: IFindManyPath): Promise<RouteGroup[]> {
-        return this._repository.find({
-            join: {
-                alias: 'group',
-                innerJoin: {
-                    firewall: 'group.firewall',
-                    fwcloud: 'firewall.fwCloud'
-                }
-            },
-            where: (qb: SelectQueryBuilder<RouteGroup>) => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewall', {firewall: path.firewallId})
-                }
-
-                if (path.fwCloudId) {
-                    qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
-                }
-            }
-        });
+    findManyInPath(path: IFindManyRouteGroupPath): Promise<RouteGroup[]> {
+        return this._repository.find(this.getFindInPathOptions(path));
     }
 
-    findOneInPath(path: IFindOnePath): Promise<RouteGroup | undefined> {
-        return this._repository.findOne(this.getFindOneOptions(path));
+    findOneInPath(path: IFindOneRouteGroupPath): Promise<RouteGroup | undefined> {
+        return this._repository.findOne(this.getFindInPathOptions(path));
     }
 
-    async findOneInPathOrFail(path: IFindOnePath): Promise<RouteGroup> {
-        return this._repository.findOneOrFail(this.getFindOneOptions(path));
+    async findOneInPathOrFail(path: IFindOneRouteGroupPath): Promise<RouteGroup> {
+        return this._repository.findOneOrFail(this.getFindInPathOptions(path));
     }
 
     async create(data: ICreateRouteGroup): Promise<RouteGroup> {
@@ -108,7 +90,7 @@ export class RouteGroupService extends Service {
         return group;
     }
 
-    async remove(path: IFindOnePath): Promise<RouteGroup> {
+    async remove(path: IFindOneRouteGroupPath): Promise<RouteGroup> {
         const group: RouteGroup = await this.findOneInPath(path);
         getRepository(Route).update(group.routes.map(route => route.id), {
             routeGroupId: null
@@ -117,7 +99,7 @@ export class RouteGroupService extends Service {
         return group;
     }
 
-    protected getFindOneOptions(path: IFindOnePath): FindOneOptions<RouteGroup> {
+    protected getFindInPathOptions(path: Partial<IFindOneRouteGroupPath>): FindOneOptions<RouteGroup> {
         return {
             join: {
                 alias: 'group',
@@ -135,7 +117,9 @@ export class RouteGroupService extends Service {
                     qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
                 }
 
-                qb.andWhere('group.id = :id', {id: path.id})
+                if(path.id) {
+                    qb.andWhere('group.id = :id', {id: path.id})
+                }
             }
         }
     }
