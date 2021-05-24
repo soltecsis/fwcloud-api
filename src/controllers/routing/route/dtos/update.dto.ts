@@ -28,6 +28,7 @@ export class RouteControllerUpdateDto {
     routeGroupId: number;
     
     @IsNumber()
+    @IsOptional()
     gatewayId: number;
 
     @IsNumber()

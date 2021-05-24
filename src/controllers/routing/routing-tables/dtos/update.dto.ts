@@ -24,6 +24,7 @@ import { IsOptional, IsString } from "class-validator";
 
 export class RoutingTableControllerUpdateDto {
     @IsString()
+    @IsOptional()
     name: string;
 
     @IsString()
