@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindOneOptions, getCustomRepository, getRepository, Repository, SelectQueryBuilder } from "typeorm";
+import { FindManyOptions, FindOneOptions, getRepository, Repository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import db from "../../../database/database-manager";
 import { Service } from "../../../fonaments/services/service";
@@ -58,32 +58,15 @@ export class RoutingTableService extends Service {
     }
 
     findManyInPath(path: IFindManyRoutingTablePath): Promise<RoutingTable[]> {
-        return this._repository.find({
-            join: {
-                alias: 'table',
-                innerJoin: {
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
-                }
-            },
-            where: (qb: SelectQueryBuilder<RoutingTable>) => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewall', {firewall: path.firewallId})
-                }
-
-                if (path.fwCloudId) {
-                    qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
-                }
-            }
-        });
+        return this._repository.find(this.getFindInPathOptions(path));
     }
 
     findOneInPath(path: IFindOneRoutingTablePath): Promise<RoutingTable | undefined> {
-        return this._repository.findOne(this.getFindOneOptions(path))
+        return this._repository.findOne(this.getFindInPathOptions(path))
     }
 
     findOneInPathOrFail(path: IFindOneRoutingTablePath): Promise<RoutingTable> {
-        return this._repository.findOneOrFail(this.getFindOneOptions(path));
+        return this._repository.findOneOrFail(this.getFindInPathOptions(path));
     }
 
     async create(data: ICreateRoutingTable): Promise<RoutingTable> {
@@ -111,7 +94,7 @@ export class RoutingTableService extends Service {
         return table;
     }
 
-    protected getFindOneOptions(path: IFindOneRoutingTablePath): FindOneOptions<RoutingTable> {
+    protected getFindInPathOptions(path: Partial<IFindOneRoutingTablePath>): FindOneOptions<RoutingTable> | FindManyOptions<RoutingTable> {
         return {
             join: {
                 alias: 'table',
@@ -129,7 +112,9 @@ export class RoutingTableService extends Service {
                     qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
                 }
 
-                qb.andWhere('table.id = :id', {id: path.id})
+                if(path.id) {
+                    qb.andWhere('table.id = :id', {id: path.id})
+                }
             }
         }
     }
