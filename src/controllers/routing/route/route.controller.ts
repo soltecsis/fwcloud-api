@@ -50,10 +50,10 @@ export class RouteController extends Controller {
     async index(request: Request): Promise<ResponseBuilder> {
         (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
         
-        const routes: Route[] = await this._routeService.find({
-            where: {
-                routingTableId: this._routingTable.id
-            }
+        const routes: Route[] = await this._routeService.findManyInPath({
+            fwCloudId: this._fwCloud.id,
+            firewallId: this._firewall.id,
+            routingTableId: this._routingTable.id,
         });
 
         return ResponseBuilder.buildResponse().status(200).body(routes); 
@@ -61,7 +61,7 @@ export class RouteController extends Controller {
 
     @Validate()
     async show(request: Request): Promise<ResponseBuilder> {
-        const route: Route = await this._routeService.findOneWithinFwCloudOrFail({
+        const route: Route = await this._routeService.findOneInPathOrFail({
             fwCloudId: this._fwCloud.id,
             firewallId: this._firewall.id,
             routingTableId: this._routingTable.id,
@@ -88,7 +88,7 @@ export class RouteController extends Controller {
 
     @Validate(RouteControllerUpdateDto)
     async update(request: Request): Promise<ResponseBuilder> {
-        const route: Route = await this._routeService.findOneWithinFwCloudOrFail({
+        const route: Route = await this._routeService.findOneInPathOrFail({
             fwCloudId: this._fwCloud.id,
             firewallId: this._firewall.id,
             routingTableId: this._routingTable.id,
@@ -97,14 +97,14 @@ export class RouteController extends Controller {
         
         (await RoutePolicy.update(route, request.session.user)).authorize();
 
-        const result: Route = await this._routeService.update(route, request.inputs.all());
+        const result: Route = await this._routeService.update(route.id, request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
     
     @Validate()
     async remove(request: Request): Promise<ResponseBuilder> {
-        const route: Route = await this._routeService.findOneWithinFwCloudOrFail({
+        const route: Route = await this._routeService.findOneInPathOrFail({
             fwCloudId: this._fwCloud.id,
             firewallId: this._firewall.id,
             routingTableId: this._routingTable.id,
@@ -113,7 +113,12 @@ export class RouteController extends Controller {
         
         (await RoutePolicy.delete(route, request.session.user)).authorize();
 
-        await this._routeService.delete(route.id);
+        await this._routeService.remove({
+            fwCloudId: this._fwCloud.id,
+            firewallId: this._firewall.id,
+            routingTableId: this._routingTable.id,
+            id: parseInt(request.params.route)
+        });
         return ResponseBuilder.buildResponse().status(200).body(route);
     }
 }
