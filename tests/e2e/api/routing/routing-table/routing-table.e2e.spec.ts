@@ -35,7 +35,7 @@ import { RoutingTable } from "../../../../../src/models/routing/routing-table/ro
 import { RoutingTableService } from "../../../../../src/models/routing/routing-table/routing-table.service";
 import { Tree } from "../../../../../src/models/tree/Tree";
 
-describe(describeName('Routing Table E2E Tests'), () => {
+describe.only(describeName('Routing Table E2E Tests'), () => {
     let app: Application;
     let loggedUser: User;
     let loggedUserSessionId: string;
@@ -413,7 +413,11 @@ describe(describeName('Routing Table E2E Tests'), () => {
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
                     .then(async () => {
-                        expect(await tableService.findOne(table.id)).to.be.undefined
+                        expect(await tableService.findOneInPath({
+                            fwCloudId: fwCloud.id,
+                            firewallId: firewall.id,
+                            id: table.id
+                        })).to.be.undefined
                     });
             });
 
@@ -427,7 +431,11 @@ describe(describeName('Routing Table E2E Tests'), () => {
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
                     .then(async () => {
-                        expect(await tableService.findOne(table.id)).to.be.undefined
+                        expect(await tableService.findOneInPath({
+                            fwCloudId: fwCloud.id,
+                            firewallId: firewall.id,
+                            id: table.id
+                        })).to.be.undefined
                     });
             });
 

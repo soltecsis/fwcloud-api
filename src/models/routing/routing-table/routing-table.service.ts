@@ -20,14 +20,22 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindManyOptions, getCustomRepository, getRepository } from "typeorm";
+import { FindOneOptions, getCustomRepository, getRepository, Repository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import db from "../../../database/database-manager";
 import { Service } from "../../../fonaments/services/service";
 import { Firewall } from "../../firewall/Firewall";
 import { Tree } from "../../tree/Tree";
 import { RoutingTable } from "./routing-table.model";
-import { RoutingTableRepository } from "./routing-table.repository";
+
+export interface IFindManyRoutingTablePath {
+    firewallId?: number,
+    fwCloudId?: number
+}
+
+export interface IFindOneRoutingTablePath extends IFindManyRoutingTablePath {
+    id: number
+}
 
 interface ICreateRoutingTable {
     firewallId: number;
@@ -42,31 +50,40 @@ interface IUpdateRoutingTable {
 }
 
 export class RoutingTableService extends Service {
-    protected _repository: RoutingTableRepository;
+    protected _repository: Repository<RoutingTable>;
 
     constructor(app: Application) {
         super(app);
-        this._repository = getCustomRepository(RoutingTableRepository);
+        this._repository = getRepository(RoutingTable);
     }
 
-    findOne(id: number): Promise<RoutingTable | undefined> {
-        return this._repository.findOne(id);
+    findManyInPath(path: IFindManyRoutingTablePath): Promise<RoutingTable[]> {
+        return this._repository.find({
+            join: {
+                alias: 'table',
+                innerJoin: {
+                    firewall: 'table.firewall',
+                    fwcloud: 'firewall.fwCloud'
+                }
+            },
+            where: (qb: SelectQueryBuilder<RoutingTable>) => {
+                if (path.firewallId) {
+                    qb.andWhere('firewall.id = :firewall', {firewall: path.firewallId})
+                }
+
+                if (path.fwCloudId) {
+                    qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
+                }
+            }
+        });
     }
 
-    findOneWithinFwCloud(id: number, firewallId: number, fwCloudId: number): Promise<RoutingTable | undefined> {
-        return this._repository.findOneWithinFwCloud(id, firewallId, fwCloudId);
+    findOneInPath(path: IFindOneRoutingTablePath): Promise<RoutingTable | undefined> {
+        return this._repository.findOne(this.getFindOneOptions(path))
     }
 
-    findOneWithinFwCloudOrFail(id: number, firewallId: number, fwCloudId: number): Promise<RoutingTable> {
-        return this._repository.findOneWithinFwCloudOrFail(id, firewallId, fwCloudId);
-    }
-
-    async findOneOrFail(id: number): Promise<RoutingTable> {
-        return this._repository.findOneOrFail(id);
-    }
-
-    find(options: FindManyOptions<RoutingTable>): Promise<RoutingTable[]> {
-        return this._repository.find(options);
+    findOneInPathOrFail(path: IFindOneRoutingTablePath): Promise<RoutingTable> {
+        return this._repository.findOneOrFail(this.getFindOneOptions(path));
     }
 
     async create(data: ICreateRoutingTable): Promise<RoutingTable> {
@@ -80,25 +97,41 @@ export class RoutingTableService extends Service {
         return routingTable;
     }
 
-    async update(criteria: number | RoutingTable, values: IUpdateRoutingTable): Promise<RoutingTable> {
-        await this._repository.update(this.getId(criteria), values);
-        return this.findOne(this.getId(criteria));
-    }
-
-    async delete(criteria: number | RoutingTable): Promise<RoutingTable> {
-        const table: RoutingTable =  await this.findOne(this.getId(criteria));
-        await this._repository.delete(criteria);
+    async update(id: number, data: IUpdateRoutingTable): Promise<RoutingTable> {
+        let table: RoutingTable = await this._repository.preload(Object.assign(data, {id}));
+        await this._repository.save(table);
 
         return table;
     }
 
-    /**
-     * Returns the id if the data is a RoutingTable instance
-     * @param data 
-     * @returns 
-     */
-    protected getId(data: number | RoutingTable): number {
-        return typeof data !== 'number' ? data.id : data;
+    async remove(path: IFindOneRoutingTablePath): Promise<RoutingTable> {
+        const table: RoutingTable =  await this.findOneInPath(path);
+        
+        await this._repository.remove(table);
+        return table;
+    }
+
+    protected getFindOneOptions(path: IFindOneRoutingTablePath): FindOneOptions<RoutingTable> {
+        return {
+            join: {
+                alias: 'table',
+                innerJoin: {
+                    firewall: 'table.firewall',
+                    fwcloud: 'firewall.fwCloud'
+                }
+            },
+            where: (qb: SelectQueryBuilder<RoutingTable>) => {
+                if (path.firewallId) {
+                    qb.andWhere('firewall.id = :firewall', {firewall: path.firewallId})
+                }
+
+                if (path.fwCloudId) {
+                    qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
+                }
+
+                qb.andWhere('table.id = :id', {id: path.id})
+            }
+        }
     }
 
 }

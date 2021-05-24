@@ -45,17 +45,21 @@ export class RoutingTableController extends Controller {
     async index(request: Request): Promise<ResponseBuilder> {
         (await RoutingTablePolicy.index(this._firewall, request.session.user)).authorize();
         
-        const tables: RoutingTable[] = await this.routingTableService.find({where: { firewallId: this._firewall.id}});
+        const tables: RoutingTable[] = await this.routingTableService.findManyInPath({
+            fwCloudId: this._firewall.fwCloudId,
+            firewallId: this._firewall.id
+        });
+
         return ResponseBuilder.buildResponse().status(200).body(tables); 
     }
 
     @Validate()
     async show(request: Request): Promise<ResponseBuilder> {
-        const routingTable: RoutingTable = await this.routingTableService.findOneWithinFwCloudOrFail(
-            parseInt(request.params.routingTable),
-            parseInt(request.params.firewall),
-            parseInt(request.params.fwcloud)
-        );
+        const routingTable: RoutingTable = await this.routingTableService.findOneInPathOrFail({
+            fwCloudId: this._firewall.fwCloudId,
+            firewallId: this._firewall.id,
+            id: parseInt(request.params.routingTable),
+        });
 
         (await RoutingTablePolicy.show(routingTable, request.session.user)).authorize();
 
@@ -79,30 +83,35 @@ export class RoutingTableController extends Controller {
 
     @Validate(RoutingTableControllerUpdateDto)
     async update(request: Request): Promise<ResponseBuilder> {
-        const routingTable: RoutingTable = await this.routingTableService.findOneWithinFwCloudOrFail(
-            parseInt(request.params.routingTable),
-            parseInt(request.params.firewall),
-            parseInt(request.params.fwcloud)
-        );
+        const routingTable: RoutingTable = await this.routingTableService.findOneInPathOrFail({
+            fwCloudId: this._firewall.fwCloudId,
+            firewallId: this._firewall.id,
+            id: parseInt(request.params.routingTable),
+        });
         
         (await RoutingTablePolicy.update(routingTable, request.session.user)).authorize();
 
-        const result: RoutingTable = await this.routingTableService.update(routingTable, request.inputs.all());
+        const result: RoutingTable = await this.routingTableService.update(routingTable.id, request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
     
     @Validate()
     async remove(request: Request): Promise<ResponseBuilder> {
-        const routingTable: RoutingTable = await this.routingTableService.findOneWithinFwCloudOrFail(
-            parseInt(request.params.routingTable),
-            parseInt(request.params.firewall),
-            parseInt(request.params.fwcloud)
-        );
+        const routingTable: RoutingTable = await this.routingTableService.findOneInPathOrFail({
+            fwCloudId: this._firewall.fwCloudId,
+            firewallId: this._firewall.id,
+            id: parseInt(request.params.routingTable),
+        });
         
         (await RoutingTablePolicy.delete(routingTable, request.session.user)).authorize();
 
-        await this.routingTableService.delete(parseInt(request.params.routingTable));
+        await this.routingTableService.remove({
+            fwCloudId: this._firewall.fwCloudId,
+            firewallId: this._firewall.id,
+            id: parseInt(request.params.routingTable),
+        });
+        
         return ResponseBuilder.buildResponse().status(200).body(routingTable);
     }
 }
