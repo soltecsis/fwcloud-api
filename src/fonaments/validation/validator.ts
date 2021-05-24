@@ -12,7 +12,9 @@ export class Validator {
     public async validate(): Promise<void> {
         if (this._dto) {
             const dtoInstance: object = plainToClass(this._dto, classToPlain(this._data));
-            const errors: ValidationError[] = validateSync(dtoInstance);
+            const errors: ValidationError[] = validateSync(dtoInstance, {
+                forbidUnknownValues: true,
+            });
 
             if (errors.length > 0) {
                 throw new ValidationException('The given data is invalid.', transformValidationErrorsToErrorBag(errors))
