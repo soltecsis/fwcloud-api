@@ -389,7 +389,11 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
                     .then(async () => {
-                        expect(await routingRuleService.findOne(rule.id)).to.be.undefined
+                        expect(await routingRuleService.findOneInPath({
+                            fwCloudId: fwCloud.id,
+                            firewallId: firewall.id,
+                            id: rule.id
+                        })).to.be.undefined
                     });
             });
 
@@ -403,7 +407,11 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
                     .then(async () => {
-                        expect(await routingRuleService.findOne(rule.id)).to.be.undefined
+                        expect(await routingRuleService.findOneInPath({
+                            fwCloudId: fwCloud.id,
+                            firewallId: firewall.id,
+                            id: rule.id
+                        })).to.be.undefined
                     });
             });
 

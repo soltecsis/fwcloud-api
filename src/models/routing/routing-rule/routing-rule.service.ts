@@ -20,19 +20,27 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindManyOptions, getCustomRepository } from "typeorm";
+import { FindManyOptions, FindOneOptions, getRepository, Repository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
 import { RoutingRule } from "./routing-rule.model";
-import { IWhereUniqueRoutingRule, RoutingRuleRepository } from "./routing-rule.repository";
 
-export interface ICreateRoutingRule {
+interface IFindManyRoutingRulePath {
+    firewallId?: number;
+    fwCloudId?: number;
+}
+
+interface IFindOneRoutingRulePath extends IFindManyRoutingRulePath {
+    id: number;
+}
+
+interface ICreateRoutingRule {
     routingTableId: number;
     active?: boolean;
     comment?: string;
 }
 
-export interface IUpdateRoutingRule {
+interface IUpdateRoutingRule {
     routingTableId: number;
     active?: boolean;
     comment?: string;
@@ -41,43 +49,68 @@ export interface IUpdateRoutingRule {
 
 
 export class RoutingRuleService extends Service {
-    protected _repository: RoutingRuleRepository;
+    protected _repository: Repository<RoutingRule>;
 
     constructor(app: Application) {
         super(app);
-        this._repository = getCustomRepository(RoutingRuleRepository);
+        this._repository = getRepository(RoutingRule);
     }
 
-    findOne(id: number): Promise<RoutingRule | undefined> {
-        return this._repository.findOne(id);
+    findManyInPath(path: IFindManyRoutingRulePath): Promise<RoutingRule[]> {
+        return this._repository.find(this.getFindInPathOptions(path));
     }
 
-    find(criteria: FindManyOptions<RoutingRule>): Promise<RoutingRule[]> {
-        return this._repository.find(criteria);   
-    }
-    
-    findOneWithinFwCloud(criteria: IWhereUniqueRoutingRule): Promise<RoutingRule> {
-        return this._repository.findOneWithinFwCloud(criteria);
+    findOneInPath(path: IFindOneRoutingRulePath): Promise<RoutingRule | undefined> {
+        return this._repository.findOne(this.getFindInPathOptions(path));
     }
 
-    findOneWithinFwCloudOrFail(criteria: IWhereUniqueRoutingRule): Promise<RoutingRule> {
-        return this._repository.findOneWithinFwCloudOrFail(criteria);
+    findOneInPathOrFail(path: IFindOneRoutingRulePath): Promise<RoutingRule> {
+        return this._repository.findOneOrFail(this.getFindInPathOptions(path));
     }
 
     async create(data: ICreateRoutingRule): Promise<RoutingRule> {
         const result: RoutingRule = await this._repository.save(data);
-        return this._repository.findOneOrFail(result.id);
+        return this._repository.findOne(result.id);
     }
 
-    async update(criteria: IWhereUniqueRoutingRule, values: IUpdateRoutingRule): Promise<RoutingRule> {
-        await this._repository.update(criteria.id, values);
-        return this._repository.findOne(criteria.id);
-    }
-
-    async remove(criteria: IWhereUniqueRoutingRule): Promise<RoutingRule> {
-        const rule: RoutingRule = await this.findOneWithinFwCloud(criteria);
-        await this._repository.delete(criteria.id);
+    async update(id: number, data: IUpdateRoutingRule): Promise<RoutingRule> {
+        let rule: RoutingRule = await this._repository.preload(Object.assign(data, {id}));
+        rule = await this._repository.save(rule);
 
         return rule;
+    }
+
+    async remove(path: IFindOneRoutingRulePath): Promise<RoutingRule> {
+        const rule: RoutingRule = await this.findOneInPath(path);
+        
+        await this._repository.remove(rule);
+
+        return rule;
+    }
+
+    protected getFindInPathOptions(path: Partial<IFindOneRoutingRulePath>): FindOneOptions<RoutingRule> | FindManyOptions<RoutingRule> {
+        return {
+            join: {
+                alias: 'rule',
+                innerJoin: {
+                    table: 'rule.routingTable',
+                    firewall: 'table.firewall',
+                    fwcloud: 'firewall.fwCloud'
+                }
+            },
+            where: (qb: SelectQueryBuilder<RoutingRule>) => {
+                if (path.firewallId) {
+                    qb.andWhere('firewall.id = :firewall', {firewall: path.firewallId})
+                }
+
+                if (path.fwCloudId) {
+                    qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
+                }
+
+                if (path.id) {
+                    qb.andWhere('rule.id = :id', {id: path.id})
+                }
+            }
+        }
     }
 }
