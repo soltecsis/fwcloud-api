@@ -28,12 +28,12 @@ import { Firewall } from "../../firewall/Firewall";
 import { Tree } from "../../tree/Tree";
 import { RoutingTable } from "./routing-table.model";
 
-export interface IFindManyRoutingTablePath {
+interface IFindManyRoutingTablePath {
     firewallId?: number,
     fwCloudId?: number
 }
 
-export interface IFindOneRoutingTablePath extends IFindManyRoutingTablePath {
+interface IFindOneRoutingTablePath extends IFindManyRoutingTablePath {
     id: number
 }
 
