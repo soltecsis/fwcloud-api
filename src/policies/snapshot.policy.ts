@@ -24,7 +24,6 @@ import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { Snapshot } from "../snapshots/snapshot";
 import { User } from "../models/user/User";
 import { FwCloud } from "../models/fwcloud/FwCloud";
-import { app } from "../fonaments/abstract-application";
 
 export class SnapshotPolicy extends Policy {
 
