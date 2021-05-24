@@ -26,6 +26,7 @@ import { getCustomRepository, SelectQueryBuilder } from "typeorm";
 import { RouteRepository } from '../../models/routing/route/route.repository';
 import { Route } from '../../models/routing/route/route.model';
 import { IPObj } from '../../models/ipobj/IPObj';
+import { IPObjRepository } from '../../models/ipobj/IPObj.repository';
 
 export type RoutingCompiled = {
   id: number;
@@ -38,6 +39,11 @@ interface RouteData extends Route {
   ipobjs: IPObj[];
 }
 
+interface IPObjData extends IPObj {
+  route_id: number;
+}
+
+
 type IpobjsArrayMap = Map<number, any[]>;
 type AvailableDestinations = 'grid' | 'compiler';
 
@@ -46,21 +52,25 @@ export class RoutingCompiler {
   private _fwcloud: number;
   private _firewall: number;
   private _routingTable: number;
+  private _route: number;
   private _routeRepository: RouteRepository;
+  private _ipobjRepository: IPObjRepository;
   private _ipobjsArrayMap: IpobjsArrayMap;
 
-  constructor (dst: AvailableDestinations, fwcloud: number, firewall: number, routingTable: number) {
+  constructor (dst: AvailableDestinations, fwcloud: number, firewall: number, routingTable: number, route?: number) {
     this._dst = dst;
     this._fwcloud = fwcloud;
     this._firewall = firewall;
     this._routingTable = routingTable;
+    this._route = route;
 
     this._routeRepository = getCustomRepository(RouteRepository);
+    this._ipobjRepository = getCustomRepository(IPObjRepository);
     this._ipobjsArrayMap = new Map<number, []>();
   }
 
   public async getRoutingTableData(): Promise<RouteData[]> {
-    const rules: RouteData[] = await this._routeRepository.getRoutingTableRoutes(this._fwcloud, this._firewall, this._routingTable) as RouteData[];
+    const rules: RouteData[] = await this._routeRepository.getRoutingTableRoutes(this._fwcloud, this._firewall, this._routingTable, this._route) as RouteData[];
      
     // Init the map for access the objects array for each route.
     for (let i=0; i<rules.length; i++) {
@@ -73,14 +83,21 @@ export class RoutingCompiler {
     }
 
     const sqls = (this._dst === 'compiler') ? this.buildSQLsForCompiler() : this.buildSQLsForGrid();
-    await Promise.all(sqls.map(sql => this.mapPolicyData(sql)));
+    await Promise.all(sqls.map(sql => this.mapRoutingData(sql)));
     
     return rules;
   }
 
   private buildSQLsForCompiler(): SelectQueryBuilder<IPObj>[] {
     return [
-      IPObj.getIpobjsUnderRoutingTableRoutes(this._fwcloud, this._firewall, this._routingTable),
+      this._ipobjRepository.getIpobjsInRoutes_excludeHosts(this._fwcloud, this._firewall, this._routingTable, this._route),
+      this._ipobjRepository.getIpobjsInRoutes_onlyHosts(this._fwcloud, this._firewall, this._routingTable, this._route),
+      this._ipobjRepository.getIpobjsInGroupsInRoutes_excludeHosts(this._fwcloud, this._firewall, this._routingTable, this._route),
+      this._ipobjRepository.getIpobjsInGroupsInRoutes_onlyHosts(this._fwcloud, this._firewall, this._routingTable, this._route),
+      this._ipobjRepository.getIpobjsInOpenVPNInRoutes(this._fwcloud, this._firewall, this._routingTable, this._route),
+      this._ipobjRepository.getIpobjsInOpenVPNInGroupsInRoutes(this._fwcloud, this._firewall, this._routingTable, this._route),
+      this._ipobjRepository.getIpobjsInOpenVPNPrefixesInRoutes(this._fwcloud, this._firewall, this._routingTable, this._route),
+      this._ipobjRepository.getIpobjsInOpenVPNPrefixesInGroupsInRoutes(this._fwcloud, this._firewall, this._routingTable, this._route),
     ];
   }
 
@@ -88,15 +105,13 @@ export class RoutingCompiler {
     return [];
   }
 
-  private async mapPolicyData(sql: SelectQueryBuilder<IPObj>): Promise<void> {
+  private async mapRoutingData(sql: SelectQueryBuilder<IPObj>): Promise<void> {
     console.log(sql.getQueryAndParameters());
-    const data: IPObj[] = await sql.getMany();
+    const data: IPObjData[] = await sql.getRawMany();
 
     for (let i=0; i<data.length; i++) {
-      for (let j=0; j<data[i].routes.length; j++) {
-        const ipobjs: IPObj[] = this._ipobjsArrayMap.get(data[i].routes[j].id);
-        ipobjs?.push(data[i]);
-      }
+      const ipobjs: IPObj[] = this._ipobjsArrayMap.get(data[i].route_id);
+      ipobjs?.push(data[i]);
     }
 
     return;
@@ -127,10 +142,10 @@ export class RoutingCompiler {
         if (eventEmitter) eventEmitter.emit('message', new ProgressNoticePayload(`Rule ${i+1} (ID: ${rulesData[i].id})${!(rulesData[i].active) ? ' [DISABLED]' : ''}`));
 
         result.push({
-            id: rulesData[i].id,
-            active: rulesData[i].active,
-            comment: rulesData[i].comment,
-            cs: (rulesData[i].active || rulesData.length===1) ? await this.routeCompile(rulesData[i]) : ''
+          id: rulesData[i].id,
+          active: rulesData[i].active,
+          comment: rulesData[i].comment,
+          cs: (rulesData[i].active || rulesData.length===1) ? await this.routeCompile(rulesData[i]) : ''
         });
     }
 

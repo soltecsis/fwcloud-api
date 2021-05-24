@@ -34,6 +34,7 @@ import { IPObjType } from './IPObjType';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { Route } from '../routing/route/route.model';
 import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
+import { IdManager } from '../../fwcloud-exporter/database-importer/terraformer/mapper/id-manager';
 const ip = require('ip');
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
@@ -174,18 +175,6 @@ export class IPObj extends Model {
     public isStandard(): boolean {
         return this.id < 100000;
     }
-
-    public static getIpobjsUnderRoutingTableRoutes(fwCloudId: number, firewallId: number, routingTable: number): SelectQueryBuilder<IPObj> {
-        return getRepository(IPObj).createQueryBuilder("ipobj")
-            .addSelect("route.id")
-            .innerJoin("ipobj.routes", "route")
-            .innerJoin("route.routingTable", "table")
-            .innerJoin("table.firewall", "firewall")
-            .innerJoin("firewall.fwCloud", "fwcloud")
-            .where("table.id = :routingTable", {routingTable})
-            .andWhere("firewall.id = :firewallId", {firewallId})
-            .andWhere("fwcloud.id = :fwCloudId", {fwCloudId});
-    }    
 
     /**
      * Get ipobj by Ipobj id
