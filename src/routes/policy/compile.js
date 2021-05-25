@@ -62,8 +62,8 @@ import { PolicyScript } from '../../compiler/policy/PolicyScript';
 import { PolicyCompiler } from '../../compiler/policy/PolicyCompiler';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressErrorPayload } from '../../sockets/messages/socket-message';
-import { logger } from '../../fonaments/abstract-application';
-import { RoutingCompiler } from '../../compiler/routing/RoutingCompiler';
+import { app, logger } from '../../fonaments/abstract-application';
+import { RoutingTableService } from '../../models/routing/routing-table/routing-table.service';
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -95,8 +95,9 @@ router.put('/', async (req, res) => {
 	try {
 		//TEST!!!!!
 		///////////////////////////////////////////////////////////////////
-		const routingCompiler = new RoutingCompiler('compiler', req.body.fwcloud, req.body.firewall, 4);
-		await routingCompiler.getRoutingTableData();
+		const routingTableService = await app().getService(RoutingTableService.name);
+		const routeTableData = await routingTableService.getRoutingTableData('grid', req.body.fwcloud, req.body.firewall, 4);
+		//const routingCompiler = new RoutingCompiler('grid', req.body.fwcloud, req.body.firewall, 4);
 		///////////////////////////////////////////////////////////////////
 
 

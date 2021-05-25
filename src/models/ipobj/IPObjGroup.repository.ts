@@ -20,32 +20,24 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository } from "../../../database/repository";
-import { OpenVPN } from "./OpenVPN";
 import { EntityRepository, SelectQueryBuilder } from "typeorm";
+import { Repository } from "../../database/repository";
+import { IPObjGroup } from "./IPObjGroup";
 
-@EntityRepository(OpenVPN)
-export class OpenVPNRepository extends Repository<OpenVPN> {
-  public async markAllAsUninstalled(): Promise<void> {
-    await this.createQueryBuilder().update(OpenVPN)
-      .set({
-          status: 1,
-          installed_at: null
-      }).execute();
-  }
+@EntityRepository(IPObjGroup)
+export class IPObjGroupRepository extends Repository<IPObjGroup> {
 
-  getOpenVPNInRoutes_ForGrid(fwcloud: number, firewall: number, routingTable: number): SelectQueryBuilder<OpenVPN> {
-    return this.createQueryBuilder("vpn")
-      .select("vpn.id","id").addSelect("crt.cn","name").addSelect("311","type")
+ getIpobjGroupsInRoutes_ForGrid(fwcloud: number, firewall: number, routingTable: number): SelectQueryBuilder<IPObjGroup> {
+    return this.createQueryBuilder("ipobjGroup")
+      .select("ipobjGroup.id","id").addSelect("ipobjGroup.name","name").addSelect("ipobjGroup.type","type")
       .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
       .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
       .addSelect("route.id","route_id")
-      .innerJoin("vpn.routes", "route")
+      .innerJoin("ipobjGroup.routes", "route")
       .innerJoin("route.routingTable", "table")
       .innerJoin("table.firewall", "firewall")
       .innerJoin("firewall.fwCloud", "fwcloud")
       .leftJoin("firewall.cluster", "cluster")
-      .innerJoin("vpn.crt", "crt")
       .where("table.id = :routingTable", {routingTable})
       .andWhere("firewall.id = :firewall", {firewall: firewall}) 
       .andWhere("fwcloud.id = :fwcloud", {fwcloud: fwcloud});
