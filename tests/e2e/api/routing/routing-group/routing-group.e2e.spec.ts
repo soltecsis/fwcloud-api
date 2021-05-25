@@ -22,7 +22,7 @@
 
 import { expect } from "chai";
 import request = require("supertest");
-import { getRepository } from "typeorm";
+import { getCustomRepository, getRepository } from "typeorm";
 import { Application } from "../../../../../src/Application";
 import { _URL } from "../../../../../src/fonaments/http/router/router.service";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
@@ -30,6 +30,7 @@ import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
 import { RoutingGroup } from "../../../../../src/models/routing/routing-group/routing-group.model";
 import { RoutingGroupService } from "../../../../../src/models/routing/routing-group/routing-group.service";
 import { RoutingRule } from "../../../../../src/models/routing/routing-rule/routing-rule.model";
+import { RoutingRuleRepository } from "../../../../../src/models/routing/routing-rule/routing-rule.repository";
 import { RoutingTable } from "../../../../../src/models/routing/routing-table/routing-table.model";
 import { User } from "../../../../../src/models/user/User";
 import StringHelper from "../../../../../src/utils/string.helper";
@@ -77,7 +78,7 @@ describe(describeName('Routing Group E2E Tests'), () => {
             name: 'name',
         });
 
-        rule = await getRepository(RoutingRule).save({
+        rule = await getCustomRepository(RoutingRuleRepository).save({
             routingTableId: table.id,
         });
 

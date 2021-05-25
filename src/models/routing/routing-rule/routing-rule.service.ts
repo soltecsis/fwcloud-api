@@ -20,61 +20,61 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindManyOptions, FindOneOptions, getRepository, Repository, SelectQueryBuilder } from "typeorm";
+import { FindManyOptions, FindOneOptions, getCustomRepository, getRepository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
+import { Firewall } from "../../firewall/Firewall";
+import { RoutingTable } from "../routing-table/routing-table.model";
 import { RoutingRule } from "./routing-rule.model";
-
-interface IFindManyRoutingRulePath {
-    firewallId?: number;
-    fwCloudId?: number;
-}
-
-interface IFindOneRoutingRulePath extends IFindManyRoutingRulePath {
-    id: number;
-}
+import { IFindManyRoutingRulePath, IFindOneRoutingRulePath, RoutingRuleRepository } from "./routing-rule.repository";
 
 interface ICreateRoutingRule {
     routingTableId: number;
     active?: boolean;
     comment?: string;
+    position?: number;
 }
 
 interface IUpdateRoutingRule {
     routingTableId: number;
     active?: boolean;
     comment?: string;
+    position?: number;
 }
 
-
-
 export class RoutingRuleService extends Service {
-    protected _repository: Repository<RoutingRule>;
+    protected _repository: RoutingRuleRepository;
 
     constructor(app: Application) {
         super(app);
-        this._repository = getRepository(RoutingRule);
+        this._repository = getCustomRepository(RoutingRuleRepository);
     }
 
     findManyInPath(path: IFindManyRoutingRulePath): Promise<RoutingRule[]> {
-        return this._repository.find(this.getFindInPathOptions(path));
+        return this._repository.findManyInPath(path);
     }
 
     findOneInPath(path: IFindOneRoutingRulePath): Promise<RoutingRule | undefined> {
-        return this._repository.findOne(this.getFindInPathOptions(path));
+        return this._repository.findOneInPath(path);
     }
 
     findOneInPathOrFail(path: IFindOneRoutingRulePath): Promise<RoutingRule> {
-        return this._repository.findOneOrFail(this.getFindInPathOptions(path));
+        return this._repository.findOneInPathOrFail(path);
     }
 
     async create(data: ICreateRoutingRule): Promise<RoutingRule> {
-        const result: RoutingRule = await this._repository.save(data);
-        return this._repository.findOne(result.id);
+        return this._repository.save(data);
     }
 
     async update(id: number, data: IUpdateRoutingRule): Promise<RoutingRule> {
-        let rule: RoutingRule = await this._repository.preload(Object.assign(data, {id}));
+        let rule: RoutingRule = await this._repository.preload(Object.assign({
+            routingTableId: data.routingTableId,
+            active: data.active,
+            comment: data.comment,
+            position: data.position
+        }, {id}));
+
+        //Position change is handled by save method
         rule = await this._repository.save(rule);
 
         return rule;
@@ -86,31 +86,5 @@ export class RoutingRuleService extends Service {
         await this._repository.remove(rule);
 
         return rule;
-    }
-
-    protected getFindInPathOptions(path: Partial<IFindOneRoutingRulePath>): FindOneOptions<RoutingRule> | FindManyOptions<RoutingRule> {
-        return {
-            join: {
-                alias: 'rule',
-                innerJoin: {
-                    table: 'rule.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
-                }
-            },
-            where: (qb: SelectQueryBuilder<RoutingRule>) => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewall', {firewall: path.firewallId})
-                }
-
-                if (path.fwCloudId) {
-                    qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
-                }
-
-                if (path.id) {
-                    qb.andWhere('rule.id = :id', {id: path.id})
-                }
-            }
-        }
     }
 }

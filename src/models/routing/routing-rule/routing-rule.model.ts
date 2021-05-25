@@ -48,6 +48,11 @@ export class RoutingRule extends Model {
     comment: string;
 
     @Column({
+        type: Number
+    })
+    position: number;
+
+    @Column({
         name: 'group'
     })
     groupId: number;

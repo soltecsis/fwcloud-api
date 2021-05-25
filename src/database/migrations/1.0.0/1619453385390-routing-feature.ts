@@ -268,6 +268,17 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     name: 'comment',
                     type: 'text',
                     isNullable: true
+                },
+                {
+                    name: 'position',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false,
+                }
+            ],
+            uniques: [
+                {
+                    columnNames: ['routing_table', 'position']
                 }
             ],
             foreignKeys: [

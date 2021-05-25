@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsBoolean, IsNumber, IsOptional, IsString } from "class-validator"
+import { IsBoolean, IsNumber, IsOptional, IsPositive, IsString } from "class-validator"
 
 export class RoutingRuleControllerUpdateDto {
     @IsNumber()
@@ -34,4 +34,9 @@ export class RoutingRuleControllerUpdateDto {
     @IsString()
     @IsOptional()
     comment: string;
+
+    @IsNumber()
+    @IsPositive()
+    @IsOptional()
+    position: number;
 }
