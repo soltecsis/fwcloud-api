@@ -130,7 +130,18 @@ export class RoutingTableService extends Service {
     }
 
 
-    public async getRoutingTableData<T extends ItemsDataTypes>(dst: AvailableDestinations, fwcloud: number, firewall: number, routingTable: number, route?: number): Promise<RouteData<T>[]> {
+    /**
+     * Returns the an array of rules and in each rule an array of items containing the information
+     * required for compile the routes of the indicated routing table or for show the routing table routes
+     * items in the FWCloud-UI.
+     * @param dst 
+     * @param fwcloud 
+     * @param firewall 
+     * @param routingTable 
+     * @param route 
+     * @returns 
+     */
+     public async getRoutingTableData<T extends ItemsDataTypes>(dst: AvailableDestinations, fwcloud: number, firewall: number, routingTable: number, route?: number): Promise<RouteData<T>[]> {
         const rules: RouteData<T>[] = await this._routeRepository.getRoutingTableRoutes(fwcloud, firewall, routingTable, route) as RouteData<T>[];
          
         // Init the map for access the objects array for each route.

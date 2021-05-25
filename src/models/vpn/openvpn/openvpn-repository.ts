@@ -36,7 +36,7 @@ export class OpenVPNRepository extends Repository<OpenVPN> {
 
   getOpenVPNInRoutes_ForGrid(fwcloud: number, firewall: number, routingTable: number): SelectQueryBuilder<OpenVPN> {
     return this.createQueryBuilder("vpn")
-      .select("vpn.id","id").addSelect("crt.cn","name").addSelect("311","type")
+      .select("vpn.id","id").addSelect("crt.cn","name").addSelect("(select id from ipobj_type where id=311)","type")
       .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
       .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
       .addSelect("route.id","route_id")

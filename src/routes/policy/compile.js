@@ -93,14 +93,6 @@ router.put('/', async (req, res) => {
 	const channel = await Channel.fromRequest(req);
 
 	try {
-		//TEST!!!!!
-		///////////////////////////////////////////////////////////////////
-		const routingTableService = await app().getService(RoutingTableService.name);
-		const routeTableData = await routingTableService.getRoutingTableData('grid', req.body.fwcloud, req.body.firewall, 4);
-		//const routingCompiler = new RoutingCompiler('grid', req.body.fwcloud, req.body.firewall, 4);
-		///////////////////////////////////////////////////////////////////
-
-
 		await PolicyScript.generate(req.dbCon, req.body.fwcloud, req.body.firewall, channel);
 		res.status(204).end();
 	} catch(error) {

@@ -29,11 +29,11 @@ export class OpenVPNPrefixRepository extends Repository<OpenVPNPrefix> {
 
   getOpenVPNPrefixInRoutes_ForGrid(fwcloud: number, firewall: number, routingTable: number): SelectQueryBuilder<OpenVPNPrefix> {
     return this.createQueryBuilder("vpnPrefix")
-      .select("vpnPrefix.id","id").addSelect("vpnPrefix.name","name").addSelect("401","type")
+      .select("vpnPrefix.id","id").addSelect("vpnPrefix.name","name").addSelect("(select id from ipobj_type where id=401)","type")
       .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
       .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
       .addSelect("route.id","route_id")
-      .innerJoin("vpn.routes", "route")
+      .innerJoin("vpnPrefix.routes", "route")
       .innerJoin("route.routingTable", "table")
       .innerJoin("table.firewall", "firewall")
       .innerJoin("firewall.fwCloud", "fwcloud")
