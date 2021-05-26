@@ -75,6 +75,14 @@ export class Route extends Model {
     @Column()
     comment: string;
 
+    @Column()
+    style: string
+
+    @Column({
+        type: Number
+    })
+    position: number;
+
     @Column({
         name: 'group'
     })

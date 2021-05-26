@@ -42,4 +42,8 @@ export class RouteControllerUpdateDto {
     @IsString()
     @IsOptional()
     comment: string;
+
+    @IsString()
+    @IsOptional()
+    style: string;
 }

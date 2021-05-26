@@ -67,6 +67,9 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
             where: {
                 routingTableId: routingTableId
             },
+            order: {
+                position: 'DESC',
+            },
             take: 1
         })[0]
     }
@@ -137,7 +140,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
             for(const entity of entities) {
                 const queryBuilder: QueryBuilder<RoutingRule> = this.createQueryBuilder('rule', queryRunner);
             
-                await super.remove(entity);
+                await super.remove(entity, options);
                 await queryBuilder
                         .update()
                         .where('routingTableId = :table', {table: entity.routingTableId})

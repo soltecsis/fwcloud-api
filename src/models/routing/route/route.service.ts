@@ -42,6 +42,8 @@ export interface ICreateRoute {
     interfaceId?: number;
     active?: boolean;
     comment?: string;
+    position?: number;
+    style?: string;
 }
 
 interface IUpdateRoute {
@@ -49,6 +51,8 @@ interface IUpdateRoute {
     comment?: string;
     gatewayId?: number;
     interfaceId?: number;
+    position?: number;
+    style?: string
 }
 
 export class RouteService extends Service {
@@ -72,14 +76,26 @@ export class RouteService extends Service {
     }
 
     async create(data: ICreateRoute): Promise<Route> {
-        let route: Route = await this._repository.save(data);
-        return this._repository.findOne(route.id);
+        const route: Route = await this._repository.getLastRouteInRoutingTable(data.routingTableId);
+        const position: number = route?.position? route.position + 1 : 1;
+        data.position = position;
+        return this._repository.save(data);
     }
 
     async update(id: number, data: IUpdateRoute): Promise<Route> {
-        let route: Route = await this._repository.preload(Object.assign(data, {id}));
+        let route: Route = await this._repository.preload(Object.assign({
+            active: data.active,
+            comment: data.comment,
+            gatewayId: data.gatewayId,
+            interfaceId: data.interfaceId,
+            style: data.style
+        }, {id}));
+
         route = await this._repository.save(route);
 
+        if (data.position && route.position !== data.position) {
+            return await this._repository.move(route.id, data.position);
+        }
         return route;
     }
 

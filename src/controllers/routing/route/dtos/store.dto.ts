@@ -41,4 +41,8 @@ export class RouteControllerStoreDto {
     @IsString()
     @IsOptional()
     comment: string;
+
+    @IsString()
+    @IsOptional()
+    style: string;
 }
