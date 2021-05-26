@@ -75,9 +75,9 @@ export class RouteRepository extends Repository<Route> {
         
         let affectedRules: Route[] = [];
         
-        const lastPositionRule: Route = await this.getLastRouteInRoutingTable(route.routingTableId);
-
-        const greaterValidPosition: number = lastPositionRule ? lastPositionRule.position + 1 : 1;
+        const lastPositionRoute: Route = await this.getLastRouteInRoutingTable(route.routingTableId);
+        
+        const greaterValidPosition: number = lastPositionRoute ? lastPositionRoute.position + 1 : 1;
         
         //Assert position is valid
         to = Math.min(Math.max(1, to), greaterValidPosition);
@@ -143,7 +143,7 @@ export class RouteRepository extends Repository<Route> {
     }
 
     async getLastRouteInRoutingTable(routingTableId: number): Promise<Route | undefined> {
-        return await this.find({
+        return (await this.find({
             where: {
                 routingTableId: routingTableId
             },
@@ -151,7 +151,21 @@ export class RouteRepository extends Repository<Route> {
                 position: 'DESC'
             },
             take: 1
-        })[0]
+        }))[0]
+    }
+
+    getRoutingTableRoutes(fwcloud: number, firewall: number, routingTable: number, route?: number): Promise<Route[]> {
+        let query = this.createQueryBuilder("route")
+            .innerJoinAndSelect("route.gateway","gateway")
+            .leftJoinAndSelect("route.interface","interface")
+            .innerJoin("route.routingTable", "table")
+            .innerJoin("table.firewall", "firewall")
+            .innerJoin("firewall.fwCloud", "fwcloud")
+            .where("table.id = :routingTable", {routingTable})
+            .andWhere("firewall.id = :firewall", {firewall: firewall})
+            .andWhere("fwcloud.id = :fwcloud", {fwcloud: fwcloud});
+            
+        return (route ? query.andWhere("route.id = :route", {route}) : query).getMany();
     }
 
     protected getFindInPathOptions(path: Partial<IFindOneRoutePath>, options: FindOneOptions<Route> | FindManyOptions<Route> = {}): FindOneOptions<Route> | FindManyOptions<Route> {

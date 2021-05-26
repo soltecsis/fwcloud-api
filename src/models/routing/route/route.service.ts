@@ -24,7 +24,7 @@ import { FindManyOptions, FindOneOptions, getCustomRepository, SelectQueryBuilde
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
 import { Route } from "./route.model";
-import { FindOneWithinFwCloud, RouteRepository } from "./route.repository";
+import { RouteRepository } from "./route.repository";
 
 interface IFindManyRoutePath {
     firewallId?: number;

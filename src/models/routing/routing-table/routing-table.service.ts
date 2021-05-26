@@ -24,7 +24,6 @@ import { FindManyOptions, FindOneOptions, getCustomRepository, getRepository, Re
 import { Application } from "../../../Application";
 import db from "../../../database/database-manager";
 import { Service } from "../../../fonaments/services/service";
-import { IPObjExporter } from "../../../fwcloud-exporter/database-exporter/exporters/ipobj.exporter";
 import { Firewall } from "../../firewall/Firewall";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjRepository } from "../../ipobj/IPObj.repository";
