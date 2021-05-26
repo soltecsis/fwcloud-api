@@ -20,11 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindManyOptions, FindOneOptions, getCustomRepository, getRepository, SelectQueryBuilder } from "typeorm";
+import { getCustomRepository } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
-import { Firewall } from "../../firewall/Firewall";
-import { RoutingTable } from "../routing-table/routing-table.model";
 import { RoutingRule } from "./routing-rule.model";
 import { IFindManyRoutingRulePath, IFindOneRoutingRulePath, RoutingRuleRepository } from "./routing-rule.repository";
 
@@ -63,6 +61,9 @@ export class RoutingRuleService extends Service {
     }
 
     async create(data: ICreateRoutingRule): Promise<RoutingRule> {
+        const rule: RoutingRule = await this._repository.getLastRoutingRuleInRoutingTable(data.routingTableId);
+        const position: number = rule.position? rule.position + 1 : 1;
+        data.position = position;
         return this._repository.save(data);
     }
 
@@ -71,12 +72,13 @@ export class RoutingRuleService extends Service {
             routingTableId: data.routingTableId,
             active: data.active,
             comment: data.comment,
-            position: data.position
         }, {id}));
 
-        //Position change is handled by save method
         rule = await this._repository.save(rule);
 
+        if (data.position && rule.position !== data.position) {
+            return await this._repository.move(rule.id, data.position);
+        }
         return rule;
     }
 

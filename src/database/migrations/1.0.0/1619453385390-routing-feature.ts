@@ -276,11 +276,6 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     isNullable: false,
                 }
             ],
-            uniques: [
-                {
-                    columnNames: ['routing_table', 'position']
-                }
-            ],
             foreignKeys: [
                 {
                     columnNames: ['group'],

@@ -20,8 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DeepPartial, EntityRepository, FindManyOptions, FindOneOptions, getConnection, getRepository, QueryBuilder, QueryRunner, RemoveOptions, Repository, SaveOptions, SelectQueryBuilder } from "typeorm";
-import { RoutingTable } from "../routing-table/routing-table.model";
+import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, LessThan, LessThanOrEqual, MoreThan, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
 import { RoutingRule } from "./routing-rule.model";
 
 export interface IFindManyRoutingRulePath {
@@ -37,7 +36,7 @@ export interface IFindOneRoutingRulePath extends IFindManyRoutingRulePath {
 export class RoutingRuleRepository extends Repository<RoutingRule> {
     /**
      * Finds routing rules which belongs to the given path
-     * 
+     *
      * @param path 
      * @returns 
      */
@@ -63,34 +62,13 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         return this.findOneOrFail(this.getFindInPathOptions(path));
     }
 
-    /**
-     * Saves an entity and updates positions
-     * 
-     * @param entity 
-     * @param options 
-     * @returns 
-     */
-    async save<T extends DeepPartial<RoutingRule>>(entity: T, options?: SaveOptions): Promise<T & RoutingRule> {
-        const position: number = entity.position ?? undefined;
-        const routingTable: RoutingTable = await getRepository(RoutingTable).findOneOrFail(entity.routingTableId, { relations: ['firewall']});
-        const lastRule: RoutingRule = this.findManyInPath({
-            fwCloudId: routingTable.firewall.fwCloudId,
-            firewallId: routingTable.firewall.id
-        }, {
-            take: 1,
-            order: {
-                position: 'DESC'
-            }
-        })[0];
-        entity.position = lastRule ? lastRule.position + 1 : 1;
-        const value: T & RoutingRule = await super.save(entity, options);
-
-        if (position !== undefined) {
-            await this.move(value.id, position);
-            return this.findOneOrFail(value.id) as Promise<T & RoutingRule>;
-        }
-
-        return value;
+    async getLastRoutingRuleInRoutingTable(routingTableId: number): Promise<RoutingRule | undefined> {
+        return await this.find({
+            where: {
+                routingTableId: routingTableId
+            },
+            take: 1
+        })[0]
     }
 
     /**
@@ -101,67 +79,49 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
      * @returns 
      */
     async move(id: number, to: number): Promise<RoutingRule> {
-        const queryRunner: QueryRunner = getConnection().createQueryRunner();
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
+        const rule: RoutingRule = await this.findOneOrFail(id, {relations: ['routingTable', 'routingTable.firewall']});
         
-        try {
-            const queryBuilder: QueryBuilder<RoutingRule> = this.createQueryBuilder('rule', queryRunner);
-            const rule: RoutingRule = await this.findOneOrFail(id, {relations: ['routingTable', 'routingTable.firewall']});
-            
-            const lastPositionRule: RoutingRule = this.findManyInPath({
-                fwCloudId: rule.routingTable.firewall.fwCloudId,
-                firewallId: rule.routingTable.firewall.id,
-            }, {
-                take: 1,
-                order: {
-                    position: 'DESC'
-                }
-            })[0];
-
-            const greaterValidPosition: number = lastPositionRule ? lastPositionRule.position + 1 : 1;
-            
-            //Assert position is valid
-            to = Math.min(Math.max(1, to), greaterValidPosition);
-            
-            if (rule.position > to) {
-                await queryBuilder 
-                    .update()
-                    .where('routingTableId = :table', {table: rule.routingTableId})
-                    .andWhere('rule_order > :lower', {lower: to})
-                    .andWhere('rule_order < :greater', {greater: rule.position})
-                    .set({
-                        position: () => "position + 1"
-                    }).execute();
-
-                rule.position = to;
-                await this.save(rule);
-
-                await queryRunner.commitTransaction();
-                return rule;
+        let affectedRules: RoutingRule[] = [];
+        
+        const lastPositionRule: RoutingRule = (await this.findManyInPath({
+            fwCloudId: rule.routingTable.firewall.fwCloudId,
+            firewallId: rule.routingTable.firewall.id,
+        }, {
+            take: 1,
+            order: {
+                position: 'DESC'
             }
+        }))[0];
 
-            if (rule.position < to) {
-                await queryBuilder
-                    .update()
-                    .where('routingTableId = :table', {table: rule.routingTableId})
-                    .andWhere('rule_order > :lower', {lower: rule.position})
-                    .andWhere('rule_order < :greater', {greater: to})
-                    .set({
-                        position: () => "position - 1"
-                    }).execute();
+        const greaterValidPosition: number = lastPositionRule ? lastPositionRule.position + 1 : 1;
+        
+        //Assert position is valid
+        to = Math.min(Math.max(1, to), greaterValidPosition);
 
-                rule.position = to;
-                await this.save(rule);
-
-                await queryRunner.commitTransaction();
-                return rule;
-            }
-        } catch {
-            await queryRunner.rollbackTransaction();
-        } finally {
-            await queryRunner.release()
+        if (rule.position > to) {
+            affectedRules = await this.createQueryBuilder('rule')
+                .where("rule.position >= :greater", {greater: to})
+                .andWhere("rule.position < :lower", {lower: rule.position})
+                .andWhere("rule.routingTableId = :table", {table: rule.routingTableId}).getMany();
+            
+            affectedRules.forEach(rule => rule.position = rule.position + 1);
         }
+
+        if (rule.position < to) {
+            affectedRules = await this.createQueryBuilder('rule')
+                .where("rule.position > :greater", {greater: rule.position})
+                .andWhere("rule.position <= :lower", {lower: to})
+                .andWhere("rule.routingTableId = :table", {table: rule.routingTableId}).getMany();
+
+            affectedRules.forEach(rule => rule.position = rule.position - 1);
+        }
+
+        rule.position = to;
+        affectedRules.push(rule);
+        
+        await this.save(affectedRules);
+
+        return rule;
     }
 
     async remove(entities: RoutingRule[], options?: RemoveOptions): Promise<RoutingRule[]>;
