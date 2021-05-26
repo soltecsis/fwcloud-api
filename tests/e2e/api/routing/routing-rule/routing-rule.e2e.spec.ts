@@ -397,7 +397,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     });
             });
 
-            it('admin user should create a rules', async () => {
+            it('admin user should remove a rule', async () => {
                 return await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,

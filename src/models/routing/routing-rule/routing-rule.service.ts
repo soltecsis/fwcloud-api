@@ -62,7 +62,7 @@ export class RoutingRuleService extends Service {
 
     async create(data: ICreateRoutingRule): Promise<RoutingRule> {
         const rule: RoutingRule = await this._repository.getLastRoutingRuleInRoutingTable(data.routingTableId);
-        const position: number = rule.position? rule.position + 1 : 1;
+        const position: number = rule?.position? rule.position + 1 : 1;
         data.position = position;
         return this._repository.save(data);
     }

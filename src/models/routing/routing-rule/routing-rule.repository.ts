@@ -134,8 +134,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         await queryRunner.startTransaction();
         
         try {
-            // For each entity removed, update all affected positions
-            entities.forEach(async (entity: RoutingRule) => {
+            for(const entity of entities) {
                 const queryBuilder: QueryBuilder<RoutingRule> = this.createQueryBuilder('rule', queryRunner);
             
                 await super.remove(entity);
@@ -146,7 +145,8 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
                         .set({
                             position: () => "position - 1"
                         }).execute();
-            });
+            }
+            
             await queryRunner.commitTransaction();
             
             return entityOrEntities;
