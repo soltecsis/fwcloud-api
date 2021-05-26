@@ -9,7 +9,7 @@ import { Tree } from "../../../../src/models/tree/Tree";
 import StringHelper from "../../../../src/utils/string.helper";
 import { expect, testSuite } from "../../../mocha/global-setup";
 
-describe.only(RoutingRuleRepository.name, () => {
+describe(RoutingRuleRepository.name, () => {
     let repository: RoutingRuleRepository;
     let fwCloud: FwCloud;
     let firewall: Firewall;
@@ -45,7 +45,7 @@ describe.only(RoutingRuleRepository.name, () => {
     });
 
     describe('move', () => {
-        it.only('should manage position changes', async () => {
+        it('should manage position changes', async () => {
             const rulePosition1: RoutingRule = await repository.save({
                 routingTableId: table.id,
                 position: 1
@@ -71,7 +71,7 @@ describe.only(RoutingRuleRepository.name, () => {
             expect((await repository.findOne(rulePosition4.id)).position).to.eq(4);
         });
 
-        it.only('should manage position changes', async () => {
+        it('should manage position changes', async () => {
             const rulePosition1: RoutingRule = await repository.save({
                 routingTableId: table.id,
                 position: 1
