@@ -161,9 +161,8 @@ export class RoutingTableService extends Service {
         for (let i=0; i<rules.length; i++) {
           rules[i].items = [];
     
-          // Map each rule id and position with it's corresponding ipobjs array.
-          // These ipobjs array will be filled with objects data in the Promise.all()
-          // next to the outer for loop.
+          // Map each route with it's corresponding items array.
+          // These items array will be filled with objects data in the Promise.all()
           ItemsArrayMap.set(rules[i].id, rules[i].items);
         }
     
