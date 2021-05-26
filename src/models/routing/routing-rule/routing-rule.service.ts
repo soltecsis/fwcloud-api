@@ -31,6 +31,7 @@ interface ICreateRoutingRule {
     active?: boolean;
     comment?: string;
     position?: number;
+    style?: string;
 }
 
 interface IUpdateRoutingRule {
@@ -38,6 +39,7 @@ interface IUpdateRoutingRule {
     active?: boolean;
     comment?: string;
     position?: number;
+    style?: string;
 }
 
 export class RoutingRuleService extends Service {

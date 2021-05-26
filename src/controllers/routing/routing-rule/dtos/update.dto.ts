@@ -39,4 +39,8 @@ export class RoutingRuleControllerUpdateDto {
     @IsPositive()
     @IsOptional()
     position: number;
+
+    @IsString()
+    @IsOptional()
+    style: string;
 }

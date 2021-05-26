@@ -52,6 +52,9 @@ export class RoutingRule extends Model {
     })
     position: number;
 
+    @Column()
+    style: string;
+
     @Column({
         name: 'group'
     })

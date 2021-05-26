@@ -74,11 +74,7 @@ export class RoutingRuleController extends Controller {
 
         (await RoutingRulePolicy.create(this._firewall, request.session.user)).authorize();
 
-        const rule: RoutingRule = await this.routingRuleService.create({
-            routingTableId: parseInt(request.inputs.get('routingTableId')),
-            active: request.inputs.get('active'),
-            comment: request.inputs.get('comment') 
-        });
+        const rule: RoutingRule = await this.routingRuleService.create(request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(201).body(rule);
     }

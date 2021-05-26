@@ -274,6 +274,13 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     type: 'int',
                     length: '11',
                     isNullable: false,
+                },
+                {
+                    name: 'style',
+                    type: 'varchar',
+                    length: '50',
+                    isNullable: true,
+                    default: null
                 }
             ],
             foreignKeys: [

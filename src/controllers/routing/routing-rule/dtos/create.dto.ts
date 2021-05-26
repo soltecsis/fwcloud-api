@@ -33,4 +33,8 @@ export class RoutingRuleControllerCreateDto {
     @IsString()
     @IsOptional()
     comment: string;
+
+    @IsString()
+    @IsOptional()
+    style: string;
 }
