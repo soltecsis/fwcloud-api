@@ -20,32 +20,24 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository } from "../../../database/repository";
-import { OpenVPN } from "./OpenVPN";
 import { EntityRepository, SelectQueryBuilder } from "typeorm";
+import { Repository } from "../../../database/repository";
+import { OpenVPNPrefix } from "./OpenVPNPrefix";
 
-@EntityRepository(OpenVPN)
-export class OpenVPNRepository extends Repository<OpenVPN> {
-  public async markAllAsUninstalled(): Promise<void> {
-    await this.createQueryBuilder().update(OpenVPN)
-      .set({
-          status: 1,
-          installed_at: null
-      }).execute();
-  }
+@EntityRepository(OpenVPNPrefix)
+export class OpenVPNPrefixRepository extends Repository<OpenVPNPrefix> {
 
-  getOpenVPNInRoutes_ForGrid(fwcloud: number, firewall: number, routingTable: number): SelectQueryBuilder<OpenVPN> {
-    return this.createQueryBuilder("vpn")
-      .select("vpn.id","id").addSelect("crt.cn","name").addSelect("(select id from ipobj_type where id=311)","type")
+  getOpenVPNPrefixInRoutes_ForGrid(fwcloud: number, firewall: number, routingTable: number): SelectQueryBuilder<OpenVPNPrefix> {
+    return this.createQueryBuilder("vpnPrefix")
+      .select("vpnPrefix.id","id").addSelect("vpnPrefix.name","name").addSelect("(select id from ipobj_type where id=401)","type")
       .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
       .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
       .addSelect("route.id","route_id")
-      .innerJoin("vpn.routes", "route")
+      .innerJoin("vpnPrefix.routes", "route")
       .innerJoin("route.routingTable", "table")
       .innerJoin("table.firewall", "firewall")
       .innerJoin("firewall.fwCloud", "fwcloud")
       .leftJoin("firewall.cluster", "cluster")
-      .innerJoin("vpn.crt", "crt")
       .where("table.id = :routingTable", {routingTable})
       .andWhere("firewall.id = :firewall", {firewall: firewall}) 
       .andWhere("fwcloud.id = :fwcloud", {fwcloud: fwcloud});

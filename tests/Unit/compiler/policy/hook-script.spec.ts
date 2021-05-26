@@ -25,21 +25,18 @@ import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import sinon, { SinonSpy } from "sinon";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
-import { IPTablesCompiler } from '../../../../src/compiler/iptables/iptables-compiler';
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
 import { populateRule } from "./utils";
+import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/policy/PolicyCompiler";
 
-describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
-  const sandbox = sinon.createSandbox();
-  let spy: SinonSpy;
-
+describe(describeName('Policy Compiler Unit Tests - Hook scripts'), () => {
   let fwcloud: number;
   let dbCon: any;
   const IPv = 'IPv4' ;
+  let compiler: AvailablePolicyCompilers;
 
   const code_before_cmt = '###########################\n# Before rule load code:';
   const code_after_cmt = '###########################\n# After rule load code:';
@@ -67,9 +64,8 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
     const rule = await PolicyRule.insertPolicy_r(ruleData);
     if (ruleData.type === PolicyTypesMap.get(`${IPv}:DNAT`))
       await populateRule(rule,RulePositionsMap.get(`${IPv}:DNAT:Translated Destination`),50010); // 50010 = Standard VRRP IP
-    const result = await IPTablesCompiler.compile(dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+    const result = await PolicyCompiler.compile(compiler, dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
     
-    expect(spy.calledOnce).to.be.true;
     expect(result).to.eql([{
       id: rule,
       active: ruleData.active,
@@ -86,16 +82,8 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
     ruleData.firewall = (await getRepository(Firewall).save(getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
   });
   
-  beforeEach(async () => {
-    spy = sandbox.spy(IPTablesCompiler, "ruleCompile");
-  });
-  
-  afterEach(() => {
-    sandbox.restore();
-  });
-
-  describe('Script code is included in rule compilation (INPUT chain)', () => {
-    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`) });
+  describe('Script code is included in rule compilation (IPTables, INPUT chain)', () => {
+    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`); compiler = 'IPTables'; });
 
     it('before policy rule load', async () => {
       await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -A INPUT -m conntrack --ctstate NEW -j ACCEPT\n`);
@@ -111,8 +99,25 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
 
   });
 
-  describe('Script code is included in rule compilation (OUTPUT chain)', () => {
-    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`) });
+  describe('Script code is included in rule compilation (NFTables, INPUT chain)', () => {
+    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`); compiler = 'NFTables'; });
+
+    it('before policy rule load', async () => {
+      await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$NFT add rule ip filter INPUT ct state new counter accept\n`);
+    });
+
+    it('after policy rule load', async () => {
+      await runTest('A',`$NFT add rule ip filter INPUT ct state new counter accept\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
+    });
+
+    it('before and after policy rule load', async () => {
+      await runTest('BA',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$NFT add rule ip filter INPUT ct state new counter accept\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
+    });
+
+  });
+
+  describe('Script code is included in rule compilation (IPTables, OUTPUT chain)', () => {
+    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`); compiler = 'IPTables'; });
 
     it('before policy rule load', async () => {
       await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -A OUTPUT -m conntrack --ctstate NEW -j ACCEPT\n`);
@@ -127,8 +132,24 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
     });
   });
 
-  describe('Script code is included in rule compilation (FORWARD chain)', () => {
-    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`) });
+  describe('Script code is included in rule compilation (NFTables, OUTPUT chain)', () => {
+    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`); compiler = 'NFTables'; });
+
+    it('before policy rule load', async () => {
+      await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$NFT add rule ip filter OUTPUT ct state new counter accept\n`);
+    });
+
+    it('after policy rule load', async () => {
+      await runTest('A',`$NFT add rule ip filter OUTPUT ct state new counter accept\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
+    });
+
+    it('before and after policy rule load', async () => {
+      await runTest('BA',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$NFT add rule ip filter OUTPUT ct state new counter accept\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
+    });
+  });
+
+  describe('Script code is included in rule compilation (IPTables, FORWARD chain)', () => {
+    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`); compiler = 'IPTables'; });
 
     it('before policy rule load', async () => {
       await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -A FORWARD -m conntrack --ctstate NEW -j ACCEPT\n`);
@@ -143,8 +164,24 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
     });
   });
 
-  describe('Script code is included in rule compilation (SNAT)', () => {
-    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`) });
+  describe('Script code is included in rule compilation (NFTables, FORWARD chain)', () => {
+    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`); compiler = 'NFTables'; });
+
+    it('before policy rule load', async () => {
+      await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$NFT add rule ip filter FORWARD ct state new counter accept\n`);
+    });
+
+    it('after policy rule load', async () => {
+      await runTest('A',`$NFT add rule ip filter FORWARD ct state new counter accept\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
+    });
+
+    it('before and after policy rule load', async () => {
+      await runTest('BA',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$NFT add rule ip filter FORWARD ct state new counter accept\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
+    });
+  });
+
+  describe('Script code is included in rule compilation (IPTables, SNAT)', () => {
+    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`); compiler = 'IPTables'; });
 
     it('before policy rule load', async () => {
       await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -t nat -A POSTROUTING -j MASQUERADE\n`);
@@ -159,8 +196,24 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
     });
   });
 
-  describe('Script code is included in rule compilation (DNAT)', () => {
-    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`) });
+  describe('Script code is included in rule compilation (NFTables, SNAT)', () => {
+    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`); compiler = 'NFTables'; });
+
+    it('before policy rule load', async () => {
+      await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$NFT add rule ip nat POSTROUTING counter masquerade\n`);
+    });
+
+    it('after policy rule load', async () => {
+      await runTest('A',`$NFT add rule ip nat POSTROUTING counter masquerade\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
+    });
+
+    it('before and after policy rule load', async () => {
+      await runTest('BA',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$NFT add rule ip nat POSTROUTING counter masquerade\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
+    });
+  });
+
+  describe('Script code is included in rule compilation (IPTables, DNAT)', () => {
+    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`); compiler = 'IPTables'; });
 
     it('before policy rule load', async () => {
       await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 224.0.0.18\n`);
@@ -172,6 +225,22 @@ describe(describeName('IPTables Compiler Unit Tests - Hook scripts'), () => {
 
     it('before and after policy rule load', async () => {
       await runTest('BA',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 224.0.0.18\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
+    });
+  });
+
+  describe('Script code is included in rule compilation (NFTables, DNAT)', () => {
+    before(() => { ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`); compiler = 'NFTables'; });
+
+    it('before policy rule load', async () => {
+      await runTest('B',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$NFT add rule ip nat PREROUTING counter dnat to 224.0.0.18\n`);
+    });
+
+    it('after policy rule load', async () => {
+      await runTest('A',`$NFT add rule ip nat PREROUTING counter dnat to 224.0.0.18\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
+    });
+
+    it('before and after policy rule load', async () => {
+      await runTest('BA',`${code_before_cmt}\n${code_before}\n${code_end_cmt}$NFT add rule ip nat PREROUTING counter dnat to 224.0.0.18\n${code_after_cmt}\n${code_after}\n${code_end_cmt}`);
     });
   });
 });

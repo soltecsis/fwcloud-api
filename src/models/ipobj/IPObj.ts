@@ -27,13 +27,14 @@ import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { Interface } from '../../models/interface/Interface';
 import Model from '../Model';
-import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany, ManyToMany } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany, ManyToMany, getRepository, SelectQueryBuilder } from 'typeorm';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { logger } from '../../fonaments/abstract-application';
 import { IPObjType } from './IPObjType';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { Route } from '../routing/route/route.model';
 import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
+import { IdManager } from '../../fwcloud-exporter/database-importer/terraformer/mapper/id-manager';
 const ip = require('ip');
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
@@ -1227,5 +1228,4 @@ export class IPObj extends Model {
             });
         });
     };
-    
 }
