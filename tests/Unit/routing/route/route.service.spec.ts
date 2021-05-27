@@ -81,7 +81,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(ipobj => ipobj.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
                 ).to.deep.eq([ipobj1.id, ipobj2.id])
             });
 
@@ -95,7 +95,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(ipobj => ipobj.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
                 ).to.deep.eq([ipobj2.id])
             });
 
@@ -109,7 +109,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(ipobj => ipobj.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
                 ).to.deep.eq([])
             })
         });
@@ -135,7 +135,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjGroups']})).ipObjGroups.map(ipobj => ipobj.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjGroups']})).ipObjGroups.map(item => item.id)
                 ).to.deep.eq([group1.id, group2.id])
             });
 
@@ -149,7 +149,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjGroups']})).ipObjGroups.map(ipobj => ipobj.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjGroups']})).ipObjGroups.map(item => item.id)
                 ).to.deep.eq([group2.id])
             });
 
@@ -163,7 +163,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjGroups']})).ipObjGroups.map(ipobj => ipobj.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjGroups']})).ipObjGroups.map(item => item.id)
                 ).to.deep.eq([])
             })
         });
@@ -207,7 +207,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNs']})).openVPNs.map(ipobj => ipobj.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNs']})).openVPNs.map(item => item.id)
                 ).to.deep.eq([openVPN1.id, openVPN2.id])
             });
 
@@ -221,7 +221,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNs']})).openVPNs.map(ipobj => ipobj.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNs']})).openVPNs.map(item => item.id)
                 ).to.deep.eq([openVPN2.id])
             });
 
@@ -235,7 +235,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNs']})).openVPNs.map(ipobj => ipobj.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNs']})).openVPNs.map(item => item.id)
                 ).to.deep.eq([])
             })
         });
@@ -281,39 +281,39 @@ describe(RouteService.name, () => {
             })
             it('should attach openVPNPrefixes', async () => {
                 await service.update(route.id, {
-                    openVPNIds: [openVPNPrefix.id, openVPNPrefix2.id]
+                    openVPNPrefixIds: [openVPNPrefix.id, openVPNPrefix2.id]
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(ipobj => ipobj.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(item => item.id)
                 ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id])
             });
 
             it('should remove openVPNPrefixes attachment', async () => {
                 await service.update(route.id, {
-                    openVPNIds: [openVPNPrefix.id, openVPNPrefix2.id]
+                    openVPNPrefixIds: [openVPNPrefix.id, openVPNPrefix2.id]
                 });
 
                 await service.update(route.id, {
-                    openVPNIds: [openVPNPrefix2.id]
+                    openVPNPrefixIds: [openVPNPrefix2.id]
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(ipobj => ipobj.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(item => item.id)
                 ).to.deep.eq([openVPNPrefix2.id])
             });
 
             it('should remove all openVPNPrefixes attachment', async () => {
                 await service.update(route.id, {
-                    openVPNIds: [openVPNPrefix.id, openVPNPrefix2.id]
+                    openVPNPrefixIds: [openVPNPrefix.id, openVPNPrefix2.id]
                 });
 
                 await service.update(route.id, {
-                    openVPNIds: []
+                    openVPNPrefixIds: []
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(ipobj => ipobj.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(item => item.id)
                 ).to.deep.eq([])
             })
         });
