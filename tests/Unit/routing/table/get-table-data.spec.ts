@@ -20,56 +20,148 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getCustomRepository, getRepository } from "typeorm";
+import { before } from "mocha";
+import { getRepository } from "typeorm";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
-import { RoutingRule } from "../../../../src/models/routing/routing-rule/routing-rule.model";
-import { RoutingRuleRepository } from "../../../../src/models/routing/routing-rule/routing-rule.repository";
+import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
+import { Route } from "../../../../src/models/routing/route/route.model";
+import { RouteService } from "../../../../src/models/routing/route/route.service";
 import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
-import { RoutingTableService } from "../../../../src/models/routing/routing-table/routing-table.service";
-import { Tree } from "../../../../src/models/tree/Tree";
+import { RoutingTableService, AvailableDestinations, RouteItemDataForCompiler } from "../../../../src/models/routing/routing-table/routing-table.service";
 import { OpenVPN } from "../../../../src/models/vpn/openvpn/OpenVPN";
-import { OpenVPNOption } from "../../../../src/models/vpn/openvpn/openvpn-option.model";
 import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
 import { Ca } from "../../../../src/models/vpn/pki/Ca";
 import { Crt } from "../../../../src/models/vpn/pki/Crt";
 import StringHelper from "../../../../src/utils/string.helper";
 import { expect, testSuite } from "../../../mocha/global-setup";
 
-describe('Route data fetch for compiler or grid', () => {
-    let fwcloud: number;
-    let firewall: number;
-    let vpnSrv: number;
-    let vpnCli1: number;
-    let vpnCli1IP: number;
-    let crtCli2: number;
-    let vpnCli2: number;
-    let vpnCli2IP: number;
-    let vpnPrefix: number;
-    let natIP: number;
-    let group: number;
-    let useGroup = false;
-    let usePrefix = false; 
-   
+describe.only('Routing table data fetch for compiler or grid', () => {
+    let routeService: RouteService;
+    let routingTableService: RoutingTableService;
+    let compilerItem: RouteItemDataForCompiler;
+
+    let fwCloud: FwCloud;
+    let firewall: Firewall;
+    let table: RoutingTable;
+    let gateway: IPObj;
+    let route1: Route;
+    let route2: Route;
+    let address: IPObj;
+    let addressRange: IPObj;
+    let network: IPObj;
+    let host: IPObj;
+    let dst: AvailableDestinations;
+
     before(async () => {
-        fwcloud = (await getRepository(FwCloud).save(getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id;
-        firewall = (await getRepository(Firewall).save(getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
-        const ca = (await getRepository(Ca).save(getRepository(Ca).create({ cn: StringHelper.randomize(10), fwCloudId: fwcloud, days: 18250 }))).id;
-        const crtSrv = (await getRepository(Crt).save(getRepository(Crt).create({ caId: ca, cn: StringHelper.randomize(10), days: 18250, type: 2 }))).id;
-        const crtCli1 = (await getRepository(Crt).save(getRepository(Crt).create({ caId: ca, cn: `SOLTECSIS-${StringHelper.randomize(10)}`, days: 18250, type: 1 }))).id;
-        crtCli2 = (await getRepository(Crt).save(getRepository(Crt).create({ caId: ca, cn: `SOLTECSIS-${StringHelper.randomize(10)}`, days: 18250, type: 1 }))).id;
-        vpnSrv = (await getRepository(OpenVPN).save(getRepository(OpenVPN).create({ firewallId: firewall, crtId: crtSrv }))).id;
-        vpnPrefix = (await getRepository(OpenVPNPrefix).save(getRepository(OpenVPNPrefix).create({ openVPNId: vpnSrv, name: 'SOLTECSIS-' }))).id;
-        vpnCli1 = (await getRepository(OpenVPN).save(getRepository(OpenVPN).create({ firewallId: firewall, crtId: crtCli1, parentId: vpnSrv }))).id;
-        vpnCli1IP = (await getRepository(IPObj).save(getRepository(IPObj).create({ fwCloudId: fwcloud, name: '10.20.30.2', ipObjTypeId: 5, address: '10.20.30.2', netmask: '/32', ip_version: 4  }))).id;
-        await getRepository(OpenVPNOption).save(getRepository(OpenVPNOption).create({ openVPNId: vpnCli1, ipObjId: vpnCli1IP, name: 'ifconfig-push', order: 1, scope: 0 }));
-        natIP = (await getRepository(IPObj).save(getRepository(IPObj).create({ fwCloudId: fwcloud, name: '192.168.0.50', ipObjTypeId: 5, address: '192.168.0.50', netmask: '/32', ip_version: 4  }))).id;
-    });
-    
-    describe('For compiler', () => {
-        it('should ', async () => {
+        const ipobjRepository = getRepository(IPObj);
+        await testSuite.resetDatabaseData();
+
+        routeService = await testSuite.app.getService<RouteService>(RouteService.name);
+        routingTableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
+
+        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+            name: StringHelper.randomize(10)
+        }));
+
+        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+            name: StringHelper.randomize(10),
+            fwCloudId: fwCloud.id
+        }));
+
+        gateway = await ipobjRepository.save(ipobjRepository.create({
+            name: 'gateway',
+            address: '1.2.3.4',
+            ipObjTypeId: 5,
+            interfaceId: null
+        }));
+
+        address = await ipobjRepository.save(ipobjRepository.create({
+            name: 'address',
+            address: '10.20.30.40',
+            ipObjTypeId: 5,
+            interfaceId: null
+        }));
+
+        addressRange = await ipobjRepository.save(ipobjRepository.create({
+            name: 'addressRange',
+            range_start: '10.10.10.50',
+            range_end: '10.10.10.80',
+            ipObjTypeId: 6,
+            interfaceId: null
+        }));
+
+        network = await ipobjRepository.save(ipobjRepository.create({
+            name: 'network',
+            address: '10.20.30.0',
+            netmask: '/24',
+            ipObjTypeId: 7,
+            interfaceId: null
+        }));
+
+        host = await ipobjRepository.save(ipobjRepository.create({
+            name: 'host',
+            ipObjTypeId: 8,
+            interfaceId: null
+        }));
+
+        table = await getRepository(RoutingTable).save({
+            firewallId: firewall.id,
+            number: 1,
+            name: 'Routing table',
         });
 
-  })
+        route1 = await routeService.create({
+            routingTableId: table.id,
+            gatewayId: gateway.id
+        });
+
+        route2 = await routeService.create({
+            routingTableId: table.id,
+            gatewayId: gateway.id
+        });
+
+        await routeService.update(route1.id, {
+            ipObjIds: [address.id, addressRange.id, network.id, host.id]
+        });
+    });
+
+    describe('For compiler', () => {
+        beforeEach(() => {
+            dst = 'compiler';
+            compilerItem = { 
+                route_id: route1.id, 
+                type: 0, 
+                address: null, 
+                netmask: null, 
+                range_start: null, 
+                range_end: null
+            }
+        });
+
+        it('should include address data', async () => {
+            const routes = await routingTableService.getRoutingTableData<RouteItemDataForCompiler>(dst,fwCloud.id,firewall.id,table.id);            
+            compilerItem.type = 5; compilerItem.address = '10.20.30.40';
+            expect(routes[0].items).to.deep.include(compilerItem);
+        });
+
+        it('should include address range data', async () => {
+            const routes = await routingTableService.getRoutingTableData<RouteItemDataForCompiler>(dst,fwCloud.id,firewall.id,table.id);            
+            compilerItem.type = 6; compilerItem.range_start = '10.10.10.50'; compilerItem.range_end = '10.10.10.80';
+            expect(routes[0].items).to.deep.include(compilerItem);
+        });
+
+        it('should include lan data', async () => {
+            const routes = await routingTableService.getRoutingTableData<RouteItemDataForCompiler>(dst,fwCloud.id,firewall.id,table.id);            
+            compilerItem.type = 7; compilerItem.address = '10.20.30.0'; compilerItem.netmask = '/24';
+            expect(routes[0].items).to.deep.include(compilerItem);
+        });
+
+        it('should include host data', async () => {
+            const routes = await routingTableService.getRoutingTableData<RouteItemDataForCompiler>(dst,fwCloud.id,firewall.id,table.id);            
+            compilerItem.type = 8;
+            expect(routes[0].items).to.deep.include(compilerItem);
+        });
+    })
 })

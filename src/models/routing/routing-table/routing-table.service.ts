@@ -81,7 +81,7 @@ export type RouteItemDataForCompiler = {
 }
 
 type ItemsDataTypes = RouteItemDataForGrid | RouteItemDataForCompiler;
-type AvailableDestinations = 'grid' | 'compiler';
+export type AvailableDestinations = 'grid' | 'compiler';
 
 interface RouteData<T extends ItemsDataTypes> extends Route {
     items: T[];
