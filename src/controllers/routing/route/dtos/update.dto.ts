@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsBoolean, IsNumber, IsObject, IsOptional, IsSemVer, IsString } from "class-validator"
+import { IsArray, IsBoolean, IsNumber, IsObject, IsOptional, IsSemVer, IsString } from "class-validator"
 
 export class RouteControllerUpdateDto {
     @IsNumber()
@@ -46,4 +46,32 @@ export class RouteControllerUpdateDto {
     @IsString()
     @IsOptional()
     style: string;
+
+    @IsArray()
+    @IsOptional()
+    @IsNumber(null, {
+        each: true
+    })
+    ipObjs: number[]
+
+    @IsArray()
+    @IsOptional()
+    @IsNumber(null, {
+        each: true
+    })
+    ipObjGroups: number[]
+
+    @IsArray()
+    @IsOptional()
+    @IsNumber(null, {
+        each: true
+    })
+    openVPNs: number[];
+    
+    @IsArray()
+    @IsOptional()
+    @IsNumber(null, {
+        each: true
+    })
+    openVPNPrefixes: number[]
 }

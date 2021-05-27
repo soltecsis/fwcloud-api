@@ -23,6 +23,10 @@
 import { getCustomRepository } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
+import { IPObj } from "../../ipobj/IPObj";
+import { IPObjGroup } from "../../ipobj/IPObjGroup";
+import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
+import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { RoutingRule } from "./routing-rule.model";
 import { IFindManyRoutingRulePath, IFindOneRoutingRulePath, RoutingRuleRepository } from "./routing-rule.repository";
 
@@ -35,11 +39,15 @@ interface ICreateRoutingRule {
 }
 
 interface IUpdateRoutingRule {
-    routingTableId: number;
+    routingTableId?: number;
     active?: boolean;
     comment?: string;
     position?: number;
     style?: string;
+    ipObjIds?: number[];
+    ipObjGroupIds?: number[];
+    openVPNIds?: number[];
+    openVPNPrefixIds?: number[]
 }
 
 export class RoutingRuleService extends Service {
@@ -75,6 +83,23 @@ export class RoutingRuleService extends Service {
             active: data.active,
             comment: data.comment,
         }, {id}));
+
+        if (data.ipObjIds) {
+            rule.ipObjs = data.ipObjIds.map(id => ({id} as IPObj));
+        }
+
+        if (data.ipObjGroupIds) {
+            rule.ipObjGroups = data.ipObjGroupIds.map(id => ({id} as IPObjGroup));
+        }
+
+        if (data.openVPNIds) {
+            rule.openVPNs = data.openVPNIds.map(id => ({id} as OpenVPN));
+        }
+
+        if (data.openVPNPrefixIds) {
+            rule.openVPNPrefixes = data.openVPNPrefixIds.map(id => ({id} as OpenVPNPrefix));
+        }
+
 
         rule = await this._repository.save(rule);
 
