@@ -23,6 +23,10 @@
 import { FindManyOptions, FindOneOptions, getCustomRepository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
+import { IPObj } from "../../ipobj/IPObj";
+import { IPObjGroup } from "../../ipobj/IPObjGroup";
+import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
+import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { Route } from "./route.model";
 import { RouteRepository } from "./route.repository";
 
@@ -52,7 +56,11 @@ interface IUpdateRoute {
     gatewayId?: number;
     interfaceId?: number;
     position?: number;
-    style?: string
+    style?: string;
+    ipObjIds?: number[];
+    ipObjGroupIds?: number[];
+    openVPNIds?: number[];
+    openVPNPrefixIds?: number[]
 }
 
 export class RouteService extends Service {
@@ -88,14 +96,31 @@ export class RouteService extends Service {
             comment: data.comment,
             gatewayId: data.gatewayId,
             interfaceId: data.interfaceId,
-            style: data.style
+            style: data.style,
         }, {id}));
+
+        if (data.ipObjIds) {
+            route.ipObjs = data.ipObjIds.map(id => ({id} as IPObj));
+        }
+
+        if (data.ipObjGroupIds) {
+            route.ipObjGroups = data.ipObjGroupIds.map(id => ({id} as IPObjGroup));
+        }
+
+        if (data.openVPNIds) {
+            route.openVPNs = data.openVPNIds.map(id => ({id} as OpenVPN));
+        }
+
+        if (data.openVPNPrefixIds) {
+            route.openVPNPrefixes = data.openVPNPrefixIds.map(id => ({id} as OpenVPNPrefix));
+        }
 
         route = await this._repository.save(route);
 
         if (data.position && route.position !== data.position) {
             return await this._repository.move(route.id, data.position);
         }
+
         return route;
     }
 
