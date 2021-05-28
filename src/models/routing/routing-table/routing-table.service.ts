@@ -179,14 +179,14 @@ export class RoutingTableService extends Service {
 
     private buildSQLsForCompiler(fwcloud: number, firewall: number, routingTable: number, route?: number): SelectQueryBuilder<IPObj>[] {
         return [
-            this._ipobjRepository.getIpobjsInRoutes_excludeHosts('route', fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInRoutes_onlyHosts('route', fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInGroupsInRoutes_excludeHosts('route', fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInGroupsInRoutes_onlyHosts('route', fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInOpenVPNInRoutes('route', fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInOpenVPNInGroupsInRoutes('route', fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInOpenVPNPrefixesInRoutes('route', fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInOpenVPNPrefixesInGroupsInRoutes('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInRouting_excludeHosts('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInRouting_onlyHosts('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInGroupsInRouting_excludeHosts('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInGroupsInRouting_onlyHosts('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInOpenVPNInRouting('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInOpenVPNInGroupsInRouting('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInOpenVPNPrefixesInRouting('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInOpenVPNPrefixesInGroupsInRouting('route', fwcloud, firewall, routingTable, route),
         ];
     }
 
