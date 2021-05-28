@@ -23,6 +23,7 @@
 import { FindManyOptions, FindOneOptions, getCustomRepository, getRepository, In, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
+import { Firewall } from "../../firewall/Firewall";
 import { FwCloud } from "../../fwcloud/FwCloud";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
@@ -100,14 +101,14 @@ export class RouteService extends Service {
             style: data.style,
         }, {id}));
 
-        route = await this._repository.findOne(route.id, {relations: ['routingTable', 'routingTable.firewall']});
+        const firewall: Firewall = (await this._repository.findOne(route.id, {relations: ['routingTable', 'routingTable.firewall']})).routingTable.firewall;
 
 
         if (data.ipObjIds) {
             const ipObjs: IPObj[] = await getRepository(IPObj).find({
                 where: {
                     id: In(data.ipObjIds),
-                    fwCloudId: route.routingTable.firewall.fwCloudId,
+                    fwCloudId: firewall.fwCloudId,
                 }
             })
 
@@ -118,7 +119,7 @@ export class RouteService extends Service {
             const groups: IPObjGroup[] = await getRepository(IPObjGroup).find({
                 where: {
                     id: In(data.ipObjGroupIds),
-                    fwCloudId: route.routingTable.firewall.fwCloudId,
+                    fwCloudId: firewall.fwCloudId,
                 }
             })
 
@@ -129,7 +130,7 @@ export class RouteService extends Service {
             const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
                 where: {
                     id: In(data.openVPNIds),
-                    firewallId: route.routingTable.firewall.id,
+                    firewallId: firewall.id,
                 }
             })
 
@@ -140,7 +141,6 @@ export class RouteService extends Service {
             const prefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).find({
                 where: {
                     id: In(data.openVPNPrefixIds),
-                    firewallId: route.routingTable.firewall.id,
                 }
             })
 

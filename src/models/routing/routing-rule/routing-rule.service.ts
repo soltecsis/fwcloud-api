@@ -23,6 +23,7 @@
 import { getCustomRepository, getRepository, In } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
+import { Firewall } from "../../firewall/Firewall";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
@@ -84,14 +85,14 @@ export class RoutingRuleService extends Service {
             comment: data.comment,
         }, {id}));
 
-        rule = await this._repository.findOne(rule.id, {relations: ['routingTable', 'routingTable.firewall']});
+        const firewall: Firewall = (await this._repository.findOne(rule.id, {relations: ['routingTable', 'routingTable.firewall']})).routingTable.firewall;
 
 
         if (data.ipObjIds) {
             const ipObjs: IPObj[] = await getRepository(IPObj).find({
                 where: {
                     id: In(data.ipObjIds),
-                    fwCloudId: rule.routingTable.firewall.fwCloudId,
+                    fwCloudId: firewall.fwCloudId,
                 }
             })
 
@@ -102,7 +103,7 @@ export class RoutingRuleService extends Service {
             const groups: IPObjGroup[] = await getRepository(IPObjGroup).find({
                 where: {
                     id: In(data.ipObjGroupIds),
-                    fwCloudId: rule.routingTable.firewall.fwCloudId,
+                    fwCloudId: firewall.fwCloudId,
                 }
             })
 
@@ -113,7 +114,7 @@ export class RoutingRuleService extends Service {
             const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
                 where: {
                     id: In(data.openVPNIds),
-                    firewallId: rule.routingTable.firewall.id,
+                    firewallId: firewall.id,
                 }
             })
 
@@ -123,8 +124,7 @@ export class RoutingRuleService extends Service {
         if (data.openVPNPrefixIds) {
             const prefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).find({
                 where: {
-                    id: In(data.openVPNPrefixIds),
-                    firewallId: rule.routingTable.firewall.id,
+                    id: In(data.openVPNPrefixIds)
                 }
             })
 
