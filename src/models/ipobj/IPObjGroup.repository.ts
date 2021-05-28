@@ -32,7 +32,7 @@ export class IPObjGroupRepository extends Repository<IPObjGroup> {
       .select("ipobjGroup.id","id").addSelect("ipobjGroup.name","name").addSelect("ipobjGroup.type","type")
       .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
       .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
-      .addSelect("route.id","route_id")
+      .addSelect("route.id","entityId")
       .innerJoin("ipobjGroup.routes", "route")
       .innerJoin("route.routingTable", "table")
       .innerJoin("table.firewall", "firewall")

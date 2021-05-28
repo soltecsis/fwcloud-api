@@ -32,7 +32,8 @@ import { IPObjToIPObjGroup } from "../../../../src/models/ipobj/IPObjToIPObjGrou
 import { Route } from "../../../../src/models/routing/route/route.model";
 import { RouteService } from "../../../../src/models/routing/route/route.service";
 import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
-import { RoutingTableService, AvailableDestinations, RouteItemDataForCompiler, RouteItemDataForGrid, RouteData } from "../../../../src/models/routing/routing-table/routing-table.service";
+import { RoutingTableService, RouteData } from "../../../../src/models/routing/routing-table/routing-table.service";
+import { ItemForGrid, RouteItemForCompiler } from "../../../../src/models/routing/shared";
 import { OpenVPN } from "../../../../src/models/vpn/openvpn/OpenVPN";
 import { OpenVPNOption } from "../../../../src/models/vpn/openvpn/openvpn-option.model";
 import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
@@ -41,7 +42,7 @@ import { Crt } from "../../../../src/models/vpn/pki/Crt";
 import StringHelper from "../../../../src/utils/string.helper";
 import { expect, testSuite } from "../../../mocha/global-setup";
 
-describe('Routing table data fetch for compiler or grid', () => {
+describe.only('Routing table data fetch for compiler or grid', () => {
     let routeService: RouteService;
     let routingTableService: RoutingTableService;
 
@@ -72,8 +73,8 @@ describe('Routing table data fetch for compiler or grid', () => {
     let addressRange: IPObj;
     let network: IPObj;
     let host: IPObj;
-    let routes: RouteData<RouteItemDataForCompiler>[] | RouteData<RouteItemDataForGrid>[];
-    let items: RouteItemDataForCompiler[] | RouteItemDataForGrid[];
+    let routes: RouteData<RouteItemForCompiler>[] | RouteData<ItemForGrid>[];
+    let items: RouteItemForCompiler[] | ItemForGrid[];
 
     before(async () => {
         const ipobjRepository = getRepository(IPObj);
@@ -349,17 +350,17 @@ describe('Routing table data fetch for compiler or grid', () => {
     });
 
     describe('For compiler', () => {
-        let item: RouteItemDataForCompiler;
+        let item: RouteItemForCompiler;
 
         before( async () => {
-            routes = await routingTableService.getRoutingTableData<RouteItemDataForCompiler>('compiler',fwCloud.id,firewall.id,table.id);            
+            routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwCloud.id,firewall.id,table.id);            
         });
 
         describe('Out of group', () => {
             beforeEach(() => {
                 items = routes[0].items;
                 item = { 
-                    route_id: route1.id, 
+                    entityId: route1.id, 
                     type: 0, 
                     address: null, 
                     netmask: null, 
@@ -409,7 +410,7 @@ describe('Routing table data fetch for compiler or grid', () => {
             beforeEach(() => {
                 items = routes[1].items; // This route has the group of objects.
                 item = { 
-                    route_id: route2.id, 
+                    entityId: route2.id, 
                     type: 0, 
                     address: null, 
                     netmask: null, 
@@ -457,17 +458,17 @@ describe('Routing table data fetch for compiler or grid', () => {
     })
 
     describe('For grid', () => {
-        let item: RouteItemDataForGrid;
+        let item: ItemForGrid;
 
         before( async () => {
-            routes = await routingTableService.getRoutingTableData<RouteItemDataForGrid>('grid',fwCloud.id,firewall.id,table.id);            
+            routes = await routingTableService.getRoutingTableData<ItemForGrid>('grid',fwCloud.id,firewall.id,table.id);            
         });
 
         describe('Out of group', () => {
             beforeEach(() => {
                 items = routes[0].items;
                 item = { 
-                    route_id: route1.id,
+                    entityId: route1.id,
                     id: 0,
                     name: null,
                     type: 0,
@@ -513,7 +514,7 @@ describe('Routing table data fetch for compiler or grid', () => {
             beforeEach(() => {
                 items = routes[1].items; // This route has the group of objects.
                 item = { 
-                    route_id: route2.id,
+                    entityId: route2.id,
                     id: 0,
                     name: null,
                     type: 0,

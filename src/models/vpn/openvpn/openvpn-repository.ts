@@ -39,7 +39,7 @@ export class OpenVPNRepository extends Repository<OpenVPN> {
       .select("vpn.id","id").addSelect("crt.cn","name").addSelect("(select id from ipobj_type where id=311)","type")
       .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
       .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
-      .addSelect("route.id","route_id")
+      .addSelect("route.id","entityId")
       .innerJoin("vpn.routes", "route")
       .innerJoin("route.routingTable", "table")
       .innerJoin("table.firewall", "firewall")
