@@ -113,7 +113,7 @@ export class RoutingRuleService extends Service {
             const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
                 where: {
                     id: In(data.openVPNIds),
-                    fwCloudId: rule.routingTable.firewall.fwCloudId,
+                    firewallId: rule.routingTable.firewall.id,
                 }
             })
 
@@ -124,7 +124,7 @@ export class RoutingRuleService extends Service {
             const prefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).find({
                 where: {
                     id: In(data.openVPNPrefixIds),
-                    fwCloudId: rule.routingTable.firewall.fwCloudId,
+                    firewallId: rule.routingTable.firewall.id,
                 }
             })
 
