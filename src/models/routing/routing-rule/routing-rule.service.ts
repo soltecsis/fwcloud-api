@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getCustomRepository } from "typeorm";
+import { getCustomRepository, getRepository, In } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
 import { IPObj } from "../../ipobj/IPObj";
@@ -84,20 +84,51 @@ export class RoutingRuleService extends Service {
             comment: data.comment,
         }, {id}));
 
+        rule = await this._repository.findOne(rule.id, {relations: ['routingTable', 'routingTable.firewall']});
+
+
         if (data.ipObjIds) {
-            rule.ipObjs = data.ipObjIds.map(id => ({id} as IPObj));
+            const ipObjs: IPObj[] = await getRepository(IPObj).find({
+                where: {
+                    id: In(data.ipObjIds),
+                    fwCloudId: rule.routingTable.firewall.fwCloudId,
+                }
+            })
+
+            rule.ipObjs = ipObjs.map(item => ({id: item.id} as IPObj));
         }
 
         if (data.ipObjGroupIds) {
-            rule.ipObjGroups = data.ipObjGroupIds.map(id => ({id} as IPObjGroup));
+            const groups: IPObjGroup[] = await getRepository(IPObjGroup).find({
+                where: {
+                    id: In(data.ipObjGroupIds),
+                    fwCloudId: rule.routingTable.firewall.fwCloudId,
+                }
+            })
+
+            rule.ipObjGroups = groups.map(item => ({id: item.id} as IPObjGroup));
         }
 
         if (data.openVPNIds) {
-            rule.openVPNs = data.openVPNIds.map(id => ({id} as OpenVPN));
+            const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
+                where: {
+                    id: In(data.openVPNIds),
+                    fwCloudId: rule.routingTable.firewall.fwCloudId,
+                }
+            })
+
+            rule.openVPNs = openVPNs.map(item => ({id: item.id} as OpenVPN));
         }
 
         if (data.openVPNPrefixIds) {
-            rule.openVPNPrefixes = data.openVPNPrefixIds.map(id => ({id} as OpenVPNPrefix));
+            const prefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).find({
+                where: {
+                    id: In(data.openVPNPrefixIds),
+                    fwCloudId: rule.routingTable.firewall.fwCloudId,
+                }
+            })
+
+            rule.openVPNPrefixes = prefixes.map(item => ({id: item.id} as OpenVPNPrefix));
         }
 
 
