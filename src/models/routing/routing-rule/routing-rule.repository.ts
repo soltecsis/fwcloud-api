@@ -187,13 +187,12 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         }, options)
     }
 
-    getRoutingRules(fwcloud: number, firewall: number, routingTable: number, rule?: number): Promise<RoutingRule[]> {
+    getRoutingRules(fwcloud: number, firewall: number, rule?: number): Promise<RoutingRule[]> {
         let query = this.createQueryBuilder("rule")
             .innerJoinAndSelect("rule.routingTableId","table")
             .innerJoin("table.firewall", "firewall")
             .innerJoin("firewall.fwCloud", "fwcloud")
-            .where("table.id = :routingTable", {routingTable})
-            .andWhere("firewall.id = :firewall", {firewall: firewall})
+            .where("firewall.id = :firewall", {firewall: firewall})
             .andWhere("fwcloud.id = :fwcloud", {fwcloud: fwcloud});
             
         return (rule ? query.andWhere("rule.id = :rule", {rule}) : query).getMany();
