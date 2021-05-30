@@ -33,12 +33,24 @@ import { OpenVPNOption } from "../../src/models/vpn/openvpn/openvpn-option.model
 import { Ca } from "../../src/models/vpn/pki/Ca";
 import { Crt } from "../../src/models/vpn/pki/Crt";
 import StringHelper from "../../src/utils/string.helper";
+import { OpenVPNPrefix } from "../../src/models/vpn/openvpn/OpenVPNPrefix";
+import { RoutingTable } from "../../src/models/routing/routing-table/routing-table.model";
+import { Route } from "../../src/models/routing/route/route.model";
+import { RouteService } from "../../src/models/routing/route/route.service";
+import { testSuite } from "../mocha/global-setup";
 
-type FWCloudProduct = {
+export type FwCloudProduct = {
     fwcloud: FwCloud;
     firewall: Firewall;
-    ipobjs: Map<string, IPObj>;
     ipobjGroup: IPObjGroup;
+    ipobjs: Map<string, IPObj>;
+    ca: Ca;
+    crts: Map<string, Crt>;
+    openvpnServer: OpenVPN;
+    openvpnClients: Map<string, OpenVPN>;
+    openvpnPrefix: OpenVPNPrefix;
+    routingTable: RoutingTable;
+    routes: Map<string, Route>;
 }
 
 export class FwCloudFactory {
@@ -53,9 +65,10 @@ export class FwCloudFactory {
     private _crtRepository: Repository<Crt>;
     private _openvpnRepository: Repository<OpenVPN>;
     private _openvpnOptRepository: Repository<OpenVPNOption>;
+    private _openvpnPrefixRepository: Repository<OpenVPNPrefix>;
+    private _routingTableRepository: Repository<RoutingTable>;
 
-    fwc: FWCloudProduct;
-
+    public fwc: FwCloudProduct;
 
     constructor() {
         this._fwcloudRepository = getRepository(FwCloud);
@@ -69,18 +82,28 @@ export class FwCloudFactory {
         this._crtRepository = getRepository(Crt);
         this._openvpnRepository = getRepository(OpenVPN);
         this._openvpnOptRepository = getRepository(OpenVPNOption);
+        this._openvpnPrefixRepository = getRepository(OpenVPNPrefix);
+        this._routingTableRepository = getRepository(RoutingTable);
 
+        this.fwc = {} as FwCloudProduct;
         this.fwc.ipobjs = new Map<string, IPObj>();
+        this.fwc.crts = new Map<string, Crt>();
+        this.fwc.openvpnClients = new Map<string, OpenVPN>();
+        this.fwc.routes = new Map<string, Route>();
     }
 
     async make() {
-        this.makeFwcAndFw();
-        this.makeIpobjGroup();
-        this.makeIPOBjs();
-        this.makeHost();
+        await this.makeFwcAndFw();
+        await this.makeIpobjGroup();
+        await this.makeIPOBjs();
+        await this.makeHost();
+        await this.makePKI();
+        await this.makeVPNs();
+        await this.addToGroup();
+        await this.makeRouting();
     }
 
-    private async makeFwcAndFw() {
+    private async makeFwcAndFw(): Promise<void> {
         this.fwc.fwcloud = await this._fwcloudRepository.save(this._fwcloudRepository.create({
             name: StringHelper.randomize(10)
         }));
@@ -89,10 +112,9 @@ export class FwCloudFactory {
             name: StringHelper.randomize(10),
             fwCloudId: this.fwc.fwcloud.id
         }));
-
     }
 
-    private async makeIpobjGroup() {
+    private async makeIpobjGroup(): Promise<void> {
         this.fwc.ipobjGroup = await this._ipobjGroupRepository.save(this._ipobjGroupRepository.create({
             name: 'ipobjs group',
             type: 20,
@@ -100,7 +122,7 @@ export class FwCloudFactory {
         }));
     }
 
-    private async makeIPOBjs() {
+    private async makeIPOBjs(): Promise<void> {
         this.fwc.ipobjs.set('gateway', await this._ipobjRepository.save(this._ipobjRepository.create({
             name: 'gateway',
             address: '1.2.3.4',
@@ -132,7 +154,7 @@ export class FwCloudFactory {
         })));
     }
 
-    private async makeHost() {
+    private async makeHost(): Promise<void> {
         let interface1: Interface;
         let interface2: Interface;
         let interface3: Interface;
@@ -201,4 +223,159 @@ export class FwCloudFactory {
         })));
     }
 
+    private async makePKI(): Promise<void> {
+        this.fwc.ca = await this._caRepository.save(this._caRepository.create({
+            fwCloudId: this.fwc.fwcloud.id,
+            cn: 'CA',
+            days: 1000
+        }));
+
+        this.fwc.crts.set('OpenVPN-Server', await this._crtRepository.save(this._crtRepository.create({
+            caId: this.fwc.ca.id,
+            cn: 'OpenVPN-Server',
+            days: 1000,
+            type: 2
+        })));
+
+        this.fwc.crts.set('OpenVPN-Cli-1', await this._crtRepository.save(this._crtRepository.create({
+            caId: this.fwc.ca.id,
+            cn: 'OpenVPN-Cli-1',
+            days: 1000,
+            type: 1
+        })));
+
+        this.fwc.crts.set('OpenVPN-Cli-2', await this._crtRepository.save(this._crtRepository.create({
+            caId: this.fwc.ca.id,
+            cn: 'OpenVPN-Cli-2',
+            days: 1000,
+            type: 1
+        })));
+
+        this.fwc.crts.set('OpenVPN-Cli-3', await this._crtRepository.save(this._crtRepository.create({
+            caId: this.fwc.ca.id,
+            cn: 'Other-OpenVPN-Client',
+            days: 1000,
+            type: 1
+        })));
+    }
+
+    private async makeVPNs(): Promise<void> {
+        this.fwc.openvpnServer = await this._openvpnRepository.save(this._openvpnRepository.create({
+            parentId: null,
+            firewallId: this.fwc.firewall.id,
+            crtId: this.fwc.crts.get('OpenVPN-Server').id
+        }));
+
+        this.fwc.openvpnClients.set('OpenVPN-Cli-1', await this._openvpnRepository.save(this._openvpnRepository.create({
+            parentId: this.fwc.openvpnServer.id,
+            firewallId: this.fwc.firewall.id,
+            crtId: this.fwc.crts.get('OpenVPN-Cli-1').id
+        })));
+
+        this.fwc.openvpnClients.set('OpenVPN-Cli-2', await this._openvpnRepository.save(this._openvpnRepository.create({
+            parentId: this.fwc.openvpnServer.id,
+            firewallId: this.fwc.firewall.id,
+            crtId: this.fwc.crts.get('OpenVPN-Cli-2').id
+        })));
+
+        this.fwc.openvpnClients.set('OpenVPN-Cli-3', await this._openvpnRepository.save(this._openvpnRepository.create({
+            parentId: this.fwc.openvpnServer.id,
+            firewallId: this.fwc.firewall.id,
+            crtId: this.fwc.crts.get('OpenVPN-Cli-3').id,
+            ipObjGroups: [this.fwc.ipobjGroup]
+        })));
+
+        this.fwc.ipobjs.set('openvpn-cli1-addr', await this._ipobjRepository.save(this._ipobjRepository.create({
+            name: 'OpenVPN Cli1 address',
+            address: '10.200.47.5',
+            ipObjTypeId: 5,
+            interfaceId: null
+        })));
+
+        this.fwc.ipobjs.set('openvpn-cli2-addr', await this._ipobjRepository.save(this._ipobjRepository.create({
+            name: 'OpenVPN Cli2 address',
+            address: '10.200.47.62',
+            ipObjTypeId: 5,
+            interfaceId: null
+        })));
+
+        this.fwc.ipobjs.set('openvpn-cli3-addr', await this._ipobjRepository.save(this._ipobjRepository.create({
+            name: 'OpenVPN Cli3 address',
+            address: '10.200.201.78',
+            ipObjTypeId: 5,
+            interfaceId: null
+        })));
+
+        await this._openvpnOptRepository.save(this._openvpnOptRepository.create({
+            openVPNId: this.fwc.openvpnClients.get('OpenVPN-Cli-1').id,
+            ipObjId: this.fwc.ipobjs.get('openvpn-cli1-addr').id,
+            name: 'ifconfig-push',
+            order: 1,
+            scope: 0
+        }));
+
+        await this._openvpnOptRepository.save(this._openvpnOptRepository.create({
+            openVPNId: this.fwc.openvpnClients.get('OpenVPN-Cli-2').id,
+            ipObjId: this.fwc.ipobjs.get('openvpn-cli2-addr').id,
+            name: 'ifconfig-push',
+            order: 1,
+            scope: 0
+        }));
+
+        await this._openvpnOptRepository.save(this._openvpnOptRepository.create({
+            openVPNId: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id,
+            ipObjId: this.fwc.ipobjs.get('openvpn-cli3-addr').id,
+            name: 'ifconfig-push',
+            order: 1,
+            scope: 0
+        }));
+
+        this.fwc.openvpnPrefix = await this._openvpnPrefixRepository.save(this._openvpnPrefixRepository.create({
+            openVPNId: this.fwc.openvpnServer.id,
+            name: 'OpenVPN-Cli-',
+            ipObjGroups: [this.fwc.ipobjGroup]
+        }));
+    }
+
+    private async addToGroup(): Promise<void> {
+        await this._ipobjToGroupRepository.save(this._ipobjToGroupRepository.create({
+            ipObjGroupId: this.fwc.ipobjGroup.id,
+            ipObjId: this.fwc.ipobjs.get('address').id
+        }));
+
+        await this._ipobjToGroupRepository.save(this._ipobjToGroupRepository.create({
+            ipObjGroupId: this.fwc.ipobjGroup.id,
+            ipObjId: this.fwc.ipobjs.get('addressRange').id
+        }));
+
+        await this._ipobjToGroupRepository.save(this._ipobjToGroupRepository.create({
+            ipObjGroupId: this.fwc.ipobjGroup.id,
+            ipObjId: this.fwc.ipobjs.get('network').id
+        }));
+
+        await this._ipobjToGroupRepository.save(this._ipobjToGroupRepository.create({
+            ipObjGroupId: this.fwc.ipobjGroup.id,
+            ipObjId: this.fwc.ipobjs.get('host').id
+        }));
+    }
+
+    private async makeRouting(): Promise<void> {
+        const routeService = await testSuite.app.getService<RouteService>(RouteService.name);
+
+        this.fwc.routingTable = await this._routingTableRepository.save({
+            firewallId: this.fwc.firewall.id,
+            number: 1,
+            name: 'Routing table',
+        });
+
+        this.fwc.routes.set('route1', await routeService.create({
+            routingTableId: this.fwc.routingTable.id,
+            gatewayId: this.fwc.ipobjs.get('gateway').id
+        }));
+
+        this.fwc.routes.set('route2', await routeService.create({
+            routingTableId: this.fwc.routingTable.id,
+            gatewayId: this.fwc.ipobjs.get('gateway').id
+        }));
+    }
 } 
