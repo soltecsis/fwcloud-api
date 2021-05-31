@@ -26,18 +26,20 @@ import { Mark } from "./Mark";
 
 @EntityRepository(Mark)
 export class MarkRepository extends Repository<Mark> {
-  getMarksInRoutingRules(fwcloud: number, firewall: number): SelectQueryBuilder<Mark> {
-    return this.createQueryBuilder("mark")
+  getMarksInRoutingRules(fwcloud: number, firewall: number, rule?: number): SelectQueryBuilder<Mark> {
+    let q = this.createQueryBuilder("mark")
       .select("(select id from ipobj_type where id=30)","type").addSelect("null as address").addSelect("null as netmask")
       .addSelect("null as range_start").addSelect("null as range_end")
       .addSelect("mark.code","mark_code")
-      .addSelect("mark.id","entityId")
+      .addSelect("rule.id","entityId")
       .innerJoin("mark.routingRules", "rule")
       .innerJoin("rule.routingTable", "table")
       .innerJoin("table.firewall", "firewall")
       .innerJoin("firewall.fwCloud", "fwcloud")
       .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
       .andWhere("firewall.id = :firewall", {firewall: firewall});
+
+      return rule ? q.andWhere('rule.id = :ruleId', {ruleId: rule}) : q;
   }      
 
   getMarksInRoutingRules_ForGrid(fwcloud: number, firewall: number): SelectQueryBuilder<Mark> {

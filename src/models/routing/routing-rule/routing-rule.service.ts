@@ -157,7 +157,7 @@ export class RoutingRuleService extends Service {
             const marks: Mark[] = await getRepository(Mark).find({
                 where: {
                     id: In(data.markIds),
-                    fwCloudId: firewall.id
+                    fwCloudId: firewall.fwCloudId
                 }
             });
 
@@ -223,7 +223,7 @@ export class RoutingRuleService extends Service {
             this._ipobjRepository.getIpobjsInOpenVPNInGroupsInRouting('rule', fwcloud, firewall, null, rule),
             this._ipobjRepository.getIpobjsInOpenVPNPrefixesInRouting('rule', fwcloud, firewall, null, rule),
             this._ipobjRepository.getIpobjsInOpenVPNPrefixesInGroupsInRouting('rule', fwcloud, firewall, null, rule),
-            this._markRepository.getMarksInRoutingRules(fwcloud, firewall)
+            this._markRepository.getMarksInRoutingRules(fwcloud, firewall, rule)
         ];
     }
 
