@@ -212,10 +212,10 @@ export class RoutingRuleService extends Service {
 
     private buildSQLsForGrid(fwcloud: number, firewall: number): SelectQueryBuilder<IPObj|IPObjGroup|OpenVPN|OpenVPNPrefix>[] {
         return [
-            //this._ipobjRepository.getIpobjsInRoutes_ForGrid(fwcloud, firewall),
-            //this._ipobjGroupRepository.getIpobjGroupsInRoutes_ForGrid(fwcloud),
-            //this._openvpnRepository.getOpenVPNInRoutes_ForGrid(fwcloud, firewall),
-            //this._openvpnPrefixRepository.getOpenVPNPrefixInRoutes_ForGrid(fwcloud),
+            this._ipobjRepository.getIpobjsInRouting_ForGrid('rule', fwcloud, firewall),
+            this._ipobjGroupRepository.getIpobjGroupsInRouting_ForGrid('rule', fwcloud, firewall),
+            this._openvpnRepository.getOpenVPNInRouting_ForGrid('rule', fwcloud, firewall),
+            this._openvpnPrefixRepository.getOpenVPNPrefixInRouting_ForGrid('rule', fwcloud, firewall),
         ];
     }
 

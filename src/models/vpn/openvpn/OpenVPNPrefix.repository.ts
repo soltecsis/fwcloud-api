@@ -22,24 +22,28 @@
 
 import { EntityRepository, SelectQueryBuilder } from "typeorm";
 import { Repository } from "../../../database/repository";
+import { ValidEntities } from "../../ipobj/IPObj.repository";
 import { OpenVPNPrefix } from "./OpenVPNPrefix";
 
 @EntityRepository(OpenVPNPrefix)
 export class OpenVPNPrefixRepository extends Repository<OpenVPNPrefix> {
 
-  getOpenVPNPrefixInRoutes_ForGrid(fwcloud: number, firewall: number, routingTable: number): SelectQueryBuilder<OpenVPNPrefix> {
-    return this.createQueryBuilder("vpnPrefix")
+  getOpenVPNPrefixInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<OpenVPNPrefix> {
+    let q = this.createQueryBuilder("vpnPrefix")
       .select("vpnPrefix.id","id").addSelect("vpnPrefix.name","name").addSelect("(select id from ipobj_type where id=401)","type")
       .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
       .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
-      .addSelect("route.id","entityId")
-      .innerJoin("vpnPrefix.routes", "route")
-      .innerJoin("route.routingTable", "table")
+      .addSelect(`${entity}.id`,"entityId")
+      .innerJoin(`vpnPrefix.${entity==='route'?'routes':'routingRules'}`, `${entity}`)
+      .innerJoin(`${entity}.routingTable`, "table")
       .innerJoin("table.firewall", "firewall")
       .innerJoin("firewall.fwCloud", "fwcloud")
       .leftJoin("firewall.cluster", "cluster")
-      .where("table.id = :routingTable", {routingTable})
-      .andWhere("firewall.id = :firewall", {firewall: firewall}) 
-      .andWhere("fwcloud.id = :fwcloud", {fwcloud: fwcloud});
+      .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
+      .andWhere("firewall.id = :firewall", {firewall: firewall});
+
+    if (routingTable) q = q.andWhere("table.id = :routingTable", {routingTable});
+
+    return q;  
   }    
 }

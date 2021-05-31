@@ -55,7 +55,7 @@ export type RoutingRuleItemForCompiler = {
   netmask: string;
   range_start: string;
   range_end: string;
-  mark: number;
+  mark_code: number;
 }
 
 export class RoutingUtils {

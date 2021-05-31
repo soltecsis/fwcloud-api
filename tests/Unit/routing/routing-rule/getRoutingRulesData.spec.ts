@@ -43,7 +43,8 @@ describe.only('Routing rules data fetch for compiler or grid', () => {
         await routingRuleService.update(fwc.routingRules.get('routing-rule-1').id, {
             ipObjIds: [fwc.ipobjs.get('address').id, fwc.ipobjs.get('addressRange').id, fwc.ipobjs.get('network').id, fwc.ipobjs.get('host').id],
             openVPNIds: [fwc.openvpnClients.get('OpenVPN-Cli-3').id],
-            openVPNPrefixIds: [fwc.openvpnPrefix.id]
+            openVPNPrefixIds: [fwc.openvpnPrefix.id],
+            //marks: [fwc.mark.id] 
         });
         await routingRuleService.update(fwc.routingRules.get('routing-rule-2').id, {
             ipObjGroupIds: [fwc.ipobjGroup.id]
@@ -67,7 +68,7 @@ describe.only('Routing rules data fetch for compiler or grid', () => {
                     netmask: null, 
                     range_start: null, 
                     range_end: null,
-                    mark: null
+                    mark_code: null
                 }
             });
 
@@ -104,6 +105,11 @@ describe.only('Routing rules data fetch for compiler or grid', () => {
                 item.type = 5; item.address = fwc.ipobjs.get('openvpn-cli1-addr').address;
                 expect(items).to.deep.include(item);
                 item.address = fwc.ipobjs.get('openvpn-cli2-addr').address;
+                expect(items).to.deep.include(item);
+            });
+
+            it('should include mark data', () => {
+                item.type = 30; item.mark_code = fwc.mark.code;
                 expect(items).to.deep.include(item);
             });
         })
@@ -118,7 +124,7 @@ describe.only('Routing rules data fetch for compiler or grid', () => {
                     netmask: null, 
                     range_start: null, 
                     range_end: null,
-                    mark: null
+                    mark_code: null
                 }
             });
 
@@ -157,81 +163,91 @@ describe.only('Routing rules data fetch for compiler or grid', () => {
                 item.address = fwc.ipobjs.get('openvpn-cli2-addr').address;
                 expect(items).to.deep.include(item);
             });
+
+            it('should include mark data', () => {
+                item.type = 30; item.mark_code = fwc.mark.code;
+                expect(items).to.deep.include(item);
+            });
         });
     })
 
-    // describe('For grid', () => {
-    //     let item: ItemForGrid;
+    describe('For grid', () => {
+        let item: ItemForGrid;
 
-    //     before( async () => {
-    //         routingRules = await routingRuleService.getRoutingRulesData<ItemForGrid>('grid',fwc.fwcloud.id,fwc.firewall.id);            
-    //     });
+        before( async () => {
+            routingRules = await routingRuleService.getRoutingRulesData<ItemForGrid>('grid',fwc.fwcloud.id,fwc.firewall.id);            
+        });
 
-    //     describe('Out of group', () => {
-    //         beforeEach(() => {
-    //             items = routingRules[0].items;
-    //             item = { 
-    //                 entityId: fwc.routes.get('route1').id,
-    //                 id: 0,
-    //                 name: null,
-    //                 type: 0,
-    //                 firewall_id: fwc.firewall.id,
-    //                 firewall_name: fwc.firewall.name,
-    //                 cluster_id: null,
-    //                 cluster_name: null
-    //             };
-    //         });
+        describe('Out of group', () => {
+            beforeEach(() => {
+                items = routingRules[0].items;
+                item = { 
+                    entityId: fwc.routes.get('route1').id,
+                    id: 0,
+                    name: null,
+                    type: 0,
+                    firewall_id: fwc.firewall.id,
+                    firewall_name: fwc.firewall.name,
+                    cluster_id: null,
+                    cluster_name: null
+                };
+            });
 
-    //         it('should include address data', () => {
-    //             item.id = fwc.ipobjs.get('address').id; item.type = 5; item.name = fwc.ipobjs.get('address').name;
-    //             expect(items).to.deep.include(item);
-    //         });
+            it('should include address data', () => {
+                item.id = fwc.ipobjs.get('address').id; item.type = 5; item.name = fwc.ipobjs.get('address').name;
+                expect(items).to.deep.include(item);
+            });
 
-    //         it('should include address range data', () => {
-    //             item.id = fwc.ipobjs.get('addressRange').id; item.type = 6; item.name = fwc.ipobjs.get('addressRange').name;
-    //             expect(items).to.deep.include(item);
-    //         });
+            it('should include address range data', () => {
+                item.id = fwc.ipobjs.get('addressRange').id; item.type = 6; item.name = fwc.ipobjs.get('addressRange').name;
+                expect(items).to.deep.include(item);
+            });
 
-    //         it('should include lan data', () => {
-    //             item.id = fwc.ipobjs.get('network').id; item.type = 7; item.name = fwc.ipobjs.get('network').name;
-    //             expect(items).to.deep.include(item);
-    //         });
+            it('should include lan data', () => {
+                item.id = fwc.ipobjs.get('network').id; item.type = 7; item.name = fwc.ipobjs.get('network').name;
+                expect(items).to.deep.include(item);
+            });
 
-    //         it('should include host data', () => {
-    //             item.id = fwc.ipobjs.get('host').id; item.type = 8; item.name = fwc.ipobjs.get('host').name;
-    //             expect(items).to.deep.include(item);
-    //         });
+            it('should include host data', () => {
+                item.id = fwc.ipobjs.get('host').id; item.type = 8; item.name = fwc.ipobjs.get('host').name;
+                expect(items).to.deep.include(item);
+            });
 
-    //         it('should include OpenVPN data', () => {
-    //             item.id = fwc.openvpnClients.get('OpenVPN-Cli-3').id; item.type = 311; item.name = fwc.crts.get('OpenVPN-Cli-3').cn;
-    //             expect(items).to.deep.include(item);
-    //         });
+            it('should include OpenVPN data', () => {
+                item.id = fwc.openvpnClients.get('OpenVPN-Cli-3').id; item.type = 311; item.name = fwc.crts.get('OpenVPN-Cli-3').cn;
+                expect(items).to.deep.include(item);
+            });
 
-    //         it('should include OpenVPN Prefix data', () => {
-    //             item.id = fwc.openvpnPrefix.id; item.type = 401; item.name = fwc.openvpnPrefix.name;
-    //             expect(items).to.deep.include(item);
-    //         });
-    //     })
+            it('should include OpenVPN Prefix data', () => {
+                item.id = fwc.openvpnPrefix.id; item.type = 401; item.name = fwc.openvpnPrefix.name;
+                expect(items).to.deep.include(item);
+            });
 
-    //     describe('Into group', () => {
-    //         beforeEach(() => {
-    //             items = routingRules[1].items; // This route has the group of objects.
-    //             item = { 
-    //                 entityId: fwc.routes.get('route2').id,
-    //                 id: 0,
-    //                 name: null,
-    //                 type: 0,
-    //                 firewall_id: fwc.firewall.id,
-    //                 firewall_name: fwc.firewall.name,
-    //                 cluster_id: null,
-    //                 cluster_name: null
-    //             };
-    //         });
+            it('should include mark data', () => {
+                item.id = fwc.mark.id; item.type = 30; item.name = fwc.mark.name;
+                expect(items).to.deep.include(item);
+            });
+        })
 
-    //         it('should include group', () => {
-    //             item.id = fwc.ipobjGroup.id; item.type = 20; item.name = fwc.ipobjGroup.name;
-    //             expect(items).to.deep.include(item);
-    //         });
-    //     })
-    // })
+        describe('Into group', () => {
+            beforeEach(() => {
+                items = routingRules[1].items; // This route has the group of objects.
+                item = { 
+                    entityId: fwc.routes.get('route2').id,
+                    id: 0,
+                    name: null,
+                    type: 0,
+                    firewall_id: fwc.firewall.id,
+                    firewall_name: fwc.firewall.name,
+                    cluster_id: null,
+                    cluster_name: null
+                };
+            });
+
+            it('should include group', () => {
+                item.id = fwc.ipobjGroup.id; item.type = 20; item.name = fwc.ipobjGroup.name;
+                expect(items).to.deep.include(item);
+            });
+        })
+    })
 })

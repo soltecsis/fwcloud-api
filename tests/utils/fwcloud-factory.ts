@@ -40,6 +40,7 @@ import { RouteService } from "../../src/models/routing/route/route.service";
 import { testSuite } from "../mocha/global-setup";
 import { RoutingRule } from "../../src/models/routing/routing-rule/routing-rule.model";
 import { RoutingRuleService } from "../../src/models/routing/routing-rule/routing-rule.service";
+import { Mark } from "../../src/models/ipobj/Mark";
 
 export type FwCloudProduct = {
     fwcloud: FwCloud;
@@ -54,6 +55,7 @@ export type FwCloudProduct = {
     routingTable: RoutingTable;
     routes: Map<string, Route>;
     routingRules: Map<string, RoutingRule>;
+    mark: Mark;
 }
 
 export class FwCloudFactory {
@@ -70,6 +72,7 @@ export class FwCloudFactory {
     private _openvpnOptRepository: Repository<OpenVPNOption>;
     private _openvpnPrefixRepository: Repository<OpenVPNPrefix>;
     private _routingTableRepository: Repository<RoutingTable>;
+    private _markRepository: Repository<Mark>;
 
     public fwc: FwCloudProduct;
 
@@ -87,6 +90,7 @@ export class FwCloudFactory {
         this._openvpnOptRepository = getRepository(OpenVPNOption);
         this._openvpnPrefixRepository = getRepository(OpenVPNPrefix);
         this._routingTableRepository = getRepository(RoutingTable);
+        this._markRepository = getRepository(Mark);
 
         this.fwc = {} as FwCloudProduct;
         this.fwc.ipobjs = new Map<string, IPObj>();
@@ -105,6 +109,7 @@ export class FwCloudFactory {
         await this.makeVPNs();
         await this.addToGroup();
         await this.makeRouting();
+        await this.makeMark();
 
         return this.fwc;
     }
@@ -133,14 +138,16 @@ export class FwCloudFactory {
             name: 'gateway',
             address: '1.2.3.4',
             ipObjTypeId: 5,
-            interfaceId: null
+            interfaceId: null,
+            fwCloudId: this.fwc.fwcloud.id
         })));
 
         this.fwc.ipobjs.set('address', await this._ipobjRepository.save(this._ipobjRepository.create({
             name: 'address',
             address: '10.20.30.40',
             ipObjTypeId: 5,
-            interfaceId: null
+            interfaceId: null,
+            fwCloudId: this.fwc.fwcloud.id
         })));
 
         this.fwc.ipobjs.set('addressRange', await this._ipobjRepository.save(this._ipobjRepository.create({
@@ -148,7 +155,8 @@ export class FwCloudFactory {
             range_start: '10.10.10.50',
             range_end: '10.10.10.80',
             ipObjTypeId: 6,
-            interfaceId: null
+            interfaceId: null,
+            fwCloudId: this.fwc.fwcloud.id
         })));
 
         this.fwc.ipobjs.set('network', await this._ipobjRepository.save(this._ipobjRepository.create({
@@ -156,7 +164,8 @@ export class FwCloudFactory {
             address: '10.20.30.0',
             netmask: '/24',
             ipObjTypeId: 7,
-            interfaceId: null
+            interfaceId: null,
+            fwCloudId: this.fwc.fwcloud.id
         })));
     }
 
@@ -168,7 +177,8 @@ export class FwCloudFactory {
         this.fwc.ipobjs.set('host', await this._ipobjRepository.save(this._ipobjRepository.create({
             name: 'host',
             ipObjTypeId: 8,
-            interfaceId: null
+            interfaceId: null,
+            fwCloudId: this.fwc.fwcloud.id
         })));
 
         interface1 = await this._interfaceRepository.save(this._interfaceRepository.create({
@@ -211,21 +221,24 @@ export class FwCloudFactory {
             name: 'host-eth2-addr1',
             address: '192.168.10.1',
             ipObjTypeId: 5,
-            interfaceId: interface2.id
+            interfaceId: interface2.id,
+            fwCloudId: this.fwc.fwcloud.id
         })));
 
         this.fwc.ipobjs.set('host-eth3-addr1', await this._ipobjRepository.save(this._ipobjRepository.create({
             name: 'host-eth3-addr1',
             address: '172.26.20.5',
             ipObjTypeId: 5,
-            interfaceId: interface3.id
+            interfaceId: interface3.id,
+            fwCloudId: this.fwc.fwcloud.id
         })));
 
         this.fwc.ipobjs.set('host-eth3-addr2', await this._ipobjRepository.save(this._ipobjRepository.create({
             name: 'host-eth3-addr2',
             address: '172.26.20.6',
             ipObjTypeId: 5,
-            interfaceId: interface3.id
+            interfaceId: interface3.id,
+            fwCloudId: this.fwc.fwcloud.id
         })));
     }
 
@@ -295,21 +308,24 @@ export class FwCloudFactory {
             name: 'OpenVPN Cli1 address',
             address: '10.200.47.5',
             ipObjTypeId: 5,
-            interfaceId: null
+            interfaceId: null,
+            fwCloudId: this.fwc.fwcloud.id
         })));
 
         this.fwc.ipobjs.set('openvpn-cli2-addr', await this._ipobjRepository.save(this._ipobjRepository.create({
             name: 'OpenVPN Cli2 address',
             address: '10.200.47.62',
             ipObjTypeId: 5,
-            interfaceId: null
+            interfaceId: null,
+            fwCloudId: this.fwc.fwcloud.id
         })));
 
         this.fwc.ipobjs.set('openvpn-cli3-addr', await this._ipobjRepository.save(this._ipobjRepository.create({
             name: 'OpenVPN Cli3 address',
             address: '10.200.201.78',
             ipObjTypeId: 5,
-            interfaceId: null
+            interfaceId: null,
+            fwCloudId: this.fwc.fwcloud.id
         })));
 
         await this._openvpnOptRepository.save(this._openvpnOptRepository.create({
@@ -391,6 +407,14 @@ export class FwCloudFactory {
 
         this.fwc.routingRules.set('routing-rule-2', await routingRuleService.create({
             routingTableId: this.fwc.routingTable.id
+        }));
+    }
+
+    private async makeMark(): Promise<void> {
+        this.fwc.mark = await this._markRepository.save(this._markRepository.create({
+            code: 375,
+            name: 'mark',
+            fwCloudId: this.fwc.fwcloud.id
         }));
     }
 } 

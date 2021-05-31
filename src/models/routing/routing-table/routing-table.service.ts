@@ -157,16 +157,16 @@ export class RoutingTableService extends Service {
      * @returns 
      */
      public async getRoutingTableData<T extends ItemForGrid | RouteItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, routingTable: number, route?: number): Promise<RouteData<T>[]> {
-        const rules: RouteData<T>[] = await this._routeRepository.getRoutingTableRoutes(fwcloud, firewall, routingTable, route) as RouteData<T>[];
+        const routes: RouteData<T>[] = await this._routeRepository.getRoutingTableRoutes(fwcloud, firewall, routingTable, route) as RouteData<T>[];
          
         // Init the map for access the objects array for each route.
         let ItemsArrayMap = new Map<number, T[]>();
-        for (let i=0; i<rules.length; i++) {
-          rules[i].items = [];
+        for (let i=0; i<routes.length; i++) {
+          routes[i].items = [];
     
           // Map each route with it's corresponding items array.
           // These items array will be filled with objects data in the Promise.all()
-          ItemsArrayMap.set(rules[i].id, rules[i].items);
+          ItemsArrayMap.set(routes[i].id, routes[i].items);
         }
     
         const sqls = (dst === 'grid') ? 
@@ -174,7 +174,7 @@ export class RoutingTableService extends Service {
             this.buildSQLsForCompiler(fwcloud, firewall, routingTable, route);
         await Promise.all(sqls.map(sql => RoutingUtils.mapEntityData<T>(sql,ItemsArrayMap)));
         
-        return rules;
+        return routes;
     }
 
     private buildSQLsForCompiler(fwcloud: number, firewall: number, routingTable: number, route?: number): SelectQueryBuilder<IPObj>[] {
@@ -192,10 +192,10 @@ export class RoutingTableService extends Service {
 
     private buildSQLsForGrid(fwcloud: number, firewall: number, routingTable: number): SelectQueryBuilder<IPObj|IPObjGroup|OpenVPN|OpenVPNPrefix>[] {
         return [
-            this._ipobjRepository.getIpobjsInRoutes_ForGrid(fwcloud, firewall, routingTable),
-            this._ipobjGroupRepository.getIpobjGroupsInRoutes_ForGrid(fwcloud, firewall, routingTable),
-            this._openvpnRepository.getOpenVPNInRoutes_ForGrid(fwcloud, firewall, routingTable),
-            this._openvpnPrefixRepository.getOpenVPNPrefixInRoutes_ForGrid(fwcloud, firewall, routingTable),
+            this._ipobjRepository.getIpobjsInRouting_ForGrid('route', fwcloud, firewall, routingTable),
+            this._ipobjGroupRepository.getIpobjGroupsInRouting_ForGrid('route', fwcloud, firewall, routingTable),
+            this._openvpnRepository.getOpenVPNInRouting_ForGrid('route', fwcloud, firewall, routingTable),
+            this._openvpnPrefixRepository.getOpenVPNPrefixInRouting_ForGrid('route', fwcloud, firewall, routingTable),
         ];
     }
 
