@@ -38,6 +38,8 @@ import { RoutingTable } from "../../src/models/routing/routing-table/routing-tab
 import { Route } from "../../src/models/routing/route/route.model";
 import { RouteService } from "../../src/models/routing/route/route.service";
 import { testSuite } from "../mocha/global-setup";
+import { RoutingRule } from "../../src/models/routing/routing-rule/routing-rule.model";
+import { RoutingRuleService } from "../../src/models/routing/routing-rule/routing-rule.service";
 
 export type FwCloudProduct = {
     fwcloud: FwCloud;
@@ -51,6 +53,7 @@ export type FwCloudProduct = {
     openvpnPrefix: OpenVPNPrefix;
     routingTable: RoutingTable;
     routes: Map<string, Route>;
+    routingRules: Map<string, RoutingRule>;
 }
 
 export class FwCloudFactory {
@@ -90,9 +93,10 @@ export class FwCloudFactory {
         this.fwc.crts = new Map<string, Crt>();
         this.fwc.openvpnClients = new Map<string, OpenVPN>();
         this.fwc.routes = new Map<string, Route>();
+        this.fwc.routingRules = new Map<string, RoutingRule>();
     }
 
-    async make() {
+    async make(): Promise<FwCloudProduct> {
         await this.makeFwcAndFw();
         await this.makeIpobjGroup();
         await this.makeIPOBjs();
@@ -101,6 +105,8 @@ export class FwCloudFactory {
         await this.makeVPNs();
         await this.addToGroup();
         await this.makeRouting();
+
+        return this.fwc;
     }
 
     private async makeFwcAndFw(): Promise<void> {
@@ -361,6 +367,7 @@ export class FwCloudFactory {
 
     private async makeRouting(): Promise<void> {
         const routeService = await testSuite.app.getService<RouteService>(RouteService.name);
+        const routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
 
         this.fwc.routingTable = await this._routingTableRepository.save({
             firewallId: this.fwc.firewall.id,
@@ -376,6 +383,14 @@ export class FwCloudFactory {
         this.fwc.routes.set('route2', await routeService.create({
             routingTableId: this.fwc.routingTable.id,
             gatewayId: this.fwc.ipobjs.get('gateway').id
+        }));
+
+        this.fwc.routingRules.set('routing-rule-1', await routingRuleService.create({
+            routingTableId: this.fwc.routingTable.id
+        }));
+
+        this.fwc.routingRules.set('routing-rule-2', await routingRuleService.create({
+            routingTableId: this.fwc.routingTable.id
         }));
     }
 } 

@@ -189,7 +189,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
 
     getRoutingRules(fwcloud: number, firewall: number, rule?: number): Promise<RoutingRule[]> {
         let query = this.createQueryBuilder("rule")
-            .innerJoinAndSelect("rule.routingTableId","table")
+            .innerJoinAndSelect("rule.routingTable","table")
             .innerJoin("table.firewall", "firewall")
             .innerJoin("firewall.fwCloud", "fwcloud")
             .where("firewall.id = :firewall", {firewall: firewall})

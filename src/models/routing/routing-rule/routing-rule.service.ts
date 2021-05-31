@@ -56,7 +56,7 @@ interface IUpdateRoutingRule {
     openVPNPrefixIds?: number[]
 }
 
-export interface RoutingRuleData<T extends ItemForGrid | RoutingRuleItemForCompiler> extends RoutingRule {
+export interface RoutingRulesData<T extends ItemForGrid | RoutingRuleItemForCompiler> extends RoutingRule {
     items: T[];
 }
 
@@ -136,8 +136,8 @@ export class RoutingRuleService extends Service {
     }
 
     /**
-     * Returns an array of routes and in each route an array of items containing the information
-     * required for compile the routes of the indicated routing table or for show the routing table routes
+     * Returns an array of routing rules and in each rule an array of items containing the information
+     * required for compile the routing rules of the indicated firewall or for show the routing rules
      * items in the FWCloud-UI.
      * @param dst 
      * @param fwcloud 
@@ -146,8 +146,8 @@ export class RoutingRuleService extends Service {
      * @param route 
      * @returns 
      */
-     public async getRoutingRulesData<T extends ItemForGrid | RoutingRuleItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, rule?: number): Promise<RoutingRuleData<T>[]> {
-        const rules: RoutingRuleData<T>[] = await this._repository.getRoutingRules(fwcloud, firewall, rule) as RoutingRuleData<T>[];
+     public async getRoutingRulesData<T extends ItemForGrid | RoutingRuleItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, rule?: number): Promise<RoutingRulesData<T>[]> {
+        const rules: RoutingRulesData<T>[] = await this._repository.getRoutingRules(fwcloud, firewall, rule) as RoutingRulesData<T>[];
          
         // Init the map for access the objects array for each route.
         let ItemsArrayMap = new Map<number, T[]>();
