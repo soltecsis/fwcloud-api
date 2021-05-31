@@ -26,7 +26,7 @@ import { ItemForGrid, RoutingRuleItemForCompiler } from "../../../../src/models/
 import { expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 
-describe.only('Routing rules data fetch for compiler or grid', () => {
+describe('Routing rules data fetch for compiler or grid', () => {
     let routingRuleService: RoutingRuleService;
     let fwc: FwCloudProduct;
 
@@ -44,7 +44,7 @@ describe.only('Routing rules data fetch for compiler or grid', () => {
             ipObjIds: [fwc.ipobjs.get('address').id, fwc.ipobjs.get('addressRange').id, fwc.ipobjs.get('network').id, fwc.ipobjs.get('host').id],
             openVPNIds: [fwc.openvpnClients.get('OpenVPN-Cli-3').id],
             openVPNPrefixIds: [fwc.openvpnPrefix.id],
-            //marks: [fwc.mark.id] 
+            markIds: [fwc.mark.id] 
         });
         await routingRuleService.update(fwc.routingRules.get('routing-rule-2').id, {
             ipObjGroupIds: [fwc.ipobjGroup.id]
@@ -161,11 +161,6 @@ describe.only('Routing rules data fetch for compiler or grid', () => {
                 item.type = 5; item.address = fwc.ipobjs.get('openvpn-cli1-addr').address;
                 expect(items).to.deep.include(item);
                 item.address = fwc.ipobjs.get('openvpn-cli2-addr').address;
-                expect(items).to.deep.include(item);
-            });
-
-            it('should include mark data', () => {
-                item.type = 30; item.mark_code = fwc.mark.code;
                 expect(items).to.deep.include(item);
             });
         });

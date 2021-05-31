@@ -23,6 +23,7 @@
 import { SelectQueryBuilder } from "typeorm";
 import { IPObj } from "../ipobj/IPObj";
 import { IPObjGroup } from "../ipobj/IPObjGroup";
+import { Mark } from "../ipobj/Mark";
 import { OpenVPN } from "../vpn/openvpn/OpenVPN";
 import { OpenVPNPrefix } from "../vpn/openvpn/OpenVPNPrefix";
 
@@ -59,7 +60,7 @@ export type RoutingRuleItemForCompiler = {
 }
 
 export class RoutingUtils {
-  public static async mapEntityData<T extends ItemForGrid | RouteItemForCompiler | RoutingRuleItemForCompiler>(sql: SelectQueryBuilder<IPObj|IPObjGroup|OpenVPN|OpenVPNPrefix>, ItemsArrayMap: Map<number, T[]>): Promise<void> {
+  public static async mapEntityData<T extends ItemForGrid | RouteItemForCompiler | RoutingRuleItemForCompiler>(sql: SelectQueryBuilder<IPObj|IPObjGroup|OpenVPN|OpenVPNPrefix|Mark>, ItemsArrayMap: Map<number, T[]>): Promise<void> {
     //console.log(sql.getQueryAndParameters());
     const data: T[] = await sql.getRawMany() as T[];
 

@@ -29,6 +29,7 @@ import { IPObjRepository } from "../../ipobj/IPObj.repository";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import { IPObjGroupRepository } from "../../ipobj/IPObjGroup.repository";
 import { Mark } from "../../ipobj/Mark";
+import { MarkRepository } from "../../ipobj/Mark.repository";
 import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
 import { OpenVPNRepository } from "../../vpn/openvpn/openvpn-repository";
 import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
@@ -68,6 +69,7 @@ export class RoutingRuleService extends Service {
     private _ipobjGroupRepository: IPObjGroupRepository;   
     private _openvpnRepository: OpenVPNRepository;
     private _openvpnPrefixRepository: OpenVPNPrefixRepository;
+    private _markRepository: MarkRepository;
 
     constructor(app: Application) {
         super(app);
@@ -76,6 +78,7 @@ export class RoutingRuleService extends Service {
         this._ipobjGroupRepository = getCustomRepository(IPObjGroupRepository);
         this._openvpnRepository = getCustomRepository(OpenVPNRepository);
         this._openvpnPrefixRepository = getCustomRepository(OpenVPNPrefixRepository);
+        this._markRepository = getCustomRepository(MarkRepository);
     }
 
     findManyInPath(path: IFindManyRoutingRulePath): Promise<RoutingRule[]> {
@@ -210,7 +213,7 @@ export class RoutingRuleService extends Service {
         return rules;
     }
 
-    private buildSQLsForCompiler(fwcloud: number, firewall: number, rule?: number): SelectQueryBuilder<IPObj>[] {
+    private buildSQLsForCompiler(fwcloud: number, firewall: number, rule?: number): SelectQueryBuilder<IPObj|Mark>[] {
         return [
             this._ipobjRepository.getIpobjsInRouting_excludeHosts('rule', fwcloud, firewall, null, rule),
             this._ipobjRepository.getIpobjsInRouting_onlyHosts('rule', fwcloud, firewall, null, rule),
@@ -220,15 +223,17 @@ export class RoutingRuleService extends Service {
             this._ipobjRepository.getIpobjsInOpenVPNInGroupsInRouting('rule', fwcloud, firewall, null, rule),
             this._ipobjRepository.getIpobjsInOpenVPNPrefixesInRouting('rule', fwcloud, firewall, null, rule),
             this._ipobjRepository.getIpobjsInOpenVPNPrefixesInGroupsInRouting('rule', fwcloud, firewall, null, rule),
+            this._markRepository.getMarksInRoutingRules(fwcloud, firewall)
         ];
     }
 
-    private buildSQLsForGrid(fwcloud: number, firewall: number): SelectQueryBuilder<IPObj|IPObjGroup|OpenVPN|OpenVPNPrefix>[] {
+    private buildSQLsForGrid(fwcloud: number, firewall: number): SelectQueryBuilder<IPObj|IPObjGroup|OpenVPN|OpenVPNPrefix|Mark>[] {
         return [
             this._ipobjRepository.getIpobjsInRouting_ForGrid('rule', fwcloud, firewall),
             this._ipobjGroupRepository.getIpobjGroupsInRouting_ForGrid('rule', fwcloud, firewall),
             this._openvpnRepository.getOpenVPNInRouting_ForGrid('rule', fwcloud, firewall),
             this._openvpnPrefixRepository.getOpenVPNPrefixInRouting_ForGrid('rule', fwcloud, firewall),
+            this._markRepository.getMarksInRoutingRules_ForGrid(fwcloud, firewall)
         ];
     }
 
