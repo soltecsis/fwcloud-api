@@ -20,7 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsArray, IsBoolean, IsNumber, IsObject, IsOptional, IsSemVer, IsString } from "class-validator"
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsString } from "class-validator"
+import { IpObjBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation";
+import { IpObjGroupBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-group-belongs-to-types.validation";
+import { IsClientOpenVPN } from "../../../../fonaments/validation/rules/is-client-openvpn.validation";
 
 export class RouteControllerUpdateDto {
     @IsNumber()
@@ -29,6 +32,9 @@ export class RouteControllerUpdateDto {
     
     @IsNumber()
     @IsOptional()
+    @IpObjBelongsToTypes([
+        5, // ADDRESS
+    ])
     gatewayId: number;
 
     @IsNumber()
@@ -49,29 +55,40 @@ export class RouteControllerUpdateDto {
 
     @IsArray()
     @IsOptional()
-    @IsNumber(null, {
+    @IpObjBelongsToTypes([
+        5, // ADDRESS
+        6, // ADDRESS RANGE
+        7, // NETWORK
+        8, // HOST
+        9, // DNS
+    ])
+    @IsNumber({}, {
         each: true
     })
-    ipObjs: number[]
+    ipObjIds: number[]
 
     @IsArray()
     @IsOptional()
-    @IsNumber(null, {
+    @IpObjGroupBelongsToTypes([
+        20
+    ])
+    @IsNumber({}, {
         each: true
     })
-    ipObjGroups: number[]
+    ipObjGroupIds: number[]
 
     @IsArray()
     @IsOptional()
-    @IsNumber(null, {
+    @IsNumber({}, {
         each: true
     })
-    openVPNs: number[];
+    @IsClientOpenVPN()
+    openVPNIds: number[];
     
     @IsArray()
     @IsOptional()
-    @IsNumber(null, {
+    @IsNumber({}, {
         each: true
     })
-    openVPNPrefixes: number[]
+    openVPNPrefixIds: number[]
 }

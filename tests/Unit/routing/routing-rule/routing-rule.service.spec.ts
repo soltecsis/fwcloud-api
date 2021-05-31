@@ -56,14 +56,16 @@ describe(RoutingRuleService.name, () => {
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
-                    interfaceId: null
+                    interfaceId: null,
+                    fwCloudId: fwCloud.id
                 }));
 
                 ipobj2 = await getRepository(IPObj).save(getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
-                    interfaceId: null
+                    interfaceId: null,
+                    fwCloudId: fwCloud.id
                 }));
             })
             it('should attach ipbojs', async () => {
@@ -113,11 +115,13 @@ describe(RoutingRuleService.name, () => {
                 group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 1,
+                    fwCloudId: fwCloud.id
                 }));
 
                 group2 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 1,
+                    fwCloudId: fwCloud.id
                 }));
             })
             it('should attach ipObjGroups', async () => {
@@ -308,5 +312,77 @@ describe(RoutingRuleService.name, () => {
                 ).to.deep.eq([])
             })
         });
+    });
+
+    describe('remove', () => {
+        let ipobj1: IPObj;
+        let group1: IPObjGroup;
+        let openVPN1: OpenVPN;
+        let openVPNPrefix2: OpenVPNPrefix;
+
+        beforeEach(async () => {
+            ipobj1 = await getRepository(IPObj).save(getRepository(IPObj).create({
+                name: 'test',
+                address: '0.0.0.0',
+                ipObjTypeId: 0,
+                interfaceId: null,
+                fwCloudId: fwCloud.id
+            }));
+
+            group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                name: StringHelper.randomize(10),
+                type: 1,
+            }));
+
+            openVPN1 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                firewallId: firewall.id,
+                crt: await getRepository(Crt).save(getRepository(Crt).create({
+                    cn: StringHelper.randomize(10),
+                    days: 100,
+                    type: 0,
+                    ca: await getRepository(Ca).save(getRepository(Ca).create({
+                        fwCloud: fwCloud,
+                        cn: StringHelper.randomize(10),
+                        days: 100,
+                    }))
+                }))
+            }));
+
+            openVPNPrefix2 = await getRepository(OpenVPNPrefix).save(getRepository(OpenVPNPrefix).create({
+                name: StringHelper.randomize(10),
+                openVPN: await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                    firewallId: firewall.id,
+                    crt: await getRepository(Crt).save(getRepository(Crt).create({
+                        cn: StringHelper.randomize(10),
+                        days: 100,
+                        type: 0,
+                        ca: await getRepository(Ca).save(getRepository(Ca).create({
+                            fwCloud: fwCloud,
+                            cn: StringHelper.randomize(10),
+                            days: 100,
+                        }))
+                    }))
+                }))
+            }));
+
+            rule = await getRepository(RoutingRule).save({
+                routingTableId: table.id,
+                openVPNPrefixes: [{id: openVPNPrefix2.id}],
+                openVPNs: [{id: openVPN1.id}],
+                ipObjs: [{id: ipobj1.id}],
+                ipObjGroups: [{id: group1.id}],
+                position: 1
+            });
+        });
+
+        it('should remove rule', async () => {
+            const removedRule: RoutingRule = await service.remove({
+                fwCloudId: fwCloud.id,
+                firewallId: firewall.id,
+                id: rule.id
+            });
+
+            expect(await getRepository(RoutingRule).findOne(rule.id)).to.be.undefined;
+        })
     })
 })

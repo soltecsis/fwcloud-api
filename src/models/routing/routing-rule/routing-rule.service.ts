@@ -20,9 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getCustomRepository, SelectQueryBuilder } from "typeorm";
+import { getCustomRepository, getRepository, In, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
+import { Firewall } from "../../firewall/Firewall";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjRepository } from "../../ipobj/IPObj.repository";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
@@ -31,7 +32,6 @@ import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
 import { OpenVPNRepository } from "../../vpn/openvpn/openvpn-repository";
 import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { OpenVPNPrefixRepository } from "../../vpn/openvpn/OpenVPNPrefix.repository";
-import { RouteRepository } from "../route/route.repository";
 import { AvailableDestinations, ItemForGrid, RoutingRuleItemForCompiler, RoutingUtils } from "../shared";
 import { RoutingRule } from "./routing-rule.model";
 import { IFindManyRoutingRulePath, IFindOneRoutingRulePath, RoutingRuleRepository } from "./routing-rule.repository";
@@ -102,20 +102,50 @@ export class RoutingRuleService extends Service {
             comment: data.comment,
         }, {id}));
 
+        const firewall: Firewall = (await this._repository.findOne(rule.id, {relations: ['routingTable', 'routingTable.firewall']})).routingTable.firewall;
+
+
         if (data.ipObjIds) {
-            rule.ipObjs = data.ipObjIds.map(id => ({id} as IPObj));
+            const ipObjs: IPObj[] = await getRepository(IPObj).find({
+                where: {
+                    id: In(data.ipObjIds),
+                    fwCloudId: firewall.fwCloudId,
+                }
+            })
+
+            rule.ipObjs = ipObjs.map(item => ({id: item.id} as IPObj));
         }
 
         if (data.ipObjGroupIds) {
-            rule.ipObjGroups = data.ipObjGroupIds.map(id => ({id} as IPObjGroup));
+            const groups: IPObjGroup[] = await getRepository(IPObjGroup).find({
+                where: {
+                    id: In(data.ipObjGroupIds),
+                    fwCloudId: firewall.fwCloudId,
+                }
+            })
+
+            rule.ipObjGroups = groups.map(item => ({id: item.id} as IPObjGroup));
         }
 
         if (data.openVPNIds) {
-            rule.openVPNs = data.openVPNIds.map(id => ({id} as OpenVPN));
+            const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
+                where: {
+                    id: In(data.openVPNIds),
+                    firewallId: firewall.id,
+                }
+            })
+
+            rule.openVPNs = openVPNs.map(item => ({id: item.id} as OpenVPN));
         }
 
         if (data.openVPNPrefixIds) {
-            rule.openVPNPrefixes = data.openVPNPrefixIds.map(id => ({id} as OpenVPNPrefix));
+            const prefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).find({
+                where: {
+                    id: In(data.openVPNPrefixIds)
+                }
+            })
+
+            rule.openVPNPrefixes = prefixes.map(item => ({id: item.id} as OpenVPNPrefix));
         }
 
 

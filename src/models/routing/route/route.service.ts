@@ -20,9 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindManyOptions, FindOneOptions, getCustomRepository, SelectQueryBuilder } from "typeorm";
+import { FindManyOptions, FindOneOptions, getCustomRepository, getRepository, In, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
+import { Firewall } from "../../firewall/Firewall";
+import { FwCloud } from "../../fwcloud/FwCloud";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
@@ -99,20 +101,50 @@ export class RouteService extends Service {
             style: data.style,
         }, {id}));
 
+        const firewall: Firewall = (await this._repository.findOne(route.id, {relations: ['routingTable', 'routingTable.firewall']})).routingTable.firewall;
+
+
         if (data.ipObjIds) {
-            route.ipObjs = data.ipObjIds.map(id => ({id} as IPObj));
+            const ipObjs: IPObj[] = await getRepository(IPObj).find({
+                where: {
+                    id: In(data.ipObjIds),
+                    fwCloudId: firewall.fwCloudId,
+                }
+            })
+
+            route.ipObjs = ipObjs.map(item => ({id: item.id} as IPObj));
         }
 
         if (data.ipObjGroupIds) {
-            route.ipObjGroups = data.ipObjGroupIds.map(id => ({id} as IPObjGroup));
+            const groups: IPObjGroup[] = await getRepository(IPObjGroup).find({
+                where: {
+                    id: In(data.ipObjGroupIds),
+                    fwCloudId: firewall.fwCloudId,
+                }
+            })
+
+            route.ipObjGroups = groups.map(item => ({id: item.id} as IPObjGroup));
         }
 
         if (data.openVPNIds) {
-            route.openVPNs = data.openVPNIds.map(id => ({id} as OpenVPN));
+            const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
+                where: {
+                    id: In(data.openVPNIds),
+                    firewallId: firewall.id,
+                }
+            })
+
+            route.openVPNs = openVPNs.map(item => ({id: item.id} as OpenVPN));
         }
 
         if (data.openVPNPrefixIds) {
-            route.openVPNPrefixes = data.openVPNPrefixIds.map(id => ({id} as OpenVPNPrefix));
+            const prefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).find({
+                where: {
+                    id: In(data.openVPNPrefixIds),
+                }
+            })
+
+            route.openVPNPrefixes = prefixes.map(item => ({id: item.id} as OpenVPNPrefix));
         }
 
         route = await this._repository.save(route);

@@ -65,14 +65,16 @@ describe(RouteService.name, () => {
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
-                    interfaceId: null
+                    interfaceId: null,
+                    fwCloudId: fwCloud.id
                 }));
 
                 ipobj2 = await getRepository(IPObj).save(getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
-                    interfaceId: null
+                    interfaceId: null,
+                    fwCloudId: fwCloud.id
                 }));
             })
             it('should attach ipbojs', async () => {
@@ -122,11 +124,13 @@ describe(RouteService.name, () => {
                 group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 1,
+                    fwCloudId: fwCloud.id
                 }));
 
                 group2 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 1,
+                    fwCloudId: fwCloud.id
                 }));
             })
             it('should attach ipObjGroups', async () => {
