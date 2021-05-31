@@ -26,6 +26,7 @@ import { Service } from "../../../fonaments/services/service";
 import { Firewall } from "../../firewall/Firewall";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
+import { Mark } from "../../ipobj/Mark";
 import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
 import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { RoutingRule } from "./routing-rule.model";
@@ -48,7 +49,8 @@ interface IUpdateRoutingRule {
     ipObjIds?: number[];
     ipObjGroupIds?: number[];
     openVPNIds?: number[];
-    openVPNPrefixIds?: number[]
+    openVPNPrefixIds?: number[],
+    markIds?: number[]
 }
 
 export class RoutingRuleService extends Service {
@@ -129,6 +131,17 @@ export class RoutingRuleService extends Service {
             })
 
             rule.openVPNPrefixes = prefixes.map(item => ({id: item.id} as OpenVPNPrefix));
+        }
+
+        if(data.markIds) {
+            const marks: Mark[] = await getRepository(Mark).find({
+                where: {
+                    id: In(data.markIds),
+                    fwCloudId: firewall.id
+                }
+            });
+
+            rule.marks = marks.map(item => ({id: item.id}) as Mark);
         }
 
 
