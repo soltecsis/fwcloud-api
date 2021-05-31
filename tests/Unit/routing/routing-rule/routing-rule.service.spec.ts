@@ -3,6 +3,7 @@ import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
 import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
+import { Mark } from "../../../../src/models/ipobj/Mark";
 import { RoutingRule } from "../../../../src/models/routing/routing-rule/routing-rule.model";
 import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
 import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
@@ -309,6 +310,63 @@ describe(RoutingRuleService.name, () => {
 
                 expect(
                     (await getRepository(RoutingRule).findOne(rule.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(item => item.id)
+                ).to.deep.eq([])
+            })
+        });
+
+        describe('marks', () => {
+            let mark1: Mark;
+            let mark2: Mark;
+            
+            beforeEach(async () => {
+                mark1 = await getRepository(Mark).save(getRepository(Mark).create({
+                    fwCloudId: fwCloud.id,
+                    code: 1,
+                    name: '1',
+                }));
+
+                mark2 = await getRepository(Mark).save(getRepository(Mark).create({
+                    fwCloudId: fwCloud.id,
+                    code: 2,
+                    name: '2',
+                }));
+            });
+
+            it('should attach marks', async () => {
+                await service.update(rule.id, {
+                    markIds: [mark1.id, mark2.id]
+                });
+
+                expect(
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['marks']})).marks.map(item => item.id)
+                ).to.deep.eq([mark1.id, mark2.id])
+            });
+
+            it('should remove marks attachment', async () => {
+                await service.update(rule.id, {
+                    markIds: [mark1.id, mark2.id]
+                });
+
+                await service.update(rule.id, {
+                    markIds: [mark2.id]
+                });
+
+                expect(
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['marks']})).marks.map(item => item.id)
+                ).to.deep.eq([mark2.id])
+            });
+
+            it('should remove all marks attachment', async () => {
+                await service.update(rule.id, {
+                    markIds: [mark1.id, mark2.id]
+                });
+
+                await service.update(rule.id, {
+                    markIds: []
+                });
+
+                expect(
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['marks']})).marks.map(item => item.id)
                 ).to.deep.eq([])
             })
         });
