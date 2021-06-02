@@ -36,6 +36,8 @@ import { Mark } from "../../../../models/ipobj/Mark";
 import { CaPrefix } from "../../../../models/vpn/pki/CaPrefix";
 import { OpenVPNPrefix } from "../../../../models/vpn/openvpn/OpenVPNPrefix";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
+import { RoutingRule } from "../../../../models/routing/routing-rule/routing-rule.model";
+import { RoutingTable } from "../../../../models/routing/routing-table/routing-table.model";
 
 export class FwcTreeTerraformer extends TableTerraformer {
     protected _typeToTableNameMapping: {[type: string]: typeof Model} = {
@@ -80,14 +82,18 @@ export class FwcTreeTerraformer extends TableTerraformer {
         'PO6': Firewall,
         'PRE': CaPrefix,
         'PRO': OpenVPNPrefix,
-        'RR': null,
         'SOC': null,
         'SOG': IPObjGroup,
         'SOI': IPObj,
         'SOM': IPObj,
         'SOT': IPObj,
         'SOU': IPObj,
-        'STD': null
+        'STD': null,
+
+        'ROU': Firewall,
+        'RTS': Firewall,
+        'RT': RoutingTable,
+        'RR': Firewall
     }
 
     public static async make(mapper: ImportMapping, eventEmitter: EventEmitter = new EventEmitter()): Promise<FwcTreeTerraformer> {
