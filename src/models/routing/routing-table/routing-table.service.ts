@@ -99,7 +99,7 @@ export class RoutingTableService extends Service {
         const firewall: Firewall = await getRepository(Firewall).findOne(routingTable.firewallId, {relations: ['fwCloud']});
 
         const node: {id: number} = await Tree.getNodeUnderFirewall(db.getQuery(), firewall.fwCloud.id, firewall.id, 'RTS') as {id: number};
-        await Tree.newNode(db.getQuery(), firewall.fwCloud.id, routingTable.name, node.id, 'IR', routingTable.id, null);
+        await Tree.newNode(db.getQuery(), firewall.fwCloud.id, routingTable.name, node.id, 'RT', routingTable.id, null);
 
 
         return routingTable;
