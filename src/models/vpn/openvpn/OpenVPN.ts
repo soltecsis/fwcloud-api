@@ -24,7 +24,7 @@ import Model from "../../Model";
 import { Firewall } from '../../../models/firewall/Firewall';
 import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
 import { Interface } from '../../../models/interface/Interface';
-import { PrimaryGeneratedColumn, Column, Entity, OneToOne, ManyToOne, JoinColumn, OneToMany, ManyToMany, JoinTable } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, OneToOne, ManyToOne, JoinColumn, OneToMany, ManyToMany, JoinTable, getRepository } from "typeorm";
 const config = require('../../../config/config');
 import { IPObj } from '../../ipobj/IPObj';
 const readline = require('readline');
@@ -661,6 +661,21 @@ export class OpenVPN extends Model {
                 search.restrictions.LastOpenvpnInPrefixInRule = await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInRule(dbCon, fwcloud, openvpn);
                 search.restrictions.LastOpenvpnInPrefixInGroup = await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInGroup(dbCon, fwcloud, openvpn);
 
+                search.restrictions.OpenVPNInRoute = await getRepository(Route).createQueryBuilder('route')
+                    .innerJoinAndSelect('route.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+                    .innerJoin('route.routingTable', 'table')
+                    .innerJoin('table.firewall', 'firewall')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getMany();
+
+                search.restrictions.OpenVPNInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
+                    .innerJoinAndSelect('rule.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+                    .innerJoin('rule.routingTable', 'table')
+                    .innerJoin('table.firewall', 'firewall')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getMany();
+
+                
                 if (extendedSearch) {
                     // Include the rules that use the groups in which the OpenVPN is being used.
                     search.restrictions.OpenvpnInGroupInRule = [];
