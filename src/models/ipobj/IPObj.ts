@@ -954,9 +954,16 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchIpobjInGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
                 search.restrictions.IpobjInOpenVPN = await this.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
-                search.restrictions.IpobjInRoutingRule = await getRepository(Route).createQueryBuilder('route')
+                search.restrictions.IpobjInRoute = await getRepository(Route).createQueryBuilder('route')
                     .innerJoinAndSelect('route.ipObjs', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
                     .innerJoin('route.routingTable', 'table')
+                    .innerJoin('table.firewall', 'firewall')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getMany()
+
+                search.restrictions.IpobjInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
+                    .innerJoinAndSelect('rule.ipObjs', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
+                    .innerJoin('rule.routingTable', 'table')
                     .innerJoin('table.firewall', 'firewall')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
                     .getMany()
@@ -973,7 +980,7 @@ export class IPObj extends Model {
                     search.restrictions.LastAddrInInterfaceInRule = await PolicyRuleToIPObj.searchLastAddrInInterfaceInRule(dbCon, id, type, fwcloud);
                     search.restrictions.LastAddrInHostInRule = await PolicyRuleToIPObj.searchLastAddrInHostInRule(dbCon, id, type, fwcloud);
                     
-                    search.restrictions.AddrInRoutingRule = await getRepository(Route).createQueryBuilder('route')
+                    search.restrictions.AddrInRoute = await getRepository(Route).createQueryBuilder('route')
                         .innerJoin('route.routingTable', 'table')
                         .innerJoin('table.firewall', 'firewall')
                         .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})

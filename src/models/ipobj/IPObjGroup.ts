@@ -311,6 +311,12 @@ export class IPObjGroup extends Model {
                     .innerJoin('table.firewall', 'firewall')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
                     .getMany();
+                search.restrictions.GroupInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('route')
+                    .innerJoin('route.routingTable', 'table')
+                    .innerJoinAndSelect('route.ipObjGroups', 'group', 'group.id = :id', {id: id})
+                    .innerJoin('table.firewall', 'firewall')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getMany();
 
                 for (let key in search.restrictions) {
                     if (search.restrictions[key].length > 0) {
