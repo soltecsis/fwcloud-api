@@ -116,6 +116,8 @@ export class RoutingTableService extends Service {
         const table: RoutingTable =  await this.findOneInPath(path);
         
         await this._repository.remove(table);
+        await Tree.deleteObjFromTree(path.fwCloudId, path.id, 'RT')
+
         return table;
     }
 
