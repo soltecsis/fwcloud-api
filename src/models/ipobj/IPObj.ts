@@ -954,6 +954,13 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchIpobjInGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
                 search.restrictions.IpobjInOpenVPN = await this.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
+                search.restrictions.IpobjInRoutingRule = await getRepository(Route).createQueryBuilder('route')
+                    .innerJoinAndSelect('route.ipObjs', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
+                    .innerJoin('route.routingTable', 'table')
+                    .innerJoin('table.firewall', 'firewall')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getMany()
+
                 if (type === 8) { // HOST
                     search.restrictions.InterfaceHostInRule = await PolicyRuleToIPObj.searchInterfaceHostInRule(dbCon, fwcloud, id);
                     search.restrictions.AddrHostInRule = await PolicyRuleToIPObj.searchAddrHostInRule(dbCon, fwcloud, id);
@@ -965,6 +972,13 @@ export class IPObj extends Model {
                 if (type === 5) { // ADDRESS
                     search.restrictions.LastAddrInInterfaceInRule = await PolicyRuleToIPObj.searchLastAddrInInterfaceInRule(dbCon, id, type, fwcloud);
                     search.restrictions.LastAddrInHostInRule = await PolicyRuleToIPObj.searchLastAddrInHostInRule(dbCon, id, type, fwcloud);
+                    
+                    search.restrictions.AddrInRoutingRule = await getRepository(Route).createQueryBuilder('route')
+                        .innerJoin('route.routingTable', 'table')
+                        .innerJoin('table.firewall', 'firewall')
+                        .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                        .andWhere(`route.gatewayId = :gateway`, {gateway: id})
+                        .getMany();
                 }
 
                 for (let key in search.restrictions) {
