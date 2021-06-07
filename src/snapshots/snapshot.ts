@@ -149,7 +149,7 @@ export class Snapshot implements Responsable {
             .update(snapshotDigestContent)
             .digest('hex');
 
-        return digestedHash !== this._hash;
+        return digestedHash === this._hash;
     }
 
     /**
