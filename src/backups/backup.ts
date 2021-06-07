@@ -170,7 +170,8 @@ export class Backup implements Responsable {
             this._version = metadata.version;
             this._imported = metadata.imported ?? false;
             this._backupPath = path.isAbsolute(backupPath) ? StringHelper.after(path.join(app().path, "/"), backupPath) : backupPath;
-            this._dumpFilename = Backup.DUMP_FILENAME
+            this._dumpFilename = Backup.DUMP_FILENAME;
+            this._hash = metadata.hash;
             return this;
         }
 
