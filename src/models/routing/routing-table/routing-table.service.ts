@@ -23,6 +23,7 @@
 import { FindManyOptions, FindOneOptions, getCustomRepository, getRepository, Repository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import db from "../../../database/database-manager";
+import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
 import { Service } from "../../../fonaments/services/service";
 import { Firewall } from "../../firewall/Firewall";
 import { IPObj } from "../../ipobj/IPObj";
@@ -114,6 +115,14 @@ export class RoutingTableService extends Service {
 
     async remove(path: IFindOneRoutingTablePath): Promise<RoutingTable> {
         const table: RoutingTable =  await this.findOneInPath(path);
+
+        const tableWithRules: RoutingTable = await this._repository.findOne(table.id, { relations: ['routingRules']});
+
+        if (tableWithRules.routingRules.length > 0) {
+            throw new ValidationException('Routing table cannot be removed', {
+                id: ['Cannot remove a routing table which contains routing rules']
+            });
+        }
         
         await this._repository.remove(table);
         
