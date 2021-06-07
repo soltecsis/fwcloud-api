@@ -34,13 +34,15 @@ import StringHelper from "../utils/string.helper";
 import { FSHelper } from "../utils/fs-helper";
 import { Application } from "../Application";
 import { Progress } from "../fonaments/http/progress/progress";
-import { getCustomRepository, Migration } from "typeorm";
+import { getCustomRepository, getRepository, Migration } from "typeorm";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Task } from "../fonaments/http/progress/task";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
+import * as crypto from 'crypto';
 
 import * as child_process from "child_process";
 import { OpenVPNRepository } from "../models/vpn/openvpn/openvpn-repository";
+import { Firewall } from "../models/firewall/Firewall";
 
 export interface BackupMetadata {
     name: string,
@@ -48,7 +50,10 @@ export interface BackupMetadata {
     version: string;
     comment: string;
     imported: boolean;
+    hash: string;
 }
+
+export const backupDigestContent: string = 'FWCloud';
 
 export class Backup implements Responsable {
     static DUMP_FILENAME: string = 'db.sql';
@@ -64,6 +69,7 @@ export class Backup implements Responsable {
     protected _comment: string;
     protected _version: string;
     protected _imported: boolean;
+    protected _hash: string;
 
   constructor() {
         this._id = null;
@@ -129,6 +135,14 @@ export class Backup implements Responsable {
         return this._imported;
     }
 
+    public isHashCompatible(): boolean {
+        const digestedHash: string = crypto.createHmac('sha256', app().config.get('crypt.secret'))
+            .update(backupDigestContent)
+            .digest('hex');
+
+        return digestedHash === this._hash;
+    }
+
     public setComment(comment: string) {
         this._comment = comment;
     }
@@ -192,6 +206,9 @@ export class Backup implements Responsable {
         this._version = app<Application>().version.tag;
         this._name = this._date.format('YYYY-MM-DD HH:mm:ss');
         this._backupPath = path.join(backupDirectory, this.timestamp.toString());
+        this._hash = crypto.createHmac('sha256', app().config.get('crypt.secret'))
+            .update(backupDigestContent)
+            .digest('hex');
             
         this.createDirectorySync();
         this.exportMetadataFileSync();
@@ -276,6 +293,7 @@ export class Backup implements Responsable {
             version: app<Application>().version.tag,
             comment: this._comment,
             imported: false,
+            hash: this._hash
         };
 
         fs.writeFileSync(path.join(this._backupPath, Backup.METADATA_FILENAME), JSON.stringify(metadata, null, 2))
@@ -318,6 +336,13 @@ export class Backup implements Responsable {
 
                 //Make all VPNs pending of install.
                 await getCustomRepository(OpenVPNRepository).markAllAsUninstalled();
+
+                if (!this.isHashCompatible()) {
+                    await getRepository(Firewall).update({}, {
+                        install_user: null,
+                        install_pass: null
+                    });
+                }
 
                 resolve();
             } catch (e) {
