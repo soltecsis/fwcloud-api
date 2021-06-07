@@ -42,8 +42,9 @@ import { DatabaseImporter } from "../fwcloud-exporter/database-importer/database
 import { SnapshotService } from "./snapshot.service";
 import { BackupService } from "../backups/backup.service";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { getCustomRepository, Migration } from "typeorm";
+import { getCustomRepository, getRepository, Migration } from "typeorm";
 import { DatabaseService } from "../database/database.service";
+import * as crypto from 'crypto';
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -51,7 +52,10 @@ export type SnapshotMetadata = {
     comment: string,
     version: string,
     migrations: string[];
+    hash: string;
 };
+
+export const snapshotDigestContent: string = 'FWCloud';
 
 export class Snapshot implements Responsable {
 
@@ -69,6 +73,7 @@ export class Snapshot implements Responsable {
     protected _comment: string;
     protected _fwCloud: FwCloud;
     protected _version: string;
+    protected _hash: string;
 
     protected _compatible: boolean;
 
@@ -92,6 +97,7 @@ export class Snapshot implements Responsable {
         this._version = null;
         this._data = null;
         this._compatible = false;
+        this._hash = null;
     }
 
     get name(): string {
@@ -277,6 +283,9 @@ export class Snapshot implements Responsable {
         this._migrations = executedMigrations.map((migration: Migration) => {
             return migration.name;
         });
+        this._hash = crypto.createHmac('sha256', app().config.get('crypt.secret'))
+            .update(snapshotDigestContent)
+            .digest('hex');
         
         if (FSHelper.directoryExistsSync(this._path)) {
             throw new Error('Snapshot with id = ' + this._id + ' already exists');
@@ -314,8 +323,23 @@ export class Snapshot implements Responsable {
 
         fwCloud.users = oldFwCloud.users;
         await FwCloud.save([fwCloud]);
+
+        const digestedHash: string = crypto.createHmac('sha256', app().config.get('crypt.secret'))
+            .update(snapshotDigestContent)
+            .digest('hex');
+
+        if (digestedHash !== this._hash) {
+            await this.removeEncryptedData(fwCloud.id);
+        }
         
         return fwCloud;
+    }
+
+    protected async removeEncryptedData(fwcloudId: number): Promise<void> {
+        await getRepository(Firewall).update({fwCloudId: fwcloudId}, {
+            install_user: null,
+            install_pass: null
+        });
     }
 
     /**
@@ -348,7 +372,8 @@ export class Snapshot implements Responsable {
             name: this._name,
             comment: this._comment,
             version: this._version,
-            migrations: this._migrations
+            migrations: this._migrations,
+            hash: this._hash
         };
 
         fs.writeFileSync(path.join(this._path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
