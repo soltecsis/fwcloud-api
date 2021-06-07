@@ -66,6 +66,22 @@ export class RoutingTableController extends Controller {
         return ResponseBuilder.buildResponse().status(200).body(routingTable);
     }
 
+    @Validate()
+    async grid(request: Request): Promise<ResponseBuilder> {
+        const routingTable: RoutingTable = await this.routingTableService.findOneInPathOrFail({
+            fwCloudId: this._firewall.fwCloudId,
+            firewallId: this._firewall.id,
+            id: parseInt(request.params.routingTable),
+        });
+
+        (await RoutingTablePolicy.show(routingTable, request.session.user)).authorize();
+
+        const grid = await this.routingTableService.getRoutingTableData('grid', this._firewall.fwCloudId, this._firewall.id, routingTable.id);
+
+
+        return ResponseBuilder.buildResponse().status(200).body(grid);
+    }
+
     @Validate(RoutingTableControllerCreateDto)
     async create(request: Request): Promise<ResponseBuilder> {
 
