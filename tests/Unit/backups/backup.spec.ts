@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Backup, BackupMetadata } from "../../../src/backups/backup";
+import { Backup, backupDigestContent, BackupMetadata } from "../../../src/backups/backup";
 import * as fs from "fs";
 import * as path from "path";
 import { DatabaseConfig, DatabaseService } from "../../../src/database/database.service";
@@ -33,6 +33,7 @@ import { Firewall } from "../../../src/models/firewall/Firewall";
 import moment from "moment";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import sinon from "sinon";
+import * as crypto from 'crypto';
 
 let app: Application;
 let service: BackupService;
@@ -120,7 +121,10 @@ describe(describeName('Backup Unit tests'), () => {
                 timestamp: backup.timestamp,
                 version: app.version.tag,
                 comment: 'test comment',
-                imported: false
+                imported: false,
+                hash: crypto.createHmac('sha256', testSuite.app.config.get('crypt.secret'))
+                .update(backupDigestContent)
+                .digest('hex')
             });
         });
     });
