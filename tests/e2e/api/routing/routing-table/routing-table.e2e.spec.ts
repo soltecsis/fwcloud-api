@@ -35,7 +35,7 @@ import { RoutingTable } from "../../../../../src/models/routing/routing-table/ro
 import { RoutingTableService } from "../../../../../src/models/routing/routing-table/routing-table.service";
 import { Tree } from "../../../../../src/models/tree/Tree";
 
-describe.only(describeName('Routing Table E2E Tests'), () => {
+describe(describeName('Routing Table E2E Tests'), () => {
     let app: Application;
     let loggedUser: User;
     let loggedUserSessionId: string;
