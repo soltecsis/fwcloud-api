@@ -144,6 +144,14 @@ export class Snapshot implements Responsable {
         return this._migrations;
     }
 
+    public isHashCompatible(): boolean {
+        const digestedHash: string = crypto.createHmac('sha256', app().config.get('crypt.secret'))
+            .update(snapshotDigestContent)
+            .digest('hex');
+
+        return digestedHash !== this._hash;
+    }
+
     /**
      * Create a backup using promises
      * 
@@ -324,22 +332,7 @@ export class Snapshot implements Responsable {
         fwCloud.users = oldFwCloud.users;
         await FwCloud.save([fwCloud]);
 
-        const digestedHash: string = crypto.createHmac('sha256', app().config.get('crypt.secret'))
-            .update(snapshotDigestContent)
-            .digest('hex');
-
-        if (digestedHash !== this._hash) {
-            await this.removeEncryptedData(fwCloud.id);
-        }
-        
         return fwCloud;
-    }
-
-    protected async removeEncryptedData(fwcloudId: number): Promise<void> {
-        await getRepository(Firewall).update({fwCloudId: fwcloudId}, {
-            install_user: null,
-            install_pass: null
-        });
     }
 
     /**

@@ -287,7 +287,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
             expect(firewall2.installed_at).to.be.null;
         });
 
-        it('should remove crypted data if snapshot hash is not equal', async () => {
+        it('should remove encrypted data if snapshot hash is not equal', async () => {
             let firewall: Firewall = await Firewall.save(Firewall.create({
                 name: 'firewall_test',
                 status: 1,
