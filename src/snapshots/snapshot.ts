@@ -145,6 +145,11 @@ export class Snapshot implements Responsable {
     }
 
     public isHashCompatible(): boolean {
+        //Backwards compatibility. Snapshot might not have hash defined
+        if (this._hash === undefined) {
+            return false;
+        }
+
         const digestedHash: string = crypto.createHmac('sha256', app().config.get('crypt.secret'))
             .update(snapshotDigestContent)
             .digest('hex');
@@ -224,7 +229,7 @@ export class Snapshot implements Responsable {
         this._exists = true;
         this._compatible = this.checkCompatibility(this._migrations, executedMigrations.map(migration => migration.name));
         this._data = new ExporterResult(JSON.parse(dataContent));
-        this._hash = snapshotMetadata.hash;
+        this._hash = snapshotMetadata.hash ?? undefined;
         
         return this;
     }

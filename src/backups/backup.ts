@@ -136,6 +136,11 @@ export class Backup implements Responsable {
     }
 
     public isHashCompatible(): boolean {
+        //Backwards compatibility. Backup might not have hash defined
+        if (this._hash === undefined) {
+            return false;
+        }
+
         const digestedHash: string = crypto.createHmac('sha256', app().config.get('crypt.secret'))
             .update(backupDigestContent)
             .digest('hex');
@@ -171,7 +176,7 @@ export class Backup implements Responsable {
             this._imported = metadata.imported ?? false;
             this._backupPath = path.isAbsolute(backupPath) ? StringHelper.after(path.join(app().path, "/"), backupPath) : backupPath;
             this._dumpFilename = Backup.DUMP_FILENAME;
-            this._hash = metadata.hash;
+            this._hash = metadata.hash ?? undefined;
             return this;
         }
 
