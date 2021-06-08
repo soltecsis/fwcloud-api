@@ -305,6 +305,18 @@ export class IPObjGroup extends Model {
                 search.restrictions = {};
                 //search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
                 search.restrictions.GroupInRule = await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+                search.restrictions.GroupInRoute = await getRepository(Route).createQueryBuilder('route')
+                    .innerJoin('route.routingTable', 'table')
+                    .innerJoinAndSelect('route.ipObjGroups', 'group', 'group.id = :id', {id: id})
+                    .innerJoin('table.firewall', 'firewall')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getMany();
+                search.restrictions.GroupInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('route')
+                    .innerJoin('route.routingTable', 'table')
+                    .innerJoinAndSelect('route.ipObjGroups', 'group', 'group.id = :id', {id: id})
+                    .innerJoin('table.firewall', 'firewall')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getMany();
 
                 for (let key in search.restrictions) {
                     if (search.restrictions[key].length > 0) {

@@ -164,6 +164,13 @@ export class Mark extends Model {
 
                 search.restrictions.MarkInRule = await this.searchMarkInRule(dbCon, fwcloud, mark);
 
+                search.restrictions.MarkInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
+                    .innerJoinAndSelect('rule.marks', 'mark', 'mark.id = :mark', {mark: mark})
+                    .innerJoin('rule.routingTable', 'table')
+                    .innerJoin('table.firewall', 'firewall')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getMany();
+
                 for (let key in search.restrictions) {
                     if (search.restrictions[key].length > 0) {
                         search.result = true;
