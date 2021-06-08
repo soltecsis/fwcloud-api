@@ -224,6 +224,7 @@ export class Snapshot implements Responsable {
         this._exists = true;
         this._compatible = this.checkCompatibility(this._migrations, executedMigrations.map(migration => migration.name));
         this._data = new ExporterResult(JSON.parse(dataContent));
+        this._hash = snapshotMetadata.hash;
         
         return this;
     }
