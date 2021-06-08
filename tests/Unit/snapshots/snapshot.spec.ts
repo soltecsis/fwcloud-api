@@ -302,6 +302,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
             metadata.hash = 'test';
             fs.writeFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
 
+            snaphost = await Snapshot.load(snaphost.path);
             await snaphost.restore();
 
             const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
