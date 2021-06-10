@@ -217,13 +217,18 @@ export class RouteService extends Service {
             } else if (await PolicyRuleToIPObj.isGroupEmpty(db.getQuery(), ipObjGroup.id)) {
                 errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must not be empty'];
             } else {
-                for(const ipObjToIPObjGroups of ipObjGroup.ipObjToIPObjGroups) {
-                    if (ipObjToIPObjGroups.ipObj.ipObjTypeId === 8) { // 8 = HOST
-                        let addrs: any = await Interface.getHostAddr(db.getQuery(), ipObjToIPObjGroups.ipObj.id);
-                        if (addrs.length === 0) {
-                            errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId contains invalid ipObjs']
+                let valid: boolean = false;
+                for(const ipObjToIPObjGroup of ipObjGroup.ipObjToIPObjGroups) {
+                    if (ipObjToIPObjGroup.ipObj.ipObjTypeId === 8) { // 8 = HOST
+                        let addrs: any = await Interface.getHostAddr(db.getQuery(), ipObjToIPObjGroup.ipObj.id);
+                        if (addrs.length > 0 ) {
+                            valid = true;
                         }
                     }
+                }
+
+                if (!valid) {
+                    errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId is not suitable as it does not contains any valid host']
                 }
             }
         }
