@@ -1,5 +1,6 @@
 import { getRepository } from "typeorm";
 import db from "../../../../src/database/database-manager";
+import { ValidationException } from "../../../../src/fonaments/exceptions/validation-exception";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
@@ -115,6 +116,19 @@ describe(RouteService.name, () => {
                 expect(
                     (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
                 ).to.deep.eq([])
+            });
+
+            it('should throw an exception if the ipobj is a host but does not have any address', async () => {
+                ipobj2 = await getRepository(IPObj).save(getRepository(IPObj).create({
+                    name: 'test',
+                    ipObjTypeId: 8,
+                    interfaceId: null,
+                    fwCloudId: fwCloud.id
+                }));
+
+                await expect(service.update(route.id, {
+                    ipObjIds: [ipobj2.id]
+                })).to.rejectedWith(ValidationException);
             })
         });
 
@@ -187,7 +201,19 @@ describe(RouteService.name, () => {
                 expect(
                     (await getRepository(Route).findOne(route.id, {relations: ['ipObjGroups']})).ipObjGroups.map(item => item.id)
                 ).to.deep.eq([])
-            })
+            });
+
+            it('should throw an exception if the group is empty', async () => {
+                group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                    name: StringHelper.randomize(10),
+                    type: 1,
+                    fwCloudId: fwCloud.id
+                }));
+
+                await expect(service.update(route.id, {
+                    ipObjGroupIds: [group1.id, group2.id]
+                })).to.rejectedWith(ValidationException);
+            });
         });
 
         describe('OpenVPNs', () => {

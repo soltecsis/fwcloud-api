@@ -157,7 +157,7 @@ export class RouteService extends Service {
      protected async validateUpdateIPObjs(firewall: Firewall, data: IUpdateRoute): Promise<void> {
         const errors: ErrorBag = {};
 
-        if (!data.ipObjGroupIds || data.ipObjGroupIds.length === 0) {
+        if (!data.ipObjIds || data.ipObjIds.length === 0) {
             return;
         }
         
@@ -177,7 +177,6 @@ export class RouteService extends Service {
 
             if (ipObj.ipObjTypeId === 8) { // 8 = HOST
                 let addrs: any = await Interface.getHostAddr(db.getQuery(), ipObj.id);
-                
                 if (addrs.length === 0) {
                     errors[`ipObjIds.${i}`] = ['ipObj must contain at least one address']
                 }    
