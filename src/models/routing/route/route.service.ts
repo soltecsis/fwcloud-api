@@ -206,18 +206,25 @@ export class RouteService extends Service {
             where: {
                 id: In(data.ipObjGroupIds),
             },
-            relations: ['fwCloud']
+            relations: ['fwCloud', 'ipObjToIPObjGroups', 'ipObjToIPObjGroups.ipObj']
         });
 
         for (let i = 0; i < ipObjGroups.length; i++) {
             const ipObjGroup: IPObjGroup = ipObjGroups[i];
             
             if (ipObjGroup.fwCloudId !== firewall.fwCloudId) {
-                errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must exist']
-            }
-
-            if (await PolicyRuleToIPObj.isGroupEmpty(db.getQuery(), ipObjGroup.id)) {
-                errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must not be empty']
+                errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must exist'];
+            } else if (await PolicyRuleToIPObj.isGroupEmpty(db.getQuery(), ipObjGroup.id)) {
+                errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must not be empty'];
+            } else {
+                for(const ipObjToIPObjGroups of ipObjGroup.ipObjToIPObjGroups) {
+                    if (ipObjToIPObjGroups.ipObj.ipObjTypeId === 8) { // 8 = HOST
+                        let addrs: any = await Interface.getHostAddr(db.getQuery(), ipObjToIPObjGroups.ipObj.id);
+                        if (addrs.length === 0) {
+                            errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId contains invalid ipObjs']
+                        }
+                    }
+                }
             }
         }
         
