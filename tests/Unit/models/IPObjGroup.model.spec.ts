@@ -1,5 +1,8 @@
 import { getRepository } from "typeorm";
+import db from "../../../src/database/database-manager";
+import { IPObj } from "../../../src/models/ipobj/IPObj";
 import { IPObjGroup } from "../../../src/models/ipobj/IPObjGroup";
+import { IPObjToIPObjGroup } from "../../../src/models/ipobj/IPObjToIPObjGroup";
 import { Route } from "../../../src/models/routing/route/route.model";
 import { RouteService } from "../../../src/models/routing/route/route.service";
 import { RoutingRule } from "../../../src/models/routing/routing-rule/routing-rule.model";
@@ -21,12 +24,26 @@ describe(IPObjGroup.name, () => {
         routeService = await testSuite.app.getService<RouteService>(RouteService.name);
         routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
 
+        const ipobj: IPObj = await getRepository(IPObj).save(getRepository(IPObj).create({
+            name: 'test',
+            address: '0.0.0.0',
+            ipObjTypeId: 5,
+            interfaceId: null,
+        }))
+        
         ipobjGroup = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
             name: 'ipobjs group',
             type: 20,
             fwCloudId: fwcloudProduct.fwcloud.id
         }));
 
+        await IPObjToIPObjGroup.insertIpobj__ipobjg({
+            dbCon: db.getQuery(),
+            body: {
+                ipobj: ipobj.id,
+                ipobj_g: ipobjGroup.id
+            }
+        });
         route = await routeService.create({
             routingTableId: fwcloudProduct.routingTable.id,
             gatewayId: fwcloudProduct.ipobjs.get('gateway').id

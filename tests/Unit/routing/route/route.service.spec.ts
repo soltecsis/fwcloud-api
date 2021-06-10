@@ -1,8 +1,10 @@
 import { getRepository } from "typeorm";
+import db from "../../../../src/database/database-manager";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
 import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
+import { IPObjToIPObjGroup } from "../../../../src/models/ipobj/IPObjToIPObjGroup";
 import { Route } from "../../../../src/models/routing/route/route.model";
 import { RouteService } from "../../../../src/models/routing/route/route.service";
 import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
@@ -127,11 +129,27 @@ describe(RouteService.name, () => {
                     fwCloudId: fwCloud.id
                 }));
 
+                await IPObjToIPObjGroup.insertIpobj__ipobjg({
+                    dbCon: db.getQuery(),
+                    body: {
+                        ipobj: gateway.id,
+                        ipobj_g: group1.id
+                    }
+                });
+
                 group2 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 1,
                     fwCloudId: fwCloud.id
                 }));
+
+                await IPObjToIPObjGroup.insertIpobj__ipobjg({
+                    dbCon: db.getQuery(),
+                    body: {
+                        ipobj: gateway.id,
+                        ipobj_g: group2.id
+                    }
+                });
             })
             it('should attach ipObjGroups', async () => {
                 await service.update(route.id, {
