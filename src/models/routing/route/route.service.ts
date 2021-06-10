@@ -28,6 +28,7 @@ import { Service } from "../../../fonaments/services/service";
 import { ErrorBag } from "../../../fonaments/validation/validator";
 import { Firewall } from "../../firewall/Firewall";
 import { FwCloud } from "../../fwcloud/FwCloud";
+import { Interface } from "../../interface/Interface";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import { PolicyRuleToIPObj } from "../../policy/PolicyRuleToIPObj";
@@ -108,18 +109,12 @@ export class RouteService extends Service {
         const firewall: Firewall = (await this._repository.findOne(route.id, {relations: ['routingTable', 'routingTable.firewall']})).routingTable.firewall;
 
         if (data.ipObjIds) {
-            const ipObjs: IPObj[] = await getRepository(IPObj).find({
-                where: {
-                    id: In(data.ipObjIds),
-                    fwCloudId: firewall.fwCloudId,
-                }
-            })
-
-            route.ipObjs = ipObjs.map(item => ({id: item.id} as IPObj));
+            await this.validateUpdateIPObjs(firewall, data);
+            route.ipObjs = data.ipObjIds.map(id => ({id: id} as IPObj));
         }
 
         if (data.ipObjGroupIds) {
-            await this.validateUpdateIPObjGroups(route, firewall, data);
+            await this.validateUpdateIPObjGroups(firewall, data);
             route.ipObjGroups = data.ipObjGroupIds.map(id => ({id: id} as IPObjGroup));
         }
 
@@ -154,12 +149,54 @@ export class RouteService extends Service {
     }
 
     /**
+     * Checks IPObj are valid to be attached to the route. It will check:
+     *  - IPObj belongs to the same FWCloud
+     *  - IPObj contains at least one addres if its type is host
+     * 
+     */
+     protected async validateUpdateIPObjs(firewall: Firewall, data: IUpdateRoute): Promise<void> {
+        const errors: ErrorBag = {};
+
+        if (!data.ipObjGroupIds || data.ipObjGroupIds.length === 0) {
+            return;
+        }
+        
+        const ipObjs: IPObj[] = await getRepository(IPObj).find({
+            where: {
+                id: In(data.ipObjIds),
+            },
+            relations: ['fwCloud']
+        });
+
+        for (let i = 0; i < ipObjs.length; i++) {
+            const ipObj: IPObj = ipObjs[i];
+            
+            if (ipObj.fwCloudId !== firewall.fwCloudId) {
+                errors[`ipObjIds.${i}`] = ['ipObj id must exist']
+            }
+
+            if (ipObj.ipObjTypeId === 8) { // 8 = HOST
+                let addrs: any = await Interface.getHostAddr(db.getQuery(), ipObj.id);
+                
+                if (addrs.length === 0) {
+                    errors[`ipObjIds.${i}`] = ['ipObj must contain at least one address']
+                }    
+            }
+        }
+        
+        
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
+    }
+
+    /**
      * Checks IPObjGroups are valid to be attached to the route. It will check:
      *  - IPObjGroup belongs to the same FWCloud
      *  - IPObjGroup is not empty
      * 
      */
-    protected async validateUpdateIPObjGroups(route: Route, firewall: Firewall, data: IUpdateRoute): Promise<void> {
+    protected async validateUpdateIPObjGroups(firewall: Firewall, data: IUpdateRoute): Promise<void> {
         const errors: ErrorBag = {};
 
         if (!data.ipObjGroupIds || data.ipObjGroupIds.length === 0) {
