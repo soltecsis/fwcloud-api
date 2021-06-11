@@ -1,8 +1,13 @@
 import { getRepository } from "typeorm";
+import db from "../../../../src/database/database-manager";
+import { ValidationException } from "../../../../src/fonaments/exceptions/validation-exception";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
+import { Interface } from "../../../../src/models/interface/Interface";
+import { InterfaceIPObj } from "../../../../src/models/interface/InterfaceIPObj";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
 import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
+import { IPObjToIPObjGroup } from "../../../../src/models/ipobj/IPObjToIPObjGroup";
 import { Mark } from "../../../../src/models/ipobj/Mark";
 import { RoutingRule } from "../../../../src/models/routing/routing-rule/routing-rule.model";
 import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
@@ -119,11 +124,46 @@ describe(RoutingRuleService.name, () => {
                     fwCloudId: fwCloud.id
                 }));
 
+                const _interface: Interface = await getRepository(Interface).save(getRepository(Interface).create({
+                    name: 'eth1',
+                    type: '11',
+                    interface_type: '11'
+                }));
+
+                const host = await getRepository(IPObj).save(getRepository(IPObj).create({
+                    name: 'test',
+                    address: '0.0.0.0',
+                    ipObjTypeId: 8,
+                    interfaceId: _interface.id
+                }));
+
+                await getRepository(InterfaceIPObj).save(getRepository(InterfaceIPObj).create({
+                    interfaceId: _interface.id,
+                    ipObjId: host.id,
+                    interface_order: '1'
+                }));
+
+                await IPObjToIPObjGroup.insertIpobj__ipobjg({
+                    dbCon: db.getQuery(),
+                    body: {
+                        ipobj: host.id,
+                        ipobj_g: group1.id
+                    }
+                });
+
                 group2 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 1,
                     fwCloudId: fwCloud.id
                 }));
+
+                await IPObjToIPObjGroup.insertIpobj__ipobjg({
+                    dbCon: db.getQuery(),
+                    body: {
+                        ipobj: host.id,
+                        ipobj_g: group2.id
+                    }
+                });
             })
             it('should attach ipObjGroups', async () => {
                 await service.update(rule.id, {
@@ -161,7 +201,19 @@ describe(RoutingRuleService.name, () => {
                 expect(
                     (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjGroups']})).ipObjGroups.map(item => item.id)
                 ).to.deep.eq([])
-            })
+            });
+
+            it('should throw an exception if the group is empty', async () => {
+                group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                    name: StringHelper.randomize(10),
+                    type: 1,
+                    fwCloudId: fwCloud.id
+                }));
+
+                await expect(service.update(rule.id, {
+                    ipObjGroupIds: [group1.id, group2.id]
+                })).to.rejectedWith(ValidationException);
+            });
         });
 
         describe('OpenVPNs', () => {
