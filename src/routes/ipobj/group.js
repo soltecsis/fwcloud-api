@@ -42,6 +42,9 @@ import { Tree } from '../../models/tree/Tree';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
 import { logger } from '../../fonaments/abstract-application';
+import { getRepository } from 'typeorm';
+import { Route } from '../../models/routing/route/route.model';
+import { RoutingRule } from '../../models/routing/routing-rule/routing-rule.model';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -214,11 +217,27 @@ router.put('/addto', async(req, res) => {
 /* Remove ipobj__ipobjg */
 router.put('/delfrom', async(req, res) => {
 	try {
-		// No permitir eliminar de grupo si está siendo utilizado en alguna regla y va a quedar vacío.
-		const search = await PolicyRuleToIPObj.searchGroupInRule(req.body.ipobj_g, req.body.fwcloud);
-		if (search.length > 0) {
-			if ((await IPObjGroup.countGroupItems(req.dbCon, req.body.ipobj_g)) === 1)
+		if ((await IPObjGroup.countGroupItems(req.dbCon, req.body.ipobj_g)) === 1) {
+			// No permitir eliminar de grupo si está siendo utilizado en alguna regla y va a quedar vacío.
+			if (await PolicyRuleToIPObj.searchGroupInRule(req.body.ipobj_g, req.body.fwcloud) > 0) {		
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
+			}
+
+			const routes = await getRepository(Route).createQueryBuilder("route")
+			.innerJoinAndSelect("route.ipObjGroups", "group", `group.id = :group`, {group: req.body.ipobj_g})
+			.getCount();
+			
+			if (routes > 0) {
+				throw fwcError.IPOBJ_EMPTY_CONTAINER;
+			}
+
+			const routingRules = await getRepository(RoutingRule).createQueryBuilder("rule")
+			.innerJoinAndSelect("rule.ipObjGroups", "group", `group.id = :group`, {group: req.body.ipobj_g})
+			.getCount();
+			
+			if (routes > 0 || routingRules > 0) {
+				throw fwcError.IPOBJ_EMPTY_CONTAINER;
+			}
 		}
 
 		if (req.body.obj_type === 311) // OPENVPN CLI
