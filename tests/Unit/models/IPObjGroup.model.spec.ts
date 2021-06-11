@@ -1,5 +1,7 @@
 import { getRepository } from "typeorm";
 import db from "../../../src/database/database-manager";
+import { Interface } from "../../../src/models/interface/Interface";
+import { InterfaceIPObj } from "../../../src/models/interface/InterfaceIPObj";
 import { IPObj } from "../../../src/models/ipobj/IPObj";
 import { IPObjGroup } from "../../../src/models/ipobj/IPObjGroup";
 import { IPObjToIPObjGroup } from "../../../src/models/ipobj/IPObjToIPObjGroup";
@@ -24,12 +26,24 @@ describe(IPObjGroup.name, () => {
         routeService = await testSuite.app.getService<RouteService>(RouteService.name);
         routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
 
-        const ipobj: IPObj = await getRepository(IPObj).save(getRepository(IPObj).create({
+        const _interface: Interface = await getRepository(Interface).save(getRepository(Interface).create({
+            name: 'eth1',
+            type: '11',
+            interface_type: '11'
+        }));
+
+        const host = await getRepository(IPObj).save(getRepository(IPObj).create({
             name: 'test',
             address: '0.0.0.0',
-            ipObjTypeId: 5,
-            interfaceId: null,
-        }))
+            ipObjTypeId: 8,
+            interfaceId: _interface.id
+        }));
+
+        await getRepository(InterfaceIPObj).save(getRepository(InterfaceIPObj).create({
+            interfaceId: _interface.id,
+            ipObjId: host.id,
+            interface_order: '1'
+        }));
         
         ipobjGroup = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
             name: 'ipobjs group',
@@ -40,10 +54,11 @@ describe(IPObjGroup.name, () => {
         await IPObjToIPObjGroup.insertIpobj__ipobjg({
             dbCon: db.getQuery(),
             body: {
-                ipobj: ipobj.id,
+                ipobj: host.id,
                 ipobj_g: ipobjGroup.id
             }
         });
+
         route = await routeService.create({
             routingTableId: fwcloudProduct.routingTable.id,
             gatewayId: fwcloudProduct.ipobjs.get('gateway').id

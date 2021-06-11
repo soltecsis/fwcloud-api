@@ -3,6 +3,8 @@ import db from "../../../../src/database/database-manager";
 import { ValidationException } from "../../../../src/fonaments/exceptions/validation-exception";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
+import { Interface } from "../../../../src/models/interface/Interface";
+import { InterfaceIPObj } from "../../../../src/models/interface/InterfaceIPObj";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
 import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
 import { IPObjToIPObjGroup } from "../../../../src/models/ipobj/IPObjToIPObjGroup";
@@ -143,10 +145,29 @@ describe(RouteService.name, () => {
                     fwCloudId: fwCloud.id
                 }));
 
+                const _interface: Interface = await getRepository(Interface).save(getRepository(Interface).create({
+                    name: 'eth1',
+                    type: '11',
+                    interface_type: '11'
+                }));
+
+                const host = await getRepository(IPObj).save(getRepository(IPObj).create({
+                    name: 'test',
+                    address: '0.0.0.0',
+                    ipObjTypeId: 8,
+                    interfaceId: _interface.id
+                }));
+
+                await getRepository(InterfaceIPObj).save(getRepository(InterfaceIPObj).create({
+                    interfaceId: _interface.id,
+                    ipObjId: host.id,
+                    interface_order: '1'
+                }));
+
                 await IPObjToIPObjGroup.insertIpobj__ipobjg({
                     dbCon: db.getQuery(),
                     body: {
-                        ipobj: gateway.id,
+                        ipobj: host.id,
                         ipobj_g: group1.id
                     }
                 });
@@ -160,7 +181,7 @@ describe(RouteService.name, () => {
                 await IPObjToIPObjGroup.insertIpobj__ipobjg({
                     dbCon: db.getQuery(),
                     body: {
-                        ipobj: gateway.id,
+                        ipobj: host.id,
                         ipobj_g: group2.id
                     }
                 });
