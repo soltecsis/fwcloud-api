@@ -175,11 +175,11 @@ export class RouteService extends Service {
                 errors[`ipObjIds.${i}`] = ['ipObj id must exist']
             }
 
-            if (ipObj.ipObjTypeId === 8) { // 8 = HOST
+            else if (ipObj.ipObjTypeId === 8) { // 8 = HOST
                 let addrs: any = await Interface.getHostAddr(db.getQuery(), ipObj.id);
                 if (addrs.length === 0) {
                     errors[`ipObjIds.${i}`] = ['ipObj must contain at least one address']
-                }    
+                }
             }
         }
         
@@ -224,6 +224,12 @@ export class RouteService extends Service {
                         if (addrs.length > 0 ) {
                             valid = true;
                         }
+                    }
+
+                    if (ipObjToIPObjGroup.ipObj.ipObjTypeId === 5 
+                        || ipObjToIPObjGroup.ipObj.ipObjTypeId === 6
+                        || ipObjToIPObjGroup.ipObj.ipObjTypeId === 7) {
+                            valid = true;
                     }
                 }
 
