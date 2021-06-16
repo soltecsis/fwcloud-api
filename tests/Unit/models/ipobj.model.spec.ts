@@ -55,9 +55,6 @@ describe(IPObj.name, () => {
     
                 expect(whereUsed.restrictions.IpobjInRoute).to.have.length(1);
                 expect(whereUsed.restrictions.IpobjInRoute[0].id).to.be.eq(route.id);
-                
-                expect(whereUsed.restrictions.AddrInRoute).to.have.length(1);
-                expect(whereUsed.restrictions.AddrInRoute[0].id).to.be.eq(route.id)
             })
         });
 
