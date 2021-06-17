@@ -980,7 +980,8 @@ export class IPObj extends Model {
                 if (type === 5) { // ADDRESS
                     search.restrictions.LastAddrInInterfaceInRule = await PolicyRuleToIPObj.searchLastAddrInInterfaceInRule(dbCon, id, type, fwcloud);
                     search.restrictions.LastAddrInHostInRule = await PolicyRuleToIPObj.searchLastAddrInHostInRule(dbCon, id, type, fwcloud);
-                    search.restrictions.LastAddrInInterfaceInRoute = await Route.getRouteWhichLastAddressInInterface(id, type, fwcloud);
+                    search.restrictions.LastAddrInHostInRoute = await Route.getRouteWhichLastAddressInHost(id, type, fwcloud);
+                    search.restrictions.LastAddrInHostInRoutingRule = await RoutingRule.getRoutingRuleWhichLastAddressInHost(id, type, fwcloud);
                 }
 
                 for (let key in search.restrictions) {

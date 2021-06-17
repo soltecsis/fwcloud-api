@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, getRepository, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import { Mark } from "../../ipobj/Mark";
@@ -30,6 +30,8 @@ import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { RoutingRuleToInterface } from "../routing-rule-to-interface/routing-rule-to-interface.model";
 import { RoutingTable } from "../routing-table/routing-table.model";
 import { RoutingGroup } from "../routing-group/routing-group.model";
+import { Interface } from "../../interface/Interface";
+import db from "../../../database/database-manager";
 
 const tableName: string = 'routing_r';
 
@@ -128,6 +130,40 @@ export class RoutingRule extends Model {
     
     public getTableName(): string {
         return tableName;
+    }
+
+    public static async getRoutingRuleWhichLastAddressInHost(ipobjId: number, type: number, fwcloud:number): Promise<RoutingRule[]> {
+        // Fisrt get all the interfaces in rules to which the address belongs.
+        const interfaces: Interface [] = await getRepository(Interface).createQueryBuilder('interface')
+            .select('interface.id')
+            .innerJoinAndSelect('interface.ipObjs', 'ipobj', 'ipobj.id = :id', {id: ipobjId})
+            .innerJoin('interface.hosts', 'InterfaceIPObj')
+            .innerJoin('InterfaceIPObj.hostIPObj', 'host')
+            .innerJoin('host.routingRules', 'rules')
+            .innerJoin('rules.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloud', {fwcloud})
+            .getMany();
+
+        const uniqueInterfaces: Interface[] = [];
+        for(let _interface of interfaces) {
+            let addresses: IPObj[] = await Interface.getInterfaceAddr(db.getQuery(), _interface.id);
+
+            if (addresses.length === 1 && addresses[0].id === ipobjId) {
+                uniqueInterfaces.push(_interface);
+            }
+        }
+
+        if (uniqueInterfaces.length === 0) {
+            return [];
+        }
+
+        return await getRepository(RoutingRule).createQueryBuilder('rule')
+            .innerJoin('rule.ipObjs', 'ipobj')
+            .innerJoin('ipobj.hosts', 'InterfaceIPObj')
+            .innerJoin('InterfaceIPObj.hostInterface', 'interface')
+            .where(`interface.id IN (${uniqueInterfaces.map(item => item.id).join(',')})`)
+            .getMany();
     }
 
 }

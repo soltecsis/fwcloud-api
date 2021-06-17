@@ -132,10 +132,10 @@ export class Route extends Model {
     }
 
 
-    public static async getRouteWhichLastAddressInInterface(ipobjId: number, type: number, fwcloud:number): Promise<Route[]> {
+    public static async getRouteWhichLastAddressInHost(ipobjId: number, type: number, fwcloud:number): Promise<Route[]> {
         // Fisrt get all the interfaces in rules to which the address belongs.
         const interfaces: Interface [] = await getRepository(Interface).createQueryBuilder('interface')
-            .select('interface.id', 'route.id')
+            .select('interface.id')
             .innerJoinAndSelect('interface.ipObjs', 'ipobj', 'ipobj.id = :id', {id: ipobjId})
             .innerJoin('interface.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostIPObj', 'host')
@@ -158,7 +158,8 @@ export class Route extends Model {
             return [];
         }
 
-        return await getRepository(Route).createQueryBuilder('route')
+        return await getRepository(Route)
+            .createQueryBuilder('route')
             .innerJoin('route.ipObjs', 'ipobj')
             .innerJoin('ipobj.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostInterface', 'interface')

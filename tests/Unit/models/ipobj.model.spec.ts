@@ -55,6 +55,19 @@ describe(IPObj.name, () => {
     
                 expect(whereUsed.restrictions.IpobjInRoute).to.have.length(1);
                 expect(whereUsed.restrictions.IpobjInRoute[0].id).to.be.eq(route.id);
+            });
+
+            it('should detect address usages', async () => {
+                route = await routeService.update(route.id, {
+                    ipObjIds: [fwcloudProduct.ipobjs.get('host').id]
+                });
+
+                await getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr1').id})
+                await getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr2').id})
+                const whereUsed: any = await IPObj.searchIpobjUsage(db.getQuery(), fwcloudProduct.fwcloud.id, fwcloudProduct.ipobjs.get('host-eth2-addr1').id, 5);
+            
+                expect(whereUsed.restrictions.LastAddrInHostInRoute).to.have.length(1);
+                expect(whereUsed.restrictions.LastAddrInHostInRoute[0].id).to.be.eq(route.id);
             })
         });
 
@@ -64,6 +77,19 @@ describe(IPObj.name, () => {
     
                 expect(whereUsed.restrictions.IpobjInRoutingRule).to.have.length(1);
                 expect(whereUsed.restrictions.IpobjInRoutingRule[0].id).to.be.eq(routingRule.id);
+            })
+
+            it('should detect address usages', async () => {
+                routingRule = await routingRuleService.update(route.id, {
+                    ipObjIds: [fwcloudProduct.ipobjs.get('host').id]
+                });
+
+                await getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr1').id})
+                await getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr2').id})
+                const whereUsed: any = await IPObj.searchIpobjUsage(db.getQuery(), fwcloudProduct.fwcloud.id, fwcloudProduct.ipobjs.get('host-eth2-addr1').id, 5);
+            
+                expect(whereUsed.restrictions.LastAddrInHostInRoutingRule).to.have.length(1);
+                expect(whereUsed.restrictions.LastAddrInHostInRoutingRule[0].id).to.be.eq(routingRule.id);
             })
         });
     })
