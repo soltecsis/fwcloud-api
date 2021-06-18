@@ -133,13 +133,48 @@ export class Route extends Model {
 
 
     public static async getRouteWhichLastAddressInHost(ipobjId: number, type: number, fwcloud:number): Promise<Route[]> {
-        // Fisrt get all the interfaces in rules to which the address belongs.
         const interfaces: Interface [] = await getRepository(Interface).createQueryBuilder('interface')
             .select('interface.id')
             .innerJoinAndSelect('interface.ipObjs', 'ipobj', 'ipobj.id = :id', {id: ipobjId})
             .innerJoin('interface.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostIPObj', 'host')
             .innerJoin('host.routes', 'route')
+            .innerJoin('route.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloud', {fwcloud})
+            .getMany();
+
+        const uniqueInterfaces: Interface[] = [];
+        for(let _interface of interfaces) {
+            let addresses: IPObj[] = await Interface.getInterfaceAddr(db.getQuery(), _interface.id);
+
+            if (addresses.length === 1 && addresses[0].id === ipobjId) {
+                uniqueInterfaces.push(_interface);
+            }
+        }
+
+        if (uniqueInterfaces.length === 0) {
+            return [];
+        }
+
+        return await getRepository(Route)
+            .createQueryBuilder('route')
+            .innerJoin('route.ipObjs', 'ipobj')
+            .innerJoin('ipobj.hosts', 'InterfaceIPObj')
+            .innerJoin('InterfaceIPObj.hostInterface', 'interface')
+            .where(`interface.id IN (${uniqueInterfaces.map(item => item.id).join(',')})`)
+            .getMany();
+    }
+
+    public static async getRouteWhichLastAddressInHostInGroup(ipobjId: number, type: number, fwcloud:number): Promise<Route[]> {
+        const interfaces: Interface [] = await getRepository(Interface).createQueryBuilder('interface')
+            .select('interface.id')
+            .innerJoinAndSelect('interface.ipObjs', 'ipobj', 'ipobj.id = :id', {id: ipobjId})
+            .innerJoin('interface.hosts', 'InterfaceIPObj')
+            .innerJoin('InterfaceIPObj.hostIPObj', 'host')
+            .innerJoin('host.ipObjToIPObjGroups', 'IPObjToIPObjGroup')
+            .innerJoin('IPObjToIPObjGroup.ipObjGroup', 'group')
+            .innerJoin('group.routes', 'route')
             .innerJoin('route.routingTable', 'table')
             .innerJoin('table.firewall', 'firewall')
             .innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloud', {fwcloud})

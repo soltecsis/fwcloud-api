@@ -982,6 +982,8 @@ export class IPObj extends Model {
                     search.restrictions.LastAddrInHostInRule = await PolicyRuleToIPObj.searchLastAddrInHostInRule(dbCon, id, type, fwcloud);
                     search.restrictions.LastAddrInHostInRoute = await Route.getRouteWhichLastAddressInHost(id, type, fwcloud);
                     search.restrictions.LastAddrInHostInRoutingRule = await RoutingRule.getRoutingRuleWhichLastAddressInHost(id, type, fwcloud);
+                    search.restrictions.LastAddrInGroupHostInRoute = await Route.getRouteWhichLastAddressInHostInGroup(id, type, fwcloud);
+                    search.restrictions.LastAddrInGroupHostInRoutingRule = await RoutingRule.getRoutingRuleWhichLastAddressInHostInGroup(id, type, fwcloud);
                 }
 
                 for (let key in search.restrictions) {
