@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Fixed 'After adding host to a group it is not possible move it to policy positions'.
+- Fixed 'Bug in firewall cluster node remove'.
 
 ## [1.2.0] - 2021-04-30
 ### Added
