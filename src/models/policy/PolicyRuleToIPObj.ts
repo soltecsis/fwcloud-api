@@ -1429,8 +1429,17 @@ export class PolicyRuleToIPObj extends Model {
                     // If this is a services group, then we don't need to check the IP version.
                     if (groupData[0].type === 21) return resolve(true);
 
-                    const groupIPv = await IPObjGroup.groupIPVersion(req.dbCon, req.body.ipobj_g);
-                    resolve(groupIPv === rule_ip_version ? true : false);
+                    const groupIPv: {ipv4: boolean, ipv6: boolean} = await IPObjGroup.groupIPVersion(req.dbCon, req.body.ipobj_g);
+
+                    if (rule_ip_version === 4 && groupIPv.ipv4) {
+                        return resolve(true);
+                    }
+
+                    if (rule_ip_version === 6 && groupIPv.ipv6) {
+                        return resolve(true);
+                    }
+
+                    resolve(false);
                 } catch (error) { return reject(error) }
             } else resolve(true);
         });
