@@ -24,7 +24,7 @@ import { before } from "mocha";
 import { RoutingCompiled, RoutingCompiler } from "../../../../src/compiler/routing/RoutingCompiler";
 import { RouteService } from "../../../../src/models/routing/route/route.service";
 import { RoutingTableService, RouteData } from "../../../../src/models/routing/routing-table/routing-table.service";
-import { ItemForGrid, RouteItemForCompiler } from "../../../../src/models/routing/shared";
+import { RouteItemForCompiler } from "../../../../src/models/routing/shared";
 import { expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 

@@ -21,11 +21,13 @@
 */
 
 import { EventEmitter } from 'events';
+import { RouteData } from '../../models/routing/routing-table/routing-table.service';
+import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
 
 export type RoutingCompiled = {
   id: number;
-  active: number;
+  active: boolean;
   comment: string;
   cs: string;
 }
@@ -39,7 +41,7 @@ export class RoutingCompiler {
     return;
   }
 
-  public async compile(type: 'Route' | 'Rule', data: any, eventEmitter?: EventEmitter): Promise<RoutingCompiled[]> {
+  public async compile(type: 'Route' | 'Rule', data: RouteData<RouteItemForCompiler>[] | RouteData<RoutingRuleItemForCompiler>[], eventEmitter?: EventEmitter): Promise<RoutingCompiled[]> {
     let result: RoutingCompiled[] = [];
 
     if (!data) return result;
