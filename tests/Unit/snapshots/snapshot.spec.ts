@@ -24,7 +24,7 @@ import { describeName, expect, testSuite } from "../../mocha/global-setup"
 import * as fs from "fs-extra";
 import * as path from "path";
 import { Application } from "../../../src/Application";
-import { Snapshot, SnapshotMetadata } from "../../../src/snapshots/snapshot";
+import { Snapshot, snapshotDigestContent, SnapshotMetadata } from "../../../src/snapshots/snapshot";
 import { Repository, getRepository, Migration } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
@@ -32,9 +32,7 @@ import { FSHelper } from "../../../src/utils/fs-helper";
 import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
 import { Firewall } from "../../../src/models/firewall/Firewall";
 import StringHelper from "../../../src/utils/string.helper";
-import Sinon from "sinon";
-import * as semver from "semver";
-import { DatabaseService } from "../../../src/database/database.service";
+import * as crypto from 'crypto';
 import sinon from "sinon";
 
 let app: Application;
@@ -85,7 +83,10 @@ describe(describeName('Snapshot Unit Tests'), () => {
                 name: snapshot.name,
                 comment: snapshot.comment,
                 migrations: snapshot.migrations,
-                version: snapshot.version
+                version: snapshot.version,
+                hash: crypto.createHmac('sha256', testSuite.app.config.get('crypt.secret'))
+                .update(snapshotDigestContent)
+                .digest('hex')
             });
         });
 
@@ -285,6 +286,32 @@ describe(describeName('Snapshot Unit Tests'), () => {
             expect(firewall2.compiled_at).to.be.null;
             expect(firewall2.installed_at).to.be.null;
         });
+
+        it('should remove encrypted data if snapshot hash is not equal', async () => {
+            let firewall: Firewall = await Firewall.save(Firewall.create({
+                name: 'firewall_test',
+                status: 1,
+                fwCloudId: fwCloud.id,
+                install_user: 'test',
+                install_pass: 'test'
+            }));
+
+            let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+
+            const metadata: SnapshotMetadata =  JSON.parse(fs.readFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME)).toString());
+            metadata.hash = 'test';
+            fs.writeFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME), JSON.stringify(metadata, null, 2));
+
+            snaphost = await Snapshot.load(snaphost.path);
+            await snaphost.restore();
+
+            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
+
+            firewall = (await Firewall.find({ fwCloudId: newFwCloud.id }))[0];
+
+            expect(firewall.install_user).to.be.null;
+            expect(firewall.install_pass).to.be.null;
+        })
 
         it('should migrate snapshot from the old fwcloud to the new one', async () => {
             const snapshotService: SnapshotService = await app.getService<SnapshotService>(SnapshotService.name);

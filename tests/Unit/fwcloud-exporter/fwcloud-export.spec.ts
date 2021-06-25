@@ -7,7 +7,7 @@ import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../src/utils/string.helper";
 import { FSHelper } from "../../../src/utils/fs-helper";
-import { Snapshot } from "../../../src/snapshots/snapshot";
+import { Snapshot, SnapshotMetadata } from "../../../src/snapshots/snapshot";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { User } from "../../../src/models/user/User";
 import { createUser } from "../../utils/utils";
@@ -15,6 +15,7 @@ import { SnapshotNotCompatibleException } from "../../../src/snapshots/exception
 import Sinon from "sinon";
 import { DatabaseService } from "../../../src/database/database.service";
 import sinon from "sinon";
+import { Firewall } from "../../../src/models/firewall/Firewall";
 
 describe(describeName('FwCloudExport Unit Tests'), () => {
     let app: Application;
@@ -157,6 +158,29 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
 
             await expect(t()).to.be.rejectedWith(SnapshotNotCompatibleException);
             stub.restore();
+        });
+
+        it('should remove encrypted data if export snapshot hash is not equal', async () => {
+            let firewall: Firewall = await Firewall.save(Firewall.create({
+                name: 'firewall_test',
+                status: 1,
+                fwCloudId: fwCloud.id,
+                install_user: 'test',
+                install_pass: 'test'
+            }));
+
+            fwCloudExporter = await FwCloudExport.create(directory, fwCloud, user);
+
+            const snapshotMetadata: SnapshotMetadata = JSON.parse(fs.readFileSync(path.join(fwCloudExporter.path, FwCloudExport.FWCLOUD_DATA_DIRECTORY, Snapshot.METADATA_FILENAME)).toString());
+            snapshotMetadata.hash = 'test';
+            fs.writeFileSync(path.join(fwCloudExporter.path, FwCloudExport.FWCLOUD_DATA_DIRECTORY, Snapshot.METADATA_FILENAME), JSON.stringify(snapshotMetadata, null, 2));
+
+            const restoredFwCloud: FwCloud = await fwCloudExporter.import();
+
+            firewall = (await Firewall.find({ fwCloudId: restoredFwCloud.id }))[0];
+
+            expect(firewall.install_user).to.be.null;
+            expect(firewall.install_pass).to.be.null;
         });
     });
 
