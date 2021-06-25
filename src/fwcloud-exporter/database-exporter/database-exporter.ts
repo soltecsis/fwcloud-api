@@ -49,6 +49,11 @@ import { OpenVPNToIPObjGroupExporter } from "./exporters/openvpn-to-ipobj-group.
 import { OpenVPNPrefixToIPObjGroupExporter } from "./exporters/openvpn-prefix-to-ipobj-group.exporter";
 import { FwcTreeExporter } from "./exporters/fwc-tree.exporter";
 import { ExporterResult } from "./exporter-result";
+import { RoutingTableExporter } from "./exporters/routing-table.exporter";
+import { RoutingGroupExporter } from "./exporters/routing-group.exporter";
+import { RouteExporter } from "./exporters/route.exporter";
+import { RouteGroupExporter } from "./exporters/route-group.exporter";
+import { RoutingRuleExporter } from "./exporters/routing-rule.exporter";
 
 const EXPORTERS = [
     new CaExporter(),
@@ -73,6 +78,11 @@ const EXPORTERS = [
     new PolicyRuleToOpenVPNPrefixExporter(),
     new PolicyRuleToOpenVPNExporter(),
     new PolicyRuleExporter(),
+    new RoutingTableExporter(),
+    new RoutingGroupExporter(),
+    new RoutingRuleExporter(),
+    new RouteExporter(),
+    new RouteGroupExporter(),
     new OpenVPNToIPObjGroupExporter(),
     new FwcTreeExporter()
 ];

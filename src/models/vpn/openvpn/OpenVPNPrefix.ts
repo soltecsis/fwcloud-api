@@ -21,7 +21,7 @@
 */
 
 import Model from "../../Model";
-import { PrimaryGeneratedColumn, Column, Entity, JoinTable, JoinColumn, ManyToMany, OneToMany, ManyToOne } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, JoinTable, JoinColumn, ManyToMany, OneToMany, ManyToOne, getRepository } from "typeorm";
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
@@ -378,6 +378,20 @@ export class OpenVPNPrefix extends Model {
                 */
                 search.restrictions.PrefixInRule = await this.searchPrefixInRule(dbCon, fwcloud, prefix);
                 search.restrictions.PrefixInGroup = await this.searchPrefixInGroup(dbCon, fwcloud, prefix);
+
+                search.restrictions.PrefixInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
+                    .innerJoinAndSelect('rule.openVPNPrefixes', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
+                    .innerJoin('rule.routingTable', 'table')
+                    .innerJoin('table.firewall', 'firewall')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getMany();
+
+                search.restrictions.PrefixInRoute = await getRepository(Route).createQueryBuilder('route')
+                    .innerJoinAndSelect('route.openVPNPrefixes', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
+                    .innerJoin('route.routingTable', 'table')
+                    .innerJoin('table.firewall', 'firewall')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getMany();
 
                 if (extendedSearch) {
                     // Include the rules that use the groups in which the OpenVPN prefix is being used.

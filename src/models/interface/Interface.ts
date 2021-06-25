@@ -326,7 +326,7 @@ export class Interface extends Model {
 	};
 
 	// Get interface address.
-	public static getInterfaceAddr(dbCon, _interface) {
+	public static getInterfaceAddr(dbCon, _interface): Promise<IPObj[]> {
 		return new Promise((resolve, reject) => {
 			dbCon.query(`select id,interface,ip_version from ipobj where interface=${_interface}`, (error, result) => {
 				if (error) return reject(error);

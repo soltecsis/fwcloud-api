@@ -35,6 +35,7 @@ import { FwcTree } from "../tree/fwc-tree.model";
 import { IPObj } from "../ipobj/IPObj";
 import { Mark } from "../ipobj/Mark";
 import { FSHelper } from "../../utils/fs-helper";
+import { IPObjGroup } from "../ipobj/IPObjGroup";
 
 const fwcError = require('../../utils/error_table');
 
@@ -98,6 +99,9 @@ export class FwCloud extends Model {
 
 	@OneToMany(type => IPObj, ipobj => ipobj.fwCloud)
 	ipObjs: Array<IPObj>;
+
+	@OneToMany(type => IPObjGroup, ipObjGroup => ipObjGroup.fwCloud)
+	ipObjGroups: Array<IPObjGroup>;
 
 	@OneToMany(type => Mark, mark => mark.fwCloud)
 	marks: Array<Mark>;

@@ -23,6 +23,7 @@
 import { FindManyOptions, FindOneOptions, getCustomRepository, getRepository, Repository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import db from "../../../database/database-manager";
+import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
 import { Service } from "../../../fonaments/services/service";
 import { Firewall } from "../../firewall/Firewall";
 import { IPObj } from "../../ipobj/IPObj";
@@ -36,6 +37,7 @@ import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { OpenVPNPrefixRepository } from "../../vpn/openvpn/OpenVPNPrefix.repository";
 import { Route } from "../route/route.model";
 import { RouteRepository } from "../route/route.repository";
+import { AvailableDestinations, ItemForGrid, RouteItemForCompiler, RoutingRuleItemForCompiler, RoutingUtils } from "../shared";
 import { RoutingTable } from "./routing-table.model";
 
 interface IFindManyRoutingTablePath {
@@ -59,31 +61,7 @@ interface IUpdateRoutingTable {
     comment?: string;
 }
 
-export type RouteItemDataForGrid = {
-    route_id: number;
-    id: number; // Item id.
-    name: string;
-    type: number;
-    //order: number;
-    firewall_id: number;
-    firewall_name: string;
-    cluster_id: number;
-    cluster_name: string;
-}
-
-export type RouteItemDataForCompiler = {
-    route_id: number;
-    type: number;
-    address: string;
-    netmask: string;
-    range_start: string;
-    range_end: string;
-}
-
-type ItemsDataTypes = RouteItemDataForGrid | RouteItemDataForCompiler;
-type AvailableDestinations = 'grid' | 'compiler';
-
-interface RouteData<T extends ItemsDataTypes> extends Route {
+export interface RouteData<T extends ItemForGrid | RouteItemForCompiler> extends Route {
     items: T[];
 }
     
@@ -122,7 +100,7 @@ export class RoutingTableService extends Service {
         const firewall: Firewall = await getRepository(Firewall).findOne(routingTable.firewallId, {relations: ['fwCloud']});
 
         const node: {id: number} = await Tree.getNodeUnderFirewall(db.getQuery(), firewall.fwCloud.id, firewall.id, 'RTS') as {id: number};
-        await Tree.newNode(db.getQuery(), firewall.fwCloud.id, routingTable.name, node.id, 'IR', routingTable.id, null);
+        await Tree.newNode(db.getQuery(), firewall.fwCloud.id, routingTable.name, node.id, 'RT', routingTable.id, null);
 
 
         return routingTable;
@@ -137,42 +115,22 @@ export class RoutingTableService extends Service {
 
     async remove(path: IFindOneRoutingTablePath): Promise<RoutingTable> {
         const table: RoutingTable =  await this.findOneInPath(path);
+
+        const tableWithRules: RoutingTable = await this._repository.findOne(table.id, { relations: ['routingRules']});
+
+        if (tableWithRules.routingRules.length > 0) {
+            throw new ValidationException('Routing table cannot be removed', {
+                id: ['Cannot remove a routing table which contains routing rules']
+            });
+        }
         
         await this._repository.remove(table);
-        return table;
-    }
-
-    /**
-     * Returns the an array of rules and in each rule an array of items containing the information
-     * required for compile the routes of the indicated routing table or for show the routing table routes
-     * items in the FWCloud-UI.
-     * @param dst 
-     * @param fwcloud 
-     * @param firewall 
-     * @param routingTable 
-     * @param route 
-     * @returns 
-     */
-     public async getRoutingTableData<T extends ItemsDataTypes>(dst: AvailableDestinations, fwcloud: number, firewall: number, routingTable: number, route?: number): Promise<RouteData<T>[]> {
-        const rules: RouteData<T>[] = await this._routeRepository.getRoutingTableRoutes(fwcloud, firewall, routingTable, route) as RouteData<T>[];
-         
-        // Init the map for access the objects array for each route.
-        let ItemsArrayMap = new Map<number, T[]>();
-        for (let i=0; i<rules.length; i++) {
-          rules[i].items = [];
-    
-          // Map each rule id and position with it's corresponding ipobjs array.
-          // These ipobjs array will be filled with objects data in the Promise.all()
-          // next to the outer for loop.
-          ItemsArrayMap.set(rules[i].id, rules[i].items);
-        }
-    
-        const sqls = (dst === 'grid') ? 
-            this.buildSQLsForGrid(fwcloud, firewall, routingTable) : 
-            this.buildSQLsForCompiler(fwcloud, firewall, routingTable, route);
-        await Promise.all(sqls.map(sql => this.mapRoutingData<T>(sql,ItemsArrayMap)));
         
-        return rules;
+        const node: {id: number} = await Tree.getNodeByNameAndType(path.fwCloudId, table.name, 'RT') as {id: number};
+        await Tree.deleteNodesUnderMe(db.getQuery(), path.fwCloudId, node.id);
+        await Tree.deleteFwc_Tree_node(node.id);
+
+        return table;
     }
 
     protected getFindInPathOptions(path: Partial<IFindOneRoutingTablePath>): FindOneOptions<RoutingTable> | FindManyOptions<RoutingTable> {
@@ -200,37 +158,59 @@ export class RoutingTableService extends Service {
         }
     }
     
+
+    /**
+     * Returns an array of routes and in each route an array of items containing the information
+     * required for compile the routes of the indicated routing table or for show the routing table routes
+     * items in the FWCloud-UI.
+     * @param dst 
+     * @param fwcloud 
+     * @param firewall 
+     * @param routingTable 
+     * @param route 
+     * @returns 
+     */
+     public async getRoutingTableData<T extends ItemForGrid | RouteItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, routingTable: number, route?: number): Promise<RouteData<T>[]> {
+        const routes: RouteData<T>[] = await this._routeRepository.getRoutingTableRoutes(fwcloud, firewall, routingTable, route) as RouteData<T>[];
+         
+        // Init the map for access the objects array for each route.
+        let ItemsArrayMap = new Map<number, T[]>();
+        for (let i=0; i<routes.length; i++) {
+          routes[i].items = [];
+    
+          // Map each route with it's corresponding items array.
+          // These items array will be filled with objects data in the Promise.all()
+          ItemsArrayMap.set(routes[i].id, routes[i].items);
+        }
+    
+        const sqls = (dst === 'grid') ? 
+            this.buildSQLsForGrid(fwcloud, firewall, routingTable) : 
+            this.buildSQLsForCompiler(fwcloud, firewall, routingTable, route);
+        await Promise.all(sqls.map(sql => RoutingUtils.mapEntityData<T>(sql,ItemsArrayMap)));
+        
+        return routes;
+    }
+
     private buildSQLsForCompiler(fwcloud: number, firewall: number, routingTable: number, route?: number): SelectQueryBuilder<IPObj>[] {
         return [
-            this._ipobjRepository.getIpobjsInRoutes_excludeHosts(fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInRoutes_onlyHosts(fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInGroupsInRoutes_excludeHosts(fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInGroupsInRoutes_onlyHosts(fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInOpenVPNInRoutes(fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInOpenVPNInGroupsInRoutes(fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInOpenVPNPrefixesInRoutes(fwcloud, firewall, routingTable, route),
-            this._ipobjRepository.getIpobjsInOpenVPNPrefixesInGroupsInRoutes(fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInRouting_excludeHosts('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInRouting_onlyHosts('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInGroupsInRouting_excludeHosts('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInGroupsInRouting_onlyHosts('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInOpenVPNInRouting('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInOpenVPNInGroupsInRouting('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInOpenVPNPrefixesInRouting('route', fwcloud, firewall, routingTable, route),
+            this._ipobjRepository.getIpobjsInOpenVPNPrefixesInGroupsInRouting('route', fwcloud, firewall, routingTable, route),
         ];
     }
 
     private buildSQLsForGrid(fwcloud: number, firewall: number, routingTable: number): SelectQueryBuilder<IPObj|IPObjGroup|OpenVPN|OpenVPNPrefix>[] {
         return [
-            this._ipobjRepository.getIpobjsInRoutes_ForGrid(fwcloud, firewall, routingTable),
-            this._ipobjGroupRepository.getIpobjGroupsInRoutes_ForGrid(fwcloud, firewall, routingTable),
-            this._openvpnRepository.getOpenVPNInRoutes_ForGrid(fwcloud, firewall, routingTable),
-            this._openvpnPrefixRepository.getOpenVPNPrefixInRoutes_ForGrid(fwcloud, firewall, routingTable),
+            this._ipobjRepository.getIpobjsInRouting_ForGrid('route', fwcloud, firewall, routingTable),
+            this._ipobjGroupRepository.getIpobjGroupsInRouting_ForGrid('route', fwcloud, firewall, routingTable),
+            this._openvpnRepository.getOpenVPNInRouting_ForGrid('route', fwcloud, firewall, routingTable),
+            this._openvpnPrefixRepository.getOpenVPNPrefixInRouting_ForGrid('route', fwcloud, firewall, routingTable),
         ];
     }
 
-    private async mapRoutingData<T extends ItemsDataTypes>(sql: SelectQueryBuilder<IPObj|IPObjGroup|OpenVPN|OpenVPNPrefix>, ItemsArrayMap: Map<number, T[]>): Promise<void> {
-        //console.log(sql.getQueryAndParameters());
-        const data: T[] = await sql.getRawMany() as T[];
-
-        for (let i=0; i<data.length; i++) {
-            const items: T[] = ItemsArrayMap.get(data[i].route_id);
-            items?.push(data[i]);
-        }
-
-        return;
-    }    
 }

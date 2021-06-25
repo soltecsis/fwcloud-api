@@ -21,6 +21,7 @@
 */
 
 import { IsBoolean, IsNumber, IsOptional, IsString } from "class-validator"
+import { IpObjBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation";
 
 export class RouteControllerStoreDto {
     @IsNumber()
@@ -28,6 +29,9 @@ export class RouteControllerStoreDto {
     routeGroupId: number;
     
     @IsNumber()
+    @IpObjBelongsToTypes([
+        5, // ADDRESS
+    ])
     gatewayId: number;
 
     @IsNumber()

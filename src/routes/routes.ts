@@ -99,6 +99,7 @@ export class Routes extends RouteCollection {
                                 router.get('/', RoutingTableController, 'index').name('fwclouds.firewalls.routing.tables.index');
                                 router.prefix('/:routingTable(\\d+)', (router:RouterParser) => {
                                     router.get('/', RoutingTableController, 'show').name('fwclouds.firewalls.routing.tables.show');
+                                    router.get('/grid', RoutingTableController, 'grid').name('fwclouds.firewalls.routing.tables.grid');
                                     router.put('/', RoutingTableController, 'update').name('fwclouds.firewalls.routing.tables.update');
                                     router.delete('/', RoutingTableController, 'remove').name('fwclouds.firewalls.routing.tables.delete');
                                     router.prefix('/routes', (router: RouterParser) => {

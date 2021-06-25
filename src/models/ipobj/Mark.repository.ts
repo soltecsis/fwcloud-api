@@ -22,28 +22,38 @@
 
 import { EntityRepository, SelectQueryBuilder } from "typeorm";
 import { Repository } from "../../database/repository";
-import { ValidEntities } from "./IPObj.repository";
-import { IPObjGroup } from "./IPObjGroup";
+import { Mark } from "./Mark";
 
-@EntityRepository(IPObjGroup)
-export class IPObjGroupRepository extends Repository<IPObjGroup> {
+@EntityRepository(Mark)
+export class MarkRepository extends Repository<Mark> {
+  getMarksInRoutingRules(fwcloud: number, firewall: number, rule?: number): SelectQueryBuilder<Mark> {
+    let q = this.createQueryBuilder("mark")
+      .select("(select id from ipobj_type where id=30)","type").addSelect("null as address").addSelect("null as netmask")
+      .addSelect("null as range_start").addSelect("null as range_end")
+      .addSelect("mark.code","mark_code")
+      .addSelect("rule.id","entityId")
+      .innerJoin("mark.routingRules", "rule")
+      .innerJoin("rule.routingTable", "table")
+      .innerJoin("table.firewall", "firewall")
+      .innerJoin("firewall.fwCloud", "fwcloud")
+      .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
+      .andWhere("firewall.id = :firewall", {firewall: firewall});
 
- getIpobjGroupsInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<IPObjGroup> {
-    let q = this.createQueryBuilder("ipobjGroup")
-      .select("ipobjGroup.id","id").addSelect("ipobjGroup.name","name").addSelect("ipobjGroup.type","type")
+      return rule ? q.andWhere('rule.id = :ruleId', {ruleId: rule}) : q;
+  }      
+
+  getMarksInRoutingRules_ForGrid(fwcloud: number, firewall: number): SelectQueryBuilder<Mark> {
+    return this.createQueryBuilder("mark")
+      .select("mark.id","id").addSelect("mark.name","name").addSelect("(select id from ipobj_type where id=30)","type")
       .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
       .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
-      .addSelect(`${entity}.id`,"entityId")
-      .innerJoin(`ipobjGroup.${entity==='route'?'routes':'routingRules'}`, `${entity}`)
-      .innerJoin(`${entity}.routingTable`, "table")
+      .addSelect("rule.id","entityId")
+      .innerJoin("mark.routingRules","rule")
+      .innerJoin("rule.routingTable", "table")
       .innerJoin("table.firewall", "firewall")
       .innerJoin("firewall.fwCloud", "fwcloud")
       .leftJoin("firewall.cluster", "cluster")
       .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
       .andWhere("firewall.id = :firewall", {firewall: firewall});
-
-    if (routingTable) q = q.andWhere("table.id = :routingTable", {routingTable});
-
-    return q;
   }    
 }
