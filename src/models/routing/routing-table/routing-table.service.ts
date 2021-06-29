@@ -25,6 +25,7 @@ import { Application } from "../../../Application";
 import db from "../../../database/database-manager";
 import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
 import { Service } from "../../../fonaments/services/service";
+import { ErrorBag } from "../../../fonaments/validation/validator";
 import { Firewall } from "../../firewall/Firewall";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjRepository } from "../../ipobj/IPObj.repository";
@@ -96,6 +97,7 @@ export class RoutingTableService extends Service {
     }
 
     async create(data: ICreateRoutingTable): Promise<RoutingTable> {
+        await this.validateCreateRoutingTable(data);
         const routingTable: RoutingTable = await this._repository.save(data);
         const firewall: Firewall = await getRepository(Firewall).findOne(routingTable.firewallId, {relations: ['fwCloud']});
 
@@ -189,6 +191,31 @@ export class RoutingTableService extends Service {
         await Promise.all(sqls.map(sql => RoutingUtils.mapEntityData<T>(sql,ItemsArrayMap)));
         
         return routes;
+    }
+
+    /**
+     * Checks Routing Table create data is valid. It will check:
+     *  - Number is not already being used by other table in the same firewall
+     * 
+     */
+     protected async validateCreateRoutingTable(data: ICreateRoutingTable): Promise<void> {
+        const errors: ErrorBag = {};
+
+        const tablesWithSameNumber: RoutingTable[] = await getRepository(RoutingTable).find({
+            where: {
+                number: data.number,
+                firewallId: data.firewallId
+            }
+        });
+
+        if (tablesWithSameNumber.length > 0) {
+            errors['number'] = ['number already used'];
+        }
+
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
+        
     }
 
     private buildSQLsForCompiler(fwcloud: number, firewall: number, routingTable: number, route?: number): SelectQueryBuilder<IPObj>[] {
