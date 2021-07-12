@@ -21,6 +21,7 @@
 */
 
 import { EventEmitter } from 'events';
+import { ValidationException } from '../../fonaments/exceptions/validation-exception';
 import { RouteData } from '../../models/routing/routing-table/routing-table.service';
 import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
@@ -33,12 +34,29 @@ export type RoutingCompiled = {
 }
 
 export class RoutingCompiler {
-  public ruleCompile(ruleData: any): Promise<string> {
-    return;
+  public ruleCompile(ruleData: any): string {
+    return '';
   }
 
-  public routeCompile(routeData: any): Promise<string> {
-    return;
+  public routeCompile(routeData: RouteData<RouteItemForCompiler>): string {
+    const items = routeData.items;
+    const gw = routeData.gateway.address;
+    let cs = '';
+
+    for (let i=0; i<items.length; i++) {
+      cs += '$IP ro add ';
+      switch(items[i].type) {
+        case 5: //ADDRESS
+          cs += `${items[i].address}`;
+          break;
+
+        default:
+          throw new ValidationException('Bad compilation data', null);
+      }
+      cs += ` gw ${gw} table ${routeData.routingTableId}\n`;
+    }
+
+    return cs;
   }
 
   public async compile(type: 'Route' | 'Rule', data: RouteData<RouteItemForCompiler>[] | RouteData<RoutingRuleItemForCompiler>[], eventEmitter?: EventEmitter): Promise<RoutingCompiled[]> {
@@ -53,7 +71,7 @@ export class RoutingCompiler {
           id: data[i].id,
           active: data[i].active,
           comment: data[i].comment,
-          cs: (data[i].active || data.length===1) ? (type=='Route' ? await this.routeCompile(data[i]) : await this.ruleCompile(data[i])) : ''
+          cs: (data[i].active || data.length===1) ? (type=='Route' ? this.routeCompile(data[i]) : this.ruleCompile(data[i])) : ''
         });
     }
 
