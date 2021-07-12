@@ -21,38 +21,39 @@
 */
 
 import { EventEmitter } from 'events';
+import { RouteData } from '../../models/routing/routing-table/routing-table.service';
+import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
 
 export type RoutingCompiled = {
   id: number;
-  active: number;
+  active: boolean;
   comment: string;
   cs: string;
 }
-
 
 export class RoutingCompiler {
   public ruleCompile(ruleData: any): Promise<string> {
     return;
   }
 
-  public routeCompile(ruleData: any): Promise<string> {
+  public routeCompile(routeData: any): Promise<string> {
     return;
   }
 
-  public async compile(rulesData: any, eventEmitter?: EventEmitter): Promise<RoutingCompiled[]> {
+  public async compile(type: 'Route' | 'Rule', data: RouteData<RouteItemForCompiler>[] | RouteData<RoutingRuleItemForCompiler>[], eventEmitter?: EventEmitter): Promise<RoutingCompiled[]> {
     let result: RoutingCompiled[] = [];
 
-    if (!rulesData) return result;
+    if (!data) return result;
 
-    for (let i=0; i<rulesData.length; i++) {
-        if (eventEmitter) eventEmitter.emit('message', new ProgressNoticePayload(`Rule ${i+1} (ID: ${rulesData[i].id})${!(rulesData[i].active) ? ' [DISABLED]' : ''}`));
+    for (let i=0; i<data.length; i++) {
+        if (eventEmitter) eventEmitter.emit('message', new ProgressNoticePayload(`${type} ${i+1} (ID: ${data[i].id})${!(data[i].active) ? ' [DISABLED]' : ''}`));
 
         result.push({
-          id: rulesData[i].id,
-          active: rulesData[i].active,
-          comment: rulesData[i].comment,
-          cs: (rulesData[i].active || rulesData.length===1) ? await this.routeCompile(rulesData[i]) : ''
+          id: data[i].id,
+          active: data[i].active,
+          comment: data[i].comment,
+          cs: (data[i].active || data.length===1) ? (type=='Route' ? await this.routeCompile(data[i]) : await this.ruleCompile(data[i])) : ''
         });
     }
 
