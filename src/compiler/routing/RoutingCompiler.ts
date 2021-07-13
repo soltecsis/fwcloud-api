@@ -24,6 +24,8 @@ import { EventEmitter } from 'events';
 import { RouteData } from '../../models/routing/routing-table/routing-table.service';
 import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
+import { RoutingRulesData } from '../../models/routing/routing-rule/routing-rule.service';
+import ip from 'ip';
 
 export type RoutingCompiled = {
   id: number;
@@ -33,15 +35,31 @@ export type RoutingCompiled = {
 }
 
 export class RoutingCompiler {
-  public ruleCompile(ruleData: any): Promise<string> {
-    return;
+  public ruleCompile(ruleData: RoutingRulesData<RoutingRuleItemForCompiler>): string {
+    const items = this.breakDownItems(ruleData.items,'from ');
+    let cs = '';
+
+    for (let i=0; i<items.length; i++)
+      cs += `$IP rule add ${items[i]} table ${ruleData.routingTable.number}\n`;
+
+    return cs;
   }
 
-  public routeCompile(routeData: any): Promise<string> {
-    return;
+
+  public routeCompile(routeData: RouteData<RouteItemForCompiler>): string {
+    const items = this.breakDownItems(routeData.items,'');
+    const gw = routeData.gateway.address;
+    const dev = (routeData.interface && routeData.interface.name) ? ` dev ${routeData.interface.name} ` : ' ';
+    let cs = '';
+
+    for (let i=0; i<items.length; i++)
+      cs += `$IP route add ${items[i]} via ${gw}${dev}table ${routeData.routingTable.number}\n`;
+
+    return cs;
   }
 
-  public async compile(type: 'Route' | 'Rule', data: RouteData<RouteItemForCompiler>[] | RouteData<RoutingRuleItemForCompiler>[], eventEmitter?: EventEmitter): Promise<RoutingCompiled[]> {
+
+  public compile(type: 'Route' | 'Rule', data: RouteData<RouteItemForCompiler>[] | RoutingRulesData<RoutingRuleItemForCompiler>[], eventEmitter?: EventEmitter): RoutingCompiled[] {
     let result: RoutingCompiled[] = [];
 
     if (!data) return result;
@@ -53,8 +71,43 @@ export class RoutingCompiler {
           id: data[i].id,
           active: data[i].active,
           comment: data[i].comment,
-          cs: (data[i].active || data.length===1) ? (type=='Route' ? await this.routeCompile(data[i]) : await this.ruleCompile(data[i])) : ''
+          cs: (data[i].active || data.length===1) ? (type=='Route' ? this.routeCompile(data[i] as RouteData<RouteItemForCompiler>) : this.ruleCompile(data[i] as RoutingRulesData<RoutingRuleItemForCompiler>)) : ''
         });
+    }
+
+    return result;
+  }
+
+
+  private breakDownItems(items: RouteItemForCompiler[] | RoutingRuleItemForCompiler[], dir: string): string[] {
+    let result: string[] = [];
+
+    for (let i=0; i<items.length; i++) {
+      switch(items[i].type) {
+        case 5: // ADDRESS
+          result.push(`${dir}${items[i].address}`);
+          break;
+
+        case 7: // NETWORK
+          if (items[i].netmask[0] === '/')
+            result.push(`${dir}${items[i].address}${items[i].netmask}`);
+          else {
+            const net = ip.subnet(items[i].address, items[i].netmask);
+            result.push(`${dir}${items[i].address}/${net.subnetMaskLength}`);
+          }
+          break;
+
+        case 6: // ADDRESS RANGE
+          const firstLong = ip.toLong(items[i].range_start);
+          const lastLong = ip.toLong(items[i].range_end);
+          for(let current=firstLong; current<=lastLong; current++)
+            result.push(`${dir}${ip.fromLong(current)}`);
+          break;
+
+        case 30: // IPTABLES MARKS
+          result.push(`fwmark ${(items[i] as RoutingRuleItemForCompiler).mark_code}`);
+          break;
+      }
     }
 
     return result;

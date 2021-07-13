@@ -47,6 +47,7 @@ export type FwCloudProduct = {
     firewall: Firewall;
     ipobjGroup: IPObjGroup;
     ipobjs: Map<string, IPObj>;
+    interfaces: Map<string, Interface>;
     ca: Ca;
     crts: Map<string, Crt>;
     openvpnServer: OpenVPN;
@@ -96,6 +97,7 @@ export class FwCloudFactory {
 
         this.fwc = {} as FwCloudProduct;
         this.fwc.ipobjs = new Map<string, IPObj>();
+        this.fwc.interfaces = new Map<string, Interface>();
         this.fwc.crts = new Map<string, Crt>();
         this.fwc.openvpnClients = new Map<string, OpenVPN>();
         this.fwc.routes = new Map<string, Route>();
@@ -123,6 +125,8 @@ export class FwCloudFactory {
     }
 
     private async makeFwcAndFw(): Promise<void> {
+        let FWInterface: Interface;
+
         this.fwc.fwcloud = await this._fwcloudRepository.save(this._fwcloudRepository.create({
             id: this.randomId(10,100000),
             name: StringHelper.randomize(10)
@@ -133,6 +137,13 @@ export class FwCloudFactory {
             name: StringHelper.randomize(10),
             fwCloudId: this.fwc.fwcloud.id
         }));
+
+        this.fwc.interfaces.set('firewall-interface1', await this._interfaceRepository.save(this._interfaceRepository.create({
+            name: `eth${this.randomId(0,100)}`,
+            type: '10',
+            interface_type: '10',
+            firewallId: this.fwc.firewall.id
+        })));
     }
 
     private async makeIpobjGroup(): Promise<void> {
@@ -178,6 +189,16 @@ export class FwCloudFactory {
             name: 'network',
             address: '10.20.30.0',
             netmask: '/24',
+            ipObjTypeId: 7,
+            interfaceId: null,
+            fwCloudId: this.fwc.fwcloud.id
+        })));
+
+        this.fwc.ipobjs.set('networkNoCIDR', await this._ipobjRepository.save(this._ipobjRepository.create({
+            id: this._ipobjNextId++,
+            name: 'network',
+            address: '192.168.0.0',
+            netmask: '255.255.0.0',
             ipObjTypeId: 7,
             interfaceId: null,
             fwCloudId: this.fwc.fwcloud.id
@@ -424,13 +445,14 @@ export class FwCloudFactory {
         this.fwc.routingTable = await this._routingTableRepository.save({
             id: this.randomId(10,100000),
             firewallId: this.fwc.firewall.id,
-            number: 1,
+            number: this.randomId(0,256),
             name: 'Routing table',
         });
 
         this.fwc.routes.set('route1', await routeService.create({
             routingTableId: this.fwc.routingTable.id,
-            gatewayId: this.fwc.ipobjs.get('gateway').id
+            gatewayId: this.fwc.ipobjs.get('gateway').id,
+            interfaceId: this.fwc.interfaces.get('firewall-interface1').id
         }));
 
         this.fwc.routes.set('route2', await routeService.create({
