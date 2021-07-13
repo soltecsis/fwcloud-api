@@ -21,10 +21,10 @@
 */
 
 import { EventEmitter } from 'events';
-import { ValidationException } from '../../fonaments/exceptions/validation-exception';
 import { RouteData } from '../../models/routing/routing-table/routing-table.service';
 import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
+import { RoutingRulesData } from '../../models/routing/routing-rule/routing-rule.service';
 import ip from 'ip';
 
 export type RoutingCompiled = {
@@ -35,9 +35,8 @@ export type RoutingCompiled = {
 }
 
 export class RoutingCompiler {
-  public ruleCompile(ruleData: RouteData<RoutingRuleItemForCompiler>): string {
-    const items = this.breakDownItems(ruleData.items);
-    const gw = ruleData.gateway.address;
+  public ruleCompile(ruleData: RoutingRulesData<RoutingRuleItemForCompiler>): string {
+    const items = this.breakDownItems(ruleData.items,'from ');
     let cs = '';
 
     for (let i=0; i<items.length; i++)
@@ -48,7 +47,7 @@ export class RoutingCompiler {
 
 
   public routeCompile(routeData: RouteData<RouteItemForCompiler>): string {
-    const items = this.breakDownItems(routeData.items);
+    const items = this.breakDownItems(routeData.items,'');
     const gw = routeData.gateway.address;
     const dev = (routeData.interface && routeData.interface.name) ? ` dev ${routeData.interface.name} ` : ' ';
     let cs = '';
@@ -60,7 +59,7 @@ export class RoutingCompiler {
   }
 
 
-  public compile(type: 'Route' | 'Rule', data: RouteData<RouteItemForCompiler>[] | RouteData<RoutingRuleItemForCompiler>[], eventEmitter?: EventEmitter): RoutingCompiled[] {
+  public compile(type: 'Route' | 'Rule', data: RouteData<RouteItemForCompiler>[] | RoutingRulesData<RoutingRuleItemForCompiler>[], eventEmitter?: EventEmitter): RoutingCompiled[] {
     let result: RoutingCompiled[] = [];
 
     if (!data) return result;
@@ -72,7 +71,7 @@ export class RoutingCompiler {
           id: data[i].id,
           active: data[i].active,
           comment: data[i].comment,
-          cs: (data[i].active || data.length===1) ? (type=='Route' ? this.routeCompile(data[i] as  RouteData<RouteItemForCompiler>) : this.ruleCompile(data[i] as RouteData<RoutingRuleItemForCompiler>)) : ''
+          cs: (data[i].active || data.length===1) ? (type=='Route' ? this.routeCompile(data[i] as RouteData<RouteItemForCompiler>) : this.ruleCompile(data[i] as RoutingRulesData<RoutingRuleItemForCompiler>)) : ''
         });
     }
 
@@ -80,21 +79,21 @@ export class RoutingCompiler {
   }
 
 
-  private breakDownItems(items: RouteItemForCompiler[] | RoutingRuleItemForCompiler[]): string[] {
+  private breakDownItems(items: RouteItemForCompiler[] | RoutingRuleItemForCompiler[], dir: string): string[] {
     let result: string[] = [];
 
     for (let i=0; i<items.length; i++) {
       switch(items[i].type) {
         case 5: // ADDRESS
-          result.push(`${items[i].address}`);
+          result.push(`${dir}${items[i].address}`);
           break;
 
         case 7: // NETWORK
           if (items[i].netmask[0] === '/')
-            result.push(`${items[i].address}${items[i].netmask}`);
+            result.push(`${dir}${items[i].address}${items[i].netmask}`);
           else {
             const net = ip.subnet(items[i].address, items[i].netmask);
-            result.push(`${items[i].address}/${net.subnetMaskLength}`);
+            result.push(`${dir}${items[i].address}/${net.subnetMaskLength}`);
           }
           break;
 
@@ -102,11 +101,12 @@ export class RoutingCompiler {
           const firstLong = ip.toLong(items[i].range_start);
           const lastLong = ip.toLong(items[i].range_end);
           for(let current=firstLong; current<=lastLong; current++)
-            result.push(`${ip.fromLong(current)}`);
+            result.push(`${dir}${ip.fromLong(current)}`);
           break;
 
-        default:
-          throw new ValidationException('Bad compilation data', null);
+        case 30: // IPTABLES MARKS
+          result.push(`fwmark ${(items[i] as RoutingRuleItemForCompiler).mark_code}`);
+          break;
       }
     }
 

@@ -66,11 +66,12 @@ describe('Routing route compiler', () => {
           openVPNIds: [fwc.openvpnClients.get('OpenVPN-Cli-3').id],
           openVPNPrefixIds: [fwc.openvpnPrefix.id]
       });
+
       await routeService.update(fwc.routes.get('route2').id, {
           ipObjGroupIds: [fwc.ipobjGroup.id]
       });
 
-      routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id,fwc.firewall.id,fwc.routingTable.id);            
+      routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id, fwc.firewall.id, fwc.routingTable.id);            
       compilation = compiler.compile('Route',routes);
     });
 
