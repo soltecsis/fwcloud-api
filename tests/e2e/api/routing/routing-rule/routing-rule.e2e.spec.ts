@@ -1,3 +1,25 @@
+/*!
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { getRepository } from "typeorm";
 import { Application } from "../../../../../src/Application";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
@@ -12,6 +34,11 @@ import { RoutingTable } from "../../../../../src/models/routing/routing-table/ro
 import { RoutingRule } from "../../../../../src/models/routing/routing-rule/routing-rule.model";
 import { RoutingRuleService } from "../../../../../src/models/routing/routing-rule/routing-rule.service";
 import { RoutingRuleController } from "../../../../../src/controllers/routing/routing-rule/routing-rule.controller";
+import { IPObj } from "../../../../../src/models/ipobj/IPObj";
+import { IPObjGroup } from "../../../../../src/models/ipobj/IPObjGroup";
+import { OpenVPN } from "../../../../../src/models/vpn/openvpn/OpenVPN";
+import { Crt } from "../../../../../src/models/vpn/pki/Crt";
+import { Ca } from "../../../../../src/models/vpn/pki/Ca";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;
@@ -321,6 +348,93 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     });
             });
 
+            it('should thrown a validation exception if ipobj type is not valid', async () => {
+                const ipobj = await getRepository(IPObj).save(getRepository(IPObj).create({
+                    name: 'test',
+                    address: '0.0.0.0',
+                    ipObjTypeId: 0,
+                    interfaceId: null
+                }));
+
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))
+                    .send({
+                        routingTableId: table.id,
+                        comment: 'other_route',
+                        ipObjIds: [ipobj.id]
+                    })
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(422);
+            });
+
+            it('should thrown a validation exception if ipobj group type is not valid', async () => {
+                const group = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                    name: 'test',
+                    type: 0
+                }));
+
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))
+                    .send({
+                        routingTableId: table.id,
+                        comment: 'other_route',
+                        ipObjGroupIds: [group.id]
+                    })
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(422);
+            });
+
+            it('should thrown a validation exception if openvpn type is not valid', async () => {
+                const openvpn = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                    firewallId: firewall.id,
+                    crt: await getRepository(Crt).save(getRepository(Crt).create({
+                        cn: StringHelper.randomize(10),
+                        days: 100,
+                        type: 0,
+                        ca: await getRepository(Ca).save(getRepository(Ca).create({
+                            fwCloud: fwCloud,
+                            cn: StringHelper.randomize(10),
+                            days: 100,
+                        }))
+                    })),
+                    parent: await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                        firewallId: firewall.id,
+                        crt: await getRepository(Crt).save(getRepository(Crt).create({
+                            cn: StringHelper.randomize(10),
+                            days: 100,
+                            type: 0,
+                            ca: await getRepository(Ca).save(getRepository(Ca).create({
+                                fwCloud: fwCloud,
+                                cn: StringHelper.randomize(10),
+                                days: 100,
+                            }))
+                        }))
+                    }))
+                }));
+
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))
+                    .send({
+                        routingTableId: table.id,
+                        comment: 'other_route',
+                        openVPNIds: [openvpn.id]
+                    })
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(422);
+            });
+
 
         });
 
@@ -367,11 +481,15 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
                     .then(async () => {
-                        expect(await routingRuleService.findOne(rule.id)).to.be.undefined
+                        expect(await routingRuleService.findOneInPath({
+                            fwCloudId: fwCloud.id,
+                            firewallId: firewall.id,
+                            id: rule.id
+                        })).to.be.undefined
                     });
             });
 
-            it('admin user should create a rules', async () => {
+            it('admin user should remove a rule', async () => {
                 return await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
@@ -381,7 +499,11 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
                     .then(async () => {
-                        expect(await routingRuleService.findOne(rule.id)).to.be.undefined
+                        expect(await routingRuleService.findOneInPath({
+                            fwCloudId: fwCloud.id,
+                            firewallId: firewall.id,
+                            id: rule.id
+                        })).to.be.undefined
                     });
             });
 

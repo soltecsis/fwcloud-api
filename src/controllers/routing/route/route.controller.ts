@@ -1,3 +1,25 @@
+/*!
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { Validate } from "../../../decorators/validate.decorator";
 import { Controller } from "../../../fonaments/http/controller";
 import { Firewall } from "../../../models/firewall/Firewall";
@@ -28,10 +50,10 @@ export class RouteController extends Controller {
     async index(request: Request): Promise<ResponseBuilder> {
         (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
         
-        const routes: Route[] = await this._routeService.find({
-            where: {
-                routingTableId: this._routingTable.id
-            }
+        const routes: Route[] = await this._routeService.findManyInPath({
+            fwCloudId: this._fwCloud.id,
+            firewallId: this._firewall.id,
+            routingTableId: this._routingTable.id,
         });
 
         return ResponseBuilder.buildResponse().status(200).body(routes); 
@@ -39,7 +61,7 @@ export class RouteController extends Controller {
 
     @Validate()
     async show(request: Request): Promise<ResponseBuilder> {
-        const route: Route = await this._routeService.findOneWithinFwCloudOrFail({
+        const route: Route = await this._routeService.findOneInPathOrFail({
             fwCloudId: this._fwCloud.id,
             firewallId: this._firewall.id,
             routingTableId: this._routingTable.id,
@@ -66,7 +88,7 @@ export class RouteController extends Controller {
 
     @Validate(RouteControllerUpdateDto)
     async update(request: Request): Promise<ResponseBuilder> {
-        const route: Route = await this._routeService.findOneWithinFwCloudOrFail({
+        const route: Route = await this._routeService.findOneInPathOrFail({
             fwCloudId: this._fwCloud.id,
             firewallId: this._firewall.id,
             routingTableId: this._routingTable.id,
@@ -75,14 +97,14 @@ export class RouteController extends Controller {
         
         (await RoutePolicy.update(route, request.session.user)).authorize();
 
-        const result: Route = await this._routeService.update(route, request.inputs.all());
+        const result: Route = await this._routeService.update(route.id, request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
     
     @Validate()
     async remove(request: Request): Promise<ResponseBuilder> {
-        const route: Route = await this._routeService.findOneWithinFwCloudOrFail({
+        const route: Route = await this._routeService.findOneInPathOrFail({
             fwCloudId: this._fwCloud.id,
             firewallId: this._firewall.id,
             routingTableId: this._routingTable.id,
@@ -91,7 +113,12 @@ export class RouteController extends Controller {
         
         (await RoutePolicy.delete(route, request.session.user)).authorize();
 
-        await this._routeService.delete(route.id);
+        await this._routeService.remove({
+            fwCloudId: this._fwCloud.id,
+            firewallId: this._firewall.id,
+            routingTableId: this._routingTable.id,
+            id: parseInt(request.params.route)
+        });
         return ResponseBuilder.buildResponse().status(200).body(route);
     }
 }

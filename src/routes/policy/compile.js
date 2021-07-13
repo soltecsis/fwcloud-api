@@ -58,11 +58,12 @@ var router = express.Router();
 
 
 const config = require('../../config/config');
-import { PolicyScript } from '../../compiler/PolicyScript';
-import { PolicyCompiler } from '../../compiler/PolicyCompiler';
+import { PolicyScript } from '../../compiler/policy/PolicyScript';
+import { PolicyCompiler } from '../../compiler/policy/PolicyCompiler';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressErrorPayload } from '../../sockets/messages/socket-message';
-import { logger } from '../../fonaments/abstract-application';
+import { app, logger } from '../../fonaments/abstract-application';
+import { RoutingTableService } from '../../models/routing/routing-table/routing-table.service';
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -89,12 +90,13 @@ router.put('/rule', async (req, res) => {
 /* Compile a firewall. */
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.put('/', async (req, res) => {
+	const channel = await Channel.fromRequest(req);
+
 	try {
-		const channel = await Channel.fromRequest(req);
 		await PolicyScript.generate(req.dbCon, req.body.fwcloud, req.body.firewall, channel);
 		res.status(204).end();
 	} catch(error) {
-		channel.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));
+		if (channel) channel.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));
 		logger().error('Error compiling firewall: ' + JSON.stringify(error));
 		res.status(400).json(error);		
 	}		

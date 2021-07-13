@@ -46,7 +46,7 @@ import sshTools from '../../utils/ssh';
 import { RoutingTable } from "../routing/routing-table/routing-table.model";
 import { RoutingGroup } from "../routing/routing-group/routing-group.model";
 import { RouteGroup } from "../routing/route-group/route-group.model";
-import { AvailablePolicyCompilers } from "../../compiler/PolicyCompiler";
+import { AvailablePolicyCompilers } from "../../compiler/policy/PolicyCompiler";
 
 const tableName: string = 'firewall';
 

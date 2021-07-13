@@ -53,7 +53,7 @@ var router = express.Router();
  * @property PolicyScript
  * @type ../../models/compile/
  */
-import { PolicyScript } from '../../compiler/PolicyScript';
+import { PolicyScript } from '../../compiler/policy/PolicyScript';
 import { Firewall } from '../../models/firewall/Firewall';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload } from '../../sockets/messages/socket-message';

@@ -22,7 +22,8 @@
 
 import { Repository } from "../../../database/repository";
 import { OpenVPN } from "./OpenVPN";
-import { EntityRepository } from "typeorm";
+import { EntityRepository, SelectQueryBuilder } from "typeorm";
+import { ValidEntities } from "../../ipobj/IPObj.repository";
 
 @EntityRepository(OpenVPN)
 export class OpenVPNRepository extends Repository<OpenVPN> {
@@ -33,4 +34,24 @@ export class OpenVPNRepository extends Repository<OpenVPN> {
           installed_at: null
       }).execute();
   }
+
+  getOpenVPNInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<OpenVPN> {
+    let q = this.createQueryBuilder("vpn")
+      .select("vpn.id","id").addSelect("crt.cn","name").addSelect("(select id from ipobj_type where id=311)","type")
+      .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
+      .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
+      .addSelect(`${entity}.id`,"entityId")
+      .innerJoin(`vpn.${entity==='route'?'routes':'routingRules'}`, `${entity}`)
+      .innerJoin(`${entity}.routingTable`, "table")
+      .innerJoin("table.firewall", "firewall")
+      .innerJoin("firewall.fwCloud", "fwcloud")
+      .leftJoin("firewall.cluster", "cluster")
+      .innerJoin("vpn.crt", "crt")
+      .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
+      .andWhere("firewall.id = :firewall", {firewall: firewall});
+
+    if (routingTable) q = q.andWhere("table.id = :routingTable", {routingTable});
+
+    return q;
+  }    
 }

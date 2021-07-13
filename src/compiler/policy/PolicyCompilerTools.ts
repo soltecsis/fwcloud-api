@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { PolicyTypesMap } from '../models/policy/PolicyType';
+import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { AvailablePolicyCompilers } from './PolicyCompiler';
 const ip = require('ip');
-const fwcError = require('../utils/error_table');
+const fwcError = require('../../utils/error_table');
 const shellescape = require('shell-escape');
 
 export const RuleActionsMap = new Map<string, number>([

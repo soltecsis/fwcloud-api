@@ -27,9 +27,9 @@ import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
-import { RuleActionsMap, POLICY_TYPE, CompilerAction } from '../../../../src/compiler/PolicyCompilerTools';
+import { RuleActionsMap, POLICY_TYPE, CompilerAction } from '../../../../src/compiler/policy/PolicyCompilerTools';
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
-import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/PolicyCompiler";
+import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/policy/PolicyCompiler";
 
 describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     let fwcloud: number;

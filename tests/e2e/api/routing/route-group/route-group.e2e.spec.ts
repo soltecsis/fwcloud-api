@@ -1,3 +1,25 @@
+/*!
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { expect } from "chai";
 import request = require("supertest");
 import { getRepository } from "typeorm";
@@ -67,6 +89,7 @@ describe(describeName('Route Group E2E Tests'), () => {
         route = await getRepository(Route).save({
             routingTableId: table.id,
             gatewayId: gateway.id,
+            position: 1
         });
 
     });
@@ -206,7 +229,8 @@ describe(describeName('Route Group E2E Tests'), () => {
             beforeEach(async () => {
                 data = {
                     name: Date.now().toString(),
-                    comment: Date.now().toString()
+                    comment: Date.now().toString(),
+                    routes: [route.id]
                 }
             });
 
@@ -246,6 +270,7 @@ describe(describeName('Route Group E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.name).to.equal(data.name);
                         expect(response.body.data.comment).to.equal(data.comment);
+                        expect(response.body.data.routes).to.have.length(1);
                     });
             });
 
@@ -261,6 +286,7 @@ describe(describeName('Route Group E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.name).to.equal(data.name);
                         expect(response.body.data.comment).to.equal(data.comment);
+                        expect(response.body.data.routes).to.have.length(1);
                     });
             });
         });
@@ -278,7 +304,8 @@ describe(describeName('Route Group E2E Tests'), () => {
 
                 data = {
                     name: Date.now().toString(),
-                    comment: Date.now().toString()
+                    comment: Date.now().toString(),
+                    routes: [route.id]
                 }
             });
 
@@ -321,6 +348,7 @@ describe(describeName('Route Group E2E Tests'), () => {
                         expect(response.body.data.id).to.equal(group.id);
                         expect(response.body.data.name).to.equal(data.name);
                         expect(response.body.data.comment).to.equal(data.comment);
+                        expect(response.body.data.routes).to.have.length(1);
                     });
             });
 
@@ -338,6 +366,7 @@ describe(describeName('Route Group E2E Tests'), () => {
                         expect(response.body.data.id).to.equal(group.id);
                         expect(response.body.data.name).to.equal(data.name);
                         expect(response.body.data.comment).to.equal(data.comment);
+                        expect(response.body.data.routes).to.have.length(1);
                     });
             });
         });

@@ -1,6 +1,28 @@
+/*!
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { expect } from "chai";
 import request = require("supertest");
-import { getRepository } from "typeorm";
+import { getCustomRepository, getRepository } from "typeorm";
 import { Application } from "../../../../../src/Application";
 import { _URL } from "../../../../../src/fonaments/http/router/router.service";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
@@ -8,6 +30,7 @@ import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
 import { RoutingGroup } from "../../../../../src/models/routing/routing-group/routing-group.model";
 import { RoutingGroupService } from "../../../../../src/models/routing/routing-group/routing-group.service";
 import { RoutingRule } from "../../../../../src/models/routing/routing-rule/routing-rule.model";
+import { RoutingRuleRepository } from "../../../../../src/models/routing/routing-rule/routing-rule.repository";
 import { RoutingTable } from "../../../../../src/models/routing/routing-table/routing-table.model";
 import { User } from "../../../../../src/models/user/User";
 import StringHelper from "../../../../../src/utils/string.helper";
@@ -55,8 +78,9 @@ describe(describeName('Routing Group E2E Tests'), () => {
             name: 'name',
         });
 
-        rule = await getRepository(RoutingRule).save({
+        rule = await getCustomRepository(RoutingRuleRepository).save({
             routingTableId: table.id,
+            position: 1
         });
 
     });
@@ -123,9 +147,7 @@ describe(describeName('Routing Group E2E Tests'), () => {
                     });
             });
         });
-    });
 
-    describe(RoutingGroup.name, () => {
         describe('@show', () => {
             let group: RoutingGroup;
 
@@ -191,16 +213,15 @@ describe(describeName('Routing Group E2E Tests'), () => {
                     });
             });
         });
-    });
 
-    describe(RoutingGroup.name, () => {
         describe('@create', () => {
             let data: Record<string, unknown>;
 
             beforeEach(async () => {
                 data = {
                     name: Date.now().toString(),
-                    comment: Date.now().toString()
+                    comment: Date.now().toString(),
+                    routingRules: [rule.id]
                 }
             });
 
@@ -240,6 +261,7 @@ describe(describeName('Routing Group E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.name).to.equal(data.name);
                         expect(response.body.data.comment).to.equal(data.comment);
+                        expect(response.body.data.routingRules).to.have.length(1);
                     });
             });
 
@@ -255,12 +277,11 @@ describe(describeName('Routing Group E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.name).to.equal(data.name);
                         expect(response.body.data.comment).to.equal(data.comment);
+                        expect(response.body.data.routingRules).to.have.length(1);
                     });
             });
         });
-    });
 
-    describe(RoutingGroup.name, () => {
         describe('@update', () => {
             let group: RoutingGroup;
             let data: Record<string, unknown>;
@@ -274,7 +295,8 @@ describe(describeName('Routing Group E2E Tests'), () => {
 
                 data = {
                     name: Date.now().toString(),
-                    comment: Date.now().toString()
+                    comment: Date.now().toString(),
+                    routingRules: [rule.id]
                 }
             });
 
@@ -337,9 +359,7 @@ describe(describeName('Routing Group E2E Tests'), () => {
                     });
             });
         });
-    });
 
-    describe(RoutingGroup.name, () => {
         describe('@remove', () => {
             let group: RoutingGroup;
             let data: Record<string, unknown>;
