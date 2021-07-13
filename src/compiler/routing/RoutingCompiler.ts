@@ -78,7 +78,7 @@ export class RoutingCompiler {
     return result;
   }
 
-
+  
   private breakDownItems(items: RouteItemForCompiler[] | RoutingRuleItemForCompiler[], dir: string): string[] {
     let result: string[] = [];
 
