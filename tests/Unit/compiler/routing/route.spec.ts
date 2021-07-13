@@ -34,10 +34,11 @@ describe.only('Routing route compiler', () => {
     let fwc: FwCloudProduct;
 
     let routes: RouteData<RouteItemForCompiler>[];
-    let items: RouteItemForCompiler[];
-    let item: RouteItemForCompiler;
 
     let compiler: RoutingCompiler = new RoutingCompiler;
+    let compilation: RoutingCompiled[];
+    let gw: string;
+    let rtn: number; // Routing table number
 
     before(async () => {
       await testSuite.resetDatabaseData();
@@ -46,6 +47,8 @@ describe.only('Routing route compiler', () => {
       routingTableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
 
       fwc = await (new FwCloudFactory()).make();
+      gw = fwc.ipobjs.get('gateway').address;
+      rtn = fwc.routingTable.number;
 
       await routeService.update(fwc.routes.get('route1').id, {
           ipObjIds: [fwc.ipobjs.get('address').id, fwc.ipobjs.get('addressRange').id, fwc.ipobjs.get('network').id, fwc.ipobjs.get('host').id],
@@ -57,10 +60,10 @@ describe.only('Routing route compiler', () => {
       });
 
       routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id,fwc.firewall.id,fwc.routingTable.id);            
-      let compilation: RoutingCompiled[] = await compiler.compile('Route',routes);
+      compilation = compiler.compile('Route',routes);
     });
 
     it('should compile address data', () => {
-        expect(items).to.deep.include(fwc.ipobjs.get('address').address);
+        expect(compilation[0].cs).to.deep.include(`$IP ro add ${fwc.ipobjs.get('address').address} gw ${gw} table ${rtn}\n`);
     });
 })

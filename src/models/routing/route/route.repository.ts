@@ -158,7 +158,7 @@ export class RouteRepository extends Repository<Route> {
         let query = this.createQueryBuilder("route")
             .innerJoinAndSelect("route.gateway","gateway")
             .leftJoinAndSelect("route.interface","interface")
-            .innerJoin("route.routingTable", "table")
+            .innerJoinAndSelect("route.routingTable", "table")
             .innerJoin("table.firewall", "firewall")
             .innerJoin("firewall.fwCloud", "fwcloud")
             .where("table.id = :routingTable", {routingTable})

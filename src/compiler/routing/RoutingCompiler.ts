@@ -25,6 +25,7 @@ import { ValidationException } from '../../fonaments/exceptions/validation-excep
 import { RouteData } from '../../models/routing/routing-table/routing-table.service';
 import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
+import ip from 'ip';
 
 export type RoutingCompiled = {
   id: number;
@@ -34,32 +35,24 @@ export type RoutingCompiled = {
 }
 
 export class RoutingCompiler {
-  public ruleCompile(ruleData: any): string {
+  public ruleCompile(ruleData: RouteData<RoutingRuleItemForCompiler>): string {
     return '';
   }
 
+
   public routeCompile(routeData: RouteData<RouteItemForCompiler>): string {
-    const items = routeData.items;
+    const items = this.breakDownItems(routeData.items);
     const gw = routeData.gateway.address;
     let cs = '';
 
-    for (let i=0; i<items.length; i++) {
-      cs += '$IP ro add ';
-      switch(items[i].type) {
-        case 5: //ADDRESS
-          cs += `${items[i].address}`;
-          break;
-
-        default:
-          throw new ValidationException('Bad compilation data', null);
-      }
-      cs += ` gw ${gw} table ${routeData.routingTableId}\n`;
-    }
+    for (let i=0; i<items.length; i++)
+      cs += `$IP ro add ${items[i]} gw ${gw} table ${routeData.routingTable.number}\n`;
 
     return cs;
   }
 
-  public async compile(type: 'Route' | 'Rule', data: RouteData<RouteItemForCompiler>[] | RouteData<RoutingRuleItemForCompiler>[], eventEmitter?: EventEmitter): Promise<RoutingCompiled[]> {
+
+  public compile(type: 'Route' | 'Rule', data: RouteData<RouteItemForCompiler>[] | RouteData<RoutingRuleItemForCompiler>[], eventEmitter?: EventEmitter): RoutingCompiled[] {
     let result: RoutingCompiled[] = [];
 
     if (!data) return result;
@@ -71,8 +64,42 @@ export class RoutingCompiler {
           id: data[i].id,
           active: data[i].active,
           comment: data[i].comment,
-          cs: (data[i].active || data.length===1) ? (type=='Route' ? this.routeCompile(data[i]) : this.ruleCompile(data[i])) : ''
+          cs: (data[i].active || data.length===1) ? (type=='Route' ? this.routeCompile(data[i] as  RouteData<RouteItemForCompiler>) : this.ruleCompile(data[i] as RouteData<RoutingRuleItemForCompiler>)) : ''
         });
+    }
+
+    return result;
+  }
+
+
+  private breakDownItems(items: RouteItemForCompiler[] | RoutingRuleItemForCompiler[]): string[] {
+    let result: string[] = [];
+
+    for (let i=0; i<items.length; i++) {
+      switch(items[i].type) {
+        case 5: // ADDRESS
+          result.push(`${items[i].address}`);
+          break;
+
+        case 7: // NETWORK
+          if (items[i].netmask[0] === '/')
+            result.push(`${items[i].address}${items[i].netmask}`);
+          else {
+            const net = ip.subnet(items[i].address, items[i].netmask);
+            result.push(`${items[i].address}/${net.subnetMaskLength}`);
+          }
+          break;
+
+        case 6: // ADDRESS RANGE
+          const firstLong = ip.toLong(items[i].range_start);
+          const lastLong = ip.toLong(items[i].range_end);
+          for(let current=firstLong; current<=lastLong; current++)
+            result.push(`${ip.fromLong(current)}`);
+          break;
+
+        default:
+          throw new ValidationException('Bad compilation data', null);
+      }
     }
 
     return result;
