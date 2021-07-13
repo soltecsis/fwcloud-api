@@ -36,17 +36,25 @@ export type RoutingCompiled = {
 
 export class RoutingCompiler {
   public ruleCompile(ruleData: RouteData<RoutingRuleItemForCompiler>): string {
-    return '';
+    const items = this.breakDownItems(ruleData.items);
+    const gw = ruleData.gateway.address;
+    let cs = '';
+
+    for (let i=0; i<items.length; i++)
+      cs += `$IP rule add ${items[i]} table ${ruleData.routingTable.number}\n`;
+
+    return cs;
   }
 
 
   public routeCompile(routeData: RouteData<RouteItemForCompiler>): string {
     const items = this.breakDownItems(routeData.items);
     const gw = routeData.gateway.address;
+    const dev = (routeData.interface && routeData.interface.name) ? ` dev ${routeData.interface.name} ` : ' ';
     let cs = '';
 
     for (let i=0; i<items.length; i++)
-      cs += `$IP ro add ${items[i]} gw ${gw} table ${routeData.routingTable.number}\n`;
+      cs += `$IP route add ${items[i]} via ${gw}${dev}table ${routeData.routingTable.number}\n`;
 
     return cs;
   }
