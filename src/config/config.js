@@ -282,7 +282,7 @@ const config = convict({
       env: 'POLICY_SCRIPT_NAME'
     },
     script_dir: {
-      doc: 'Destination directory for the firewall policy load script.',
+      doc: 'Destination directory for the FWCloud script.',
       format: String,
       default: '/etc/fwcloud/',
       env: 'POLICY_SCRIPT_DIR'
@@ -298,39 +298,6 @@ const config = convict({
       default: './config/policy/footer.txt'
     },
   },
-
-  // Routing configuration.
-  routing: {
-    data_dir: {
-      doc: 'Directory for the routing script.',
-      format: String,
-      default: './DATA/policy/',
-      env: 'ROUTING_DATA_DIR'
-    },
-    script_name: {
-      doc: 'Name for the script generated in the routing compilation process of a firewall.',
-      format: String,
-      default: 'routing.sh',
-      env: 'ROUTING_SCRIPT_NAME'
-    },
-    script_dir: {
-      doc: 'Destination directory for the routing setup load script.',
-      format: String,
-      default: '/etc/fwcloud/',
-      env: 'ROUTING_SCRIPT_DIR'
-    },
-    header_file: {
-      doc: 'Header file for the routing script.',
-      format: String,
-      default: './config/routing/header.txt'
-    },
-    footer_file: {
-      doc: 'Footer file for the routing script.',
-      format: String,
-      default: './config/routing/footer.txt'
-    },
-  },
-
 
   // PKI configuration.
   pki: {
