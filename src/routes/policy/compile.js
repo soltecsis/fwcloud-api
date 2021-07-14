@@ -62,8 +62,7 @@ import { PolicyScript } from '../../compiler/policy/PolicyScript';
 import { PolicyCompiler } from '../../compiler/policy/PolicyCompiler';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressErrorPayload } from '../../sockets/messages/socket-message';
-import { app, logger } from '../../fonaments/abstract-application';
-import { RoutingTableService } from '../../models/routing/routing-table/routing-table.service';
+import { logger } from '../../fonaments/abstract-application';
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -93,7 +92,8 @@ router.put('/', async (req, res) => {
 	const channel = await Channel.fromRequest(req);
 
 	try {
-		await PolicyScript.generate(req.dbCon, req.body.fwcloud, req.body.firewall, channel);
+		let policyScript = new PolicyScript(req.dbCon, req.body.fwcloud, req.body.firewall, channel);
+		await policyScript.dump();
 		res.status(204).end();
 	} catch(error) {
 		if (channel) channel.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));
