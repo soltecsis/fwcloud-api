@@ -34,6 +34,7 @@ import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import { PolicyRuleToIPObj } from "../../policy/PolicyRuleToIPObj";
 import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
 import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
+import { RoutingTable } from "../routing-table/routing-table.model";
 import { Route } from "./route.model";
 import { RouteRepository } from "./route.repository";
 
@@ -91,9 +92,16 @@ export class RouteService extends Service {
     }
 
     async create(data: ICreateRoute): Promise<Route> {
+        const routingTable: RoutingTable = await getRepository(RoutingTable).findOne(data.routingTableId, {relations: ['firewall']});
+
         const route: Route = await this._repository.getLastRouteInRoutingTable(data.routingTableId);
         const position: number = route?.position? route.position + 1 : 1;
         data.position = position;
+
+        if (data.interfaceId) {
+            await this.validateInterface(routingTable.firewall, data);
+        }
+
         return this._repository.save(data);
     }
 
@@ -102,7 +110,6 @@ export class RouteService extends Service {
             active: data.active,
             comment: data.comment,
             gatewayId: data.gatewayId,
-            interfaceId: data.interfaceId,
             style: data.style,
         }, {id}));
 
@@ -139,11 +146,24 @@ export class RouteService extends Service {
             route.openVPNPrefixes = prefixes.map(item => ({id: item.id} as OpenVPNPrefix));
         }
 
+        if (data.interfaceId) {
+            await this.validateInterface(firewall, data);
+            route.interfaceId = data.interfaceId
+        }
+
         route = await this._repository.save(route);
 
         if (data.position && route.position !== data.position) {
             return await this._repository.move(route.id, data.position);
         }
+
+        return route;
+    }
+
+    async remove(path: IFindOneRoutePath): Promise<Route> {
+        const route: Route =  await this.findOneInPath(path);
+
+        await this._repository.remove(route);
 
         return route;
     }
@@ -245,12 +265,28 @@ export class RouteService extends Service {
         }
     }
 
-    async remove(path: IFindOneRoutePath): Promise<Route> {
-        const route: Route =  await this.findOneInPath(path);
+    protected async validateInterface(firewall: Firewall, data: ICreateRoute | IUpdateRoute): Promise<void> {
+        const errors: ErrorBag = {};
 
-        await this._repository.remove(route);
+        if (!data.interfaceId) {
+            return;
+        }
+        
+        const intr: Interface[] = await getRepository(Interface).find({
+            where: {
+                id: data.interfaceId,
+                firewallId: firewall.id
+            }
+        });
 
-        return route;
+        if (!intr) {
+            errors.interfaceId = ['interface is not valid'];
+        }
+        
+        
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
     }
 
     protected getFindInPathOptions(path: Partial<IFindOneRoutePath>): FindOneOptions<Route> | FindManyOptions<Route> {
