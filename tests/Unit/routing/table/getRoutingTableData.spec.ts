@@ -38,19 +38,10 @@ describe('Routing table data fetch for compiler or grid', () => {
     before(async () => {
         await testSuite.resetDatabaseData();
 
-        routeService = await testSuite.app.getService<RouteService>(RouteService.name);
-        routingTableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
-
         fwc = await (new FwCloudFactory()).make();
 
-        await routeService.update(fwc.routes.get('route1').id, {
-            ipObjIds: [fwc.ipobjs.get('address').id, fwc.ipobjs.get('addressRange').id, fwc.ipobjs.get('network').id, fwc.ipobjs.get('host').id],
-            openVPNIds: [fwc.openvpnClients.get('OpenVPN-Cli-3').id],
-            openVPNPrefixIds: [fwc.openvpnPrefix.id]
-        });
-        await routeService.update(fwc.routes.get('route2').id, {
-            ipObjGroupIds: [fwc.ipobjGroup.id]
-        });
+        routeService = await testSuite.app.getService<RouteService>(RouteService.name);
+        routingTableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
     });
 
     describe('For compiler', () => {
