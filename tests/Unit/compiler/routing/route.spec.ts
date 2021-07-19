@@ -22,19 +22,14 @@
 
 import { before } from "mocha";
 import { RoutingCompiled, RoutingCompiler } from "../../../../src/compiler/routing/RoutingCompiler";
-import { RouteService } from "../../../../src/models/routing/route/route.service";
-import { RoutingTableService, RouteData } from "../../../../src/models/routing/routing-table/routing-table.service";
+import { RoutingTableService } from "../../../../src/models/routing/routing-table/routing-table.service";
 import { RouteItemForCompiler } from "../../../../src/models/routing/shared";
 import { expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 import ip from 'ip';
 
-describe('Routing route compiler', () => {
-    let routeService: RouteService;
-    let routingTableService: RoutingTableService;
+describe('Routing route compiler', () => {   
     let fwc: FwCloudProduct;
-
-    let routes: RouteData<RouteItemForCompiler>[];
 
     let compiler: RoutingCompiler = new RoutingCompiler;
     let compilation: RoutingCompiled[];
@@ -49,16 +44,28 @@ describe('Routing route compiler', () => {
     before(async () => {
       await testSuite.resetDatabaseData();
 
-      routeService = await testSuite.app.getService<RouteService>(RouteService.name);
-      routingTableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
-
       fwc = await (new FwCloudFactory()).make();
       gw = fwc.ipobjs.get('gateway').address;
       dev = fwc.interfaces.get('firewall-interface1').name;
       rtn = fwc.routingTable.number;
 
-      routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id, fwc.firewall.id, fwc.routingTable.id);            
+      const routingTableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
+      const routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id, fwc.firewall.id, fwc.routingTable.id);            
       compilation = compiler.compile('Route',routes);
+    });
+
+    describe('Compilation of empty route', () => {
+        before(() => { 
+            tail = `table ${rtn}\n`; // The first route has interface.
+        });
+
+        it('should include default route without interface', () => {
+            expect(compilation[2].cs).to.equal(`${head} default via ${gw} ${tail}`);
+        });
+
+        it('should include default route with interface', () => {
+            expect(compilation[3].cs).to.equal(`${head} default via ${gw} dev ${dev} ${tail}`);
+        });
     });
 
     describe('Compilation of route with objects', () => {

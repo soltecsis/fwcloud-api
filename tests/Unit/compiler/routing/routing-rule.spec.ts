@@ -26,13 +26,10 @@ import { RoutingRuleItemForCompiler } from "../../../../src/models/routing/share
 import { expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 import ip from 'ip';
-import { RoutingRulesData, RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
+import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
 
 describe('Routing rule compiler', () => {
-  let routingRuleService: RoutingRuleService;
   let fwc: FwCloudProduct;
-
-  let rules: RoutingRulesData<RoutingRuleItemForCompiler>[];
 
   let compiler: RoutingCompiler = new RoutingCompiler;
   let compilation: RoutingCompiled[];
@@ -46,14 +43,13 @@ describe('Routing rule compiler', () => {
   before(async () => {
     await testSuite.resetDatabaseData();
 
-    routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
-
     fwc = await (new FwCloudFactory()).make();
     gw = fwc.ipobjs.get('gateway').address;
     rtn = fwc.routingTable.number;
     tail = `table ${rtn}\n`;
 
-    rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id);            
+    const routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
+    const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id);            
     compilation = compiler.compile('Rule',rules);
   });
 

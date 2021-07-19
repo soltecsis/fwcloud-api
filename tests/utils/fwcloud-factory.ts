@@ -465,6 +465,12 @@ export class FwCloudFactory {
             gatewayId: this.fwc.ipobjs.get('gateway').id
         }));
 
+        this.fwc.routes.set('route4', await routeService.create({
+            routingTableId: this.fwc.routingTable.id,
+            gatewayId: this.fwc.ipobjs.get('gateway').id,
+            interfaceId: this.fwc.interfaces.get('firewall-interface1').id
+        }));
+
         this.fwc.routingRules.set('routing-rule-1', await routingRuleService.create({
             routingTableId: this.fwc.routingTable.id
         }));

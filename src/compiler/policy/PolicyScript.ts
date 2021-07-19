@@ -361,7 +361,7 @@ export class PolicyScript {
 
 			// Compile and dump all routing tables.
 			for(let i=0; i<routingTables.length; i++) {
-				const msg = `ROUTING TABLE: ${routingTables[i].id}${routingTables[i].number == 254 ? ' (main)':''}`;
+				const msg = `ROUTING TABLE: ${routingTables[i].number} (${routingTables[i].name})`;
 				this.stream.write(`echo \"${msg}\"\n`);
 				this.channel.emit('message', new ProgressNoticePayload(msg, true));
 
