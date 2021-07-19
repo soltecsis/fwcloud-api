@@ -35,7 +35,7 @@ describe(IPObj.name, () => {
                 const whereUsed: any = await IPObj.searchIpobjUsage(db.getQuery(), fwcloudProduct.fwcloud.id, fwcloudProduct.ipobjs.get('address').id, 5);
     
                 expect(whereUsed.restrictions.IpobjInRoutingRule).to.have.length(1);
-                expect(whereUsed.restrictions.IpobjInRoutingRule[0].id).to.be.eq(fwcloudProduct.routes.get('route1').id);
+                expect(whereUsed.restrictions.IpobjInRoutingRule[0].id).to.be.eq(fwcloudProduct.routingRules.get('routing-rule-1').id);
             })
 
             it('should detect address usages', async () => {
