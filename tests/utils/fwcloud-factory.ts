@@ -111,11 +111,11 @@ export class FwCloudFactory {
         await this.makeIpobjGroup();
         await this.makeIPOBjs();
         await this.makeHost();
+        await this.makeMark();
         await this.makePKI();
         await this.makeVPNs();
         await this.addToGroup();
         await this.makeRouting();
-        await this.makeMark();
 
         return this.fwc;
     }
@@ -460,6 +460,11 @@ export class FwCloudFactory {
             gatewayId: this.fwc.ipobjs.get('gateway').id
         }));
 
+        this.fwc.routes.set('route3', await routeService.create({
+            routingTableId: this.fwc.routingTable.id,
+            gatewayId: this.fwc.ipobjs.get('gateway').id
+        }));
+
         this.fwc.routingRules.set('routing-rule-1', await routingRuleService.create({
             routingTableId: this.fwc.routingTable.id
         }));
@@ -467,6 +472,39 @@ export class FwCloudFactory {
         this.fwc.routingRules.set('routing-rule-2', await routingRuleService.create({
             routingTableId: this.fwc.routingTable.id
         }));
+
+        this.fwc.routingRules.set('routing-rule-3', await routingRuleService.create({
+            routingTableId: this.fwc.routingTable.id
+        }));
+
+        await routeService.update(this.fwc.routes.get('route1').id, {
+            ipObjIds: [this.fwc.ipobjs.get('address').id, 
+                       this.fwc.ipobjs.get('addressRange').id, 
+                       this.fwc.ipobjs.get('network').id, 
+                       this.fwc.ipobjs.get('networkNoCIDR').id, 
+                       this.fwc.ipobjs.get('host').id],
+            openVPNIds: [this.fwc.openvpnClients.get('OpenVPN-Cli-3').id],
+            openVPNPrefixIds: [this.fwc.openvpnPrefix.id]
+        });
+  
+        await routeService.update(this.fwc.routes.get('route2').id, {
+            ipObjGroupIds: [this.fwc.ipobjGroup.id]
+        });
+        
+        await routingRuleService.update(this.fwc.routingRules.get('routing-rule-1').id, {
+            ipObjIds: [this.fwc.ipobjs.get('address').id, 
+                       this.fwc.ipobjs.get('addressRange').id, 
+                       this.fwc.ipobjs.get('network').id, 
+                       this.fwc.ipobjs.get('networkNoCIDR').id, 
+                       this.fwc.ipobjs.get('host').id],
+            openVPNIds: [this.fwc.openvpnClients.get('OpenVPN-Cli-3').id],
+            openVPNPrefixIds: [this.fwc.openvpnPrefix.id],
+            markIds: [this.fwc.mark.id]
+          });
+        
+          await routingRuleService.update(this.fwc.routingRules.get('routing-rule-2').id, {
+            ipObjGroupIds: [this.fwc.ipobjGroup.id]
+          });              
     }
 
     private async makeMark(): Promise<void> {

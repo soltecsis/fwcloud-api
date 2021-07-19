@@ -1,23 +1,45 @@
+/*!
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { Repository, getRepository } from "typeorm";
 import { FSHelper } from "../../../../src/utils/fs-helper";
 import * as fs from "fs";
 import * as path from "path";
 import sinon from "sinon";
 import StringHelper from "../../../../src/utils/string.helper";
-import { FwcTree } from "../../../../src/models/tree/fwc-tree.model";
-import { Tree } from "../../../../src/models/tree/Tree";
-import db from "../../../../src/database/database-manager";
+import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 
 
 let app: AbstractApplication;
 
 describe(describeName('FwCloud Unit Tests'), () => {
-    
+    let fwc: FwCloudProduct;
+
     before(async () => {
         app = testSuite.app;
+        await testSuite.resetDatabaseData();
+        fwc = await (new FwCloudFactory()).make();
     });
 
     describe('removeDataDirectories()', () => {
@@ -60,6 +82,19 @@ describe(describeName('FwCloud Unit Tests'), () => {
             await fwCloud.remove();
 
             expect(spy.calledOnce).to.be.true;
+        });
+    });
+
+    describe('remove database data', () => {
+        it('should remove all database data', async () => {
+            let fwCloud = await FwCloud.findOne(fwc.fwcloud.id);
+
+            expect(fwc.fwcloud.id).to.be.equal(fwCloud.id);
+
+            await fwCloud.remove();
+
+            fwCloud = await FwCloud.findOne(fwc.fwcloud.id);
+            expect(fwCloud).to.be.undefined;
         });
     });
 

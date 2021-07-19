@@ -23,6 +23,7 @@ case "$ACTION" in
     policy_load
     default_filter_policy DROP
     options_load
+    routing_apply
     ;;
 
   stop)
@@ -38,6 +39,10 @@ case "$ACTION" in
   block)
     policy_empty
     default_filter_policy DROP
+    ;;
+
+  routing)
+    routing_apply
     ;;
 
   status)
