@@ -282,7 +282,7 @@ const config = convict({
       env: 'POLICY_SCRIPT_NAME'
     },
     script_dir: {
-      doc: 'Directory in wich the script will be installed in the destinatior firewall',
+      doc: 'Destination directory for the FWCloud script.',
       format: String,
       default: '/etc/fwcloud/',
       env: 'POLICY_SCRIPT_DIR'

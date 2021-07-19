@@ -53,21 +53,6 @@ describe('Routing rule compiler', () => {
     rtn = fwc.routingTable.number;
     tail = `table ${rtn}\n`;
 
-    await routingRuleService.update(fwc.routingRules.get('routing-rule-1').id, {
-      ipObjIds: [fwc.ipobjs.get('address').id, 
-                 fwc.ipobjs.get('addressRange').id, 
-                 fwc.ipobjs.get('network').id, 
-                 fwc.ipobjs.get('networkNoCIDR').id, 
-                 fwc.ipobjs.get('host').id],
-      openVPNIds: [fwc.openvpnClients.get('OpenVPN-Cli-3').id],
-      openVPNPrefixIds: [fwc.openvpnPrefix.id],
-      markIds: [fwc.mark.id]
-    });
-  
-    await routingRuleService.update(fwc.routingRules.get('routing-rule-2').id, {
-      ipObjGroupIds: [fwc.ipobjGroup.id]
-    });
-
     rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id);            
     compilation = compiler.compile('Rule',rules);
   });
