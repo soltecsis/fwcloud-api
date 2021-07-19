@@ -34,12 +34,15 @@ import { AvailablePolicyCompilers, PolicyCompiler } from './PolicyCompiler';
 import { Channel } from '../../sockets/channels/channel';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import { RoutingCompiler } from '../routing/RoutingCompiler';
+import { RoutingCompiled, RoutingCompiler } from '../routing/RoutingCompiler';
 import fs from 'fs';
-import { RoutingTableService } from '../../models/routing/routing-table/routing-table.service';
-import { Service } from '../../fonaments/services/service';
+import { RouteData, RoutingTableService } from '../../models/routing/routing-table/routing-table.service';
 import { app } from '../../fonaments/abstract-application';
 import { RoutingTable } from '../../models/routing/routing-table/routing-table.model';
+import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
+import { RoutingRulePolicy } from '../../policies/routing-rule.policy';
+import { RoutingRulesData, RoutingRuleService } from '../../models/routing/routing-rule/routing-rule.service';
+import { RoutingRule } from '../../models/routing/routing-rule/routing-rule.model';
 
 var config = require('../../config/config');
 
@@ -48,7 +51,6 @@ export class PolicyScript {
 	private policyCompiler: AvailablePolicyCompilers;
   private path: string;
   private stream: any;
-	private routingTableService: RoutingTableService;
 
   constructor(private dbCon: any, private fwcloud: number, private firewall: number, private channel: Channel) {
 		this.routingCompiler = new RoutingCompiler;
@@ -330,15 +332,68 @@ export class PolicyScript {
 	}
 
 	private async dumpRouting(): Promise<void> {
-		this.routingTableService = await app().getService<RoutingTableService>(RoutingTableService.name);
+		let routingTableService = await app().getService<RoutingTableService>(RoutingTableService.name);
+		let routingRuleService = await app().getService<RoutingRuleService>(RoutingRuleService.name);
+		let routes: RouteData<RouteItemForCompiler>[];
+		let routesCompiled: RoutingCompiled[];
+		let rules: RoutingRulesData<RoutingRuleItemForCompiler>[];
+		let rulesCompiled: RoutingCompiled[];
+
+		let routingTables: RoutingTable[] = await routingTableService.findManyInPath({fwCloudId: this.fwcloud, firewallId: this.firewall});
 
 		this.stream.write('routing_apply() {\n');
 
 		// Only dump routing compilation if we have routing tables.
-		let routingTables: RoutingTable[] = await this.routingTableService.findManyInPath({fwCloudId: this.fwcloud, firewallId: this.firewall});
 		if (routingTables.length > 0) {
-			this.stream.write('$IP route flush scope global table main\n');
+			this.stream.write("echo\n");
+			this.stream.write("echo \"******************\"\n");
+			this.stream.write("echo \"* ROUTING POLICY *\"\n");
+			this.stream.write("echo \"******************\"\n");
+			this.channel.emit('message', new ProgressNoticePayload(""));
+			this.channel.emit('message', new ProgressNoticePayload(""));
+			this.channel.emit('message', new ProgressNoticePayload("ROUTING POLICY:", true));
+			this.stream.write('  $IP route flush route flush cache\n');
+			// Flush all routing tables.
+			this.stream.write('for t in {1..250}; do\n');
+			this.stream.write('  $IP route flush table $t\n');
+			this.stream.write('done\n');
+			this.stream.write('$IP route flush scope global table main\n\n');
 
+			// Compile and dump all routing tables.
+			for(let i=0; i<routingTables.length; i++) {
+				const msg = `ROUTING TABLE: ${routingTables[i].id}${routingTables[i].number == 254 ? ' (main)':''}`;
+				this.stream.write(`echo \"${msg}\"\n`);
+				this.channel.emit('message', new ProgressNoticePayload(msg, true));
+
+				routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler', this.fwcloud, this.firewall, routingTables[i].id);            
+				if (routes.length > 0) {
+					routesCompiled = this.routingCompiler.compile('Route',routes,this.channel);
+
+					let cs ='';
+					for (let j=0; j < routesCompiled.length; j++) {
+						cs += `\necho \"Route ${j+1} (ID: ${routesCompiled[j].id})${!(routesCompiled[j].active) ? ' [DISABLED]' : ''}\"\n`;
+						if (routesCompiled[j].comment) cs += `# ${routesCompiled[j].comment.replace(/\n/g, "\n# ")}\n`;
+						if (routesCompiled[j].active) cs += routesCompiled[j].cs;
+					}
+					this.stream.write(cs);
+				}		
+			}
+
+			// Compile and dump routing policy.
+			rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', this.fwcloud, this.firewall);            
+			if (rules.length > 0) {
+				rulesCompiled = this.routingCompiler.compile('Rule',rules,this.channel);		
+
+				this.stream.write(`\necho\necho \"ROUTING RULES:\"\n`);
+				this.channel.emit('message', new ProgressNoticePayload("ROUTING RULES:", true));
+				let cs ='';
+				for (let j=0; j < rulesCompiled.length; j++) {
+					cs += `\necho \"Routing rule ${j+1} (ID: ${rulesCompiled[j].id})${!(rulesCompiled[j].active) ? ' [DISABLED]' : ''}\"\n`;
+					if (rulesCompiled[j].comment) cs += `# ${rulesCompiled[j].comment.replace(/\n/g, "\n# ")}\n`;
+					if (rulesCompiled[j].active) cs += rulesCompiled[j].cs;
+				}
+				this.stream.write(cs);	
+			}	
 		}
 
 		this.stream.write("\n}\n\n");
