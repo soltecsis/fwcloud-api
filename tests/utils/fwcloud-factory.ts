@@ -458,21 +458,21 @@ export class FwCloudFactory {
             routingTableId: this.fwc.routingTable.id,
             gatewayId: this.fwc.ipobjs.get('gateway').id,
             interfaceId: this.fwc.interfaces.get('firewall-interface1').id,
-            position: 0
+            route_order: 1
         }));
         
         this.fwc.routes.set('route2', await this._routeRepository.save({
             id: lastRouteId++,
             routingTableId: this.fwc.routingTable.id,
             gatewayId: this.fwc.ipobjs.get('gateway').id,
-            position: 0
+            route_order: 2
         }));
 
         this.fwc.routes.set('route3', await this._routeRepository.save({
             id: lastRouteId++,
             routingTableId: this.fwc.routingTable.id,
             gatewayId: this.fwc.ipobjs.get('gateway').id,
-            position: 0
+            route_order: 3
         }));
 
         this.fwc.routes.set('route4', await this._routeRepository.save({
@@ -480,25 +480,25 @@ export class FwCloudFactory {
             routingTableId: this.fwc.routingTable.id,
             gatewayId: this.fwc.ipobjs.get('gateway').id,
             interfaceId: this.fwc.interfaces.get('firewall-interface1').id,
-            position: 0
+            route_order: 4
         }));
 
         this.fwc.routingRules.set('routing-rule-1', await this._routingRuleRepository.save({
             id: lastRoutingRuleId++,
             routingTableId: this.fwc.routingTable.id,
-            position: 0
+            rule_order: 1
         }));
 
         this.fwc.routingRules.set('routing-rule-2', await this._routingRuleRepository.save({
             id: lastRoutingRuleId++,
             routingTableId: this.fwc.routingTable.id,
-            position: 0
+            rule_order: 2
         }));
 
         this.fwc.routingRules.set('routing-rule-3', await this._routingRuleRepository.save({
             id: lastRoutingRuleId++,
             routingTableId: this.fwc.routingTable.id,
-            position: 0
+            rule_order: 3
         }));
 
         await routeService.update(this.fwc.routes.get('route1').id, {

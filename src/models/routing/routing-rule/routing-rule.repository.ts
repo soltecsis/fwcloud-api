@@ -21,6 +21,7 @@
 */
 
 import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, LessThan, LessThanOrEqual, MoreThan, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
+import { QueryExpressionMap } from "typeorm/query-builder/QueryExpressionMap";
 import { RoutingRule } from "./routing-rule.model";
 
 export interface IFindManyRoutingRulePath {
@@ -194,7 +195,9 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
             .innerJoin("firewall.fwCloud", "fwcloud")
             .where("firewall.id = :firewall", {firewall: firewall})
             .andWhere("fwcloud.id = :fwcloud", {fwcloud: fwcloud});
+
+        if (rule) query = query.andWhere("rule.id = :rule", {rule});
             
-        return (rule ? query.andWhere("rule.id = :rule", {rule}) : query).getMany();
+        return query.orderBy("rule.rule_order").getMany();
     }
 }
