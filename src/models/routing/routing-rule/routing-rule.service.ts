@@ -47,7 +47,7 @@ interface ICreateRoutingRule {
     routingTableId: number;
     active?: boolean;
     comment?: string;
-    position?: number;
+    rule_order?: number;
     style?: string;
 }
 
@@ -55,7 +55,7 @@ interface IUpdateRoutingRule {
     routingTableId?: number;
     active?: boolean;
     comment?: string;
-    position?: number;
+    rule_order?: number;
     style?: string;
     ipObjIds?: number[];
     ipObjGroupIds?: number[];
@@ -100,8 +100,8 @@ export class RoutingRuleService extends Service {
 
     async create(data: ICreateRoutingRule): Promise<RoutingRule> {
         const rule: RoutingRule = await this._repository.getLastRoutingRuleInRoutingTable(data.routingTableId);
-        const position: number = rule?.position? rule.position + 1 : 1;
-        data.position = position;
+        const rule_order: number = rule?.rule_order? rule.rule_order + 1 : 1;
+        data.rule_order = rule_order;
         return this._repository.save(data);
     }
 
@@ -160,8 +160,8 @@ export class RoutingRuleService extends Service {
 
         rule = await this._repository.save(rule);
 
-        if (data.position && rule.position !== data.position) {
-            return await this._repository.move(rule.id, data.position);
+        if (data.rule_order && rule.rule_order !== data.rule_order) {
+            return await this._repository.move(rule.id, data.rule_order);
         }
         return rule;
     }

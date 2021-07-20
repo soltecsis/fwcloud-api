@@ -45,56 +45,56 @@ describe(RoutingRuleRepository.name, () => {
     });
 
     describe('move', () => {
-        it('should manage position changes', async () => {
-            const rulePosition1: RoutingRule = await repository.save({
+        it('should manage rule_order changes', async () => {
+            const ruleOrder1: RoutingRule = await repository.save({
                 routingTableId: table.id,
-                position: 1
+                rule_order: 1
             });
-            const rulePosition2: RoutingRule = await repository.save({
+            const ruleOrder2: RoutingRule = await repository.save({
                 routingTableId: table.id,
-                position: 2
+                rule_order: 2
             });
-            const rulePosition3: RoutingRule = await repository.save({
+            const ruleOrder3: RoutingRule = await repository.save({
                 routingTableId: table.id,
-                position: 3
+                rule_order: 3
             });
-            const rulePosition4: RoutingRule = await repository.save({
+            const ruleOrder4: RoutingRule = await repository.save({
                 routingTableId: table.id,
-                position: 4
+                rule_order: 4
             });
 
-            await repository.move(rulePosition2.id, 3);
+            await repository.move(ruleOrder2.id, 3);
 
-            expect((await repository.findOne(rulePosition1.id)).position).to.eq(1);
-            expect((await repository.findOne(rulePosition2.id)).position).to.eq(3);
-            expect((await repository.findOne(rulePosition3.id)).position).to.eq(2);
-            expect((await repository.findOne(rulePosition4.id)).position).to.eq(4);
+            expect((await repository.findOne(ruleOrder1.id)).rule_order).to.eq(1);
+            expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(3);
+            expect((await repository.findOne(ruleOrder3.id)).rule_order).to.eq(2);
+            expect((await repository.findOne(ruleOrder4.id)).rule_order).to.eq(4);
         });
 
-        it('should manage position changes', async () => {
-            const rulePosition1: RoutingRule = await repository.save({
+        it('should manage rule_order changes', async () => {
+            const ruleOrder1: RoutingRule = await repository.save({
                 routingTableId: table.id,
-                position: 1
+                rule_order: 1
             });
-            const rulePosition2: RoutingRule = await repository.save({
+            const ruleOrder2: RoutingRule = await repository.save({
                 routingTableId: table.id,
-                position: 2
+                rule_order: 2
             });
-            const rulePosition3: RoutingRule = await repository.save({
+            const ruleOrder3: RoutingRule = await repository.save({
                 routingTableId: table.id,
-                position: 3
+                rule_order: 3
             });
-            const rulePosition4: RoutingRule = await repository.save({
+            const ruleOrder4: RoutingRule = await repository.save({
                 routingTableId: table.id,
-                position: 4
+                rule_order: 4
             });
 
-            await repository.move(rulePosition4.id, 2);
+            await repository.move(ruleOrder4.id, 2);
 
-            expect((await repository.findOne(rulePosition1.id)).position).to.eq(1);
-            expect((await repository.findOne(rulePosition2.id)).position).to.eq(3);
-            expect((await repository.findOne(rulePosition3.id)).position).to.eq(4);
-            expect((await repository.findOne(rulePosition4.id)).position).to.eq(2);
+            expect((await repository.findOne(ruleOrder1.id)).rule_order).to.eq(1);
+            expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(3);
+            expect((await repository.findOne(ruleOrder3.id)).rule_order).to.eq(4);
+            expect((await repository.findOne(ruleOrder4.id)).rule_order).to.eq(2);
         })
     })
 })

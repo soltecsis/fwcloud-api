@@ -41,7 +41,7 @@ export class RoutingRuleControllerUpdateDto {
     @IsNumber()
     @IsPositive()
     @IsOptional()
-    position: number;
+    rule_order: number;
 
     @IsString()
     @IsOptional()

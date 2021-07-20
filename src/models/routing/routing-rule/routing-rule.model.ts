@@ -52,7 +52,7 @@ export class RoutingRule extends Model {
     @Column({
         type: Number
     })
-    position: number;
+    rule_order: number;
 
     @Column()
     style: string;

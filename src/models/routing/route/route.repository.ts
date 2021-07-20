@@ -64,7 +64,7 @@ export class RouteRepository extends Repository<Route> {
     }
 
     /**
-     * Moves a RoutingRule into the "to" position (updating other RoutingRules position affected by this change).
+     * Moves a RoutingRule into the "to" route_order (updating other RoutingRules route_order affected by this change).
      * 
      * @param id 
      * @param to 
@@ -75,32 +75,32 @@ export class RouteRepository extends Repository<Route> {
         
         let affectedRules: Route[] = [];
         
-        const lastPositionRoute: Route = await this.getLastRouteInRoutingTable(route.routingTableId);
+        const lastRouteOrder: Route = await this.getLastRouteInRoutingTable(route.routingTableId);
         
-        const greaterValidPosition: number = lastPositionRoute ? lastPositionRoute.position + 1 : 1;
+        const greaterValidOrder: number = lastRouteOrder ? lastRouteOrder.route_order + 1 : 1;
         
-        //Assert position is valid
-        to = Math.min(Math.max(1, to), greaterValidPosition);
+        //Assert route_order is valid
+        to = Math.min(Math.max(1, to), greaterValidOrder);
 
-        if (route.position > to) {
+        if (route.route_order > to) {
             affectedRules = await this.createQueryBuilder('route')
-                .where("route.position >= :greater", {greater: to})
-                .andWhere("route.position < :lower", {lower: route.position})
+                .where("route.route_order >= :greater", {greater: to})
+                .andWhere("route.route_order < :lower", {lower: route.route_order})
                 .andWhere("route.routingTableId = :table", {table: route.routingTableId}).getMany();
             
-            affectedRules.forEach(rule => rule.position = rule.position + 1);
+            affectedRules.forEach(rule => rule.route_order = rule.route_order + 1);
         }
 
-        if (route.position < to) {
+        if (route.route_order < to) {
             affectedRules = await this.createQueryBuilder('route')
-                .where("route.position > :greater", {greater: route.position})
-                .andWhere("route.position <= :lower", {lower: to})
+                .where("route.route_order > :greater", {greater: route.route_order})
+                .andWhere("route.route_order <= :lower", {lower: to})
                 .andWhere("route.routingTableId = :table", {table: route.routingTableId}).getMany();
 
-            affectedRules.forEach(rule => rule.position = rule.position - 1);
+            affectedRules.forEach(rule => rule.route_order = rule.route_order - 1);
         }
 
-        route.position = to;
+        route.route_order = to;
         affectedRules.push(route);
         
         await this.save(affectedRules);
@@ -125,9 +125,9 @@ export class RouteRepository extends Repository<Route> {
                 await queryBuilder
                         .update()
                         .where('routingTableId = :table', {table: entity.routingTableId})
-                        .andWhere('rule_order > :lower', {lower: entity.position})
+                        .andWhere('route_order > :lower', {lower: entity.route_order})
                         .set({
-                            position: () => "position - 1"
+                            route_order: () => "route_order - 1"
                         }).execute();
             }
             
@@ -148,7 +148,7 @@ export class RouteRepository extends Repository<Route> {
                 routingTableId: routingTableId
             },
             order: {
-                position: 'DESC'
+                route_order: 'DESC'
             },
             take: 1
         }))[0]

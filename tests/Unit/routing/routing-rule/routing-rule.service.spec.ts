@@ -481,7 +481,7 @@ describe(RoutingRuleService.name, () => {
                 openVPNs: [{id: openVPN1.id}],
                 ipObjs: [{id: ipobj1.id}],
                 ipObjGroups: [{id: group1.id}],
-                position: 1
+                rule_order: 1
             });
         });
 

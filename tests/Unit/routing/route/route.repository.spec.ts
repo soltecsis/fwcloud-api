@@ -54,64 +54,64 @@ describe(RouteRepository.name, () => {
     });
 
     describe('move', () => {
-        it('should manage position changes when move to lower positions', async () => {
-            const routePosition1: Route = await repository.save({
+        it('should manage route_order changes when move to lower route_orders', async () => {
+            const routeOrder1: Route = await repository.save({
                 routingTableId: table.id,
-                position: 1,
+                route_order: 1,
                 gatewayId: gateway.id
             });
-            const routePosition2: Route = await repository.save({
+            const routeOrder2: Route = await repository.save({
                 routingTableId: table.id,
-                position: 2,
+                route_order: 2,
                 gatewayId: gateway.id
             });
-            const routePosition3: Route = await repository.save({
+            const routeOrder3: Route = await repository.save({
                 routingTableId: table.id,
-                position: 3,
+                route_order: 3,
                 gatewayId: gateway.id
             });
-            const routePosition4: Route = await repository.save({
+            const routeOrder4: Route = await repository.save({
                 routingTableId: table.id,
-                position: 4,
+                route_order: 4,
                 gatewayId: gateway.id
             });
 
-            await repository.move(routePosition2.id, 3);
+            await repository.move(routeOrder2.id, 3);
 
-            expect((await repository.findOne(routePosition1.id)).position).to.eq(1);
-            expect((await repository.findOne(routePosition2.id)).position).to.eq(3);
-            expect((await repository.findOne(routePosition3.id)).position).to.eq(2);
-            expect((await repository.findOne(routePosition4.id)).position).to.eq(4);
+            expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
+            expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);
+            expect((await repository.findOne(routeOrder3.id)).route_order).to.eq(2);
+            expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(4);
         });
 
-        it('should manage position changes when move to greater positions', async () => {
-            const routePosition1: Route = await repository.save({
+        it('should manage route_order changes when move to greater route_orders', async () => {
+            const routeOrder1: Route = await repository.save({
                 routingTableId: table.id,
-                position: 1,
+                route_order: 1,
                 gatewayId: gateway.id
             });
-            const routePosition2: Route = await repository.save({
+            const routeOrder2: Route = await repository.save({
                 routingTableId: table.id,
-                position: 2,
+                route_order: 2,
                 gatewayId: gateway.id
             });
-            const routePosition3: Route = await repository.save({
+            const routeOrder3: Route = await repository.save({
                 routingTableId: table.id,
-                position: 3,
+                route_order: 3,
                 gatewayId: gateway.id
             });
-            const routePosition4: Route = await repository.save({
+            const routeOrder4: Route = await repository.save({
                 routingTableId: table.id,
-                position: 4,
+                route_order: 4,
                 gatewayId: gateway.id
             });
 
-            await repository.move(routePosition4.id, 2);
+            await repository.move(routeOrder4.id, 2);
 
-            expect((await repository.findOne(routePosition1.id)).position).to.eq(1);
-            expect((await repository.findOne(routePosition2.id)).position).to.eq(3);
-            expect((await repository.findOne(routePosition3.id)).position).to.eq(4);
-            expect((await repository.findOne(routePosition4.id)).position).to.eq(2);
+            expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
+            expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);
+            expect((await repository.findOne(routeOrder3.id)).route_order).to.eq(4);
+            expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(2);
         })
     })
 })

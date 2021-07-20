@@ -21,7 +21,6 @@
 */
 
 import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, LessThan, LessThanOrEqual, MoreThan, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
-import { QueryExpressionMap } from "typeorm/query-builder/QueryExpressionMap";
 import { RoutingRule } from "./routing-rule.model";
 
 export interface IFindManyRoutingRulePath {
@@ -69,14 +68,14 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
                 routingTableId: routingTableId
             },
             order: {
-                position: 'DESC',
+                rule_order: 'DESC',
             },
             take: 1
         })[0]
     }
 
     /**
-     * Moves a RoutingRule into the "to" position (updating other RoutingRules position affected by this change).
+     * Moves a RoutingRule into the "to" rule_order (updating other RoutingRules rule_order affected by this change).
      * 
      * @param id 
      * @param to 
@@ -87,40 +86,40 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         
         let affectedRules: RoutingRule[] = [];
         
-        const lastPositionRule: RoutingRule = (await this.findManyInPath({
+        const lastOrderRule: RoutingRule = (await this.findManyInPath({
             fwCloudId: rule.routingTable.firewall.fwCloudId,
             firewallId: rule.routingTable.firewall.id,
         }, {
             take: 1,
             order: {
-                position: 'DESC'
+                rule_order: 'DESC'
             }
         }))[0];
 
-        const greaterValidPosition: number = lastPositionRule ? lastPositionRule.position + 1 : 1;
+        const greaterValidRuleOrder: number = lastOrderRule ? lastOrderRule.rule_order + 1 : 1;
         
-        //Assert position is valid
-        to = Math.min(Math.max(1, to), greaterValidPosition);
+        //Assert rule_order is valid
+        to = Math.min(Math.max(1, to), greaterValidRuleOrder);
 
-        if (rule.position > to) {
+        if (rule.rule_order > to) {
             affectedRules = await this.createQueryBuilder('rule')
-                .where("rule.position >= :greater", {greater: to})
-                .andWhere("rule.position < :lower", {lower: rule.position})
+                .where("rule.rule_order >= :greater", {greater: to})
+                .andWhere("rule.rule_order < :lower", {lower: rule.rule_order})
                 .andWhere("rule.routingTableId = :table", {table: rule.routingTableId}).getMany();
             
-            affectedRules.forEach(rule => rule.position = rule.position + 1);
+            affectedRules.forEach(rule => rule.rule_order = rule.rule_order + 1);
         }
 
-        if (rule.position < to) {
+        if (rule.rule_order < to) {
             affectedRules = await this.createQueryBuilder('rule')
-                .where("rule.position > :greater", {greater: rule.position})
-                .andWhere("rule.position <= :lower", {lower: to})
+                .where("rule.rule_order > :greater", {greater: rule.rule_order})
+                .andWhere("rule.rule_order <= :lower", {lower: to})
                 .andWhere("rule.routingTableId = :table", {table: rule.routingTableId}).getMany();
 
-            affectedRules.forEach(rule => rule.position = rule.position - 1);
+            affectedRules.forEach(rule => rule.rule_order = rule.rule_order - 1);
         }
 
-        rule.position = to;
+        rule.rule_order = to;
         affectedRules.push(rule);
         
         await this.save(affectedRules);
@@ -145,9 +144,9 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
                 await queryBuilder
                         .update()
                         .where('routingTableId = :table', {table: entity.routingTableId})
-                        .andWhere('rule_order > :lower', {lower: entity.position})
+                        .andWhere('rule_order > :lower', {lower: entity.rule_order})
                         .set({
-                            position: () => "position - 1"
+                            rule_order: () => "rule_order - 1"
                         }).execute();
             }
             

@@ -171,7 +171,7 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     isNullable: true
                 },
                 {
-                    name: 'position',
+                    name: 'route_order',
                     type: 'int',
                     length: '11',
                     isNullable: false,
@@ -283,7 +283,7 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     isNullable: true
                 },
                 {
-                    name: 'position',
+                    name: 'rule_order',
                     type: 'int',
                     length: '11',
                     isNullable: false,

@@ -82,7 +82,7 @@ export class Route extends Model {
     @Column({
         type: Number
     })
-    position: number;
+    route_order: number;
 
     @Column({
         name: 'group'

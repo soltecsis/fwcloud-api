@@ -27,7 +27,6 @@ import { ValidationException } from "../../../fonaments/exceptions/validation-ex
 import { Service } from "../../../fonaments/services/service";
 import { ErrorBag } from "../../../fonaments/validation/validator";
 import { Firewall } from "../../firewall/Firewall";
-import { FwCloud } from "../../fwcloud/FwCloud";
 import { Interface } from "../../interface/Interface";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
@@ -54,7 +53,7 @@ export interface ICreateRoute {
     interfaceId?: number;
     active?: boolean;
     comment?: string;
-    position?: number;
+    route_order?: number;
     style?: string;
 }
 
@@ -63,7 +62,7 @@ interface IUpdateRoute {
     comment?: string;
     gatewayId?: number;
     interfaceId?: number;
-    position?: number;
+    route_order?: number;
     style?: string;
     ipObjIds?: number[];
     ipObjGroupIds?: number[];
@@ -95,8 +94,8 @@ export class RouteService extends Service {
         const routingTable: RoutingTable = await getRepository(RoutingTable).findOne(data.routingTableId, {relations: ['firewall']});
 
         const route: Route = await this._repository.getLastRouteInRoutingTable(data.routingTableId);
-        const position: number = route?.position? route.position + 1 : 1;
-        data.position = position;
+        const route_order: number = route?.route_order? route.route_order + 1 : 1;
+        data.route_order = route_order;
 
         if (data.interfaceId) {
             await this.validateInterface(routingTable.firewall, data);
@@ -153,8 +152,8 @@ export class RouteService extends Service {
 
         route = await this._repository.save(route);
 
-        if (data.position && route.position !== data.position) {
-            return await this._repository.move(route.id, data.position);
+        if (data.route_order && route.route_order !== data.route_order) {
+            return await this._repository.move(route.id, data.route_order);
         }
 
         return route;
