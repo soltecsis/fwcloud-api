@@ -817,7 +817,12 @@ export class Tree extends Model {
 
                     if (!found) {
                         // create the routing nodes.
-                        await this.routingTree(connection, fwcloud, children[i].id_obj, children[i].id);
+                        let firewallId = 0;
+                        for (let j=0; j < grandchild.length; j++) {
+                            if (grandchild[j].node_type === 'FDI') 
+                                firewallId = grandchild[j].id_obj;
+                        }
+                        await this.routingTree(connection, fwcloud, firewallId, children[i].id);
                         treeReload = true;
                     }
                 } else if (children[i].node_type === 'FD') // Recursive call for firewall folders.

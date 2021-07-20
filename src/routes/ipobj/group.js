@@ -173,7 +173,7 @@ router.put('/addto', async(req, res) => {
 		// Insert object in group.
 		let dataIpobj;
 		if (req.body.node_type === 'OCL') {
-			if (groupIPv === 6) throw fwcError.IPOBJ_MIX_IP_VERSION;
+			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
 			await OpenVPN.addToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
 			dataIpobj = await OpenVPN.getOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.ipobj, 1);
@@ -181,7 +181,7 @@ router.put('/addto', async(req, res) => {
 			dataIpobj[0].name = dataIpobj[0].cn;
 			dataIpobj[0].type = 311;
 		} else if (req.body.node_type === 'PRO') {
-			if (groupIPv === 6) throw fwcError.IPOBJ_MIX_IP_VERSION;
+			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
 			// Don't allow adding an empty OpenVPN server prefix to a group.
 			if ((await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon, req.prefix.openvpn, req.prefix.name)).length < 1)
@@ -193,8 +193,7 @@ router.put('/addto', async(req, res) => {
 			dataIpobj[0].type = 401;
 		} else {
 			dataIpobj = await IPObj.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
-			if (groupIPv!=0 && dataIpobj[0].ip_version!==groupIPv) throw fwcError.IPOBJ_MIX_IP_VERSION;
-
+			
 			await IPObjToIPObjGroup.insertIpobj__ipobjg(req);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 		}

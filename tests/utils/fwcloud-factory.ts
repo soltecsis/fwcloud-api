@@ -47,6 +47,7 @@ export type FwCloudProduct = {
     firewall: Firewall;
     ipobjGroup: IPObjGroup;
     ipobjs: Map<string, IPObj>;
+    interfaces: Map<string, Interface>;
     ca: Ca;
     crts: Map<string, Crt>;
     openvpnServer: OpenVPN;
@@ -72,6 +73,8 @@ export class FwCloudFactory {
     private _openvpnOptRepository: Repository<OpenVPNOption>;
     private _openvpnPrefixRepository: Repository<OpenVPNPrefix>;
     private _routingTableRepository: Repository<RoutingTable>;
+    private _routeRepository: Repository<Route>;
+    private _routingRuleRepository: Repository<RoutingRule>;
     private _markRepository: Repository<Mark>;
 
     public fwc: FwCloudProduct;
@@ -92,10 +95,13 @@ export class FwCloudFactory {
         this._openvpnOptRepository = getRepository(OpenVPNOption);
         this._openvpnPrefixRepository = getRepository(OpenVPNPrefix);
         this._routingTableRepository = getRepository(RoutingTable);
+        this._routeRepository = getRepository(Route);
+        this._routingRuleRepository = getRepository(RoutingRule);
         this._markRepository = getRepository(Mark);
 
         this.fwc = {} as FwCloudProduct;
         this.fwc.ipobjs = new Map<string, IPObj>();
+        this.fwc.interfaces = new Map<string, Interface>();
         this.fwc.crts = new Map<string, Crt>();
         this.fwc.openvpnClients = new Map<string, OpenVPN>();
         this.fwc.routes = new Map<string, Route>();
@@ -109,11 +115,11 @@ export class FwCloudFactory {
         await this.makeIpobjGroup();
         await this.makeIPOBjs();
         await this.makeHost();
+        await this.makeMark();
         await this.makePKI();
         await this.makeVPNs();
         await this.addToGroup();
         await this.makeRouting();
-        await this.makeMark();
 
         return this.fwc;
     }
@@ -133,6 +139,13 @@ export class FwCloudFactory {
             name: StringHelper.randomize(10),
             fwCloudId: this.fwc.fwcloud.id
         }));
+
+        this.fwc.interfaces.set('firewall-interface1', await this._interfaceRepository.save(this._interfaceRepository.create({
+            name: `eth${this.randomId(0,100)}`,
+            type: '10',
+            interface_type: '10',
+            firewallId: this.fwc.firewall.id
+        })));
     }
 
     private async makeIpobjGroup(): Promise<void> {
@@ -178,6 +191,16 @@ export class FwCloudFactory {
             name: 'network',
             address: '10.20.30.0',
             netmask: '/24',
+            ipObjTypeId: 7,
+            interfaceId: null,
+            fwCloudId: this.fwc.fwcloud.id
+        })));
+
+        this.fwc.ipobjs.set('networkNoCIDR', await this._ipobjRepository.save(this._ipobjRepository.create({
+            id: this._ipobjNextId++,
+            name: 'network',
+            address: '192.168.0.0',
+            netmask: '255.255.0.0',
             ipObjTypeId: 7,
             interfaceId: null,
             fwCloudId: this.fwc.fwcloud.id
@@ -420,31 +443,92 @@ export class FwCloudFactory {
     private async makeRouting(): Promise<void> {
         const routeService = await testSuite.app.getService<RouteService>(RouteService.name);
         const routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
+        let lastRouteId = this.randomId(10,100000);
+        let lastRoutingRuleId = this.randomId(10,100000);
 
         this.fwc.routingTable = await this._routingTableRepository.save({
             id: this.randomId(10,100000),
             firewallId: this.fwc.firewall.id,
-            number: 1,
+            number: this.randomId(0,256),
             name: 'Routing table',
         });
 
-        this.fwc.routes.set('route1', await routeService.create({
+        this.fwc.routes.set('route1', await this._routeRepository.save({
+            id: lastRouteId++,
             routingTableId: this.fwc.routingTable.id,
-            gatewayId: this.fwc.ipobjs.get('gateway').id
+            gatewayId: this.fwc.ipobjs.get('gateway').id,
+            interfaceId: this.fwc.interfaces.get('firewall-interface1').id,
+            route_order: 1
         }));
-
-        this.fwc.routes.set('route2', await routeService.create({
+        
+        this.fwc.routes.set('route2', await this._routeRepository.save({
+            id: lastRouteId++,
             routingTableId: this.fwc.routingTable.id,
-            gatewayId: this.fwc.ipobjs.get('gateway').id
+            gatewayId: this.fwc.ipobjs.get('gateway').id,
+            route_order: 2
         }));
 
-        this.fwc.routingRules.set('routing-rule-1', await routingRuleService.create({
-            routingTableId: this.fwc.routingTable.id
+        this.fwc.routes.set('route3', await this._routeRepository.save({
+            id: lastRouteId++,
+            routingTableId: this.fwc.routingTable.id,
+            gatewayId: this.fwc.ipobjs.get('gateway').id,
+            route_order: 3
         }));
 
-        this.fwc.routingRules.set('routing-rule-2', await routingRuleService.create({
-            routingTableId: this.fwc.routingTable.id
+        this.fwc.routes.set('route4', await this._routeRepository.save({
+            id: lastRouteId++,
+            routingTableId: this.fwc.routingTable.id,
+            gatewayId: this.fwc.ipobjs.get('gateway').id,
+            interfaceId: this.fwc.interfaces.get('firewall-interface1').id,
+            route_order: 4
         }));
+
+        this.fwc.routingRules.set('routing-rule-1', await this._routingRuleRepository.save({
+            id: lastRoutingRuleId++,
+            routingTableId: this.fwc.routingTable.id,
+            rule_order: 1
+        }));
+
+        this.fwc.routingRules.set('routing-rule-2', await this._routingRuleRepository.save({
+            id: lastRoutingRuleId++,
+            routingTableId: this.fwc.routingTable.id,
+            rule_order: 2
+        }));
+
+        this.fwc.routingRules.set('routing-rule-3', await this._routingRuleRepository.save({
+            id: lastRoutingRuleId++,
+            routingTableId: this.fwc.routingTable.id,
+            rule_order: 3
+        }));
+
+        await routeService.update(this.fwc.routes.get('route1').id, {
+            ipObjIds: [this.fwc.ipobjs.get('address').id, 
+                       this.fwc.ipobjs.get('addressRange').id, 
+                       this.fwc.ipobjs.get('network').id, 
+                       this.fwc.ipobjs.get('networkNoCIDR').id, 
+                       this.fwc.ipobjs.get('host').id],
+            openVPNIds: [this.fwc.openvpnClients.get('OpenVPN-Cli-3').id],
+            openVPNPrefixIds: [this.fwc.openvpnPrefix.id]
+        });
+  
+        await routeService.update(this.fwc.routes.get('route2').id, {
+            ipObjGroupIds: [this.fwc.ipobjGroup.id]
+        });
+        
+        await routingRuleService.update(this.fwc.routingRules.get('routing-rule-1').id, {
+            ipObjIds: [this.fwc.ipobjs.get('address').id, 
+                       this.fwc.ipobjs.get('addressRange').id, 
+                       this.fwc.ipobjs.get('network').id, 
+                       this.fwc.ipobjs.get('networkNoCIDR').id, 
+                       this.fwc.ipobjs.get('host').id],
+            openVPNIds: [this.fwc.openvpnClients.get('OpenVPN-Cli-3').id],
+            openVPNPrefixIds: [this.fwc.openvpnPrefix.id],
+            markIds: [this.fwc.mark.id]
+          });
+        
+          await routingRuleService.update(this.fwc.routingRules.get('routing-rule-2').id, {
+            ipObjGroupIds: [this.fwc.ipobjGroup.id]
+          });              
     }
 
     private async makeMark(): Promise<void> {

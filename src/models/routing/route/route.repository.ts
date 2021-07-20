@@ -158,14 +158,16 @@ export class RouteRepository extends Repository<Route> {
         let query = this.createQueryBuilder("route")
             .innerJoinAndSelect("route.gateway","gateway")
             .leftJoinAndSelect("route.interface","interface")
-            .innerJoin("route.routingTable", "table")
+            .innerJoinAndSelect("route.routingTable", "table")
             .innerJoin("table.firewall", "firewall")
             .innerJoin("firewall.fwCloud", "fwcloud")
             .where("table.id = :routingTable", {routingTable})
             .andWhere("firewall.id = :firewall", {firewall: firewall})
             .andWhere("fwcloud.id = :fwcloud", {fwcloud: fwcloud});
+
+        if (route) query = query.andWhere("route.id = :route", {route});
             
-        return (route ? query.andWhere("route.id = :route", {route}) : query).getMany();
+        return query.orderBy("route.route_order").getMany();
     }
 
     protected getFindInPathOptions(path: Partial<IFindOneRoutePath>, options: FindOneOptions<Route> | FindManyOptions<Route> = {}): FindOneOptions<Route> | FindManyOptions<Route> {

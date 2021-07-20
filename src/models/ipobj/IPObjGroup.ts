@@ -31,6 +31,7 @@ import { Entity, Column, getRepository, PrimaryGeneratedColumn, OneToMany, ManyT
 import { logger } from "../../fonaments/abstract-application";
 import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
 import { Route } from "../routing/route/route.model";
+import { Interface } from "../interface/Interface";
 import { FwCloud } from "../fwcloud/FwCloud";
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
@@ -137,36 +138,78 @@ export class IPObjGroup extends Model {
 
 
     //IP version of the group items.
-    public static groupIPVersion(dbCon, group) {
+    public static groupIPVersion(dbCon, group): Promise<{ipv4: boolean, ipv6: boolean}> {
+        const ipVersions: {ipv4: boolean, ipv6: boolean} = {ipv4: false, ipv6: false};
+
         return new Promise((resolve, reject) => {
-            dbCon.query(`select type from ${tableName} where id=${group}`, (error, result) => {
-                if (error) return reject(error);
-                if (result.length !== 1) return reject(fwcError.NOT_FOUND);
-                // If this is not an IP objects group then finish without IP version.
-                if (result[0].type !== 20) return resolve(0);
+            dbCon.query(`select type from ${tableName} where id=${group}`, async (error, result) => {
+                try {
 
-                let sql = `select O.type,O.ip_version from ipobj__ipobjg G
-                inner join ipobj O on O.id=G.ipobj
-                where G.ipobj_g=${group}`
-                dbCon.query(sql, (error, result) => {
                     if (error) return reject(error);
-                    if (result.length > 0) return resolve(parseInt(result[0].ip_version));
+                    if (result.length !== 1) return reject(fwcError.NOT_FOUND);
+                    // If this is not an IP objects group then finish without IP version.
+                    if (result[0].type !== 20) return resolve(ipVersions);
 
+                    const ipObjs: IPObj[] = await getRepository(IPObj)
+                        .createQueryBuilder('ipobj')
+                        .where((qb) => {
+                            const query: string = qb.subQuery()
+                                .select('interface.id')
+                                .from(Interface, 'interface')
+                                .innerJoin('interface.hosts', 'InterfaceIPObj')
+                                .innerJoin('InterfaceIPObj.hostIPObj', 'host')
+                                .innerJoin('host.ipObjToIPObjGroups', 'ipObjToIPObjGroup', 'ipObjToIPObjGroup.ipObjGroup = :id', {id: group})
+                                .getQuery();
+                        
+                            return `ipobj.interface IN ${query}`;
+                        })
+                        .orWhere((qb) => {
+                            const query: string = qb.subQuery()
+                                .select('ipobj.id')
+                                .from(IPObj, 'ipobj')
+                                .innerJoin('ipobj.ipObjToIPObjGroups', 'ipObjToIPObjGroup', 'ipObjToIPObjGroup.ipObjGroup = :id', {id: group})
+                                .getQuery()
+                        
+                            return `ipobj.id IN ${query}`;
+                        }).getMany()
+                    
+                    if (ipObjs.length > 0) {
+                        ipObjs.forEach(ipobj => {
+                            if (ipobj.ip_version === 4) {
+                                ipVersions.ipv4 = true;
+                            }
+
+                            if (ipobj.ip_version === 6) {
+                                ipVersions.ipv6 = true;
+                            }
+                        })
+
+                        return resolve(ipVersions);
+                    }
+                    
                     dbCon.query(`select count(*) as n from openvpn__ipobj_g where ipobj_g=${group}`, (error, result) => {
                         if (error) return reject(error);
                         // If there is an OpenVPN configuration in the group, then this is an IPv4 group.
-                        if (result[0].n > 0) return resolve(4);
+                        if (result[0].n > 0) return resolve({
+                            ipv4: true,
+                            ipv6: false
+                        });
 
                         dbCon.query(`select count(*) as n from openvpn_prefix__ipobj_g where ipobj_g=${group}`, (error, result) => {
                             if (error) return reject(error);
                             // If there is an OpenVPN prefix in the group, then this is an IPv4 group.
-                            if (result[0].n > 0) return resolve(4);
+                            if (result[0].n > 0) return resolve({
+                                ipv4: true,
+                                ipv6: false
+                            });
 
                             // If we arrive here, then the group is empty.
-                            resolve(0);
+                            resolve(ipVersions);
                         });
                     });
-                });
+                } catch(err) {
+                    return reject(err);
+                }
             });
         });
     }

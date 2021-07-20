@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Backup } from "../../../src/backups/backup";
+import { Backup, backupDigestContent, BackupMetadata } from "../../../src/backups/backup";
 import * as fs from "fs";
 import * as path from "path";
 import { DatabaseConfig, DatabaseService } from "../../../src/database/database.service";
@@ -33,6 +33,7 @@ import { Firewall } from "../../../src/models/firewall/Firewall";
 import moment from "moment";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import sinon from "sinon";
+import * as crypto from 'crypto';
 
 let app: Application;
 let service: BackupService;
@@ -120,7 +121,10 @@ describe(describeName('Backup Unit tests'), () => {
                 timestamp: backup.timestamp,
                 version: app.version.tag,
                 comment: 'test comment',
-                imported: false
+                imported: false,
+                hash: crypto.createHmac('sha256', testSuite.app.config.get('crypt.secret'))
+                .update(backupDigestContent)
+                .digest('hex')
             });
         });
     });
@@ -245,6 +249,32 @@ describe(describeName('Backup Unit tests'), () => {
             const newMigrations: Migration[] = await databaseService.getExecutedMigrations();
             
             expect(newMigrations.length).to.be.deep.eq(migrations.length);
+        });
+
+        it('should remove encrypted data if export snapshot hash is not equal', async () => {
+            let fwCloud: FwCloud = await FwCloud.save(FwCloud.create({ name: 'test' }));
+            let firewall: Firewall = await Firewall.save(Firewall.create({
+                name: 'firewall_test',
+                status: 1,
+                fwCloudId: fwCloud.id,
+                install_user: 'test',
+                install_pass: 'test'
+            }));
+
+            backup = new Backup();
+            await backup.create(service.config.data_dir);
+
+            const backupMetadata: BackupMetadata = JSON.parse(fs.readFileSync(path.join(backup.path, Backup.METADATA_FILENAME)).toString());
+            backupMetadata.hash = 'test';
+            fs.writeFileSync(path.join(backup.path, Backup.METADATA_FILENAME), JSON.stringify(backupMetadata, null, 2));
+            backup = await new Backup().load(backup.path);
+
+            await backup.restore();
+
+            firewall = await Firewall.findOne(firewall.id);
+
+            expect(firewall.install_user).to.be.null;
+            expect(firewall.install_pass).to.be.null;
         });
     });
 
