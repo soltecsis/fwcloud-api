@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getCustomRepository, getRepository, In, SelectQueryBuilder } from "typeorm";
+import { getCustomRepository, getRepository, In, Repository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import db from "../../../database/database-manager";
 import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
@@ -39,6 +39,7 @@ import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
 import { OpenVPNRepository } from "../../vpn/openvpn/openvpn-repository";
 import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { OpenVPNPrefixRepository } from "../../vpn/openvpn/OpenVPNPrefix.repository";
+import { RoutingTable } from "../routing-table/routing-table.model";
 import { AvailableDestinations, ItemForGrid, RoutingRuleItemForCompiler, RoutingUtils } from "../shared";
 import { RoutingRule } from "./routing-rule.model";
 import { IFindManyRoutingRulePath, IFindOneRoutingRulePath, RoutingRuleRepository } from "./routing-rule.repository";
@@ -49,6 +50,11 @@ interface ICreateRoutingRule {
     comment?: string;
     rule_order?: number;
     style?: string;
+    ipObjIds?: number[];
+    ipObjGroupIds?: number[];
+    openVPNIds?: number[];
+    openVPNPrefixIds?: number[],
+    markIds?: number[]
 }
 
 interface IUpdateRoutingRule {
@@ -75,6 +81,7 @@ export class RoutingRuleService extends Service {
     private _openvpnRepository: OpenVPNRepository;
     private _openvpnPrefixRepository: OpenVPNPrefixRepository;
     private _markRepository: MarkRepository;
+    private _routingTableRepository: Repository<RoutingTable>;
 
     constructor(app: Application) {
         super(app);
@@ -84,6 +91,7 @@ export class RoutingRuleService extends Service {
         this._openvpnRepository = getCustomRepository(OpenVPNRepository);
         this._openvpnPrefixRepository = getCustomRepository(OpenVPNPrefixRepository);
         this._markRepository = getCustomRepository(MarkRepository);
+        this._routingTableRepository = getRepository(RoutingTable);
     }
 
     findManyInPath(path: IFindManyRoutingRulePath): Promise<RoutingRule[]> {
@@ -99,10 +107,69 @@ export class RoutingRuleService extends Service {
     }
 
     async create(data: ICreateRoutingRule): Promise<RoutingRule> {
-        const rule: RoutingRule = await this._repository.getLastRoutingRuleInRoutingTable(data.routingTableId);
-        const rule_order: number = rule?.rule_order? rule.rule_order + 1 : 1;
-        data.rule_order = rule_order;
-        return this._repository.save(data);
+        const routingTable: RoutingTable = await this._routingTableRepository.findOneOrFail(data.routingTableId, {
+            relations: ['firewall']
+        });
+        const firewall: Firewall = routingTable.firewall;
+
+        const routingRuleData: Partial<RoutingRule> = {
+            routingTableId: data.routingTableId,
+            active: data.active,
+            comment: data.comment,
+            style: data.style,
+        }
+
+        if (data.ipObjIds) {
+            await this.validateUpdateIPObjs(firewall, data);
+            routingRuleData.ipObjs = data.ipObjIds.map(id => ({id: id} as IPObj));
+        }
+
+        if (data.ipObjGroupIds) {
+            await this.validateUpdateIPObjGroups(firewall, data);
+            routingRuleData.ipObjGroups = data.ipObjGroupIds.map(id => ({id: id} as IPObjGroup));
+        }
+
+        if (data.openVPNIds) {
+            const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
+                where: {
+                    id: In(data.openVPNIds),
+                    firewallId: firewall.id,
+                }
+            })
+
+            routingRuleData.openVPNs = openVPNs.map(item => ({id: item.id} as OpenVPN));
+        }
+
+        if (data.openVPNPrefixIds) {
+            const prefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).find({
+                where: {
+                    id: In(data.openVPNPrefixIds)
+                }
+            })
+
+            routingRuleData.openVPNPrefixes = prefixes.map(item => ({id: item.id} as OpenVPNPrefix));
+        }
+
+        if(data.markIds) {
+            const marks: Mark[] = await getRepository(Mark).find({
+                where: {
+                    id: In(data.markIds),
+                    fwCloudId: firewall.fwCloudId
+                }
+            });
+
+            routingRuleData.marks = marks.map(item => ({id: item.id}) as Mark);
+        }
+
+        if (!data.rule_order) {
+            const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInRoutingTable(data.routingTableId);
+            const rule_order: number = lastRule?.rule_order? lastRule.rule_order + 1 : 1;
+            routingRuleData.rule_order = rule_order;
+        }
+
+        const persisted: RoutingRule = await this._repository.save(routingRuleData);
+
+        return data.rule_order ? await this._repository.move(persisted.id, data.rule_order) : persisted;
     }
 
     async update(id: number, data: IUpdateRoutingRule): Promise<RoutingRule> {
