@@ -107,6 +107,7 @@ export class Routes extends RouteCollection {
                                         router.post('/', RouteController, 'store').name('fwclouds.firewalls.routing.tables.routes.store');
                                         router.prefix('/:route(\\d+)', (router:RouterParser) => {
                                             router.get('/', RouteController, 'show').name('fwclouds.firewalls.routing.tables.routes.show');
+                                            router.get('/compile', RouteController, 'compile').name('fwclouds.firewalls.routing.tables.routes.compile')
                                             router.put('/', RouteController, 'update').name('fwclouds.firewalls.routing.tables.routes.update');
                                             router.delete('/', RouteController, 'remove').name('fwclouds.firewalls.routing.tables.routes.delete');
                                         });
@@ -139,6 +140,7 @@ export class Routes extends RouteCollection {
                                 router.get('/', RoutingRuleController, 'index').name('fwclouds.firewalls.routing.rules.index');
                                 router.prefix('/:rule(\\d+)', (router:RouterParser) => {
                                     router.get('/', RoutingRuleController, 'show').name('fwclouds.firewalls.routing.rules.show');
+                                    router.get('/compile', RoutingRuleController, 'compile').name('fwclouds.firewalls.routing.rules.compile')
                                     router.put('/', RoutingRuleController, 'update').name('fwclouds.firewalls.routing.rules.update');
                                     router.delete('/', RoutingRuleController, 'remove').name('fwclouds.firewalls.routing.rules.delete');
                                 });

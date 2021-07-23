@@ -25,16 +25,20 @@ import { Firewall } from "../../../models/firewall/Firewall";
 import { Request } from "express";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { Validate } from "../../../decorators/validate.decorator";
-import { RoutingRuleService } from "../../../models/routing/routing-rule/routing-rule.service";
+import { RoutingRulesData, RoutingRuleService } from "../../../models/routing/routing-rule/routing-rule.service";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { RoutingRulePolicy } from "../../../policies/routing-rule.policy";
 import { RoutingRule } from "../../../models/routing/routing-rule/routing-rule.model";
 import { RoutingRuleControllerCreateDto } from "./dtos/create.dto";
 import { RoutingRuleControllerUpdateDto } from "./dtos/update.dto";
+import { RoutingTableService } from "../../../models/routing/routing-table/routing-table.service";
+import { RoutingRuleItemForCompiler } from "../../../models/routing/shared";
+import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
 
 export class RoutingRuleController extends Controller {
     
     protected routingRuleService: RoutingRuleService;
+    protected routingTableService: RoutingTableService;
     protected _firewall: Firewall;
     protected _fwCloud: FwCloud;
 
@@ -92,6 +96,23 @@ export class RoutingRuleController extends Controller {
         const result: RoutingRule = await this.routingRuleService.update(rule.id, request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(200).body(result);
+    }
+
+    @Validate()
+    async compile(request: Request): Promise<ResponseBuilder> {
+        const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
+            fwCloudId: this._fwCloud.id,
+            firewallId: this._firewall.id,
+            id: parseInt(request.params.rule)
+        });
+
+        (await RoutingRulePolicy.show(rule, request.session.user)).authorize();
+
+        const rules: RoutingRulesData<RoutingRuleItemForCompiler>[] = await this.routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', this._fwCloud.id, this._firewall.id, rule.id);
+
+        const compilation = new RoutingCompiler().compile('Rule', rules);
+        
+        return ResponseBuilder.buildResponse().status(200).body(compilation);
     }
     
     @Validate()

@@ -32,15 +32,20 @@ import { RoutePolicy } from "../../../policies/route.policy";
 import { Route } from "../../../models/routing/route/route.model";
 import { RouteControllerStoreDto } from "./dtos/store.dto";
 import { RouteControllerUpdateDto } from "./dtos/update.dto";
+import { RouteData, RoutingTableService } from "../../../models/routing/routing-table/routing-table.service";
+import { RouteItemForCompiler } from "../../../models/routing/shared";
+import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
 
 export class RouteController extends Controller {
     protected _routeService: RouteService;
     protected _firewall: Firewall;
     protected _fwCloud: FwCloud;
     protected _routingTable: RoutingTable;
+    protected _routingTableService: RoutingTableService;
 
     public async make(request: Request): Promise<void> {
         this._routeService = await this._app.getService<RouteService>(RouteService.name);
+        this._routingTableService = await this._app.getService<RoutingTableService>(RoutingTableService.name);
         this._fwCloud = await FwCloud.findOneOrFail(parseInt(request.params.fwcloud));
         this._firewall = await Firewall.findOneOrFail(parseInt(request.params.firewall));
         this._routingTable = await RoutingTable.findOneOrFail(parseInt(request.params.routingTable));
@@ -71,6 +76,30 @@ export class RouteController extends Controller {
         (await RoutePolicy.show(route, request.session.user)).authorize();
 
         return ResponseBuilder.buildResponse().status(200).body(route);
+    }
+
+    @Validate()
+    async compile(request: Request): Promise<ResponseBuilder> {
+        const route: Route = await this._routeService.findOneInPathOrFail({
+            fwCloudId: this._fwCloud.id,
+            firewallId: this._firewall.id,
+            routingTableId: this._routingTable.id,
+            id: parseInt(request.params.route)
+        });
+
+        (await RoutePolicy.show(route, request.session.user)).authorize();
+
+        const routes: RouteData<RouteItemForCompiler>[] = await this._routingTableService.getRoutingTableData<RouteItemForCompiler>(
+            'compiler',
+            this._fwCloud.id,
+            this._firewall.id, 
+            this._routingTable.id,
+            route.id
+        );
+
+        const compilation = new RoutingCompiler().compile('Route', routes);
+        
+        return ResponseBuilder.buildResponse().status(200).body(compilation);
     }
 
     @Validate(RouteControllerStoreDto)

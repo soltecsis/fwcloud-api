@@ -208,6 +208,68 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             });
         });
 
+        describe('@compile', () => {
+            let rule: RoutingRule;
+            
+            beforeEach(async () => {
+                rule = await routingRuleService.create({
+                    routingTableId: table.id,
+                });
+            });   
+
+            it('guest user should not compile a rule', async () => {
+				return await request(app.express)
+					.get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not compile a rule', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should compile a rule', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).instanceOf(Array);
+                    });
+            });
+
+            it('admin user should compile a rule', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))         
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).instanceOf(Array);
+                    });
+            });
+        });
+
         describe('@create', () => {
             it('guest user should not create a rules', async () => {
 				return await request(app.express)
