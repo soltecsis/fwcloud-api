@@ -28,30 +28,30 @@ import { IsClientOpenVPN } from "../../../../fonaments/validation/rules/is-clien
 export class RouteControllerUpdateDto {
     @IsNumber()
     @IsOptional()
-    routeGroupId: number;
+    routeGroupId?: number;
     
     @IsNumber()
     @IsOptional()
     @IpObjBelongsToTypes([
         5, // ADDRESS
     ])
-    gatewayId: number;
+    gatewayId?: number;
 
     @IsNumber()
     @IsOptional()
-    interfaceId: number;
+    interfaceId?: number;
         
     @IsBoolean()
     @IsOptional()
-    active: boolean;
+    active?: boolean;
 
     @IsString()
     @IsOptional()
-    comment: string;
+    comment?: string;
 
     @IsString()
     @IsOptional()
-    style: string;
+    style?: string;
 
     @IsArray()
     @IsOptional()
@@ -65,7 +65,7 @@ export class RouteControllerUpdateDto {
     @IsNumber({}, {
         each: true
     })
-    ipObjIds: number[]
+    ipObjIds?: number[]
 
     @IsArray()
     @IsOptional()
@@ -75,7 +75,7 @@ export class RouteControllerUpdateDto {
     @IsNumber({}, {
         each: true
     })
-    ipObjGroupIds: number[]
+    ipObjGroupIds?: number[]
 
     @IsArray()
     @IsOptional()
@@ -83,16 +83,16 @@ export class RouteControllerUpdateDto {
         each: true
     })
     @IsClientOpenVPN()
-    openVPNIds: number[];
+    openVPNIds?: number[];
     
     @IsArray()
     @IsOptional()
     @IsNumber({}, {
         each: true
     })
-    openVPNPrefixIds: number[]
+    openVPNPrefixIds?: number[]
 
     @IsOptional()
     @IsNumber()
-    route_order: number;
+    route_order?: number;
 }
