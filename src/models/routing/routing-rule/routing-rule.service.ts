@@ -161,12 +161,10 @@ export class RoutingRuleService extends Service {
             routingRuleData.marks = marks.map(item => ({id: item.id}) as Mark);
         }
 
-        if (!data.rule_order) {
-            const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInRoutingTable(data.routingTableId);
-            const rule_order: number = lastRule?.rule_order? lastRule.rule_order + 1 : 1;
-            routingRuleData.rule_order = rule_order;
-        }
-
+        const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInRoutingTable(data.routingTableId);
+        const rule_order: number = lastRule?.rule_order? lastRule.rule_order + 1 : 1;
+        routingRuleData.rule_order = rule_order;
+        
         const persisted: RoutingRule = await this._repository.save(routingRuleData);
 
         return data.rule_order ? await this._repository.move(persisted.id, data.rule_order) : persisted;

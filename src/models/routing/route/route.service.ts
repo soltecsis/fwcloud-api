@@ -55,6 +55,10 @@ export interface ICreateRoute {
     comment?: string;
     route_order?: number;
     style?: string;
+    ipObjIds?: number[];
+    ipObjGroupIds?: number[];
+    openVPNIds?: number[];
+    openVPNPrefixIds?: number[]
 }
 
 interface IUpdateRoute {
@@ -92,16 +96,60 @@ export class RouteService extends Service {
 
     async create(data: ICreateRoute): Promise<Route> {
         const routingTable: RoutingTable = await getRepository(RoutingTable).findOne(data.routingTableId, {relations: ['firewall']});
+        const firewall: Firewall = routingTable.firewall;
 
-        const route: Route = await this._repository.getLastRouteInRoutingTable(data.routingTableId);
-        const route_order: number = route?.route_order? route.route_order + 1 : 1;
-        data.route_order = route_order;
-
-        if (data.interfaceId) {
-            await this.validateInterface(routingTable.firewall, data);
+        const routeData: Partial<Route> = {
+            routingTableId: data.routingTableId,
+            gatewayId: data.gatewayId,
+            interfaceId: data.interfaceId,
+            active: data.active,
+            comment: data.comment,
+            style: data.style
         }
 
-        return this._repository.save(data);
+        if (data.ipObjIds) {
+            await this.validateUpdateIPObjs(firewall, data);
+            routeData.ipObjs = data.ipObjIds.map(id => ({id: id} as IPObj));
+        }
+
+        if (data.ipObjGroupIds) {
+            await this.validateUpdateIPObjGroups(firewall, data);
+            routeData.ipObjGroups = data.ipObjGroupIds.map(id => ({id: id} as IPObjGroup));
+        }
+
+        if (data.openVPNIds) {
+            const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
+                where: {
+                    id: In(data.openVPNIds),
+                    firewallId: firewall.id,
+                }
+            })
+
+            routeData.openVPNs = openVPNs.map(item => ({id: item.id} as OpenVPN));
+        }
+
+        if (data.openVPNPrefixIds) {
+            const prefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).find({
+                where: {
+                    id: In(data.openVPNPrefixIds),
+                }
+            })
+
+            routeData.openVPNPrefixes = prefixes.map(item => ({id: item.id} as OpenVPNPrefix));
+        }
+
+        if (data.interfaceId) {
+            await this.validateInterface(firewall, data);
+            routeData.interfaceId = data.interfaceId
+        }
+
+        const lastRuoute: Route = await this._repository.getLastRouteInRoutingTable(data.routingTableId);
+        const route_order: number = lastRuoute?.route_order? lastRuoute.route_order + 1 : 1;
+        routeData.route_order = route_order;
+        
+        const persisted: Route = await this._repository.save(routeData);
+
+        return data.route_order ? await this._repository.move(persisted.id, data.route_order) : persisted;
     }
 
     async update(id: number, data: IUpdateRoute): Promise<Route> {
