@@ -161,6 +161,7 @@ export class RouteRepository extends Repository<Route> {
             .innerJoinAndSelect("route.routingTable", "table")
             .innerJoin("table.firewall", "firewall")
             .innerJoin("firewall.fwCloud", "fwcloud")
+            .leftJoin("route.routeGroup", "group")
             .where("table.id = :routingTable", {routingTable})
             .andWhere("firewall.id = :firewall", {firewall: firewall})
             .andWhere("fwcloud.id = :fwcloud", {fwcloud: fwcloud});
