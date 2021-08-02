@@ -138,9 +138,9 @@ export class Routes extends RouteCollection {
                             router.prefix('/routingRules', (router: RouterParser) => {
                                 router.post('/', RoutingRuleController, 'create').name('fwclouds.firewalls.routing.rules.store');
                                 router.get('/', RoutingRuleController, 'index').name('fwclouds.firewalls.routing.rules.index');
+                                router.get('/grid', RoutingRuleController, 'grid').name('fwclouds.firewalls.routing.rules.grid');
                                 router.prefix('/:rule(\\d+)', (router:RouterParser) => {
                                     router.get('/', RoutingRuleController, 'show').name('fwclouds.firewalls.routing.rules.show');
-                                    router.get('/grid', RoutingRuleController, 'grid').name('fwclouds.firewalls.routing.rules.grid');
                                     router.get('/compile', RoutingRuleController, 'compile').name('fwclouds.firewalls.routing.rules.compile')
                                     router.put('/', RoutingRuleController, 'update').name('fwclouds.firewalls.routing.rules.update');
                                     router.delete('/', RoutingRuleController, 'remove').name('fwclouds.firewalls.routing.rules.delete');

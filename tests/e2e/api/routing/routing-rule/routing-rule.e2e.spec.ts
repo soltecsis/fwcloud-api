@@ -145,6 +145,66 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
         });
 
+        describe('@grid', () => {
+            let rule: RoutingRule;
+            
+            beforeEach(async () => {
+                rule = await routingRuleService.create({
+                    routingTableId: table.id,
+                });
+            });   
+
+            it('guest user should not see a rules grid', async () => {
+				return await request(app.express)
+					.get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not see a rules grid', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should see a rules grid', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .then(response => {
+                        expect(response.body.data[0].id).to.deep.eq(rule.id);
+                        expect(response.body.data[0].routingTableId).to.deep.eq(rule.routingTableId);
+                    });
+            });
+
+            it('admin user should see a rules grid', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))         
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data[0].id).to.deep.eq(rule.id);
+                        expect(response.body.data[0].routingTableId).to.deep.eq(rule.routingTableId);
+                    });
+            });
+        });
+
         describe('@show', () => {
             let rule: RoutingRule;
             
@@ -204,69 +264,6 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.id).to.deep.eq(rule.id);
                         expect(response.body.data.routingTableId).to.deep.eq(rule.routingTableId);
-                    });
-            });
-        });
-
-        describe('@grid', () => {
-            let rule: RoutingRule;
-            
-            beforeEach(async () => {
-                rule = await routingRuleService.create({
-                    routingTableId: table.id,
-                });
-            });   
-
-            it('guest user should not see a rule grid', async () => {
-				return await request(app.express)
-					.get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
-                        fwcloud: fwCloud.id,
-                        firewall: firewall.id,
-                        rule: rule.id
-                    }))
-					.expect(401);
-			});
-
-            it('regular user which does not belong to the fwcloud should not see a rule grid', async () => {
-                return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
-                        fwcloud: fwCloud.id,
-                        firewall: firewall.id,
-                        rule: rule.id
-                    }))
-                    .set('Cookie', [attachSession(loggedUserSessionId)])
-                    .expect(401)
-            });
-
-            it('regular user which belongs to the fwcloud should see a rule grid', async () => {
-                loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
-
-                return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
-                        fwcloud: fwCloud.id,
-                        firewall: firewall.id,
-                        rule: rule.id
-                    }))
-                    .set('Cookie', [attachSession(loggedUserSessionId)])
-                    .then(response => {
-                        expect(response.body.data[0].id).to.deep.eq(rule.id);
-                        expect(response.body.data[0].routingTableId).to.deep.eq(rule.routingTableId);
-                    });
-            });
-
-            it('admin user should see a rule grid', async () => {
-                return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
-                        fwcloud: fwCloud.id,
-                        firewall: firewall.id,
-                        rule: rule.id
-                    }))         
-                    .set('Cookie', [attachSession(adminUserSessionId)])
-                    .expect(200)
-                    .then(response => {
-                        expect(response.body.data[0].id).to.deep.eq(rule.id);
-                        expect(response.body.data[0].routingTableId).to.deep.eq(rule.routingTableId);
                     });
             });
         });

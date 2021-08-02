@@ -61,6 +61,16 @@ export class RoutingRuleController extends Controller {
     }
 
     @Validate()
+    async grid(request: Request): Promise<ResponseBuilder> {
+        (await RoutingRulePolicy.index(this._firewall, request.session.user)).authorize();
+        
+        const grid = await this.routingRuleService.getRoutingRulesData('grid', this._firewall.fwCloudId, this._firewall.id);
+
+
+        return ResponseBuilder.buildResponse().status(200).body(grid);
+    }
+
+    @Validate()
     async show(request: Request): Promise<ResponseBuilder> {
         const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
             firewallId: this._firewall.id,
@@ -72,24 +82,6 @@ export class RoutingRuleController extends Controller {
 
         return ResponseBuilder.buildResponse().status(200).body(rule);
     }
-
-    @Validate()
-    async grid(request: Request): Promise<ResponseBuilder> {
-        const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
-            firewallId: this._firewall.id,
-            fwCloudId: this._fwCloud.id,
-            id: parseInt(request.params.rule)
-        });
-
-        (await RoutingRulePolicy.show(rule, request.session.user)).authorize();
-
-        const grid = await this.routingRuleService.getRoutingRulesData('grid', this._firewall.fwCloudId, this._firewall.id, rule.id);
-
-
-        return ResponseBuilder.buildResponse().status(200).body(grid);
-    }
-
-    
 
     @Validate(RoutingRuleControllerCreateDto)
     async create(request: Request): Promise<ResponseBuilder> {
