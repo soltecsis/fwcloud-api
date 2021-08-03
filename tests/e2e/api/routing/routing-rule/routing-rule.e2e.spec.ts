@@ -39,6 +39,7 @@ import { IPObjGroup } from "../../../../../src/models/ipobj/IPObjGroup";
 import { OpenVPN } from "../../../../../src/models/vpn/openvpn/OpenVPN";
 import { Crt } from "../../../../../src/models/vpn/pki/Crt";
 import { Ca } from "../../../../../src/models/vpn/pki/Ca";
+import { RoutingRuleControllerBulkMoveDto } from "../../../../../src/controllers/routing/routing-rule/dtos/bulk-move.dto";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;
@@ -203,6 +204,104 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data[0].routingTableId).to.deep.eq(rule.routingTableId);
                     });
             });
+        });
+
+        describe('@move', () => {
+            let ruleOrder1: RoutingRule;
+            let ruleOrder2: RoutingRule;
+            let ruleOrder3: RoutingRule;
+            let ruleOrder4: RoutingRule;
+            let data: RoutingRuleControllerBulkMoveDto;
+
+            beforeEach(async () => {
+                ruleOrder1 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    rule_order: 1
+                });
+                
+                ruleOrder2 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    rule_order: 2
+                });
+
+                ruleOrder3 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    rule_order: 3
+                });
+                
+                ruleOrder4 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    rule_order: 4
+                });
+
+                data = {
+                    rules: [ruleOrder1.id, ruleOrder2.id],
+                    to: 3
+                }
+            });
+
+            it('guest user should not bulk move rules', async () => {
+				return await request(app.express)
+					.put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkMove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not bulk move rules', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkMove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should bulk move rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkMove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).rule_order).to.eq(2);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).rule_order).to.eq(3);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder3.id)).rule_order).to.eq(1);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder4.id)).rule_order).to.eq(4);
+            });
+
+            it('admin user should bulk move rules', async () => {
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkMove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .send(data)
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+                
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).rule_order).to.eq(2);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).rule_order).to.eq(3);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder3.id)).rule_order).to.eq(1);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder4.id)).rule_order).to.eq(4);
+            });
+
+
         });
 
         describe('@show', () => {

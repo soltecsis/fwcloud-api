@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, LessThan, LessThanOrEqual, MoreThan, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
+import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, getManager, In, LessThan, LessThanOrEqual, MoreThan, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
 import { RoutingRule } from "./routing-rule.model";
 
 export interface IFindManyRoutingRulePath {
@@ -81,50 +81,52 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
      * @param to 
      * @returns 
      */
-    async move(id: number, to: number): Promise<RoutingRule> {
-        const rule: RoutingRule = await this.findOneOrFail(id, {relations: ['routingTable', 'routingTable.firewall']});
+    async move(ids: number[], to: number): Promise<RoutingRule[]> {
+
+        const rules: RoutingRule[] = await this.find({
+            where: {
+                id: In(ids)
+            }, 
+            relations: ['routingTable', 'routingTable.firewall']
+        });
+
+        const forward: boolean = rules[0].rule_order < to;
+
+        const affectedRules: RoutingRule[] = await this.findManyInPath({
+            fwCloudId: rules[0].routingTable.firewall.fwCloudId,
+            firewallId: rules[0].routingTable.firewall.id
+        });
         
-        let affectedRules: RoutingRule[] = [];
-        
-        const lastOrderRule: RoutingRule = (await this.findManyInPath({
-            fwCloudId: rule.routingTable.firewall.fwCloudId,
-            firewallId: rule.routingTable.firewall.id,
-        }, {
-            take: 1,
-            order: {
-                rule_order: 'DESC'
+        affectedRules.forEach((rule) => {
+            if (ids.includes(rule.id)) {
+                const offset: number = ids.indexOf(rule.id);
+                rule.rule_order = to + offset;
+            } else {
+                if (forward) {
+                    if (rule.rule_order > to) {
+                        rule.rule_order += rules.length;
+                    }
+
+                    if (rule.rule_order === to) {
+                        rule.rule_order -= 1;
+                    }
+                }
+
+                if (!forward) {
+                    if (rule.rule_order >= to && rule.rule_order < rules[0].rule_order) {
+                        rule.rule_order += rules.length;
+                    }
+                }
             }
-        }))[0];
+        });
 
-        const greaterValidRuleOrder: number = lastOrderRule ? lastOrderRule.rule_order + 1 : 1;
-        
-        //Assert rule_order is valid
-        to = Math.min(Math.max(1, to), greaterValidRuleOrder);
-
-        if (rule.rule_order > to) {
-            affectedRules = await this.createQueryBuilder('rule')
-                .where("rule.rule_order >= :greater", {greater: to})
-                .andWhere("rule.rule_order < :lower", {lower: rule.rule_order})
-                .andWhere("rule.routingTableId = :table", {table: rule.routingTableId}).getMany();
-            
-            affectedRules.forEach(rule => rule.rule_order = rule.rule_order + 1);
-        }
-
-        if (rule.rule_order < to) {
-            affectedRules = await this.createQueryBuilder('rule')
-                .where("rule.rule_order > :greater", {greater: rule.rule_order})
-                .andWhere("rule.rule_order <= :lower", {lower: to})
-                .andWhere("rule.routingTableId = :table", {table: rule.routingTableId}).getMany();
-
-            affectedRules.forEach(rule => rule.rule_order = rule.rule_order - 1);
-        }
-
-        rule.rule_order = to;
-        affectedRules.push(rule);
-        
         await this.save(affectedRules);
 
-        return rule;
+        await this.query(
+            `SET @a:=0; UPDATE ${RoutingRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${affectedRules.map(item => item.id).join(',')}) ORDER BY rule_order`
+        )
+        
+        return this.find({where: {id: In(ids)}});
     }
 
     async remove(entities: RoutingRule[], options?: RemoveOptions): Promise<RoutingRule[]>;

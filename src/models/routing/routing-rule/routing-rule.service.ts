@@ -167,7 +167,7 @@ export class RoutingRuleService extends Service {
         
         const persisted: RoutingRule = await this._repository.save(routingRuleData);
 
-        return data.rule_order ? await this._repository.move(persisted.id, data.rule_order) : persisted;
+        return data.rule_order ? (await this._repository.move([persisted.id], data.rule_order))[0] : persisted;
     }
 
     async update(id: number, data: IUpdateRoutingRule): Promise<RoutingRule> {
@@ -226,9 +226,13 @@ export class RoutingRuleService extends Service {
         rule = await this._repository.save(rule);
 
         if (data.rule_order && rule.rule_order !== data.rule_order) {
-            return await this._repository.move(rule.id, data.rule_order);
+            return await this._repository.move([rule.id], data.rule_order)[0];
         }
         return rule;
+    }
+
+    async bulkMove(ids: number[], to: number): Promise<RoutingRule[]> {
+        return this._repository.move(ids, to);
     }
 
     async remove(path: IFindOneRoutingRulePath): Promise<RoutingRule> {
