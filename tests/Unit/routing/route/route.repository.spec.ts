@@ -54,7 +54,7 @@ describe(RouteRepository.name, () => {
     });
 
     describe('move', () => {
-        it('should manage route_order changes when move to lower route_orders', async () => {
+        it('should manage route_order changes when move forward', async () => {
             const routeOrder1: Route = await repository.save({
                 routingTableId: table.id,
                 route_order: 1,
@@ -76,7 +76,7 @@ describe(RouteRepository.name, () => {
                 gatewayId: gateway.id
             });
 
-            await repository.move(routeOrder2.id, 3);
+            await repository.move([routeOrder2.id], 3);
 
             expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
             expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);
@@ -106,7 +106,7 @@ describe(RouteRepository.name, () => {
                 gatewayId: gateway.id
             });
 
-            await repository.move(routeOrder4.id, 2);
+            await repository.move([routeOrder4.id], 2);
 
             expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
             expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);

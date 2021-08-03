@@ -86,7 +86,10 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         const rules: RoutingRule[] = await this.find({
             where: {
                 id: In(ids)
-            }, 
+            },
+            order: {
+                'rule_order': 'ASC'
+            },
             relations: ['routingTable', 'routingTable.firewall']
         });
 

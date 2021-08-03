@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
+import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, In, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
 import { Route } from "./route.model";
 
 interface IFindManyRoutePath {
@@ -63,49 +63,55 @@ export class RouteRepository extends Repository<Route> {
         return this.findOneOrFail(this.getFindInPathOptions(path));
     }
 
-    /**
-     * Moves a RoutingRule into the "to" route_order (updating other RoutingRules route_order affected by this change).
-     * 
-     * @param id 
-     * @param to 
-     * @returns 
-     */
-     async move(id: number, to: number): Promise<Route> {
-        const route: Route = await this.findOneOrFail(id, {relations: ['routingTable', 'routingTable.firewall']});
-        
-        let affectedRules: Route[] = [];
-        
-        const lastRouteOrder: Route = await this.getLastRouteInRoutingTable(route.routingTableId);
-        
-        const greaterValidOrder: number = lastRouteOrder ? lastRouteOrder.route_order + 1 : 1;
-        
-        //Assert route_order is valid
-        to = Math.min(Math.max(1, to), greaterValidOrder);
+    async move(ids: number[], to: number): Promise<Route[]> {
+        const routes: Route[] = await this.find({
+            where: {
+                id: In(ids)
+            },
+            order: {
+                'route_order': 'ASC'
+            },
+            relations: ['routingTable', 'routingTable.firewall']
+        });
 
-        if (route.route_order > to) {
-            affectedRules = await this.createQueryBuilder('route')
-                .where("route.route_order >= :greater", {greater: to})
-                .andWhere("route.route_order < :lower", {lower: route.route_order})
-                .andWhere("route.routingTableId = :table", {table: route.routingTableId}).getMany();
-            
-            affectedRules.forEach(rule => rule.route_order = rule.route_order + 1);
-        }
-
-        if (route.route_order < to) {
-            affectedRules = await this.createQueryBuilder('route')
-                .where("route.route_order > :greater", {greater: route.route_order})
-                .andWhere("route.route_order <= :lower", {lower: to})
-                .andWhere("route.routingTableId = :table", {table: route.routingTableId}).getMany();
-
-            affectedRules.forEach(rule => rule.route_order = rule.route_order - 1);
-        }
-
-        route.route_order = to;
-        affectedRules.push(route);
+        const forward: boolean = routes[0].route_order < to;
         
-        await this.save(affectedRules);
+        const affectedRoutes: Route[] = await this.findManyInPath({
+            fwCloudId: routes[0].routingTable.firewall.fwCloudId,
+            firewallId: routes[0].routingTable.firewall.id,
+            routingTableId: routes[0].routingTable.id
+        });
 
-        return route;
+        affectedRoutes.forEach((route) => {
+            if (ids.includes(route.id)) {
+                const offset: number = ids.indexOf(route.id);
+                route.route_order = to + offset;
+            } else {
+                if (forward) {
+                    if (route.route_order > to) {
+                        route.route_order += routes.length;
+                    }
+
+                    if (route.route_order === to) {
+                        route.route_order -= 1;
+                    }
+                }
+
+                if (!forward) {
+                    if (route.route_order >= to && route.route_order < routes[0].route_order) {
+                        route.route_order += routes.length;
+                    }
+                }
+            }
+        });
+
+        await this.save(affectedRoutes);
+
+        await this.query(
+            `SET @a:=0; UPDATE ${Route._getTableName()} SET route_order=@a:=@a+1 WHERE id IN (${affectedRoutes.map(item => item.id).join(',')}) ORDER BY route_order`
+        )
+        
+        return this.find({where: {id: In(ids)}});
     }
 
     async remove(entities: Route[], options?: RemoveOptions): Promise<Route[]>;

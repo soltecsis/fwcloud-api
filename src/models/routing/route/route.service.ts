@@ -149,7 +149,7 @@ export class RouteService extends Service {
         
         const persisted: Route = await this._repository.save(routeData);
 
-        return data.route_order ? await this._repository.move(persisted.id, data.route_order) : persisted;
+        return data.route_order ? (await this._repository.move([persisted.id], data.route_order))[0] : persisted;
     }
 
     async update(id: number, data: IUpdateRoute): Promise<Route> {
@@ -201,7 +201,7 @@ export class RouteService extends Service {
         route = await this._repository.save(route);
 
         if (data.route_order && route.route_order !== data.route_order) {
-            return await this._repository.move(route.id, data.route_order);
+            return (await this._repository.move([route.id], data.route_order))[0];
         }
 
         return route;

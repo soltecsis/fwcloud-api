@@ -226,7 +226,7 @@ export class RoutingRuleService extends Service {
         rule = await this._repository.save(rule);
 
         if (data.rule_order && rule.rule_order !== data.rule_order) {
-            return await this._repository.move([rule.id], data.rule_order)[0];
+            return (await this._repository.move([rule.id], data.rule_order))[0];
         }
         return rule;
     }
