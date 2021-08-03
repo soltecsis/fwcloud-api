@@ -207,6 +207,10 @@ export class RouteService extends Service {
         return route;
     }
 
+    async bulkMove(ids: number[], to: number): Promise<Route[]> {
+        return this._repository.move(ids, to);
+    }
+
     async remove(path: IFindOneRoutePath): Promise<Route> {
         const route: Route =  await this.findOneInPath(path);
 

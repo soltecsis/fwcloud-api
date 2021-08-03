@@ -35,6 +35,8 @@ import { RouteControllerUpdateDto } from "./dtos/update.dto";
 import { RouteData, RoutingTableService } from "../../../models/routing/routing-table/routing-table.service";
 import { RouteItemForCompiler } from "../../../models/routing/shared";
 import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
+import { getRepository, SelectQueryBuilder } from "typeorm";
+import { RouteControllerBulkMoveDto } from "./dtos/bulk-move.dto";
 
 export class RouteController extends Controller {
     protected _routeService: RouteService;
@@ -62,6 +64,32 @@ export class RouteController extends Controller {
         });
 
         return ResponseBuilder.buildResponse().status(200).body(routes); 
+    }
+
+    @Validate(RouteControllerBulkMoveDto)
+    async bulkMove(request: Request): Promise<ResponseBuilder> {
+        (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
+        
+        const routes: Route[] = await getRepository(Route).find({
+            join: {
+                alias: 'route',
+                innerJoin: {
+                    table: 'route.routingTable',
+                    firewall: 'table.firewall',
+                    fwcloud: 'firewall.fwCloud'
+                }
+            },
+            where: (qb: SelectQueryBuilder<Route>) => {
+                qb.whereInIds(request.inputs.get('routes'))
+                    .andWhere('table.id = :table', {table: this._routingTable.id})
+                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
+                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
+            }
+        });
+
+        const result: Route[] = await this._routeService.bulkMove(routes.map(item => item.id), request.inputs.get('to'));
+
+        return ResponseBuilder.buildResponse().status(200).body(result);
     }
 
     @Validate()
