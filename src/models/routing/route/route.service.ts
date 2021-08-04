@@ -74,6 +74,11 @@ interface IUpdateRoute {
     openVPNPrefixIds?: number[]
 }
 
+interface IBulkUpdateRoute {
+    style?: string;
+    active?: boolean;
+}
+
 export class RouteService extends Service {
     protected _repository: RouteRepository;
 
@@ -205,6 +210,18 @@ export class RouteService extends Service {
         }
 
         return route;
+    }
+
+    async bulkUpdate(ids: number[], data: IBulkUpdateRoute): Promise<Route[]> {
+        await this._repository.update({
+            id: In(ids)
+        }, data);
+
+        return this._repository.find({
+            where: {
+                id: In(ids)
+            }
+        });
     }
 
     async bulkMove(ids: number[], to: number): Promise<Route[]> {

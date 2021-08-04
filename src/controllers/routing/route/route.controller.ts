@@ -39,6 +39,7 @@ import { getRepository, SelectQueryBuilder } from "typeorm";
 import { RouteControllerBulkMoveDto } from "./dtos/bulk-move.dto";
 import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
 import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
+import { RouteControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
 
 export class RouteController extends Controller {
     protected _routeService: RouteService;
@@ -157,6 +158,34 @@ export class RouteController extends Controller {
         (await RoutePolicy.update(route, request.session.user)).authorize();
 
         const result: Route = await this._routeService.update(route.id, request.inputs.all());
+
+        return ResponseBuilder.buildResponse().status(200).body(result);
+    }
+
+    @Validate(RouteControllerBulkUpdateDto)
+    async bulkUpdate(request: Request): Promise<ResponseBuilder> {
+        const routes: Route[] = [];
+
+        const ids: string[] = request.query.routes as string[] || [];
+        
+        for(let id of ids) {
+            const route: Route = await this._routeService.findOneInPathOrFail({
+                fwCloudId: this._fwCloud.id,
+                firewallId: this._firewall.id,
+                routingTableId: this._routingTable.id,
+                id: parseInt(id)
+            });
+
+            (await RoutePolicy.delete(route, request.session.user)).authorize();    
+        
+            routes.push(route);
+        }
+
+        if (routes.length === 0) {
+            throw new HttpException(`Missing routes ids to be removed`, 400);
+        }
+
+        const result: Route[] = await this._routeService.bulkUpdate(routes.map(item => item.id), request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }

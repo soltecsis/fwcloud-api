@@ -131,7 +131,7 @@ export class RoutingRuleController extends Controller {
         }
 
         if (rules.length === 0) {
-            throw new HttpException(`Missing routes ids to be removed`, 400);
+            throw new HttpException(`Missing rules ids to be removed`, 400);
         }
 
         const result: RoutingRule[] = await this.routingRuleService.bulkUpdate(rules.map(item => item.id), request.inputs.all());
