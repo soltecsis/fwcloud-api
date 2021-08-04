@@ -219,6 +219,18 @@ export class RouteService extends Service {
         return route;
     }
 
+    async bulkRemove(ids: number[]): Promise<Route[]> {
+        const routes: Route[] = await this._repository.find({
+            where: {
+                id: In(ids)
+            }
+        });
+
+        await this._repository.delete(routes.map(item => item.id));
+
+        return routes;
+    }
+
     /**
      * Checks IPObj are valid to be attached to the route. It will check:
      *  - IPObj belongs to the same FWCloud

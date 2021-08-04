@@ -720,5 +720,94 @@ describe(describeName('Route E2E Tests'), () => {
 
 
         });
+
+        describe('@bulkRemove', () => {
+            let routeOrder1: Route;
+            let routeOrder2: Route;
+            
+            beforeEach(async () => {
+                routeOrder1 = await routeService.create({
+                    routingTableId: table.id,
+                    route_order: 1,
+                    gatewayId: gateway.id
+                });
+                
+                routeOrder2 = await routeService.create({
+                    routingTableId: table.id,
+                    route_order: 2,
+                    gatewayId: gateway.id
+                });
+            });
+
+            it('guest user should not bulk remove routes', async () => {
+				return await request(app.express)
+					.delete(_URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .query({
+                        routes: [routeOrder1.id, routeOrder2.id]
+                    })
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not bulk remove routes', async () => {
+                return await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        routes: [routeOrder1.id, routeOrder2.id]
+                    })
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should bulk remove routes', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        routes: [routeOrder1.id, routeOrder2.id]
+                    }).expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect((await getRepository(Route).findOne(routeOrder1.id))).to.be.undefined;
+                expect((await getRepository(Route).findOne(routeOrder2.id))).to.be.undefined;
+            });
+
+            it('admin user should bulk remove routes', async () => {
+                await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .query({
+                        routes: [routeOrder1.id, routeOrder2.id]
+                    }).expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+                
+                expect((await getRepository(Route).findOne(routeOrder1.id))).to.be.undefined;
+                expect((await getRepository(Route).findOne(routeOrder2.id))).to.be.undefined;
+            });
+
+
+        });
     });
 });

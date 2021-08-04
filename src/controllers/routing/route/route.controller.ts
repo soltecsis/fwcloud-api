@@ -37,6 +37,8 @@ import { RouteItemForCompiler } from "../../../models/routing/shared";
 import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
 import { getRepository, SelectQueryBuilder } from "typeorm";
 import { RouteControllerBulkMoveDto } from "./dtos/bulk-move.dto";
+import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
+import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
 
 export class RouteController extends Controller {
     protected _routeService: RouteService;
@@ -177,5 +179,34 @@ export class RouteController extends Controller {
             id: parseInt(request.params.route)
         });
         return ResponseBuilder.buildResponse().status(200).body(route);
+    }
+
+    @Validate()
+    async bulkRemove(request: Request): Promise<ResponseBuilder> {
+        const routes: Route[] = [];
+
+        const ids: string[] = request.query.routes as string[] || [];
+        
+        for(let id of ids) {
+            const route: Route = await this._routeService.findOneInPathOrFail({
+                fwCloudId: this._fwCloud.id,
+                firewallId: this._firewall.id,
+                routingTableId: this._routingTable.id,
+                id: parseInt(id)
+            });
+
+            (await RoutePolicy.delete(route, request.session.user)).authorize();    
+        
+            routes.push(route);
+        }
+
+        if (routes.length === 0) {
+            throw new HttpException(`Missing routes ids to be removed`, 400);
+        }
+
+        const returned: Route[] = await this._routeService.bulkRemove(routes.map(item => item.id));
+
+        return ResponseBuilder.buildResponse().status(200).body(returned);
+
     }
 }
