@@ -243,6 +243,18 @@ export class RoutingRuleService extends Service {
         return rule;
     }
 
+    async bulkRemove(ids: number[]): Promise<RoutingRule[]> {
+        const routes: RoutingRule[] = await this._repository.find({
+            where: {
+                id: In(ids)
+            }
+        });
+
+        await this._repository.delete(routes.map(item => item.id));
+
+        return routes;
+    }
+
     /**
      * Returns an array of routing rules and in each rule an array of items containing the information
      * required for compile the routing rules of the indicated firewall or for show the routing rules

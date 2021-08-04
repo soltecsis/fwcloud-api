@@ -730,5 +730,90 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
 
         });
+
+        describe('@bulkRemove', () => {
+            let ruleOrder1: RoutingRule;
+            let ruleOrder2: RoutingRule;
+            
+            beforeEach(async () => {
+                ruleOrder1 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    rule_order: 1
+                });
+                
+                ruleOrder2 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    rule_order: 2
+                });
+            });
+
+            it('guest user should not bulk remove rules', async () => {
+				return await request(app.express)
+					.delete(_URL().getURL('fwclouds.firewalls.routing.rules.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not bulk remove rules', async () => {
+                return await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.routing.rules.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should bulk remove rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.routing.rules.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id))).to.be.undefined;
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id))).to.be.undefined;
+            });
+
+            it('admin user should bulk remove rules', async () => {
+                await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.routing.rules.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+                
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id))).to.be.undefined;
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id))).to.be.undefined;
+            });
+
+
+        });
     });
 });
