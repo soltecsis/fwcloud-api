@@ -206,7 +206,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             });
         });
 
-        describe('@move', () => {
+        describe('@bulkMove', () => {
             let ruleOrder1: RoutingRule;
             let ruleOrder2: RoutingRule;
             let ruleOrder3: RoutingRule;

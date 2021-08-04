@@ -157,7 +157,7 @@ describe(describeName('Route E2E Tests'), () => {
 
         });
 
-        describe('@move', () => {
+        describe('@bulkMove', () => {
             let routeOrder1: Route;
             let routeOrder2: Route;
             let routeOrder3: Route;
