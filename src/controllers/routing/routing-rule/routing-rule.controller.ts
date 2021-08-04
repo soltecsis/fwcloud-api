@@ -37,6 +37,7 @@ import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
 import { getRepository, In, SelectQueryBuilder } from "typeorm";
 import { RoutingRuleControllerBulkMoveDto } from "./dtos/bulk-move.dto";
 import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
+import { RoutingRuleControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
 
 export class RoutingRuleController extends Controller {
     
@@ -107,6 +108,33 @@ export class RoutingRuleController extends Controller {
         (await RoutingRulePolicy.update(rule, request.session.user)).authorize();
 
         const result: RoutingRule = await this.routingRuleService.update(rule.id, request.inputs.all());
+
+        return ResponseBuilder.buildResponse().status(200).body(result);
+    }
+
+    @Validate(RoutingRuleControllerBulkUpdateDto)
+    async bulkUpdate(request: Request): Promise<ResponseBuilder> {
+        const rules: RoutingRule[] = [];
+
+        const ids: string[] = request.query.rules as string[] || [];
+        
+        for(let id of ids) {
+            const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
+                fwCloudId: this._fwCloud.id,
+                firewallId: this._firewall.id,
+                id: parseInt(id)
+            });
+
+            (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();    
+        
+            rules.push(rule);
+        }
+
+        if (rules.length === 0) {
+            throw new HttpException(`Missing routes ids to be removed`, 400);
+        }
+
+        const result: RoutingRule[] = await this.routingRuleService.bulkUpdate(rules.map(item => item.id), request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }

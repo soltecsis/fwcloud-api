@@ -40,6 +40,7 @@ import { OpenVPN } from "../../../../../src/models/vpn/openvpn/OpenVPN";
 import { Crt } from "../../../../../src/models/vpn/pki/Crt";
 import { Ca } from "../../../../../src/models/vpn/pki/Ca";
 import { RoutingRuleControllerBulkMoveDto } from "../../../../../src/controllers/routing/routing-rule/dtos/bulk-move.dto";
+import { RoutingRuleControllerBulkUpdateDto } from "../../../../../src/controllers/routing/routing-rule/dtos/bulk-update.dto";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;
@@ -654,6 +655,98 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(422);
+            });
+
+
+        });
+
+        describe('@bulkUpdate', () => {
+            let ruleOrder1: RoutingRule;
+            let ruleOrder2: RoutingRule;
+            let data: RoutingRuleControllerBulkUpdateDto = {
+                style: 'style!'
+            }
+            
+            beforeEach(async () => {
+                ruleOrder1 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    rule_order: 1
+                });
+                
+                ruleOrder2 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    rule_order: 2
+                });
+            });
+
+            it('guest user should not bulk update rules', async () => {
+				return await request(app.express)
+					.put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkUpdate', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .send(data)
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not bulk update rules', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkUpdate', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .send(data)
+					.expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should bulk update rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkUpdate', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .send(data)
+					.expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).style).to.eq('style!');
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).style).to.eq('style!');
+            });
+
+            it('admin user should bulk update rules', async () => {
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkUpdate', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .send(data)
+					.expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+                
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).style).to.eq('style!');
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).style).to.eq('style!');
             });
 
 

@@ -70,6 +70,11 @@ interface IUpdateRoutingRule {
     markIds?: number[]
 }
 
+interface IBulkUpdateRoutingRule {
+    style?: string;
+    active?: boolean;
+}
+
 export interface RoutingRulesData<T extends ItemForGrid | RoutingRuleItemForCompiler> extends RoutingRule {
     items: T[];
 }
@@ -229,6 +234,18 @@ export class RoutingRuleService extends Service {
             return (await this._repository.move([rule.id], data.rule_order))[0];
         }
         return rule;
+    }
+
+    async bulkUpdate(ids: number[], data: IBulkUpdateRoutingRule): Promise<RoutingRule[]> {
+        await this._repository.update({
+            id: In(ids)
+        }, data);
+
+        return this._repository.find({
+            where: {
+                id: In(ids)
+            }
+        });
     }
 
     async bulkMove(ids: number[], to: number): Promise<RoutingRule[]> {
