@@ -99,11 +99,13 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
             fwCloudId: rules[0].routingTable.firewall.fwCloudId,
             firewallId: rules[0].routingTable.firewall.id
         });
+        const destRule: RoutingRule | undefined = affectedRules.filter(item => item.rule_order === to)[0]; 
         
         affectedRules.forEach((rule) => {
             if (ids.includes(rule.id)) {
                 const offset: number = ids.indexOf(rule.id);
                 rule.rule_order = to + offset;
+                rule.routingGroupId = destRule && destRule.routingGroupId ? destRule.routingGroupId : null;
             } else {
                 if (forward) {
                     if (rule.rule_order > to) {

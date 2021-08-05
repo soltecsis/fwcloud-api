@@ -81,11 +81,13 @@ export class RouteRepository extends Repository<Route> {
             firewallId: routes[0].routingTable.firewall.id,
             routingTableId: routes[0].routingTable.id
         });
+        const destRoute: Route | undefined = affectedRoutes.filter(item => item.route_order === to)[0];
 
         affectedRoutes.forEach((route) => {
             if (ids.includes(route.id)) {
                 const offset: number = ids.indexOf(route.id);
                 route.route_order = to + offset;
+                route.routeGroupId = destRoute && destRoute.routeGroupId ? destRoute.routeGroupId : null;
             } else {
                 if (forward) {
                     if (route.route_order > to) {
