@@ -261,15 +261,18 @@ export class RoutingRuleService extends Service {
     }
 
     async bulkRemove(ids: number[]): Promise<RoutingRule[]> {
-        const routes: RoutingRule[] = await this._repository.find({
+        const rules: RoutingRule[] = await this._repository.find({
             where: {
                 id: In(ids)
             }
         });
 
-        await this._repository.delete(routes.map(item => item.id));
+        // For unknown reason, this._repository.remove(routes) is not working
+        for (let rule of rules) {
+            await this._repository.remove(rule);
+        }
 
-        return routes;
+        return rules;
     }
 
     /**

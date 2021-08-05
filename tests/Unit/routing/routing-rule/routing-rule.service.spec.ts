@@ -719,5 +719,17 @@ describe(RoutingRuleService.name, () => {
 
             expect(await getRepository(RoutingRule).findOne(rule.id)).to.be.undefined;
         })
+    });
+    
+    describe('bulkRemove', () => {
+        it('should remove route', async () => {
+            await service.bulkRemove([rule.id]);
+
+            expect(await service.findOneInPath({
+                firewallId: firewall.id,
+                fwCloudId: fwCloud.id,
+                id: rule.id
+            })).to.be.undefined;
+        });
     })
 })

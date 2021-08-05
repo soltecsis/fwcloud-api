@@ -243,7 +243,10 @@ export class RouteService extends Service {
             }
         });
 
-        await this._repository.delete(routes.map(item => item.id));
+        // For unknown reason, this._repository.remove(routes) is not working
+        for (let route of routes) {
+            await this._repository.remove(route);
+        }
 
         return routes;
     }

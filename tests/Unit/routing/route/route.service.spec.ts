@@ -3,6 +3,7 @@ import db from "../../../../src/database/database-manager";
 import { ValidationException } from "../../../../src/fonaments/exceptions/validation-exception";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
+import { fwcloudColors } from "../../../../src/models/fwcloud/FwCloud-colors";
 import { Interface } from "../../../../src/models/interface/Interface";
 import { InterfaceIPObj } from "../../../../src/models/interface/InterfaceIPObj";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
@@ -17,10 +18,12 @@ import { Ca } from "../../../../src/models/vpn/pki/Ca";
 import { Crt } from "../../../../src/models/vpn/pki/Crt";
 import StringHelper from "../../../../src/utils/string.helper";
 import { expect, testSuite } from "../../../mocha/global-setup";
+import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 
 describe(RouteService.name, () => {
     let service: RouteService;
 
+    let fwcProduct: FwCloudProduct;
     let fwCloud: FwCloud;
     let firewall: Firewall;
     let table: RoutingTable;
@@ -29,35 +32,16 @@ describe(RouteService.name, () => {
 
     beforeEach(async () => {
         await testSuite.resetDatabaseData();
+        fwcProduct = await (new FwCloudFactory()).make();
 
         service = await testSuite.app.getService<RouteService>(RouteService.name);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
-            name: StringHelper.randomize(10)
-        }));
+        fwCloud = fwcProduct.fwcloud;
+        firewall = fwcProduct.firewall;
+        gateway = fwcProduct.ipobjs.get('gateway');
+        table = fwcProduct.routingTable;
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
-            name: StringHelper.randomize(10),
-            fwCloudId: fwCloud.id
-        }));
-
-        gateway = await getRepository(IPObj).save(getRepository(IPObj).create({
-            name: 'test',
-            address: '0.0.0.0',
-            ipObjTypeId: 0,
-            interfaceId: null
-        }));
-
-        table = await getRepository(RoutingTable).save({
-            firewallId: firewall.id,
-            number: 1,
-            name: 'name',
-        });
-
-        route = await service.create({
-            routingTableId: table.id,
-            gatewayId: gateway.id
-        });
+        route = fwcProduct.routes.get('route1');
     });
 
     describe('update', () => {
@@ -385,6 +369,34 @@ describe(RouteService.name, () => {
                     (await getRepository(Route).findOne(route.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(item => item.id)
                 ).to.deep.eq([])
             })
+        });
+    });
+
+    describe('remove', () => {
+        it('should remove route', async () => {
+            await service.remove({
+                fwCloudId: fwCloud.id,
+                firewallId: firewall.id,
+                id: route.id
+            });
+
+            expect(await service.findOneInPath({
+                firewallId: firewall.id,
+                fwCloudId: fwCloud.id,
+                id: route.id
+            })).to.be.undefined;
+        });
+    });
+    
+    describe('bulkRemove', () => {
+        it('should remove route', async () => {
+            await service.bulkRemove([route.id]);
+
+            expect(await service.findOneInPath({
+                firewallId: firewall.id,
+                fwCloudId: fwCloud.id,
+                id: route.id
+            })).to.be.undefined;
         });
     })
 })
