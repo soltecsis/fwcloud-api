@@ -49,7 +49,7 @@ interface IFindOneRoutePath extends IFindManyRoutePath {
 
 export interface ICreateRoute {
     routingTableId: number;
-    gatewayId?: number;
+    gatewayId: number;
     interfaceId?: number;
     active?: boolean;
     comment?: string;

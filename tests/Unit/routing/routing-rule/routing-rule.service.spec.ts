@@ -53,6 +53,52 @@ describe(RoutingRuleService.name, () => {
     });
 
     describe('create', () => {
+
+        describe('rule_order', () => {
+            let ruleOrder1: RoutingRule;
+            let ruleOrder2: RoutingRule;
+            let ruleOrder3: RoutingRule;
+            let ruleOrder4: RoutingRule;
+
+            beforeEach(async () => {
+                ruleOrder1 = await service.create({
+                    routingTableId: table.id,
+                    rule_order: 1
+                });
+                ruleOrder2 = await service.create({
+                    routingTableId: table.id,
+                    rule_order: 2
+                });
+                ruleOrder3 = await service.create({
+                    routingTableId: table.id,
+                    rule_order: 3
+                });
+                ruleOrder4 = await service.create({
+                    routingTableId: table.id,
+                    rule_order: 4
+                });
+            });
+
+            it('should set last position if rule_order is not defined', async () => {
+                rule = await service.create({
+                    routingTableId: table.id
+                });
+
+                // Notice rule was already created in beforEach
+                // thus there are 5 rules created.
+                expect(rule.rule_order).to.eq(6);
+            });
+
+            it('should move to position if rule_order is defined', async () => {
+                rule = await service.create({
+                    routingTableId: table.id,
+                    rule_order: 2
+                });
+
+                expect(rule.rule_order).to.eq(2);
+            });
+        });
+
         describe('IpObjs', () => {
             let ipobj1: IPObj;
             let ipobj2: IPObj;
@@ -73,7 +119,9 @@ describe(RoutingRuleService.name, () => {
                     interfaceId: null,
                     fwCloudId: fwCloud.id
                 }));
-            })
+            });
+
+
             it('should attach ipbojs', async () => {
                 rule = await service.create({
                     routingTableId: table.id,

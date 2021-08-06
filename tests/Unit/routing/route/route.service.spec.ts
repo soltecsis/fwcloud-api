@@ -44,6 +44,58 @@ describe(RouteService.name, () => {
         route = fwcProduct.routes.get('route1');
     });
 
+    describe('create', () => {
+        describe('rule_order', () => {
+            let routeOrder1: Route;
+            let routeOrder2: Route;
+            let routeOrder3: Route;
+            let routeOrder4: Route;
+
+            beforeEach(async () => {
+                routeOrder1 = await service.create({
+                    routingTableId: table.id,
+                    route_order: 1,
+                    gatewayId: gateway.id
+                });
+                routeOrder2 = await service.create({
+                    routingTableId: table.id,
+                    route_order: 2,
+                    gatewayId: gateway.id
+                });
+                routeOrder3 = await service.create({
+                    routingTableId: table.id,
+                    route_order: 3,
+                    gatewayId: gateway.id
+                });
+                routeOrder4 = await service.create({
+                    routingTableId: table.id,
+                    route_order: 4,
+                    gatewayId: gateway.id
+                });
+            });
+
+            it('should set last position if rule_order is not defined', async () => {
+                route = await service.create({
+                    routingTableId: table.id,
+                    gatewayId: gateway.id
+                });
+
+                // Notice rules have been created in the factory
+                expect(route.route_order).to.eq(9);
+            });
+
+            it('should move to position if rule_order is defined', async () => {
+                route = await service.create({
+                    routingTableId: table.id,
+                    gatewayId: gateway.id,
+                    route_order: 2
+                });
+
+                expect(route.route_order).to.eq(2);
+            });
+        });
+    })
+
     describe('update', () => {
         describe('IpObjs', () => {
             let ipobj1: IPObj;

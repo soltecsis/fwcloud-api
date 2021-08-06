@@ -63,7 +63,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
     }
 
     async getLastRoutingRuleInRoutingTable(routingTableId: number): Promise<RoutingRule | undefined> {
-        return await this.find({
+        return (await this.find({
             where: {
                 routingTableId: routingTableId
             },
@@ -71,7 +71,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
                 rule_order: 'DESC',
             },
             take: 1
-        })[0]
+        }))[0]
     }
 
     /**
