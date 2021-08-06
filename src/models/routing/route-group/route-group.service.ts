@@ -45,6 +45,7 @@ interface ICreateRouteGroup {
 interface IUpdateRouteGroup {
     name: string;
     comment?: string;
+    style?: string;
     routes: Partial<Route>[];
 }
 

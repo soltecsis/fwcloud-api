@@ -31,6 +31,10 @@ export class RouteGroupControllerUpdateDto {
     @IsOptional()
     comment: string;
 
+    @IsString()
+    @IsOptional()
+    style?: string;
+
     @IsNumber({}, {each: true})
     @ArrayMinSize(1)
     @IsOptional()

@@ -46,6 +46,7 @@ interface ICreateRoutingGroup {
 interface IUpdateRoutingGroup {
     name?: string;
     comment?: string;
+    style?: string;
     routingRules?: Partial<RoutingRule>[]
 }
 

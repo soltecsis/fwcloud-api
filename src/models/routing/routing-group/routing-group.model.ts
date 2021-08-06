@@ -39,6 +39,9 @@ export class RoutingGroup extends Model {
     @Column()
     comment: string;
 
+    @Column()
+    style: string
+
     @Column({name: 'firewall'})
     firewallId: number;
 

@@ -24,7 +24,7 @@ import { Controller } from "../../../fonaments/http/controller";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { RoutingGroupService } from "../../../models/routing/routing-group/routing-group.service";
-import { Request, response } from 'express';
+import { Request } from 'express';
 import { Validate } from "../../../decorators/validate.decorator";
 import { RoutingGroupPolicy } from "../../../policies/routing-group.policy";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";

@@ -111,6 +111,13 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     name: 'comment',
                     type: 'text',
                     isNullable: true
+                },
+                {
+                    name: 'style',
+                    type: 'varchar',
+                    length: '50',
+                    isNullable: true,
+                    default: null
                 }
             ],
             foreignKeys: [
@@ -235,6 +242,13 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     name: 'comment',
                     type: 'text',
                     isNullable: true
+                },
+                {
+                    name: 'style',
+                    type: 'varchar',
+                    length: '50',
+                    isNullable: true,
+                    default: null
                 }
             ],
             foreignKeys: [

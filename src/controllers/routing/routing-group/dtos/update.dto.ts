@@ -31,6 +31,10 @@ export class RoutingGroupControllerUpdateDto {
     @IsOptional()
     comment?: string;
 
+    @IsString()
+    @IsOptional()
+    style?: string;
+
     @IsNumber({}, {each: true})
     @ArrayMinSize(0)
     @IsOptional()
