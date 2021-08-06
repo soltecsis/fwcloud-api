@@ -166,13 +166,33 @@ export class RoutingRuleService extends Service {
             routingRuleData.marks = marks.map(item => ({id: item.id}) as Mark);
         }
 
-        const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInRoutingTable(data.routingTableId);
+        const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInFirewall(data.routingTableId);
         const rule_order: number = lastRule?.rule_order? lastRule.rule_order + 1 : 1;
         routingRuleData.rule_order = rule_order;
         
         const persisted: RoutingRule = await this._repository.save(routingRuleData);
 
         return data.rule_order ? (await this._repository.move([persisted.id], data.rule_order))[0] : persisted;
+    }
+
+    async copy(ids: number[], to: number): Promise<RoutingRule[]> {
+        const routes: RoutingRule[] = await this._repository.find({
+            where: {
+                id: In(ids)
+            },
+            relations: ['routingTable']
+        });
+
+        const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInFirewall(routes[0].routingTable.firewallId);
+        routes.map((item, index) => {
+            item.id = undefined;
+            item.rule_order = lastRule.rule_order + index + 1
+        });
+
+
+        const persisted: RoutingRule[] = await this._repository.save(routes);
+
+        return this.bulkMove(persisted.map(item => item.id), to);
     }
 
     async update(id: number, data: IUpdateRoutingRule): Promise<RoutingRule> {

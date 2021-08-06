@@ -41,6 +41,7 @@ import { Crt } from "../../../../../src/models/vpn/pki/Crt";
 import { Ca } from "../../../../../src/models/vpn/pki/Ca";
 import { RoutingRuleControllerBulkMoveDto } from "../../../../../src/controllers/routing/routing-rule/dtos/bulk-move.dto";
 import { RoutingRuleControllerBulkUpdateDto } from "../../../../../src/controllers/routing/routing-rule/dtos/bulk-update.dto";
+import { RoutingRuleControllerCopyDto } from "../../../../../src/controllers/routing/routing-rule/dtos/copy.dto";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;
@@ -57,7 +58,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
     beforeEach(async () => {
         app = testSuite.app;
-        
+        await testSuite.resetDatabaseData();
+
         loggedUser = await createUser({role: 0});
         loggedUserSessionId = generateSession(loggedUser);
 
@@ -493,6 +495,90 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
 
         });
+
+        describe('@copy', () => {
+            let ruleOrder1: RoutingRule;
+            let ruleOrder2: RoutingRule;
+            let data: RoutingRuleControllerCopyDto;
+
+            beforeEach(async () => {
+                ruleOrder1 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    rule_order: 1,
+                    comment: 'comment1',
+                });
+                
+                ruleOrder2 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    rule_order: 2,
+                    comment: 'comment2'
+                });
+
+                data = {
+                    rules: [ruleOrder1.id, ruleOrder2.id],
+                    to: 1
+                }
+            });
+
+            it('guest user should not copy rules', async () => {
+				return await request(app.express)
+					.post(_URL().getURL('fwclouds.firewalls.routing.rules.copy', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .send(data)
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not copy rules', async () => {
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.routing.rules.copy', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should copy rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.routing.rules.copy', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(201)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect((await getRepository(RoutingRule).count({where: {comment: 'comment1'}}))).to.eq(2);
+                expect((await getRepository(RoutingRule).count({where: {comment: 'comment2'}}))).to.eq(2);
+            });
+
+            it('admin user should copy rules', async () => {
+                await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.routing.rules.copy', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .send(data)
+                    .expect(201)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+                
+                expect((await getRepository(RoutingRule).count({where: {comment: 'comment1'}}))).to.eq(2);
+                expect((await getRepository(RoutingRule).count({where: {comment: 'comment2'}}))).to.eq(2);
+            });
+        });
+
 
         describe('@update', () => {
             let rule: RoutingRule;

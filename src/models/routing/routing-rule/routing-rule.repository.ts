@@ -62,16 +62,13 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         return this.findOneOrFail(this.getFindInPathOptions(path));
     }
 
-    async getLastRoutingRuleInRoutingTable(routingTableId: number): Promise<RoutingRule | undefined> {
-        return (await this.find({
-            where: {
-                routingTableId: routingTableId
-            },
-            order: {
-                rule_order: 'DESC',
-            },
-            take: 1
-        }))[0]
+    async getLastRoutingRuleInFirewall(firewallId: number): Promise<RoutingRule | undefined> {
+        return this.createQueryBuilder('rule')
+            .innerJoin('rule.routingTable', 'table')
+            .where('table.firewallId = :firewallId', {firewallId})
+            .orderBy('rule.rule_order', 'DESC')
+            .take(1)
+            .getOne()
     }
 
     /**

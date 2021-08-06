@@ -41,6 +41,7 @@ import { ValidationException } from "../../../fonaments/exceptions/validation-ex
 import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
 import { RouteControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
 import { RouteControllerBulkRemoveQueryDto } from "./dtos/bulk-remove.dto";
+import { RouteControllerCopyDto } from "./dtos/copy.dto";
 
 export class RouteController extends Controller {
     protected _routeService: RouteService;
@@ -145,6 +146,31 @@ export class RouteController extends Controller {
         const route: Route = await this._routeService.create(data);
 
         return ResponseBuilder.buildResponse().status(201).body(route);
+    }
+
+    @Validate(RouteControllerCopyDto)
+    async copy(request: Request): Promise<ResponseBuilder> {
+
+        const routes: Route[] = [];
+
+        const ids: string[] = request.inputs.get('routes');
+        
+        for(let id of ids) {
+            const route: Route = await this._routeService.findOneInPathOrFail({
+                fwCloudId: this._fwCloud.id,
+                firewallId: this._firewall.id,
+                routingTableId: this._routingTable.id,
+                id: parseInt(id)
+            });
+
+            (await RoutePolicy.delete(route, request.session.user)).authorize();    
+        
+            routes.push(route);
+        }
+
+        const created: Route[] = await this._routeService.copy(routes.map(item => item.id), request.inputs.get('to'))
+
+        return ResponseBuilder.buildResponse().status(201).body(created);
     }
 
     @Validate(RouteControllerUpdateDto)

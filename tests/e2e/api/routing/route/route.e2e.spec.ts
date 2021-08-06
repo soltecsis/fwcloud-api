@@ -41,6 +41,7 @@ import { Crt } from "../../../../../src/models/vpn/pki/Crt";
 import { Ca } from "../../../../../src/models/vpn/pki/Ca";
 import { RouteControllerBulkMoveDto } from "../../../../../src/controllers/routing/route/dtos/bulk-move.dto";
 import { RouteControllerBulkUpdateDto } from "../../../../../src/controllers/routing/route/dtos/bulk-update.dto";
+import { RouteControllerCopyDto } from "../../../../../src/controllers/routing/route/dtos/copy.dto";
 
 describe(describeName('Route E2E Tests'), () => {
     let app: Application;
@@ -59,7 +60,8 @@ describe(describeName('Route E2E Tests'), () => {
 
     beforeEach(async () => {
         app = testSuite.app;
-        
+        await testSuite.resetDatabaseData();
+
         loggedUser = await createUser({role: 0});
         loggedUserSessionId = generateSession(loggedUser);
 
@@ -465,6 +467,97 @@ describe(describeName('Route E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.routingTableId).to.eq(table.id);
                     });
+            });
+
+
+        });
+
+        describe('@copy', () => {
+            let routeOrder1: Route;
+            let routeOrder2: Route;
+            let data: RouteControllerCopyDto;
+
+            beforeEach(async () => {
+                routeOrder1 = await routeService.create({
+                    routingTableId: table.id,
+                    route_order: 1,
+                    gatewayId: gateway.id,
+                    comment: 'comment1'
+                });
+                
+                routeOrder2 = await routeService.create({
+                    routingTableId: table.id,
+                    route_order: 2,
+                    gatewayId: gateway.id,
+                    comment: 'comment2'
+                });
+
+                data = {
+                    routes: [routeOrder1.id, routeOrder2.id],
+                    to: 3
+                }
+            });
+
+            it('guest user should not copy routes', async () => {
+				return await request(app.express)
+					.post(_URL().getURL('fwclouds.firewalls.routing.tables.routes.copy', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+					.send(data)
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not copy routes', async () => {
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.routing.tables.routes.copy', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .send(data)
+					.set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should copy routes', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.routing.tables.routes.copy', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .send(data)
+					.set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(201)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect((await getRepository(Route).count({where: {comment: 'comment1'}}))).to.eq(2);
+                expect((await getRepository(Route).count({where: {comment: 'comment2'}}))).to.eq(2);
+            });
+
+            it('admin user should copy routes', async () => {
+                await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.routing.tables.routes.copy', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .send(data)
+					.set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(201)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+            
+                expect((await getRepository(Route).count({where: {comment: 'comment1'}}))).to.eq(2);
+                expect((await getRepository(Route).count({where: {comment: 'comment2'}}))).to.eq(2);
             });
 
 

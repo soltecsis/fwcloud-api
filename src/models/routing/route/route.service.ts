@@ -212,6 +212,26 @@ export class RouteService extends Service {
         return route;
     }
 
+    async copy(ids: number[], to: number): Promise<Route[]> {
+        const routes: Route[] = await this._repository.find({
+            where: {
+                id: In(ids)
+            },
+            relations: ['routingTable']
+        });
+
+        const lastRuoute: Route = await this._repository.getLastRouteInRoutingTable(routes[0].routingTableId);
+        routes.map((item, index) => {
+            item.id = undefined;
+            item.route_order = lastRuoute.route_order + index + 1
+        });
+
+
+        const persisted: Route[] = await this._repository.save(routes);
+
+        return this.bulkMove(persisted.map(item => item.id), to);
+    }
+
     async bulkUpdate(ids: number[], data: IBulkUpdateRoute): Promise<Route[]> {
         await this._repository.update({
             id: In(ids)

@@ -39,6 +39,7 @@ import { RoutingRuleControllerBulkMoveDto } from "./dtos/bulk-move.dto";
 import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
 import { RoutingRuleControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
 import { RoutingRuleControllerBulkRemoveQueryDto } from "./dtos/bulk-remove.dto";
+import { RoutingRuleControllerCopyDto } from "./dtos/copy.dto";
 
 export class RoutingRuleController extends Controller {
     
@@ -96,6 +97,30 @@ export class RoutingRuleController extends Controller {
         const rule: RoutingRule = await this.routingRuleService.create(request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(201).body(rule);
+    }
+
+    @Validate(RoutingRuleControllerCopyDto)
+    async copy(request: Request): Promise<ResponseBuilder> {
+
+        const rules: RoutingRule[] = [];
+
+        const ids: string[] = request.inputs.get('rules');
+        
+        for(let id of ids) {
+            const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
+                fwCloudId: this._fwCloud.id,
+                firewallId: this._firewall.id,
+                id: parseInt(id)
+            });
+
+            (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();    
+        
+            rules.push(rule);
+        }
+
+        const created: RoutingRule[] = await this.routingRuleService.copy(rules.map(item => item.id), request.inputs.get('to'))
+
+        return ResponseBuilder.buildResponse().status(201).body(created);
     }
 
     @Validate(RoutingRuleControllerUpdateDto)

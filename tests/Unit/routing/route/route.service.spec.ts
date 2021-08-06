@@ -94,6 +94,35 @@ describe(RouteService.name, () => {
                 expect(route.route_order).to.eq(2);
             });
         });
+    });
+
+    describe('copy', () => {
+        let routeOrder1: Route;
+        let routeOrder2: Route;
+        
+        beforeEach(async () => {
+            routeOrder1 = await service.create({
+                comment: 'comment1',
+                routingTableId: table.id,
+                route_order: 1,
+                gatewayId: gateway.id
+            });
+            routeOrder2 = await service.create({
+                comment: 'comment2',
+                routingTableId: table.id,
+                route_order: 2,
+                gatewayId: gateway.id
+            });
+        });
+
+        it('should copy routes', async () => {
+            const copied: Route[] = await service.copy([routeOrder1.id, routeOrder2.id], 1);
+
+            expect(copied[0].comment).to.eq(routeOrder1.comment);
+            expect(copied[0].route_order).to.eq(1);
+            expect(copied[1].comment).to.eq(routeOrder2.comment);
+            expect(copied[1].route_order).to.eq(2);
+        });
     })
 
     describe('update', () => {

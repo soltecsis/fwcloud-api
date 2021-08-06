@@ -323,6 +323,33 @@ describe(RoutingRuleService.name, () => {
                 ).to.deep.eq([mark1.id, mark2.id])
             });
         });
+    });
+
+    describe('copy', () => {
+        let ruleOrder1: RoutingRule;
+        let ruleOrder2: RoutingRule;
+            
+        beforeEach(async () => {
+            ruleOrder1 = await service.create({
+                comment: 'rule1',
+                routingTableId: table.id,
+                rule_order: 1
+            });
+            ruleOrder2 = await service.create({
+                comment: 'rule2',
+                routingTableId: table.id,
+                rule_order: 2
+            });
+        });
+
+        it('should copy routes', async () => {
+            const copied: RoutingRule[] = await service.copy([ruleOrder1.id, ruleOrder2.id], 1);
+
+            expect(copied[0].comment).to.eq(ruleOrder1.comment);
+            expect(copied[0].rule_order).to.eq(1);
+            expect(copied[1].comment).to.eq(ruleOrder2.comment);
+            expect(copied[1].rule_order).to.eq(2);
+        });
     })
 
     describe('update', () => {
