@@ -48,7 +48,7 @@ describe(RoutingRuleController.name, () => {
         } as unknown as Request);
     });
 
-    describe.only('bulkRemove', () => {
+    describe('bulkRemove', () => {
         beforeEach(() => {
             const spy: Sinon.SinonSpy = Sinon.stub(RoutingRulePolicy, 'delete').resolves(Authorization.grant());
         });
