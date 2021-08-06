@@ -906,6 +906,19 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 expect((await getRepository(RoutingRule).findOne(ruleOrder2.id))).to.be.undefined;
             });
 
+            it('should throw validation error if query rules is not provided', async () => {
+                await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.routing.rules.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .query({
+                        rules: ruleOrder1.id
+                    })
+                    .expect(422)
+            })
+
 
         });
     });

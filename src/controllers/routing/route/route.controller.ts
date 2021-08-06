@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Validate } from "../../../decorators/validate.decorator";
+import { Validate, ValidateQuery } from "../../../decorators/validate.decorator";
 import { Controller } from "../../../fonaments/http/controller";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
@@ -40,6 +40,7 @@ import { RouteControllerBulkMoveDto } from "./dtos/bulk-move.dto";
 import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
 import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
 import { RouteControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
+import { RouteControllerBulkRemoveQueryDto } from "./dtos/bulk-remove.dto";
 
 export class RouteController extends Controller {
     protected _routeService: RouteService;
@@ -211,6 +212,7 @@ export class RouteController extends Controller {
     }
 
     @Validate()
+    @ValidateQuery(RouteControllerBulkRemoveQueryDto)
     async bulkRemove(request: Request): Promise<ResponseBuilder> {
         const routes: Route[] = [];
 

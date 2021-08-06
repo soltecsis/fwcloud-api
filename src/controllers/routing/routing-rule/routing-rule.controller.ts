@@ -24,7 +24,7 @@ import { Controller } from "../../../fonaments/http/controller";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { Request } from "express";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { Validate } from "../../../decorators/validate.decorator";
+import { Validate, ValidateQuery } from "../../../decorators/validate.decorator";
 import { RoutingRulesData, RoutingRuleService } from "../../../models/routing/routing-rule/routing-rule.service";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { RoutingRulePolicy } from "../../../policies/routing-rule.policy";
@@ -38,6 +38,7 @@ import { getRepository, In, SelectQueryBuilder } from "typeorm";
 import { RoutingRuleControllerBulkMoveDto } from "./dtos/bulk-move.dto";
 import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
 import { RoutingRuleControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
+import { RoutingRuleControllerBulkRemoveQueryDto } from "./dtos/bulk-remove.dto";
 
 export class RoutingRuleController extends Controller {
     
@@ -200,6 +201,7 @@ export class RoutingRuleController extends Controller {
     }
 
     @Validate()
+    @ValidateQuery(RoutingRuleControllerBulkRemoveQueryDto)
     async bulkRemove(request: Request): Promise<ResponseBuilder> {
         const rules: RoutingRule[] = [];
 

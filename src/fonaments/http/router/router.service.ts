@@ -205,5 +205,11 @@ export class RouterService extends Service {
         }
 
         await ((new Validator(request.inputs.all(), validationDto)).validate());
+
+        const validationQueryDto: ClassConstructor<object> = getFWCloudMetadata.queryValidation[route.controllerSignature.controller.name + '@' + route.controllerSignature.method];
+
+        if (validationQueryDto) {
+            await ((new Validator(request.query, validationQueryDto)).validate({ enableImplicitConversion: true }));
+        }
     }
 }
