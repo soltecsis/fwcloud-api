@@ -11,8 +11,9 @@ import { Firewall } from "../../../src/models/firewall/Firewall";
 import { IPObj } from "../../../src/models/ipobj/IPObj";
 import sinon from "sinon";
 import sshTools from '../../../src/utils/ssh';
+import { FwCloudFactory, FwCloudProduct } from "../../utils/fwcloud-factory";
 
-describe.skip(describeName('Firewall E2E Tests'), () => {
+describe(describeName('Firewall E2E Tests'), () => {
     let app: Application;
     let loggedUser: User;
     let loggedUserSessionId: string;
@@ -46,7 +47,7 @@ describe.skip(describeName('Firewall E2E Tests'), () => {
 
     });
 
-    describe('FirewallController@compile', () => {
+    describe.skip('FirewallController@compile', () => {
         it('guest user should not compile a firewall', async () => {
             return await request(app.express)
                 .post(_URL().getURL('firewalls.compile', {
@@ -90,7 +91,7 @@ describe.skip(describeName('Firewall E2E Tests'), () => {
         });
     });
 
-    describe('FirewallController@install', () => {
+    describe.skip('FirewallController@install', () => {
         let sshRunCommandStub: sinon.SinonStub;
         let sshUploadFileStub: sinon.SinonStub;
         before(async() => {
@@ -152,5 +153,56 @@ describe.skip(describeName('Firewall E2E Tests'), () => {
 
         });
     });
+
+    describe('@compileRoutingRules', () => {
+        let fwcProduct: FwCloudProduct;
+
+        beforeEach(async () => {
+            fwcProduct = await new FwCloudFactory().make();
+            firewall = fwcProduct.firewall;
+        });
+
+        it('guest user should not routing compile a firewall', async () => {
+            return await request(app.express)
+                .post(_URL().getURL('fwclouds.firewalls.routing.compile', {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id
+                }))
+                .expect(401);
+        });
+
+        it('regular user should not routing compile a firewall if it does not belong to the fwcloud', async () => {
+            return await request(app.express)
+                .post(_URL().getURL('fwclouds.firewalls.routing.compile', {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id
+                }))
+                .set('Cookie', [attachSession(loggedUserSessionId)])
+                .expect(401);
+        });
+
+        it('regular user should routing compile a firewall if it does belong to the fwcloud', async () => {
+            loggedUser.fwClouds = [fwcProduct.fwcloud];
+            await getRepository(User).save(loggedUser);
+
+            return await request(app.express)
+                .post(_URL().getURL('fwclouds.firewalls.routing.compile', {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id
+                }))
+                .set('Cookie', [attachSession(loggedUserSessionId)])
+                .expect(200);
+        });
+
+        it('admin user should routing compile a firewall', async () => {
+            return await request(app.express)
+                .post(_URL().getURL('fwclouds.firewalls.routing.compile', {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id
+                }))
+                .set('Cookie', [attachSession(adminUserSessionId)])
+                .expect(200);
+        });
+    })
 
 })

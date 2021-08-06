@@ -34,6 +34,7 @@ import { _URL } from "../../../../../src/fonaments/http/router/router.service";
 import { RoutingTable } from "../../../../../src/models/routing/routing-table/routing-table.model";
 import { RoutingTableService } from "../../../../../src/models/routing/routing-table/routing-table.service";
 import { Tree } from "../../../../../src/models/tree/Tree";
+import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
 
 describe(describeName('Routing Table E2E Tests'), () => {
     let app: Application;
@@ -272,8 +273,6 @@ describe(describeName('Routing Table E2E Tests'), () => {
                     expect(response.body.data).to.deep.eq([]);
                 });
             });
-
-
         });
 
         describe('@create', () => {
@@ -511,5 +510,63 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
 
         });
+
+        describe('@compileRoutes', () => {
+            let fwcProduct: FwCloudProduct;
+            let table: RoutingTable;
+
+            beforeEach(async () => {
+                fwcProduct = await new FwCloudFactory().make();
+                fwCloud = fwcProduct.fwcloud;
+                firewall = fwcProduct.firewall;
+                table = fwcProduct.routingTable;
+            });
+
+            it('guest user should not see a routing table grid', async () => {
+				return await request(app.express)
+					.post(_URL().getURL('fwclouds.firewalls.routing.tables.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not see the table grid', async () => {
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.routing.tables.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should see the table grid', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.routing.tables.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(200);
+            });
+
+            it('admin user should see routing table grid', async () => {
+                return await request(app.express)
+                .post(_URL().getURL('fwclouds.firewalls.routing.tables.compile', {
+                    fwcloud: fwCloud.id,
+                    firewall: firewall.id,
+                    routingTable: table.id
+                }))
+                .set('Cookie', [attachSession(adminUserSessionId)])
+                .expect(200);
+            });
+        })
     });
 });

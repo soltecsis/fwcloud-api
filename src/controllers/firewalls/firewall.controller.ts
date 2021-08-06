@@ -32,13 +32,18 @@ import { ProgressPayload } from "../../sockets/messages/socket-message";
 import { Validate } from "../../decorators/validate.decorator";
 import { FirewallControllerCompileDto } from "./dtos/compile.dto";
 import { FirewallControllerInstallDto } from "./dtos/install.dto";
+import { RoutingRulesData, RoutingRuleService } from "../../models/routing/routing-rule/routing-rule.service";
+import { RoutingRuleItemForCompiler } from "../../models/routing/shared";
+import { RoutingCompiler } from "../../compiler/routing/RoutingCompiler";
 
 export class FirewallController extends Controller {
     
     protected firewallService: FirewallService;
+    protected routingRuleService: RoutingRuleService;
 
     public async make(): Promise<void> {
         this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
+        this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
     }
     
     @Validate(FirewallControllerCompileDto)
@@ -86,5 +91,21 @@ export class FirewallController extends Controller {
         channel.emit('message', new ProgressPayload('end', false, 'Installing firewall'));
 
         return ResponseBuilder.buildResponse().status(201).body(firewall);
+    }
+
+    @Validate()
+    async compileRoutingRules(request: Request): Promise<ResponseBuilder> {
+        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+            id: parseInt(request.params.firewall),
+            fwCloudId: parseInt(request.params.fwcloud)
+        });
+
+
+        (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
+
+        const rules: RoutingRulesData<RoutingRuleItemForCompiler>[] = await this.routingRuleService.getRoutingRulesData('compiler', firewall.fwCloudId, firewall.id);
+        const compilation = new RoutingCompiler().compile('Rule', rules);
+
+        return ResponseBuilder.buildResponse().status(200).body(compilation)
     }
 }

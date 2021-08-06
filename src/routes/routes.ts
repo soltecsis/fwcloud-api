@@ -39,6 +39,7 @@ import { RouteController } from "../controllers/routing/route/route.controller";
 import { RoutingRuleController } from "../controllers/routing/routing-rule/routing-rule.controller";
 import { RoutingGroupController } from "../controllers/routing/routing-group/routing-group.controller";
 import { RouteGroupController } from "../controllers/routing/route-group/route-group.controller";
+import { FirewallController } from "../controllers/firewalls/firewall.controller";
 
 export class Routes extends RouteCollection {
 
@@ -94,6 +95,8 @@ export class Routes extends RouteCollection {
                                 })
                             });
 
+                            router.post('/routing/rules/compile', FirewallController, 'compileRoutingRules').name('fwclouds.firewalls.routing.compile');
+
                             router.prefix('/routingTables', (router: RouterParser) => {
                                 router.post('/', RoutingTableController, 'create').name('fwclouds.firewalls.routing.tables.store');
                                 router.get('/', RoutingTableController, 'index').name('fwclouds.firewalls.routing.tables.index');
@@ -104,6 +107,7 @@ export class Routes extends RouteCollection {
                                     router.delete('/', RoutingTableController, 'remove').name('fwclouds.firewalls.routing.tables.delete');
                                     
                                     router.prefix('/routes', (router: RouterParser) => {
+                                        router.post('/compile', RoutingTableController, 'compileRoutes').name('fwclouds.firewalls.routing.tables.compile');
                                         router.get('/', RouteController, 'index').name('fwclouds.firewalls.routing.tables.routes.index');
                                         router.post('/', RouteController, 'store').name('fwclouds.firewalls.routing.tables.routes.store');
                                         router.post('/copy', RouteController, 'copy').name('fwclouds.firewalls.routing.tables.routes.copy');
