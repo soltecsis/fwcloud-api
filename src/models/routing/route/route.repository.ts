@@ -90,12 +90,8 @@ export class RouteRepository extends Repository<Route> {
                 route.routeGroupId = destRoute && destRoute.routeGroupId ? destRoute.routeGroupId : null;
             } else {
                 if (forward) {
-                    if (route.route_order > to) {
+                    if (route.route_order >= to) {
                         route.route_order += routes.length;
-                    }
-
-                    if (route.route_order === to) {
-                        route.route_order -= 1;
                     }
                 }
 

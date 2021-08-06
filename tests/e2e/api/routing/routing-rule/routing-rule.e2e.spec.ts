@@ -277,9 +277,9 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).rule_order).to.eq(2);
-                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).rule_order).to.eq(3);
-                expect((await getRepository(RoutingRule).findOne(ruleOrder3.id)).rule_order).to.eq(1);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).rule_order).to.eq(1);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).rule_order).to.eq(2);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder3.id)).rule_order).to.eq(3);
                 expect((await getRepository(RoutingRule).findOne(ruleOrder4.id)).rule_order).to.eq(4);
             });
 
@@ -296,9 +296,9 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).rule_order).to.eq(2);
-                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).rule_order).to.eq(3);
-                expect((await getRepository(RoutingRule).findOne(ruleOrder3.id)).rule_order).to.eq(1);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).rule_order).to.eq(1);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).rule_order).to.eq(2);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder3.id)).rule_order).to.eq(3);
                 expect((await getRepository(RoutingRule).findOne(ruleOrder4.id)).rule_order).to.eq(4);
             });
 

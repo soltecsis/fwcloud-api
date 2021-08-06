@@ -235,9 +235,9 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(Route).findOne(routeOrder1.id)).route_order).to.eq(2);
-                expect((await getRepository(Route).findOne(routeOrder2.id)).route_order).to.eq(3);
-                expect((await getRepository(Route).findOne(routeOrder3.id)).route_order).to.eq(1);
+                expect((await getRepository(Route).findOne(routeOrder1.id)).route_order).to.eq(1);
+                expect((await getRepository(Route).findOne(routeOrder2.id)).route_order).to.eq(2);
+                expect((await getRepository(Route).findOne(routeOrder3.id)).route_order).to.eq(3);
                 expect((await getRepository(Route).findOne(routeOrder4.id)).route_order).to.eq(4);
             });
 
@@ -255,9 +255,9 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(Route).findOne(routeOrder1.id)).route_order).to.eq(2);
-                expect((await getRepository(Route).findOne(routeOrder2.id)).route_order).to.eq(3);
-                expect((await getRepository(Route).findOne(routeOrder3.id)).route_order).to.eq(1);
+                expect((await getRepository(Route).findOne(routeOrder1.id)).route_order).to.eq(1);
+                expect((await getRepository(Route).findOne(routeOrder2.id)).route_order).to.eq(2);
+                expect((await getRepository(Route).findOne(routeOrder3.id)).route_order).to.eq(3);
                 expect((await getRepository(Route).findOne(routeOrder4.id)).route_order).to.eq(4);
             });
 

@@ -80,7 +80,7 @@ describe(RouteRepository.name, () => {
                 gatewayId: gateway.id
             });
 
-            await repository.move([routeOrder2.id], 3);
+            await repository.move([routeOrder2.id], 4);
 
             expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
             expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);
@@ -170,7 +170,7 @@ describe(RouteRepository.name, () => {
                     gatewayId: gateway.id
                 });
     
-                await repository.move([routeOrder1.id, routeOrder2.id], 3);
+                await repository.move([routeOrder1.id, routeOrder2.id], 4);
     
                 expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(2);
                 expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);

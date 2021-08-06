@@ -69,7 +69,7 @@ describe(RoutingRuleRepository.name, () => {
                 rule_order: 4
             });
 
-            await repository.move([ruleOrder2.id], 3);
+            await repository.move([ruleOrder2.id], 4);
 
             expect((await repository.findOne(ruleOrder1.id)).rule_order).to.eq(1);
             expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(3);
@@ -148,7 +148,7 @@ describe(RoutingRuleRepository.name, () => {
                     rule_order: 4
                 });
     
-                await repository.move([ruleOrder1.id, ruleOrder2.id], 3);
+                await repository.move([ruleOrder1.id, ruleOrder2.id], 4);
     
                 expect((await repository.findOne(ruleOrder1.id)).rule_order).to.eq(2);
                 expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(3);

@@ -108,12 +108,8 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
                 rule.routingGroupId = destRule && destRule.routingGroupId ? destRule.routingGroupId : null;
             } else {
                 if (forward) {
-                    if (rule.rule_order > to) {
+                    if (rule.rule_order >= to) {
                         rule.rule_order += rules.length;
-                    }
-
-                    if (rule.rule_order === to) {
-                        rule.rule_order -= 1;
                     }
                 }
 
