@@ -79,7 +79,7 @@ router.put('/rule', async (req, res) => {
 		if (rulesCompiled.length === 0)
 			throw new Error('It was not possible to compile the rule');
 
-		res.status(200).json({"result": true, "cs": rulesCompiled});
+		res.status(200).json({"data": rulesCompiled});
 	} catch(error) {
 		logger().error('Error compiling firewall rule: ' + JSON.stringify(error));
 		res.status(400).json(error);
