@@ -92,7 +92,9 @@ export class RouteController extends Controller {
             }
         });
 
-        const result: Route[] = await this._routeService.bulkMove(routes.map(item => item.id), request.inputs.get('to'));
+        const direction: 'above' | 'below' = request.inputs.get('direction') >= 0 ? 'below': 'above'
+        
+        const result: Route[] = await this._routeService.bulkMove(routes.map(item => item.id), request.inputs.get('to'), direction);
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
@@ -168,8 +170,9 @@ export class RouteController extends Controller {
             routes.push(route);
         }
 
-        const created: Route[] = await this._routeService.copy(routes.map(item => item.id), request.inputs.get('to'))
-
+        const direction: 'above' | 'below' = request.inputs.get('direction') > 0 ? 'below': 'above';
+        const created: Route[] = await this._routeService.copy(routes.map(item => item.id), request.inputs.get('to'), direction);
+        
         return ResponseBuilder.buildResponse().status(201).body(created);
     }
 

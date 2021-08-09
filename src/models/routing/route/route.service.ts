@@ -53,7 +53,6 @@ export interface ICreateRoute {
     interfaceId?: number;
     active?: boolean;
     comment?: string;
-    route_order?: number;
     style?: string;
     ipObjIds?: number[];
     ipObjGroupIds?: number[];
@@ -66,7 +65,6 @@ interface IUpdateRoute {
     comment?: string;
     gatewayId?: number;
     interfaceId?: number;
-    route_order?: number;
     style?: string;
     ipObjIds?: number[];
     ipObjGroupIds?: number[];
@@ -154,7 +152,7 @@ export class RouteService extends Service {
         
         const persisted: Route = await this._repository.save(routeData);
 
-        return data.route_order ? (await this._repository.move([persisted.id], data.route_order))[0] : persisted;
+        return persisted;
     }
 
     async update(id: number, data: IUpdateRoute): Promise<Route> {
@@ -205,14 +203,10 @@ export class RouteService extends Service {
 
         route = await this._repository.save(route);
 
-        if (data.route_order && route.route_order !== data.route_order) {
-            return (await this._repository.move([route.id], data.route_order))[0];
-        }
-
         return route;
     }
 
-    async copy(ids: number[], to: number): Promise<Route[]> {
+    async copy(ids: number[], destRule: number, position: 'above'|'below'): Promise<Route[]> {
         const routes: Route[] = await this._repository.find({
             where: {
                 id: In(ids)
@@ -229,7 +223,7 @@ export class RouteService extends Service {
 
         const persisted: Route[] = await this._repository.save(routes);
 
-        return this.bulkMove(persisted.map(item => item.id), to);
+        return this.bulkMove(persisted.map(item => item.id), destRule, position);
     }
 
     async bulkUpdate(ids: number[], data: IBulkUpdateRoute): Promise<Route[]> {
@@ -244,8 +238,8 @@ export class RouteService extends Service {
         });
     }
 
-    async bulkMove(ids: number[], to: number): Promise<Route[]> {
-        return this._repository.move(ids, to);
+    async bulkMove(ids: number[], destRule: number, position: 'above'|'below'): Promise<Route[]> {
+        return this._repository.move(ids, destRule, position);
     }
 
     async remove(path: IFindOneRoutePath): Promise<Route> {

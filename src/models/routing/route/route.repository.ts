@@ -63,7 +63,7 @@ export class RouteRepository extends Repository<Route> {
         return this.findOneOrFail(this.getFindInPathOptions(path));
     }
 
-    async move(ids: number[], to: number): Promise<Route[]> {
+    async move(ids: number[], toRouteId: number, position: 'above'|'below'): Promise<Route[]> {
         const routes: Route[] = await this.find({
             where: {
                 id: In(ids)
@@ -74,34 +74,23 @@ export class RouteRepository extends Repository<Route> {
             relations: ['routingTable', 'routingTable.firewall']
         });
 
-        const forward: boolean = routes[0].route_order < to;
-        
-        const affectedRoutes: Route[] = await this.findManyInPath({
+        let affectedRoutes: Route[] = await this.findManyInPath({
             fwCloudId: routes[0].routingTable.firewall.fwCloudId,
             firewallId: routes[0].routingTable.firewall.id,
             routingTableId: routes[0].routingTable.id
         });
-        const destRoute: Route | undefined = affectedRoutes.filter(item => item.route_order === to)[0];
 
-        affectedRoutes.forEach((route) => {
-            if (ids.includes(route.id)) {
-                const offset: number = ids.indexOf(route.id);
-                route.route_order = to + offset;
-                route.routeGroupId = destRoute && destRoute.routeGroupId ? destRoute.routeGroupId : null;
-            } else {
-                if (forward) {
-                    if (route.route_order >= to) {
-                        route.route_order += routes.length;
-                    }
-                }
-
-                if (!forward) {
-                    if (route.route_order >= to && route.route_order < routes[0].route_order) {
-                        route.route_order += routes.length;
-                    }
-                }
+        const destRoute: Route = await this.findOneOrFail({
+            where: {
+                id: toRouteId
             }
-        });
+        })
+
+        if (position === 'above') {
+            affectedRoutes = await this.moveAbove(routes, affectedRoutes, destRoute);
+        } else {
+            affectedRoutes = await this.moveBelow(routes, affectedRoutes, destRoute);
+        }
 
         await this.save(affectedRoutes);
 
@@ -109,7 +98,66 @@ export class RouteRepository extends Repository<Route> {
             `SET @a:=0; UPDATE ${Route._getTableName()} SET route_order=@a:=@a+1 WHERE id IN (${affectedRoutes.map(item => item.id).join(',')}) ORDER BY route_order`
         )
         
-        return this.find({where: {id: In(ids)}});
+        return await this.find({where: {id: In(ids)}});
+    }
+
+    protected async moveAbove(routes: Route[], affectedRoutes: Route[], destRoute: Route): Promise<Route[]> {
+        const destPosition: number = destRoute.route_order;
+        const movingIds: number[] = routes.map(route => route.id);
+
+        const currentPosition: number = routes[0].route_order;
+        const forward: boolean = currentPosition < destRoute.route_order;
+
+        affectedRoutes.forEach((route) => {
+            if (movingIds.includes(route.id)) {
+                const offset: number = movingIds.indexOf(route.id);
+                route.route_order = destPosition + offset;
+                route.routeGroupId = destRoute.routeGroupId;
+            } else {
+                if (forward && 
+                    route.route_order >= destRoute.route_order
+                ) {
+                    route.route_order += routes.length;
+                }
+                
+                if (!forward && 
+                    route.route_order >= destRoute.route_order && 
+                    route.route_order < routes[0].route_order
+                ) {
+                    route.route_order += routes.length;
+                }
+            }
+        });
+
+        return affectedRoutes;
+    }
+
+    protected async moveBelow(routes: Route[], affectedRoutes: Route[], destRoute: Route): Promise<Route[]> {
+        const destPosition: number = destRoute.route_order;
+        const movingIds: number[] = routes.map(route => route.id);
+
+        const currentPosition: number = routes[0].route_order;
+        const forward: boolean = currentPosition < destRoute.route_order;
+
+        affectedRoutes.forEach((route) => {
+            if (movingIds.includes(route.id)) {
+                const offset: number = movingIds.indexOf(route.id);
+                route.route_order = destPosition + offset;
+                route.routeGroupId = destRoute.routeGroupId;
+            } else {
+                if (forward && route.route_order >= destRoute.route_order) {
+                    route.route_order += routes.length;
+                }
+                
+                if (!forward && route.route_order > destRoute.route_order &&
+                    route.route_order < routes[0].route_order
+                ) {
+                    route.route_order += routes.length;
+                }
+            }
+        });
+
+        return affectedRoutes;
     }
 
     async remove(entities: Route[], options?: RemoveOptions): Promise<Route[]>;

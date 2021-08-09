@@ -92,7 +92,4 @@ export class RouteControllerUpdateDto {
     })
     openVPNPrefixIds?: number[]
 
-    @IsOptional()
-    @IsNumber()
-    route_order?: number;
 }

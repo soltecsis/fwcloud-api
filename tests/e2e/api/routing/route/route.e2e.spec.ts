@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
+import { getCustomRepository, getRepository } from "typeorm";
 import { Application } from "../../../../../src/Application";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
@@ -42,6 +42,7 @@ import { Ca } from "../../../../../src/models/vpn/pki/Ca";
 import { RouteControllerBulkMoveDto } from "../../../../../src/controllers/routing/route/dtos/bulk-move.dto";
 import { RouteControllerBulkUpdateDto } from "../../../../../src/controllers/routing/route/dtos/bulk-update.dto";
 import { RouteControllerCopyDto } from "../../../../../src/controllers/routing/route/dtos/copy.dto";
+import { RouteRepository } from "../../../../../src/models/routing/route/route.repository";
 
 describe(describeName('Route E2E Tests'), () => {
     let app: Application;
@@ -170,31 +171,28 @@ describe(describeName('Route E2E Tests'), () => {
             beforeEach(async () => {
                 routeOrder1 = await routeService.create({
                     routingTableId: table.id,
-                    route_order: 1,
                     gatewayId: gateway.id
                 });
                 
                 routeOrder2 = await routeService.create({
                     routingTableId: table.id,
-                    route_order: 2,
                     gatewayId: gateway.id
                 });
 
                 routeOrder3 = await routeService.create({
                     routingTableId: table.id,
-                    route_order: 3,
                     gatewayId: gateway.id
                 });
                 
                 routeOrder4 = await routeService.create({
                     routingTableId: table.id,
-                    route_order: 4,
                     gatewayId: gateway.id
                 });
 
                 data = {
                     routes: [routeOrder1.id, routeOrder2.id],
-                    to: 3
+                    to: routeOrder3.id,
+                    direction: -1
                 }
             });
 
@@ -480,21 +478,20 @@ describe(describeName('Route E2E Tests'), () => {
             beforeEach(async () => {
                 routeOrder1 = await routeService.create({
                     routingTableId: table.id,
-                    route_order: 1,
                     gatewayId: gateway.id,
                     comment: 'comment1'
                 });
                 
                 routeOrder2 = await routeService.create({
                     routingTableId: table.id,
-                    route_order: 2,
                     gatewayId: gateway.id,
                     comment: 'comment2'
                 });
 
                 data = {
                     routes: [routeOrder1.id, routeOrder2.id],
-                    to: 3
+                    to: (await getCustomRepository(RouteRepository).getLastRouteInRoutingTable(table.id)).id,
+                    direction: 1
                 }
             });
 
@@ -746,13 +743,11 @@ describe(describeName('Route E2E Tests'), () => {
             beforeEach(async () => {
                 routeOrder1 = await routeService.create({
                     routingTableId: table.id,
-                    route_order: 1,
                     gatewayId: gateway.id
                 });
                 
                 routeOrder2 = await routeService.create({
                     routingTableId: table.id,
-                    route_order: 2,
                     gatewayId: gateway.id
                 });
             });
@@ -920,13 +915,11 @@ describe(describeName('Route E2E Tests'), () => {
             beforeEach(async () => {
                 routeOrder1 = await routeService.create({
                     routingTableId: table.id,
-                    route_order: 1,
                     gatewayId: gateway.id
                 });
                 
                 routeOrder2 = await routeService.create({
                     routingTableId: table.id,
-                    route_order: 2,
                     gatewayId: gateway.id
                 });
             });

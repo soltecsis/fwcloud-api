@@ -20,13 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsArray, IsNumber } from "class-validator"
+import { IsArray, IsNumber, IsPositive } from "class-validator"
 
 export class RouteControllerCopyDto {
-    @IsArray()
-    @IsNumber({}, {each: true})
-    routes: number[];
+    @IsNumber()
+    @IsPositive()
+    to: number;
 
     @IsNumber()
-    to: number;
+    direction: number;
+
+    @IsArray()
+    @IsNumber({}, {each: true})
+    routes: number[]
 }

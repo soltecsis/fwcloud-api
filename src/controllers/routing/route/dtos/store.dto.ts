@@ -52,10 +52,6 @@ export class RouteControllerStoreDto {
     @IsOptional()
     style: string;
 
-    @IsOptional()
-    @IsNumber()
-    route_order?: number;
-
     @IsArray()
     @IsOptional()
     @IpObjBelongsToTypes([

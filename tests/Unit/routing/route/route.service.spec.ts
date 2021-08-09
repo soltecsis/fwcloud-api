@@ -54,22 +54,18 @@ describe(RouteService.name, () => {
             beforeEach(async () => {
                 routeOrder1 = await service.create({
                     routingTableId: table.id,
-                    route_order: 1,
                     gatewayId: gateway.id
                 });
                 routeOrder2 = await service.create({
                     routingTableId: table.id,
-                    route_order: 2,
                     gatewayId: gateway.id
                 });
                 routeOrder3 = await service.create({
                     routingTableId: table.id,
-                    route_order: 3,
                     gatewayId: gateway.id
                 });
                 routeOrder4 = await service.create({
                     routingTableId: table.id,
-                    route_order: 4,
                     gatewayId: gateway.id
                 });
             });
@@ -84,15 +80,6 @@ describe(RouteService.name, () => {
                 expect(route.route_order).to.eq(9);
             });
 
-            it('should move to position if rule_order is defined', async () => {
-                route = await service.create({
-                    routingTableId: table.id,
-                    gatewayId: gateway.id,
-                    route_order: 2
-                });
-
-                expect(route.route_order).to.eq(2);
-            });
         });
     });
 
@@ -104,24 +91,24 @@ describe(RouteService.name, () => {
             routeOrder1 = await service.create({
                 comment: 'comment1',
                 routingTableId: table.id,
-                route_order: 1,
                 gatewayId: gateway.id
             });
             routeOrder2 = await service.create({
                 comment: 'comment2',
                 routingTableId: table.id,
-                route_order: 2,
                 gatewayId: gateway.id
             });
         });
 
         it('should copy routes', async () => {
-            const copied: Route[] = await service.copy([routeOrder1.id, routeOrder2.id], 1);
-
+            const copied: Route[] = await service.copy([routeOrder1.id, routeOrder2.id], routeOrder1.id, 'above');
+            routeOrder1 = await service.findOneInPath({
+                id: routeOrder1.id
+            });
             expect(copied[0].comment).to.eq(routeOrder1.comment);
-            expect(copied[0].route_order).to.eq(1);
+            expect(copied[0].route_order).to.eq(routeOrder1.route_order - 2);
             expect(copied[1].comment).to.eq(routeOrder2.comment);
-            expect(copied[1].route_order).to.eq(2);
+            expect(copied[1].route_order).to.eq(routeOrder1.route_order - 1);
         });
     })
 
