@@ -92,11 +92,7 @@ export class RoutingGroupController extends Controller {
 
         (await RoutingGroupPolicy.update(group, request.session.user)).authorize();
 
-        const updated: RoutingGroup = await this._routingGroupService.update(group.id, {
-            name: request.inputs.get('name'),
-            comment: request.inputs.get('comment'),
-            routingRules: request.inputs.get('routingRules').map((id) => ({id}))
-        })
+        const updated: RoutingGroup = await this._routingGroupService.update(group.id, request.inputs.all())
 
         return ResponseBuilder.buildResponse().status(200).body(updated);
     }
