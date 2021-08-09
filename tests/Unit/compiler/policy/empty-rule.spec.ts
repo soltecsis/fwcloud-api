@@ -59,7 +59,8 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         family = IPv === 'IPv4' ? 'ip' : 'ip6';
 
         try {
-            result = await PolicyCompiler.compile(compiler, dbCon, fwcloud, ruleData.firewall, policyType, rule);
+            const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, ruleData.firewall, policyType, [rule], null);
+            result = await PolicyCompiler.compile(compiler, rulesData);
         } catch(err) { error = err }
         
         if (policyType === PolicyTypesMap.get(`${IPv}:DNAT`)) { 

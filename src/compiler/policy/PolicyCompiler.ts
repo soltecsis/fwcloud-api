@@ -32,14 +32,13 @@ export type AvailablePolicyCompilers = 'IPTables' | 'NFTables';
  
 export class PolicyCompiler {
 
-  public static compile(compileFor: AvailablePolicyCompilers, dbCon: any, fwcloud: number, firewall: number, type: number, rule?: number, eventEmitter?: EventEmitter): Promise<RuleCompilationResult[]> {
+  public static compile(compileFor: AvailablePolicyCompilers, rulesData: any, eventEmitter?: EventEmitter): Promise<RuleCompilationResult[]> {
     return new Promise(async (resolve, reject) => {
       try {
-        const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, firewall, type, rule, null);
-        
-        if (!rulesData) return resolve([]);
-
         let result: RuleCompilationResult[] = [];
+        
+        if (!rulesData) return resolve(result);
+
         for (let i=0; i<rulesData.length; i++) {
           if (eventEmitter) eventEmitter.emit('message', new ProgressNoticePayload(`Rule ${i+1} (ID: ${rulesData[i].id})${!(rulesData[i].active) ? ' [DISABLED]' : ''}`));
 

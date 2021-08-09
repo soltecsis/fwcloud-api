@@ -115,7 +115,8 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
     }
 
     try {
-        result = await PolicyCompiler.compile(compiler, dbCon, fwcloud, ruleData.firewall, policyType, rule);
+      const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, ruleData.firewall, policyType, [rule], null);
+      result = await PolicyCompiler.compile(compiler, rulesData);
     } catch(err) { error = err }
 
     if (!cs && usePrefix && vpnCli2 && 
