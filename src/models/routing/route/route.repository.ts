@@ -158,7 +158,7 @@ export class RouteRepository extends Repository<Route> {
         }))[0]
     }
 
-    getRoutingTableRoutes(fwcloud: number, firewall: number, routingTable: number, route?: number): Promise<Route[]> {
+    getRoutingTableRoutes(fwcloud: number, firewall: number, routingTable: number, routes?: number[]): Promise<Route[]> {
         let query = this.createQueryBuilder("route")
             .innerJoinAndSelect("route.gateway","gateway")
             .leftJoinAndSelect("route.interface","interface")
@@ -170,7 +170,7 @@ export class RouteRepository extends Repository<Route> {
             .andWhere("firewall.id = :firewall", {firewall: firewall})
             .andWhere("fwcloud.id = :fwcloud", {fwcloud: fwcloud});
 
-        if (route) query = query.andWhere("route.id = :route", {route});
+        if (routes) query = query.andWhere("route.id IN (:...routes)", {routes: routes});
             
         return query.orderBy("route.route_order").getMany();
     }

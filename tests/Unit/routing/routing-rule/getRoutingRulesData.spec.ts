@@ -233,4 +233,23 @@ describe('Routing rules data fetch for compiler or grid', () => {
             });
         })
     })
+
+    describe('Get data for only some routing rules', () => {
+        it('should get data for routing rules 1 and 3', async () => {
+            const ids = [ fwc.routingRules.get('routing-rule-1').id, fwc.routingRules.get('routing-rule-3').id ];
+            routingRules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler',fwc.fwcloud.id,fwc.firewall.id,ids);            
+
+            expect(routingRules.length).to.equal(2);
+            expect(routingRules[0].id).to.equal(ids[0]);
+            expect(routingRules[1].id).to.equal(ids[1]);
+        });
+
+        it('should get data for routing rule 2', async () => {
+            const ids = [ fwc.routingRules.get('routing-rule-2').id ];
+            routingRules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler',fwc.fwcloud.id,fwc.firewall.id,ids);            
+
+            expect(routingRules.length).to.equal(1);
+            expect(routingRules[0].id).to.equal(ids[0]);
+        });
+    });
 })
