@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindOneOptions, getRepository, Repository, SelectQueryBuilder } from "typeorm";
+import { FindManyOptions, FindOneOptions, getRepository, Repository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
 import { Route } from "../route/route.model";
@@ -61,8 +61,8 @@ export class RouteGroupService extends Service {
         return this._repository.find(this.getFindInPathOptions(path));
     }
 
-    findOneInPath(path: IFindOneRouteGroupPath): Promise<RouteGroup | undefined> {
-        return this._repository.findOne(this.getFindInPathOptions(path));
+    findOneInPath(path: IFindOneRouteGroupPath, options?: FindOneOptions<RouteGroup>): Promise<RouteGroup | undefined> {
+        return this._repository.findOne(this.getFindInPathOptions(path, options));
     }
 
     async findOneInPathOrFail(path: IFindOneRouteGroupPath): Promise<RouteGroup> {
@@ -77,7 +77,6 @@ export class RouteGroupService extends Service {
     async update(id: number, data: IUpdateRouteGroup): Promise<RouteGroup> {
         let group: RouteGroup = await this._repository.preload(Object.assign(data, {id}));
 
-        group.routes = data.routes as Route[];
         group = await this._repository.save(group);
 
         if (group.routes.length === 0) {
@@ -88,7 +87,9 @@ export class RouteGroupService extends Service {
             });
         }
 
-        return group;
+        return this.findOneInPath({
+            id: group.id
+        });
     }
 
     async remove(path: IFindOneRouteGroupPath): Promise<RouteGroup> {
@@ -100,8 +101,8 @@ export class RouteGroupService extends Service {
         return group;
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneRouteGroupPath>): FindOneOptions<RouteGroup> {
-        return {
+    protected getFindInPathOptions(path: Partial<IFindOneRouteGroupPath>, options: FindOneOptions<RouteGroup> | FindManyOptions<RouteGroup> = {}): FindOneOptions<RouteGroup> {
+        return Object.assign({
             join: {
                 alias: 'group',
                 innerJoin: {
@@ -122,6 +123,6 @@ export class RouteGroupService extends Service {
                     qb.andWhere('group.id = :id', {id: path.id})
                 }
             }
-        }
+        }, options);
     }
 }

@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsBoolean, IsOptional, IsString } from "class-validator"
+import { IsBoolean, IsNumber, IsOptional, IsString } from "class-validator"
 
 export class RouteControllerBulkUpdateDto {     
     @IsBoolean()
@@ -30,4 +30,8 @@ export class RouteControllerBulkUpdateDto {
     @IsString()
     @IsOptional()
     style?: string;
+
+    @IsNumber()
+    @IsOptional()
+    routeGroupId?: number;
 }

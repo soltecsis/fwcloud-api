@@ -30,4 +30,8 @@ export class RoutingRuleControllerBulkUpdateDto {
     @IsString()
     @IsOptional()
     style?: string;
+
+    @IsNumber()
+    @IsOptional()
+    routingGroupId?: number;
 }
