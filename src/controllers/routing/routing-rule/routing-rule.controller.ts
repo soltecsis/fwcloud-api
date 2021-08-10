@@ -200,7 +200,7 @@ export class RoutingRuleController extends Controller {
 
         (await RoutingRulePolicy.show(rule, request.session.user)).authorize();
 
-        const rules: RoutingRulesData<RoutingRuleItemForCompiler>[] = await this.routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', this._fwCloud.id, this._firewall.id, rule.id);
+        const rules: RoutingRulesData<RoutingRuleItemForCompiler>[] = await this.routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', this._fwCloud.id, this._firewall.id, [rule.id]);
 
         const compilation = new RoutingCompiler().compile('Rule', rules);
         

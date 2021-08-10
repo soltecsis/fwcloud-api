@@ -129,7 +129,7 @@ export class RouteController extends Controller {
             this._fwCloud.id,
             this._firewall.id, 
             this._routingTable.id,
-            route.id
+            [route.id]
         );
 
         const compilation = new RoutingCompiler().compile('Route', routes);

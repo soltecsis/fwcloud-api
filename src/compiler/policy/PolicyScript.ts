@@ -110,7 +110,8 @@ export class PolicyScript {
 
 	private async dumpCompilation(type: number): Promise<void> {
 		// Compile all rules of the same type.
-		const rulesCompiled =  await PolicyCompiler.compile(this.policyCompiler, this.dbCon, this.fwcloud, this.firewall, type, null, this.channel);
+		const rulesData: any = await PolicyRule.getPolicyData('compiler', this.dbCon, this.fwcloud, this.firewall, type, null, null);
+		const rulesCompiled =  await PolicyCompiler.compile(this.policyCompiler, rulesData, this.channel);
 
 		let cs = '';
 		for (let i=0; i < rulesCompiled.length; i++) {

@@ -63,6 +63,7 @@ import { PolicyCompiler } from '../../compiler/policy/PolicyCompiler';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressErrorPayload } from '../../sockets/messages/socket-message';
 import { logger } from '../../fonaments/abstract-application';
+import { PolicyRule } from '../../models/policy/PolicyRule';
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -71,13 +72,14 @@ import { logger } from '../../fonaments/abstract-application';
 router.put('/rule', async (req, res) => {
 	try {
 		//console.time(`Rule compile (ID: ${req.body.rule})`);
-		const rulesCompiled = await PolicyCompiler.compile(req.body.compiler, req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule);
+		const rulesData = await PolicyRule.getPolicyData('compiler', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rules, null);
+		const rulesCompiled = await PolicyCompiler.compile(req.body.compiler, rulesData);
 		//console.timeEnd(`Rule compile (ID: ${req.body.rule})`);
 
 		if (rulesCompiled.length === 0)
 			throw new Error('It was not possible to compile the rule');
 
-		res.status(200).json({"result": true, "cs": rulesCompiled[0].cs});
+		res.status(200).json(rulesCompiled);
 	} catch(error) {
 		logger().error('Error compiling firewall rule: ' + JSON.stringify(error));
 		res.status(400).json(error);

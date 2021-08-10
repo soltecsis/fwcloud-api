@@ -306,25 +306,25 @@ export class RoutingRuleService extends Service {
      * @param route 
      * @returns 
      */
-     public async getRoutingRulesData<T extends ItemForGrid | RoutingRuleItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, rule?: number): Promise<RoutingRulesData<T>[]> {
-        const rules: RoutingRulesData<T>[] = await this._repository.getRoutingRules(fwcloud, firewall, rule) as RoutingRulesData<T>[];
+     public async getRoutingRulesData<T extends ItemForGrid | RoutingRuleItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, rules?: number[]): Promise<RoutingRulesData<T>[]> {
+        const rulesData: RoutingRulesData<T>[] = await this._repository.getRoutingRules(fwcloud, firewall, rules) as RoutingRulesData<T>[];
          
         // Init the map for access the objects array for each route.
         let ItemsArrayMap = new Map<number, T[]>();
-        for (let i=0; i<rules.length; i++) {
-          rules[i].items = [];
+        for (let i=0; i<rulesData.length; i++) {
+          rulesData[i].items = [];
     
           // Map each route with it's corresponding items array.
           // These items array will be filled with objects data in the Promise.all()
-          ItemsArrayMap.set(rules[i].id, rules[i].items);
+          ItemsArrayMap.set(rulesData[i].id, rulesData[i].items);
         }
     
         const sqls = (dst === 'grid') ? 
             this.buildSQLsForGrid(fwcloud, firewall) : 
-            this.buildSQLsForCompiler(fwcloud, firewall, rule);
+            this.buildSQLsForCompiler(fwcloud, firewall, rules);
         await Promise.all(sqls.map(sql => RoutingUtils.mapEntityData<T>(sql,ItemsArrayMap)));
         
-        return rules;
+        return rulesData;
     }
 
     /**
@@ -418,17 +418,17 @@ export class RoutingRuleService extends Service {
         }
     }
 
-    private buildSQLsForCompiler(fwcloud: number, firewall: number, rule?: number): SelectQueryBuilder<IPObj|Mark>[] {
+    private buildSQLsForCompiler(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj|Mark>[] {
         return [
-            this._ipobjRepository.getIpobjsInRouting_excludeHosts('rule', fwcloud, firewall, null, rule),
-            this._ipobjRepository.getIpobjsInRouting_onlyHosts('rule', fwcloud, firewall, null, rule),
-            this._ipobjRepository.getIpobjsInGroupsInRouting_excludeHosts('rule', fwcloud, firewall, null, rule),
-            this._ipobjRepository.getIpobjsInGroupsInRouting_onlyHosts('rule', fwcloud, firewall, null, rule),
-            this._ipobjRepository.getIpobjsInOpenVPNInRouting('rule', fwcloud, firewall, null, rule),
-            this._ipobjRepository.getIpobjsInOpenVPNInGroupsInRouting('rule', fwcloud, firewall, null, rule),
-            this._ipobjRepository.getIpobjsInOpenVPNPrefixesInRouting('rule', fwcloud, firewall, null, rule),
-            this._ipobjRepository.getIpobjsInOpenVPNPrefixesInGroupsInRouting('rule', fwcloud, firewall, null, rule),
-            this._markRepository.getMarksInRoutingRules(fwcloud, firewall, rule)
+            this._ipobjRepository.getIpobjsInRouting_excludeHosts('rule', fwcloud, firewall, null, rules),
+            this._ipobjRepository.getIpobjsInRouting_onlyHosts('rule', fwcloud, firewall, null, rules),
+            this._ipobjRepository.getIpobjsInGroupsInRouting_excludeHosts('rule', fwcloud, firewall, null, rules),
+            this._ipobjRepository.getIpobjsInGroupsInRouting_onlyHosts('rule', fwcloud, firewall, null, rules),
+            this._ipobjRepository.getIpobjsInOpenVPNInRouting('rule', fwcloud, firewall, null, rules),
+            this._ipobjRepository.getIpobjsInOpenVPNInGroupsInRouting('rule', fwcloud, firewall, null, rules),
+            this._ipobjRepository.getIpobjsInOpenVPNPrefixesInRouting('rule', fwcloud, firewall, null, rules),
+            this._ipobjRepository.getIpobjsInOpenVPNPrefixesInGroupsInRouting('rule', fwcloud, firewall, null, rules),
+            this._markRepository.getMarksInRoutingRules(fwcloud, firewall, rules)
         ];
     }
 

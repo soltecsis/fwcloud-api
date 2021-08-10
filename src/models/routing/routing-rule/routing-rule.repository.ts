@@ -187,7 +187,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         }, options)
     }
 
-    getRoutingRules(fwcloud: number, firewall: number, rule?: number): Promise<RoutingRule[]> {
+    getRoutingRules(fwcloud: number, firewall: number, rules?: number[]): Promise<RoutingRule[]> {
         let query = this.createQueryBuilder("rule")
             .innerJoinAndSelect("rule.routingTable","table")
             .leftJoinAndSelect("rule.routingGroup", "group")
@@ -196,7 +196,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
             .where("firewall.id = :firewall", {firewall: firewall})
             .andWhere("fwcloud.id = :fwcloud", {fwcloud: fwcloud});
 
-        if (rule) query = query.andWhere("rule.id = :rule", {rule});
+        if (rules) query = query.andWhere("rule.id IN (:...rules)", {rules: rules});
             
         return query.orderBy("rule.rule_order").getMany();
     }

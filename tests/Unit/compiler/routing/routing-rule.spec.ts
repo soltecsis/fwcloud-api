@@ -31,6 +31,7 @@ import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/
 describe('Routing rule compiler', () => {
   let fwc: FwCloudProduct;
 
+  let routingRuleService: RoutingRuleService;
   let compiler: RoutingCompiler = new RoutingCompiler;
   let compilation: RoutingCompiled[];
   let gw: string;
@@ -48,7 +49,7 @@ describe('Routing rule compiler', () => {
     rtn = fwc.routingTable.number;
     tail = `table ${rtn}\n`;
 
-    const routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
+    routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
     const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id);            
     compilation = compiler.compile('Rule',rules);
   });
@@ -127,6 +128,27 @@ describe('Routing rule compiler', () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli2-addr').address} ${tail}`);
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`);
+    });
+  });
+
+  describe('Compile only some routing rules', () => {
+    it('should compile only routing rule 2', async () => {
+        const ids = [ fwc.routingRules.get('routing-rule-2').id ];
+        const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id, ids);            
+        const compilation = compiler.compile('Rule',rules);
+
+        expect(compilation.length).to.equal(1);
+        expect(compilation[0].id).to.equal(ids[0]);
+    });
+
+    it('should compile only routing rules 1 and 3', async () => {
+        const ids = [ fwc.routingRules.get('routing-rule-1').id, fwc.routingRules.get('routing-rule-3').id ];
+        const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id, ids);            
+        const compilation = compiler.compile('Rule',rules);
+
+        expect(compilation.length).to.equal(2);
+        expect(compilation[0].id).to.equal(ids[0]);
+        expect(compilation[1].id).to.equal(ids[1]);
     });
   });
 })
