@@ -57,7 +57,9 @@ export interface ICreateRoute {
     ipObjIds?: number[];
     ipObjGroupIds?: number[];
     openVPNIds?: number[];
-    openVPNPrefixIds?: number[]
+    openVPNPrefixIds?: number[],
+    to?: number; //Reference where create the route
+    direction?: 'above' | 'below';
 }
 
 interface IUpdateRoute {
@@ -152,6 +154,10 @@ export class RouteService extends Service {
         
         const persisted: Route = await this._repository.save(routeData);
 
+        if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'direction')) {
+            return (await this.move([persisted.id], data.to, data.direction))[0];
+        }
+
         return persisted;
     }
 
@@ -223,7 +229,7 @@ export class RouteService extends Service {
 
         const persisted: Route[] = await this._repository.save(routes);
 
-        return this.bulkMove(persisted.map(item => item.id), destRule, position);
+        return this.move(persisted.map(item => item.id), destRule, position);
     }
 
     async bulkUpdate(ids: number[], data: IBulkUpdateRoute): Promise<Route[]> {
@@ -238,7 +244,7 @@ export class RouteService extends Service {
         });
     }
 
-    async bulkMove(ids: number[], destRule: number, position: 'above'|'below'): Promise<Route[]> {
+    async move(ids: number[], destRule: number, position: 'above'|'below'): Promise<Route[]> {
         return this._repository.move(ids, destRule, position);
     }
 

@@ -1,6 +1,6 @@
 import { IsArray, IsNumber, IsPositive, IsString } from "class-validator";
 
-export class RouteControllerBulkMoveDto {
+export class RouteControllerMoveDto {
     @IsNumber()
     @IsPositive()
     to: number;

@@ -36,7 +36,7 @@ import { RouteData, RoutingTableService } from "../../../models/routing/routing-
 import { RouteItemForCompiler } from "../../../models/routing/shared";
 import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
 import { getRepository, SelectQueryBuilder } from "typeorm";
-import { RouteControllerBulkMoveDto } from "./dtos/bulk-move.dto";
+import { RouteControllerMoveDto } from "./dtos/move.dto";
 import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
 import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
 import { RouteControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
@@ -71,8 +71,8 @@ export class RouteController extends Controller {
         return ResponseBuilder.buildResponse().status(200).body(routes); 
     }
 
-    @Validate(RouteControllerBulkMoveDto)
-    async bulkMove(request: Request): Promise<ResponseBuilder> {
+    @Validate(RouteControllerMoveDto)
+    async move(request: Request): Promise<ResponseBuilder> {
         (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
         
         const routes: Route[] = await getRepository(Route).find({
@@ -94,7 +94,7 @@ export class RouteController extends Controller {
 
         const direction: 'above' | 'below' = request.inputs.get('direction') >= 0 ? 'below': 'above'
         
-        const result: Route[] = await this._routeService.bulkMove(routes.map(item => item.id), request.inputs.get('to'), direction);
+        const result: Route[] = await this._routeService.move(routes.map(item => item.id), request.inputs.get('to'), direction);
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
@@ -144,6 +144,8 @@ export class RouteController extends Controller {
 
         //Get the routingTable from the URL
         const data: ICreateRoute = Object.assign({}, request.inputs.all<ICreateRoute>(), {routingTableId: this._routingTable.id});
+
+        data.direction = data.direction as unknown as number >=0 ? 'below': 'above';
         
         const route: Route = await this._routeService.create(data);
 

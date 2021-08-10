@@ -112,7 +112,7 @@ export class Routes extends RouteCollection {
                                         router.post('/', RouteController, 'store').name('fwclouds.firewalls.routing.tables.routes.store');
                                         router.post('/copy', RouteController, 'copy').name('fwclouds.firewalls.routing.tables.routes.copy');
                                         router.put('/bulkUpdate', RouteController, 'bulkUpdate').name('fwclouds.firewalls.routing.tables.routes.bulkUpdate');
-                                        router.put('/bulkMove', RouteController, 'bulkMove').name('fwclouds.firewalls.routing.tables.routes.bulkMove');
+                                        router.put('/move', RouteController, 'move').name('fwclouds.firewalls.routing.tables.routes.move');
                                         router.delete('/bulkRemove', RouteController, 'bulkRemove').name('fwclouds.firewalls.routing.tables.routes.bulkRemove');
                                         router.prefix('/:route(\\d+)', (router:RouterParser) => {
                                             router.get('/', RouteController, 'show').name('fwclouds.firewalls.routing.tables.routes.show');

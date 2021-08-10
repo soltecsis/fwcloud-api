@@ -83,9 +83,9 @@ describe(RouteRepository.name, () => {
             await repository.move([routeOrder2.id], routeOrder4.id, 'below');
 
             expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
-            expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);
+            expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(4);
             expect((await repository.findOne(routeOrder3.id)).route_order).to.eq(2);
-            expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(4);
+            expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(3);
         });
 
         it('should manage route_order backward changes', async () => {

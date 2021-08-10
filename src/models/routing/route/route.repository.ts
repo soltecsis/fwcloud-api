@@ -114,7 +114,7 @@ export class RouteRepository extends Repository<Route> {
                 route.route_order = destPosition + offset;
                 route.routeGroupId = destRoute.routeGroupId;
             } else {
-                if (forward && 
+                if (forward &&
                     route.route_order >= destRoute.route_order
                 ) {
                     route.route_order += routes.length;
@@ -142,10 +142,10 @@ export class RouteRepository extends Repository<Route> {
         affectedRoutes.forEach((route) => {
             if (movingIds.includes(route.id)) {
                 const offset: number = movingIds.indexOf(route.id);
-                route.route_order = destPosition + offset;
+                route.route_order = destPosition + offset + 1;
                 route.routeGroupId = destRoute.routeGroupId;
             } else {
-                if (forward && route.route_order >= destRoute.route_order) {
+                if (forward && route.route_order > destRoute.route_order) {
                     route.route_order += routes.length;
                 }
                 

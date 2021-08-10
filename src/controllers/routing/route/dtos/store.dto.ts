@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsArray, IsBoolean, IsNumber, IsOptional, IsString } from "class-validator"
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsPositive, IsString } from "class-validator"
 import { IpObjBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation";
 import { IpObjGroupBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-group-belongs-to-types.validation";
 import { IsClientOpenVPN } from "../../../../fonaments/validation/rules/is-client-openvpn.validation";
@@ -90,4 +90,13 @@ export class RouteControllerStoreDto {
         each: true
     })
     openVPNPrefixIds?: number[];
+
+    @IsNumber()
+    @IsPositive()
+    @IsOptional()
+    to?: number;
+
+    @IsNumber()
+    @IsOptional()
+    direction?: number;
 }

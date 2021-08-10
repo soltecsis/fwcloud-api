@@ -39,7 +39,7 @@ import { IPObjGroup } from "../../../../../src/models/ipobj/IPObjGroup";
 import { OpenVPN } from "../../../../../src/models/vpn/openvpn/OpenVPN";
 import { Crt } from "../../../../../src/models/vpn/pki/Crt";
 import { Ca } from "../../../../../src/models/vpn/pki/Ca";
-import { RouteControllerBulkMoveDto } from "../../../../../src/controllers/routing/route/dtos/bulk-move.dto";
+import { RouteControllerMoveDto } from "../../../../../src/controllers/routing/route/dtos/move.dto";
 import { RouteControllerBulkUpdateDto } from "../../../../../src/controllers/routing/route/dtos/bulk-update.dto";
 import { RouteControllerCopyDto } from "../../../../../src/controllers/routing/route/dtos/copy.dto";
 import { RouteRepository } from "../../../../../src/models/routing/route/route.repository";
@@ -161,12 +161,12 @@ describe(describeName('Route E2E Tests'), () => {
 
         });
 
-        describe('@bulkMove', () => {
+        describe('@move', () => {
             let routeOrder1: Route;
             let routeOrder2: Route;
             let routeOrder3: Route;
             let routeOrder4: Route;
-            let data: RouteControllerBulkMoveDto;
+            let data: RouteControllerMoveDto;
 
             beforeEach(async () => {
                 routeOrder1 = await routeService.create({
@@ -196,9 +196,9 @@ describe(describeName('Route E2E Tests'), () => {
                 }
             });
 
-            it('guest user should not bulk move routes', async () => {
+            it('guest user should not move routes', async () => {
 				return await request(app.express)
-					.put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkMove', {
+					.put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.move', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         routingTable: table.id
@@ -206,9 +206,9 @@ describe(describeName('Route E2E Tests'), () => {
 					.expect(401);
 			});
 
-            it('regular user which does not belong to the fwcloud should not bulk move routes', async () => {
+            it('regular user which does not belong to the fwcloud should not move routes', async () => {
                 return await request(app.express)
-                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkMove', {
+                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.move', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         routingTable: table.id
@@ -218,12 +218,12 @@ describe(describeName('Route E2E Tests'), () => {
                     .expect(401)
             });
 
-            it('regular user which belongs to the fwcloud should bulk move routes', async () => {
+            it('regular user which belongs to the fwcloud should move routes', async () => {
                 loggedUser.fwClouds = [fwCloud];
                 await getRepository(User).save(loggedUser);
 
                 await request(app.express)
-                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkMove', {
+                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.move', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         routingTable: table.id
@@ -241,9 +241,9 @@ describe(describeName('Route E2E Tests'), () => {
                 expect((await getRepository(Route).findOne(routeOrder4.id)).route_order).to.eq(4);
             });
 
-            it('admin user should bulk move routes', async () => {
+            it('admin user should move routes', async () => {
                 await request(app.express)
-                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkMove', {
+                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.move', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         routingTable: table.id
