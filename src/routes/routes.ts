@@ -95,8 +95,6 @@ export class Routes extends RouteCollection {
                                 })
                             });
 
-                            router.post('/routing/rules/compile', FirewallController, 'compileRoutingRules').name('fwclouds.firewalls.routing.compile');
-
                             router.prefix('/routingTables', (router: RouterParser) => {
                                 router.post('/', RoutingTableController, 'create').name('fwclouds.firewalls.routing.tables.store');
                                 router.get('/', RoutingTableController, 'index').name('fwclouds.firewalls.routing.tables.index');
@@ -150,6 +148,7 @@ export class Routes extends RouteCollection {
                                 router.get('/grid', RoutingRuleController, 'grid').name('fwclouds.firewalls.routing.rules.grid');
                                 router.post('/copy', RoutingRuleController, 'copy').name('fwclouds.firewalls.routing.rules.copy');
                                 router.put('/move', RoutingRuleController, 'move').name('fwclouds.firewalls.routing.rules.move');
+                                router.post('/compile', FirewallController, 'compileRoutingRules').name('fwclouds.firewalls.routing.compile');
                                 router.put('/bulkUpdate', RoutingRuleController, 'bulkUpdate').name('fwclouds.firewalls.routing.rules.bulkUpdate');
                                 router.delete('/bulkRemove', RoutingRuleController, 'bulkRemove').name('fwclouds.firewalls.routing.rules.bulkRemove');
                                 router.prefix('/:rule(\\d+)', (router:RouterParser) => {
