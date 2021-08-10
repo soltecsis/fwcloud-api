@@ -69,12 +69,12 @@ describe(RoutingRuleRepository.name, () => {
                 rule_order: 4
             });
 
-            await repository.move([ruleOrder2.id], 4);
+            await repository.move([ruleOrder2.id], ruleOrder4.id, 'below');
 
             expect((await repository.findOne(ruleOrder1.id)).rule_order).to.eq(1);
-            expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(3);
+            expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(4);
             expect((await repository.findOne(ruleOrder3.id)).rule_order).to.eq(2);
-            expect((await repository.findOne(ruleOrder4.id)).rule_order).to.eq(4);
+            expect((await repository.findOne(ruleOrder4.id)).rule_order).to.eq(3);
         });
 
         it('should manage rule_order backward changes', async () => {
@@ -95,7 +95,7 @@ describe(RoutingRuleRepository.name, () => {
                 rule_order: 4
             });
 
-            await repository.move([ruleOrder4.id], 2);
+            await repository.move([ruleOrder4.id], ruleOrder2.id, 'above');
 
             expect((await repository.findOne(ruleOrder1.id)).rule_order).to.eq(1);
             expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(3);
@@ -123,7 +123,7 @@ describe(RoutingRuleRepository.name, () => {
                 firewallId: firewall.id,
             });
 
-            await repository.move([ruleOrder3.id], 2);
+            await repository.move([ruleOrder3.id], ruleOrder2.id, 'above');
 
             expect((await repository.findOne(ruleOrder2.id)).routingGroupId).to.eq(group.id);
             expect((await repository.findOne(ruleOrder3.id)).routingGroupId).to.eq(group.id);
@@ -148,7 +148,7 @@ describe(RoutingRuleRepository.name, () => {
                     rule_order: 4
                 });
     
-                await repository.move([ruleOrder1.id, ruleOrder2.id], 4);
+                await repository.move([ruleOrder1.id, ruleOrder2.id], ruleOrder4.id, 'above');
     
                 expect((await repository.findOne(ruleOrder1.id)).rule_order).to.eq(2);
                 expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(3);
@@ -174,7 +174,7 @@ describe(RoutingRuleRepository.name, () => {
                     rule_order: 4
                 });
     
-                await repository.move([ruleOrder3.id, ruleOrder4.id], 2);
+                await repository.move([ruleOrder3.id, ruleOrder4.id], ruleOrder2.id, 'above');
     
                 expect((await repository.findOne(ruleOrder1.id)).rule_order).to.eq(1);
                 expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(4);
@@ -202,7 +202,7 @@ describe(RoutingRuleRepository.name, () => {
                     firewallId: firewall.id,
                 });
     
-                await repository.move([ruleOrder2.id, ruleOrder3.id], 1);
+                await repository.move([ruleOrder2.id, ruleOrder3.id], ruleOrder1.id, 'above');
     
                 expect((await repository.findOne(ruleOrder2.id)).routingGroupId).to.eq(group.id);
                 expect((await repository.findOne(ruleOrder3.id)).routingGroupId).to.eq(group.id);

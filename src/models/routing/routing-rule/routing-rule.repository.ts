@@ -78,7 +78,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
      * @param to 
      * @returns 
      */
-    async move(ids: number[], to: number): Promise<RoutingRule[]> {
+    async move(ids: number[], toRuleId: number, offset: 'above' | 'below'): Promise<RoutingRule[]> {
 
         const rules: RoutingRule[] = await this.find({
             where: {
@@ -90,33 +90,22 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
             relations: ['routingTable', 'routingTable.firewall']
         });
 
-        const forward: boolean = rules[0].rule_order < to;
-
-        const affectedRules: RoutingRule[] = await this.findManyInPath({
+        let affectedRules: RoutingRule[] = await this.findManyInPath({
             fwCloudId: rules[0].routingTable.firewall.fwCloudId,
             firewallId: rules[0].routingTable.firewall.id
         });
-        const destRule: RoutingRule | undefined = affectedRules.filter(item => item.rule_order === to)[0]; 
         
-        affectedRules.forEach((rule) => {
-            if (ids.includes(rule.id)) {
-                const offset: number = ids.indexOf(rule.id);
-                rule.rule_order = to + offset;
-                rule.routingGroupId = destRule && destRule.routingGroupId ? destRule.routingGroupId : null;
-            } else {
-                if (forward) {
-                    if (rule.rule_order >= to) {
-                        rule.rule_order += rules.length;
-                    }
-                }
-
-                if (!forward) {
-                    if (rule.rule_order >= to && rule.rule_order < rules[0].rule_order) {
-                        rule.rule_order += rules.length;
-                    }
-                }
+        const destRule: RoutingRule | undefined = await this.findOneOrFail({
+            where: {
+                id: toRuleId
             }
         });
+        
+        if (offset === 'above') {
+            affectedRules = await this.moveAbove(rules, affectedRules, destRule);
+        } else {
+            affectedRules = await this.moveBelow(rules, affectedRules, destRule);
+        }
 
         await this.save(affectedRules);
 
@@ -125,6 +114,65 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         )
         
         return this.find({where: {id: In(ids)}});
+    }
+
+    protected async moveAbove(rules: RoutingRule[], affectedRules: RoutingRule[], destRule: RoutingRule): Promise<RoutingRule[]> {
+        const destPosition: number = destRule.rule_order;
+        const movingIds: number[] = rules.map(rule => rule.id);
+
+        const currentPosition: number = rules[0].rule_order;
+        const forward: boolean = currentPosition < destRule.rule_order;
+
+        affectedRules.forEach((rule) => {
+            if (movingIds.includes(rule.id)) {
+                const offset: number = movingIds.indexOf(rule.id);
+                rule.rule_order = destPosition + offset;
+                rule.routingGroupId = destRule.routingGroupId;
+            } else {
+                if (forward &&
+                    rule.rule_order >= destRule.rule_order
+                ) {
+                    rule.rule_order += rules.length;
+                }
+                
+                if (!forward && 
+                    rule.rule_order >= destRule.rule_order && 
+                    rule.rule_order < rules[0].rule_order
+                ) {
+                    rule.rule_order += rules.length;
+                }
+            }
+        });
+
+        return affectedRules;
+    }
+
+    protected async moveBelow(rules: RoutingRule[], affectedRules: RoutingRule[], destRule: RoutingRule): Promise<RoutingRule[]> {
+        const destPosition: number = destRule.rule_order;
+        const movingIds: number[] = rules.map(rule => rule.id);
+
+        const currentPosition: number = rules[0].rule_order;
+        const forward: boolean = currentPosition < destRule.rule_order;
+
+        affectedRules.forEach((rule) => {
+            if (movingIds.includes(rule.id)) {
+                const offset: number = movingIds.indexOf(rule.id);
+                rule.rule_order = destPosition + offset + 1;
+                rule.routingGroupId = destRule.routingGroupId;
+            } else {
+                if (forward && rule.rule_order > destRule.rule_order) {
+                    rule.rule_order += rules.length;
+                }
+                
+                if (!forward && rule.rule_order > destRule.rule_order &&
+                    rule.rule_order < rules[0].rule_order
+                ) {
+                    rule.rule_order += rules.length;
+                }
+            }
+        });
+
+        return affectedRules;
     }
 
     async remove(entities: RoutingRule[], options?: RemoveOptions): Promise<RoutingRule[]>;

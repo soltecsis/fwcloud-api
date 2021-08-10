@@ -63,19 +63,15 @@ describe(RoutingRuleService.name, () => {
             beforeEach(async () => {
                 ruleOrder1 = await service.create({
                     routingTableId: table.id,
-                    rule_order: 1
                 });
                 ruleOrder2 = await service.create({
                     routingTableId: table.id,
-                    rule_order: 2
                 });
                 ruleOrder3 = await service.create({
                     routingTableId: table.id,
-                    rule_order: 3
                 });
                 ruleOrder4 = await service.create({
                     routingTableId: table.id,
-                    rule_order: 4
                 });
             });
 
@@ -87,15 +83,6 @@ describe(RoutingRuleService.name, () => {
                 // Notice rule was already created in beforEach
                 // thus there are 5 rules created.
                 expect(rule.rule_order).to.eq(6);
-            });
-
-            it('should move to position if rule_order is defined', async () => {
-                rule = await service.create({
-                    routingTableId: table.id,
-                    rule_order: 2
-                });
-
-                expect(rule.rule_order).to.eq(2);
             });
         });
 
@@ -333,22 +320,23 @@ describe(RoutingRuleService.name, () => {
             ruleOrder1 = await service.create({
                 comment: 'rule1',
                 routingTableId: table.id,
-                rule_order: 1
             });
             ruleOrder2 = await service.create({
                 comment: 'rule2',
                 routingTableId: table.id,
-                rule_order: 2
             });
         });
 
         it('should copy routes', async () => {
-            const copied: RoutingRule[] = await service.copy([ruleOrder1.id, ruleOrder2.id], 1);
+            const copied: RoutingRule[] = await service.copy([ruleOrder1.id, ruleOrder2.id], ruleOrder1.id, 'above');
+            ruleOrder1 = await service.findOneInPath({
+                id: ruleOrder1.id
+            });
 
             expect(copied[0].comment).to.eq(ruleOrder1.comment);
-            expect(copied[0].rule_order).to.eq(1);
+            expect(copied[0].rule_order).to.eq(ruleOrder1.rule_order - 2);
             expect(copied[1].comment).to.eq(ruleOrder2.comment);
-            expect(copied[1].rule_order).to.eq(2);
+            expect(copied[1].rule_order).to.eq(ruleOrder1.rule_order - 1);
         });
     })
 

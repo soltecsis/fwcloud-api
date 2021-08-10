@@ -25,7 +25,7 @@ import { Firewall } from "../../../models/firewall/Firewall";
 import { Request } from "express";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { Validate, ValidateQuery } from "../../../decorators/validate.decorator";
-import { RoutingRulesData, RoutingRuleService } from "../../../models/routing/routing-rule/routing-rule.service";
+import { ICreateRoutingRule, RoutingRulesData, RoutingRuleService } from "../../../models/routing/routing-rule/routing-rule.service";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { RoutingRulePolicy } from "../../../policies/routing-rule.policy";
 import { RoutingRule } from "../../../models/routing/routing-rule/routing-rule.model";
@@ -35,7 +35,7 @@ import { RoutingTableService } from "../../../models/routing/routing-table/routi
 import { RoutingRuleItemForCompiler } from "../../../models/routing/shared";
 import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
 import { getRepository, In, SelectQueryBuilder } from "typeorm";
-import { RoutingRuleControllerBulkMoveDto } from "./dtos/bulk-move.dto";
+import { RoutingRuleControllerMoveDto } from "./dtos/move.dto";
 import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
 import { RoutingRuleControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
 import { RoutingRuleControllerBulkRemoveQueryDto } from "./dtos/bulk-remove.dto";
@@ -94,6 +94,9 @@ export class RoutingRuleController extends Controller {
 
         (await RoutingRulePolicy.create(this._firewall, request.session.user)).authorize();
 
+        const data: ICreateRoutingRule = request.inputs.all<ICreateRoutingRule>();
+        data.offset = data.offset as unknown as number >= 0 ? 'below': 'above';
+        
         const rule: RoutingRule = await this.routingRuleService.create(request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(201).body(rule);
@@ -118,7 +121,8 @@ export class RoutingRuleController extends Controller {
             rules.push(rule);
         }
 
-        const created: RoutingRule[] = await this.routingRuleService.copy(rules.map(item => item.id), request.inputs.get('to'))
+        const offset: 'above' | 'below' = request.inputs.get('offset') > 0 ? 'below': 'above';
+        const created: RoutingRule[] = await this.routingRuleService.copy(rules.map(item => item.id), request.inputs.get('to'), offset)
 
         return ResponseBuilder.buildResponse().status(201).body(created);
     }
@@ -165,8 +169,8 @@ export class RoutingRuleController extends Controller {
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
 
-    @Validate(RoutingRuleControllerBulkMoveDto)
-    async bulkMove(request: Request): Promise<ResponseBuilder> {
+    @Validate(RoutingRuleControllerMoveDto)
+    async move(request: Request): Promise<ResponseBuilder> {
         (await RoutingRulePolicy.index(this._firewall, request.session.user)).authorize();
         
         const rules: RoutingRule[] = await getRepository(RoutingRule).find({
@@ -185,7 +189,9 @@ export class RoutingRuleController extends Controller {
             }
         });
 
-        const result: RoutingRule[] = await this.routingRuleService.bulkMove(rules.map(item => item.id), request.inputs.get('to'));
+        const offset: 'above' | 'below' = request.inputs.get('offset') >= 0 ? 'below': 'above'
+        
+        const result: RoutingRule[] = await this.routingRuleService.move(rules.map(item => item.id), request.inputs.get('to'), offset);
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }

@@ -39,7 +39,7 @@ import { IPObjGroup } from "../../../../../src/models/ipobj/IPObjGroup";
 import { OpenVPN } from "../../../../../src/models/vpn/openvpn/OpenVPN";
 import { Crt } from "../../../../../src/models/vpn/pki/Crt";
 import { Ca } from "../../../../../src/models/vpn/pki/Ca";
-import { RoutingRuleControllerBulkMoveDto } from "../../../../../src/controllers/routing/routing-rule/dtos/bulk-move.dto";
+import { RoutingRuleControllerMoveDto } from "../../../../../src/controllers/routing/routing-rule/dtos/move.dto";
 import { RoutingRuleControllerBulkUpdateDto } from "../../../../../src/controllers/routing/routing-rule/dtos/bulk-update.dto";
 import { RoutingRuleControllerCopyDto } from "../../../../../src/controllers/routing/routing-rule/dtos/copy.dto";
 
@@ -209,52 +209,49 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             });
         });
 
-        describe('@bulkMove', () => {
+        describe('@move', () => {
             let ruleOrder1: RoutingRule;
             let ruleOrder2: RoutingRule;
             let ruleOrder3: RoutingRule;
             let ruleOrder4: RoutingRule;
-            let data: RoutingRuleControllerBulkMoveDto;
+            let data: RoutingRuleControllerMoveDto;
 
             beforeEach(async () => {
                 ruleOrder1 = await routingRuleService.create({
                     routingTableId: table.id,
-                    rule_order: 1
                 });
                 
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
-                    rule_order: 2
                 });
 
                 ruleOrder3 = await routingRuleService.create({
                     routingTableId: table.id,
-                    rule_order: 3
                 });
                 
                 ruleOrder4 = await routingRuleService.create({
                     routingTableId: table.id,
-                    rule_order: 4
                 });
 
                 data = {
                     rules: [ruleOrder1.id, ruleOrder2.id],
-                    to: 3
+                    to: ruleOrder3.id,
+                    offset: -1
                 }
             });
 
-            it('guest user should not bulk move rules', async () => {
+            it('guest user should not move rules', async () => {
 				return await request(app.express)
-					.put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkMove', {
+					.put(_URL().getURL('fwclouds.firewalls.routing.rules.move', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id
                     }))
 					.expect(401);
 			});
 
-            it('regular user which does not belong to the fwcloud should not bulk move rules', async () => {
+            it('regular user which does not belong to the fwcloud should not move rules', async () => {
                 return await request(app.express)
-                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkMove', {
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.move', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id
                     }))
@@ -263,12 +260,12 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .expect(401)
             });
 
-            it('regular user which belongs to the fwcloud should bulk move rules', async () => {
+            it('regular user which belongs to the fwcloud should move rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
                 await getRepository(User).save(loggedUser);
 
                 await request(app.express)
-                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkMove', {
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.move', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id
                     }))
@@ -285,9 +282,9 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 expect((await getRepository(RoutingRule).findOne(ruleOrder4.id)).rule_order).to.eq(4);
             });
 
-            it('admin user should bulk move rules', async () => {
+            it('admin user should move rules', async () => {
                 await request(app.express)
-                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkMove', {
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.move', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id
                     }))
@@ -504,13 +501,11 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 ruleOrder1 = await routingRuleService.create({
                     routingTableId: table.id,
-                    rule_order: 1,
                     comment: 'comment1',
                 });
                 
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
-                    rule_order: 2,
                     comment: 'comment2'
                 });
 
@@ -756,12 +751,10 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 ruleOrder1 = await routingRuleService.create({
                     routingTableId: table.id,
-                    rule_order: 1
                 });
                 
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
-                    rule_order: 2
                 });
             });
 
@@ -917,12 +910,10 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 ruleOrder1 = await routingRuleService.create({
                     routingTableId: table.id,
-                    rule_order: 1
                 });
                 
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
-                    rule_order: 2
                 });
             });
 

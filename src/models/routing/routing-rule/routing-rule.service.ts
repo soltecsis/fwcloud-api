@@ -44,17 +44,18 @@ import { AvailableDestinations, ItemForGrid, RoutingRuleItemForCompiler, Routing
 import { RoutingRule } from "./routing-rule.model";
 import { IFindManyRoutingRulePath, IFindOneRoutingRulePath, RoutingRuleRepository } from "./routing-rule.repository";
 
-interface ICreateRoutingRule {
+export interface ICreateRoutingRule {
     routingTableId: number;
     active?: boolean;
     comment?: string;
-    rule_order?: number;
     style?: string;
     ipObjIds?: number[];
     ipObjGroupIds?: number[];
     openVPNIds?: number[];
     openVPNPrefixIds?: number[],
-    markIds?: number[]
+    markIds?: number[],
+    to?: number; //Reference where create the rule
+    offset?: 'above' | 'below';
 }
 
 interface IUpdateRoutingRule {
@@ -172,10 +173,14 @@ export class RoutingRuleService extends Service {
         
         const persisted: RoutingRule = await this._repository.save(routingRuleData);
 
-        return data.rule_order ? (await this._repository.move([persisted.id], data.rule_order))[0] : persisted;
+        if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'offset')) {
+            return (await this.move([persisted.id], data.to, data.offset))[0];
+        }
+
+        return persisted;    
     }
 
-    async copy(ids: number[], to: number): Promise<RoutingRule[]> {
+    async copy(ids: number[], destRule: number, offset: 'above' | 'below'): Promise<RoutingRule[]> {
         const routes: RoutingRule[] = await this._repository.find({
             where: {
                 id: In(ids)
@@ -192,7 +197,7 @@ export class RoutingRuleService extends Service {
 
         const persisted: RoutingRule[] = await this._repository.save(routes);
 
-        return this.bulkMove(persisted.map(item => item.id), to);
+        return this.move(persisted.map(item => item.id), destRule, offset);
     }
 
     async update(id: number, data: IUpdateRoutingRule): Promise<RoutingRule> {
@@ -250,9 +255,6 @@ export class RoutingRuleService extends Service {
 
         rule = await this._repository.save(rule);
 
-        if (data.rule_order && rule.rule_order !== data.rule_order) {
-            return (await this._repository.move([rule.id], data.rule_order))[0];
-        }
         return rule;
     }
 
@@ -268,8 +270,8 @@ export class RoutingRuleService extends Service {
         });
     }
 
-    async bulkMove(ids: number[], to: number): Promise<RoutingRule[]> {
-        return this._repository.move(ids, to);
+    async move(ids: number[], destRule: number, offset: 'above'|'below'): Promise<RoutingRule[]> {
+        return this._repository.move(ids, destRule, offset);
     }
 
     async remove(path: IFindOneRoutingRulePath): Promise<RoutingRule> {

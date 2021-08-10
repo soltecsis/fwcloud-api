@@ -244,8 +244,8 @@ export class RouteService extends Service {
         });
     }
 
-    async move(ids: number[], destRule: number, position: 'above'|'below'): Promise<Route[]> {
-        return this._repository.move(ids, destRule, position);
+    async move(ids: number[], destRule: number, offset: 'above'|'below'): Promise<Route[]> {
+        return this._repository.move(ids, destRule, offset);
     }
 
     async remove(path: IFindOneRoutePath): Promise<Route> {

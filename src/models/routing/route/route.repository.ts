@@ -63,7 +63,7 @@ export class RouteRepository extends Repository<Route> {
         return this.findOneOrFail(this.getFindInPathOptions(path));
     }
 
-    async move(ids: number[], toRouteId: number, position: 'above'|'below'): Promise<Route[]> {
+    async move(ids: number[], toRouteId: number, offset: 'above'|'below'): Promise<Route[]> {
         const routes: Route[] = await this.find({
             where: {
                 id: In(ids)
@@ -86,7 +86,7 @@ export class RouteRepository extends Repository<Route> {
             }
         })
 
-        if (position === 'above') {
+        if (offset === 'above') {
             affectedRoutes = await this.moveAbove(routes, affectedRoutes, destRoute);
         } else {
             affectedRoutes = await this.moveBelow(routes, affectedRoutes, destRoute);
