@@ -98,5 +98,5 @@ export class RouteControllerStoreDto {
 
     @IsNumber()
     @IsOptional()
-    direction?: number;
+    offset?: number;
 }

@@ -59,7 +59,7 @@ export interface ICreateRoute {
     openVPNIds?: number[];
     openVPNPrefixIds?: number[],
     to?: number; //Reference where create the route
-    direction?: 'above' | 'below';
+    offset?: 'above' | 'below';
 }
 
 interface IUpdateRoute {
@@ -154,8 +154,8 @@ export class RouteService extends Service {
         
         const persisted: Route = await this._repository.save(routeData);
 
-        if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'direction')) {
-            return (await this.move([persisted.id], data.to, data.direction))[0];
+        if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'offset')) {
+            return (await this.move([persisted.id], data.to, data.offset))[0];
         }
 
         return persisted;

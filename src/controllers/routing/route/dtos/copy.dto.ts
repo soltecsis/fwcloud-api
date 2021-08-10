@@ -28,7 +28,7 @@ export class RouteControllerCopyDto {
     to: number;
 
     @IsNumber()
-    direction: number;
+    offset: number;
 
     @IsArray()
     @IsNumber({}, {each: true})

@@ -92,9 +92,9 @@ export class RouteController extends Controller {
             }
         });
 
-        const direction: 'above' | 'below' = request.inputs.get('direction') >= 0 ? 'below': 'above'
+        const offset: 'above' | 'below' = request.inputs.get('offset') >= 0 ? 'below': 'above'
         
-        const result: Route[] = await this._routeService.move(routes.map(item => item.id), request.inputs.get('to'), direction);
+        const result: Route[] = await this._routeService.move(routes.map(item => item.id), request.inputs.get('to'), offset);
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
@@ -145,7 +145,7 @@ export class RouteController extends Controller {
         //Get the routingTable from the URL
         const data: ICreateRoute = Object.assign({}, request.inputs.all<ICreateRoute>(), {routingTableId: this._routingTable.id});
 
-        data.direction = data.direction as unknown as number >=0 ? 'below': 'above';
+        data.offset = data.offset as unknown as number >=0 ? 'below': 'above';
         
         const route: Route = await this._routeService.create(data);
 
@@ -172,8 +172,8 @@ export class RouteController extends Controller {
             routes.push(route);
         }
 
-        const direction: 'above' | 'below' = request.inputs.get('direction') > 0 ? 'below': 'above';
-        const created: Route[] = await this._routeService.copy(routes.map(item => item.id), request.inputs.get('to'), direction);
+        const offset: 'above' | 'below' = request.inputs.get('offset') > 0 ? 'below': 'above';
+        const created: Route[] = await this._routeService.copy(routes.map(item => item.id), request.inputs.get('to'), offset);
         
         return ResponseBuilder.buildResponse().status(201).body(created);
     }

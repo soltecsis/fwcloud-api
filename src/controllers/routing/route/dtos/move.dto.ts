@@ -6,7 +6,7 @@ export class RouteControllerMoveDto {
     to: number;
 
     @IsNumber()
-    direction: number;
+    offset: number;
 
     @IsArray()
     @IsNumber({}, {each: true})

@@ -192,7 +192,7 @@ describe(describeName('Route E2E Tests'), () => {
                 data = {
                     routes: [routeOrder1.id, routeOrder2.id],
                     to: routeOrder3.id,
-                    direction: -1
+                    offset: -1
                 }
             });
 
@@ -491,7 +491,7 @@ describe(describeName('Route E2E Tests'), () => {
                 data = {
                     routes: [routeOrder1.id, routeOrder2.id],
                     to: (await getCustomRepository(RouteRepository).getLastRouteInRoutingTable(table.id)).id,
-                    direction: 1
+                    offset: 1
                 }
             });
 
