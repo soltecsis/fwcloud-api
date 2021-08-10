@@ -1,4 +1,4 @@
-import { describeName, testSuite } from "../../mocha/global-setup";
+import { describeName, expect, testSuite } from "../../mocha/global-setup";
 import { Application } from "../../../src/Application";
 import { User } from "../../../src/models/user/User";
 import request = require("supertest");
@@ -12,6 +12,9 @@ import { IPObj } from "../../../src/models/ipobj/IPObj";
 import sinon from "sinon";
 import sshTools from '../../../src/utils/ssh';
 import { FwCloudFactory, FwCloudProduct } from "../../utils/fwcloud-factory";
+import { RoutingTable } from "../../../src/models/routing/routing-table/routing-table.model";
+import { RoutingRule } from "../../../src/models/routing/routing-rule/routing-rule.model";
+import { RoutingRuleService } from "../../../src/models/routing/routing-rule/routing-rule.service";
 
 describe(describeName('Firewall E2E Tests'), () => {
     let app: Application;
@@ -156,15 +159,30 @@ describe(describeName('Firewall E2E Tests'), () => {
 
     describe('@compileRoutingRules', () => {
         let fwcProduct: FwCloudProduct;
+        let table: RoutingTable;
+        let rule1: RoutingRule;
+        let rule2: RoutingRule;
 
         beforeEach(async () => {
             fwcProduct = await new FwCloudFactory().make();
+            fwCloud = fwcProduct.fwcloud;
             firewall = fwcProduct.firewall;
+            table = fwcProduct.routingTable;
+
+            let ruleService: RoutingRuleService = await app.getService<RoutingRuleService>(RoutingRuleService.name);
+        
+            rule1 = await ruleService.create({
+                routingTableId: table.id,
+            });
+
+            rule2 = await ruleService.create({
+                routingTableId: table.id
+            })
         });
 
         it('guest user should not routing compile a firewall', async () => {
             return await request(app.express)
-                .post(_URL().getURL('fwclouds.firewalls.routing.compile', {
+                .get(_URL().getURL('fwclouds.firewalls.routing.compile', {
                     fwcloud: firewall.fwCloudId,
                     firewall: firewall.id
                 }))
@@ -173,7 +191,7 @@ describe(describeName('Firewall E2E Tests'), () => {
 
         it('regular user should not routing compile a firewall if it does not belong to the fwcloud', async () => {
             return await request(app.express)
-                .post(_URL().getURL('fwclouds.firewalls.routing.compile', {
+                .get(_URL().getURL('fwclouds.firewalls.routing.compile', {
                     fwcloud: firewall.fwCloudId,
                     firewall: firewall.id
                 }))
@@ -186,7 +204,7 @@ describe(describeName('Firewall E2E Tests'), () => {
             await getRepository(User).save(loggedUser);
 
             return await request(app.express)
-                .post(_URL().getURL('fwclouds.firewalls.routing.compile', {
+                .get(_URL().getURL('fwclouds.firewalls.routing.compile', {
                     fwcloud: firewall.fwCloudId,
                     firewall: firewall.id
                 }))
@@ -196,12 +214,28 @@ describe(describeName('Firewall E2E Tests'), () => {
 
         it('admin user should routing compile a firewall', async () => {
             return await request(app.express)
-                .post(_URL().getURL('fwclouds.firewalls.routing.compile', {
+                .get(_URL().getURL('fwclouds.firewalls.routing.compile', {
                     fwcloud: firewall.fwCloudId,
                     firewall: firewall.id
                 }))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200);
+        });
+
+        it('should compile a list of routes', async () => {
+            return await request(app.express)
+            .get(_URL().getURL('fwclouds.firewalls.routing.compile', {
+                fwcloud: fwCloud.id,
+                firewall: firewall.id
+            }))
+            .query({
+                rules: [rule1.id, rule2.id]
+            })
+            .set('Cookie', [attachSession(adminUserSessionId)])
+            .expect(200)
+            .expect(response => {
+                expect(response.body.data).to.have.length(2);
+            })
         });
     })
 
