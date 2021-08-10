@@ -105,10 +105,12 @@ export class FirewallController extends Controller {
 
         (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
 
-        let rules: RoutingRulesData<RoutingRuleItemForCompiler>[] = await this.routingRuleService.getRoutingRulesData('compiler', firewall.fwCloudId, firewall.id);
-        if (Array.isArray(request.query.rules)) {
-            rules = rules.filter(rules => (request.query.rules as string[]).includes(rules.id.toString()))
-        }
+        let rules: RoutingRulesData<RoutingRuleItemForCompiler>[] = await this.routingRuleService.getRoutingRulesData(
+            'compiler',
+            firewall.fwCloudId,
+            firewall.id,
+            request.query.rules ? (request.query.rules as string[]).map(item => parseInt(item)) : undefined
+        );
         const compilation = new RoutingCompiler().compile('Rule', rules);
 
         return ResponseBuilder.buildResponse().status(200).body(compilation)

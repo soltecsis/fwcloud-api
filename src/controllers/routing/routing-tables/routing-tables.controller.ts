@@ -96,7 +96,12 @@ export class RoutingTableController extends Controller {
 
         (await RoutingTablePolicy.show(routingTable, request.session.user)).authorize();
 
-        let routes: RouteData<RouteItemForCompiler>[] = await this.routingTableService.getRoutingTableData('compiler', this._firewall.fwCloudId, this._firewall.id, routingTable.id);
+        let routes: RouteData<RouteItemForCompiler>[] = await this.routingTableService.getRoutingTableData(
+            'compiler',
+            this._firewall.fwCloudId,
+            this._firewall.id, routingTable.id,
+            request.query.routes ? (request.query.routes as string[]).map(item => parseInt(item)) : undefined
+        );
         
         if (Array.isArray(request.query.routes)) {
             routes = routes.filter(route => (request.query.routes as string[]).includes(route.id.toString()))
