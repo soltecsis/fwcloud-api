@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
+import { getCustomRepository, getRepository } from "typeorm";
 import { Application } from "../../../../../src/Application";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
@@ -42,6 +42,7 @@ import { Ca } from "../../../../../src/models/vpn/pki/Ca";
 import { RoutingRuleControllerMoveDto } from "../../../../../src/controllers/routing/routing-rule/dtos/move.dto";
 import { RoutingRuleControllerBulkUpdateDto } from "../../../../../src/controllers/routing/routing-rule/dtos/bulk-update.dto";
 import { RoutingRuleControllerCopyDto } from "../../../../../src/controllers/routing/routing-rule/dtos/copy.dto";
+import { RoutingRuleRepository } from "../../../../../src/models/routing/routing-rule/routing-rule.repository";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;
@@ -511,7 +512,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
                 data = {
                     rules: [ruleOrder1.id, ruleOrder2.id],
-                    to: 1
+                    to: (await getCustomRepository(RoutingRuleRepository).getLastRoutingRuleInFirewall(table.firewallId)).id,
+                    offset: 1
                 }
             });
 

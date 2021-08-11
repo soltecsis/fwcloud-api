@@ -185,7 +185,7 @@ export class RoutingRuleService extends Service {
             where: {
                 id: In(ids)
             },
-            relations: ['routingTable']
+            relations: ['routingTable', 'marks', 'ipObjs', 'ipObjGroups', 'openVPNs', 'openVPNPrefixes']
         });
 
         const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInFirewall(routes[0].routingTable.firewallId);

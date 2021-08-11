@@ -217,7 +217,7 @@ export class RouteService extends Service {
             where: {
                 id: In(ids)
             },
-            relations: ['routingTable']
+            relations: ['routingTable', 'ipObjs', 'ipObjGroups', 'openVPNs', 'openVPNPrefixes']
         });
 
         const lastRuoute: Route = await this._repository.getLastRouteInRoutingTable(routes[0].routingTableId);
