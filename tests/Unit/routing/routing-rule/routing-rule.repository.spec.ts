@@ -18,7 +18,6 @@ describe(RoutingRuleRepository.name, () => {
     
     let tableService: RoutingTableService;
     let table: RoutingTable;
-    let routingGroup: RoutingGroupService;
     let routingGroupService: RoutingGroupService;
 
     beforeEach(async() => {
@@ -48,6 +47,54 @@ describe(RoutingRuleRepository.name, () => {
             number: 1,
             comment: null
         });
+    });
+
+    describe('getLastRoutingRuleInFirewall', () => {
+        let table2: RoutingTable;
+        let tableRuleOrder1: RoutingRule;
+        let tableRuleOrder2: RoutingRule;
+        let table2RuleOrder1: RoutingRule;
+        let table2RuleOrder2: RoutingRule;
+        
+        beforeEach(async () => {
+            table2 = await tableService.create({
+                firewallId: firewall.id,
+                name: 'name',
+                number: 2,
+                comment: null
+            });
+
+            tableRuleOrder1 = await repository.save({
+                routingTableId: table.id,
+                rule_order: 1,
+                comment: 'tableRuleOrder1'
+            });
+
+            tableRuleOrder2 = await repository.save({
+                routingTableId: table.id,
+                rule_order: 2,
+                comment: 'tableRuleOrder2'
+            });
+            
+            table2RuleOrder1 = await repository.save({
+                routingTableId: table2.id,
+                rule_order: 3,
+                comment: 'table2RuleOrder1'
+            });
+            
+            table2RuleOrder2 = await repository.save({
+                routingTableId: table2.id,
+                rule_order: 4,
+                comment: 'table2RuleOrder2'
+            });
+
+        });
+
+        it('should return the rule which has the last order', async () => {
+            const last: RoutingRule = await repository.getLastRoutingRuleInFirewall(firewall.id);
+
+            expect(last.rule_order).to.be.equals(4);
+        })
     });
 
     describe('move', () => {

@@ -167,7 +167,7 @@ export class RoutingRuleService extends Service {
             routingRuleData.marks = marks.map(item => ({id: item.id}) as Mark);
         }
 
-        const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInFirewall(data.routingTableId);
+        const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInFirewall(routingTable.firewallId);
         const rule_order: number = lastRule?.rule_order? lastRule.rule_order + 1 : 1;
         routingRuleData.rule_order = rule_order;
         

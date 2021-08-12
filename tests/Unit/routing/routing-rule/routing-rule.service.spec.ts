@@ -59,6 +59,7 @@ describe(RoutingRuleService.name, () => {
             let ruleOrder2: RoutingRule;
             let ruleOrder3: RoutingRule;
             let ruleOrder4: RoutingRule;
+            let table2: RoutingTable;
 
             beforeEach(async () => {
                 ruleOrder1 = await service.create({
@@ -73,11 +74,17 @@ describe(RoutingRuleService.name, () => {
                 ruleOrder4 = await service.create({
                     routingTableId: table.id,
                 });
+
+                table2 = await getRepository(RoutingTable).save({
+                    firewallId: firewall.id,
+                    number: 2,
+                    name: '2',
+                });
             });
 
             it('should set last position if rule_order is not defined', async () => {
                 rule = await service.create({
-                    routingTableId: table.id
+                    routingTableId: table2.id
                 });
 
                 // Notice rule was already created in beforEach
