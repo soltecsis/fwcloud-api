@@ -867,39 +867,37 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 loggedUser.fwClouds = [fwCloud];
                 await getRepository(User).save(loggedUser);
 
-                return await request(app.express)
+                await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         rule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
-                    .expect(200)
-                    .then(async () => {
-                        expect(await routingRuleService.findOneInPath({
-                            fwCloudId: fwCloud.id,
-                            firewallId: firewall.id,
-                            id: rule.id
-                        })).to.be.undefined
-                    });
+                    .expect(200);
+
+                expect(await routingRuleService.findOneInPath({
+                    fwCloudId: fwCloud.id,
+                    firewallId: firewall.id,
+                    id: rule.id
+                })).to.be.undefined
             });
 
             it('admin user should remove a rule', async () => {
-                return await request(app.express)
+                await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         rule: rule.id
                     }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
-                    .expect(200)
-                    .then(async () => {
-                        expect(await routingRuleService.findOneInPath({
-                            fwCloudId: fwCloud.id,
-                            firewallId: firewall.id,
-                            id: rule.id
-                        })).to.be.undefined
-                    });
+                    .expect(200);
+                
+                expect(await routingRuleService.findOneInPath({
+                    fwCloudId: fwCloud.id,
+                    firewallId: firewall.id,
+                    id: rule.id
+                })).to.be.undefined
             });
 
 

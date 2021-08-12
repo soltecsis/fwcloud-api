@@ -238,5 +238,35 @@ describe(RouteRepository.name, () => {
             });
         });
         
-    })
-})
+    });
+
+    describe('remove', () => {
+        it('should refresh orders after remove', async () => {
+            const routeOrder1: Route = await repository.save({
+                routingTableId: table.id,
+                route_order: 1,
+                gatewayId: gateway.id
+            });
+            const routeOrder2: Route = await repository.save({
+                routingTableId: table.id,
+                route_order: 2,
+                gatewayId: gateway.id
+            });
+            const routeOrder3: Route = await repository.save({
+                routingTableId: table.id,
+                route_order: 3,
+                gatewayId: gateway.id
+            });
+            const routeOrder4: Route = await repository.save({
+                routingTableId: table.id,
+                route_order: 4,
+                gatewayId: gateway.id
+            });
+
+            await repository.remove([routeOrder2, routeOrder3]);
+
+            expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
+            expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(2);
+        });
+    });
+});

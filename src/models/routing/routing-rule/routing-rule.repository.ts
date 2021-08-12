@@ -20,7 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, getManager, In, LessThan, LessThanOrEqual, MoreThan, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
+import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, getManager, getRepository, In, LessThan, LessThanOrEqual, MoreThan, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
+import { Firewall } from "../../firewall/Firewall";
 import { RoutingRule } from "./routing-rule.model";
 
 export interface IFindManyRoutingRulePath {
@@ -109,9 +110,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
 
         await this.save(affectedRules);
 
-        await this.query(
-            `SET @a:=0; UPDATE ${RoutingRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${affectedRules.map(item => item.id).join(',')}) ORDER BY rule_order`
-        )
+        await this.refreshOrders(rules[0].routingTable.firewall.id);
         
         return this.find({where: {id: In(ids)}});
     }
@@ -175,38 +174,60 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         return affectedRules;
     }
 
+    /**
+     * Performs a remove of rules. It refreshes remaining rules order in order to keep them consecutive
+     * @param entities 
+     * @param options 
+     */
     async remove(entities: RoutingRule[], options?: RemoveOptions): Promise<RoutingRule[]>;
     async remove(entity: RoutingRule, options?: RemoveOptions): Promise<RoutingRule>;
     async remove(entityOrEntities: RoutingRule|RoutingRule[], options?: RemoveOptions): Promise<RoutingRule|RoutingRule[]> {
-        const entities: RoutingRule[] = !Array.isArray(entityOrEntities) ? [entityOrEntities] : entityOrEntities;
-        
-        const queryRunner: QueryRunner = getConnection().createQueryRunner();
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-        
-        try {
-            for(const entity of entities) {
-                const queryBuilder: QueryBuilder<RoutingRule> = this.createQueryBuilder('rule', queryRunner);
-            
-                await super.remove(entity, options);
-                await queryBuilder
-                        .update()
-                        .where('routingTableId = :table', {table: entity.routingTableId})
-                        .andWhere('rule_order > :lower', {lower: entity.rule_order})
-                        .set({
-                            rule_order: () => "rule_order - 1"
-                        }).execute();
-            }
-            
-            await queryRunner.commitTransaction();
-            
-            return entityOrEntities;
+        const affectedFirewalls: {[id: number]: Firewall} = {}
 
-        } catch(e) {
-            await queryRunner.rollbackTransaction();
-        } finally {
-            await queryRunner.release()
+        const entityArray: RoutingRule[] = Array.isArray(entityOrEntities) ? entityOrEntities : [entityOrEntities];
+        const entitiesWithFirewall: RoutingRule[] = await this.find({
+            where: {
+                id: In(entityArray.map(item => item.id))
+            },
+            relations: ['routingTable', 'routingTable.firewall']
+        });
+
+        for(let entity of entitiesWithFirewall) {
+            if (!Object.prototype.hasOwnProperty.call(affectedFirewalls, entity.routingTable.firewallId)) {
+                affectedFirewalls[entity.routingTable.firewallId] = entity.routingTable.firewall;
+            }
         }
+        
+        // Using Type assertion because TypeScript compiler fails 
+        const result = await super.remove(entityOrEntities as RoutingRule[], options);
+
+        for(let firewall of Object.values(affectedFirewalls)) {
+            await this.refreshOrders(firewall.id);
+        }
+
+        return result;
+    }
+
+    /**
+     * Some operations might leave an inconsistent rule_order. This function refresh the rule_order
+     * value in order to keep them consecutive
+     * 
+     * @param firewallId 
+     */
+    protected async refreshOrders(firewallId: number): Promise<void> {
+        const firewall: Firewall = await getRepository(Firewall).findOneOrFail(firewallId);
+        const rules: RoutingRule[] = await this.findManyInPath({
+            fwCloudId: firewall.fwCloudId,
+            firewallId: firewall.id
+        });
+
+        if (rules.length === 0) {
+            return;
+        }
+
+        await this.query(
+            `SET @a:=0; UPDATE ${RoutingRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map(item => item.id).join(',')}) ORDER BY rule_order`
+        )
     }
 
     protected getFindInPathOptions(path: Partial<IFindOneRoutingRulePath>, options: FindOneOptions<RoutingRule> | FindManyOptions<RoutingRule> = {}): FindOneOptions<RoutingRule> | FindManyOptions<RoutingRule> {

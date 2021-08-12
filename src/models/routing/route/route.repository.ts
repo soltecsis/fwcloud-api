@@ -21,6 +21,7 @@
 */
 
 import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, In, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
+import { RoutingTable } from "../routing-table/routing-table.model";
 import { Route } from "./route.model";
 
 interface IFindManyRoutePath {
@@ -94,9 +95,7 @@ export class RouteRepository extends Repository<Route> {
 
         await this.save(affectedRoutes);
 
-        await this.query(
-            `SET @a:=0; UPDATE ${Route._getTableName()} SET route_order=@a:=@a+1 WHERE id IN (${affectedRoutes.map(item => item.id).join(',')}) ORDER BY route_order`
-        )
+        await this.refreshOrders(routes[0].routingTableId);
         
         return await this.find({where: {id: In(ids)}});
     }
@@ -163,37 +162,32 @@ export class RouteRepository extends Repository<Route> {
     async remove(entities: Route[], options?: RemoveOptions): Promise<Route[]>;
     async remove(entity: Route, options?: RemoveOptions): Promise<Route>;
     async remove(entityOrEntities: Route|Route[], options?: RemoveOptions): Promise<Route|Route[]> {
-        const entities: Route[] = !Array.isArray(entityOrEntities) ? [entityOrEntities] : entityOrEntities;
-        
-        const queryRunner: QueryRunner = getConnection().createQueryRunner();
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-        
-        try {
-            for(const entity of entities) {
-                const queryBuilder: QueryBuilder<Route> = this.createQueryBuilder('route', queryRunner);
-            
-                await super.remove(entity, options);
-                await queryBuilder
-                        .update()
-                        .where('routingTableId = :table', {table: entity.routingTableId})
-                        .andWhere('route_order > :lower', {lower: entity.route_order})
-                        .set({
-                            route_order: () => "route_order - 1"
-                        }).execute();
+        const affectedTables: {[id: number]: RoutingTable} = {};
+
+        const entityArray: Route[] = Array.isArray(entityOrEntities) ? entityOrEntities: [entityOrEntities];
+        const entitiesWithRoutingTable: Route[] = await this.find({
+            where: {
+                id: In(entityArray.map(item => item.id))
+            },
+            relations: ['routingTable']
+        });
+
+        for(let entity of entitiesWithRoutingTable) {
+            if (!Object.prototype.hasOwnProperty.call(affectedTables, entity.routingTableId)) {
+                affectedTables[entity.routingTableId] = entity.routingTable;
             }
-            
-            await queryRunner.commitTransaction();
-            
-            return entityOrEntities;
-
-        } catch(e) {
-            await queryRunner.rollbackTransaction();
-        } finally {
-            await queryRunner.release()
         }
-    }
 
+        // Using Type assertion because TypeScript compiler fails 
+        const result = await super.remove(entityOrEntities as Route[], options);
+
+        for(let routingTable of Object.values(affectedTables)) {
+            await this.refreshOrders(routingTable.id);
+        }
+
+        return result;
+    }
+    
     async getLastRouteInRoutingTable(routingTableId: number): Promise<Route | undefined> {
         return (await this.find({
             where: {
@@ -221,6 +215,26 @@ export class RouteRepository extends Repository<Route> {
         if (routes) query = query.andWhere("route.id IN (:...routes)", {routes: routes});
             
         return query.orderBy("route.route_order").getMany();
+    }
+
+    /**
+     * Some operations might leave an inconsistent route_order. This function refresh the route_order
+     * value in order to keep them consecutive
+     * 
+     * @param routingTableId 
+     */
+     protected async refreshOrders(routingTableId: number): Promise<void> {
+        let affectedRoutes: Route[] = await this.findManyInPath({
+            routingTableId: routingTableId
+        });
+
+        if (affectedRoutes.length === 0) {
+            return;
+        }
+
+        await this.query(
+            `SET @a:=0; UPDATE ${Route._getTableName()} SET route_order=@a:=@a+1 WHERE id IN (${affectedRoutes.map(item => item.id).join(',')}) ORDER BY route_order`
+        )
     }
 
     protected getFindInPathOptions(path: Partial<IFindOneRoutePath>, options: FindOneOptions<Route> | FindManyOptions<Route> = {}): FindOneOptions<Route> | FindManyOptions<Route> {
