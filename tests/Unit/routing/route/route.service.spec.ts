@@ -80,6 +80,24 @@ describe(RouteService.name, () => {
                 expect(route.route_order).to.eq(9);
             });
 
+            it('should attach standard ipobj', async () => {
+                let standards: IPObj[] = await getRepository(IPObj).find({
+                    where: {
+                        fwCloudId: null
+                    }
+                });
+
+                route = await service.create({
+                    routingTableId: table.id,
+                    gatewayId: gateway.id,
+                    ipObjIds: standards.map(item => item.id)
+                });
+
+                route = await getRepository(Route).findOne(route.id, { relations: ['ipObjs']});
+
+                expect(route.ipObjs).to.have.length(standards.length);
+            })
+
         });
     });
 

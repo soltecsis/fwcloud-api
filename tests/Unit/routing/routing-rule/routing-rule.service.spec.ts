@@ -126,6 +126,23 @@ describe(RoutingRuleService.name, () => {
                     (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
                 ).to.deep.eq([ipobj1.id, ipobj2.id])
             });
+
+            it('should attach standard ipobj', async () => {
+                let standards: IPObj[] = await getRepository(IPObj).find({
+                    where: {
+                        fwCloudId: null
+                    }
+                });
+
+                rule = await service.create({
+                    routingTableId: table.id,
+                    ipObjIds: standards.map(item => item.id)
+                });
+
+                rule = await getRepository(RoutingRule).findOne(rule.id, { relations: ['ipObjs']});
+
+                expect(rule.ipObjs).to.have.length(standards.length);
+            })
         });
 
         describe('IpObjGroups', () => {

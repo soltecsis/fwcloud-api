@@ -294,7 +294,7 @@ export class RouteService extends Service {
         for (let i = 0; i < ipObjs.length; i++) {
             const ipObj: IPObj = ipObjs[i];
             
-            if (ipObj.fwCloudId !== firewall.fwCloudId) {
+            if (ipObj.fwCloudId && ipObj.fwCloudId !== firewall.fwCloudId) {
                 errors[`ipObjIds.${i}`] = ['ipObj id must exist']
             }
 
