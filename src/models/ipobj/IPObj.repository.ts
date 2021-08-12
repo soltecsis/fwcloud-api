@@ -109,14 +109,26 @@ export class IPObjRepository extends Repository<IPObj> {
 
   // All ipobj under OpenVPN prefixes 
   getIpobjsInOpenVPNPrefixesInRouting(entity: ValidEntities, fwcloud: number, firewall: number, routingTable: number, ids: number[]): SelectQueryBuilder<IPObj> {
-    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, this.routingSelects(entity)
+    const query = this.routingSelects(entity)
       .innerJoin("ipobj.optionsList", "vpnOpt")
       .innerJoin("vpnOpt.openVPN", "vpn")
       .innerJoin("vpn.crt", "crt")
       .innerJoin("vpn.parent", "vpnServer")
-      .innerJoin("vpnServer.openVPNPrefixes", "prefix")      
-      .innerJoin(`prefix.${entity=='route'?'routes':'routingRules'}`, `${entity}`))
-      .andWhere("crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and vpnOpt.name='ifconfig-push'");
+      .innerJoin("vpnServer.openVPNPrefixes", "prefix");
+      
+    if (entity === 'route') {
+      query
+        .innerJoin('prefix.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
+        .innerJoin('routeToOpenVPNPrefixes.route', entity)
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('prefix.routingRules', entity)
+    }  
+    
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query)
+      .andWhere("crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and vpnOpt.name='ifconfig-push'");;
   } 
 
   // All ipobj under OpenVPN prefixes in groups

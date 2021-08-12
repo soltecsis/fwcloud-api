@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Column, Entity, getRepository, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, getRepository, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Interface } from "../../interface/Interface";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
@@ -30,6 +30,7 @@ import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { RoutingTable } from "../routing-table/routing-table.model";
 import { RouteGroup } from "../route-group/route-group.model";
 import db from "../../../database/database-manager";
+import { RouteToOpenVPNPrefix } from "./route-to-openvpn-prefix.model";
 
 const tableName: string = 'route';
 
@@ -119,14 +120,19 @@ export class Route extends Model {
 	})
     openVPNs: OpenVPN[];
 
-    @ManyToMany(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.routes)
+    /*@ManyToMany(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.routes)
 	@JoinTable({
 		name: 'route__openvpn_prefix',
 		joinColumn: { name: 'route'},
 		inverseJoinColumn: { name: 'openvpn_prefix'}
 	})
     openVPNPrefixes: OpenVPNPrefix[]
-
+*/
+    @OneToMany(() => RouteToOpenVPNPrefix, model => model.route, {
+        cascade: true,
+    })
+    routeToOpenVPNPrefixes: RouteToOpenVPNPrefix[];
+    
     public getTableName(): string {
         return tableName;
     }

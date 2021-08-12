@@ -418,13 +418,14 @@ describe(RouteService.name, () => {
                     }))
                 }));
             })
+
             it('should attach openVPNPrefixes', async () => {
                 await service.update(route.id, {
                     openVPNPrefixIds: [openVPNPrefix.id, openVPNPrefix2.id]
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNPrefixes']})).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id])
             });
 
@@ -438,7 +439,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNPrefixes']})).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([openVPNPrefix2.id])
             });
 
@@ -452,7 +453,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNPrefixes']})).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([])
             })
         });
