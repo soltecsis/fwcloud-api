@@ -133,8 +133,6 @@ export class OpenVPN extends Model {
     @ManyToMany(type => RoutingRule, routingRule => routingRule.openVPNs)
     routingRules: RoutingRule[]
 
-    /*@ManyToMany(type => Route, route => route.openVPNs)
-    routes: Route[]*/
     @OneToMany(() => RouteToOpenVPN, model => model.openVPN)
     routeToOpenVPNs: RouteToOpenVPN[];
 

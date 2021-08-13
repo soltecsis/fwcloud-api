@@ -34,6 +34,7 @@ import { PolicyRuleToIPObj } from "../../policy/PolicyRuleToIPObj";
 import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
 import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { RoutingTable } from "../routing-table/routing-table.model";
+import { RouteToIPObjGroup } from "./route-to-ipobj-group.model";
 import { RouteToOpenVPNPrefix } from "./route-to-openvpn-prefix.model";
 import { RouteToOpenVPN } from "./route-to-openvpn.model";
 import { Route } from "./route.model";
@@ -152,7 +153,12 @@ export class RouteService extends Service {
 
         if (data.ipObjGroupIds) {
             await this.validateUpdateIPObjGroups(firewall, data);
-            route.ipObjGroups = data.ipObjGroupIds.map(id => ({id: id} as IPObjGroup));
+
+            route.routeToIPObjGroups = data.ipObjGroupIds.map(item => ({
+                routeId: route.id,
+                ipObjGroupId: item,
+                order: 0
+            } as RouteToIPObjGroup));
         }
 
         if (data.openVPNIds) {
@@ -202,7 +208,7 @@ export class RouteService extends Service {
             where: {
                 id: In(ids)
             },
-            relations: ['routingTable', 'ipObjs', 'ipObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes']
+            relations: ['routingTable', 'ipObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes']
         });
 
         const lastRuoute: Route = await this._repository.getLastRouteInRoutingTable(routes[0].routingTableId);
@@ -238,6 +244,7 @@ export class RouteService extends Service {
 
         route.routeToOpenVPNPrefixes = [];
         route.routeToOpenVPNs = [];
+        route.routeToIPObjGroups = [];
         await this._repository.save(route);
 
         await this._repository.remove(route);

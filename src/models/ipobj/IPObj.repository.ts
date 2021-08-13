@@ -70,23 +70,48 @@ export class IPObjRepository extends Repository<IPObj> {
   
   // All ipobj under group excluding hosts (type=8)
   getIpobjsInGroupsInRouting_excludeHosts(entity: ValidEntities, fwcloud: number, firewall: number, routingTable: number, ids: number[]): SelectQueryBuilder<IPObj> {
-    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, this.routingSelects(entity)
+    const query = this.routingSelects(entity)
       .innerJoin("ipobj.ipObjToIPObjGroups", "ipObjToIPObjGroup")
-      .innerJoin("ipObjToIPObjGroup.ipObjGroup", "ipobjGroup")
-      .innerJoin(`ipobjGroup.${entity=='route'?'routes':'routingRules'}`, `${entity}`))
+      .innerJoin("ipObjToIPObjGroup.ipObjGroup", "ipobjGroup");
+
+    if (entity === 'route') {
+      query
+        .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .innerJoin('routeToIPObjGroups.route', entity);
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('ipobjGroup.routingRules', entity);
+    }
+      
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query)
       .andWhere("ipobj.type<>8");
   }  
 
   // All ipobj under host (type=8) included in IP objects groups 
   getIpobjsInGroupsInRouting_onlyHosts(entity: ValidEntities, fwcloud: number, firewall: number, routingTable: number, ids: number[]): SelectQueryBuilder<IPObj> {
-    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, this.routingSelects(entity)
+    const query = this.routingSelects(entity)
       .innerJoin("ipobj.interface", "interface")
       .innerJoin("interface.hosts", "interfaceHost")
       .innerJoin("interfaceHost.hostIPObj", "host")
       .innerJoin("host.ipObjToIPObjGroups", "ipObjToIPObjGroup")
-      .innerJoin("ipObjToIPObjGroup.ipObjGroup", "ipobjGroup")
-      .innerJoin(`ipobjGroup.${entity=='route'?'routes':'routingRules'}`, `${entity}`));
-    } 
+      .innerJoin("ipObjToIPObjGroup.ipObjGroup", "ipobjGroup");
+
+    if (entity === 'route') {
+      query
+      .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+      .innerJoin('routeToIPObjGroups.route', entity);
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('ipobjGroup.routingRules', entity);
+    }
+    
+
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query);
+  } 
     
   // All ipobj under OpenVPNs 
   getIpobjsInOpenVPNInRouting(entity: ValidEntities, fwcloud: number, firewall: number, routingTable: number, ids: number[]): SelectQueryBuilder<IPObj> {
@@ -112,11 +137,23 @@ export class IPObjRepository extends Repository<IPObj> {
 
   // All ipobj under OpenVPNs in groups
   getIpobjsInOpenVPNInGroupsInRouting(entity: ValidEntities, fwcloud: number, firewall: number, routingTable: number, ids: number[]): SelectQueryBuilder<IPObj> {
-    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, this.routingSelects(entity)
+    const query = this.routingSelects(entity)
       .innerJoin("ipobj.optionsList", "vpnOpt")
       .innerJoin("vpnOpt.openVPN", "vpn")
-      .innerJoin("vpn.ipObjGroups", "ipobjGroup")
-      .innerJoin(`ipobjGroup.${entity=='route'?'routes':'routingRules'}`, `${entity}`))
+      .innerJoin("vpn.ipObjGroups", "ipobjGroup");
+
+    if (entity === 'route') {
+      query
+        .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .innerJoin('routeToIPObjGroups.route', entity)
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('ipobjGroup.routingRules', entity)
+    }
+      
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query)
       .andWhere("vpnOpt.name='ifconfig-push'");
   } 
 
@@ -146,14 +183,26 @@ export class IPObjRepository extends Repository<IPObj> {
 
   // All ipobj under OpenVPN prefixes in groups
   getIpobjsInOpenVPNPrefixesInGroupsInRouting(entity: ValidEntities, fwcloud: number, firewall: number, routingTable: number, ids: number[]): SelectQueryBuilder<IPObj> {
-    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, this.routingSelects(entity)
+    const query = this.routingSelects(entity)
       .innerJoin("ipobj.optionsList", "vpnOpt")
       .innerJoin("vpnOpt.openVPN", "vpn")
       .innerJoin("vpn.crt", "crt")
       .innerJoin("vpn.parent", "vpnServer")
       .innerJoin("vpnServer.openVPNPrefixes", "prefix")      
-      .innerJoin("prefix.ipObjGroups", "ipobjGroup")
-      .innerJoin(`ipobjGroup.${entity=='route'?'routes':'routingRules'}`, `${entity}`))
+      .innerJoin("prefix.ipObjGroups", "ipobjGroup");
+
+    if (entity === 'route') {
+      query
+        .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .innerJoin('routeToIPObjGroups.route', entity)
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('ipobjGroup.routingRules', entity)
+    }
+  
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query)
       .andWhere("crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and vpnOpt.name='ifconfig-push'");
   } 
 

@@ -262,7 +262,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjGroups']})).ipObjGroups.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjGroups']})).routeToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([group1.id, group2.id])
             });
 
@@ -276,7 +276,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjGroups']})).ipObjGroups.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjGroups']})).routeToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([group2.id])
             });
 
@@ -290,7 +290,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjGroups']})).ipObjGroups.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjGroups']})).routeToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([])
             });
 

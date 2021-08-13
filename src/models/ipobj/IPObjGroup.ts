@@ -33,6 +33,7 @@ import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
 import { Route } from "../routing/route/route.model";
 import { Interface } from "../interface/Interface";
 import { FwCloud } from "../fwcloud/FwCloud";
+import { RouteToIPObjGroup } from "../routing/route/route-to-ipobj-group.model";
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
@@ -84,8 +85,8 @@ export class IPObjGroup extends Model {
     @ManyToMany(type => RoutingRule, routingRule => routingRule.ipObjGroups)
     routingRules: RoutingRule[];
 
-    @ManyToMany(type => Route, route => route.ipObjGroups)
-    routes: Route[]
+    @OneToMany(() => RouteToIPObjGroup, model => model.ipObjGroup)
+    routeToIPObjGroups: RouteToIPObjGroup[];
 
 
     /**
@@ -358,13 +359,15 @@ export class IPObjGroup extends Model {
                 search.restrictions.GroupInRule = await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
                 search.restrictions.GroupInRoute = await getRepository(Route).createQueryBuilder('route')
                     .innerJoin('route.routingTable', 'table')
-                    .innerJoinAndSelect('route.ipObjGroups', 'group', 'group.id = :id', {id: id})
+                    .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+                    .innerJoin('routeToIPObjGroups.ipObjGroup', 'group', 'group.id = :id', {id: id})
                     .innerJoin('table.firewall', 'firewall')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
                     .getMany();
-                search.restrictions.GroupInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('route')
-                    .innerJoin('route.routingTable', 'table')
-                    .innerJoinAndSelect('route.ipObjGroups', 'group', 'group.id = :id', {id: id})
+                
+                search.restrictions.GroupInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
+                    .innerJoin('rule.routingTable', 'table')
+                    .innerJoin('rule.ipObjGroups', 'group', 'group.id = :id', {id: id})
                     .innerJoin('table.firewall', 'firewall')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
                     .getMany();

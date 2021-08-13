@@ -29,12 +29,24 @@ import { IPObjGroup } from "./IPObjGroup";
 export class IPObjGroupRepository extends Repository<IPObjGroup> {
 
  getIpobjGroupsInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<IPObjGroup> {
-    let q = this.createQueryBuilder("ipobjGroup")
+    const query = this.createQueryBuilder("ipobjGroup")
       .select("ipobjGroup.id","id").addSelect("ipobjGroup.name","name").addSelect("ipobjGroup.type","type")
       .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
       .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
-      .addSelect(`${entity}.id`,"entityId")
-      .innerJoin(`ipobjGroup.${entity==='route'?'routes':'routingRules'}`, `${entity}`)
+      .addSelect(`${entity}.id`,"entityId");
+
+    if (entity === 'route') {
+      query
+        .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .innerJoin('routeToIPObjGroups.route', entity)
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('ipobjGroup.routingRules', entity)
+    }
+      
+    query
       .innerJoin(`${entity}.routingTable`, "table")
       .innerJoin("table.firewall", "firewall")
       .innerJoin("firewall.fwCloud", "fwcloud")
@@ -42,8 +54,10 @@ export class IPObjGroupRepository extends Repository<IPObjGroup> {
       .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
       .andWhere("firewall.id = :firewall", {firewall: firewall});
 
-    if (routingTable) q = q.andWhere("table.id = :routingTable", {routingTable});
+    if (routingTable) {
+      query.andWhere("table.id = :routingTable", {routingTable});
+    }
 
-    return q;
+    return query;
   }    
 }

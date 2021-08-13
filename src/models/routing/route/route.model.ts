@@ -32,6 +32,7 @@ import { RouteGroup } from "../route-group/route-group.model";
 import db from "../../../database/database-manager";
 import { RouteToOpenVPNPrefix } from "./route-to-openvpn-prefix.model";
 import { RouteToOpenVPN } from "./route-to-openvpn.model";
+import { RouteToIPObjGroup } from "./route-to-ipobj-group.model";
 
 const tableName: string = 'route';
 
@@ -105,40 +106,21 @@ export class Route extends Model {
 	})
     ipObjs: IPObj[]
 
-    @ManyToMany(type => IPObjGroup, group => group.routes)
-	@JoinTable({
-		name: 'route__ipobj_g',
-		joinColumn: { name: 'route'},
-		inverseJoinColumn: { name: 'ipobj_g'}
-	})
-    ipObjGroups: IPObjGroup[]
-
-    /*@ManyToMany(type => OpenVPN, openVPN => openVPN.routes)
-	@JoinTable({
-		name: 'route__openvpn',
-		joinColumn: { name: 'route'},
-		inverseJoinColumn: { name: 'openvpn'}
-	})
-    openVPNs: OpenVPN[];
-
-    @ManyToMany(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.routes)
-	@JoinTable({
-		name: 'route__openvpn_prefix',
-		joinColumn: { name: 'route'},
-		inverseJoinColumn: { name: 'openvpn_prefix'}
-	})
-    openVPNPrefixes: OpenVPNPrefix[]
-*/
-    @OneToMany(() => RouteToOpenVPNPrefix, model => model.route, {
+    @OneToMany(() => RouteToIPObjGroup, model => model.route, {
         cascade: true,
     })
-    routeToOpenVPNPrefixes: RouteToOpenVPNPrefix[];
-
+    routeToIPObjGroups: RouteToIPObjGroup[];
+    
     @OneToMany(() => RouteToOpenVPN, model => model.route, {
         cascade: true,
     })
     routeToOpenVPNs: RouteToOpenVPN[];
     
+    @OneToMany(() => RouteToOpenVPNPrefix, model => model.route, {
+        cascade: true,
+    })
+    routeToOpenVPNPrefixes: RouteToOpenVPNPrefix[];
+
     public getTableName(): string {
         return tableName;
     }
@@ -186,7 +168,8 @@ export class Route extends Model {
             .innerJoin('InterfaceIPObj.hostIPObj', 'host')
             .innerJoin('host.ipObjToIPObjGroups', 'IPObjToIPObjGroup')
             .innerJoin('IPObjToIPObjGroup.ipObjGroup', 'group')
-            .innerJoin('group.routes', 'route')
+            .innerJoin('group.routeToIPObjGroups', 'routeToIPObjGroups')
+            .innerJoin('routeToIPObjGroups.route', 'route')
             .innerJoin('route.routingTable', 'table')
             .innerJoin('table.firewall', 'firewall')
             .innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloud', {fwcloud})
