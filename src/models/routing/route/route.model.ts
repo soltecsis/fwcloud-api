@@ -31,6 +31,7 @@ import { RoutingTable } from "../routing-table/routing-table.model";
 import { RouteGroup } from "../route-group/route-group.model";
 import db from "../../../database/database-manager";
 import { RouteToOpenVPNPrefix } from "./route-to-openvpn-prefix.model";
+import { RouteToOpenVPN } from "./route-to-openvpn.model";
 
 const tableName: string = 'route';
 
@@ -112,7 +113,7 @@ export class Route extends Model {
 	})
     ipObjGroups: IPObjGroup[]
 
-    @ManyToMany(type => OpenVPN, openVPN => openVPN.routes)
+    /*@ManyToMany(type => OpenVPN, openVPN => openVPN.routes)
 	@JoinTable({
 		name: 'route__openvpn',
 		joinColumn: { name: 'route'},
@@ -120,7 +121,7 @@ export class Route extends Model {
 	})
     openVPNs: OpenVPN[];
 
-    /*@ManyToMany(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.routes)
+    @ManyToMany(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.routes)
 	@JoinTable({
 		name: 'route__openvpn_prefix',
 		joinColumn: { name: 'route'},
@@ -132,6 +133,11 @@ export class Route extends Model {
         cascade: true,
     })
     routeToOpenVPNPrefixes: RouteToOpenVPNPrefix[];
+
+    @OneToMany(() => RouteToOpenVPN, model => model.route, {
+        cascade: true,
+    })
+    routeToOpenVPNs: RouteToOpenVPN[];
     
     public getTableName(): string {
         return tableName;

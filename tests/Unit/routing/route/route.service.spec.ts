@@ -346,7 +346,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNs']})).openVPNs.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNs']})).routeToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([openVPN1.id, openVPN2.id])
             });
 
@@ -360,7 +360,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNs']})).openVPNs.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNs']})).routeToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([openVPN2.id])
             });
 
@@ -374,7 +374,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['openVPNs']})).openVPNs.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNs']})).routeToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([])
             })
         });

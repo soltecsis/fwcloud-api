@@ -39,6 +39,7 @@ import { Channel } from "../../../sockets/channels/channel";
 import { EventEmitter } from "events";
 import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
 import { Route } from "../../routing/route/route.model";
+import { RouteToOpenVPN } from "../../routing/route/route-to-openvpn.model";
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -132,8 +133,10 @@ export class OpenVPN extends Model {
     @ManyToMany(type => RoutingRule, routingRule => routingRule.openVPNs)
     routingRules: RoutingRule[]
 
-    @ManyToMany(type => Route, route => route.openVPNs)
-    routes: Route[]
+    /*@ManyToMany(type => Route, route => route.openVPNs)
+    routes: Route[]*/
+    @OneToMany(() => RouteToOpenVPN, model => model.openVPN)
+    routeToOpenVPNs: RouteToOpenVPN[];
 
 
     public getTableName(): string {
@@ -662,7 +665,8 @@ export class OpenVPN extends Model {
                 search.restrictions.LastOpenvpnInPrefixInGroup = await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInGroup(dbCon, fwcloud, openvpn);
 
                 search.restrictions.OpenVPNInRoute = await getRepository(Route).createQueryBuilder('route')
-                    .innerJoinAndSelect('route.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+                    .innerJoin('route.routeToOpenVPNs', 'routeToOpenVPNs')
+                    .innerJoin('routeToOpenVPNs.openVPN', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
                     .innerJoin('route.routingTable', 'table')
                     .innerJoin('table.firewall', 'firewall')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})

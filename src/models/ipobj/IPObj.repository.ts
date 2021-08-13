@@ -90,10 +90,23 @@ export class IPObjRepository extends Repository<IPObj> {
     
   // All ipobj under OpenVPNs 
   getIpobjsInOpenVPNInRouting(entity: ValidEntities, fwcloud: number, firewall: number, routingTable: number, ids: number[]): SelectQueryBuilder<IPObj> {
-    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, this.routingSelects(entity)
+    const query = this.routingSelects(entity)
       .innerJoin("ipobj.optionsList", "vpnOpt")
-      .innerJoin("vpnOpt.openVPN", "vpn")
-      .innerJoin(`vpn.${entity=='route'?'routes':'routingRules'}`, `${entity}`))
+      .innerJoin("vpnOpt.openVPN", "vpn");
+
+    if (entity === 'route') {
+      query
+        .innerJoin('vpn.routeToOpenVPNs', 'routeToOpenVPNs')
+        .innerJoin('routeToOpenVPNs.route', entity)
+    }
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('vpn.routingRules', entity)
+    }
+      
+
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query)
       .andWhere("vpnOpt.name='ifconfig-push'");
   } 
 

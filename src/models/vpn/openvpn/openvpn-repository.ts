@@ -36,12 +36,24 @@ export class OpenVPNRepository extends Repository<OpenVPN> {
   }
 
   getOpenVPNInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<OpenVPN> {
-    let q = this.createQueryBuilder("vpn")
+    let query = this.createQueryBuilder("vpn")
       .select("vpn.id","id").addSelect("crt.cn","name").addSelect("(select id from ipobj_type where id=311)","type")
       .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
       .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
-      .addSelect(`${entity}.id`,"entityId")
-      .innerJoin(`vpn.${entity==='route'?'routes':'routingRules'}`, `${entity}`)
+      .addSelect(`${entity}.id`,"entityId");
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('vpn.routingRules', entity)  
+    }
+
+    if (entity === 'route') {
+      query
+      .innerJoin('vpn.routeToOpenVPNs', 'routeToOpenVPNs')
+      .innerJoin('routeToOpenVPNs.route', entity)
+    }
+      
+    query
       .innerJoin(`${entity}.routingTable`, "table")
       .innerJoin("table.firewall", "firewall")
       .innerJoin("firewall.fwCloud", "fwcloud")
@@ -50,8 +62,8 @@ export class OpenVPNRepository extends Repository<OpenVPN> {
       .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
       .andWhere("firewall.id = :firewall", {firewall: firewall});
 
-    if (routingTable) q = q.andWhere("table.id = :routingTable", {routingTable});
+    if (routingTable) query = query.andWhere("table.id = :routingTable", {routingTable});
 
-    return q;
+    return query;
   }    
 }

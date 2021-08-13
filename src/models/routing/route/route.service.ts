@@ -35,6 +35,7 @@ import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
 import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { RoutingTable } from "../routing-table/routing-table.model";
 import { RouteToOpenVPNPrefix } from "./route-to-openvpn-prefix.model";
+import { RouteToOpenVPN } from "./route-to-openvpn.model";
 import { Route } from "./route.model";
 import { RouteRepository } from "./route.repository";
 
@@ -160,9 +161,13 @@ export class RouteService extends Service {
                     id: In(data.openVPNIds),
                     firewallId: firewall.id,
                 }
-            })
+            });
 
-            route.openVPNs = openVPNs.map(item => ({id: item.id} as OpenVPN));
+            route.routeToOpenVPNs = openVPNs.map(item => ({
+                routeId: route.id,
+                openVPNId: item.id,
+                order: 0
+            } as RouteToOpenVPN));
         }
 
         if (data.openVPNPrefixIds) {
@@ -197,7 +202,7 @@ export class RouteService extends Service {
             where: {
                 id: In(ids)
             },
-            relations: ['routingTable', 'ipObjs', 'ipObjGroups', 'openVPNs', 'routeToOpenVPNPrefixes']
+            relations: ['routingTable', 'ipObjs', 'ipObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes']
         });
 
         const lastRuoute: Route = await this._repository.getLastRouteInRoutingTable(routes[0].routingTableId);
@@ -232,6 +237,7 @@ export class RouteService extends Service {
         const route: Route =  await this.findOneInPath(path, {relations: ['routeToOpenVPNPrefixes']});
 
         route.routeToOpenVPNPrefixes = [];
+        route.routeToOpenVPNs = [];
         await this._repository.save(route);
 
         await this._repository.remove(route);
