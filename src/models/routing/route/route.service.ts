@@ -179,8 +179,11 @@ export class RouteService extends Service {
             } as RouteToOpenVPNPrefix));
         }
 
-        if (data.interfaceId) {
-            await this.validateInterface(firewall, data);
+        if (Object.prototype.hasOwnProperty.call(data, "interfaceId")) {
+            if (data.interfaceId !== null) {
+                await this.validateInterface(firewall, data);
+            }
+
             route.interfaceId = data.interfaceId
         }
 

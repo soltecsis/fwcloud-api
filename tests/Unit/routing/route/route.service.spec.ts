@@ -457,6 +457,32 @@ describe(RouteService.name, () => {
                 ).to.deep.eq([])
             })
         });
+
+        describe('interface', () => {
+            let _interface: Interface;
+
+            beforeEach(async () => {
+                _interface = await getRepository(Interface).save(getRepository(Interface).create({
+                    name: 'eth1',
+                    type: '11',
+                    interface_type: '11'
+                }));
+
+                route = await service.create({
+                    routingTableId: table.id,
+                    gatewayId: gateway.id,
+                    interfaceId: _interface.id
+                })
+            });
+
+            it('should remove interface relation', async () => {
+                await service.update(route.id, {
+                    interfaceId: null
+                });
+
+                expect((await service.findOneInPath({id: route.id})).interfaceId).to.be.null;
+            });
+        })
     });
 
     describe('remove', () => {
