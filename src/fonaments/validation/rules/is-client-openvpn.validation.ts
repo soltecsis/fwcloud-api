@@ -21,7 +21,7 @@ export function IsClientOpenVPN(validationOptions?: ValidationOptions) {
               }
             );
 
-            return resolve(openvpns.filter(item => item.parent !== null).length === 0);
+            return resolve(openvpns.length === 0 ? true : openvpns.filter(item => item.parent !== null).length != 0);
           });
         },
 

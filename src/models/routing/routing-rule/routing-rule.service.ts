@@ -138,8 +138,7 @@ export class RoutingRuleService extends Service {
         if (data.openVPNIds) {
             const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
                 where: {
-                    id: In(data.openVPNIds),
-                    firewallId: firewall.id,
+                    id: In(data.openVPNIds)
                 }
             })
 
@@ -223,8 +222,7 @@ export class RoutingRuleService extends Service {
         if (data.openVPNIds) {
             const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
                 where: {
-                    id: In(data.openVPNIds),
-                    firewallId: firewall.id,
+                    id: In(data.openVPNIds)
                 }
             })
 
