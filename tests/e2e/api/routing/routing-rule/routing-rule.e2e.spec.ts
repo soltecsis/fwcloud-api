@@ -697,7 +697,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .expect(422);
             });
 
-            it('should thrown a validation exception if openvpn type is not valid', async () => {
+            it('should thrown a validation exception if openvpn certificate type is not valid', async () => {
                 const openvpn = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
                     firewallId: firewall.id,
                     crt: await getRepository(Crt).save(getRepository(Crt).create({
