@@ -979,6 +979,7 @@ export class IPObj extends Model {
 
                         return `route.id IN ${query}`;
                 }).getMany();
+                search.restrictions.IpobjInRoute = search.restrictions.IpobjInRoute.map(item => ({ ...item, route_id: item.id }));
 
                 search.restrictions.IpobjInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
                     .innerJoinAndSelect('rule.ipObjs', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
@@ -986,6 +987,7 @@ export class IPObj extends Model {
                     .innerJoin('table.firewall', 'firewall')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
                     .getMany();
+                search.restrictions.IpobjInRoutingRule = search.restrictions.IpobjInRoutingRule.map(item => ({ ...item, routing_rule_id: item.id }));
 
 
                 if (type === 8) { // HOST

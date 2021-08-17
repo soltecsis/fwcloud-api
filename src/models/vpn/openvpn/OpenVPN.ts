@@ -669,6 +669,7 @@ export class OpenVPN extends Model {
                     .innerJoin('table.firewall', 'firewall')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
                     .getMany();
+                search.restrictions.OpenVPNInRoute = search.restrictions.OpenVPNInRoute.map(item => ({ ...item, route_id: item.id }));
 
                 search.restrictions.OpenVPNInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
                     .innerJoinAndSelect('rule.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
@@ -676,6 +677,7 @@ export class OpenVPN extends Model {
                     .innerJoin('table.firewall', 'firewall')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
                     .getMany();
+                search.restrictions.OpenVPNInRoutingRule = search.restrictions.OpenVPNInRoutingRule.map(item => ({ ...item, routing_rule_id: item.id }));
 
                 
                 if (extendedSearch) {

@@ -383,13 +383,6 @@ export class OpenVPNPrefix extends Model {
                 search.restrictions.PrefixInRule = await this.searchPrefixInRule(dbCon, fwcloud, prefix);
                 search.restrictions.PrefixInGroup = await this.searchPrefixInGroup(dbCon, fwcloud, prefix);
 
-                search.restrictions.PrefixInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
-                    .innerJoinAndSelect('rule.openVPNPrefixes', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
-                    .innerJoin('rule.routingTable', 'table')
-                    .innerJoin('table.firewall', 'firewall')
-                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getMany();
-
                 search.restrictions.PrefixInRoute = await getRepository(Route).createQueryBuilder('route')
                     .innerJoin('route.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
                     .innerJoin('routeToOpenVPNPrefixes.openVPNPrefix', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
@@ -397,6 +390,15 @@ export class OpenVPNPrefix extends Model {
                     .innerJoin('table.firewall', 'firewall')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
                     .getMany();
+                search.restrictions.PrefixInRoute = search.restrictions.PrefixInRoute.map(item => ({ ...item, route_id: item.id }));
+
+                search.restrictions.PrefixInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
+                    .innerJoinAndSelect('rule.openVPNPrefixes', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
+                    .innerJoin('rule.routingTable', 'table')
+                    .innerJoin('table.firewall', 'firewall')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getMany();
+                search.restrictions.PrefixInRoutingRule = search.restrictions.PrefixInRoutingRule.map(item => ({ ...item, routing_rule_id: item.id }));
 
                 if (extendedSearch) {
                     // Include the rules that use the groups in which the OpenVPN prefix is being used.

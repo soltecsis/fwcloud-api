@@ -52,6 +52,7 @@ describe(OpenVPNPrefix.name, () => {
     
                 expect(whereUsed.restrictions.PrefixInRoute).to.have.length(1);
                 expect(whereUsed.restrictions.PrefixInRoute[0].id).to.be.eq(route.id)
+                expect(whereUsed.restrictions.PrefixInRoute[0].route_id).to.be.eq(route.id)
             })
         });
 
@@ -61,6 +62,7 @@ describe(OpenVPNPrefix.name, () => {
     
                 expect(whereUsed.restrictions.PrefixInRoutingRule).to.have.length(1);
                 expect(whereUsed.restrictions.PrefixInRoutingRule[0].id).to.be.eq(routingRule.id)
+                expect(whereUsed.restrictions.PrefixInRoutingRule[0].routing_rule_id).to.be.eq(routingRule.id)
             })
         });
     })
