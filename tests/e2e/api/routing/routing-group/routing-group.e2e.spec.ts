@@ -80,7 +80,7 @@ describe(describeName('Routing Group E2E Tests'), () => {
 
         rule = await getCustomRepository(RoutingRuleRepository).save({
             routingTableId: table.id,
-            position: 1
+            rule_order: 1
         });
 
     });

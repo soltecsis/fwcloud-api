@@ -77,7 +77,7 @@ describe(IPObjGroup.name, () => {
         });
     });
 
-    describe('searchIpobjUsage', () => {
+    describe('searchGroupUsage', () => {
         describe('route', () => {
             it('should detect usages', async () => {
                 const whereUsed: any = await IPObjGroup.searchGroupUsage(ipobjGroup.id, fwcloudProduct.fwcloud.id);

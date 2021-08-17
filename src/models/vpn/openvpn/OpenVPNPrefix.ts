@@ -29,6 +29,7 @@ import { PolicyRuleToOpenVPNPrefix } from "../../policy/PolicyRuleToOpenVPNPrefi
 import { Firewall } from "../../firewall/Firewall";
 import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
 import { Route } from "../../routing/route/route.model";
+import { RouteToOpenVPNPrefix } from "../../routing/route/route-to-openvpn-prefix.model";
 const fwcError = require('../../../utils/error_table');
 
 const tableName: string = 'openvpn_prefix';
@@ -69,8 +70,11 @@ export class OpenVPNPrefix extends Model {
     @ManyToMany(type => RoutingRule, routingRule => routingRule.openVPNPrefixes)
     routingRules: RoutingRule[]
 
-    @ManyToMany(type => Route, route => route.openVPNPrefixes)
+    /*@ManyToMany(type => Route, route => route.openVPNPrefixes)
     routes: Route[];
+*/
+    @OneToMany(() => RouteToOpenVPNPrefix, model => model.openVPNPrefix)
+    routeToOpenVPNPrefixes: RouteToOpenVPNPrefix[];
 
     public getTableName(): string {
         return tableName;
@@ -379,19 +383,22 @@ export class OpenVPNPrefix extends Model {
                 search.restrictions.PrefixInRule = await this.searchPrefixInRule(dbCon, fwcloud, prefix);
                 search.restrictions.PrefixInGroup = await this.searchPrefixInGroup(dbCon, fwcloud, prefix);
 
+                search.restrictions.PrefixInRoute = await getRepository(Route).createQueryBuilder('route')
+                    .innerJoin('route.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
+                    .innerJoin('routeToOpenVPNPrefixes.openVPNPrefix', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
+                    .innerJoin('route.routingTable', 'table')
+                    .innerJoin('table.firewall', 'firewall')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getMany();
+                search.restrictions.PrefixInRoute = search.restrictions.PrefixInRoute.map(item => ({ ...item, route_id: item.id }));
+
                 search.restrictions.PrefixInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
                     .innerJoinAndSelect('rule.openVPNPrefixes', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
                     .innerJoin('rule.routingTable', 'table')
                     .innerJoin('table.firewall', 'firewall')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
                     .getMany();
-
-                search.restrictions.PrefixInRoute = await getRepository(Route).createQueryBuilder('route')
-                    .innerJoinAndSelect('route.openVPNPrefixes', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
-                    .innerJoin('route.routingTable', 'table')
-                    .innerJoin('table.firewall', 'firewall')
-                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getMany();
+                search.restrictions.PrefixInRoutingRule = search.restrictions.PrefixInRoutingRule.map(item => ({ ...item, routing_rule_id: item.id }));
 
                 if (extendedSearch) {
                     // Include the rules that use the groups in which the OpenVPN prefix is being used.

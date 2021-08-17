@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
+import { getCustomRepository, getRepository } from "typeorm";
 import { Application } from "../../../../../src/Application";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
@@ -39,6 +39,10 @@ import { IPObjGroup } from "../../../../../src/models/ipobj/IPObjGroup";
 import { OpenVPN } from "../../../../../src/models/vpn/openvpn/OpenVPN";
 import { Crt } from "../../../../../src/models/vpn/pki/Crt";
 import { Ca } from "../../../../../src/models/vpn/pki/Ca";
+import { RoutingRuleControllerMoveDto } from "../../../../../src/controllers/routing/routing-rule/dtos/move.dto";
+import { RoutingRuleControllerBulkUpdateDto } from "../../../../../src/controllers/routing/routing-rule/dtos/bulk-update.dto";
+import { RoutingRuleControllerCopyDto } from "../../../../../src/controllers/routing/routing-rule/dtos/copy.dto";
+import { RoutingRuleRepository } from "../../../../../src/models/routing/routing-rule/routing-rule.repository";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;
@@ -55,7 +59,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
     beforeEach(async () => {
         app = testSuite.app;
-        
+        await testSuite.resetDatabaseData();
+
         loggedUser = await createUser({role: 0});
         loggedUserSessionId = generateSession(loggedUser);
 
@@ -145,6 +150,161 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
         });
 
+        describe('@grid', () => {
+            let rule: RoutingRule;
+            
+            beforeEach(async () => {
+                rule = await routingRuleService.create({
+                    routingTableId: table.id,
+                });
+            });   
+
+            it('guest user should not see a rules grid', async () => {
+				return await request(app.express)
+					.get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not see a rules grid', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should see a rules grid', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .then(response => {
+                        expect(response.body.data[0].id).to.deep.eq(rule.id);
+                        expect(response.body.data[0].routingTableId).to.deep.eq(rule.routingTableId);
+                    });
+            });
+
+            it('admin user should see a rules grid', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))         
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data[0].id).to.deep.eq(rule.id);
+                        expect(response.body.data[0].routingTableId).to.deep.eq(rule.routingTableId);
+                    });
+            });
+        });
+
+        describe('@move', () => {
+            let ruleOrder1: RoutingRule;
+            let ruleOrder2: RoutingRule;
+            let ruleOrder3: RoutingRule;
+            let ruleOrder4: RoutingRule;
+            let data: RoutingRuleControllerMoveDto;
+
+            beforeEach(async () => {
+                ruleOrder1 = await routingRuleService.create({
+                    routingTableId: table.id,
+                });
+                
+                ruleOrder2 = await routingRuleService.create({
+                    routingTableId: table.id,
+                });
+
+                ruleOrder3 = await routingRuleService.create({
+                    routingTableId: table.id,
+                });
+                
+                ruleOrder4 = await routingRuleService.create({
+                    routingTableId: table.id,
+                });
+
+                data = {
+                    rules: [ruleOrder1.id, ruleOrder2.id],
+                    to: ruleOrder3.id,
+                    offset: -1
+                }
+            });
+
+            it('guest user should not move rules', async () => {
+				return await request(app.express)
+					.put(_URL().getURL('fwclouds.firewalls.routing.rules.move', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not move rules', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.move', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should move rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.move', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).rule_order).to.eq(1);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).rule_order).to.eq(2);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder3.id)).rule_order).to.eq(3);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder4.id)).rule_order).to.eq(4);
+            });
+
+            it('admin user should move rules', async () => {
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.move', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .send(data)
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+                
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).rule_order).to.eq(1);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).rule_order).to.eq(2);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder3.id)).rule_order).to.eq(3);
+                expect((await getRepository(RoutingRule).findOne(ruleOrder4.id)).rule_order).to.eq(4);
+            });
+
+
+        });
+
         describe('@show', () => {
             let rule: RoutingRule;
             
@@ -204,6 +364,68 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data.id).to.deep.eq(rule.id);
                         expect(response.body.data.routingTableId).to.deep.eq(rule.routingTableId);
+                    });
+            });
+        });
+
+        describe('@compile', () => {
+            let rule: RoutingRule;
+            
+            beforeEach(async () => {
+                rule = await routingRuleService.create({
+                    routingTableId: table.id,
+                });
+            });   
+
+            it('guest user should not compile a rule', async () => {
+				return await request(app.express)
+					.get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not compile a rule', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should compile a rule', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).instanceOf(Array);
+                    });
+            });
+
+            it('admin user should compile a rule', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        rule: rule.id
+                    }))         
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).instanceOf(Array);
                     });
             });
         });
@@ -271,6 +493,89 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
 
         });
+
+        describe('@copy', () => {
+            let ruleOrder1: RoutingRule;
+            let ruleOrder2: RoutingRule;
+            let data: RoutingRuleControllerCopyDto;
+
+            beforeEach(async () => {
+                ruleOrder1 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    comment: 'comment1',
+                });
+                
+                ruleOrder2 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    comment: 'comment2'
+                });
+
+                data = {
+                    rules: [ruleOrder1.id, ruleOrder2.id],
+                    to: (await getCustomRepository(RoutingRuleRepository).getLastRoutingRuleInFirewall(table.firewallId)).id,
+                    offset: 1
+                }
+            });
+
+            it('guest user should not copy rules', async () => {
+				return await request(app.express)
+					.post(_URL().getURL('fwclouds.firewalls.routing.rules.copy', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .send(data)
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not copy rules', async () => {
+                return await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.routing.rules.copy', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should copy rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.routing.rules.copy', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(201)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect((await getRepository(RoutingRule).count({where: {comment: 'comment1'}}))).to.eq(2);
+                expect((await getRepository(RoutingRule).count({where: {comment: 'comment2'}}))).to.eq(2);
+            });
+
+            it('admin user should copy rules', async () => {
+                await request(app.express)
+                    .post(_URL().getURL('fwclouds.firewalls.routing.rules.copy', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .send(data)
+                    .expect(201)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+                
+                expect((await getRepository(RoutingRule).count({where: {comment: 'comment1'}}))).to.eq(2);
+                expect((await getRepository(RoutingRule).count({where: {comment: 'comment2'}}))).to.eq(2);
+            });
+        });
+
 
         describe('@update', () => {
             let rule: RoutingRule;
@@ -392,7 +697,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .expect(422);
             });
 
-            it('should thrown a validation exception if openvpn type is not valid', async () => {
+            it('should thrown a validation exception if openvpn certificate type is not valid', async () => {
                 const openvpn = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
                     firewallId: firewall.id,
                     crt: await getRepository(Crt).save(getRepository(Crt).create({
@@ -438,6 +743,96 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
         });
 
+        describe('@bulkUpdate', () => {
+            let ruleOrder1: RoutingRule;
+            let ruleOrder2: RoutingRule;
+            let data: RoutingRuleControllerBulkUpdateDto = {
+                style: 'style!'
+            }
+            
+            beforeEach(async () => {
+                ruleOrder1 = await routingRuleService.create({
+                    routingTableId: table.id,
+                });
+                
+                ruleOrder2 = await routingRuleService.create({
+                    routingTableId: table.id,
+                });
+            });
+
+            it('guest user should not bulk update rules', async () => {
+				return await request(app.express)
+					.put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkUpdate', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .send(data)
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not bulk update rules', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkUpdate', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .send(data)
+					.expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should bulk update rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkUpdate', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .send(data)
+					.expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).style).to.eq('style!');
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).style).to.eq('style!');
+            });
+
+            it('admin user should bulk update rules', async () => {
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkUpdate', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .send(data)
+					.expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+                
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).style).to.eq('style!');
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).style).to.eq('style!');
+            });
+
+
+        });
+
         describe('@remove', () => {
             let rule: RoutingRule;
             
@@ -472,40 +867,134 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 loggedUser.fwClouds = [fwCloud];
                 await getRepository(User).save(loggedUser);
 
-                return await request(app.express)
+                await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         rule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
-                    .expect(200)
-                    .then(async () => {
-                        expect(await routingRuleService.findOneInPath({
-                            fwCloudId: fwCloud.id,
-                            firewallId: firewall.id,
-                            id: rule.id
-                        })).to.be.undefined
-                    });
+                    .expect(200);
+
+                expect(await routingRuleService.findOneInPath({
+                    fwCloudId: fwCloud.id,
+                    firewallId: firewall.id,
+                    id: rule.id
+                })).to.be.undefined
             });
 
             it('admin user should remove a rule', async () => {
-                return await request(app.express)
+                await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         rule: rule.id
                     }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
-                    .expect(200)
-                    .then(async () => {
-                        expect(await routingRuleService.findOneInPath({
-                            fwCloudId: fwCloud.id,
-                            firewallId: firewall.id,
-                            id: rule.id
-                        })).to.be.undefined
-                    });
+                    .expect(200);
+                
+                expect(await routingRuleService.findOneInPath({
+                    fwCloudId: fwCloud.id,
+                    firewallId: firewall.id,
+                    id: rule.id
+                })).to.be.undefined
             });
+
+
+        });
+
+        describe('@bulkRemove', () => {
+            let ruleOrder1: RoutingRule;
+            let ruleOrder2: RoutingRule;
+            
+            beforeEach(async () => {
+                ruleOrder1 = await routingRuleService.create({
+                    routingTableId: table.id,
+                });
+                
+                ruleOrder2 = await routingRuleService.create({
+                    routingTableId: table.id,
+                });
+            });
+
+            it('guest user should not bulk remove rules', async () => {
+				return await request(app.express)
+					.delete(_URL().getURL('fwclouds.firewalls.routing.rules.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not bulk remove rules', async () => {
+                return await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.routing.rules.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should bulk remove rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.routing.rules.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id))).to.be.undefined;
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id))).to.be.undefined;
+            });
+
+            it('admin user should bulk remove rules', async () => {
+                await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.routing.rules.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .query({
+                        rules: [ruleOrder1.id, ruleOrder2.id]
+                    })
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+                
+                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id))).to.be.undefined;
+                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id))).to.be.undefined;
+            });
+
+            it('should throw validation error if query rules is not provided', async () => {
+                await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.routing.rules.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .query({
+                        rules: ruleOrder1.id
+                    })
+                    .expect(422)
+            })
 
 
         });

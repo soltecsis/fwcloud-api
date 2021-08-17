@@ -23,6 +23,7 @@
 import { FindOneOptions, getRepository, Repository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import { Service } from "../../../fonaments/services/service";
+import { Firewall } from "../../firewall/Firewall";
 import { RoutingRule } from "../routing-rule/routing-rule.model";
 import { RoutingGroup } from "./routing-group.model";
 
@@ -43,9 +44,10 @@ interface ICreateRoutingGroup {
 }
 
 interface IUpdateRoutingGroup {
-    name: string;
+    name?: string;
     comment?: string;
-    routingRules: Partial<RoutingRule>[]
+    style?: string;
+    routingRules?: Partial<RoutingRule>[]
 }
 
 export class RoutingGroupService extends Service {
@@ -75,14 +77,15 @@ export class RoutingGroupService extends Service {
 
     async update(id: number, data: IUpdateRoutingGroup): Promise<RoutingGroup> {
         let group: RoutingGroup = await this._repository.preload(Object.assign(data, {id}));
+        let firewall: Firewall = await getRepository(Firewall).findOne(group.firewallId)
         group.routingRules = data.routingRules as RoutingRule[];
         group = await this._repository.save(group);
 
         if (group.routingRules.length === 0) {
             return this.remove({
                 id: group.id,
-                firewallId: group.firewallId,
-                fwCloudId: group.firewall.fwCloudId
+                firewallId: firewall.id,
+                fwCloudId: firewall.fwCloudId
             });
         }
 
@@ -92,7 +95,7 @@ export class RoutingGroupService extends Service {
     async remove(path: IFindOneRoutingGroupPath): Promise<RoutingGroup> {
         const group: RoutingGroup = await this.findOneInPath(path);
         getRepository(RoutingRule).update(group.routingRules.map(rule => rule.id), {
-            groupId: null
+            routingGroupId: null
         });
         await this._repository.remove(group);
         return group;

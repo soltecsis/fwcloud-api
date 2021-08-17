@@ -29,16 +29,22 @@ import { FirewallService, SSHConfig } from "../../models/firewall/firewall.servi
 import { FirewallPolicy } from "../../policies/firewall.policy";
 import { Channel } from "../../sockets/channels/channel";
 import { ProgressPayload } from "../../sockets/messages/socket-message";
-import { Validate } from "../../decorators/validate.decorator";
+import { Validate, ValidateQuery } from "../../decorators/validate.decorator";
 import { FirewallControllerCompileDto } from "./dtos/compile.dto";
 import { FirewallControllerInstallDto } from "./dtos/install.dto";
+import { RoutingRulesData, RoutingRuleService } from "../../models/routing/routing-rule/routing-rule.service";
+import { RoutingRuleItemForCompiler } from "../../models/routing/shared";
+import { RoutingCompiler } from "../../compiler/routing/RoutingCompiler";
+import { FirewallControllerCompileRoutingRuleQueryDto } from "./dtos/compile-routing-rules.dto";
 
 export class FirewallController extends Controller {
     
     protected firewallService: FirewallService;
+    protected routingRuleService: RoutingRuleService;
 
     public async make(): Promise<void> {
         this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
+        this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
     }
     
     @Validate(FirewallControllerCompileDto)
@@ -86,5 +92,27 @@ export class FirewallController extends Controller {
         channel.emit('message', new ProgressPayload('end', false, 'Installing firewall'));
 
         return ResponseBuilder.buildResponse().status(201).body(firewall);
+    }
+
+    @Validate()
+    @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
+    async compileRoutingRules(request: Request): Promise<ResponseBuilder> {
+        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+            id: parseInt(request.params.firewall),
+            fwCloudId: parseInt(request.params.fwcloud)
+        });
+
+
+        (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
+
+        let rules: RoutingRulesData<RoutingRuleItemForCompiler>[] = await this.routingRuleService.getRoutingRulesData(
+            'compiler',
+            firewall.fwCloudId,
+            firewall.id,
+            request.query.rules ? (request.query.rules as string[]).map(item => parseInt(item)) : undefined
+        );
+        const compilation = new RoutingCompiler().compile('Rule', rules);
+
+        return ResponseBuilder.buildResponse().status(200).body(compilation)
     }
 }

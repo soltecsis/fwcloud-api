@@ -2,6 +2,8 @@ import { getCustomRepository, getRepository } from "typeorm";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
+import { RouteGroup } from "../../../../src/models/routing/route-group/route-group.model";
+import { RouteGroupService } from "../../../../src/models/routing/route-group/route-group.service";
 import { Route } from "../../../../src/models/routing/route/route.model";
 import { RouteRepository } from "../../../../src/models/routing/route/route.repository";
 import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
@@ -18,12 +20,14 @@ describe(RouteRepository.name, () => {
 
     let tableService: RoutingTableService;
     let table: RoutingTable;
+    let routeGroupService: RouteGroupService;
 
     beforeEach(async() => {
         await testSuite.resetDatabaseData();
         
         repository = getCustomRepository(RouteRepository);
         tableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
+        routeGroupService = await testSuite.app.getService<RouteGroupService>(RouteGroupService.name);
 
         fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
@@ -54,64 +58,215 @@ describe(RouteRepository.name, () => {
     });
 
     describe('move', () => {
-        it('should manage position changes when move to lower positions', async () => {
-            const routePosition1: Route = await repository.save({
+        it('should manage route_order forward changes', async () => {
+            const routeOrder1: Route = await repository.save({
                 routingTableId: table.id,
-                position: 1,
+                route_order: 1,
                 gatewayId: gateway.id
             });
-            const routePosition2: Route = await repository.save({
+            const routeOrder2: Route = await repository.save({
                 routingTableId: table.id,
-                position: 2,
+                route_order: 2,
                 gatewayId: gateway.id
             });
-            const routePosition3: Route = await repository.save({
+            const routeOrder3: Route = await repository.save({
                 routingTableId: table.id,
-                position: 3,
+                route_order: 3,
                 gatewayId: gateway.id
             });
-            const routePosition4: Route = await repository.save({
+            const routeOrder4: Route = await repository.save({
                 routingTableId: table.id,
-                position: 4,
+                route_order: 4,
                 gatewayId: gateway.id
             });
 
-            await repository.move(routePosition2.id, 3);
+            await repository.move([routeOrder2.id], routeOrder4.id, 'below');
 
-            expect((await repository.findOne(routePosition1.id)).position).to.eq(1);
-            expect((await repository.findOne(routePosition2.id)).position).to.eq(3);
-            expect((await repository.findOne(routePosition3.id)).position).to.eq(2);
-            expect((await repository.findOne(routePosition4.id)).position).to.eq(4);
+            expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
+            expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(4);
+            expect((await repository.findOne(routeOrder3.id)).route_order).to.eq(2);
+            expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(3);
         });
 
-        it('should manage position changes when move to greater positions', async () => {
-            const routePosition1: Route = await repository.save({
+        it('should manage route_order backward changes', async () => {
+            const routeOrder1: Route = await repository.save({
                 routingTableId: table.id,
-                position: 1,
+                route_order: 1,
                 gatewayId: gateway.id
             });
-            const routePosition2: Route = await repository.save({
+            const routeOrder2: Route = await repository.save({
                 routingTableId: table.id,
-                position: 2,
+                route_order: 2,
                 gatewayId: gateway.id
             });
-            const routePosition3: Route = await repository.save({
+            const routeOrder3: Route = await repository.save({
                 routingTableId: table.id,
-                position: 3,
+                route_order: 3,
                 gatewayId: gateway.id
             });
-            const routePosition4: Route = await repository.save({
+            const routeOrder4: Route = await repository.save({
                 routingTableId: table.id,
-                position: 4,
+                route_order: 4,
                 gatewayId: gateway.id
             });
 
-            await repository.move(routePosition4.id, 2);
+            await repository.move([routeOrder4.id], routeOrder2.id, 'above');
 
-            expect((await repository.findOne(routePosition1.id)).position).to.eq(1);
-            expect((await repository.findOne(routePosition2.id)).position).to.eq(3);
-            expect((await repository.findOne(routePosition3.id)).position).to.eq(4);
-            expect((await repository.findOne(routePosition4.id)).position).to.eq(2);
-        })
-    })
-})
+            expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
+            expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);
+            expect((await repository.findOne(routeOrder3.id)).route_order).to.eq(4);
+            expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(2);
+        });
+
+        it('should add to a group is destination belongs to a group', async () => {
+            const routeOrder1: Route = await repository.save({
+                routingTableId: table.id,
+                route_order: 1,
+                gatewayId: gateway.id
+            });
+            const routeOrder2: Route = await repository.save({
+                routingTableId: table.id,
+                route_order: 2,
+                gatewayId: gateway.id
+            });
+            const routeOrder3: Route = await repository.save({
+                routingTableId: table.id,
+                route_order: 3,
+                gatewayId: gateway.id
+            });
+
+            let group: RouteGroup = await routeGroupService.create({
+                name: 'group',
+                routes: [routeOrder2],
+                firewallId: firewall.id,
+            });
+
+            await repository.move([routeOrder3.id], routeOrder2.id, 'above');
+
+            expect((await repository.findOne(routeOrder3.id)).routeGroupId).to.eq(group.id);
+            expect((await repository.findOne(routeOrder3.id)).routeGroupId).to.eq(group.id);
+        });
+
+        describe('bulk', () => {
+            it('should manage route_order forward changes', async () => {
+                const routeOrder1: Route = await repository.save({
+                    routingTableId: table.id,
+                    route_order: 1,
+                    gatewayId: gateway.id
+                });
+                const routeOrder2: Route = await repository.save({
+                    routingTableId: table.id,
+                    route_order: 2,
+                    gatewayId: gateway.id
+                });
+                const routeOrder3: Route = await repository.save({
+                    routingTableId: table.id,
+                    route_order: 3,
+                    gatewayId: gateway.id
+                });
+                const routeOrder4: Route = await repository.save({
+                    routingTableId: table.id,
+                    route_order: 4,
+                    gatewayId: gateway.id
+                });
+    
+                await repository.move([routeOrder1.id, routeOrder2.id], routeOrder4.id, 'above');
+    
+                expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(2);
+                expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);
+                expect((await repository.findOne(routeOrder3.id)).route_order).to.eq(1);
+                expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(4);
+            });
+    
+            it('should manage route_order backward changes', async () => {
+                const routeOrder1: Route = await repository.save({
+                    routingTableId: table.id,
+                    route_order: 1,
+                    gatewayId: gateway.id
+                });
+                const routeOrder2: Route = await repository.save({
+                    routingTableId: table.id,
+                    route_order: 2,
+                    gatewayId: gateway.id
+                });
+                const routeOrder3: Route = await repository.save({
+                    routingTableId: table.id,
+                    route_order: 3,
+                    gatewayId: gateway.id
+                });
+                const routeOrder4: Route = await repository.save({
+                    routingTableId: table.id,
+                    route_order: 4,
+                    gatewayId: gateway.id
+                });
+    
+                await repository.move([routeOrder3.id, routeOrder4.id], routeOrder2.id, 'above');
+    
+                expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
+                expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(4);
+                expect((await repository.findOne(routeOrder3.id)).route_order).to.eq(2);
+                expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(3);
+            });
+
+            it('should add to a group is destination belongs to a group', async () => {
+                const routeOrder1: Route = await repository.save({
+                    routingTableId: table.id,
+                    route_order: 1,
+                    gatewayId: gateway.id
+                });
+                const routeOrder2: Route = await repository.save({
+                    routingTableId: table.id,
+                    route_order: 2,
+                    gatewayId: gateway.id
+                });
+                const routeOrder3: Route = await repository.save({
+                    routingTableId: table.id,
+                    route_order: 3,
+                    gatewayId: gateway.id
+                });
+    
+                let group: RouteGroup = await routeGroupService.create({
+                    name: 'group',
+                    routes: [routeOrder1],
+                    firewallId: firewall.id,
+                });
+    
+                await repository.move([routeOrder2.id, routeOrder3.id], routeOrder1.id, 'above');
+    
+                expect((await repository.findOne(routeOrder3.id)).routeGroupId).to.eq(group.id);
+                expect((await repository.findOne(routeOrder3.id)).routeGroupId).to.eq(group.id);
+            });
+        });
+        
+    });
+
+    describe('remove', () => {
+        it('should refresh orders after remove', async () => {
+            const routeOrder1: Route = await repository.save({
+                routingTableId: table.id,
+                route_order: 1,
+                gatewayId: gateway.id
+            });
+            const routeOrder2: Route = await repository.save({
+                routingTableId: table.id,
+                route_order: 2,
+                gatewayId: gateway.id
+            });
+            const routeOrder3: Route = await repository.save({
+                routingTableId: table.id,
+                route_order: 3,
+                gatewayId: gateway.id
+            });
+            const routeOrder4: Route = await repository.save({
+                routingTableId: table.id,
+                route_order: 4,
+                gatewayId: gateway.id
+            });
+
+            await repository.remove([routeOrder2, routeOrder3]);
+
+            expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
+            expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(2);
+        });
+    });
+});

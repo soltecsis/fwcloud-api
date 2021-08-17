@@ -24,17 +24,27 @@ import { Controller } from "../../../fonaments/http/controller";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { Request } from "express";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { Validate } from "../../../decorators/validate.decorator";
-import { RoutingRuleService } from "../../../models/routing/routing-rule/routing-rule.service";
+import { Validate, ValidateQuery } from "../../../decorators/validate.decorator";
+import { ICreateRoutingRule, RoutingRulesData, RoutingRuleService } from "../../../models/routing/routing-rule/routing-rule.service";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { RoutingRulePolicy } from "../../../policies/routing-rule.policy";
 import { RoutingRule } from "../../../models/routing/routing-rule/routing-rule.model";
 import { RoutingRuleControllerCreateDto } from "./dtos/create.dto";
 import { RoutingRuleControllerUpdateDto } from "./dtos/update.dto";
+import { RoutingTableService } from "../../../models/routing/routing-table/routing-table.service";
+import { RoutingRuleItemForCompiler } from "../../../models/routing/shared";
+import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
+import { getRepository, In, SelectQueryBuilder } from "typeorm";
+import { RoutingRuleControllerMoveDto } from "./dtos/move.dto";
+import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
+import { RoutingRuleControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
+import { RoutingRuleControllerBulkRemoveQueryDto } from "./dtos/bulk-remove.dto";
+import { RoutingRuleControllerCopyDto } from "./dtos/copy.dto";
 
 export class RoutingRuleController extends Controller {
     
     protected routingRuleService: RoutingRuleService;
+    protected routingTableService: RoutingTableService;
     protected _firewall: Firewall;
     protected _fwCloud: FwCloud;
 
@@ -57,6 +67,16 @@ export class RoutingRuleController extends Controller {
     }
 
     @Validate()
+    async grid(request: Request): Promise<ResponseBuilder> {
+        (await RoutingRulePolicy.index(this._firewall, request.session.user)).authorize();
+        
+        const grid = await this.routingRuleService.getRoutingRulesData('grid', this._firewall.fwCloudId, this._firewall.id);
+
+
+        return ResponseBuilder.buildResponse().status(200).body(grid);
+    }
+
+    @Validate()
     async show(request: Request): Promise<ResponseBuilder> {
         const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
             firewallId: this._firewall.id,
@@ -74,9 +94,37 @@ export class RoutingRuleController extends Controller {
 
         (await RoutingRulePolicy.create(this._firewall, request.session.user)).authorize();
 
+        const data: ICreateRoutingRule = request.inputs.all<ICreateRoutingRule>();
+        data.offset = data.offset as unknown as number >= 0 ? 'below': 'above';
+        
         const rule: RoutingRule = await this.routingRuleService.create(request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(201).body(rule);
+    }
+
+    @Validate(RoutingRuleControllerCopyDto)
+    async copy(request: Request): Promise<ResponseBuilder> {
+
+        const rules: RoutingRule[] = [];
+
+        const ids: string[] = request.inputs.get('rules');
+        
+        for(let id of ids) {
+            const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
+                fwCloudId: this._fwCloud.id,
+                firewallId: this._firewall.id,
+                id: parseInt(id)
+            });
+
+            (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();    
+        
+            rules.push(rule);
+        }
+
+        const offset: 'above' | 'below' = request.inputs.get('offset') > 0 ? 'below': 'above';
+        const created: RoutingRule[] = await this.routingRuleService.copy(rules.map(item => item.id), request.inputs.get('to'), offset)
+
+        return ResponseBuilder.buildResponse().status(201).body(created);
     }
 
     @Validate(RoutingRuleControllerUpdateDto)
@@ -92,6 +140,77 @@ export class RoutingRuleController extends Controller {
         const result: RoutingRule = await this.routingRuleService.update(rule.id, request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(200).body(result);
+    }
+
+    @Validate(RoutingRuleControllerBulkUpdateDto)
+    async bulkUpdate(request: Request): Promise<ResponseBuilder> {
+        const rules: RoutingRule[] = [];
+
+        const ids: string[] = request.query.rules as string[] || [];
+        
+        for(let id of ids) {
+            const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
+                fwCloudId: this._fwCloud.id,
+                firewallId: this._firewall.id,
+                id: parseInt(id)
+            });
+
+            (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();    
+        
+            rules.push(rule);
+        }
+
+        if (rules.length === 0) {
+            throw new HttpException(`Missing rules ids to be removed`, 400);
+        }
+
+        const result: RoutingRule[] = await this.routingRuleService.bulkUpdate(rules.map(item => item.id), request.inputs.all());
+
+        return ResponseBuilder.buildResponse().status(200).body(result);
+    }
+
+    @Validate(RoutingRuleControllerMoveDto)
+    async move(request: Request): Promise<ResponseBuilder> {
+        (await RoutingRulePolicy.index(this._firewall, request.session.user)).authorize();
+        
+        const rules: RoutingRule[] = await getRepository(RoutingRule).find({
+            join: {
+                alias: 'rule',
+                innerJoin: {
+                    table: 'rule.routingTable',
+                    firewall: 'table.firewall',
+                    fwcloud: 'firewall.fwCloud'
+                }
+            },
+            where: (qb: SelectQueryBuilder<RoutingRule>) => {
+                qb.whereInIds(request.inputs.get('rules'))
+                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
+                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
+            }
+        });
+
+        const offset: 'above' | 'below' = request.inputs.get('offset') >= 0 ? 'below': 'above'
+        
+        const result: RoutingRule[] = await this.routingRuleService.move(rules.map(item => item.id), request.inputs.get('to'), offset);
+
+        return ResponseBuilder.buildResponse().status(200).body(result);
+    }
+
+    @Validate()
+    async compile(request: Request): Promise<ResponseBuilder> {
+        const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
+            fwCloudId: this._fwCloud.id,
+            firewallId: this._firewall.id,
+            id: parseInt(request.params.rule)
+        });
+
+        (await RoutingRulePolicy.show(rule, request.session.user)).authorize();
+
+        const rules: RoutingRulesData<RoutingRuleItemForCompiler>[] = await this.routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', this._fwCloud.id, this._firewall.id, [rule.id]);
+
+        const compilation = new RoutingCompiler().compile('Rule', rules);
+        
+        return ResponseBuilder.buildResponse().status(200).body(compilation);
     }
     
     @Validate()
@@ -110,5 +229,34 @@ export class RoutingRuleController extends Controller {
             id: parseInt(request.params.rule)
         });
         return ResponseBuilder.buildResponse().status(200).body(rule);
+    }
+
+    @Validate()
+    @ValidateQuery(RoutingRuleControllerBulkRemoveQueryDto)
+    async bulkRemove(request: Request): Promise<ResponseBuilder> {
+        const rules: RoutingRule[] = [];
+
+        const ids: string[] = request.query.rules as string[] || [];
+        
+        for(let id of ids) {
+            const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
+                fwCloudId: this._fwCloud.id,
+                firewallId: this._firewall.id,
+                id: parseInt(id)
+            });
+
+            (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();    
+        
+            rules.push(rule);
+        }
+
+        if (rules.length === 0) {
+            throw new HttpException(`Missing routes ids to be removed`, 400);
+        }
+
+        const returned: RoutingRule[] = await this.routingRuleService.bulkRemove(rules.map(item => item.id));
+
+        return ResponseBuilder.buildResponse().status(200).body(returned);
+
     }
 }

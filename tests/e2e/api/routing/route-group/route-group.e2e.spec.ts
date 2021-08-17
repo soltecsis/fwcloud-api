@@ -89,7 +89,7 @@ describe(describeName('Route Group E2E Tests'), () => {
         route = await getRepository(Route).save({
             routingTableId: table.id,
             gatewayId: gateway.id,
-            position: 1
+            route_order: 1
         });
 
     });

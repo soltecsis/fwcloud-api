@@ -35,20 +35,8 @@ describe('Routing rules data fetch for compiler or grid', () => {
 
     before(async () => {
         await testSuite.resetDatabaseData();
-
-        routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
-
         fwc = await (new FwCloudFactory()).make();
-
-        await routingRuleService.update(fwc.routingRules.get('routing-rule-1').id, {
-            ipObjIds: [fwc.ipobjs.get('address').id, fwc.ipobjs.get('addressRange').id, fwc.ipobjs.get('network').id, fwc.ipobjs.get('host').id],
-            openVPNIds: [fwc.openvpnClients.get('OpenVPN-Cli-3').id],
-            openVPNPrefixIds: [fwc.openvpnPrefix.id],
-            markIds: [fwc.mark.id] 
-        });
-        await routingRuleService.update(fwc.routingRules.get('routing-rule-2').id, {
-            ipObjGroupIds: [fwc.ipobjGroup.id]
-        });
+        routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
     });
 
     describe('For compiler', () => {
@@ -62,7 +50,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
             beforeEach(() => {
                 items = routingRules[0].items;
                 item = { 
-                    entityId: fwc.routes.get('route1').id, 
+                    entityId: fwc.routingRules.get('routing-rule-1').id, 
                     type: 0, 
                     address: null, 
                     netmask: null, 
@@ -118,7 +106,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
             beforeEach(() => {
                 items = routingRules[1].items; // This route has the group of objects.
                 item = { 
-                    entityId: fwc.routes.get('route2').id, 
+                    entityId: fwc.routingRules.get('routing-rule-2').id, 
                     type: 0, 
                     address: null, 
                     netmask: null, 
@@ -177,7 +165,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
             beforeEach(() => {
                 items = routingRules[0].items;
                 item = { 
-                    entityId: fwc.routes.get('route1').id,
+                    entityId: fwc.routingRules.get('routing-rule-1').id,
                     id: 0,
                     name: null,
                     type: 0,
@@ -228,7 +216,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
             beforeEach(() => {
                 items = routingRules[1].items; // This route has the group of objects.
                 item = { 
-                    entityId: fwc.routes.get('route2').id,
+                    entityId: fwc.routingRules.get('routing-rule-2').id,
                     id: 0,
                     name: null,
                     type: 0,
@@ -245,4 +233,23 @@ describe('Routing rules data fetch for compiler or grid', () => {
             });
         })
     })
+
+    describe('Get data for only some routing rules', () => {
+        it('should get data for routing rules 1 and 3', async () => {
+            const ids = [ fwc.routingRules.get('routing-rule-1').id, fwc.routingRules.get('routing-rule-3').id ];
+            routingRules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler',fwc.fwcloud.id,fwc.firewall.id,ids);            
+
+            expect(routingRules.length).to.equal(2);
+            expect(routingRules[0].id).to.equal(ids[0]);
+            expect(routingRules[1].id).to.equal(ids[1]);
+        });
+
+        it('should get data for routing rule 2', async () => {
+            const ids = [ fwc.routingRules.get('routing-rule-2').id ];
+            routingRules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler',fwc.fwcloud.id,fwc.firewall.id,ids);            
+
+            expect(routingRules.length).to.equal(1);
+            expect(routingRules[0].id).to.equal(ids[0]);
+        });
+    });
 })

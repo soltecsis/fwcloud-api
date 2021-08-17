@@ -28,24 +28,24 @@ import { IsClientOpenVPN } from "../../../../fonaments/validation/rules/is-clien
 export class RoutingRuleControllerUpdateDto {
     @IsNumber()
     @IsOptional()
-    routingTableId: number;
+    routingTableId?: number;
 
     @IsBoolean()
     @IsOptional()
-    active: boolean;
+    active?: boolean;
     
     @IsString()
     @IsOptional()
-    comment: string;
+    comment?: string;
 
     @IsNumber()
     @IsPositive()
     @IsOptional()
-    position: number;
+    rule_order?: number;
 
     @IsString()
     @IsOptional()
-    style: string;
+    style?: string;
 
     @IsArray()
     @IsOptional()
@@ -59,7 +59,7 @@ export class RoutingRuleControllerUpdateDto {
     @IsNumber({}, {
         each: true
     })
-    ipObjIds: number[]
+    ipObjIds?: number[]
 
     @IsArray()
     @IsOptional()
@@ -69,7 +69,7 @@ export class RoutingRuleControllerUpdateDto {
     @IsNumber({}, {
         each: true
     })
-    ipObjGroupIds: number[]
+    ipObjGroupIds?: number[]
 
     @IsArray()
     @IsOptional()
@@ -77,12 +77,19 @@ export class RoutingRuleControllerUpdateDto {
         each: true
     })
     @IsClientOpenVPN()
-    openVPNIds: number[];
+    openVPNIds?: number[];
     
     @IsArray()
     @IsOptional()
     @IsNumber({}, {
         each: true
     })
-    openVPNPrefixIds: number[];
+    openVPNPrefixIds?: number[];
+
+    @IsArray()
+    @IsOptional()
+    @IsNumber({}, {
+        each: true
+    })
+    markIds?: number[]
 }

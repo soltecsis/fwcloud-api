@@ -52,7 +52,7 @@ export class RoutingRule extends Model {
     @Column({
         type: Number
     })
-    position: number;
+    rule_order: number;
 
     @Column()
     style: string;
@@ -60,7 +60,7 @@ export class RoutingRule extends Model {
     @Column({
         name: 'group'
     })
-    groupId: number;
+    routingGroupId: number;
 
     @ManyToOne(type => RoutingGroup, routingGroup => routingGroup.routingRules)
     @JoinColumn({

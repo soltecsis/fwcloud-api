@@ -24,8 +24,8 @@ import { IsNumber, IsOptional, IsString, Max, Min } from "class-validator";
 
 export class RoutingTableControllerCreateDto {
     @IsNumber()
-    @Min(0)
-    @Max(255)
+    @Min(1)
+    @Max(254)
     number: number;
     
     @IsString()

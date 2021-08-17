@@ -38,19 +38,10 @@ describe('Routing table data fetch for compiler or grid', () => {
     before(async () => {
         await testSuite.resetDatabaseData();
 
-        routeService = await testSuite.app.getService<RouteService>(RouteService.name);
-        routingTableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
-
         fwc = await (new FwCloudFactory()).make();
 
-        await routeService.update(fwc.routes.get('route1').id, {
-            ipObjIds: [fwc.ipobjs.get('address').id, fwc.ipobjs.get('addressRange').id, fwc.ipobjs.get('network').id, fwc.ipobjs.get('host').id],
-            openVPNIds: [fwc.openvpnClients.get('OpenVPN-Cli-3').id],
-            openVPNPrefixIds: [fwc.openvpnPrefix.id]
-        });
-        await routeService.update(fwc.routes.get('route2').id, {
-            ipObjGroupIds: [fwc.ipobjGroup.id]
-        });
+        routeService = await testSuite.app.getService<RouteService>(RouteService.name);
+        routingTableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
     });
 
     describe('For compiler', () => {
@@ -235,4 +226,32 @@ describe('Routing table data fetch for compiler or grid', () => {
             });
         })
     })
+
+    describe('Get data for only some routes', () => {
+        it('should get data for route 2', async () => {
+            const ids = [ fwc.routes.get('route2').id ];
+            routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id,fwc.firewall.id,fwc.routingTable.id,ids);            
+
+            expect(routes.length).to.equal(1);
+            expect(routes[0].id).to.equal(ids[0]);
+        });
+
+        it('should get data for routes 1 and 3', async () => {
+            const ids = [ fwc.routes.get('route1').id, fwc.routes.get('route3').id ];
+            routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id,fwc.firewall.id,fwc.routingTable.id,ids);            
+
+            expect(routes.length).to.equal(2);
+            expect(routes[0].id).to.equal(ids[0]);
+            expect(routes[1].id).to.equal(ids[1]);
+        });
+
+        it('should get data for routes 2 and 4', async () => {
+            const ids = [ fwc.routes.get('route2').id, fwc.routes.get('route4').id ];
+            routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id,fwc.firewall.id,fwc.routingTable.id,ids);            
+
+            expect(routes.length).to.equal(2);
+            expect(routes[0].id).to.equal(ids[0]);
+            expect(routes[1].id).to.equal(ids[1]);
+        });
+    });
 })

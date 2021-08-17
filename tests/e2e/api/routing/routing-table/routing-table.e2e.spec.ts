@@ -34,6 +34,9 @@ import { _URL } from "../../../../../src/fonaments/http/router/router.service";
 import { RoutingTable } from "../../../../../src/models/routing/routing-table/routing-table.model";
 import { RoutingTableService } from "../../../../../src/models/routing/routing-table/routing-table.service";
 import { Tree } from "../../../../../src/models/tree/Tree";
+import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
+import { RouteService } from "../../../../../src/models/routing/route/route.service";
+import { Route } from "../../../../../src/models/routing/route/route.model";
 
 describe(describeName('Routing Table E2E Tests'), () => {
     let app: Application;
@@ -272,8 +275,6 @@ describe(describeName('Routing Table E2E Tests'), () => {
                     expect(response.body.data).to.deep.eq([]);
                 });
             });
-
-
         });
 
         describe('@create', () => {
@@ -511,5 +512,94 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
 
         });
+
+        describe('@compileRoutes', () => {
+            let fwcProduct: FwCloudProduct;
+            let table: RoutingTable;
+            let routeService: RouteService;
+            let route1: Route;
+            let route2: Route;
+
+            beforeEach(async () => {
+                fwcProduct = await new FwCloudFactory().make();
+                fwCloud = fwcProduct.fwcloud;
+                firewall = fwcProduct.firewall;
+                table = fwcProduct.routingTable;
+                routeService = await app.getService<RouteService>(RouteService.name);
+
+                route1 = await routeService.create({
+                    routingTableId: table.id,
+                    gatewayId: fwcProduct.ipobjs.get('gateway').id,
+                });
+
+                route2 = await routeService.create({
+                    routingTableId: table.id,
+                    gatewayId: fwcProduct.ipobjs.get('gateway').id,
+                })
+            });
+
+            it('guest user should not see a routing table grid', async () => {
+				return await request(app.express)
+					.get(_URL().getURL('fwclouds.firewalls.routing.tables.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not see the table grid', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.tables.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should see the table grid', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.tables.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(200);
+            });
+
+            it('admin user should see routing table grid', async () => {
+                return await request(app.express)
+                .get(_URL().getURL('fwclouds.firewalls.routing.tables.compile', {
+                    fwcloud: fwCloud.id,
+                    firewall: firewall.id,
+                    routingTable: table.id
+                }))
+                .set('Cookie', [attachSession(adminUserSessionId)])
+                .expect(200);
+            });
+
+            it('should compile a list of routes', async () => {
+                return await request(app.express)
+                .get(_URL().getURL('fwclouds.firewalls.routing.tables.compile', {
+                    fwcloud: fwCloud.id,
+                    firewall: firewall.id,
+                    routingTable: table.id
+                }))
+                .query({
+                    routes: [route1.id, route2.id]
+                })
+                .set('Cookie', [attachSession(adminUserSessionId)])
+                .expect(200)
+                .expect(response => {
+                    expect(response.body.data).to.have.length(2)
+                })
+            });
+        })
     });
 });

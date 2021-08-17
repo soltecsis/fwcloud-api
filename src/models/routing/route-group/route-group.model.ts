@@ -39,6 +39,9 @@ export class RouteGroup extends Model {
     @Column()
     comment: string;
 
+    @Column()
+    style: string
+
     @Column({
         name: 'firewall'
     })

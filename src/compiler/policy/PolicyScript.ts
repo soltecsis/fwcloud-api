@@ -110,7 +110,8 @@ export class PolicyScript {
 
 	private async dumpCompilation(type: number): Promise<void> {
 		// Compile all rules of the same type.
-		const rulesCompiled =  await PolicyCompiler.compile(this.policyCompiler, this.dbCon, this.fwcloud, this.firewall, type, null, this.channel);
+		const rulesData: any = await PolicyRule.getPolicyData('compiler', this.dbCon, this.fwcloud, this.firewall, type, null, null);
+		const rulesCompiled =  await PolicyCompiler.compile(this.policyCompiler, rulesData, this.channel);
 
 		let cs = '';
 		for (let i=0; i < rulesCompiled.length; i++) {
@@ -346,22 +347,31 @@ export class PolicyScript {
 		// Only dump routing compilation if we have routing tables.
 		if (routingTables.length > 0) {
 			this.stream.write("echo\n");
+			this.stream.write("echo\n");
 			this.stream.write("echo \"******************\"\n");
 			this.stream.write("echo \"* ROUTING POLICY *\"\n");
 			this.stream.write("echo \"******************\"\n");
 			this.channel.emit('message', new ProgressNoticePayload(""));
 			this.channel.emit('message', new ProgressNoticePayload(""));
 			this.channel.emit('message', new ProgressNoticePayload("ROUTING POLICY:", true));
-			this.stream.write('  $IP route flush route flush cache\n');
 			// Flush all routing tables.
-			this.stream.write('for t in {1..250}; do\n');
-			this.stream.write('  $IP route flush table $t\n');
+			this.stream.write("echo -n \"Flushing routing tables and rules ... \"\n");
+			this.stream.write('$IP route flush cache\n');
+			this.stream.write('T=1\n');
+			this.stream.write('while [ $T -lt 251 ]; do\n');
+			this.stream.write('  $IP route flush table $T\n');
+			this.stream.write('  T=`expr $T + 1`\n');
 			this.stream.write('done\n');
-			this.stream.write('$IP route flush scope global table main\n\n');
+			this.stream.write('$IP route flush scope global table main\n');
+			this.stream.write('$IP rule flush\n');
+			this.stream.write('$IP rule add from all lookup main pref 32766\n');
+			this.stream.write('$IP rule add from all lookup default pref 32767\n');
+			this.stream.write("echo \"DONE\"\n\n");
 
 			// Compile and dump all routing tables.
 			for(let i=0; i<routingTables.length; i++) {
-				const msg = `ROUTING TABLE: ${routingTables[i].id}${routingTables[i].number == 254 ? ' (main)':''}`;
+				this.stream.write("echo\n");
+				const msg = `ROUTING TABLE: ${routingTables[i].number} (${routingTables[i].name})`;
 				this.stream.write(`echo \"${msg}\"\n`);
 				this.channel.emit('message', new ProgressNoticePayload(msg, true));
 
@@ -371,7 +381,7 @@ export class PolicyScript {
 
 					let cs ='';
 					for (let j=0; j < routesCompiled.length; j++) {
-						cs += `\necho \"Route ${j+1} (ID: ${routesCompiled[j].id})${!(routesCompiled[j].active) ? ' [DISABLED]' : ''}\"\n`;
+						cs += `echo \"Route ${j+1} (ID: ${routesCompiled[j].id})${!(routesCompiled[j].active) ? ' [DISABLED]' : ''}\"\n`;
 						if (routesCompiled[j].comment) cs += `# ${routesCompiled[j].comment.replace(/\n/g, "\n# ")}\n`;
 						if (routesCompiled[j].active) cs += routesCompiled[j].cs;
 					}

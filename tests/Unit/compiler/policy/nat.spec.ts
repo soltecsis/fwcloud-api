@@ -57,8 +57,9 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
     for (let i=0; i<posData.length; i++)
       await populateRule(rule,posData[i][0],posData[i][1]); 
     
-    const result = await PolicyCompiler.compile(compiler, dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
-    
+    const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, ruleData.firewall, ruleData.type, [rule], null);
+    const result = await PolicyCompiler.compile(compiler, rulesData);
+      
     expect(result).to.eql([{
       id: rule,
       active: ruleData.active,
@@ -87,7 +88,8 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
       let error: any;
       
       try {
-        const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+        const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, ruleData.firewall, ruleData.type, [rule], null);
+        const result = await PolicyCompiler.compile(compiler, rulesData);
       } catch(err) { error = err }
 
       expect(error).to.eql({
@@ -105,7 +107,8 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
       let error: any;
       
       try {
-        const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+        const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, ruleData.firewall, ruleData.type, [rule], null);
+        const result = await PolicyCompiler.compile(compiler, rulesData);
       } catch(err) { error = err }
 
       expect(error).to.eql({
@@ -127,7 +130,8 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
       let error: any;
       
       try {
-        const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+        const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, ruleData.firewall, ruleData.type, [rule], null);
+        const result = await PolicyCompiler.compile(compiler, rulesData);
       } catch(err) { error = err }
 
       expect(error).to.eql({
@@ -145,7 +149,8 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
       let error: any;
       
       try {
-        const result = await PolicyCompiler.compile('IPTables', dbCon, fwcloud, ruleData.firewall, ruleData.type, rule);
+        const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, ruleData.firewall, ruleData.type, [rule], null);
+        const result = await PolicyCompiler.compile(compiler, rulesData);
       } catch(err) { error = err }
 
       expect(error).to.eql({

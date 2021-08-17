@@ -111,6 +111,13 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     name: 'comment',
                     type: 'text',
                     isNullable: true
+                },
+                {
+                    name: 'style',
+                    type: 'varchar',
+                    length: '50',
+                    isNullable: true,
+                    default: null
                 }
             ],
             foreignKeys: [
@@ -171,7 +178,7 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     isNullable: true
                 },
                 {
-                    name: 'position',
+                    name: 'route_order',
                     type: 'int',
                     length: '11',
                     isNullable: false,
@@ -235,6 +242,13 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     name: 'comment',
                     type: 'text',
                     isNullable: true
+                },
+                {
+                    name: 'style',
+                    type: 'varchar',
+                    length: '50',
+                    isNullable: true,
+                    default: null
                 }
             ],
             foreignKeys: [
@@ -283,7 +297,7 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     isNullable: true
                 },
                 {
-                    name: 'position',
+                    name: 'rule_order',
                     type: 'int',
                     length: '11',
                     isNullable: false,
@@ -527,6 +541,12 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     length: '11',
                     isNullable: false,
                     isPrimary: true
+                },
+                {
+                    name: 'order',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false,
                 }
             ],
             foreignKeys: [
@@ -560,6 +580,12 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     length: '11',
                     isNullable: false,
                     isPrimary: true
+                },
+                {
+                    name: 'order',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false,
                 }
             ],
             foreignKeys: [
@@ -593,6 +619,12 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     length: '11',
                     isNullable: false,
                     isPrimary: true
+                },
+                {
+                    name: 'order',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false,
                 }
             ],
             foreignKeys: [

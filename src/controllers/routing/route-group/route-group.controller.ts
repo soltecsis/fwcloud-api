@@ -92,14 +92,10 @@ export class RouteGroupController extends Controller {
             firewallId: this._firewall.id,
             id: parseInt(request.params.routeGroup)
         });
-        
+
         (await RouteGroupPolicy.update(group, request.session.user)).authorize();
 
-        const result: RouteGroup = await this._routeGroupService.update(group.id, {
-            name: request.inputs.get('name'),
-            comment: request.inputs.get('comment'),
-            routes: request.inputs.get('routes').map((id) => ({id}))
-        });
+        const result: RouteGroup = await this._routeGroupService.update(group.id, request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }

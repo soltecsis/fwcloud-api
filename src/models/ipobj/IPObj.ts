@@ -955,11 +955,31 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInOpenVPN = await this.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
                 search.restrictions.IpobjInRoute = await getRepository(Route).createQueryBuilder('route')
-                    .innerJoinAndSelect('route.ipObjs', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
-                    .innerJoin('route.routingTable', 'table')
-                    .innerJoin('table.firewall', 'firewall')
-                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getMany();
+                .where((qb) => {
+                    const query: string = qb.subQuery()
+                        .from(Route, 'route')
+                        .select('route.id')
+                        .innerJoin('route.ipObjs', 'ipObj')
+                        .innerJoin('route.routingTable', 'table')
+                        .innerJoin('table.firewall', 'firewall')
+                        .where('ipObj.id = :ipobj', {ipobj: id})
+                        .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud}).getQuery();
+
+                        return `route.id IN ${query}`;
+                })
+                .orWhere((qb) => {
+                    const query: string = qb.subQuery()
+                        .from(Route, 'route')
+                        .select('route.id')
+                        .innerJoin('route.gateway', 'gateway')
+                        .innerJoin('route.routingTable', 'table')
+                        .innerJoin('table.firewall', 'firewall')
+                        .where('gateway.id = :gateway', {gateway: id})
+                        .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud}).getQuery();
+
+                        return `route.id IN ${query}`;
+                }).getMany();
+                search.restrictions.IpobjInRoute = search.restrictions.IpobjInRoute.map(item => ({ ...item, route_id: item.id }));
 
                 search.restrictions.IpobjInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
                     .innerJoinAndSelect('rule.ipObjs', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
@@ -967,6 +987,7 @@ export class IPObj extends Model {
                     .innerJoin('table.firewall', 'firewall')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
                     .getMany();
+                search.restrictions.IpobjInRoutingRule = search.restrictions.IpobjInRoutingRule.map(item => ({ ...item, routing_rule_id: item.id }));
 
 
                 if (type === 8) { // HOST

@@ -22,14 +22,17 @@
 
 import { Controller } from "../../../fonaments/http/controller";
 import { Firewall } from "../../../models/firewall/Firewall";
-import { RoutingTableService } from "../../../models/routing/routing-table/routing-table.service";
+import { RouteData, RoutingTableService } from "../../../models/routing/routing-table/routing-table.service";
 import { Request } from "express";
 import { RoutingTable } from "../../../models/routing/routing-table/routing-table.model";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { Validate } from "../../../decorators/validate.decorator";
+import { Validate, ValidateQuery } from "../../../decorators/validate.decorator";
 import { RoutingTablePolicy } from "../../../policies/routing-table.policy";
 import { RoutingTableControllerCreateDto } from "./dtos/create.dto";
 import { RoutingTableControllerUpdateDto } from "./dtos/update.dto";
+import { RouteItemForCompiler } from "../../../models/routing/shared";
+import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
+import { RoutingTableControllerCompileRoutesQueryDto } from "./dtos/compile-routes.dto";
 
 export class RoutingTableController extends Controller {
     
@@ -80,6 +83,33 @@ export class RoutingTableController extends Controller {
 
 
         return ResponseBuilder.buildResponse().status(200).body(grid);
+    }
+
+    @Validate()
+    @ValidateQuery(RoutingTableControllerCompileRoutesQueryDto)
+    async compileRoutes(request: Request): Promise<ResponseBuilder> {
+        const routingTable: RoutingTable = await this.routingTableService.findOneInPathOrFail({
+            fwCloudId: this._firewall.fwCloudId,
+            firewallId: this._firewall.id,
+            id: parseInt(request.params.routingTable),
+        });
+
+        (await RoutingTablePolicy.show(routingTable, request.session.user)).authorize();
+
+        let routes: RouteData<RouteItemForCompiler>[] = await this.routingTableService.getRoutingTableData(
+            'compiler',
+            this._firewall.fwCloudId,
+            this._firewall.id, routingTable.id,
+            request.query.routes ? (request.query.routes as string[]).map(item => parseInt(item)) : undefined
+        );
+        
+        if (Array.isArray(request.query.routes)) {
+            routes = routes.filter(route => (request.query.routes as string[]).includes(route.id.toString()))
+        }
+        
+        const compilation = new RoutingCompiler().compile('Route', routes);
+
+        return ResponseBuilder.buildResponse().status(200).body(compilation)
     }
 
     @Validate(RoutingTableControllerCreateDto)

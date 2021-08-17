@@ -22,19 +22,15 @@
 
 import { before } from "mocha";
 import { RoutingCompiled, RoutingCompiler } from "../../../../src/compiler/routing/RoutingCompiler";
-import { RouteService } from "../../../../src/models/routing/route/route.service";
-import { RoutingTableService, RouteData } from "../../../../src/models/routing/routing-table/routing-table.service";
+import { RoutingTableService } from "../../../../src/models/routing/routing-table/routing-table.service";
 import { RouteItemForCompiler } from "../../../../src/models/routing/shared";
 import { expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 import ip from 'ip';
 
-describe('Routing route compiler', () => {
-    let routeService: RouteService;
-    let routingTableService: RoutingTableService;
+describe('Routing route compiler', async () => {   
     let fwc: FwCloudProduct;
-
-    let routes: RouteData<RouteItemForCompiler>[];
+    let routingTableService: RoutingTableService;
 
     let compiler: RoutingCompiler = new RoutingCompiler;
     let compilation: RoutingCompiled[];
@@ -49,16 +45,28 @@ describe('Routing route compiler', () => {
     before(async () => {
       await testSuite.resetDatabaseData();
 
-      routeService = await testSuite.app.getService<RouteService>(RouteService.name);
-      routingTableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
-
       fwc = await (new FwCloudFactory()).make();
       gw = fwc.ipobjs.get('gateway').address;
       dev = fwc.interfaces.get('firewall-interface1').name;
       rtn = fwc.routingTable.number;
 
-      routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id, fwc.firewall.id, fwc.routingTable.id);            
+      routingTableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
+      const routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id, fwc.firewall.id, fwc.routingTable.id);            
       compilation = compiler.compile('Route',routes);
+    });
+
+    describe('Compilation of empty route', () => {
+        before(() => { 
+            tail = `table ${rtn}\n`; // The first route has interface.
+        });
+
+        it('should include default route without interface', () => {
+            expect(compilation[2].cs).to.equal(`${head} default via ${gw} ${tail}`);
+        });
+
+        it('should include default route with interface', () => {
+            expect(compilation[3].cs).to.equal(`${head} default via ${gw} dev ${dev} ${tail}`);
+        });
     });
 
     describe('Compilation of route with objects', () => {
@@ -137,6 +145,38 @@ describe('Routing route compiler', () => {
             expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`);
             expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli2-addr').address} ${tail}`);
             expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`);
+        });
+    });
+
+
+    describe('Compile only some routes', () => {
+        it('should compile only route 2', async () => {
+            const ids = [ fwc.routes.get('route2').id ];
+            const routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id, fwc.firewall.id, fwc.routingTable.id, ids);            
+            const compilation = compiler.compile('Route',routes);
+
+            expect(compilation.length).to.equal(1);
+            expect(compilation[0].id).to.equal(ids[0]);
+        });
+
+        it('should compile only routes 1 and 3', async () => {
+            const ids = [ fwc.routes.get('route1').id, fwc.routes.get('route3').id ];
+            const routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id, fwc.firewall.id, fwc.routingTable.id, ids);            
+            const compilation = compiler.compile('Route',routes);
+
+            expect(compilation.length).to.equal(2);
+            expect(compilation[0].id).to.equal(ids[0]);
+            expect(compilation[1].id).to.equal(ids[1]);
+        });
+
+        it('should compile only routes 2 and 4', async () => {
+            const ids = [ fwc.routes.get('route2').id, fwc.routes.get('route4').id ];
+            const routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id, fwc.firewall.id, fwc.routingTable.id, ids);            
+            const compilation = compiler.compile('Route',routes);
+
+            expect(compilation.length).to.equal(2);
+            expect(compilation[0].id).to.equal(ids[0]);
+            expect(compilation[1].id).to.equal(ids[1]);
         });
     });
 })

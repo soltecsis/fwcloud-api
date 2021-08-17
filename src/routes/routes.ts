@@ -39,6 +39,7 @@ import { RouteController } from "../controllers/routing/route/route.controller";
 import { RoutingRuleController } from "../controllers/routing/routing-rule/routing-rule.controller";
 import { RoutingGroupController } from "../controllers/routing/routing-group/routing-group.controller";
 import { RouteGroupController } from "../controllers/routing/route-group/route-group.controller";
+import { FirewallController } from "../controllers/firewalls/firewall.controller";
 
 export class Routes extends RouteCollection {
 
@@ -102,11 +103,18 @@ export class Routes extends RouteCollection {
                                     router.get('/grid', RoutingTableController, 'grid').name('fwclouds.firewalls.routing.tables.grid');
                                     router.put('/', RoutingTableController, 'update').name('fwclouds.firewalls.routing.tables.update');
                                     router.delete('/', RoutingTableController, 'remove').name('fwclouds.firewalls.routing.tables.delete');
+                                    
                                     router.prefix('/routes', (router: RouterParser) => {
+                                        router.get('/compile', RoutingTableController, 'compileRoutes').name('fwclouds.firewalls.routing.tables.compile');
                                         router.get('/', RouteController, 'index').name('fwclouds.firewalls.routing.tables.routes.index');
                                         router.post('/', RouteController, 'store').name('fwclouds.firewalls.routing.tables.routes.store');
+                                        router.post('/copy', RouteController, 'copy').name('fwclouds.firewalls.routing.tables.routes.copy');
+                                        router.put('/bulkUpdate', RouteController, 'bulkUpdate').name('fwclouds.firewalls.routing.tables.routes.bulkUpdate');
+                                        router.put('/move', RouteController, 'move').name('fwclouds.firewalls.routing.tables.routes.move');
+                                        router.delete('/bulkRemove', RouteController, 'bulkRemove').name('fwclouds.firewalls.routing.tables.routes.bulkRemove');
                                         router.prefix('/:route(\\d+)', (router:RouterParser) => {
                                             router.get('/', RouteController, 'show').name('fwclouds.firewalls.routing.tables.routes.show');
+                                            router.get('/compile', RouteController, 'compile').name('fwclouds.firewalls.routing.tables.routes.compile')
                                             router.put('/', RouteController, 'update').name('fwclouds.firewalls.routing.tables.routes.update');
                                             router.delete('/', RouteController, 'remove').name('fwclouds.firewalls.routing.tables.routes.delete');
                                         });
@@ -137,8 +145,15 @@ export class Routes extends RouteCollection {
                             router.prefix('/routingRules', (router: RouterParser) => {
                                 router.post('/', RoutingRuleController, 'create').name('fwclouds.firewalls.routing.rules.store');
                                 router.get('/', RoutingRuleController, 'index').name('fwclouds.firewalls.routing.rules.index');
+                                router.get('/grid', RoutingRuleController, 'grid').name('fwclouds.firewalls.routing.rules.grid');
+                                router.post('/copy', RoutingRuleController, 'copy').name('fwclouds.firewalls.routing.rules.copy');
+                                router.put('/move', RoutingRuleController, 'move').name('fwclouds.firewalls.routing.rules.move');
+                                router.get('/compile', FirewallController, 'compileRoutingRules').name('fwclouds.firewalls.routing.compile');
+                                router.put('/bulkUpdate', RoutingRuleController, 'bulkUpdate').name('fwclouds.firewalls.routing.rules.bulkUpdate');
+                                router.delete('/bulkRemove', RoutingRuleController, 'bulkRemove').name('fwclouds.firewalls.routing.rules.bulkRemove');
                                 router.prefix('/:rule(\\d+)', (router:RouterParser) => {
                                     router.get('/', RoutingRuleController, 'show').name('fwclouds.firewalls.routing.rules.show');
+                                    router.get('/compile', RoutingRuleController, 'compile').name('fwclouds.firewalls.routing.rules.compile')
                                     router.put('/', RoutingRuleController, 'update').name('fwclouds.firewalls.routing.rules.update');
                                     router.delete('/', RoutingRuleController, 'remove').name('fwclouds.firewalls.routing.rules.delete');
                                 });

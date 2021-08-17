@@ -25,14 +25,18 @@ import { ArrayMinSize, IsNumber, IsOptional, IsString } from "class-validator";
 export class RoutingGroupControllerUpdateDto {
     @IsString()
     @IsOptional()
-    name: string;
+    name?: string;
 
     @IsString()
     @IsOptional()
-    comment: string;
+    comment?: string;
+
+    @IsString()
+    @IsOptional()
+    style?: string;
 
     @IsNumber({}, {each: true})
-    @ArrayMinSize(1)
+    @ArrayMinSize(0)
     @IsOptional()
-    routingRules: number[]
+    routingRules?: number[]
 }

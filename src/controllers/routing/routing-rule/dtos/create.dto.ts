@@ -20,7 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsBoolean, IsNumber, IsOptional, IsString } from "class-validator"
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsPositive, IsString } from "class-validator"
+import { IpObjBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation";
+import { IpObjGroupBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-group-belongs-to-types.validation";
+import { IsClientOpenVPN } from "../../../../fonaments/validation/rules/is-client-openvpn.validation";
 
 export class RoutingRuleControllerCreateDto {
     @IsNumber()
@@ -37,4 +40,63 @@ export class RoutingRuleControllerCreateDto {
     @IsString()
     @IsOptional()
     style: string;
+
+    @IsNumber()
+    @IsOptional()
+    rule_order?: number;
+
+    @IsArray()
+    @IsOptional()
+    @IpObjBelongsToTypes([
+        5, // ADDRESS
+        6, // ADDRESS RANGE
+        7, // NETWORK
+        8, // HOST
+        9, // DNS
+    ])
+    @IsNumber({}, {
+        each: true
+    })
+    ipObjIds?: number[]
+
+    @IsArray()
+    @IsOptional()
+    @IpObjGroupBelongsToTypes([
+        20
+    ])
+    @IsNumber({}, {
+        each: true
+    })
+    ipObjGroupIds?: number[]
+
+    @IsArray()
+    @IsOptional()
+    @IsNumber({}, {
+        each: true
+    })
+    @IsClientOpenVPN()
+    openVPNIds?: number[];
+    
+    @IsArray()
+    @IsOptional()
+    @IsNumber({}, {
+        each: true
+    })
+    openVPNPrefixIds?: number[];
+
+    @IsArray()
+    @IsOptional()
+    @IsNumber({}, {
+        each: true
+    })
+    markIds?: number[];
+
+    @IsNumber()
+    @IsPositive()
+    @IsOptional()
+    to?: number;
+
+    @IsNumber()
+    @IsOptional()
+    offset?: number;
 }

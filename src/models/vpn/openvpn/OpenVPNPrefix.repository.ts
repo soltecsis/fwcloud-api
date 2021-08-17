@@ -29,21 +29,34 @@ import { OpenVPNPrefix } from "./OpenVPNPrefix";
 export class OpenVPNPrefixRepository extends Repository<OpenVPNPrefix> {
 
   getOpenVPNPrefixInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<OpenVPNPrefix> {
-    let q = this.createQueryBuilder("vpnPrefix")
+    let query = this.createQueryBuilder("vpnPrefix")
       .select("vpnPrefix.id","id").addSelect("vpnPrefix.name","name").addSelect("(select id from ipobj_type where id=401)","type")
-      .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
-      .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
-      .addSelect(`${entity}.id`,"entityId")
-      .innerJoin(`vpnPrefix.${entity==='route'?'routes':'routingRules'}`, `${entity}`)
-      .innerJoin(`${entity}.routingTable`, "table")
+      .addSelect("vpnFirewall.id","firewall_id").addSelect("vpnFirewall.name","firewall_name")
+      .addSelect("vpnCluster.id","cluster_id").addSelect("vpnCluster.name","cluster_name")
+      .addSelect(`${entity}.id`,"entityId");
+
+    if (entity === 'route') {
+      query.innerJoin('vpnPrefix.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
+        .innerJoin('routeToOpenVPNPrefixes.route', entity)
+    }
+
+    if (entity === 'rule') {
+      query.innerJoin('vpnPrefix.routingRules', entity)
+    }
+    
+    query.innerJoin(`${entity}.routingTable`, "table")
       .innerJoin("table.firewall", "firewall")
       .innerJoin("firewall.fwCloud", "fwcloud")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoin("vpnPrefix.openVPN", "vpnServer")
+      .innerJoin("vpnServer.firewall", "vpnFirewall")
+      .leftJoin("vpnFirewall.cluster", "vpnCluster")
       .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
       .andWhere("firewall.id = :firewall", {firewall: firewall});
 
-    if (routingTable) q = q.andWhere("table.id = :routingTable", {routingTable});
+    if (routingTable) {
+      query.andWhere("table.id = :routingTable", {routingTable});
+    }
 
-    return q;  
+    return query;  
   }    
 }

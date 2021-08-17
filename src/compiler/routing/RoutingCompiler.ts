@@ -47,11 +47,14 @@ export class RoutingCompiler {
 
 
   public routeCompile(routeData: RouteData<RouteItemForCompiler>): string {
-    const items = this.breakDownItems(routeData.items,'');
+    let items = this.breakDownItems(routeData.items,'');
     const gw = routeData.gateway.address;
     const dev = (routeData.interface && routeData.interface.name) ? ` dev ${routeData.interface.name} ` : ' ';
     let cs = '';
 
+    if (items.length == 0)
+      items.push('default');
+       
     for (let i=0; i<items.length; i++)
       cs += `$IP route add ${items[i]} via ${gw}${dev}table ${routeData.routingTable.number}\n`;
 

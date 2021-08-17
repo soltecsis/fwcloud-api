@@ -24,7 +24,7 @@ import { Controller } from "../../../fonaments/http/controller";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { RoutingGroupService } from "../../../models/routing/routing-group/routing-group.service";
-import { Request, response } from 'express';
+import { Request } from 'express';
 import { Validate } from "../../../decorators/validate.decorator";
 import { RoutingGroupPolicy } from "../../../policies/routing-group.policy";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
@@ -92,11 +92,7 @@ export class RoutingGroupController extends Controller {
 
         (await RoutingGroupPolicy.update(group, request.session.user)).authorize();
 
-        const updated: RoutingGroup = await this._routingGroupService.update(group.id, {
-            name: request.inputs.get('name'),
-            comment: request.inputs.get('comment'),
-            routingRules: request.inputs.get('routingRules').map((id) => ({id}))
-        })
+        const updated: RoutingGroup = await this._routingGroupService.update(group.id, request.inputs.all())
 
         return ResponseBuilder.buildResponse().status(200).body(updated);
     }
