@@ -33,6 +33,7 @@ import { RoutingTableControllerUpdateDto } from "./dtos/update.dto";
 import { RouteItemForCompiler } from "../../../models/routing/shared";
 import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
 import { RoutingTableControllerCompileRoutesQueryDto } from "./dtos/compile-routes.dto";
+import { Tree } from "../../../models/tree/Tree";
 
 export class RoutingTableController extends Controller {
     
@@ -80,7 +81,6 @@ export class RoutingTableController extends Controller {
         (await RoutingTablePolicy.show(routingTable, request.session.user)).authorize();
 
         const grid = await this.routingTableService.getRoutingTableData('grid', this._firewall.fwCloudId, this._firewall.id, routingTable.id);
-
 
         return ResponseBuilder.buildResponse().status(200).body(grid);
     }
@@ -138,6 +138,9 @@ export class RoutingTableController extends Controller {
         (await RoutingTablePolicy.update(routingTable, request.session.user)).authorize();
 
         const result: RoutingTable = await this.routingTableService.update(routingTable.id, request.inputs.all());
+
+        // Update the tree node with the new name.
+        await Tree.updateRoutingTableNodeName(this._firewall.fwCloudId, result.id, result.name);
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }

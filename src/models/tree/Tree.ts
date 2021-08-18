@@ -472,6 +472,23 @@ export class Tree extends Model {
         });
     }
 
+    //Update routing table node.
+    public static updateRoutingTableNodeName(fwcloud: number, id: number, name: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            db.get((error, connection) => {
+                if (error) return reject(error);
+                
+                let sql = `UPDATE ${tableName} SET name=${connection.escape(name)} 
+                    WHERE node_type='RT' AND fwcloud=${fwcloud} AND id_obj=${id}`;
+
+                connection.query(sql, (error, result) => {
+                    if (error) return reject(error);
+                    resolve();
+                });
+            });
+        });
+    }
+    
     public static createObjectsTree(dbCon: Query, fwCloudId: number) {
         return new Promise(async (resolve, reject) => {
             try {
