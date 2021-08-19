@@ -41,7 +41,7 @@ describe(Mark.name, () => {
                 const whereUsed: any = await Mark.searchMarkUsage(db.getQuery(), fwcloudProduct.fwcloud.id, mark.id);
     
                 expect(whereUsed.restrictions.MarkInRoutingRule).to.have.length(1);
-                expect(whereUsed.restrictions.MarkInRoutingRule[0].id).to.be.eq(routingRule.id)
+                expect(whereUsed.restrictions.MarkInRoutingRule[0].routing_rule_id).to.be.eq(routingRule.id)
             })
         });
     })

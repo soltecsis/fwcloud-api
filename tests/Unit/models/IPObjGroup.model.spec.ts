@@ -83,7 +83,7 @@ describe(IPObjGroup.name, () => {
                 const whereUsed: any = await IPObjGroup.searchGroupUsage(ipobjGroup.id, fwcloudProduct.fwcloud.id);
     
                 expect(whereUsed.restrictions.GroupInRoute).to.have.length(1);
-                expect(whereUsed.restrictions.GroupInRoute[0].id).to.be.eq(route.id)
+                expect(whereUsed.restrictions.GroupInRoute[0].route_id).to.be.eq(route.id)
             })
         });
 
@@ -92,7 +92,7 @@ describe(IPObjGroup.name, () => {
                 const whereUsed: any = await IPObjGroup.searchGroupUsage(ipobjGroup.id, fwcloudProduct.fwcloud.id);
     
                 expect(whereUsed.restrictions.GroupInRoutingRule).to.have.length(1);
-                expect(whereUsed.restrictions.GroupInRoutingRule[0].id).to.be.eq(routingRule.id)
+                expect(whereUsed.restrictions.GroupInRoutingRule[0].routing_rule_id).to.be.eq(routingRule.id)
             })
         });
     })

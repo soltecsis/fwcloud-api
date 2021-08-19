@@ -140,7 +140,8 @@ export class RoutingRule extends Model {
             .innerJoin('InterfaceIPObj.hostIPObj', 'host')
             .innerJoin('host.routingRules', 'rules')
             .innerJoin('rules.routingTable', 'table')
-            .innerJoin('table.firewall', 'firewall')
+            .innerJoinAndSelect('table.firewall', 'firewall')
+            .leftJoinAndSelect('firewall.cluster', 'cluster')
             .innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloud', {fwcloud})
             .getMany();
 
@@ -157,12 +158,17 @@ export class RoutingRule extends Model {
             return [];
         }
 
-        return await getRepository(RoutingRule).createQueryBuilder('rule')
-            .innerJoin('rule.ipObjs', 'ipobj')
+        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoin('routing_rule.ipObjs', 'ipobj')
             .innerJoin('ipobj.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostInterface', 'interface')
+            .innerJoin('routing_rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
             .where(`interface.id IN (${uniqueInterfaces.map(item => item.id).join(',')})`)
-            .getMany();
+            .getRawMany();
     }
 
     public static async getRoutingRuleWhichLastAddressInHostInGroup(ipobjId: number, type: number, fwcloud:number): Promise<RoutingRule[]> {
@@ -192,12 +198,17 @@ export class RoutingRule extends Model {
             return [];
         }
 
-        return await getRepository(RoutingRule).createQueryBuilder('rule')
-            .innerJoin('rule.ipObjs', 'ipobj')
+        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoin('routing_rule.ipObjs', 'ipobj')
             .innerJoin('ipobj.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostInterface', 'interface')
+            .innerJoin('routing_rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
             .where(`interface.id IN (${uniqueInterfaces.map(item => item.id).join(',')})`)
-            .getMany();
+            .getRawMany();
     }
 
 }
