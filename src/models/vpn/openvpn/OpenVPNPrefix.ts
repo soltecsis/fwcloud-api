@@ -388,7 +388,7 @@ export class OpenVPNPrefix extends Model {
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
                     .innerJoin('route.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
                     .innerJoin('routeToOpenVPNPrefixes.openVPNPrefix', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
-                    .innerJoin('route.routingTable', 'table')
+                    .innerJoinAndSelect('route.routingTable', 'table')
                     .innerJoin('table.firewall', 'firewall')
                     .leftJoin('firewall.cluster', 'cluster')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})

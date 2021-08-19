@@ -360,7 +360,7 @@ export class IPObjGroup extends Model {
                 search.restrictions.GroupInRoute = await getRepository(Route).createQueryBuilder('route')
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-                    .innerJoin('route.routingTable', 'table')
+                    .innerJoinAndSelect('route.routingTable', 'table')
                     .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
                     .innerJoin('routeToIPObjGroups.ipObjGroup', 'group', 'group.id = :id', {id: id})
                     .innerJoin('table.firewall', 'firewall')

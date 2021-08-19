@@ -957,7 +957,7 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInRoute = await getRepository(Route).createQueryBuilder('route')
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-                    .innerJoin('route.routingTable', 'table')
+                    .innerJoinAndSelect('route.routingTable', 'table')
                     .innerJoin('table.firewall', 'firewall')
                     .leftJoin('firewall.cluster', 'cluster')
                     .where((qb) => {
