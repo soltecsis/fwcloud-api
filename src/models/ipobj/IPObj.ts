@@ -958,16 +958,17 @@ export class IPObj extends Model {
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
                     .innerJoinAndSelect('route.routingTable', 'table')
+                    .leftJoinAndSelect('route.ipObjs', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
+                    .leftJoinAndSelect('route.gateway', 'gateway', 'gateway.id = :ipobj', {ipobj: id})
                     .innerJoin('table.firewall', 'firewall')
                     .leftJoin('firewall.cluster', 'cluster')
                     .where((qb) => {
                         const query: string = qb.subQuery()
                             .from(Route, 'route')
                             .select('route.id')
-                            .innerJoin('route.ipObjs', 'ipObj')
+                            .innerJoin('route.ipObjs', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
                             .innerJoin('route.routingTable', 'table')
                             .innerJoin('table.firewall', 'firewall')
-                            .where('ipObj.id = :ipobj', {ipobj: id})
                             .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud}).getQuery();
 
                             return `route.id IN ${query}`;
@@ -976,10 +977,9 @@ export class IPObj extends Model {
                         const query: string = qb.subQuery()
                             .from(Route, 'route')
                             .select('route.id')
-                            .innerJoin('route.gateway', 'gateway')
+                            .innerJoin('route.gateway', 'gateway', 'gateway.id = :ipobj', {ipobj: id})
                             .innerJoin('route.routingTable', 'table')
                             .innerJoin('table.firewall', 'firewall')
-                            .where('gateway.id = :gateway', {gateway: id})
                             .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud}).getQuery();
 
                             return `route.id IN ${query}`;
