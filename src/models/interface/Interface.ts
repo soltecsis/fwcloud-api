@@ -409,7 +409,7 @@ export class Interface extends Model {
 							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
 							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
 							.innerJoinAndSelect('route.interface', 'interface', 'interface.id = :interface', {interface: id})
-							.innerJoin('route.routingTable', 'table')
+							.innerJoinAndSelect('route.routingTable', 'table')
 							.innerJoin('table.firewall', 'firewall')
 							.leftJoin('firewall.cluster', 'cluster')
 							.where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
