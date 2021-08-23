@@ -1,6 +1,5 @@
 import { getRepository, QueryFailedError } from "typeorm";
 import { Application } from "../../../../src/Application";
-import { RoutingRuleController } from "../../../../src/controllers/routing/routing-rule/routing-rule.controller";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { RoutingTableService } from "../../../../src/models/routing/routing-table/routing-table.service";
 import StringHelper from "../../../../src/utils/string.helper";
@@ -18,7 +17,7 @@ import { RouteGroupPolicy } from "../../../../src/policies/route-group.policy";
 import { RequestInputs } from "../../../../src/fonaments/http/request-inputs";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 
-describe(RoutingRuleController.name, () => {
+describe(RouteGroupController.name, () => {
     let controller: RouteGroupController;
     let app: Application;
     let fwcProduct: FwCloudProduct;
@@ -44,13 +43,6 @@ describe(RoutingRuleController.name, () => {
         await Tree.insertFwc_Tree_New_firewall(fwcProduct.fwcloud.id, node.id, firewall.id);
         
         controller = new RouteGroupController(app);
-        
-        await controller.make({
-            params: {
-                fwcloud: fwcProduct.fwcloud.id,
-                firewall: firewall.id
-            }
-        } as unknown as Request);
     });
 
     describe('make', () => {
@@ -154,7 +146,13 @@ describe(RoutingRuleController.name, () => {
 
             const spy: Sinon.SinonSpy = Sinon.stub(RouteGroupPolicy, 'update').resolves(Authorization.grant());
 
-            controller["_routeGroup"] = group;
+            await controller.make({
+                params: {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id,
+                    routeGroup: group.id
+                }
+            } as unknown as Request);
         });
 
         it('should handle updates without changing routes', async () => {

@@ -48,7 +48,7 @@ export class RouteGroupController extends Controller {
             this._routeGroup = await getRepository(RouteGroup).findOneOrFail(parseInt(request.params.routeGroup));
         }
 
-        //Get the firewall from the URL which contains the routingTable 
+        //Get the firewall from the URL which contains the route group 
         const firewallQueryBuilder = getRepository(Firewall).createQueryBuilder('firewall').where('firewall.id = :id', {id: parseInt(request.params.firewall)});
         if (request.params.routeGroup) {
             firewallQueryBuilder.innerJoin('firewall.routeGroups', 'group', 'group.id = :groupId', {groupId: parseInt(request.params.routeGroup)})
