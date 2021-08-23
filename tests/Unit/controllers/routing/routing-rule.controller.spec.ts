@@ -1,4 +1,4 @@
-import { getRepository } from "typeorm";
+import { getRepository, QueryFailedError } from "typeorm";
 import { Application } from "../../../../src/Application";
 import { RoutingRuleController } from "../../../../src/controllers/routing/routing-rule/routing-rule.controller";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
@@ -15,6 +15,7 @@ import Sinon from "sinon";
 import { RoutingRulePolicy } from "../../../../src/policies/routing-rule.policy";
 import { Tree } from "../../../../src/models/tree/Tree";
 import { Authorization } from "../../../../src/fonaments/authorization/policy";
+import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 
 describe(RoutingRuleController.name, () => {
     let controller: RoutingRuleController;
@@ -47,6 +48,82 @@ describe(RoutingRuleController.name, () => {
             }
         } as unknown as Request);
     });
+
+    describe('make', () => {
+        let rule: RoutingRule;
+
+        beforeEach(async () => {
+            rule = await getRepository(RoutingRule).save({
+                routingTableId: fwcProduct.routingTable.id,
+                rule_order: 1
+            });
+        });
+
+        it('should throw an error if the firewall does not belongs to the fwcloud', async () => {
+            const newFwcloud: FwCloud = await getRepository(FwCloud).save({
+                name: StringHelper.randomize(10)
+            });
+
+            await getRepository(Firewall).update(firewall.id, {
+                fwCloudId: newFwcloud.id
+            });
+
+            expect(controller.make({
+                params: {
+                    fwcloud: fwcProduct.fwcloud.id,
+                    firewall: firewall.id
+                }
+            } as unknown as Request)).rejectedWith(QueryFailedError);
+        });
+
+        it('should throw an error if the rule does not belongs to a table which belongs to the firewall', async () => {
+            const newFirewall: Firewall = await getRepository(Firewall).save({
+                name: 'firewall',
+                fwCloudId: fwcProduct.fwcloud.id
+            });
+
+            const newTable: RoutingTable = await getRepository(RoutingTable).save({
+                name: 'table',
+                number: 1,
+                firewallId: newFirewall.id
+            });
+
+            const rule: RoutingRule = await getRepository(RoutingRule).save({
+                routingTableId: newTable.id,
+                rule_order: 1
+            });
+
+            expect(controller.make({
+                params: {
+                    fwcloud: fwcProduct.fwcloud.id,
+                    firewall: firewall.id,
+                    routingRule: rule.id // This rule belongs to newFirewall
+                }
+            } as unknown as Request)).rejectedWith(QueryFailedError);
+        });
+
+        it('should not throw an error if the params are valid', async () => {
+            const rule: RoutingRule = await getRepository(RoutingRule).save({
+                routingTableId: fwcProduct.routingTable.id,
+                rule_order: 1
+            });
+
+            expect(await controller.make({
+                params: {
+                    fwcloud: fwcProduct.fwcloud.id,
+                    firewall: fwcProduct.firewall.id
+                }
+            } as unknown as Request)).to.be.undefined;
+
+            expect(await controller.make({
+                params: {
+                    fwcloud: fwcProduct.fwcloud.id,
+                    firewall: fwcProduct.firewall.id,
+                    routingRule: rule.id
+                }
+            } as unknown as Request)).to.be.undefined;
+        })
+    })
 
     describe('bulkRemove', () => {
         beforeEach(() => {

@@ -100,7 +100,6 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.get(_URL().getURL('fwclouds.firewalls.routing.rules.index', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
                     }))
 					.expect(401);
 			});
@@ -110,7 +109,6 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.index', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
@@ -124,7 +122,6 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.index', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
@@ -138,7 +135,6 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 .get(_URL().getURL('fwclouds.firewalls.routing.rules.index', {
                     fwcloud: fwCloud.id,
                     firewall: firewall.id,
-                    rule: rule.id
                 }))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
@@ -319,7 +315,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.get(_URL().getURL('fwclouds.firewalls.routing.rules.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
 					.expect(401);
 			});
@@ -329,7 +325,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
@@ -343,9 +339,10 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(200)
                     .then(response => {
                         expect(response.body.data.id).to.deep.eq(rule.id);
                         expect(response.body.data.routingTableId).to.deep.eq(rule.routingTableId);
@@ -357,7 +354,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))         
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
@@ -382,7 +379,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
 					.expect(401);
 			});
@@ -392,7 +389,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
@@ -406,7 +403,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
@@ -420,7 +417,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))         
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
@@ -591,7 +588,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
 					.send({
                         comment: 'route'
@@ -604,7 +601,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .send({
                         routingTableId: table.id,
@@ -622,7 +619,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .send({
                         routingTableId: table.id,
@@ -640,7 +637,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .send({
                         routingTableId: table.id,
@@ -665,7 +662,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .send({
                         routingTableId: table.id,
@@ -686,7 +683,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .send({
                         routingTableId: table.id,
@@ -729,7 +726,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .send({
                         routingTableId: table.id,
@@ -847,7 +844,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
 					.expect(401);
 			});
@@ -857,7 +854,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
@@ -871,7 +868,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200);
@@ -888,7 +885,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200);
