@@ -26,7 +26,7 @@ import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { ICreateRoute, RouteService } from "../../../models/routing/route/route.service";
 import { RoutingTable } from "../../../models/routing/routing-table/routing-table.model";
-import { Request } from 'express';
+import { Request, response } from 'express';
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { RoutePolicy } from "../../../policies/route.policy";
 import { Route } from "../../../models/routing/route/route.model";
@@ -37,7 +37,6 @@ import { RouteItemForCompiler } from "../../../models/routing/shared";
 import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
 import { getRepository, SelectQueryBuilder } from "typeorm";
 import { RouteControllerMoveDto } from "./dtos/move.dto";
-import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
 import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
 import { RouteControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
 import { RouteControllerBulkRemoveQueryDto } from "./dtos/bulk-remove.dto";
@@ -47,15 +46,34 @@ export class RouteController extends Controller {
     protected _routeService: RouteService;
     protected _firewall: Firewall;
     protected _fwCloud: FwCloud;
+    protected _route: Route;
     protected _routingTable: RoutingTable;
     protected _routingTableService: RoutingTableService;
 
     public async make(request: Request): Promise<void> {
         this._routeService = await this._app.getService<RouteService>(RouteService.name);
         this._routingTableService = await this._app.getService<RoutingTableService>(RoutingTableService.name);
-        this._fwCloud = await FwCloud.findOneOrFail(parseInt(request.params.fwcloud));
-        this._firewall = await Firewall.findOneOrFail(parseInt(request.params.firewall));
-        this._routingTable = await RoutingTable.findOneOrFail(parseInt(request.params.routingTable));
+
+        if (request.params.route) {
+            this._route = await getRepository(Route).findOneOrFail(parseInt(request.params.route));
+        }
+
+        const routingTableQueryBuilder = getRepository(RoutingTable).createQueryBuilder('table')
+            .where('table.id = :id', {id: parseInt(request.params.routingTable)});
+        if (request.params.route) {
+            routingTableQueryBuilder.innerJoin('table.routes', 'route', 'route.id = :routeId', {routeId: parseInt(request.params.route)})
+        }
+        this._routingTable = await routingTableQueryBuilder.getOneOrFail();
+
+        this._firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+            .innerJoin('firewall.routingTables', 'table', 'table.id = :tableId', {tableId: parseInt(request.params.routingTable)})
+            .where('firewall.id = :id', {id: parseInt(request.params.firewall)})
+            .getOneOrFail();
+
+        this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
+            .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {firewallId: parseInt(request.params.firewall)})
+            .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)})
+            .getOneOrFail()    
     }
 
     @Validate()
@@ -101,35 +119,21 @@ export class RouteController extends Controller {
 
     @Validate()
     async show(request: Request): Promise<ResponseBuilder> {
-        const route: Route = await this._routeService.findOneInPathOrFail({
-            fwCloudId: this._fwCloud.id,
-            firewallId: this._firewall.id,
-            routingTableId: this._routingTable.id,
-            id: parseInt(request.params.route)
-        });
+        (await RoutePolicy.show(this._route, request.session.user)).authorize();
 
-        (await RoutePolicy.show(route, request.session.user)).authorize();
-
-        return ResponseBuilder.buildResponse().status(200).body(route);
+        return ResponseBuilder.buildResponse().status(200).body(this._route);
     }
 
     @Validate()
     async compile(request: Request): Promise<ResponseBuilder> {
-        const route: Route = await this._routeService.findOneInPathOrFail({
-            fwCloudId: this._fwCloud.id,
-            firewallId: this._firewall.id,
-            routingTableId: this._routingTable.id,
-            id: parseInt(request.params.route)
-        });
-
-        (await RoutePolicy.show(route, request.session.user)).authorize();
+        (await RoutePolicy.show(this._route, request.session.user)).authorize();
 
         const routes: RouteData<RouteItemForCompiler>[] = await this._routingTableService.getRoutingTableData<RouteItemForCompiler>(
             'compiler',
             this._fwCloud.id,
             this._firewall.id, 
             this._routingTable.id,
-            [route.id]
+            [this._route.id]
         );
 
         const compilation = new RoutingCompiler().compile('Route', routes);
@@ -180,16 +184,9 @@ export class RouteController extends Controller {
 
     @Validate(RouteControllerUpdateDto)
     async update(request: Request): Promise<ResponseBuilder> {
-        const route: Route = await this._routeService.findOneInPathOrFail({
-            fwCloudId: this._fwCloud.id,
-            firewallId: this._firewall.id,
-            routingTableId: this._routingTable.id,
-            id: parseInt(request.params.route)
-        });
-        
-        (await RoutePolicy.update(route, request.session.user)).authorize();
+        (await RoutePolicy.update(this._route, request.session.user)).authorize();
 
-        const result: Route = await this._routeService.update(route.id, request.inputs.all());
+        const result: Route = await this._routeService.update(this._route.id, request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
@@ -224,14 +221,7 @@ export class RouteController extends Controller {
     
     @Validate()
     async remove(request: Request): Promise<ResponseBuilder> {
-        const route: Route = await this._routeService.findOneInPathOrFail({
-            fwCloudId: this._fwCloud.id,
-            firewallId: this._firewall.id,
-            routingTableId: this._routingTable.id,
-            id: parseInt(request.params.route)
-        });
-        
-        (await RoutePolicy.delete(route, request.session.user)).authorize();
+        (await RoutePolicy.delete(this._route, request.session.user)).authorize();
 
         await this._routeService.remove({
             fwCloudId: this._fwCloud.id,
@@ -239,7 +229,7 @@ export class RouteController extends Controller {
             routingTableId: this._routingTable.id,
             id: parseInt(request.params.route)
         });
-        return ResponseBuilder.buildResponse().status(200).body(route);
+        return ResponseBuilder.buildResponse().status(200).body(this._route);
     }
 
     @Validate()
