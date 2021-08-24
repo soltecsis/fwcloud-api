@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsOptional, IsString, IsNumber, Min, Max } from "class-validator";
+import { IsOptional, IsString, IsNumber} from "class-validator";
+import { IsRoutingTableNumber } from "../../../../fonaments/validation/rules/is-routing-table-number.validation";
 
 export class RoutingTableControllerUpdateDto {
+    @IsRoutingTableNumber()
     @IsNumber()
     @IsOptional()
-    @Min(1)
-    @Max(254)
     number?: number;
 
     @IsString()

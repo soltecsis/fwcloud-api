@@ -60,6 +60,7 @@ interface ICreateRoutingTable {
 interface IUpdateRoutingTable {
     name?: string;
     comment?: string;
+    number?: number;
 }
 
 export interface RouteData<T extends ItemForGrid | RouteItemForCompiler> extends Route {
@@ -97,19 +98,21 @@ export class RoutingTableService extends Service {
     }
 
     async create(data: ICreateRoutingTable): Promise<RoutingTable> {
-        await this.validateCreateRoutingTable(data);
-        const routingTable: RoutingTable = await this._repository.save(data);
+        await this.validateRoutingTableNumber(data);
+        const result: {id: number} = await this._repository.save(data);
+        const routingTable: RoutingTable = await this._repository.findOne(result.id);
+
         const firewall: Firewall = await getRepository(Firewall).findOne(routingTable.firewallId, {relations: ['fwCloud']});
 
         const node: {id: number} = await Tree.getNodeUnderFirewall(db.getQuery(), firewall.fwCloud.id, firewall.id, 'RTS') as {id: number};
         await Tree.newNode(db.getQuery(), firewall.fwCloud.id, routingTable.name, node.id, 'RT', routingTable.id, null);
-
 
         return routingTable;
     }
 
     async update(id: number, data: IUpdateRoutingTable): Promise<RoutingTable> {
         let table: RoutingTable = await this._repository.preload(Object.assign(data, {id}));
+        await this.validateRoutingTableNumber(table);
         await this._repository.save(table);
 
         return table;
@@ -198,24 +201,28 @@ export class RoutingTableService extends Service {
      *  - Number is not already being used by other table in the same firewall
      * 
      */
-     protected async validateCreateRoutingTable(data: ICreateRoutingTable): Promise<void> {
+     protected async validateRoutingTableNumber(routingTable: Partial<RoutingTable>): Promise<void> {
         const errors: ErrorBag = {};
 
         const tablesWithSameNumber: RoutingTable[] = await getRepository(RoutingTable).find({
             where: {
-                number: data.number,
-                firewallId: data.firewallId
+                number: routingTable.number,
+                firewallId: routingTable.firewallId
             }
         });
 
-        if (tablesWithSameNumber.length > 0) {
-            errors['number'] = ['number already used'];
+        // Number is not being used.
+        if (tablesWithSameNumber.length === 0) {
+            return;
         }
 
-        if (Object.keys(errors).length > 0) {
-            throw new ValidationException('The given data was invalid', errors);
+        // The number is assigned to the provided routingTable
+        if (tablesWithSameNumber.filter(item => item.id === routingTable.id).length > 0) {
+            return;
         }
-        
+
+        errors['number'] = ['number already used'];
+        throw new ValidationException('The given data was invalid', errors);
     }
 
     private buildSQLsForCompiler(fwcloud: number, firewall: number, routingTable: number, routes?: number[]): SelectQueryBuilder<IPObj>[] {
