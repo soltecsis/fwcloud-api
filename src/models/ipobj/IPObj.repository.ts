@@ -195,7 +195,8 @@ export class IPObjRepository extends Repository<IPObj> {
 
     if (entity === 'rule') {
       query
-        .innerJoin('prefix.routingRules', entity)
+        .innerJoin('prefix.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefixes')
+        .innerJoin('routingRuleToOpenVPNPrefixes.routingRule', entity)
     }  
     
     return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query)

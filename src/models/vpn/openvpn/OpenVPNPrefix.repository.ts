@@ -36,12 +36,15 @@ export class OpenVPNPrefixRepository extends Repository<OpenVPNPrefix> {
       .addSelect(`${entity}.id`,"entityId");
 
     if (entity === 'route') {
-      query.innerJoin('vpnPrefix.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
+      query
+        .innerJoin('vpnPrefix.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
         .innerJoin('routeToOpenVPNPrefixes.route', entity)
     }
 
     if (entity === 'rule') {
-      query.innerJoin('vpnPrefix.routingRules', entity)
+      query
+        .innerJoin('vpnPrefix.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefixes')
+        .innerJoin('routingRuleToOpenVPNPrefixes.routingRule', entity)
     }
     
     query.innerJoin(`${entity}.routingTable`, "table")

@@ -300,7 +300,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNPrefixes']})).routingRuleToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id])
             });
         });
@@ -645,7 +645,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNPrefixes']})).routingRuleToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id])
             });
 
@@ -659,7 +659,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNPrefixes']})).routingRuleToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([openVPNPrefix2.id])
             });
 
@@ -673,7 +673,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['openVPNPrefixes']})).openVPNPrefixes.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNPrefixes']})).routingRuleToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([])
             })
         });

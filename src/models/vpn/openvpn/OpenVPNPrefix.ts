@@ -30,6 +30,7 @@ import { Firewall } from "../../firewall/Firewall";
 import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
 import { Route } from "../../routing/route/route.model";
 import { RouteToOpenVPNPrefix } from "../../routing/route/route-to-openvpn-prefix.model";
+import { RoutingRuleToOpenVPNPrefix } from "../../routing/routing-rule/routing-rule-to-openvpn-prefix.model";
 const fwcError = require('../../../utils/error_table');
 
 const tableName: string = 'openvpn_prefix';
@@ -67,12 +68,9 @@ export class OpenVPNPrefix extends Model {
     @OneToMany(type => PolicyRuleToOpenVPNPrefix, policyRuleToOpenVPNPrefix => policyRuleToOpenVPNPrefix.openVPNPrefix)
     policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
 
-    @ManyToMany(type => RoutingRule, routingRule => routingRule.openVPNPrefixes)
-    routingRules: RoutingRule[]
+    @OneToMany(() => RoutingRuleToOpenVPNPrefix, model => model.openVPNPrefix)
+    routingRuleToOpenVPNPrefixes: RoutingRuleToOpenVPNPrefix[];
 
-    /*@ManyToMany(type => Route, route => route.openVPNPrefixes)
-    routes: Route[];
-*/
     @OneToMany(() => RouteToOpenVPNPrefix, model => model.openVPNPrefix)
     routeToOpenVPNPrefixes: RouteToOpenVPNPrefix[];
 
@@ -397,7 +395,8 @@ export class OpenVPNPrefix extends Model {
                 search.restrictions.PrefixInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('routing_rule')
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-                    .innerJoinAndSelect('routing_rule.openVPNPrefixes', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
+                    .innerJoin('routing_rule.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefixes')
+                    .innerJoin('routingRuleToOpenVPNPrefixes.openVPNPrefix', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
                     .innerJoin('routing_rule.routingTable', 'table')
                     .innerJoin('table.firewall', 'firewall')
                     .leftJoin('firewall.cluster', 'cluster')

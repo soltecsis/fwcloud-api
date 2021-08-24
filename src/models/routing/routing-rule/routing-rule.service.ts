@@ -41,6 +41,7 @@ import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { OpenVPNPrefixRepository } from "../../vpn/openvpn/OpenVPNPrefix.repository";
 import { RoutingTable } from "../routing-table/routing-table.model";
 import { AvailableDestinations, ItemForGrid, RoutingRuleItemForCompiler, RoutingUtils } from "../shared";
+import { RoutingRuleToOpenVPNPrefix } from "./routing-rule-to-openvpn-prefix.model";
 import { RoutingRule } from "./routing-rule.model";
 import { IFindManyRoutingRulePath, IFindOneRoutingRulePath, RoutingRuleRepository } from "./routing-rule.repository";
 
@@ -125,52 +126,19 @@ export class RoutingRuleService extends Service {
             style: data.style,
         }
 
-        if (data.ipObjIds) {
-            await this.validateUpdateIPObjs(firewall, data);
-            routingRuleData.ipObjs = data.ipObjIds.map(id => ({id: id} as IPObj));
-        }
-
-        if (data.ipObjGroupIds) {
-            await this.validateUpdateIPObjGroups(firewall, data);
-            routingRuleData.ipObjGroups = data.ipObjGroupIds.map(id => ({id: id} as IPObjGroup));
-        }
-
-        if (data.openVPNIds) {
-            const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
-                where: {
-                    id: In(data.openVPNIds)
-                }
-            })
-
-            routingRuleData.openVPNs = openVPNs.map(item => ({id: item.id} as OpenVPN));
-        }
-
-        if (data.openVPNPrefixIds) {
-            const prefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).find({
-                where: {
-                    id: In(data.openVPNPrefixIds)
-                }
-            })
-
-            routingRuleData.openVPNPrefixes = prefixes.map(item => ({id: item.id} as OpenVPNPrefix));
-        }
-
-        if(data.markIds) {
-            const marks: Mark[] = await getRepository(Mark).find({
-                where: {
-                    id: In(data.markIds),
-                    fwCloudId: firewall.fwCloudId
-                }
-            });
-
-            routingRuleData.marks = marks.map(item => ({id: item.id}) as Mark);
-        }
-
         const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInFirewall(routingTable.firewallId);
         const rule_order: number = lastRule?.rule_order? lastRule.rule_order + 1 : 1;
         routingRuleData.rule_order = rule_order;
         
-        const persisted: RoutingRule = await this._repository.save(routingRuleData);
+        let persisted: RoutingRule = await this._repository.save(routingRuleData);
+
+        persisted = await this.update(persisted.id, {
+            ipObjIds: data.ipObjIds,
+            ipObjGroupIds: data.ipObjGroupIds,
+            openVPNIds: data.openVPNIds,
+            openVPNPrefixIds: data.openVPNPrefixIds,
+            markIds: data.markIds
+        })
 
         if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'offset')) {
             return (await this.move([persisted.id], data.to, data.offset))[0];
@@ -184,7 +152,7 @@ export class RoutingRuleService extends Service {
             where: {
                 id: In(ids)
             },
-            relations: ['routingTable', 'marks', 'ipObjs', 'ipObjGroups', 'openVPNs', 'openVPNPrefixes']
+            relations: ['routingTable', 'marks', 'ipObjs', 'ipObjGroups', 'openVPNs', 'routingRuleToOpenVPNPrefixes']
         });
 
         const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInFirewall(routes[0].routingTable.firewallId);
@@ -236,7 +204,11 @@ export class RoutingRuleService extends Service {
                 }
             })
 
-            rule.openVPNPrefixes = prefixes.map(item => ({id: item.id} as OpenVPNPrefix));
+            rule.routingRuleToOpenVPNPrefixes = prefixes.map(item => ({
+                routingRuleId: rule.id,
+                openVPNPrefixId: item.id,
+                order: 0
+            } as RoutingRuleToOpenVPNPrefix));
         }
 
         if(data.markIds) {

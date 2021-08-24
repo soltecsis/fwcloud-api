@@ -104,9 +104,6 @@ export class RouteService extends Service {
     }
 
     async create(data: ICreateRoute): Promise<Route> {
-        const routingTable: RoutingTable = await getRepository(RoutingTable).findOne(data.routingTableId, {relations: ['firewall']});
-        const firewall: Firewall = routingTable.firewall;
-
         const routeData: Partial<Route> = {
             routingTableId: data.routingTableId,
             gatewayId: data.gatewayId,
