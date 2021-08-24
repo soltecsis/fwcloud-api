@@ -25,6 +25,7 @@ describe(RouteGroupController.name, () => {
     let routeService: RouteService;
     let routeGroupService: RouteGroupService;
     let firewall: Firewall;
+    let fwcloud: FwCloud;
 
     beforeEach(async () => {
         app = testSuite.app;
@@ -33,6 +34,8 @@ describe(RouteGroupController.name, () => {
         routeGroupService = await app.getService<RouteGroupService>(RouteGroupService.name);
     
         fwcProduct = await (new FwCloudFactory()).make();
+        
+        fwcloud = fwcProduct.fwcloud;
         firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwcProduct.fwcloud.id
@@ -53,53 +56,30 @@ describe(RouteGroupController.name, () => {
                 firewallId: firewall.id,
                 name: 'group'
             })
-        })
-        it('should not throw error if the route belongs to the firewall which belongs to the fwcloud', async () => {
-            expect(await controller.make({
-                params: {
-                    fwcloud: fwcProduct.fwcloud.id,
-                    firewall: firewall.id,
-                    routeGroup: group.id
-                }
-            } as unknown as Request)).to.be.undefined;
         });
 
-        it('should throw error if the route blongs to other firewall', async () => {
-            const newFirewall: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        it('should throw an error if the group does not belongs to the firewall', async () => {
+            const newFirewall: Firewall = await getRepository(Firewall).save({
                 name: StringHelper.randomize(10),
-                fwCloudId: fwcProduct.fwcloud.id
-            }));
-
-            group = await getRepository(RouteGroup).create({
-                firewallId: newFirewall.id,
-                name: 'group'
-            })
+                fwCloudId: fwcloud.id
+            });
 
             expect(controller.make({
-                params: {
-                    fwcloud: fwcProduct.fwcloud.id,
-                    firewall: firewall.id,
-                    routeGroup: group.id
-                }
+                fwcloud: fwcloud.id,
+                firewall: newFirewall.id,
+                routeGroup: group.id
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
 
-        it('should throw error if the firewall blongs to other fwcloud', async () => {
-            const newFwcloud: FwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        it('should throw an error if the firewall does not belongs to the fwcloud', async () => {
+            const newfwcloud = await getRepository(FwCloud).save({
                 name: StringHelper.randomize(10)
-            }));
+            });
 
-            const newFirewall: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
-                name: StringHelper.randomize(10),
-                fwCloudId: newFwcloud.id
-            }));
-
-            
             expect(controller.make({
-                params: {
-                    fwcloud: fwcProduct.fwcloud.id,
-                    firewall: newFirewall.id
-                }
+                fwcloud: newfwcloud.id,
+                firewall: firewall.id,
+                routeGroup: group.id
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
 
@@ -123,7 +103,7 @@ describe(RouteGroupController.name, () => {
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
 
-        it('should throw error if the table does not exist', async () => {
+        it('should throw error if the group does not exist', async () => {
             expect(controller.make({
                 params: {
                     fwcloud: fwcProduct.fwcloud.id,
@@ -132,6 +112,16 @@ describe(RouteGroupController.name, () => {
                 }
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
+
+        it('should not throw error if params are valid', async () => {
+            expect(await controller.make({
+                params: {
+                    fwcloud: fwcloud.id,
+                    firewall: firewall.id,
+                    routeGroup: group.id
+                }
+            } as unknown as Request)).to.be.undefined;
+        })
     })
 
     describe('update', () => {

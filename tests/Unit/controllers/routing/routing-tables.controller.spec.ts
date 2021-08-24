@@ -34,54 +34,28 @@ describe(RoutingTableController.name, () => {
     });
 
     describe('make', () => {
-
-        it('should not throw error if the table belongs to the firewall which belongs to the fwcloud', async () => {
-            expect(await controller.make({
-                params: {
-                    fwcloud: fwcloud.id.toString(),
-                    firewall: firewall.id.toString(),
-                    routingTable: table.id.toString()
-                }
-            } as unknown as Request)).to.be.undefined;
-        });
-
-        it('should throw error if the table blongs to other firewall', async () => {
-            const newFirewall: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        it('should throw error if the table does not belongs to the firewall', async () => {
+            const newFirewall: Firewall = await getRepository(Firewall).save({
                 name: StringHelper.randomize(10),
                 fwCloudId: fwcloud.id
-            }));
-
-            table = await getRepository(RoutingTable).save({
-                firewallId: newFirewall.id,
-                number: 1,
-                name: 'Routing table',
             });
 
             expect(controller.make({
-                params: {
-                    fwcloud: fwcloud.id.toString(),
-                    firewall: firewall.id.toString(),
-                    routingTable: table.id.toString()
-                }
+                fwcloud: fwcloud.id,
+                firewall: newFirewall.id,
+                routingTable: table.id
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
 
-        it('should throw error if the firewall blongs to other fwcloud', async () => {
-            const newFwcloud: FwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        it('should throw an error if the firewall does not belongs to the fwcloud', async () => {
+            const newfwcloud = await getRepository(FwCloud).save({
                 name: StringHelper.randomize(10)
-            }));
+            });
 
-            const newFirewall: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
-                name: StringHelper.randomize(10),
-                fwCloudId: fwcloud.id
-            }));
-
-            
             expect(controller.make({
-                params: {
-                    fwcloud: fwcloud.id.toString(),
-                    firewall: newFirewall.id.toString()
-                }
+                fwcloud: newfwcloud.id,
+                firewall: firewall.id,
+                routingTable: table.id
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
 
@@ -89,8 +63,8 @@ describe(RoutingTableController.name, () => {
             expect(controller.make({
                 params: {
                     fwcloud: -1,
-                    firewall: firewall.id.toString(),
-                    routingTable: table.id.toString()
+                    firewall: firewall.id,
+                    routingTable: table.id
                 }
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
@@ -98,9 +72,9 @@ describe(RoutingTableController.name, () => {
         it('should throw error if the firewall does not exist', async () => {
             expect(controller.make({
                 params: {
-                    fwcloud: fwcloud.id.toString(),
+                    fwcloud: fwcloud.id,
                     firewall: -1,
-                    routingTable: table.id.toString()
+                    routingTable: table.id
                 }
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
@@ -108,11 +82,21 @@ describe(RoutingTableController.name, () => {
         it('should throw error if the table does not exist', async () => {
             expect(controller.make({
                 params: {
-                    fwcloud: fwcloud.id.toString(),
+                    fwcloud: fwcloud.id,
                     firewall: firewall.id,
                     routingTable: -1
                 }
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
+
+        it('should not throw error if params are valid', async () => {
+            expect(await controller.make({
+                params: {
+                    fwcloud: fwcloud.id,
+                    firewall: firewall.id,
+                    routingTable: table.id
+                }
+            } as unknown as Request)).to.be.undefined;
+        })
     });
 });

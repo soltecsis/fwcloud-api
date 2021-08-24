@@ -34,76 +34,53 @@ describe(RouteController.name, () => {
     });
 
     describe('make', () => {
+        it('should throw error if the route does not belongs to the table', async () => {
+            const newTable: RoutingTable = await getRepository(RoutingTable).save({
+                name: 'table',
+                firewallId: firewall.id,
+                number: 1
+            });
 
-        it('should not throw error if the table belongs to the firewall which belongs to the fwcloud', async () => {
-            expect(await controller.make({
+            await getRepository(Route).update(route.id, {
+                routingTableId: newTable.id 
+            });
+
+            expect(controller.make({
                 params: {
                     fwcloud: fwcloud.id,
                     firewall: firewall.id,
                     routingTable: table.id,
                     route: route.id
                 }
-            } as unknown as Request)).to.be.undefined;
-        });
-
-        it('should throw error if the route belongs to other table', async () => {
-            const newTable: RoutingTable = await getRepository(RoutingTable).save(getRepository(RoutingTable).create({
-                firewallId: firewall.id,
-                name: 'table',
-                number: 1
-            }));
-
-            expect(controller.make({
-                params: {
-                    fwcloud: fwcloud.id.toString(),
-                    firewall: firewall.id.toString(),
-                    routingTable: newTable.id,
-                    route: route.id
-                }
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
 
-        it('should throw error if the table belongs to other firewall', async () => {
+        it('should throw error if the table does not belong to the firewall', async () => {
             const newFirewall: Firewall = await getRepository(Firewall).save({
-                name: 'firewall',
+                name: StringHelper.randomize(10),
                 fwCloudId: fwcloud.id
-            });
-
-            await getRepository(RoutingTable).update(table.id, {
-                firewallId: newFirewall.id
             });
 
             expect(controller.make({
                 params: {
-                    fwcloud: fwcloud.id.toString(),
-                    firewall: firewall.id.toString(),
+                    fwcloud: fwcloud.id,
+                    firewall: newFirewall.id,
                     routingTable: table.id,
                     route: route.id
                 }
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
 
-        it('should throw error if the firewall belongs to other fwcloud', async () => {
-            const newFwcloud: FwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        it('should throw error if the firewall does not belong to the fwcloud', async () => {
+            const newfwcloud = await getRepository(FwCloud).save({
                 name: StringHelper.randomize(10)
-            }));
-
-            const newFirewall: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
-                name: StringHelper.randomize(10),
-                fwCloudId: fwcloud.id
-            }));
-
-            await getRepository(RoutingTable).update(table.id, {
-                firewallId: newFirewall.id
             });
 
-            
             expect(controller.make({
-                params: {
-                    fwcloud: fwcloud.id.toString(),
-                    firewall: newFirewall.id.toString(),
-                    routingTable: table.id
-                }
+                fwcloud: newfwcloud.id,
+                firewall: firewall.id,
+                routingTable: table.id,
+                route: route.id
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
 
@@ -111,8 +88,8 @@ describe(RouteController.name, () => {
             expect(controller.make({
                 params: {
                     fwcloud: -1,
-                    firewall: firewall.id.toString(),
-                    routingTable: table.id.toString()
+                    firewall: firewall.id,
+                    routingTable: table.id
                 }
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
@@ -120,9 +97,9 @@ describe(RouteController.name, () => {
         it('should throw error if the firewall does not exist', async () => {
             expect(controller.make({
                 params: {
-                    fwcloud: fwcloud.id.toString(),
+                    fwcloud: fwcloud.id,
                     firewall: -1,
-                    routingTable: table.id.toString()
+                    routingTable: table.id
                 }
             } as unknown as Request)).rejectedWith(QueryFailedError);
         });
@@ -130,7 +107,7 @@ describe(RouteController.name, () => {
         it('should throw error if the table does not exist', async () => {
             expect(controller.make({
                 params: {
-                    fwcloud: fwcloud.id.toString(),
+                    fwcloud: fwcloud.id,
                     firewall: firewall.id,
                     routingTable: -1
                 }
@@ -140,12 +117,24 @@ describe(RouteController.name, () => {
         it('should throw error if the route does not exist', async () => {
             expect(controller.make({
                 params: {
-                    fwcloud: fwcloud.id.toString(),
+                    fwcloud: fwcloud.id,
                     firewall: firewall.id,
                     routingTable: table.id,
                     rotue: -1
                 }
             } as unknown as Request)).rejectedWith(QueryFailedError);
+        });
+
+
+        it('should not throw error if the params are valid', async () => {
+            expect(await controller.make({
+                params: {
+                    fwcloud: fwcloud.id,
+                    firewall: firewall.id,
+                    routingTable: table.id,
+                    route: route.id
+                }
+            } as unknown as Request)).to.be.undefined;
         });
     });
 });
