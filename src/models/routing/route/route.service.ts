@@ -335,7 +335,7 @@ export class RouteService extends Service {
         for (let i = 0; i < ipObjGroups.length; i++) {
             const ipObjGroup: IPObjGroup = ipObjGroups[i];
             
-            if (ipObjGroup.fwCloudId !== firewall.fwCloudId) {
+            if (ipObjGroup.fwCloudId && ipObjGroup.fwCloudId !== firewall.fwCloudId) {
                 errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must exist'];
             } else if (await PolicyRuleToIPObj.isGroupEmpty(db.getQuery(), ipObjGroup.id)) {
                 errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must not be empty'];
