@@ -249,7 +249,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['openVPNs']})).openVPNs.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNs']})).routingRuleToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([openVPN1.id, openVPN2.id])
             });
         });
@@ -567,7 +567,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['openVPNs']})).openVPNs.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNs']})).routingRuleToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([openVPN1.id, openVPN2.id])
             });
 
@@ -581,7 +581,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['openVPNs']})).openVPNs.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNs']})).routingRuleToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([openVPN2.id])
             });
 
@@ -595,7 +595,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['openVPNs']})).openVPNs.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNs']})).routingRuleToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([])
             })
         });

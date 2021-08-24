@@ -33,6 +33,7 @@ import { RoutingGroup } from "../routing-group/routing-group.model";
 import { Interface } from "../../interface/Interface";
 import db from "../../../database/database-manager";
 import { RoutingRuleToOpenVPNPrefix } from "./routing-rule-to-openvpn-prefix.model";
+import { RoutingRuleToOpenVPN } from "./routing-rule-to-openvpn.model";
 
 const tableName: string = 'routing_r';
 
@@ -110,20 +111,17 @@ export class RoutingRule extends Model {
 		joinColumn: { name: 'rule'},
 		inverseJoinColumn: { name: 'ipobj_g'}
 	})
-    ipObjGroups: IPObjGroup[]
-
-    @ManyToMany(type => OpenVPN, openVPN => openVPN.routingRules)
-	@JoinTable({
-		name: 'routing_r__openvpn',
-		joinColumn: { name: 'rule'},
-		inverseJoinColumn: { name: 'openvpn'}
-	})
-    openVPNs: OpenVPN[]
+    ipObjGroups: IPObjGroup[];
 
     @OneToMany(() => RoutingRuleToOpenVPNPrefix, model => model.routingRule, {
         cascade: true,
     })
     routingRuleToOpenVPNPrefixes: RoutingRuleToOpenVPNPrefix[];
+    
+    @OneToMany(() => RoutingRuleToOpenVPN, model => model.routingRule, {
+        cascade: true,
+    })
+    routingRuleToOpenVPNs: RoutingRuleToOpenVPN[];
     
     public getTableName(): string {
         return tableName;

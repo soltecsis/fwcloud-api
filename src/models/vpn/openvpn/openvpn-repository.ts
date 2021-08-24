@@ -44,7 +44,8 @@ export class OpenVPNRepository extends Repository<OpenVPN> {
 
     if (entity === 'rule') {
       query
-        .innerJoin('vpn.routingRules', entity)  
+        .innerJoin('vpn.routingRuleToOpenVPNs', 'routingRuleToOpenVPNs')
+        .innerJoin('routingRuleToOpenVPNs.routingRule', entity)  
     }
 
     if (entity === 'route') {

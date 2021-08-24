@@ -40,6 +40,7 @@ import { EventEmitter } from "events";
 import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
 import { Route } from "../../routing/route/route.model";
 import { RouteToOpenVPN } from "../../routing/route/route-to-openvpn.model";
+import { RoutingRuleToOpenVPN } from "../../routing/routing-rule/routing-rule-to-openvpn.model";
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -130,8 +131,8 @@ export class OpenVPN extends Model {
     @OneToMany(type => OpenVPNPrefix, model => model.openVPN)
     openVPNPrefixes: Array<OpenVPNPrefix>;
 
-    @ManyToMany(type => RoutingRule, routingRule => routingRule.openVPNs)
-    routingRules: RoutingRule[]
+    @OneToMany(() => RoutingRuleToOpenVPN, model => model.openVPN)
+    routingRuleToOpenVPNs: RoutingRuleToOpenVPN[];
 
     @OneToMany(() => RouteToOpenVPN, model => model.openVPN)
     routeToOpenVPNs: RouteToOpenVPN[];
@@ -676,7 +677,8 @@ export class OpenVPN extends Model {
                 search.restrictions.OpenVPNInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('routing_rule')
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-                    .innerJoinAndSelect('routing_rule.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+                    .innerJoin('routing_rule.routingRuleToOpenVPNs', 'routingRuleToOpenVPNs')
+                    .innerJoin('routingRuleToOpenVPNs.openVPN', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
                     .innerJoinAndSelect('routing_rule.routingTable', 'table')
                     .innerJoin('table.firewall', 'firewall')
                     .leftJoin('firewall.cluster', 'cluster')
