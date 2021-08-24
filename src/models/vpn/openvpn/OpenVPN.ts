@@ -663,19 +663,25 @@ export class OpenVPN extends Model {
                 search.restrictions.LastOpenvpnInPrefixInGroup = await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInGroup(dbCon, fwcloud, openvpn);
 
                 search.restrictions.OpenVPNInRoute = await getRepository(Route).createQueryBuilder('route')
+                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
                     .innerJoin('route.routeToOpenVPNs', 'routeToOpenVPNs')
                     .innerJoin('routeToOpenVPNs.openVPN', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
-                    .innerJoin('route.routingTable', 'table')
+                    .innerJoinAndSelect('route.routingTable', 'table')
                     .innerJoin('table.firewall', 'firewall')
+                    .leftJoin('firewall.cluster', 'cluster')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getMany();
+                    .getRawMany();
 
-                search.restrictions.OpenVPNInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
-                    .innerJoinAndSelect('rule.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
-                    .innerJoin('rule.routingTable', 'table')
+                search.restrictions.OpenVPNInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+                    .innerJoinAndSelect('routing_rule.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+                    .innerJoinAndSelect('routing_rule.routingTable', 'table')
                     .innerJoin('table.firewall', 'firewall')
+                    .leftJoin('firewall.cluster', 'cluster')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getMany();
+                    .getRawMany();
 
                 
                 if (extendedSearch) {

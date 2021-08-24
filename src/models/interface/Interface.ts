@@ -27,7 +27,7 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
-import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToMany, getRepository } from "typeorm";
 import { Firewall } from "../firewall/Firewall";
 import { logger } from "../../fonaments/abstract-application";
 import { Route } from "../routing/route/route.model";
@@ -405,6 +405,15 @@ export class Interface extends Model {
 						search.restrictions.InterfaceInFirewall = await this.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
 						search.restrictions.InterfaceInHost = await InterfaceIPObj.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
 						search.restrictions.LastInterfaceWithAddrInHostInRule = await IPObj.searchLastInterfaceWithAddrInHostInRule(id, fwcloud);
+						search.restrictions.InterfaceInRoute = await getRepository(Route).createQueryBuilder('route')
+							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+							.innerJoinAndSelect('route.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoinAndSelect('route.routingTable', 'table')
+							.innerJoin('table.firewall', 'firewall')
+							.leftJoin('firewall.cluster', 'cluster')
+							.where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+							.getRawMany();
 
 						for (let key in search.restrictions) {
 							if (search.restrictions[key].length > 0) {

@@ -59,7 +59,7 @@ describe(OpenVPN.name, () => {
                 const whereUsed: any = await OpenVPN.searchOpenvpnUsage(db.getQuery(), fwcloudProduct.fwcloud.id, openvpn.id, true);
     
                 expect(whereUsed.restrictions.OpenVPNInRoute).to.have.length(1);
-                expect(whereUsed.restrictions.OpenVPNInRoute[0].id).to.be.eq(route.id)
+                expect(whereUsed.restrictions.OpenVPNInRoute[0].route_id).to.be.eq(route.id)
             })
         });
 
@@ -68,7 +68,7 @@ describe(OpenVPN.name, () => {
                 const whereUsed: any = await OpenVPN.searchOpenvpnUsage(db.getQuery(), fwcloudProduct.fwcloud.id, openvpn.id, true);
     
                 expect(whereUsed.restrictions.OpenVPNInRoutingRule).to.have.length(1);
-                expect(whereUsed.restrictions.OpenVPNInRoutingRule[0].id).to.be.eq(routingRule.id)
+                expect(whereUsed.restrictions.OpenVPNInRoutingRule[0].routing_rule_id).to.be.eq(routingRule.id)
             })
         });
     })

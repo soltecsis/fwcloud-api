@@ -153,11 +153,16 @@ export class Route extends Model {
 
         return await getRepository(Route)
             .createQueryBuilder('route')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoin('route.ipObjs', 'ipobj')
             .innerJoin('ipobj.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostInterface', 'interface')
+            .innerJoin('route.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
             .where(`interface.id IN (${uniqueInterfaces.map(item => item.id).join(',')})`)
-            .getMany();
+            .getRawMany();
     }
 
     public static async getRouteWhichLastAddressInHostInGroup(ipobjId: number, type: number, fwcloud:number): Promise<Route[]> {
@@ -190,11 +195,16 @@ export class Route extends Model {
 
         return await getRepository(Route)
             .createQueryBuilder('route')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoin('route.ipObjs', 'ipobj')
             .innerJoin('ipobj.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostInterface', 'interface')
+            .innerJoin('route.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
             .where(`interface.id IN (${uniqueInterfaces.map(item => item.id).join(',')})`)
-            .getMany();
+            .getRawMany();
     }
 
 }

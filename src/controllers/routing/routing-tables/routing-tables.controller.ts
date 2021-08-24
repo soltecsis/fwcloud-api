@@ -35,6 +35,7 @@ import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
 import { RoutingTableControllerCompileRoutesQueryDto } from "./dtos/compile-routes.dto";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { getRepository } from "typeorm";
+import { Tree } from "../../../models/tree/Tree";
 
 export class RoutingTableController extends Controller {
     
@@ -91,7 +92,6 @@ export class RoutingTableController extends Controller {
 
         const grid = await this.routingTableService.getRoutingTableData('grid', this._firewall.fwCloudId, this._firewall.id, this._routingTable.id);
 
-
         return ResponseBuilder.buildResponse().status(200).body(grid);
     }
 
@@ -137,6 +137,9 @@ export class RoutingTableController extends Controller {
         (await RoutingTablePolicy.update(this._routingTable, request.session.user)).authorize();
 
         const result: RoutingTable = await this.routingTableService.update(this._routingTable.id, request.inputs.all());
+
+        // Update the tree node with the new name.
+        await Tree.updateRoutingTableNodeName(this._firewall.fwCloudId, result.id, result.name);
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }

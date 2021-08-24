@@ -20,14 +20,20 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsOptional, IsString } from "class-validator";
+import { IsOptional, IsString, IsNumber, Min, Max } from "class-validator";
 
 export class RoutingTableControllerUpdateDto {
-    @IsString()
+    @IsNumber()
     @IsOptional()
-    name: string;
+    @Min(1)
+    @Max(254)
+    number?: number;
 
     @IsString()
     @IsOptional()
-    comment: string;
+    name?: string;
+
+    @IsString()
+    @IsOptional()
+    comment?: string;
 }
