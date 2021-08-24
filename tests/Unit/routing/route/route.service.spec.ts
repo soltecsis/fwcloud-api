@@ -93,9 +93,9 @@ describe(RouteService.name, () => {
                     ipObjIds: standards.map(item => item.id)
                 });
 
-                route = await getRepository(Route).findOne(route.id, { relations: ['ipObjs']});
+                route = await getRepository(Route).findOne(route.id, { relations: ['routeToIPObjs']});
 
-                expect(route.ipObjs).to.have.length(standards.length);
+                expect(route.routeToIPObjs).to.have.length(standards.length);
             })
 
         });
@@ -158,7 +158,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjs']})).routeToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj1.id, ipobj2.id])
             });
 
@@ -172,7 +172,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjs']})).routeToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj2.id])
             });
 
@@ -186,7 +186,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjs']})).routeToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([])
             });
 

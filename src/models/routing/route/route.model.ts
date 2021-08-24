@@ -33,6 +33,7 @@ import db from "../../../database/database-manager";
 import { RouteToOpenVPNPrefix } from "./route-to-openvpn-prefix.model";
 import { RouteToOpenVPN } from "./route-to-openvpn.model";
 import { RouteToIPObjGroup } from "./route-to-ipobj-group.model";
+import { RouteToIPObj } from "./route-to-ipobj.model";
 
 const tableName: string = 'route';
 
@@ -98,13 +99,10 @@ export class Route extends Model {
     })
     routeGroup: RouteGroup;
 
-    @ManyToMany(type => IPObj, ipobj => ipobj.routes)
-	@JoinTable({
-		name: 'route__ipobj',
-		joinColumn: { name: 'route'},
-		inverseJoinColumn: { name: 'ipobj'}
-	})
-    ipObjs: IPObj[]
+    @OneToMany(() => RouteToIPObj, model => model.route, {
+        cascade: true,
+    })
+    routeToIPObjs: RouteToIPObj[];
 
     @OneToMany(() => RouteToIPObjGroup, model => model.route, {
         cascade: true,
@@ -132,7 +130,8 @@ export class Route extends Model {
             .innerJoinAndSelect('interface.ipObjs', 'ipobj', 'ipobj.id = :id', {id: ipobjId})
             .innerJoin('interface.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostIPObj', 'host')
-            .innerJoin('host.routes', 'route')
+            .innerJoin('host.routeToIPObjs', 'routeToIPObjs')
+            .innerJoin('routeToIPObjs.route', 'route')
             .innerJoin('route.routingTable', 'table')
             .innerJoin('table.firewall', 'firewall')
             .innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloud', {fwcloud})
@@ -155,7 +154,8 @@ export class Route extends Model {
             .createQueryBuilder('route')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-            .innerJoin('route.ipObjs', 'ipobj')
+            .innerJoin('route.routeToIPObjs', 'routeToIPObjs')
+            .innerJoin('routeToIPObjs.ipObj', 'ipobj')
             .innerJoin('ipobj.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostInterface', 'interface')
             .innerJoin('route.routingTable', 'table')
@@ -197,7 +197,8 @@ export class Route extends Model {
             .createQueryBuilder('route')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-            .innerJoin('route.ipObjs', 'ipobj')
+            .innerJoin('route.routeToIPObjs', 'routeToIPObjs')
+            .innerJoin('routeToIPObjs.ipObj', 'ipobj')
             .innerJoin('ipobj.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostInterface', 'interface')
             .innerJoin('route.routingTable', 'table')

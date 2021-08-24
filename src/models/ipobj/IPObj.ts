@@ -35,6 +35,7 @@ import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { Route } from '../routing/route/route.model';
 import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
 import { IdManager } from '../../fwcloud-exporter/database-importer/terraformer/mapper/id-manager';
+import { RouteToIPObj } from '../routing/route/route-to-ipobj.model';
 const ip = require('ip');
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
@@ -165,8 +166,10 @@ export class IPObj extends Model {
     @ManyToMany(type => RoutingRule, routingRule => routingRule.ipObjs)
     routingRules: RoutingRule[]
 
-    @ManyToMany(type => Route, route => route.ipObjs)
-    routes: Route[]
+    @OneToMany(() => RouteToIPObj, model => model.ipObj, {
+        cascade: true,
+    })
+    routeToIPObjs: RouteToIPObj[];
 
     public getTableName(): string {
         return tableName;
@@ -958,15 +961,17 @@ export class IPObj extends Model {
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
                     .innerJoinAndSelect('route.routingTable', 'table')
-                    .leftJoinAndSelect('route.ipObjs', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
-                    .leftJoinAndSelect('route.gateway', 'gateway', 'gateway.id = :ipobj', {ipobj: id})
+                    .leftJoin('route.routeToIPObjs', 'routeToIPObjs')
+                    .leftJoin('routeToIPObjs.ipObj', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
+                    .leftJoin('route.gateway', 'gateway', 'gateway.id = :ipobj', {ipobj: id})
                     .innerJoin('table.firewall', 'firewall')
                     .leftJoin('firewall.cluster', 'cluster')
                     .where((qb) => {
                         const query: string = qb.subQuery()
                             .from(Route, 'route')
                             .select('route.id')
-                            .innerJoin('route.ipObjs', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
+                            .innerJoin('route.routeToIPObjs', 'routeToIPObjs')
+                            .innerJoin('routeToIPObjs.ipObj', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
                             .innerJoin('route.routingTable', 'table')
                             .innerJoin('table.firewall', 'firewall')
                             .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud}).getQuery();

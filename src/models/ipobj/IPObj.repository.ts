@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, SelectQueryBuilder } from "typeorm";
+import { EntityRepository, QueryBuilder, SelectQueryBuilder } from "typeorm";
 import { Repository } from "../../database/repository";
 import { IPObj } from "./IPObj";
 
@@ -54,18 +54,39 @@ export class IPObjRepository extends Repository<IPObj> {
 
   // All ipobj under a position excluding hosts.
   getIpobjsInRouting_excludeHosts(entity: ValidEntities, fwcloud: number, firewall: number, routingTable: number, ids: number[]): SelectQueryBuilder<IPObj> {
-    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, this.routingSelects(entity)
-      .innerJoin(`ipobj.${entity=='route'?'routes':'routingRules'}`, `${entity}`))
-      .andWhere("ipobj.type<>8");
+    const query = this.routingSelects(entity);
+
+    if (entity === 'route') {
+      query
+        .innerJoin('ipobj.routeToIPObjs', 'routeToIPObjs')
+        .innerJoin('routeToIPObjs.route', entity)
+    } else {
+      query
+        .innerJoin('ipobj.routingRules', entity)
+    }
+    
+    query.andWhere("ipobj.type<>8");
+
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query);
   }    
   
   // All ipobj under host (type=8).
   getIpobjsInRouting_onlyHosts(entity: ValidEntities, fwcloud: number, firewall: number, routingTable: number, ids: number[]): SelectQueryBuilder<IPObj> {
-    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, this.routingSelects(entity)
+    const query = this.routingSelects(entity)
       .innerJoin("ipobj.interface", "interface")
       .innerJoin("interface.hosts", "interfaceHost")
-      .innerJoin("interfaceHost.hostIPObj", "host")
-      .innerJoin(`host.${entity=='route'?'routes':'routingRules'}`, `${entity}`));
+      .innerJoin("interfaceHost.hostIPObj", "host");
+
+    if (entity === 'route') {
+      query
+        .innerJoin('host.routeToIPObjs', 'routeToIPObjs')
+        .innerJoin('routeToIPObjs.route', entity)
+    } else {
+      query
+        .innerJoin('host.routingRules', entity);
+    }
+
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query);
   }
   
   // All ipobj under group excluding hosts (type=8)
@@ -208,12 +229,22 @@ export class IPObjRepository extends Repository<IPObj> {
 
   // All ipobj under a position excluding hosts.
   getIpobjsInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<IPObj> {
-    let q = this.createQueryBuilder("ipobj")
+    let query = this.createQueryBuilder("ipobj")
       .select("ipobj.id","id").addSelect("ipobj.name","name").addSelect("ipobj.type","type")
       .addSelect("firewall.id","firewall_id").addSelect("firewall.name","firewall_name")
       .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
-      .addSelect(`${entity}.id`,"entityId")
-      .innerJoin(`ipobj.${entity==='route'?'routes':'routingRules'}`, `${entity}`)
+      .addSelect(`${entity}.id`,"entityId");
+
+    if(entity === 'route') {
+      query
+        .innerJoin('ipobj.routeToIPObjs', 'routeToIPObjs')
+        .innerJoin('routeToIPObjs.route', entity)
+    } else {
+      query
+        .innerJoin('ipobj.routingRules', entity)
+    }
+
+    query
       .innerJoin(`${entity}.routingTable`, "table")
       .innerJoin("table.firewall", "firewall")
       .innerJoin("firewall.fwCloud", "fwcloud")
@@ -221,8 +252,11 @@ export class IPObjRepository extends Repository<IPObj> {
       .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
       .andWhere("firewall.id = :firewall", {firewall: firewall});
 
-    if (routingTable) q = q.andWhere("table.id = :routingTable", {routingTable});
+    if (routingTable) {
+      query
+        .andWhere("table.id = :routingTable", {routingTable});
+    }
 
-    return q;
+    return query;
   }    
 }
