@@ -121,12 +121,16 @@ export class RoutingTableService extends Service {
     async remove(path: IFindOneRoutingTablePath): Promise<RoutingTable> {
         const table: RoutingTable =  await this.findOneInPath(path);
 
-        const tableWithRules: RoutingTable = await this._repository.findOne(table.id, { relations: ['routingRules']});
+        const tableWithRules: RoutingTable = await this._repository.findOne(table.id, { relations: ['routingRules', 'routes']});
 
         if (tableWithRules.routingRules.length > 0) {
             throw new ValidationException('Routing table cannot be removed', {
                 id: ['Cannot remove a routing table which contains routing rules']
             });
+        }
+
+        if (tableWithRules.routes.length > 0) {
+            await this._routeRepository.remove(tableWithRules.routes);
         }
         
         await this._repository.remove(table);
