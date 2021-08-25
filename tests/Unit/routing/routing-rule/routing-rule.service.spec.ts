@@ -123,7 +123,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjs']})).routingRuleToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj1.id, ipobj2.id])
             });
 
@@ -139,9 +139,9 @@ describe(RoutingRuleService.name, () => {
                     ipObjIds: standards.map(item => item.id)
                 });
 
-                rule = await getRepository(RoutingRule).findOne(rule.id, { relations: ['ipObjs']});
+                rule = await getRepository(RoutingRule).findOne(rule.id, { relations: ['routingRuleToIPObjs']});
 
-                expect(rule.ipObjs).to.have.length(standards.length);
+                expect(rule.routingRuleToIPObjs).to.have.length(standards.length);
             })
         });
 
@@ -392,7 +392,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjs']})).routingRuleToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj1.id, ipobj2.id])
             });
 
@@ -406,7 +406,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjs']})).routingRuleToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj2.id])
             });
 
@@ -420,7 +420,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjs']})).routingRuleToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([])
             })
         });

@@ -42,6 +42,7 @@ import { OpenVPNPrefixRepository } from "../../vpn/openvpn/OpenVPNPrefix.reposit
 import { RoutingTable } from "../routing-table/routing-table.model";
 import { AvailableDestinations, ItemForGrid, RoutingRuleItemForCompiler, RoutingUtils } from "../shared";
 import { RoutingRuleToIPObjGroup } from "./routing-rule-to-ipobj-group.model";
+import { RoutingRuleToIPObj } from "./routing-rule-to-ipobj.model";
 import { RoutingRuleToOpenVPNPrefix } from "./routing-rule-to-openvpn-prefix.model";
 import { RoutingRuleToOpenVPN } from "./routing-rule-to-openvpn.model";
 import { RoutingRule } from "./routing-rule.model";
@@ -154,7 +155,7 @@ export class RoutingRuleService extends Service {
             where: {
                 id: In(ids)
             },
-            relations: ['routingTable', 'marks', 'ipObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
+            relations: ['routingTable', 'marks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
         });
 
         const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInFirewall(routes[0].routingTable.firewallId);
@@ -181,7 +182,11 @@ export class RoutingRuleService extends Service {
 
         if (data.ipObjIds) {
             await this.validateUpdateIPObjs(firewall, data);
-            rule.ipObjs = data.ipObjIds.map(id => ({id: id} as IPObj));
+            rule.routingRuleToIPObjs = data.ipObjIds.map(id => ({
+                ipObjId: id,
+                routingRuleId: rule.id,
+                order: 0
+            } as RoutingRuleToIPObj));
         }
 
         if (data.ipObjGroupIds) {
