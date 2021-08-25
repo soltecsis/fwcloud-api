@@ -103,7 +103,8 @@ export class IPObjRepository extends Repository<IPObj> {
 
     if (entity === 'rule') {
       query
-        .innerJoin('ipobjGroup.routingRules', entity);
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
     }
       
     return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query)
@@ -127,7 +128,8 @@ export class IPObjRepository extends Repository<IPObj> {
 
     if (entity === 'rule') {
       query
-        .innerJoin('ipobjGroup.routingRules', entity);
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
     }
     
 
@@ -172,7 +174,8 @@ export class IPObjRepository extends Repository<IPObj> {
 
     if (entity === 'rule') {
       query
-        .innerJoin('ipobjGroup.routingRules', entity)
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity)
     }
       
     return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query)
@@ -222,7 +225,8 @@ export class IPObjRepository extends Repository<IPObj> {
 
     if (entity === 'rule') {
       query
-        .innerJoin('ipobjGroup.routingRules', entity)
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity)
     }
   
     return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query)

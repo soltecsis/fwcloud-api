@@ -204,7 +204,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjGroups']})).ipObjGroups.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjGroups']})).routingRuleToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([group1.id, group2.id])
             });
         });
@@ -483,7 +483,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjGroups']})).ipObjGroups.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjGroups']})).routingRuleToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([group1.id, group2.id])
             });
 
@@ -497,7 +497,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjGroups']})).ipObjGroups.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjGroups']})).routingRuleToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([group2.id])
             });
 
@@ -511,7 +511,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjGroups']})).ipObjGroups.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjGroups']})).routingRuleToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([])
             });
 

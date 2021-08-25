@@ -34,6 +34,7 @@ import { Route } from "../routing/route/route.model";
 import { Interface } from "../interface/Interface";
 import { FwCloud } from "../fwcloud/FwCloud";
 import { RouteToIPObjGroup } from "../routing/route/route-to-ipobj-group.model";
+import { RoutingRuleToIPObjGroup } from "../routing/routing-rule/routing-rule-to-ipobj-group.model";
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
@@ -82,8 +83,8 @@ export class IPObjGroup extends Model {
     @ManyToMany(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.ipObjGroups)
     openVPNPrefixes: Array<OpenVPNPrefix>;
 
-    @ManyToMany(type => RoutingRule, routingRule => routingRule.ipObjGroups)
-    routingRules: RoutingRule[];
+    @OneToMany(() => RoutingRuleToIPObjGroup, model => model.ipObjGroup)
+    routingRuleToIPObjGroups: RoutingRuleToIPObjGroup[];
 
     @OneToMany(() => RouteToIPObjGroup, model => model.ipObjGroup)
     routeToIPObjGroups: RouteToIPObjGroup[];
@@ -372,7 +373,8 @@ export class IPObjGroup extends Model {
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
                     .innerJoin('routing_rule.routingTable', 'table')
-                    .innerJoin('routing_rule.ipObjGroups', 'group', 'group.id = :id', {id: id})
+                    .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+                    .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'group', 'group.id = :id', {id: id})
                     .innerJoin('table.firewall', 'firewall')
                     .leftJoin('firewall.cluster', 'cluster')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})

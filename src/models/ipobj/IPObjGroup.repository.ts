@@ -43,7 +43,8 @@ export class IPObjGroupRepository extends Repository<IPObjGroup> {
 
     if (entity === 'rule') {
       query
-        .innerJoin('ipobjGroup.routingRules', entity)
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity)
     }
       
     query

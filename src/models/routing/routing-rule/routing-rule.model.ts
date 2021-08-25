@@ -34,6 +34,7 @@ import { Interface } from "../../interface/Interface";
 import db from "../../../database/database-manager";
 import { RoutingRuleToOpenVPNPrefix } from "./routing-rule-to-openvpn-prefix.model";
 import { RoutingRuleToOpenVPN } from "./routing-rule-to-openvpn.model";
+import { RoutingRuleToIPObjGroup } from "./routing-rule-to-ipobj-group.model";
 
 const tableName: string = 'routing_r';
 
@@ -105,14 +106,11 @@ export class RoutingRule extends Model {
 	})
     ipObjs: IPObj[]
 
-    @ManyToMany(type => IPObjGroup, ipObjGroup => ipObjGroup.routingRules)
-	@JoinTable({
-		name: 'routing_r__ipobj_g',
-		joinColumn: { name: 'rule'},
-		inverseJoinColumn: { name: 'ipobj_g'}
-	})
-    ipObjGroups: IPObjGroup[];
-
+    @OneToMany(() => RoutingRuleToIPObjGroup, model => model.routingRule, {
+        cascade: true,
+    })
+    routingRuleToIPObjGroups: RoutingRuleToIPObjGroup[];
+    
     @OneToMany(() => RoutingRuleToOpenVPNPrefix, model => model.routingRule, {
         cascade: true,
     })
@@ -174,7 +172,8 @@ export class RoutingRule extends Model {
             .innerJoin('InterfaceIPObj.hostIPObj', 'host')
             .innerJoin('host.ipObjToIPObjGroups', 'IPObjToIPObjGroup')
             .innerJoin('IPObjToIPObjGroup.ipObjGroup', 'group')
-            .innerJoin('group.routingRules', 'rule')
+            .innerJoin('group.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+            .innerJoin('routingRuleToIPObjGroups.routingRule', 'rule')
             .innerJoin('rule.routingTable', 'table')
             .innerJoin('table.firewall', 'firewall')
             .innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloud', {fwcloud})
