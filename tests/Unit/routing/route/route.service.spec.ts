@@ -465,7 +465,8 @@ describe(RouteService.name, () => {
                 _interface = await getRepository(Interface).save(getRepository(Interface).create({
                     name: 'eth1',
                     type: '11',
-                    interface_type: '11'
+                    interface_type: '11',
+                    firewallId: firewall.id
                 }));
 
                 route = await service.create({
@@ -481,6 +482,18 @@ describe(RouteService.name, () => {
                 });
 
                 expect((await service.findOneInPath({id: route.id})).interfaceId).to.be.null;
+            });
+
+            it('should not attach a host interface', async () => {
+                _interface = await getRepository(Interface).save({
+                    name: 'eth1',
+                    type: '11',
+                    interface_type: '11',
+                });
+
+                await expect(service.update(route.id, {
+                    interfaceId: _interface.id
+                })).to.be.rejectedWith(ValidationException);
             });
         })
     });

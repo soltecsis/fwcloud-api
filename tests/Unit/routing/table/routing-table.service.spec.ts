@@ -31,10 +31,10 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
     });
 
     describe('create', () => {
-        it('should not create a table with a number being used', () => {
+        it('should not create a table with a number being used', async () => {
             const numberUsed: number = fwcloudProduct.routingTable.number;
 
-            expect(service.create({
+            await expect(service.create({
                 name: 'newTable',
                 number: numberUsed,
                 firewallId: firewall.id
@@ -69,7 +69,7 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
         it('should not update a table with a number being used by other table', async () => {
             const numberUsed: number = fwcloudProduct.routingTable.number;
 
-            expect(service.update(table.id, {
+            await expect(service.update(table.id, {
                 number: numberUsed,
             })).to.be.rejectedWith(ValidationException);
         });

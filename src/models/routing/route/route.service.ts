@@ -375,21 +375,17 @@ export class RouteService extends Service {
             return;
         }
         
-        const intr: Interface[] = await getRepository(Interface).find({
-            where: {
-                id: data.interfaceId,
-                firewallId: firewall.id
-            }
-        });
+        const intr: Interface = await getRepository(Interface).createQueryBuilder('interface')
+            .where('interface.id = :id', {id: data.interfaceId})
+            .andWhere('interface.firewallId = :firewallId', {firewallId: firewall.id})
+            .getOne()
 
-        if (!intr) {
-            errors.interfaceId = ['interface is not valid'];
+        if (intr) {
+            return;
         }
         
-        
-        if (Object.keys(errors).length > 0) {
-            throw new ValidationException('The given data was invalid', errors);
-        }
+        errors.interfaceId = ['interface is not valid'];
+        throw new ValidationException('The given data was invalid', errors);
     }
 
     protected getFindInPathOptions(path: Partial<IFindOneRoutePath>, options: FindOneOptions<Route> | FindManyOptions <Route> = {}): FindOneOptions<Route> | FindManyOptions<Route> {
