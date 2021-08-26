@@ -315,6 +315,15 @@ export class RoutingRuleService extends Service {
             .innerJoin('firewall.routingTables', 'table')
             .innerJoin('table.routingRules', 'rule', 'rule.id = :id', {id: rule.id}).getOne();
         
+        rule.routingRuleToOpenVPNs = [];
+        rule.routingRuleToOpenVPNPrefixes = [];
+        rule.routingRuleToIPObjGroups = [];
+        rule.routingRuleToIPObjs = [];
+        rule.routingRuleToMarks = [];
+        
+        await this._repository.save(rule);
+        
+        
         await this._repository.remove(rule);
 
         await this._firewallService.markAsUncompiled(firewall.id);
