@@ -43,6 +43,7 @@ import { RoutingTable } from "../routing-table/routing-table.model";
 import { AvailableDestinations, ItemForGrid, RoutingRuleItemForCompiler, RoutingUtils } from "../shared";
 import { RoutingRuleToIPObjGroup } from "./routing-rule-to-ipobj-group.model";
 import { RoutingRuleToIPObj } from "./routing-rule-to-ipobj.model";
+import { RoutingRuleToMark } from "./routing-rule-to-mark.model";
 import { RoutingRuleToOpenVPNPrefix } from "./routing-rule-to-openvpn-prefix.model";
 import { RoutingRuleToOpenVPN } from "./routing-rule-to-openvpn.model";
 import { RoutingRule } from "./routing-rule.model";
@@ -155,7 +156,7 @@ export class RoutingRuleService extends Service {
             where: {
                 id: In(ids)
             },
-            relations: ['routingTable', 'marks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
+            relations: ['routingTable', 'routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
         });
 
         const lastRule: RoutingRule = await this._repository.getLastRoutingRuleInFirewall(routes[0].routingTable.firewallId);
@@ -234,7 +235,11 @@ export class RoutingRuleService extends Service {
                 }
             });
 
-            rule.marks = marks.map(item => ({id: item.id}) as Mark);
+            rule.routingRuleToMarks = marks.map(item => ({
+                markId: item.id,
+                routingRuleId: rule.id,
+                order: 0
+            }) as RoutingRuleToMark);
         }
 
 

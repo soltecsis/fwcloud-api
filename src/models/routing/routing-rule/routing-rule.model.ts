@@ -33,6 +33,7 @@ import { RoutingRuleToOpenVPNPrefix } from "./routing-rule-to-openvpn-prefix.mod
 import { RoutingRuleToOpenVPN } from "./routing-rule-to-openvpn.model";
 import { RoutingRuleToIPObjGroup } from "./routing-rule-to-ipobj-group.model";
 import { RoutingRuleToIPObj } from "./routing-rule-to-ipobj.model";
+import { RoutingRuleToMark } from "./routing-rule-to-mark.model";
 
 const tableName: string = 'routing_r';
 
@@ -88,13 +89,10 @@ export class RoutingRule extends Model {
 	})
     routingRuleToInterfaces: RoutingRuleToInterface[]
 
-    @ManyToMany(type => Mark, mark => mark.routingRules)
-	@JoinTable({
-		name: 'routing_r__mark',
-		joinColumn: { name: 'rule'},
-		inverseJoinColumn: { name: 'mark'}
-	})
-    marks: Mark[];
+    @OneToMany(() => RoutingRuleToMark, model => model.routingRule, {
+        cascade: true,
+    })
+    routingRuleToMarks: RoutingRuleToMark[];
 
     @OneToMany(() => RoutingRuleToIPObj, model => model.routingRule, {
         cascade: true,

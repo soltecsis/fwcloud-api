@@ -330,7 +330,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['marks']})).marks.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToMarks']})).routingRuleToMarks.map(item => item.markId)
                 ).to.deep.eq([mark1.id, mark2.id])
             });
         });
@@ -702,7 +702,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['marks']})).marks.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToMarks']})).routingRuleToMarks.map(item => item.markId)
                 ).to.deep.eq([mark1.id, mark2.id])
             });
 
@@ -716,7 +716,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['marks']})).marks.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToMarks']})).routingRuleToMarks.map(item => item.markId)
                 ).to.deep.eq([mark2.id])
             });
 
@@ -730,7 +730,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['marks']})).marks.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToMarks']})).routingRuleToMarks.map(item => item.markId)
                 ).to.deep.eq([])
             })
         });
