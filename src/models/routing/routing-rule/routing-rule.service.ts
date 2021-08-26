@@ -27,6 +27,7 @@ import { ValidationException } from "../../../fonaments/exceptions/validation-ex
 import { Service } from "../../../fonaments/services/service";
 import { ErrorBag } from "../../../fonaments/validation/validator";
 import { Firewall } from "../../firewall/Firewall";
+import { FirewallService } from "../../firewall/firewall.service";
 import { Interface } from "../../interface/Interface";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjRepository } from "../../ipobj/IPObj.repository";
@@ -93,6 +94,7 @@ export class RoutingRuleService extends Service {
     private _openvpnPrefixRepository: OpenVPNPrefixRepository;
     private _markRepository: MarkRepository;
     private _routingTableRepository: Repository<RoutingTable>;
+    protected _firewallService: FirewallService;
 
     constructor(app: Application) {
         super(app);
@@ -103,6 +105,11 @@ export class RoutingRuleService extends Service {
         this._openvpnPrefixRepository = getCustomRepository(OpenVPNPrefixRepository);
         this._markRepository = getCustomRepository(MarkRepository);
         this._routingTableRepository = getRepository(RoutingTable);
+    }
+
+    public async build(): Promise<Service> {
+        this._firewallService = await this._app.getService(FirewallService.name);
+        return this;
     }
 
     findManyInPath(path: IFindManyRoutingRulePath): Promise<RoutingRule[]> {
@@ -148,6 +155,9 @@ export class RoutingRuleService extends Service {
             return (await this.move([persisted.id], data.to, data.offset))[0];
         }
 
+        // There is no need to update compilation status as it is done during update()
+        //await this._firewallService.markAsUncompiled(firewall.id);
+
         return persisted;    
     }
 
@@ -168,6 +178,8 @@ export class RoutingRuleService extends Service {
 
         const persisted: RoutingRule[] = await this._repository.save(routes);
 
+        await this._firewallService.markAsUncompiled(persisted.map(route => route.routingTable.firewallId));
+        
         return this.move(persisted.map(item => item.id), destRule, offset);
     }
 
@@ -245,6 +257,8 @@ export class RoutingRuleService extends Service {
 
         rule = await this._repository.save(rule);
 
+        await this._firewallService.markAsUncompiled(firewall.id);
+
         return rule;
     }
 
@@ -252,6 +266,20 @@ export class RoutingRuleService extends Service {
         await this._repository.update({
             id: In(ids)
         }, data);
+
+        const firewallIds: number[] = (await this._repository.find({
+            where: {
+                id: In(ids),
+            },
+            join: {
+                alias: 'rule',
+                innerJoinAndSelect: {
+                    table: 'rule.routingTable',
+                }
+            }
+        })).map(rule => rule.routingTable.firewallId);
+
+        await this._firewallService.markAsUncompiled(firewallIds);
 
         return this._repository.find({
             where: {
@@ -261,13 +289,35 @@ export class RoutingRuleService extends Service {
     }
 
     async move(ids: number[], destRule: number, offset: 'above'|'below'): Promise<RoutingRule[]> {
-        return this._repository.move(ids, destRule, offset);
+        const rules: RoutingRule[] = await this._repository.move(ids, destRule, offset);
+    
+        const firewallIds: number[] = (await this._repository.find({
+            where: {
+                id: In(ids),
+            },
+            join: {
+                alias: 'rule',
+                innerJoinAndSelect: {
+                    table: 'rule.routingTable',
+                }
+            }
+        })).map(rule => rule.routingTable.firewallId);
+        
+        await this._firewallService.markAsUncompiled(firewallIds);
+
+        return rules;
     }
 
     async remove(path: IFindOneRoutingRulePath): Promise<RoutingRule> {
         const rule: RoutingRule = await this.findOneInPath(path);
+        const firewall: Firewall = await getRepository(Firewall)
+            .createQueryBuilder('firewall')
+            .innerJoin('firewall.routingTables', 'table')
+            .innerJoin('table.routingRules', 'rule', 'rule.id = :id', {id: rule.id}).getOne();
         
         await this._repository.remove(rule);
+
+        await this._firewallService.markAsUncompiled(firewall.id);
 
         return rule;
     }
@@ -281,7 +331,9 @@ export class RoutingRuleService extends Service {
 
         // For unknown reason, this._repository.remove(routes) is not working
         for (let rule of rules) {
-            await this._repository.remove(rule);
+            await this.remove({
+                id: rule.id
+            });
         }
 
         return rules;

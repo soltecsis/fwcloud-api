@@ -10,7 +10,10 @@ import { EventEmitter } from "typeorm/platform/PlatformTools";
 import { User } from "../user/User";
 import db from "../../database/database-manager";
 import { IPObj } from "../ipobj/IPObj";
-import { getRepository } from "typeorm";
+import { getCustomRepository, getRepository, In } from "typeorm";
+import { FirewallRepository } from "./firewall.repository";
+import { AbstractApplication } from "../../fonaments/abstract-application";
+import { number } from "yargs";
 
 export type SSHConfig = {
     host: string,
@@ -24,6 +27,13 @@ export class FirewallService extends Service {
     protected _scriptFilename: string;
     protected _headerPath: string;
     protected _footerPath: string;
+
+    protected _repository: FirewallRepository;
+
+    constructor(app: AbstractApplication) {
+        super(app);
+        this._repository = getCustomRepository(FirewallRepository);
+    }
 
     public async build(): Promise<FirewallService> {
         this._dataDir = this._app.config.get('policy').data_dir;
@@ -64,6 +74,23 @@ export class FirewallService extends Service {
         await Firewall.updateFirewallInstallDate(firewall.fwCloudId, firewall.id);
 
         return firewall;
+    }
+
+    public async markAsUncompiled(ids: number[]): Promise<Firewall[]>
+    public async markAsUncompiled(id: number): Promise<Firewall>
+    public async markAsUncompiled(idOrIds: number | number[]): Promise<Firewall | Firewall[]> {
+        if (Array.isArray(idOrIds)) {
+            const firewalls: Firewall[] = await this._repository.find({
+                where: {
+                    id: In(idOrIds)
+                }
+            });
+            return await this._repository.markAsUncompiled(firewalls);
+        }
+
+        const firewall: Firewall = await this._repository.findOneOrFail(idOrIds);
+        await getCustomRepository(FirewallRepository).markAsUncompiled(firewall);
+        return this._repository.findOneOrFail(idOrIds);
     }
 
     /**

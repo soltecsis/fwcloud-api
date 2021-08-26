@@ -45,6 +45,23 @@ describe(RouteService.name, () => {
     });
 
     describe('create', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.create({
+                routingTableId: table.id,
+                gatewayId: gateway.id
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+
         describe('rule_order', () => {
             let routeOrder1: Route;
             let routeOrder2: Route;
@@ -118,6 +135,18 @@ describe(RouteService.name, () => {
             });
         });
 
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.copy([routeOrder1.id, routeOrder2.id], routeOrder1.id, 'above');
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+
         it('should copy routes', async () => {
             const copied: Route[] = await service.copy([routeOrder1.id, routeOrder2.id], routeOrder1.id, 'above');
             routeOrder1 = await service.findOneInPath({
@@ -131,6 +160,22 @@ describe(RouteService.name, () => {
     })
 
     describe('update', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.update(route.id, {
+                active: false
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+
         describe('IpObjs', () => {
             let ipobj1: IPObj;
             let ipobj2: IPObj;
@@ -498,6 +543,40 @@ describe(RouteService.name, () => {
         })
     });
 
+    describe('bulkUpdate', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.bulkUpdate([route.id], {
+                active: false
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+    });
+
+    describe('move', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.move([route.id], route.id, 'above');
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+    });
+
     describe('remove', () => {
         it('should remove route', async () => {
             await service.remove({
@@ -512,6 +591,21 @@ describe(RouteService.name, () => {
                 id: route.id
             })).to.be.undefined;
         });
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.remove({
+                id: route.id
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
     });
     
     describe('bulkRemove', () => {
@@ -523,6 +617,19 @@ describe(RouteService.name, () => {
                 fwCloudId: fwCloud.id,
                 id: route.id
             })).to.be.undefined;
+        });
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.bulkRemove([route.id]);
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
         });
     })
 })

@@ -23,10 +23,12 @@
 import { FindManyOptions, FindOneOptions, getCustomRepository, getRepository, In, Not, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import db from "../../../database/database-manager";
+import { app } from "../../../fonaments/abstract-application";
 import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
 import { Service } from "../../../fonaments/services/service";
 import { ErrorBag } from "../../../fonaments/validation/validator";
 import { Firewall } from "../../firewall/Firewall";
+import { FirewallService } from "../../firewall/firewall.service";
 import { Interface } from "../../interface/Interface";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
@@ -85,10 +87,17 @@ interface IBulkUpdateRoute {
 
 export class RouteService extends Service {
     protected _repository: RouteRepository;
+    protected _firewallService: FirewallService;
 
     constructor(app: Application) {
         super(app);
         this._repository = getCustomRepository(RouteRepository);
+    }
+
+    public async build(): Promise<RouteService> {
+        this._firewallService = await this._app.getService(FirewallService.name);
+        
+        return this;
     }
 
     findManyInPath(path: IFindManyRoutePath): Promise<Route[]> {
@@ -131,6 +140,8 @@ export class RouteService extends Service {
             return (await this.move([persisted.id], data.to, data.offset))[0];
         }
 
+        //There is no need to update firewall compilation status as it is done during update()
+        //await this._firewallService.markAsUncompiled(firewall.id);
         return persisted;
     }
 
@@ -200,6 +211,8 @@ export class RouteService extends Service {
         }
 
         route = await this._repository.save(route);
+
+        await this._firewallService.markAsUncompiled(firewall.id);
         
         return route;
     }
@@ -221,6 +234,14 @@ export class RouteService extends Service {
 
         const persisted: Route[] = await this._repository.save(routes);
 
+        const firewalls: Firewall[] = await getRepository(Firewall).find({
+            where: {
+                id: In(routes.map(route => route.routingTable.firewallId))
+            }
+        })
+
+        await this._firewallService.markAsUncompiled(firewalls.map(firewall => firewall.id))
+
         return this.move(persisted.map(item => item.id), destRule, position);
     }
 
@@ -228,6 +249,20 @@ export class RouteService extends Service {
         await this._repository.update({
             id: In(ids)
         }, data);
+
+        const firewallIds: number[] = (await this._repository.find({
+            where: {
+                id: In(ids),
+            },
+            join: {
+                alias: 'route',
+                innerJoinAndSelect: {
+                    table: 'route.routingTable',
+                }
+            }
+        })).map(route => route.routingTable.firewallId);
+
+        await this._firewallService.markAsUncompiled(firewallIds);
 
         return this._repository.find({
             where: {
@@ -237,12 +272,31 @@ export class RouteService extends Service {
     }
 
     async move(ids: number[], destRule: number, offset: 'above'|'below'): Promise<Route[]> {
-        return this._repository.move(ids, destRule, offset);
+        const routes: Route[] = await this._repository.move(ids, destRule, offset);
+        const firewallIds: number[] = (await this._repository.find({
+            where: {
+                id: In(ids),
+            },
+            join: {
+                alias: 'route',
+                innerJoinAndSelect: {
+                    table: 'route.routingTable',
+                }
+            }
+        })).map(route => route.routingTable.firewallId);
+        
+        await this._firewallService.markAsUncompiled(firewallIds);
+
+        return routes;
     }
 
     async remove(path: IFindOneRoutePath): Promise<Route> {
-        const route: Route =  await this.findOneInPath(path, {relations: ['routeToOpenVPNPrefixes']});
-
+        const route: Route =  await this.findOneInPath(path);
+        const firewall: Firewall = await getRepository(Firewall)
+            .createQueryBuilder('firewall')
+            .innerJoin('firewall.routingTables', 'table')
+            .innerJoin('table.routes', 'route', 'route.id = :id', {id: route.id}).getOne();
+        
         route.routeToOpenVPNPrefixes = [];
         route.routeToOpenVPNs = [];
         route.routeToIPObjGroups = [];
@@ -250,7 +304,7 @@ export class RouteService extends Service {
         await this._repository.save(route);
 
         await this._repository.remove(route);
-
+        await this._firewallService.markAsUncompiled(firewall.id);
         return route;
     }
 
@@ -267,6 +321,9 @@ export class RouteService extends Service {
                 id: route.id
             })
         }
+
+        //There is no need to set uncompiled firewalls because this is done in the remove()
+        //await this._firewallService.markAsUncompiled(firewallIds);
 
         return routes;
     }
