@@ -202,7 +202,7 @@ router.put('/addto', async(req, res) => {
 		await Tree.newNode(req.dbCon, req.body.fwcloud, dataIpobj[0].name, req.body.node_parent, req.body.node_type, req.body.ipobj, dataIpobj[0].type);
 
 		// Update affected firewalls status.
-		await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
+		await Firewall.updateFirewallStatusIPOBJGroup(req.body.fwcloud, [req.body.ipobj_g]);
 
 		const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(req.body.fwcloud, null);
 		res.status(200).json(not_zero_status_fws);
@@ -248,7 +248,7 @@ router.put('/delfrom', async(req, res) => {
 
 		await Tree.deleteFwc_TreeGroupChild(req.dbCon, req.body.fwcloud, req.body.ipobj_g, req.body.ipobj);
 
-		await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
+		await Firewall.updateFirewallStatusIPOBJGroup(req.body.fwcloud, [req.body.ipobj_g]);
 
 		const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(req.body.fwcloud, null);
 		res.status(200).json(not_zero_status_fws);

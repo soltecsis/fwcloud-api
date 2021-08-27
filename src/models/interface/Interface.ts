@@ -96,12 +96,9 @@ export class Interface extends Model {
 	@OneToMany(() => RoutingRuleToInterface, routingRuleToInterface => routingRuleToInterface.interface)
 	routingRuleToInterfaces: RoutingRuleToInterface[]
 
-	/**
-	* Pending foreign keys.
 	@OneToMany(type => PolicyRuleToIPObj, model => model.interface)
 	policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
-	*/
-   
+
 	public getTableName(): string {
 		return tableName;
 	}

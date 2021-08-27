@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager'
-import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany, getConnection, UpdateResult, getManager, getRepository, Not, IsNull } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany, getConnection, UpdateResult, getManager, getRepository, Not, IsNull, In } from "typeorm";
 
 import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
@@ -47,6 +47,8 @@ import { RoutingTable } from "../routing/routing-table/routing-table.model";
 import { RoutingGroup } from "../routing/routing-group/routing-group.model";
 import { RouteGroup } from "../routing/route-group/route-group.model";
 import { AvailablePolicyCompilers } from "../../compiler/policy/PolicyCompiler";
+import { IPObj } from "../ipobj/IPObj";
+import { IPObjGroup } from "../ipobj/IPObjGroup";
 
 const tableName: string = 'firewall';
 
@@ -607,65 +609,201 @@ export class Firewall extends Model {
 		});
 	};
 
-	public static updateFirewallStatusIPOBJ(fwcloud: any, ipobj: number, ipobj_g: number, _interface: number, type: string | number, status_action: string) {
-		return new Promise((resolve, reject) => {
-			db.get((error, connection) => {
-				if (error) return reject(error);
-				var sql = `UPDATE ${tableName} F
-				INNER JOIN policy_r PR ON PR.firewall=F.id
-				INNER JOIN ${(_interface != -1) ? `policy_r__interface` : `policy_r__ipobj`} PRI ON PRI.rule=PR.id
-				SET F.status=F.status${status_action}
-				WHERE F.fwcloud=${fwcloud} 
-				${(ipobj != -1 || ipobj_g != -1) ? `AND PRI.ipobj=${ipobj} AND PRI.ipobj_g=${ipobj_g}` : ``} AND PRI.interface=${_interface}`;
-				connection.query(sql, (error, result) => {
-					if (error) return reject(error);
 
-					// If ipobj!=-1 we must see if it is part of a group and then update the status of the firewalls that use that group.
-					if (ipobj != -1) {
-						sql = 'UPDATE ' + tableName + ' F' +
-							' INNER JOIN policy_r PR ON PR.firewall=F.id' +
-							' INNER JOIN policy_r__ipobj PRI ON PRI.rule=PR.id' +
-							' INNER JOIN ipobj__ipobjg IG ON IG.ipobj_g=PRI.ipobj_g' +
-							' SET F.status=F.status' + status_action +
-							' WHERE F.fwcloud=' + connection.escape(fwcloud) + ' AND IG.ipobj=' + connection.escape(ipobj);
-						connection.query(sql, (error, result) => {
-							if (error) return reject(error);
+	public static async updateFirewallStatusIPOBJ(fwcloudId: any, ipObjIds: number[]): Promise<void> {
+		if (ipObjIds.length === 0) {
+			return;
+		}
 
-							if (type === 5 || type === "5") { // ADDRESS
-								// We must see if the ADDRESS is part of a network interface and then update the status of the firewalls that use that network interface.
-								sql = 'UPDATE ' + tableName + ' F' +
-									' INNER JOIN policy_r PR ON PR.firewall=F.id' +
-									' INNER JOIN policy_r__ipobj PRI ON PRI.rule=PR.id' +
-									' INNER JOIN ipobj IPO ON IPO.interface=PRI.interface' +
-									' SET F.status=F.status' + status_action +
-									' WHERE F.fwcloud=' + connection.escape(fwcloud) + ' AND IPO.id=' + connection.escape(ipobj);
-								connection.query(sql, (error, result) => {
-									if (error) return reject(error);
-
-									// We must see too if the ADDRESS is part of a network interface that belogns to a host
-									// and then update the status of the firewalls that use that host in any of its positions.
-									sql = 'UPDATE ' + tableName + ' F' +
-										' INNER JOIN policy_r PR ON PR.firewall=F.id' +
-										' INNER JOIN policy_r__ipobj PRI ON PRI.rule=PR.id' +
-										' INNER JOIN interface__ipobj IO ON IO.ipobj=PRI.ipobj' +
-										' INNER JOIN ipobj IPO ON IPO.interface=IO.interface' +
-										' SET F.status=F.status' + status_action +
-										' WHERE F.fwcloud=' + connection.escape(fwcloud) + ' AND IPO.id=' + connection.escape(ipobj);
-									connection.query(sql, (error, result) => {
-										if (error) return reject(error);
-										resolve({ "result": true });
-									});
-								});
-							} else
-								resolve({ "result": true });
-						});
-					} else
-						resolve({ "result": true });
-				});
-			});
+		const ipObjs: IPObj[] = await getRepository(IPObj).find({
+			where: {
+				id: In(ipObjIds),
+				fwCloudId: fwcloudId
+			}
 		});
+
+		if (ipObjs.length === 0) {
+			return;
+		}
+
+		const query = getRepository(Firewall).createQueryBuilder('firewall')
+			.where('firewall.fwCloudId = :fwcloudId', {fwcloudId})
+			.andWhere((qb) => {
+				const subqueryPolicy = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
+					.innerJoin('firewall.policyRules', 'policy_rule')
+					.innerJoin('policy_rule.policyRuleToIPObjs', 'policyRuleToIPObjs')
+					.innerJoin('policyRuleToIPObjs.ipObj', 'ipobj', 'ipobj.id IN (:ipobjIds)', {
+						ipobjIds: ipObjs.map(item => item.id).join(','),
+					});
+
+				const subQueryRoutesFrom = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
+					.innerJoin('firewall.routingTables', 'table')
+					.innerJoin('table.routes', 'route')
+					.innerJoin('route.routeToIPObjs', 'routeToIPObjs')
+					.innerJoin('routeToIPObjs.ipObj', 'ipobj', 'ipobj.id IN (:ipobjIds)', {
+						ipobjIds: ipObjs.map(item => item.id).join(','),
+					});
+
+				const subQueryRoutesGateway = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
+					.innerJoin('firewall.routingTables', 'table')
+					.innerJoin('table.routes', 'route')
+					.innerJoin('route.gateway', 'gateway', 'gateway.id IN (:ipobjIds)', {
+						ipobjIds: ipObjs.map(item => item.id).join(','),
+					});
+
+				const subQueryRoutingRules = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
+					.innerJoin('firewall.routingTables', 'table')
+					.innerJoin('table.routingRules', 'rule')
+					.innerJoin('rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
+					.innerJoin('routingRuleToIPObjs.ipObj', 'ipobj', 'ipobj.id IN (:ipobjIds)', {
+						ipobjIds: ipObjs.map(item => item.id).join(','),
+					});
+				
+				
+				return `firewall.id IN ${subqueryPolicy.getQuery()} OR firewall.id IN ${subQueryRoutesFrom.getQuery()} OR firewall.id IN ${subQueryRoutesGateway.getQuery()} OR firewall.id IN ${subQueryRoutingRules.getQuery()}`;
+			});
+
+		const firewalls = await query.getMany();
+		
+		if (firewalls.length > 0) {
+			await getRepository(Firewall).update({
+				id: In(firewalls.map(firewall => firewall.id))
+			}, {
+				status: 3,
+				compiled_at: null,
+				installed_at: null
+			})
+		}
+
+		//If the ipobj belongs to a group or groups, then update firewalls affected by these groups
+		const groupContainers: IPObjGroup[] = await getRepository(IPObjGroup).createQueryBuilder('group')
+			.innerJoin('group.ipObjToIPObjGroups', 'ipObjToIPObjGroups')
+			.innerJoin('ipObjToIPObjGroups.ipObj', 'ipobj', 'ipobj.id IN (:id)', {
+				id: ipObjs.map(item => item.id).join(',')
+			}).getMany()
+		
+		if (groupContainers.length > 0) {
+			await this.updateFirewallStatusIPOBJGroup(fwcloudId, groupContainers.map(group => group.id));
+		}
+
+		// We must see if the ADDRESS is part of a network interface and then update the status of the firewalls that use that network interface.
+		const interfacesUsingAddress: Interface[] = await getRepository(Interface).createQueryBuilder('interface')
+			.innerJoin('interface.ipObjs', 'ipobj', 'ipobj.id IN (:id)', {
+				id: ipObjs.map(item => item.id).join(',')
+			})
+			.where('ipobj.ipObjType = :addressType', {addressType: 5}).getMany();
+
+		if (interfacesUsingAddress.length > 0) {
+			await this.updateFirewallStatusInterface(fwcloudId, interfacesUsingAddress.map(item => item.id));
+		}
 	}
 
+	public static async updateFirewallStatusIPOBJGroup(fwcloudId: any, ipObjGroupIds: number[]): Promise<void> {
+		if (ipObjGroupIds.length === 0) {
+			return;
+		}
+
+		const ipObjGroups: IPObjGroup[] = await getRepository(IPObjGroup).find({
+			where: {
+				id: In(ipObjGroupIds),
+				fwCloudId: fwcloudId
+			}
+		});
+
+		if (ipObjGroups.length === 0) {
+			return;
+		}
+
+		const query = getRepository(Firewall).createQueryBuilder('firewall')
+			.where('firewall.fwCloudId = :fwcloudId', {fwcloudId: fwcloudId})
+			.andWhere((qb) => {
+				const subqueryPolicy = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
+					.innerJoin('firewall.policyRules', 'policy_rule')
+					.innerJoin('policy_rule.policyRuleToIPObjs', 'policyRuleToIPObjs')
+					.innerJoin('policyRuleToIPObjs.ipObjGroup', 'group', 'group.id IN (:id)', {id: ipObjGroupIds})
+					
+				const subQueryRoutes = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
+					.innerJoin('firewall.routingTables', 'table')
+					.innerJoin('table.routes', 'route')
+					.innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+					.innerJoin('routeToIPObjGroups.ipObjGroup', 'group', 'group.id IN (:ids)', {ids: ipObjGroups.map(item => item.id).join(',')});
+
+				const subQueryRoutingRules = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
+					.innerJoin('firewall.routingTables', 'table')
+					.innerJoin('table.routingRules', 'rule')
+					.innerJoin('rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+					.innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'group', 'group.id IN (:ids)', {ids: ipObjGroups.map(item => item.id).join(',')});
+	
+				return `firewall.id IN ${subqueryPolicy.getQuery()} OR firewall.id IN ${subQueryRoutes.getQuery()} OR firewall.id IN ${subQueryRoutingRules.getQuery()}`;
+			});
+		
+		const firewalls = await query.getMany();
+		
+		if (firewalls.length > 0) {
+			await getRepository(Firewall).update({
+				id: In(firewalls.map(firewall => firewall.id))
+			}, {
+				status: 3,
+				compiled_at: null,
+				installed_at: null
+			})
+		}
+	}
+
+	public static async updateFirewallStatusInterface(fwcloudId: number, interfaceIds: number[]): Promise<void> {
+		if (interfaceIds.length === 0) {
+			return;
+		}
+
+		const interfaces: Interface[] = await getRepository(Interface).createQueryBuilder('int')
+		.innerJoin('int.firewall', 'firewall')
+		.innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloudId', {fwcloudId})
+		.where('int.id IN (:interfaceIds)', {interfaceIds}).getMany();
+
+		if (interfaces.length > 0) {
+			const query = getRepository(Firewall).createQueryBuilder('firewall')
+				.where('firewall.fwCloudId = :fwcloudId', {fwcloudId})
+				.andWhere((qb) => {
+					const subqueryPolicy = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
+						.innerJoin('firewall.policyRules', 'policy_rule')
+						.innerJoin('policy_rule.policyRuleToInterfaces', 'policyRuleToInterfaces')
+						.innerJoin('policyRuleToInterfaces.policyRuleInterface', 'int', 'int.id IN (:intIds)', {
+							intIds: interfaces.map(item => item.id).join(','),
+						});
+
+					const subqueryRoutes = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
+						.innerJoin('firewall.routingTables', 'table')
+						.innerJoin('table.routes', 'route')
+						.innerJoin('route.interface', 'int', 'int.id IN (:intIds)', {
+							intIds: interfaces.map(item => item.id).join(','),
+						});
+
+					return `firewall.id IN ${subqueryPolicy.getQuery()} OR firewall.id IN ${subqueryRoutes.getQuery()}`;
+				});
+
+			const firewalls = await query.getMany();
+			if (firewalls.length > 0) {
+				await getRepository(Firewall).update({
+					id: In(firewalls.map(firewall => firewall.id))
+				}, {
+					status: 3,
+					compiled_at: null,
+					installed_at: null
+				})
+			}
+		}
+
+		// We must see too if the interface belongs to a host which is used by firewalls.
+		const hosts: IPObj[] = await getRepository(IPObj).createQueryBuilder('ipObj')
+			.innerJoin('ipObj.hosts', 'hosts', 'hosts.hostInterface IN (:interfaceIds)', {
+				interfaceIds: interfaceIds
+			}).getMany();
+
+		if (hosts.length > 0) {
+			await this.updateFirewallStatusIPOBJ(fwcloudId, hosts.map(item => item.id));
+		}
+	}
+	
 	public static cloneFirewall(iduser, firewallData) {
 		return new Promise((resolve, reject) => {
 			db.get((error, connection) => {
