@@ -325,7 +325,6 @@ router.put('/',
 
 			res.status(200).json(data_return);
 		} catch (error) {
-			console.log(error);
 			logger().error('Error updating an ipobj: ' + JSON.stringify(error));
 			res.status(400).json(error);
 		}
