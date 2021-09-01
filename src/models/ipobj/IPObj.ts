@@ -960,35 +960,23 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInRoute = await getRepository(Route).createQueryBuilder('route')
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+                    .innerJoin('route.routeToIPObjs', 'routeToIPObjs')
+                    .innerJoin('routeToIPObjs.ipObj', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
                     .innerJoinAndSelect('route.routingTable', 'table')
-                    .leftJoin('route.routeToIPObjs', 'routeToIPObjs')
-                    .leftJoin('routeToIPObjs.ipObj', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
-                    .leftJoin('route.gateway', 'gateway', 'gateway.id = :ipobj', {ipobj: id})
                     .innerJoin('table.firewall', 'firewall')
                     .leftJoin('firewall.cluster', 'cluster')
-                    .where((qb) => {
-                        const query: string = qb.subQuery()
-                            .from(Route, 'route')
-                            .select('route.id')
-                            .innerJoin('route.routeToIPObjs', 'routeToIPObjs')
-                            .innerJoin('routeToIPObjs.ipObj', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
-                            .innerJoin('route.routingTable', 'table')
-                            .innerJoin('table.firewall', 'firewall')
-                            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud}).getQuery();
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getRawMany();
 
-                            return `route.id IN ${query}`;
-                    })
-                    .orWhere((qb) => {
-                        const query: string = qb.subQuery()
-                            .from(Route, 'route')
-                            .select('route.id')
-                            .innerJoin('route.gateway', 'gateway', 'gateway.id = :ipobj', {ipobj: id})
-                            .innerJoin('route.routingTable', 'table')
-                            .innerJoin('table.firewall', 'firewall')
-                            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud}).getQuery();
-
-                            return `route.id IN ${query}`;
-                    }).getRawMany();
+                search.restrictions.IpobjInRouteAsGateway = await getRepository(Route).createQueryBuilder('route')
+                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+                    .innerJoin('route.gateway', 'gateway', 'gateway.id = :ipobj', {ipobj: id})
+                    .innerJoinAndSelect('route.routingTable', 'table')
+                    .innerJoin('table.firewall', 'firewall')
+                    .leftJoin('firewall.cluster', 'cluster')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getRawMany();
 
                 search.restrictions.IpobjInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('routing_rule')
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
