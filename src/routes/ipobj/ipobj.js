@@ -198,7 +198,7 @@ router.post("/",
 
 			var dataresp = { "insertId": id, "TreeinsertId": node_id };
 			if (ipobjData.interface) {
-				await Firewall.updateFirewallStatusIPOBJ(fwcloud, id, -1, -1, ipobjData.type, "|3");
+				await Firewall.updateFirewallStatusIPOBJ(fwcloud, [id]);
 				dataresp.fw_status = await Firewall.getFirewallStatusNotZero(fwcloud, null);
 			}
 
@@ -312,7 +312,7 @@ router.put('/',
 				ipobjData.protocol = data[0].protocol_number;
 
 			await IPObj.updateIpobj(req, ipobjData);
-			await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, ipobjData.id, -1, -1, ipobjData.type, "|3");
+			await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, [ipobjData.id]);
 			await OpenVPN.updateOpenvpnStatusIPOBJ(req, ipobjData.id, "|1");
 			await IPObj.UpdateHOST(ipobjData.id);
 			await IPObj.UpdateINTERFACE(ipobjData.id);
@@ -413,7 +413,7 @@ router.put('/del',
 		var type = req.body.type;
 
 		try {
-			await Firewall.updateFirewallStatusIPOBJ(fwcloud, id, -1, -1, type, "|3");
+			await Firewall.updateFirewallStatusIPOBJ(fwcloud, [id]);
 			await IPObj.UpdateHOST(id);
 			await IPObj.UpdateINTERFACE(id);
 

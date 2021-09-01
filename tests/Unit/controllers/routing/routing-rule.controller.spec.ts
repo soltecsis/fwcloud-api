@@ -68,12 +68,12 @@ describe(RoutingRuleController.name, () => {
                 fwCloudId: newFwcloud.id
             });
 
-            expect(controller.make({
+            await expect(controller.make({
                 params: {
                     fwcloud: fwcProduct.fwcloud.id,
                     firewall: firewall.id
                 }
-            } as unknown as Request)).rejectedWith(QueryFailedError);
+            } as unknown as Request)).rejected;
         });
 
         it('should throw an error if the rule does not belongs to a table which belongs to the firewall', async () => {
@@ -93,13 +93,13 @@ describe(RoutingRuleController.name, () => {
                 rule_order: 1
             });
 
-            expect(controller.make({
+            await expect(controller.make({
                 params: {
                     fwcloud: fwcProduct.fwcloud.id,
                     firewall: firewall.id,
                     routingRule: rule.id // This rule belongs to newFirewall
                 }
-            } as unknown as Request)).rejectedWith(QueryFailedError);
+            } as unknown as Request)).rejected;
         });
 
         it('should not throw an error if the params are valid', async () => {

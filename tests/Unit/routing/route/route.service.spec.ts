@@ -45,6 +45,23 @@ describe(RouteService.name, () => {
     });
 
     describe('create', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.create({
+                routingTableId: table.id,
+                gatewayId: gateway.id
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+
         describe('rule_order', () => {
             let routeOrder1: Route;
             let routeOrder2: Route;
@@ -118,6 +135,18 @@ describe(RouteService.name, () => {
             });
         });
 
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.copy([routeOrder1.id, routeOrder2.id], routeOrder1.id, 'above');
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+
         it('should copy routes', async () => {
             const copied: Route[] = await service.copy([routeOrder1.id, routeOrder2.id], routeOrder1.id, 'above');
             routeOrder1 = await service.findOneInPath({
@@ -131,6 +160,22 @@ describe(RouteService.name, () => {
     })
 
     describe('update', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.update(route.id, {
+                active: false
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+
         describe('IpObjs', () => {
             let ipobj1: IPObj;
             let ipobj2: IPObj;
@@ -465,7 +510,8 @@ describe(RouteService.name, () => {
                 _interface = await getRepository(Interface).save(getRepository(Interface).create({
                     name: 'eth1',
                     type: '11',
-                    interface_type: '11'
+                    interface_type: '11',
+                    firewallId: firewall.id
                 }));
 
                 route = await service.create({
@@ -482,7 +528,53 @@ describe(RouteService.name, () => {
 
                 expect((await service.findOneInPath({id: route.id})).interfaceId).to.be.null;
             });
+
+            it('should not attach a host interface', async () => {
+                _interface = await getRepository(Interface).save({
+                    name: 'eth1',
+                    type: '11',
+                    interface_type: '11',
+                });
+
+                await expect(service.update(route.id, {
+                    interfaceId: _interface.id
+                })).to.be.rejectedWith(ValidationException);
+            });
         })
+    });
+
+    describe('bulkUpdate', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.bulkUpdate([route.id], {
+                active: false
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+    });
+
+    describe('move', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.move([route.id], route.id, 'above');
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
     });
 
     describe('remove', () => {
@@ -499,6 +591,21 @@ describe(RouteService.name, () => {
                 id: route.id
             })).to.be.undefined;
         });
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.remove({
+                id: route.id
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
     });
     
     describe('bulkRemove', () => {
@@ -510,6 +617,19 @@ describe(RouteService.name, () => {
                 fwCloudId: fwCloud.id,
                 id: route.id
             })).to.be.undefined;
+        });
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.bulkRemove([route.id]);
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
         });
     })
 })

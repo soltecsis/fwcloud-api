@@ -36,6 +36,7 @@ import { Route } from '../routing/route/route.model';
 import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
 import { IdManager } from '../../fwcloud-exporter/database-importer/terraformer/mapper/id-manager';
 import { RouteToIPObj } from '../routing/route/route-to-ipobj.model';
+import { RoutingRuleToIPObj } from '../routing/routing-rule/routing-rule-to-ipobj.model';
 const ip = require('ip');
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
@@ -154,17 +155,16 @@ export class IPObj extends Model {
     @OneToMany(type => InterfaceIPObj, interfaceIPObj => interfaceIPObj.hostIPObj)
     hosts!: Array<InterfaceIPObj>;
 
-    /**
-    * Pending foreign keys.
     @OneToMany(type => PolicyRuleToIPObj, policyRuleToIPObj => policyRuleToIPObj.ipObj)
     policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
-    */
 
     @OneToMany(type => Route, model => model.gateway)
 	routeGateways: Route[];
 
-    @ManyToMany(type => RoutingRule, routingRule => routingRule.ipObjs)
-    routingRules: RoutingRule[]
+    @OneToMany(() => RoutingRuleToIPObj, model => model.ipObj, {
+        cascade: true,
+    })
+    routingRuleToIPObjs: RoutingRuleToIPObj[];
 
     @OneToMany(() => RouteToIPObj, model => model.ipObj, {
         cascade: true,
@@ -993,7 +993,8 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('routing_rule')
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-                    .innerJoinAndSelect('routing_rule.ipObjs', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
+                    .innerJoin('routing_rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
+                    .innerJoin('routingRuleToIPObjs.ipObj', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
                     .innerJoin('routing_rule.routingTable', 'table')
                     .innerJoin('table.firewall', 'firewall')
                     .leftJoin('firewall.cluster', 'cluster')

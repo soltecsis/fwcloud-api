@@ -198,7 +198,7 @@ router.put('/', (req, res) => {
 				try {
 					await InterfaceIPObj.UpdateHOST(interfaceData.id);
 
-					await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, -1, interfaceData.id, interfaceData.type, "|3");
+					await Firewall.updateFirewallStatusInterface(req.body.fwcloud, [interfaceData.id]);
 
 					var data_return = {};
 					await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);

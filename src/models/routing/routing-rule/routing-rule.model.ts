@@ -22,11 +22,8 @@
 
 import { Column, Entity, getRepository, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { IPObj } from "../../ipobj/IPObj";
-import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import { Mark } from "../../ipobj/Mark";
 import Model from "../../Model";
-import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
-import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { RoutingRuleToInterface } from "../routing-rule-to-interface/routing-rule-to-interface.model";
 import { RoutingTable } from "../routing-table/routing-table.model";
 import { RoutingGroup } from "../routing-group/routing-group.model";
@@ -35,6 +32,8 @@ import db from "../../../database/database-manager";
 import { RoutingRuleToOpenVPNPrefix } from "./routing-rule-to-openvpn-prefix.model";
 import { RoutingRuleToOpenVPN } from "./routing-rule-to-openvpn.model";
 import { RoutingRuleToIPObjGroup } from "./routing-rule-to-ipobj-group.model";
+import { RoutingRuleToIPObj } from "./routing-rule-to-ipobj.model";
+import { RoutingRuleToMark } from "./routing-rule-to-mark.model";
 
 const tableName: string = 'routing_r';
 
@@ -90,21 +89,15 @@ export class RoutingRule extends Model {
 	})
     routingRuleToInterfaces: RoutingRuleToInterface[]
 
-    @ManyToMany(type => Mark, mark => mark.routingRules)
-	@JoinTable({
-		name: 'routing_r__mark',
-		joinColumn: { name: 'rule'},
-		inverseJoinColumn: { name: 'mark'}
-	})
-    marks: Mark[]
+    @OneToMany(() => RoutingRuleToMark, model => model.routingRule, {
+        cascade: true,
+    })
+    routingRuleToMarks: RoutingRuleToMark[];
 
-    @ManyToMany(type => IPObj, ipobj => ipobj.routingRules)
-	@JoinTable({
-		name: 'routing_r__ipobj',
-		joinColumn: { name: 'rule'},
-		inverseJoinColumn: { name: 'ipobj'}
-	})
-    ipObjs: IPObj[]
+    @OneToMany(() => RoutingRuleToIPObj, model => model.routingRule, {
+        cascade: true,
+    })
+    routingRuleToIPObjs: RoutingRuleToIPObj[];
 
     @OneToMany(() => RoutingRuleToIPObjGroup, model => model.routingRule, {
         cascade: true,
@@ -131,7 +124,8 @@ export class RoutingRule extends Model {
             .innerJoinAndSelect('interface.ipObjs', 'ipobj', 'ipobj.id = :id', {id: ipobjId})
             .innerJoin('interface.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostIPObj', 'host')
-            .innerJoin('host.routingRules', 'rules')
+            .innerJoin('host.routingRuleToIPObjs', 'routingRuleToIPObjs')
+            .innerJoin('routingRuleToIPObjs.routingRule', 'rules')
             .innerJoin('rules.routingTable', 'table')
             .innerJoinAndSelect('table.firewall', 'firewall')
             .leftJoinAndSelect('firewall.cluster', 'cluster')
@@ -154,7 +148,8 @@ export class RoutingRule extends Model {
         return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-            .innerJoin('routing_rule.ipObjs', 'ipobj')
+            .innerJoin('routing_rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
+            .innerJoin('routingRuleToIPObjs.ipObj', 'ipobj')
             .innerJoin('ipobj.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostInterface', 'interface')
             .innerJoin('routing_rule.routingTable', 'table')
@@ -195,7 +190,8 @@ export class RoutingRule extends Model {
         return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-            .innerJoin('routing_rule.ipObjs', 'ipobj')
+            .innerJoin('routing_rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
+            .innerJoin('routingRuleToIPObjs.ipObj', 'ipobj')
             .innerJoin('ipobj.hosts', 'InterfaceIPObj')
             .innerJoin('InterfaceIPObj.hostInterface', 'interface')
             .innerJoin('routing_rule.routingTable', 'table')

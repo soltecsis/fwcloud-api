@@ -1,3 +1,4 @@
+import { getRepository } from "typeorm";
 import { Application } from "../../../../src/Application";
 import { ValidationException } from "../../../../src/fonaments/exceptions/validation-exception";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
@@ -31,10 +32,10 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
     });
 
     describe('create', () => {
-        it('should not create a table with a number being used', () => {
+        it('should not create a table with a number being used', async () => {
             const numberUsed: number = fwcloudProduct.routingTable.number;
 
-            expect(service.create({
+            await expect(service.create({
                 name: 'newTable',
                 number: numberUsed,
                 firewallId: firewall.id
@@ -50,6 +51,23 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
 
             expect(table).to.be.instanceOf(RoutingTable);
             expect(table).not.to.be.undefined;
+        });
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.create({
+                name: 'newTable',
+                number: 1,
+                firewallId: firewall.id
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
         });
     });
 
@@ -69,7 +87,7 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
         it('should not update a table with a number being used by other table', async () => {
             const numberUsed: number = fwcloudProduct.routingTable.number;
 
-            expect(service.update(table.id, {
+            await expect(service.update(table.id, {
                 number: numberUsed,
             })).to.be.rejectedWith(ValidationException);
         });
@@ -81,6 +99,50 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
             });
 
             expect(updated.name).to.eq('updated');
+        });
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.update(table.id, {
+                name: 'updated',
+                number: table.number,
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+
+    });
+
+    describe('remove', () => {
+        let table: RoutingTable;
+        let numberUsed: number;
+
+        beforeEach(async () => {
+            numberUsed = fwcloudProduct.routingTable.number;
+            table = await service.create({
+                name: 'newTable',
+                number: 250,
+                firewallId: firewall.id
+            });
+        });
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.remove({id: table.id});
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
         });
 
     });

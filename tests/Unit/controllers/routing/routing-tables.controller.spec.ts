@@ -40,11 +40,11 @@ describe(RoutingTableController.name, () => {
                 fwCloudId: fwcloud.id
             });
 
-            expect(controller.make({
+            await expect(controller.make({
                 fwcloud: fwcloud.id,
                 firewall: newFirewall.id,
                 routingTable: table.id
-            } as unknown as Request)).rejectedWith(QueryFailedError);
+            } as unknown as Request)).rejected;
         });
 
         it('should throw an error if the firewall does not belongs to the fwcloud', async () => {
@@ -52,41 +52,41 @@ describe(RoutingTableController.name, () => {
                 name: StringHelper.randomize(10)
             });
 
-            expect(controller.make({
+            await expect(controller.make({
                 fwcloud: newfwcloud.id,
                 firewall: firewall.id,
                 routingTable: table.id
-            } as unknown as Request)).rejectedWith(QueryFailedError);
+            } as unknown as Request)).rejected;
         });
 
         it('should throw error if the fwcloud does not exist', async () => {
-            expect(controller.make({
+            await expect(controller.make({
                 params: {
                     fwcloud: -1,
                     firewall: firewall.id,
                     routingTable: table.id
                 }
-            } as unknown as Request)).rejectedWith(QueryFailedError);
+            } as unknown as Request)).rejected;
         });
 
         it('should throw error if the firewall does not exist', async () => {
-            expect(controller.make({
+            await expect(controller.make({
                 params: {
                     fwcloud: fwcloud.id,
                     firewall: -1,
                     routingTable: table.id
                 }
-            } as unknown as Request)).rejectedWith(QueryFailedError);
+            } as unknown as Request)).rejected;
         });
 
         it('should throw error if the table does not exist', async () => {
-            expect(controller.make({
+            await expect(controller.make({
                 params: {
                     fwcloud: fwcloud.id,
                     firewall: firewall.id,
                     routingTable: -1
                 }
-            } as unknown as Request)).rejectedWith(QueryFailedError);
+            } as unknown as Request)).rejected;
         });
 
         it('should not throw error if params are valid', async () => {

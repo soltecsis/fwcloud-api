@@ -27,6 +27,7 @@ import { ValidationException } from "../../../fonaments/exceptions/validation-ex
 import { Service } from "../../../fonaments/services/service";
 import { ErrorBag } from "../../../fonaments/validation/validator";
 import { Firewall } from "../../firewall/Firewall";
+import { FirewallService } from "../../firewall/firewall.service";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjRepository } from "../../ipobj/IPObj.repository";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
@@ -74,6 +75,7 @@ export class RoutingTableService extends Service {
     private _ipobjGroupRepository: IPObjGroupRepository;   
     private _openvpnRepository: OpenVPNRepository;
     private _openvpnPrefixRepository: OpenVPNPrefixRepository; 
+    protected _firewallService: FirewallService;
 
     constructor(app: Application) {
         super(app);
@@ -83,6 +85,12 @@ export class RoutingTableService extends Service {
         this._ipobjGroupRepository = getCustomRepository(IPObjGroupRepository);
         this._openvpnRepository = getCustomRepository(OpenVPNRepository);
         this._openvpnPrefixRepository = getCustomRepository(OpenVPNPrefixRepository);
+    }
+
+    public async build(): Promise<Service> {
+        this._firewallService = await this._app.getService(FirewallService.name);
+
+        return this;
     }
 
     findManyInPath(path: IFindManyRoutingTablePath): Promise<RoutingTable[]> {
@@ -107,6 +115,8 @@ export class RoutingTableService extends Service {
         const node: {id: number} = await Tree.getNodeUnderFirewall(db.getQuery(), firewall.fwCloud.id, firewall.id, 'RTS') as {id: number};
         await Tree.newNode(db.getQuery(), firewall.fwCloud.id, routingTable.name, node.id, 'RT', routingTable.id, null);
 
+        await this._firewallService.markAsUncompiled(routingTable.firewallId);
+
         return routingTable;
     }
 
@@ -115,13 +125,14 @@ export class RoutingTableService extends Service {
         await this.validateRoutingTableNumber(table);
         await this._repository.save(table);
 
+        await this._firewallService.markAsUncompiled(table.firewallId);
+
         return table;
     }
 
     async remove(path: IFindOneRoutingTablePath): Promise<RoutingTable> {
         const table: RoutingTable =  await this.findOneInPath(path);
-
-        const tableWithRules: RoutingTable = await this._repository.findOne(table.id, { relations: ['routingRules', 'routes']});
+        const tableWithRules: RoutingTable = await this._repository.findOne(table.id, { relations: ['routingRules', 'routes', 'firewall']});
 
         if (tableWithRules.routingRules.length > 0) {
             throw new ValidationException('Routing table cannot be removed', {
@@ -135,9 +146,11 @@ export class RoutingTableService extends Service {
         
         await this._repository.remove(table);
         
-        const node: {id: number} = await Tree.getNodeByNameAndType(path.fwCloudId, table.name, 'RT') as {id: number};
-        await Tree.deleteNodesUnderMe(db.getQuery(), path.fwCloudId, node.id);
+        const node: {id: number} = await Tree.getNodeByNameAndType(tableWithRules.firewall.fwCloudId, table.name, 'RT') as {id: number};
+        await Tree.deleteNodesUnderMe(db.getQuery(), tableWithRules.firewall.fwCloudId, node.id);
         await Tree.deleteFwc_Tree_node(node.id);
+
+        await this._firewallService.markAsUncompiled(tableWithRules.firewallId);
 
         return table;
     }

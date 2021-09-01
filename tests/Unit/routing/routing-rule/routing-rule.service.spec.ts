@@ -54,6 +54,21 @@ describe(RoutingRuleService.name, () => {
 
     describe('create', () => {
 
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.create({
+                routingTableId: table.id
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+
         describe('rule_order', () => {
             let ruleOrder1: RoutingRule;
             let ruleOrder2: RoutingRule;
@@ -123,7 +138,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjs']})).routingRuleToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj1.id, ipobj2.id])
             });
 
@@ -139,9 +154,9 @@ describe(RoutingRuleService.name, () => {
                     ipObjIds: standards.map(item => item.id)
                 });
 
-                rule = await getRepository(RoutingRule).findOne(rule.id, { relations: ['ipObjs']});
+                rule = await getRepository(RoutingRule).findOne(rule.id, { relations: ['routingRuleToIPObjs']});
 
-                expect(rule.ipObjs).to.have.length(standards.length);
+                expect(rule.routingRuleToIPObjs).to.have.length(standards.length);
             })
         });
 
@@ -330,7 +345,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['marks']})).marks.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToMarks']})).routingRuleToMarks.map(item => item.markId)
                 ).to.deep.eq([mark1.id, mark2.id])
             });
         });
@@ -362,9 +377,39 @@ describe(RoutingRuleService.name, () => {
             expect(copied[1].comment).to.eq(ruleOrder2.comment);
             expect(copied[1].rule_order).to.eq(ruleOrder1.rule_order - 1);
         });
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.copy([ruleOrder1.id, ruleOrder2.id], ruleOrder1.id, 'above');
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
     })
 
     describe('update', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.update(rule.id, {
+                active: false
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+
+
         describe('IpObjs', () => {
             let ipobj1: IPObj;
             let ipobj2: IPObj;
@@ -385,14 +430,16 @@ describe(RoutingRuleService.name, () => {
                     interfaceId: null,
                     fwCloudId: fwCloud.id
                 }));
-            })
+            });
+
+
             it('should attach ipbojs', async () => {
                 await service.update(rule.id, {
                     ipObjIds: [ipobj1.id, ipobj2.id]
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjs']})).routingRuleToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj1.id, ipobj2.id])
             });
 
@@ -406,7 +453,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjs']})).routingRuleToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj2.id])
             });
 
@@ -420,7 +467,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjs']})).routingRuleToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([])
             })
         });
@@ -702,7 +749,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['marks']})).marks.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToMarks']})).routingRuleToMarks.map(item => item.markId)
                 ).to.deep.eq([mark1.id, mark2.id])
             });
 
@@ -716,7 +763,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['marks']})).marks.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToMarks']})).routingRuleToMarks.map(item => item.markId)
                 ).to.deep.eq([mark2.id])
             });
 
@@ -730,7 +777,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['marks']})).marks.map(item => item.id)
+                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToMarks']})).routingRuleToMarks.map(item => item.markId)
                 ).to.deep.eq([])
             })
         });
@@ -805,8 +852,53 @@ describe(RoutingRuleService.name, () => {
             });
 
             expect(await getRepository(RoutingRule).findOne(rule.id)).to.be.undefined;
-        })
+        });
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.remove({id: rule.id});
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
     });
+
+    describe('bulkUpdate', () => {
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.bulkUpdate([rule.id], {
+                active: false
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+    })
+
+    describe('move', () => {
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.move([rule.id], rule.id, 'above');
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+    })
     
     describe('bulkRemove', () => {
         it('should remove route', async () => {
@@ -817,6 +909,19 @@ describe(RoutingRuleService.name, () => {
                 fwCloudId: fwCloud.id,
                 id: rule.id
             })).to.be.undefined;
+        });
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.bulkRemove([rule.id]);
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
         });
     })
 })
