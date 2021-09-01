@@ -433,10 +433,11 @@ export class Interface extends Model {
 				if (error) return reject(error);
 
 				var sql = 'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
-					'C.id cloud_id, C.name cloud_name, F.id firewall_id, F.name firewall_name   ' +
+					'C.id cloud_id, C.name cloud_name, F.id firewall_id, F.name firewall_name, CL.id cluster_id, CL.name cluster_name ' +
 					'from interface I ' +
 					'inner join ipobj_type T on T.id=I.interface_type ' +
-					'INNER JOIN firewall F on F.id=I.firewall   ' +
+					'INNER JOIN firewall F on F.id=I.firewall ' +
+					'LEFT JOIN cluster CL on CL.id=F.cluster ' +
 					'inner join fwcloud C on C.id=F.fwcloud ' +
 					' WHERE I.id=' + _interface + ' AND I.interface_type=' + type + ' AND F.fwcloud=' + fwcloud;
 				connection.query(sql, (error, rows) => {
