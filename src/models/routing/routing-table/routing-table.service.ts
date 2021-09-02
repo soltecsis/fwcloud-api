@@ -242,6 +242,26 @@ export class RoutingTableService extends Service {
         throw new ValidationException('The given data was invalid', errors);
     }
 
+    /**
+     * Move routing tables form source firewall to destination firewall.
+     * @param srcFW 
+     * @param dstFW 
+     * @returns 
+     */
+    public async moveToOtherFirewall(srcFW: number, dstFW: number): Promise<void> {
+        let routingTables: RoutingTable[] = await this._repository.find({
+            where: {
+                firewallId: srcFW
+            }
+        });
+
+        for (let table of routingTables) {
+            table.firewallId = dstFW;
+            await this._repository.update(table.id, table);
+        }
+    }
+
+
     private buildSQLsForCompiler(fwcloud: number, firewall: number, routingTable: number, routes?: number[]): SelectQueryBuilder<IPObj>[] {
         return [
             this._ipobjRepository.getIpobjsInRouting_excludeHosts('route', fwcloud, firewall, routingTable, routes),

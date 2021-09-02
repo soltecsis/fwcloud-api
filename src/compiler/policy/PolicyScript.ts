@@ -40,9 +40,7 @@ import { RouteData, RoutingTableService } from '../../models/routing/routing-tab
 import { app } from '../../fonaments/abstract-application';
 import { RoutingTable } from '../../models/routing/routing-table/routing-table.model';
 import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
-import { RoutingRulePolicy } from '../../policies/routing-rule.policy';
 import { RoutingRulesData, RoutingRuleService } from '../../models/routing/routing-rule/routing-rule.service';
-import { RoutingRule } from '../../models/routing/routing-rule/routing-rule.model';
 
 var config = require('../../config/config');
 

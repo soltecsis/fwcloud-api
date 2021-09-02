@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager'
-import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany, getConnection, UpdateResult, getManager, getRepository, Not, IsNull, In } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany, getRepository, Not, IsNull, In } from "typeorm";
 
 import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
@@ -49,6 +49,7 @@ import { RouteGroup } from "../routing/route-group/route-group.model";
 import { AvailablePolicyCompilers } from "../../compiler/policy/PolicyCompiler";
 import { IPObj } from "../ipobj/IPObj";
 import { IPObjGroup } from "../ipobj/IPObjGroup";
+import { RoutingTableService } from "../routing/routing-table/routing-table.service";
 
 const tableName: string = 'firewall';
 
@@ -1109,6 +1110,20 @@ export class Firewall extends Model {
 							await PolicyGroup.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
 							await Interface.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
 							await OpenVPN.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
+
+							// Move routing tables.
+							let routingTableService = await app().getService<RoutingTableService>(RoutingTableService.name);
+							routingTableService.moveToOtherFirewall(req.body.firewall, idNewFM);
+							// let routingTableRepository = await getRepository(RoutingTable);
+							// let routingTables: RoutingTable[] = await routingTableRepository.find({
+							// 	where: {
+							// 		firewallId: req.body.firewall
+							// 	}
+							// });;
+							// for (let table of routingTables) {
+							// 	table.firewallId = idNewFM;
+							// 	await routingTableRepository.update(table.id, table);
+							// }
 
 							// Promote the new master.
 							await Firewall.promoteToMaster(req.dbCon, idNewFM);
