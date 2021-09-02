@@ -1113,7 +1113,7 @@ export class Firewall extends Model {
 
 							// Move routing tables.
 							let routingTableService = await app().getService<RoutingTableService>(RoutingTableService.name);
-							routingTableService.moveToOtherFirewall(req.body.firewall, idNewFM);
+							await routingTableService.moveToOtherFirewall(req.body.firewall, idNewFM);
 							// let routingTableRepository = await getRepository(RoutingTable);
 							// let routingTables: RoutingTable[] = await routingTableRepository.find({
 							// 	where: {
