@@ -49,7 +49,6 @@ import { RouteGroup } from "../routing/route-group/route-group.model";
 import { AvailablePolicyCompilers } from "../../compiler/policy/PolicyCompiler";
 import { IPObj } from "../ipobj/IPObj";
 import { IPObjGroup } from "../ipobj/IPObjGroup";
-import { RoutingTableService } from "../routing/routing-table/routing-table.service";
 
 const tableName: string = 'firewall';
 
@@ -1078,90 +1077,7 @@ export class Firewall extends Model {
 	}
 
 
-	public static deleteFirewallFromCluster = req => {
-		return new Promise((resolve, reject) => {
-			var sqlExists = `SELECT T.*, A.id as idnode FROM ${tableName} T 
-				INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
-				INNER JOIN fwc_tree A ON A.id_obj=T.id AND A.node_type="FW"
-				WHERE T.id=${req.body.firewall} AND T.cluster=${req.body.cluster}`;
-			req.dbCon.query(sqlExists, async (error, row) => {
-				if (error) return reject(error);
-				if (row.length === 0) return reject(fwcError.NOT_FOUND);
-
-				var rowF = row[0];
-				var idNodeFirewall = rowF.idnode;
-
-				// Deleting FIREWAL MASTER
-				if (rowF.fwmaster === 1) {
-					// Transfer data to the new slave firewall.
-					var sql = `SELECT T.id FROM ${tableName} T
-						WHERE fwmaster=0 AND  T.cluster=${req.body.cluster}	ORDER by T.id limit 1`;
-					req.dbCon.query(sql, async (error, rowS) => {
-						if (error) return reject(error);
-						if (rowS.length === 0) return reject(fwcError.NOT_FOUND);
-
-						var idNewFM = rowS[0].id;
-						try {
-							// Rename data directory with the new firewall master id.
-							await utilsModel.renameFirewallDataDir(req.body.fwcloud, req.body.firewall, idNewFM);
-
-							// Move all related objects to the new firewall.
-							await PolicyRule.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
-							await PolicyGroup.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
-							await Interface.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
-							await OpenVPN.moveToOtherFirewall(req.dbCon, req.body.firewall, idNewFM);
-
-							// Move routing tables.
-							let routingTableService = await app().getService<RoutingTableService>(RoutingTableService.name);
-							await routingTableService.moveToOtherFirewall(req.body.firewall, idNewFM);
-							// let routingTableRepository = await getRepository(RoutingTable);
-							// let routingTables: RoutingTable[] = await routingTableRepository.find({
-							// 	where: {
-							// 		firewallId: req.body.firewall
-							// 	}
-							// });;
-							// for (let table of routingTables) {
-							// 	table.firewallId = idNewFM;
-							// 	await routingTableRepository.update(table.id, table);
-							// }
-
-							// Promote the new master.
-							await Firewall.promoteToMaster(req.dbCon, idNewFM);
-
-							// Delete the old firewall node.
-							await Firewall.deleteFirewallRow(req.dbCon, req.body.fwcloud, req.body.firewall);
-						} catch (error) { return reject(error) }
-
-						//UPDATE TREE RECURSIVE FROM IDNODE CLUSTER
-						//GET NODE FROM CLUSTER
-						sql = `SELECT ${req.body.firewall} as OLDFW, ${idNewFM} as NEWFW, T.* FROM fwc_tree T 
-							WHERE node_type='CL' AND id_obj=${req.body.cluster} AND fwcloud=${req.body.fwcloud}`;
-						req.dbCon.query(sql, async (error, rowT) => {
-							if (error) return reject(error);
-
-							if (rowT && rowT.length > 0) {
-								try {
-									await Tree.updateIDOBJFwc_TreeFullNode(rowT[0]);
-
-									//DELETE TREE NODES From firewall
-									var dataNode = { id: idNodeFirewall, fwcloud: req.body.fwcloud, iduser: req.session.user_id };
-									await Tree.deleteFwc_TreeFullNode(dataNode);
-								} catch (error) { return reject(error) }
-							}
-							resolve();
-						});
-					});
-				} else { // Deleting FIREWALL SLAVE
-					try {
-						//DELETE TREE NODES From firewall
-						await Tree.deleteFwc_TreeFullNode({ id: idNodeFirewall, fwcloud: req.body.fwcloud, iduser: req.session.user_id });
-						await Firewall.deleteFirewallRow(req.dbCon, req.body.fwcloud, req.body.firewall);
-						resolve();
-					} catch (error) { reject(error) }
-				}
-			});
-		});
-	};
+	
 
 	public static checkBodyFirewall(body, isNew) {
 		try {

@@ -77,8 +77,9 @@ import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { Interface } from '../../models/interface/Interface';
 import { Tree } from '../../models/tree/Tree';
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import { logger } from '../../fonaments/abstract-application';
+import { app, logger } from '../../fonaments/abstract-application';
 import { PgpHelper } from '../../utils/pgp';
+import { FirewallService } from '../../models/firewall/firewall.service';
 
 var utilsModel = require("../../utils/utils.js");
 const restrictedCheck = require('../../middleware/restricted');
@@ -720,7 +721,8 @@ restrictedCheck.firewallApplyTo,
 async (req, res) => {
 	//CHECK FIREWALL DATA TO DELETE
 	try {
-		const data = await Firewall.deleteFirewallFromCluster(req);
+		const firewallService = await app().getService(FirewallService.name);
+		const data = await firewallService.deleteFirewallFromCluster(req.body.cluster, req.body.firewall, req.body.fwcloud, req.session.user_id);
 		if (data && data.result)
 			res.status(200).json(data);
 	 	else
