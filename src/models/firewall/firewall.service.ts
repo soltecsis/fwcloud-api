@@ -11,12 +11,14 @@ import db from "../../database/database-manager";
 import { IPObj } from "../ipobj/IPObj";
 import { getCustomRepository, getRepository, In } from "typeorm";
 import { FirewallRepository } from "./firewall.repository";
-import { AbstractApplication } from "../../fonaments/abstract-application";
+import { AbstractApplication, app } from "../../fonaments/abstract-application";
 import { PolicyRule } from "../policy/PolicyRule";
 import { PolicyGroup } from "../policy/PolicyGroup";
 import { Interface } from "../interface/Interface";
 import { OpenVPN } from "../vpn/openvpn/OpenVPN";
 import { Tree } from "../tree/Tree";
+import { RoutingTable } from "../routing/routing-table/routing-table.model";
+import { RoutingTableService } from "../routing/routing-table/routing-table.service";
 const fwcError = require('../../utils/error_table');
 var utilsModel = require("../../utils/utils.js");
 
@@ -143,27 +145,17 @@ export class FirewallService extends Service {
 						try {
 							// Rename data directory with the new firewall master id.
 							await utilsModel.renameFirewallDataDir(fwcloudId, firewallId, idNewFM);
-
-							// Move all related objects to the new firewall.
-							await PolicyRule.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
-							await PolicyGroup.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
-							await Interface.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
-							await OpenVPN.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
+                            
+                            // Move all related objects to the new firewall.
+							await PolicyRule.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM)
+                            await PolicyGroup.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM)
+                            await Interface.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM)
+                            await OpenVPN.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
 
 							// Move routing tables.
-							//let routingTableService = await app().getService<RoutingTableService>(RoutingTableService.name);
-							//await routingTableService.moveToOtherFirewall(req.body.firewall, idNewFM);
-							// let routingTableRepository = await getRepository(RoutingTable);
-							// let routingTables: RoutingTable[] = await routingTableRepository.find({
-							// 	where: {
-							// 		firewallId: req.body.firewall
-							// 	}
-							// });;
-							// for (let table of routingTables) {
-							// 	table.firewallId = idNewFM;
-							// 	await routingTableRepository.update(table.id, table);
-							// }
-
+                            let routingTableService = await app().getService<RoutingTableService>(RoutingTableService.name);
+                            await routingTableService.moveToOtherFirewall(firewallId, idNewFM);
+                            
 							// Promote the new master.
 							await Firewall.promoteToMaster(db.getQuery(), idNewFM);
 
@@ -183,10 +175,11 @@ export class FirewallService extends Service {
 									await Tree.updateIDOBJFwc_TreeFullNode(rowT[0]);
 
 									//DELETE TREE NODES From firewall
-									var dataNode = { id: idNodeFirewall, fwcloud: fwcloudId, iduser: userId };
-									await Tree.deleteFwc_TreeFullNode(dataNode);
-								} catch (error) { return reject(error) }
-							}
+									var dataNode = { id: idNodeFirewall, fwcloud: fwcloudId, iduser: userId }
+                                        await Tree.deleteFwc_TreeFullNode(dataNode)
+                                	} catch (error) { return reject(error) }
+                                }
+
 							resolve();
 						});
 					});
