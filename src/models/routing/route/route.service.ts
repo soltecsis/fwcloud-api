@@ -236,8 +236,6 @@ export class RouteService extends Service {
             return item;
         });
 
-        console.log(route);
-
         await this._repository.save(route);
     }
 

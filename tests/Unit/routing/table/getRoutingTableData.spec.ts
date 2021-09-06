@@ -21,6 +21,11 @@
 */
 
 import { before } from "mocha";
+import { getRepository } from "typeorm";
+import { RouteToIPObjGroup } from "../../../../src/models/routing/route/route-to-ipobj-group.model";
+import { RouteToIPObj } from "../../../../src/models/routing/route/route-to-ipobj.model";
+import { RouteToOpenVPNPrefix } from "../../../../src/models/routing/route/route-to-openvpn-prefix.model";
+import { RouteToOpenVPN } from "../../../../src/models/routing/route/route-to-openvpn.model";
 import { RouteService } from "../../../../src/models/routing/route/route.service";
 import { RoutingTableService, RouteData } from "../../../../src/models/routing/routing-table/routing-table.service";
 import { ItemForGrid, RouteItemForCompiler } from "../../../../src/models/routing/shared";
@@ -153,13 +158,13 @@ describe('Routing table data fetch for compiler or grid', () => {
     })
 
     describe('For grid', () => {
-        let item: ItemForGrid;
+        let item: ItemForGrid & Partial<{_order: number}>;
 
         before( async () => {
             routes = await routingTableService.getRoutingTableData<ItemForGrid>('grid',fwc.fwcloud.id,fwc.firewall.id,fwc.routingTable.id);            
         });
 
-        describe('Out of group', () => {
+        describe('Out of group', async () => {
             beforeEach(() => {
                 items = routes[0].items;
                 item = { 
@@ -174,33 +179,69 @@ describe('Routing table data fetch for compiler or grid', () => {
                 };
             });
 
-            it('should include address data', () => {
+            it('should include address data', async () => {
                 item.id = fwc.ipobjs.get('address').id; item.type = 5; item.name = fwc.ipobjs.get('address').name;
+                item._order = (await getRepository(RouteToIPObj).findOneOrFail({
+                    where: {
+                        routeId: fwc.routes.get('route1').id,
+                        ipObjId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
 
-            it('should include address range data', () => {
+            it('should include address range data', async () => {
                 item.id = fwc.ipobjs.get('addressRange').id; item.type = 6; item.name = fwc.ipobjs.get('addressRange').name;
+                item._order = (await getRepository(RouteToIPObj).findOneOrFail({
+                    where: {
+                        routeId: fwc.routes.get('route1').id,
+                        ipObjId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
 
-            it('should include lan data', () => {
+            it('should include lan data', async () => {
                 item.id = fwc.ipobjs.get('network').id; item.type = 7; item.name = fwc.ipobjs.get('network').name;
+                item._order = (await getRepository(RouteToIPObj).findOneOrFail({
+                    where: {
+                        routeId: fwc.routes.get('route1').id,
+                        ipObjId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
 
-            it('should include host data', () => {
+            it('should include host data', async () => {
                 item.id = fwc.ipobjs.get('host').id; item.type = 8; item.name = fwc.ipobjs.get('host').name;
+                item._order = (await getRepository(RouteToIPObj).findOneOrFail({
+                    where: {
+                        routeId: fwc.routes.get('route1').id,
+                        ipObjId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
 
-            it('should include OpenVPN data', () => {
+            it('should include OpenVPN data', async () => {
                 item.id = fwc.openvpnClients.get('OpenVPN-Cli-3').id; item.type = 311; item.name = fwc.crts.get('OpenVPN-Cli-3').cn;
+                item._order = (await getRepository(RouteToOpenVPN).findOneOrFail({
+                    where: {
+                        routeId: fwc.routes.get('route1').id,
+                        openVPNId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
 
-            it('should include OpenVPN Prefix data', () => {
+            it('should include OpenVPN Prefix data', async () => {
                 item.id = fwc.openvpnPrefix.id; item.type = 401; item.name = fwc.openvpnPrefix.name;
+                item._order = (await getRepository(RouteToOpenVPNPrefix).findOneOrFail({
+                    where: {
+                        routeId: fwc.routes.get('route1').id,
+                        openVPNPrefixId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
         })
@@ -220,8 +261,14 @@ describe('Routing table data fetch for compiler or grid', () => {
                 };
             });
 
-            it('should include group', () => {
+            it('should include group', async() => {
                 item.id = fwc.ipobjGroup.id; item.type = 20; item.name = fwc.ipobjGroup.name;
+                item._order = (await getRepository(RouteToIPObjGroup).findOneOrFail({
+                    where: {
+                        routeId: fwc.routes.get('route2').id,
+                        ipObjGroupId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
         })

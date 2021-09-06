@@ -282,8 +282,6 @@ export class RoutingRuleService extends Service {
             return item;
         });
 
-        console.log(rule);
-
         await this._repository.save(rule);
     }
 
