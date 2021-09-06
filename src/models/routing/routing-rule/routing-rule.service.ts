@@ -83,7 +83,7 @@ interface IBulkUpdateRoutingRule {
 }
 
 export interface RoutingRulesData<T extends ItemForGrid | RoutingRuleItemForCompiler> extends RoutingRule {
-    items: T[];
+    items: (T & { _order: number })[];
 }
 
 export class RoutingRuleService extends Service {
@@ -257,9 +257,34 @@ export class RoutingRuleService extends Service {
 
         rule = await this._repository.save(rule);
 
+        await this.reorderFrom(rule.id);
+
         await this._firewallService.markAsUncompiled(firewall.id);
 
         return rule;
+    }
+
+    protected async reorderFrom(ruleId: number): Promise<void> {
+        const rule: RoutingRule = await this._repository.findOneOrFail(ruleId, {relations: [
+            'routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes'
+        ]})
+
+        const items: {order: number}[] = [].concat(
+            rule.routingRuleToIPObjs,
+            rule.routingRuleToIPObjGroups,
+            rule.routingRuleToMarks,
+            rule.routingRuleToOpenVPNPrefixes,
+            rule.routingRuleToOpenVPNs,
+        );
+
+        items.sort((a, b) => a.order - b.order).map((item, index) => {
+            item.order = index + 1;
+            return item;
+        });
+
+        console.log(rule);
+
+        await this._repository.save(rule);
     }
 
     async bulkUpdate(ids: number[], data: IBulkUpdateRoutingRule): Promise<RoutingRule[]> {
@@ -376,8 +401,11 @@ export class RoutingRuleService extends Service {
             this.buildSQLsForGrid(fwcloud, firewall) : 
             this.buildSQLsForCompiler(fwcloud, firewall, rules);
         await Promise.all(sqls.map(sql => RoutingUtils.mapEntityData<T>(sql,ItemsArrayMap)));
-        
-        return rulesData;
+
+        return rulesData.map(data => {
+            data.items = data.items.sort((a,b) => a._order - b._order);
+            return data;
+        });
     }
 
     /**

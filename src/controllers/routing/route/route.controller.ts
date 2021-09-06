@@ -26,7 +26,7 @@ import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { ICreateRoute, RouteService } from "../../../models/routing/route/route.service";
 import { RoutingTable } from "../../../models/routing/routing-table/routing-table.model";
-import { Request, response } from 'express';
+import { Request } from 'express';
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { RoutePolicy } from "../../../policies/route.policy";
 import { Route } from "../../../models/routing/route/route.model";

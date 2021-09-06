@@ -246,10 +246,12 @@ export class IPObjRepository extends Repository<IPObj> {
     if(entity === 'route') {
       query
         .innerJoin('ipobj.routeToIPObjs', 'routeToIPObjs')
+        .addSelect('routeToIPObjs.order', '_order')
         .innerJoin('routeToIPObjs.route', entity)
     } else {
       query
         .innerJoin('ipobj.routingRuleToIPObjs', 'routingRuleToIPObjs')
+        .addSelect('routingRuleToIPObjs.order', '_order')
         .innerJoin('routingRuleToIPObjs.routingRule', entity);
     }
 

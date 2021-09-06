@@ -65,7 +65,7 @@ interface IUpdateRoutingTable {
 }
 
 export interface RouteData<T extends ItemForGrid | RouteItemForCompiler> extends Route {
-    items: T[];
+    items: (T & { _order: number })[];
 }
     
 export class RoutingTableService extends Service {
@@ -210,7 +210,10 @@ export class RoutingTableService extends Service {
             this.buildSQLsForCompiler(fwcloud, firewall, routingTable, routes);
         await Promise.all(sqls.map(sql => RoutingUtils.mapEntityData<T>(sql,ItemsArrayMap)));
         
-        return routesData;
+        return routesData.map(data => {
+            data.items = data.items.sort((a,b) => a._order - b._order);
+            return data;
+        });;
     }
 
     /**
