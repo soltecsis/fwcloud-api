@@ -126,7 +126,7 @@ export class RoutingRule extends Model {
             .innerJoin('InterfaceIPObj.hostIPObj', 'host')
             .innerJoin('host.routingRuleToIPObjs', 'routingRuleToIPObjs')
             .innerJoin('routingRuleToIPObjs.routingRule', 'rules')
-            .innerJoin('rules.routingTable', 'table')
+            .innerJoinAndSelect('rules.routingTable', 'table')
             .innerJoinAndSelect('table.firewall', 'firewall')
             .leftJoinAndSelect('firewall.cluster', 'cluster')
             .innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloud', {fwcloud})
@@ -169,7 +169,7 @@ export class RoutingRule extends Model {
             .innerJoin('IPObjToIPObjGroup.ipObjGroup', 'group')
             .innerJoin('group.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
             .innerJoin('routingRuleToIPObjGroups.routingRule', 'rule')
-            .innerJoin('rule.routingTable', 'table')
+            .innerJoinAndSelect('rule.routingTable', 'table')
             .innerJoin('table.firewall', 'firewall')
             .innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloud', {fwcloud})
             .getMany();
