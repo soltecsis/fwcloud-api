@@ -957,40 +957,11 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchIpobjInGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
                 search.restrictions.IpobjInOpenVPN = await this.searchIpobjInOpenvpn(id, type, fwcloud); //SEARCH IPOBJ IN OpenVPN CONFIG
 
-                search.restrictions.IpobjInRoute = await getRepository(Route).createQueryBuilder('route')
-                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
-                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-                    .addSelect('ipObj.id', 'ipobj_id').addSelect('ipObj.type', 'ipobj_type')
-                    .innerJoin('route.routeToIPObjs', 'routeToIPObjs')
-                    .innerJoin('routeToIPObjs.ipObj', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
-                    .innerJoinAndSelect('route.routingTable', 'table')
-                    .innerJoin('table.firewall', 'firewall')
-                    .leftJoin('firewall.cluster', 'cluster')
-                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getRawMany();
-
-                search.restrictions.IpobjInRouteAsGateway = await getRepository(Route).createQueryBuilder('route')
-                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
-                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-                    .addSelect('gateway.id', 'gateway_id').addSelect('gateway.type', 'gateway_type')
-                    .innerJoin('route.gateway', 'gateway', 'gateway.id = :ipobj', {ipobj: id})
-                    .innerJoinAndSelect('route.routingTable', 'table')
-                    .innerJoin('table.firewall', 'firewall')
-                    .leftJoin('firewall.cluster', 'cluster')
-                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getRawMany();
-
-                search.restrictions.IpobjInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('routing_rule')
-                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
-                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-                    .innerJoin('routing_rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
-                    .innerJoin('routingRuleToIPObjs.ipObj', 'ipObj', 'ipObj.id = :ipobj', {ipobj: id})
-                    .innerJoin('routing_rule.routingTable', 'table')
-                    .innerJoin('table.firewall', 'firewall')
-                    .leftJoin('firewall.cluster', 'cluster')
-                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getRawMany();
-
+                search.restrictions.IpobjInRoute = await this.searchIpobjInRoute(id, fwcloud);
+                search.restrictions.IpobjInRouteAsGateway = await this.searchIpobjInRouteAsGateway(id, fwcloud);
+                search.restrictions.IpobjInGroupInRoute = await this.searchIpobjInGroupInRoute(id, fwcloud);
+                search.restrictions.IpobjInRoutingRule = await this.searchIpobjInRoutingRule(id, fwcloud);
+                search.restrictions.IpobjInGroupInRoutingRule = await this.searchIpobjInGroupInRoutingRule(id, fwcloud);
 
                 if (type === 8) { // HOST
                     search.restrictions.InterfaceHostInRule = await PolicyRuleToIPObj.searchInterfaceHostInRule(dbCon, fwcloud, id);
@@ -1020,6 +991,73 @@ export class IPObj extends Model {
         });
     };
 
+    public static async searchIpobjInRoute(ipobj: number, fwcloud: number): Promise<any> {
+        return await getRepository(Route).createQueryBuilder('route')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .addSelect('ipObj.id', 'ipobj_id').addSelect('ipObj.type', 'ipobj_type')
+            .innerJoin('route.routeToIPObjs', 'routeToIPObjs')
+            .innerJoin('routeToIPObjs.ipObj', 'ipObj', 'ipObj.id = :ipobj', {ipobj: ipobj})
+            .innerJoinAndSelect('route.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    };
+
+    public static async searchIpobjInRouteAsGateway(ipobj: number, fwcloud: number): Promise<any> {
+        return await getRepository(Route).createQueryBuilder('route')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .addSelect('gateway.id', 'gateway_id').addSelect('gateway.type', 'gateway_type')
+            .innerJoin('route.gateway', 'gateway', 'gateway.id = :ipobj', {ipobj: ipobj})
+            .innerJoinAndSelect('route.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    };
+
+    public static async searchIpobjInRoutingRule(ipobj: number, fwcloud: number): Promise<any> {
+        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoin('routing_rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
+            .innerJoin('routingRuleToIPObjs.ipObj', 'ipObj', 'ipObj.id = :ipobj', {ipobj: ipobj})
+            .innerJoin('routing_rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    };
+
+    public static async searchIpobjInGroupInRoute(ipobj: number, fwcloud: number): Promise<any> {
+        return await getRepository(Route).createQueryBuilder('route')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoinAndSelect('route.routingTable', 'table')
+            .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+            .innerJoin('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
+            .innerJoin('ipObjGroup.ipObjToIPObjGroups', 'ipObjToIPObjGroups', 'ipObjToIPObjGroups.ipobj = :ipobj', {ipobj: ipobj})
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    };
+
+    public static async searchIpobjInGroupInRoutingRule(ipobj: number, fwcloud: number): Promise<any> {
+        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+            .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
+            .innerJoin('ipObjGroup.ipObjToIPObjGroups', 'ipObjToIPObjGroups', 'ipObjToIPObjGroups.ipobj = :ipobj', {ipobj: ipobj})
+            .innerJoin('routing_rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    };
 
     //check if IPOBJ exists in and OpenVPN configuration 
     public static searchIpobjInOpenvpn(ipobj, type, fwcloud) {

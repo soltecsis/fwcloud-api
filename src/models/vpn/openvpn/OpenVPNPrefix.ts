@@ -381,27 +381,10 @@ export class OpenVPNPrefix extends Model {
                 search.restrictions.PrefixInRule = await this.searchPrefixInRule(dbCon, fwcloud, prefix);
                 search.restrictions.PrefixInGroup = await this.searchPrefixInGroup(dbCon, fwcloud, prefix);
 
-                search.restrictions.PrefixInRoute = await getRepository(Route).createQueryBuilder('route')
-                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
-                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-                    .innerJoin('route.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
-                    .innerJoin('routeToOpenVPNPrefixes.openVPNPrefix', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
-                    .innerJoinAndSelect('route.routingTable', 'table')
-                    .innerJoin('table.firewall', 'firewall')
-                    .leftJoin('firewall.cluster', 'cluster')
-                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getRawMany();
-
-                search.restrictions.PrefixInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('routing_rule')
-                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
-                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-                    .innerJoin('routing_rule.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefixes')
-                    .innerJoin('routingRuleToOpenVPNPrefixes.openVPNPrefix', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
-                    .innerJoin('routing_rule.routingTable', 'table')
-                    .innerJoin('table.firewall', 'firewall')
-                    .leftJoin('firewall.cluster', 'cluster')
-                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getRawMany();
+                search.restrictions.PrefixInRoute = await this.searchPrefixInRoute(fwcloud, prefix);
+                search.restrictions.PrefixInGroupInRoute = await this.searchPrefixInGroupInRoute(fwcloud, prefix);
+                search.restrictions.PrefixInRoutingRule = await this.searchPrefixInRoutingRule(fwcloud,prefix);
+                search.restrictions.PrefixInGroupInRoutingRule = await this.searchPrefixInGroupInRoutingRule(fwcloud,prefix);
 
                 if (extendedSearch) {
                     // Include the rules that use the groups in which the OpenVPN prefix is being used.
@@ -421,6 +404,60 @@ export class OpenVPNPrefix extends Model {
                 resolve(search);
             } catch (error) { reject(error) }
         });
+    }
+
+    public static async searchPrefixInRoute(fwcloud: number, prefix: number): Promise<any> {
+        return await getRepository(Route).createQueryBuilder('route')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoin('route.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
+            .innerJoin('routeToOpenVPNPrefixes.openVPNPrefix', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
+            .innerJoinAndSelect('route.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    }
+
+    public static async searchPrefixInRoutingRule(fwcloud: number, prefix: number): Promise<any> {
+        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+        .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+        .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+        .innerJoin('routing_rule.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefixes')
+        .innerJoin('routingRuleToOpenVPNPrefixes.openVPNPrefix', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
+        .innerJoin('routing_rule.routingTable', 'table')
+        .innerJoin('table.firewall', 'firewall')
+        .leftJoin('firewall.cluster', 'cluster')
+        .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+        .getRawMany();
+    }
+
+    public static async searchPrefixInGroupInRoute(fwcloud: number, prefix: number): Promise<any> {
+        return await getRepository(Route).createQueryBuilder('route')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoinAndSelect('route.routingTable', 'table')
+            .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+            .innerJoin('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
+            .innerJoin('ipObjGroup.openVPNPrefixes', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    }
+
+    public static async searchPrefixInGroupInRoutingRule(fwcloud: number, prefix: number): Promise<any> {
+        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+            .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
+            .innerJoin('ipObjGroup.openVPNPrefixes', 'prefix', 'prefix.id = :prefix', {prefix: prefix})
+            .innerJoin('routing_rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
     }
 
 
