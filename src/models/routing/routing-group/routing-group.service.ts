@@ -81,6 +81,7 @@ export class RoutingGroupService extends Service {
         group.routingRules = data.routingRules as RoutingRule[];
         group = await this._repository.save(group);
 
+        group = await this._repository.findOneOrFail(group.id, {relations: ['routingRules']})
         if (group.routingRules.length === 0) {
             return this.remove({
                 id: group.id,
