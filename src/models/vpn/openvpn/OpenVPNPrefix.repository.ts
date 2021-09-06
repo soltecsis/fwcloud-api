@@ -38,12 +38,14 @@ export class OpenVPNPrefixRepository extends Repository<OpenVPNPrefix> {
     if (entity === 'route') {
       query
         .innerJoin('vpnPrefix.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
+        .addSelect('routeToOpenVPNPrefixes.order', '_order')
         .innerJoin('routeToOpenVPNPrefixes.route', entity)
     }
 
     if (entity === 'rule') {
       query
         .innerJoin('vpnPrefix.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefixes')
+        .addSelect('routingRuleToOpenVPNPrefixes.order', '_order')
         .innerJoin('routingRuleToOpenVPNPrefixes.routingRule', entity)
     }
     

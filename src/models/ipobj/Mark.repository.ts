@@ -50,6 +50,7 @@ export class MarkRepository extends Repository<Mark> {
       .addSelect("cluster.id","cluster_id").addSelect("cluster.name","cluster_name")
       .addSelect("rule.id","entityId")
       .innerJoin("mark.routingRuleToMarks", "routingRuleToMarks")
+      .addSelect('routingRuleToMarks.order', '_order')
       .innerJoin("routingRuleToMarks.routingRule", "rule")
       .innerJoin("rule.routingTable", "table")
       .innerJoin("table.firewall", "firewall")

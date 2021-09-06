@@ -212,9 +212,31 @@ export class RouteService extends Service {
 
         route = await this._repository.save(route);
 
+        await this.reorderTo(route.id);
+
         await this._firewallService.markAsUncompiled(firewall.id);
         
         return route;
+    }
+
+    protected async reorderTo(ruleId: number): Promise<void> {
+        const route: Route = await this._repository.findOneOrFail(ruleId, {relations: [
+            'routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes'
+        ]})
+
+        const items: {order: number}[] = [].concat(
+            route.routeToIPObjs,
+            route.routeToIPObjGroups,
+            route.routeToOpenVPNs,
+            route.routeToOpenVPNPrefixes,
+        );
+
+        items.sort((a, b) => a.order - b.order).map((item, index) => {
+            item.order = index + 1;
+            return item;
+        });
+
+        await this._repository.save(route);
     }
 
     async copy(ids: number[], destRule: number, position: 'above'|'below'): Promise<Route[]> {
