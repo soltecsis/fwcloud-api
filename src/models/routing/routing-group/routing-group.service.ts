@@ -78,19 +78,22 @@ export class RoutingGroupService extends Service {
     async update(id: number, data: IUpdateRoutingGroup): Promise<RoutingGroup> {
         let group: RoutingGroup = await this._repository.preload(Object.assign(data, {id}));
         let firewall: Firewall = await getRepository(Firewall).findOne(group.firewallId)
-        group.routingRules = data.routingRules as RoutingRule[];
+        
+        if (data.routingRules) {
+            if (data.routingRules.length === 0) {
+                return this.remove({
+                    id: group.id,
+                    firewallId: firewall.id,
+                    fwCloudId: firewall.fwCloudId
+                });
+            }
+
+            group.routingRules = data.routingRules as RoutingRule[];
+        }
+        
         group = await this._repository.save(group);
 
-        group = await this._repository.findOneOrFail(group.id, {relations: ['routingRules']})
-        if (group.routingRules.length === 0) {
-            return this.remove({
-                id: group.id,
-                firewallId: firewall.id,
-                fwCloudId: firewall.fwCloudId
-            });
-        }
-
-        return group;
+        return this._repository.findOneOrFail(group.id);
     }
 
     async remove(path: IFindOneRoutingGroupPath): Promise<RoutingGroup> {
