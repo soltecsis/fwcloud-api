@@ -107,10 +107,7 @@ export class RoutingRuleController extends Controller {
 
         (await RoutingRulePolicy.create(this._firewall, request.session.user)).authorize();
 
-        const data: ICreateRoutingRule = request.inputs.all<ICreateRoutingRule>();
-        data.offset = data.offset as unknown as number >= 0 ? 'below': 'above';
-        
-        const rule: RoutingRule = await this.routingRuleService.create(request.inputs.all());
+        const rule: RoutingRule = await this.routingRuleService.create(request.inputs.all<ICreateRoutingRule>());
 
         return ResponseBuilder.buildResponse().status(201).body(rule);
     }
