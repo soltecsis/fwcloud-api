@@ -31,7 +31,7 @@ describe(OpenVPN.name, () => {
                 caId: fwcloudProduct.ca.id,
                 cn: 'test',
                 days: 1000,
-                type: 2
+                type: 1
             }))).id
         }))
 
@@ -41,7 +41,7 @@ describe(OpenVPN.name, () => {
         })
 
         route = await routeService.update(route.id, {
-            openVPNIds: [openvpn.id]
+            openVPNIds: [{ id: openvpn.id, order: 1}]
         });
         
         routingRule = await routingRuleService.create({
@@ -49,7 +49,7 @@ describe(OpenVPN.name, () => {
         });
 
         routingRule = await routingRuleService.update(routingRule.id, {
-            openVPNIds: [openvpn.id]
+            openVPNIds: [{id: openvpn.id, order: 1}]
         });
     });
 

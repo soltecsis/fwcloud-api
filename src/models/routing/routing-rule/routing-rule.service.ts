@@ -55,11 +55,11 @@ export interface ICreateRoutingRule {
     active?: boolean;
     comment?: string;
     style?: string;
-    ipObjIds?: number[];
-    ipObjGroupIds?: number[];
-    openVPNIds?: number[];
-    openVPNPrefixIds?: number[],
-    markIds?: number[],
+    ipObjIds?: {id: number, order: number}[];
+    ipObjGroupIds?: {id: number, order: number}[];
+    openVPNIds?: {id: number, order: number}[];
+    openVPNPrefixIds?: {id: number, order: number}[],
+    markIds?: {id: number, order: number}[],
     to?: number; //Reference where create the rule
     offset?: 'above' | 'below';
 }
@@ -70,11 +70,11 @@ interface IUpdateRoutingRule {
     comment?: string;
     rule_order?: number;
     style?: string;
-    ipObjIds?: number[];
-    ipObjGroupIds?: number[];
-    openVPNIds?: number[];
-    openVPNPrefixIds?: number[],
-    markIds?: number[]
+    ipObjIds?: {id: number, order: number}[];
+    ipObjGroupIds?: {id: number, order: number}[];
+    openVPNIds?: {id: number, order: number}[];
+    openVPNPrefixIds?: {id: number, order: number}[],
+    markIds?: {id: number, order: number}[]
 }
 
 interface IBulkUpdateRoutingRule {
@@ -195,62 +195,49 @@ export class RoutingRuleService extends Service {
 
         if (data.ipObjIds) {
             await this.validateUpdateIPObjs(firewall, data);
-            rule.routingRuleToIPObjs = data.ipObjIds.map(id => ({
-                ipObjId: id,
+            rule.routingRuleToIPObjs = data.ipObjIds.map(item => ({
+                ipObjId: item.id,
                 routingRuleId: rule.id,
-                order: 0
+                order: item.order
             } as RoutingRuleToIPObj));
         }
 
         if (data.ipObjGroupIds) {
             await this.validateUpdateIPObjGroups(firewall, data);
-            rule.routingRuleToIPObjGroups = data.ipObjGroupIds.map(id => ({
+            rule.routingRuleToIPObjGroups = data.ipObjGroupIds.map(item => ({
                 routingRuleId: rule.id,
-                ipObjGroupId: id,
-                order: 0
+                ipObjGroupId: item.id,
+                order: item.order
             } as RoutingRuleToIPObjGroup));
         }
 
         if (data.openVPNIds) {
-            const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
-                where: {
-                    id: In(data.openVPNIds)
-                }
-            })
+            await this.validateOpenVPNs(firewall, data);
 
-            rule.routingRuleToOpenVPNs = openVPNs.map(item => ({
+            rule.routingRuleToOpenVPNs = data.openVPNIds.map(item => ({
                 routingRuleId: rule.id,
                 openVPNId: item.id,
-                order: 0
+                order: item.order
             } as RoutingRuleToOpenVPN));
         }
 
         if (data.openVPNPrefixIds) {
-            const prefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).find({
-                where: {
-                    id: In(data.openVPNPrefixIds)
-                }
-            })
+            await this.validateOpenVPNPrefixes(firewall, data);
 
-            rule.routingRuleToOpenVPNPrefixes = prefixes.map(item => ({
+            rule.routingRuleToOpenVPNPrefixes = data.openVPNPrefixIds.map(item => ({
                 routingRuleId: rule.id,
                 openVPNPrefixId: item.id,
-                order: 0
+                order: item.order
             } as RoutingRuleToOpenVPNPrefix));
         }
 
         if(data.markIds) {
-            const marks: Mark[] = await getRepository(Mark).find({
-                where: {
-                    id: In(data.markIds),
-                    fwCloudId: firewall.fwCloudId
-                }
-            });
+            await this.validateMarks(firewall, data);
 
-            rule.routingRuleToMarks = marks.map(item => ({
+            rule.routingRuleToMarks = data.markIds.map(item => ({
                 markId: item.id,
                 routingRuleId: rule.id,
-                order: 0
+                order: item.order
             }) as RoutingRuleToMark);
         }
 
@@ -421,7 +408,14 @@ export class RoutingRuleService extends Service {
         
         const ipObjs: IPObj[] = await getRepository(IPObj).find({
             where: {
-                id: In(data.ipObjIds),
+                id: In(data.ipObjIds.map(item => item.id)),
+                ipObjTypeId: In([
+                    5, // ADDRESS
+                    6, // ADDRESS RANGE
+                    7, // NETWORK
+                    8, // HOST
+                    9, // DNS
+                ])
             },
             relations: ['fwCloud']
         });
@@ -462,7 +456,8 @@ export class RoutingRuleService extends Service {
         
         const ipObjGroups: IPObjGroup[] = await getRepository(IPObjGroup).find({
             where: {
-                id: In(data.ipObjGroupIds),
+                id: In(data.ipObjGroupIds.map(item => item.id)),
+                type: 20
             },
             relations: ['fwCloud', 'ipObjToIPObjGroups', 'ipObjToIPObjGroups.ipObj']
         });
@@ -475,6 +470,85 @@ export class RoutingRuleService extends Service {
             } else if (await PolicyRuleToIPObj.isGroupEmpty(db.getQuery(), ipObjGroup.id)) {
                 errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must not be empty'];
             }
+        }
+        
+        
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
+    }
+
+    protected async validateOpenVPNs(firewall: Firewall, data: IUpdateRoutingRule): Promise<void> {
+        const errors: ErrorBag = {};
+
+        if (!data.openVPNIds || data.openVPNIds.length === 0) {
+            return;
+        }
+        
+        const openvpns: OpenVPN[] = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+            .innerJoin('openvpn.crt', 'crt')
+            .whereInIds(data.openVPNIds.map(item => item.id))
+            .where('openvpn.firewallId = :firewall', {firewall: firewall.id})
+            .where('openvpn.parentId IS NOT null')
+            .where('crt.type = 1')
+            .getMany();
+
+        for (let i = 0; i < data.openVPNIds.length; i++) {
+            if (openvpns.findIndex(item => item.id === data.openVPNIds[i].id) < 0) {
+                errors[`openVPNIds.${i}.id`] = ['openVPN does not exists or is not a client']
+            } 
+        }
+        
+        
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
+    }
+
+    protected async validateOpenVPNPrefixes(firewall: Firewall, data: IUpdateRoutingRule): Promise<void> {
+        const errors: ErrorBag = {};
+
+        if (!data.openVPNPrefixIds || data.openVPNPrefixIds.length === 0) {
+            return;
+        }
+        
+        const openvpnprefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).createQueryBuilder('prefix')
+            .innerJoinAndSelect('prefix.openVPN', 'openvpn')
+            .whereInIds(data.openVPNPrefixIds.map(item => item.id))
+            .andWhere('openvpn.firewallId = :firewall', {firewall: firewall.id})
+            .getMany();
+
+        
+        for (let i = 0; i < data.openVPNPrefixIds.length; i++) {
+            if (openvpnprefixes.findIndex(item => item.id === data.openVPNPrefixIds[i].id) < 0) {
+                errors[`openVPNPrefixIds.${i}.id`] = ['openVPNPrefix does not exists']
+            } 
+        }
+        
+        
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
+    }
+
+    protected async validateMarks(firewall: Firewall, data: IUpdateRoutingRule): Promise<void> {
+        const errors: ErrorBag = {};
+
+        if (!data.markIds || data.markIds.length === 0) {
+            return;
+        }
+        
+        const marks: Mark[] = await getRepository(Mark).createQueryBuilder('mark')
+            .innerJoin('mark.fwCloud', 'fwcloud')
+            .innerJoin('fwcloud.firewalls', 'firewall')
+            .whereInIds(data.markIds.map(item => item.id))
+            .andWhere('firewall.id = :firewall', {firewall: firewall.id})
+            .getMany();
+
+        for (let i = 0; i < data.markIds.length; i++) {
+            if (marks.findIndex(item => item.id === data.markIds[i].id) < 0) {
+                errors[`markIds.${i}.id`] = ['mark does not exists']
+            } 
         }
         
         

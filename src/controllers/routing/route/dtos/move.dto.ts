@@ -1,12 +1,13 @@
-import { IsArray, IsNumber, IsPositive, IsString } from "class-validator";
+import { IsArray, IsEnum, IsNumber, IsPositive, IsString } from "class-validator";
+import { Offset } from "../../../../offset";
 
 export class RouteControllerMoveDto {
     @IsNumber()
     @IsPositive()
     to: number;
 
-    @IsNumber()
-    offset: number;
+    @IsEnum(Offset)
+    offset: Offset;
 
     @IsArray()
     @IsNumber({}, {each: true})

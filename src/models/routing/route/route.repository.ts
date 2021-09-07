@@ -21,6 +21,7 @@
 */
 
 import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, In, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
+import { Offset } from "../../../offset";
 import { RoutingTable } from "../routing-table/routing-table.model";
 import { Route } from "./route.model";
 
@@ -64,7 +65,7 @@ export class RouteRepository extends Repository<Route> {
         return this.findOneOrFail(this.getFindInPathOptions(path));
     }
 
-    async move(ids: number[], toRouteId: number, offset: 'above'|'below'): Promise<Route[]> {
+    async move(ids: number[], toRouteId: number, offset: Offset): Promise<Route[]> {
         const routes: Route[] = await this.find({
             where: {
                 id: In(ids)
@@ -87,7 +88,7 @@ export class RouteRepository extends Repository<Route> {
             }
         })
 
-        if (offset === 'above') {
+        if (offset === Offset.Above) {
             affectedRoutes = await this.moveAbove(routes, affectedRoutes, destRoute);
         } else {
             affectedRoutes = await this.moveBelow(routes, affectedRoutes, destRoute);

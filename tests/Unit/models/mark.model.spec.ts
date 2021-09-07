@@ -53,7 +53,7 @@ describe(Mark.name, () => {
         });
 
         routingRule = await routingRuleService.update(routingRule.id, {
-            markIds: [mark.id]
+            markIds: [{id: mark.id, order: 1}]
         });
     });
 

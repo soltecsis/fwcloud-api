@@ -89,7 +89,7 @@ export class RouteGroupController extends Controller {
             name: request.inputs.get('name'),
             comment: request.inputs.get('comment'),
             firewallId: this._firewall.id,
-            routes: request.inputs.get('routes').map((id) => ({id}))
+            routes: request.inputs.get<number[]>('routes').map((id) => ({id}))
         });
 
         return ResponseBuilder.buildResponse().status(201).body(group);

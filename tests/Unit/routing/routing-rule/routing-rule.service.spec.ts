@@ -18,10 +18,11 @@ import { Ca } from "../../../../src/models/vpn/pki/Ca";
 import { Crt } from "../../../../src/models/vpn/pki/Crt";
 import StringHelper from "../../../../src/utils/string.helper";
 import { expect, testSuite } from "../../../mocha/global-setup";
+import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 
 describe(RoutingRuleService.name, () => {
     let service: RoutingRuleService;
-
+    let fwcProduct: FwCloudProduct;
     let fwCloud: FwCloud;
     let firewall: Firewall;
     let table: RoutingTable;
@@ -29,23 +30,13 @@ describe(RoutingRuleService.name, () => {
 
     beforeEach(async () => {
         await testSuite.resetDatabaseData();
+        fwcProduct = await new FwCloudFactory().make();
 
         service = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
-            name: StringHelper.randomize(10)
-        }));
-
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
-            name: StringHelper.randomize(10),
-            fwCloudId: fwCloud.id
-        }));
-
-        table = await getRepository(RoutingTable).save({
-            firewallId: firewall.id,
-            number: 1,
-            name: 'name',
-        });
+        fwCloud = fwcProduct.fwcloud;
+        firewall = fwcProduct.firewall;
+        table = fwcProduct.routingTable;
 
         rule = await service.create({
             routingTableId: table.id,
@@ -102,9 +93,8 @@ describe(RoutingRuleService.name, () => {
                     routingTableId: table2.id
                 });
 
-                // Notice rule was already created in beforEach
-                // thus there are 5 rules created.
-                expect(rule.rule_order).to.eq(6);
+                // Notice rules have been created in the factory
+                expect(rule.rule_order).to.eq(9);
             });
         });
 
@@ -134,7 +124,10 @@ describe(RoutingRuleService.name, () => {
             it('should attach ipbojs', async () => {
                 rule = await service.create({
                     routingTableId: table.id,
-                    ipObjIds: [ipobj1.id, ipobj2.id]
+                    ipObjIds: [
+                        {id: ipobj1.id, order: 1 },
+                        {id: ipobj2.id, order: 2 }
+                    ]
                 });
 
                 expect(
@@ -151,7 +144,10 @@ describe(RoutingRuleService.name, () => {
 
                 rule = await service.create({
                     routingTableId: table.id,
-                    ipObjIds: standards.map(item => item.id)
+                    ipObjIds: standards.map((item, index) => ({
+                        id: item.id,
+                        order: index + 1
+                    }))
                 });
 
                 rule = await getRepository(RoutingRule).findOne(rule.id, { relations: ['routingRuleToIPObjs']});
@@ -215,7 +211,10 @@ describe(RoutingRuleService.name, () => {
             it('should attach ipObjGroups', async () => {
                 const rule: RoutingRule = await service.create({
                     routingTableId: table.id,
-                    ipObjGroupIds: [group1.id, group2.id]
+                    ipObjGroupIds: [
+                        { id: group1.id, order: 1 },
+                        { id: group2.id, order : 2}
+                    ]
                 });
 
                 expect(
@@ -231,10 +230,11 @@ describe(RoutingRuleService.name, () => {
             beforeEach(async () => {
                 openVPN1 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
                     firewallId: firewall.id,
+                    parentId: fwcProduct.openvpnServer.id,
                     crt: await getRepository(Crt).save(getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
-                        type: 0,
+                        type: 1,
                         ca: await getRepository(Ca).save(getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
@@ -245,10 +245,11 @@ describe(RoutingRuleService.name, () => {
 
                 openVPN2 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
                     firewallId: firewall.id,
+                    parentId: fwcProduct.openvpnServer.id,
                     crt: await getRepository(Crt).save(getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
-                        type: 0,
+                        type: 1,
                         ca: await getRepository(Ca).save(getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
@@ -260,7 +261,10 @@ describe(RoutingRuleService.name, () => {
             it('should attach openVPNs', async () => {
                 const rule: RoutingRule = await service.create({
                     routingTableId: table.id,
-                    openVPNIds: [openVPN1.id, openVPN2.id]
+                    openVPNIds: [
+                        {id: openVPN1.id, order: 1},
+                        {id: openVPN2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -311,7 +315,10 @@ describe(RoutingRuleService.name, () => {
             it('should attach openVPNPrefixes', async () => {
                 const rule: RoutingRule = await service.create({
                     routingTableId: table.id,
-                    openVPNPrefixIds: [openVPNPrefix.id, openVPNPrefix2.id]
+                    openVPNPrefixIds: [
+                        {id: openVPNPrefix.id, order: 1},
+                        {id: openVPNPrefix2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -341,7 +348,10 @@ describe(RoutingRuleService.name, () => {
             it('should attach marks', async () => {
                 const rule: RoutingRule = await service.create({
                     routingTableId: table.id,
-                    markIds: [mark1.id, mark2.id]
+                    markIds: [
+                        {id: mark1.id, order: 1},
+                        {id: mark2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -435,7 +445,10 @@ describe(RoutingRuleService.name, () => {
 
             it('should attach ipbojs', async () => {
                 await service.update(rule.id, {
-                    ipObjIds: [ipobj1.id, ipobj2.id]
+                    ipObjIds: [
+                        {id: ipobj1.id, order: 1},
+                        {id: ipobj2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -445,11 +458,16 @@ describe(RoutingRuleService.name, () => {
 
             it('should remove ipobjs attachment', async () => {
                 await service.update(rule.id, {
-                    ipObjIds: [ipobj1.id, ipobj2.id]
+                    ipObjIds: [
+                        {id: ipobj1.id, order: 1},
+                        {id: ipobj2.id, order: 2}
+                    ]
                 });
 
                 await service.update(rule.id, {
-                    ipObjIds: [ipobj2.id]
+                    ipObjIds: [
+                        {id: ipobj2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -459,7 +477,10 @@ describe(RoutingRuleService.name, () => {
 
             it('should remove all ipobjs attachment', async () => {
                 await service.update(rule.id, {
-                    ipObjIds: [ipobj1.id, ipobj2.id]
+                    ipObjIds: [
+                        {id: ipobj1.id, order: 1},
+                        {id: ipobj2.id, order: 2}
+                    ]
                 });
 
                 await service.update(rule.id, {
@@ -526,7 +547,10 @@ describe(RoutingRuleService.name, () => {
             })
             it('should attach ipObjGroups', async () => {
                 await service.update(rule.id, {
-                    ipObjGroupIds: [group1.id, group2.id]
+                    ipObjGroupIds: [
+                        {id: group1.id, order: 1},
+                        {id: group2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -536,11 +560,16 @@ describe(RoutingRuleService.name, () => {
 
             it('should remove ipObjGroups attachment', async () => {
                 await service.update(rule.id, {
-                    ipObjGroupIds: [group1.id, group2.id]
+                    ipObjGroupIds: [
+                        {id: group1.id, order: 1},
+                        {id: group2.id, order: 2}
+                    ]
                 });
 
                 await service.update(rule.id, {
-                    ipObjGroupIds: [group2.id]
+                    ipObjGroupIds: [
+                        {id: group2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -550,7 +579,10 @@ describe(RoutingRuleService.name, () => {
 
             it('should remove all ipObjGroups attachment', async () => {
                 await service.update(rule.id, {
-                    ipObjGroupIds: [group1.id, group2.id]
+                    ipObjGroupIds: [
+                        {id: group1.id, order: 1},
+                        {id: group2.id, order: 2}
+                    ]
                 });
 
                 await service.update(rule.id, {
@@ -565,12 +597,15 @@ describe(RoutingRuleService.name, () => {
             it('should throw an exception if the group is empty', async () => {
                 group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
-                    type: 1,
+                    type: 20,
                     fwCloudId: fwCloud.id
                 }));
 
                 await expect(service.update(rule.id, {
-                    ipObjGroupIds: [group1.id, group2.id]
+                    ipObjGroupIds: [
+                        {id: group1.id, order: 1},
+                        {id: group2.id, order: 2}
+                    ]
                 })).to.rejectedWith(ValidationException);
             });
         });
@@ -582,10 +617,11 @@ describe(RoutingRuleService.name, () => {
             beforeEach(async () => {
                 openVPN1 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
                     firewallId: firewall.id,
+                    parentId: fwcProduct.openvpnServer.id,
                     crt: await getRepository(Crt).save(getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
-                        type: 0,
+                        type: 1,
                         ca: await getRepository(Ca).save(getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
@@ -596,10 +632,11 @@ describe(RoutingRuleService.name, () => {
 
                 openVPN2 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
                     firewallId: firewall.id,
+                    parentId: fwcProduct.openvpnServer.id,
                     crt: await getRepository(Crt).save(getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
-                        type: 0,
+                        type: 1,
                         ca: await getRepository(Ca).save(getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
@@ -610,7 +647,10 @@ describe(RoutingRuleService.name, () => {
             })
             it('should attach openVPNs', async () => {
                 await service.update(rule.id, {
-                    openVPNIds: [openVPN1.id, openVPN2.id]
+                    openVPNIds: [
+                        {id: openVPN1.id, order: 1},
+                        {id: openVPN2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -620,11 +660,16 @@ describe(RoutingRuleService.name, () => {
 
             it('should remove openVPNs attachment', async () => {
                 await service.update(rule.id, {
-                    openVPNIds: [openVPN1.id, openVPN2.id]
+                    openVPNIds: [
+                        {id: openVPN1.id, order: 1},
+                        {id: openVPN2.id, order: 2}
+                    ]
                 });
 
                 await service.update(rule.id, {
-                    openVPNIds: [openVPN2.id]
+                    openVPNIds: [
+                        {id: openVPN2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -634,7 +679,10 @@ describe(RoutingRuleService.name, () => {
 
             it('should remove all openVPNs attachment', async () => {
                 await service.update(rule.id, {
-                    openVPNIds: [openVPN1.id, openVPN2.id]
+                    openVPNIds: [
+                        {id: openVPN1.id, order: 1},
+                        {id: openVPN2.id, order: 2}
+                    ]
                 });
 
                 await service.update(rule.id, {
@@ -688,7 +736,10 @@ describe(RoutingRuleService.name, () => {
             })
             it('should attach openVPNPrefixes', async () => {
                 await service.update(rule.id, {
-                    openVPNPrefixIds: [openVPNPrefix.id, openVPNPrefix2.id]
+                    openVPNPrefixIds: [
+                        {id: openVPNPrefix.id, order: 1},
+                        {id: openVPNPrefix2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -698,11 +749,16 @@ describe(RoutingRuleService.name, () => {
 
             it('should remove openVPNPrefixes attachment', async () => {
                 await service.update(rule.id, {
-                    openVPNPrefixIds: [openVPNPrefix.id, openVPNPrefix2.id]
+                    openVPNPrefixIds: [
+                        {id: openVPNPrefix.id, order: 1},
+                        {id: openVPNPrefix2.id, order: 2}
+                    ]
                 });
 
                 await service.update(rule.id, {
-                    openVPNPrefixIds: [openVPNPrefix2.id]
+                    openVPNPrefixIds: [
+                        {id: openVPNPrefix2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -712,7 +768,10 @@ describe(RoutingRuleService.name, () => {
 
             it('should remove all openVPNPrefixes attachment', async () => {
                 await service.update(rule.id, {
-                    openVPNPrefixIds: [openVPNPrefix.id, openVPNPrefix2.id]
+                    openVPNPrefixIds: [
+                        {id: openVPNPrefix.id, order: 1},
+                        {id: openVPNPrefix2.id, order: 2}
+                    ]
                 });
 
                 await service.update(rule.id, {
@@ -745,7 +804,10 @@ describe(RoutingRuleService.name, () => {
 
             it('should attach marks', async () => {
                 await service.update(rule.id, {
-                    markIds: [mark1.id, mark2.id]
+                    markIds: [
+                        {id: mark1.id, order: 1},
+                        {id: mark2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -755,11 +817,16 @@ describe(RoutingRuleService.name, () => {
 
             it('should remove marks attachment', async () => {
                 await service.update(rule.id, {
-                    markIds: [mark1.id, mark2.id]
+                    markIds: [
+                        {id: mark1.id, order: 1},
+                        {id: mark2.id, order: 2}
+                    ]
                 });
 
                 await service.update(rule.id, {
-                    markIds: [mark2.id]
+                    markIds: [
+                        {id: mark2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -769,7 +836,10 @@ describe(RoutingRuleService.name, () => {
 
             it('should remove all marks attachment', async () => {
                 await service.update(rule.id, {
-                    markIds: [mark1.id, mark2.id]
+                    markIds: [
+                        {id: mark1.id, order: 1},
+                        {id: mark2.id, order: 2}
+                    ]
                 });
 
                 await service.update(rule.id, {
@@ -808,7 +878,7 @@ describe(RoutingRuleService.name, () => {
                 crt: await getRepository(Crt).save(getRepository(Crt).create({
                     cn: StringHelper.randomize(10),
                     days: 100,
-                    type: 0,
+                    type: 1,
                     ca: await getRepository(Ca).save(getRepository(Ca).create({
                         fwCloud: fwCloud,
                         cn: StringHelper.randomize(10),
@@ -824,7 +894,7 @@ describe(RoutingRuleService.name, () => {
                     crt: await getRepository(Crt).save(getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
-                        type: 0,
+                        type: 1,
                         ca: await getRepository(Ca).save(getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),

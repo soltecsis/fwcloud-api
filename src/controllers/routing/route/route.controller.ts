@@ -41,6 +41,7 @@ import { HttpException } from "../../../fonaments/exceptions/http/http-exception
 import { RouteControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
 import { RouteControllerBulkRemoveQueryDto } from "./dtos/bulk-remove.dto";
 import { RouteControllerCopyDto } from "./dtos/copy.dto";
+import { Offset } from "../../../offset";
 
 export class RouteController extends Controller {
     protected _routeService: RouteService;
@@ -110,9 +111,7 @@ export class RouteController extends Controller {
             }
         });
 
-        const offset: 'above' | 'below' = request.inputs.get('offset') >= 0 ? 'below': 'above'
-        
-        const result: Route[] = await this._routeService.move(routes.map(item => item.id), request.inputs.get('to'), offset);
+        const result: Route[] = await this._routeService.move(routes.map(item => item.id), request.inputs.get('to'), request.inputs.get<Offset>('offset'));
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
@@ -147,10 +146,7 @@ export class RouteController extends Controller {
         (await RoutePolicy.create(this._routingTable, request.session.user)).authorize();
 
         //Get the routingTable from the URL
-        const data: ICreateRoute = Object.assign({}, request.inputs.all<ICreateRoute>(), {routingTableId: this._routingTable.id});
-
-        data.offset = data.offset as unknown as number >=0 ? 'below': 'above';
-        
+        const data: ICreateRoute = Object.assign(request.inputs.all<RouteControllerStoreDto>(), {routingTableId: this._routingTable.id});
         const route: Route = await this._routeService.create(data);
 
         return ResponseBuilder.buildResponse().status(201).body(route);
@@ -176,8 +172,7 @@ export class RouteController extends Controller {
             routes.push(route);
         }
 
-        const offset: 'above' | 'below' = request.inputs.get('offset') > 0 ? 'below': 'above';
-        const created: Route[] = await this._routeService.copy(routes.map(item => item.id), request.inputs.get('to'), offset);
+        const created: Route[] = await this._routeService.copy(routes.map(item => item.id), request.inputs.get('to'), request.inputs.get<Offset>('offset'));
         
         return ResponseBuilder.buildResponse().status(201).body(created);
     }
@@ -186,7 +181,7 @@ export class RouteController extends Controller {
     async update(request: Request): Promise<ResponseBuilder> {
         (await RoutePolicy.update(this._route, request.session.user)).authorize();
 
-        const result: Route = await this._routeService.update(this._route.id, request.inputs.all());
+        const result: Route = await this._routeService.update(this._route.id, request.inputs.all<RouteControllerUpdateDto>());
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
