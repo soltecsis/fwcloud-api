@@ -87,7 +87,7 @@ describe(IPObjGroup.name, () => {
         })
 
         route = await routeService.update(route.id, {
-            ipObjGroupIds: [ipobjGroup.id]
+            ipObjGroupIds: [{ id: ipobjGroup.id, order: 1}]
         });
         
         routingRule = await routingRuleService.create({

@@ -43,6 +43,7 @@ import { RoutingRuleControllerMoveDto } from "../../../../../src/controllers/rou
 import { RoutingRuleControllerBulkUpdateDto } from "../../../../../src/controllers/routing/routing-rule/dtos/bulk-update.dto";
 import { RoutingRuleControllerCopyDto } from "../../../../../src/controllers/routing/routing-rule/dtos/copy.dto";
 import { RoutingRuleRepository } from "../../../../../src/models/routing/routing-rule/routing-rule.repository";
+import { Offset } from "../../../../../src/offset";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;
@@ -233,7 +234,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 data = {
                     rules: [ruleOrder1.id, ruleOrder2.id],
                     to: ruleOrder3.id,
-                    offset: -1
+                    offset: Offset.Above
                 }
             });
 
@@ -510,7 +511,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 data = {
                     rules: [ruleOrder1.id, ruleOrder2.id],
                     to: (await getCustomRepository(RoutingRuleRepository).getLastRoutingRuleInFirewall(table.firewallId)).id,
-                    offset: 1
+                    offset: Offset.Below
                 }
             });
 

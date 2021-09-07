@@ -33,7 +33,7 @@ describe(OpenVPNPrefix.name, () => {
         })
 
         route = await routeService.update(route.id, {
-            openVPNPrefixIds: [prefix.id]
+            openVPNPrefixIds: [{id: prefix.id, order: 1}]
         });
         
         routingRule = await routingRuleService.create({

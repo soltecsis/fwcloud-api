@@ -20,15 +20,16 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsArray, IsNumber, IsPositive } from "class-validator"
+import { IsArray, IsEnum, IsNumber, IsPositive } from "class-validator"
+import { Offset } from "../../../../offset";
 
 export class RouteControllerCopyDto {
     @IsNumber()
     @IsPositive()
     to: number;
 
-    @IsNumber()
-    offset: number;
+    @IsEnum(Offset)
+    offset: Offset;
 
     @IsArray()
     @IsNumber({}, {each: true})

@@ -20,10 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsArray, IsBoolean, IsNumber, IsOptional, IsPositive, IsString } from "class-validator"
+import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsPositive, IsString } from "class-validator"
 import { IpObjBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation";
 import { IpObjGroupBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-group-belongs-to-types.validation";
 import { IsClientOpenVPN } from "../../../../fonaments/validation/rules/is-client-openvpn.validation";
+import { Offset } from "../../../../offset";
 
 export class RoutingRuleControllerCreateDto {
     @IsNumber()
@@ -96,7 +97,7 @@ export class RoutingRuleControllerCreateDto {
     @IsOptional()
     to?: number;
 
-    @IsNumber()
+    @IsEnum(Offset)
     @IsOptional()
-    offset?: number;
+    offset?: Offset;
 }

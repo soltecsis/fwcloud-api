@@ -20,10 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsArray, IsBoolean, IsNumber, IsOptional, IsString } from "class-validator"
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsString, ValidateNested } from "class-validator"
 import { IpObjBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation";
-import { IpObjGroupBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-group-belongs-to-types.validation";
-import { IsClientOpenVPN } from "../../../../fonaments/validation/rules/is-client-openvpn.validation";
+import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
 
 export class RouteControllerUpdateDto {
     @IsNumber()
@@ -55,41 +54,30 @@ export class RouteControllerUpdateDto {
 
     @IsArray()
     @IsOptional()
-    @IpObjBelongsToTypes([
-        5, // ADDRESS
-        6, // ADDRESS RANGE
-        7, // NETWORK
-        8, // HOST
-        9, // DNS
-    ])
-    @IsNumber({}, {
+    @ValidateNested({
         each: true
     })
-    ipObjIds?: number[]
+    ipObjIds?: PositionalEntityDto[]
 
     @IsArray()
     @IsOptional()
-    @IpObjGroupBelongsToTypes([
-        20
-    ])
-    @IsNumber({}, {
+    @ValidateNested({
         each: true
     })
-    ipObjGroupIds?: number[]
+    ipObjGroupIds?: PositionalEntityDto[]
 
     @IsArray()
     @IsOptional()
-    @IsNumber({}, {
+    @ValidateNested({
         each: true
     })
-    @IsClientOpenVPN()
-    openVPNIds?: number[];
+    openVPNIds?: PositionalEntityDto[];
     
     @IsArray()
     @IsOptional()
-    @IsNumber({}, {
+    @ValidateNested({
         each: true
     })
-    openVPNPrefixIds?: number[]
+    openVPNPrefixIds?: PositionalEntityDto[]
 
 }

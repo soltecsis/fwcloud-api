@@ -108,7 +108,9 @@ describe(describeName('IPObjGroup E2E Tests'), () => {
                 });
 
                 await routeService.update(route.id, {
-                    ipObjGroupIds: [group.id]
+                    ipObjGroupIds: [{
+                        id: group.id, order: 1
+                    }]
                 });
 
                 return await request(app.express)
