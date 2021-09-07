@@ -343,6 +343,9 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 				comment: copyRule.comment,
 				type: copyRule.type,
 				style: copyRule.style,
+				fw_apply_to: copyRule.fw_apply_to,
+				negate: copyRule.negate,
+				mark: copyRule.mark,
 				run_before: copyRule.run_before,
 				run_after: copyRule.run_after
 			};
