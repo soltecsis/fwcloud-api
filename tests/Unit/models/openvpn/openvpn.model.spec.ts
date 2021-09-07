@@ -49,7 +49,7 @@ describe(OpenVPN.name, () => {
         });
 
         routingRule = await routingRuleService.update(routingRule.id, {
-            openVPNIds: [openvpn.id]
+            openVPNIds: [{id: openvpn.id, order: 1}]
         });
     });
 
