@@ -51,6 +51,7 @@ export class RoutingRuleControllerUpdateDto {
     @ValidateNested({
         each: true
     })
+    @Type(() => PositionalEntityDto)
     ipObjIds?: PositionalEntityDto[]
 
     @IsArray()
