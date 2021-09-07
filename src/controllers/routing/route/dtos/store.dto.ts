@@ -20,6 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { Type } from "class-transformer";
 import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsPositive, IsString, ValidateNested } from "class-validator"
 import { IpObjBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation";
 import { Offset } from "../../../../offset";
@@ -57,6 +58,7 @@ export class RouteControllerStoreDto {
     @ValidateNested({
         each: true
     })
+    @Type(() => PositionalEntityDto)
     ipObjIds?: PositionalEntityDto[]
 
     @IsArray()
@@ -64,6 +66,7 @@ export class RouteControllerStoreDto {
     @ValidateNested({
         each: true
     })
+    @Type(() => PositionalEntityDto)
     ipObjGroupIds?: PositionalEntityDto[]
 
     @IsArray()
@@ -71,6 +74,7 @@ export class RouteControllerStoreDto {
     @ValidateNested({
         each: true
     })
+    @Type(() => PositionalEntityDto)
     openVPNIds?: PositionalEntityDto[];
     
     @IsArray()
@@ -78,6 +82,7 @@ export class RouteControllerStoreDto {
     @ValidateNested({
         each: true
     })
+    @Type(() => PositionalEntityDto)
     openVPNPrefixIds?: PositionalEntityDto[];
 
     @IsNumber()

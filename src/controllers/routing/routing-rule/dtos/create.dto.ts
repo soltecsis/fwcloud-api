@@ -20,6 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { Type } from "class-transformer";
 import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsPositive, IsString, ValidateNested } from "class-validator"
 import { IpObjBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation";
 import { IpObjGroupBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-group-belongs-to-types.validation";
@@ -52,6 +53,7 @@ export class RoutingRuleControllerCreateDto {
     @ValidateNested({
         each: true
     })
+    @Type(() => PositionalEntityDto)
     ipObjIds?: PositionalEntityDto[]
 
     @IsArray()
@@ -59,6 +61,7 @@ export class RoutingRuleControllerCreateDto {
     @ValidateNested({
         each: true
     })
+    @Type(() => PositionalEntityDto)
     ipObjGroupIds?: PositionalEntityDto[]
 
     @IsArray()
@@ -66,6 +69,7 @@ export class RoutingRuleControllerCreateDto {
     @ValidateNested({
         each: true
     })
+    @Type(() => PositionalEntityDto)
     openVPNIds?: PositionalEntityDto[];
     
     @IsArray()
@@ -73,6 +77,7 @@ export class RoutingRuleControllerCreateDto {
     @ValidateNested({
         each: true
     })
+    @Type(() => PositionalEntityDto)
     openVPNPrefixIds?: PositionalEntityDto[];
 
     @IsArray()
@@ -80,6 +85,7 @@ export class RoutingRuleControllerCreateDto {
     @ValidateNested({
         each: true
     })
+    @Type(() => PositionalEntityDto)
     markIds?: PositionalEntityDto[];
 
     @IsNumber()
