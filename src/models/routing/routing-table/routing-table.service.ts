@@ -39,6 +39,7 @@ import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { OpenVPNPrefixRepository } from "../../vpn/openvpn/OpenVPNPrefix.repository";
 import { Route } from "../route/route.model";
 import { RouteRepository } from "../route/route.repository";
+import { RouteService } from "../route/route.service";
 import { AvailableDestinations, ItemForGrid, RouteItemForCompiler, RoutingRuleItemForCompiler, RoutingUtils } from "../shared";
 import { RoutingTable } from "./routing-table.model";
 
@@ -70,6 +71,7 @@ export interface RouteData<T extends ItemForGrid | RouteItemForCompiler> extend
     
 export class RoutingTableService extends Service {
     protected _repository: Repository<RoutingTable>;
+    private _routeService: RouteService;
     private _routeRepository: RouteRepository;
     private _ipobjRepository: IPObjRepository;
     private _ipobjGroupRepository: IPObjGroupRepository;   
@@ -80,8 +82,8 @@ export class RoutingTableService extends Service {
     constructor(app: Application) {
         super(app);
         this._repository = getRepository(RoutingTable);
-        this._routeRepository = getCustomRepository(RouteRepository);
         this._ipobjRepository = getCustomRepository(IPObjRepository);
+        this._routeRepository = getCustomRepository(RouteRepository);
         this._ipobjGroupRepository = getCustomRepository(IPObjGroupRepository);
         this._openvpnRepository = getCustomRepository(OpenVPNRepository);
         this._openvpnPrefixRepository = getCustomRepository(OpenVPNPrefixRepository);
@@ -89,7 +91,8 @@ export class RoutingTableService extends Service {
 
     public async build(): Promise<Service> {
         this._firewallService = await this._app.getService(FirewallService.name);
-
+        this._routeService = await this._app.getService<RouteService>(RouteService.name);
+        
         return this;
     }
 
@@ -141,7 +144,7 @@ export class RoutingTableService extends Service {
         }
 
         if (tableWithRules.routes.length > 0) {
-            await this._routeRepository.remove(tableWithRules.routes);
+            await this._routeService.bulkRemove(tableWithRules.routes.map(item => item.id));
         }
         
         await this._repository.remove(table);
