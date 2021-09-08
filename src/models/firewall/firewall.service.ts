@@ -111,7 +111,7 @@ export class FirewallService extends Service {
         return this._repository.findOneOrFail(idOrIds);
     }
 
-    public async clone(originalId: number, clonedId: number, dataI: {org_name: number, clon_name: number}[]) {
+    public async clone(originalId: number, clonedId: number, dataI: {id_org: number, id_clon: number}[]) {
         const routingTables: RoutingTable[] = await getRepository(RoutingTable).createQueryBuilder('table')
             .where('table.firewallId = :originalId', {originalId})
             .leftJoinAndSelect('table.routes', 'route')
@@ -131,18 +131,21 @@ export class FirewallService extends Service {
 
         
         for (let table of routingTables) {
-            table.id = undefined;
-            table.firewallId = clonedId;
-            
             const persistedTable: RoutingTable = await (await app().getService<RoutingTableService>(RoutingTableService.name)).create({
-                firewallId: table.firewallId,
+                firewallId: clonedId,
                 name: table.name,
                 comment: table.comment,
                 number: table.number
             });
 
             const persistedRoutes: Route[] = await getRepository(Route).save(table.routes.map(route => {
+                route.id = undefined;
                 route.routingTableId = persistedTable.id;
+                const mapIndex: number = dataI.map(item => item.id_org).indexOf(route.interfaceId);
+
+                if (mapIndex >= 0) {
+                    route.interfaceId = dataI[mapIndex].id_clon;
+                }
                 return route;
             }));
 
@@ -168,9 +171,10 @@ export class FirewallService extends Service {
                 }));
             }
 
-            const persistedRules: RoutingRule[] = await getRepository(RoutingRule).save(table.routingRules.map(route => {
-                route.routingTableId = persistedTable.id;
-                return route;
+            const persistedRules: RoutingRule[] = await getRepository(RoutingRule).save(table.routingRules.map(rule => {
+                rule.id = undefined;
+                rule.routingTableId = persistedTable.id;
+                return rule;
             }));
 
             for(let rule of persistedRules) {
