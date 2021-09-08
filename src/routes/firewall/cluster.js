@@ -70,8 +70,9 @@ import { Tree } from '../../models/tree/Tree';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { Firewall } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
-import { logger } from '../../fonaments/abstract-application';
+import { app, logger } from '../../fonaments/abstract-application';
 import { PgpHelper } from '../../utils/pgp';
+import { FirewallService } from '../../models/firewall/firewall.service';
 
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -587,6 +588,8 @@ router.put('/clone', (req, res) => {
 						let dataI = await Interface.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
 						await PolicyRule.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
 						await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
+						const firewallService = await app().getService(FirewallService.name);
+						await firewallService.clone(oldFirewall, fwNewMaster, dataI);
 					}
 				}
 

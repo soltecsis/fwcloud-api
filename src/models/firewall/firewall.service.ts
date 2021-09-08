@@ -19,6 +19,16 @@ import { OpenVPN } from "../vpn/openvpn/OpenVPN";
 import { Tree } from "../tree/Tree";
 import { RoutingTable } from "../routing/routing-table/routing-table.model";
 import { RoutingTableService } from "../routing/routing-table/routing-table.service";
+import { Route } from "../routing/route/route.model";
+import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
+import { RoutingRuleToIPObj } from "../routing/routing-rule/routing-rule-to-ipobj.model";
+import { RouteToIPObj } from "../routing/route/route-to-ipobj.model";
+import { RouteToIPObjGroup } from "../routing/route/route-to-ipobj-group.model";
+import { RouteToOpenVPN } from "../routing/route/route-to-openvpn.model";
+import { RoutingRuleToIPObjGroup } from "../routing/routing-rule/routing-rule-to-ipobj-group.model";
+import { RoutingRuleToOpenVPN } from "../routing/routing-rule/routing-rule-to-openvpn.model";
+import { RoutingRuleToOpenVPNPrefix } from "../routing/routing-rule/routing-rule-to-openvpn-prefix.model";
+import { RoutingRuleToMark } from "../routing/routing-rule/routing-rule-to-mark.model";
 const fwcError = require('../../utils/error_table');
 var utilsModel = require("../../utils/utils.js");
 
@@ -99,6 +109,102 @@ export class FirewallService extends Service {
         const firewall: Firewall = await this._repository.findOneOrFail(idOrIds);
         await getCustomRepository(FirewallRepository).markAsUncompiled(firewall);
         return this._repository.findOneOrFail(idOrIds);
+    }
+
+    public async clone(originalId: number, clonedId: number, dataI: {id_org: number, id_clon: number}[]) {
+        const routingTables: RoutingTable[] = await getRepository(RoutingTable).createQueryBuilder('table')
+            .where('table.firewallId = :originalId', {originalId})
+            .leftJoinAndSelect('table.routes', 'route')
+            .leftJoinAndSelect('table.routingRules', 'rule')
+
+            .leftJoinAndSelect('route.routeToIPObjs', 'routeToIPObjs')
+            .leftJoinAndSelect('route.routeToIPObjGroups', 'routeToIPObjGroups')
+            .leftJoinAndSelect('route.routeToOpenVPNs', 'routeToOpenVPNs')
+            .leftJoinAndSelect('route.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
+
+            .leftJoinAndSelect('rule.routingRuleToOpenVPNs', 'routingRuleToOpenVPNs')
+            .leftJoinAndSelect('rule.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefixes')
+            .leftJoinAndSelect('rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+            .leftJoinAndSelect('rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
+            .leftJoinAndSelect('rule.routingRuleToMarks', 'routingRuleToMarks')
+            .getMany();
+
+        
+        for (let table of routingTables) {
+            const persistedTable: RoutingTable = await (await app().getService<RoutingTableService>(RoutingTableService.name)).create({
+                firewallId: clonedId,
+                name: table.name,
+                comment: table.comment,
+                number: table.number
+            });
+
+            const persistedRoutes: Route[] = await getRepository(Route).save(table.routes.map(route => {
+                route.id = undefined;
+                route.routingTableId = persistedTable.id;
+                const mapIndex: number = dataI.map(item => item.id_org).indexOf(route.interfaceId);
+
+                if (mapIndex >= 0) {
+                    route.interfaceId = dataI[mapIndex].id_clon;
+                }
+                return route;
+            }));
+
+            for(let route of persistedRoutes) {
+                await getRepository(RouteToIPObj).save(route.routeToIPObjs.map(item => {
+                    item.routeId = route.id;
+                    return item;
+                }));
+
+                await getRepository(RouteToIPObjGroup).save(route.routeToIPObjGroups.map(item => {
+                    item.routeId = route.id;
+                    return item;
+                }));
+
+                await getRepository(RouteToOpenVPN).save(route.routeToOpenVPNs.map(item => {
+                    item.routeId = route.id;
+                    return item;
+                }));
+
+                await getRepository(RouteToOpenVPN).save(route.routeToOpenVPNPrefixes.map(item => {
+                    item.routeId = route.id;
+                    return item;
+                }));
+            }
+
+            const persistedRules: RoutingRule[] = await getRepository(RoutingRule).save(table.routingRules.map(rule => {
+                rule.id = undefined;
+                rule.routingTableId = persistedTable.id;
+                return rule;
+            }));
+
+            for(let rule of persistedRules) {
+                await getRepository(RoutingRuleToIPObj).save(rule.routingRuleToIPObjs.map(item => {
+                    item.routingRuleId = rule.id;
+                    return item;
+                }));
+
+                await getRepository(RoutingRuleToIPObjGroup).save(rule.routingRuleToIPObjGroups.map(item => {
+                    item.routingRuleId = rule.id;
+                    return item;
+                }));
+                
+                await getRepository(RoutingRuleToOpenVPN).save(rule.routingRuleToOpenVPNs.map(item => {
+                    item.routingRuleId = rule.id;
+                    return item;
+                }));
+
+                await getRepository(RoutingRuleToOpenVPNPrefix).save(rule.routingRuleToOpenVPNPrefixes.map(item => {
+                    item.routingRuleId = rule.id;
+                    return item;
+                }));
+
+                await getRepository(RoutingRuleToMark).save(rule.routingRuleToMarks.map(item => {
+                    item.routingRuleId = rule.id;
+                    return item;
+                }));
+            }
+            
+        }
     }
 
     /**
