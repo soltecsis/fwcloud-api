@@ -80,6 +80,7 @@ import { PolicyRule } from '../../models/policy/PolicyRule';
 import { app, logger } from '../../fonaments/abstract-application';
 import { PgpHelper } from '../../utils/pgp';
 import { FirewallService } from '../../models/firewall/firewall.service';
+import { RoutingTableService } from '../../models/routing/routing-table/routing-table.service';
 
 var utilsModel = require("../../utils/utils.js");
 const restrictedCheck = require('../../middleware/restricted');
@@ -628,6 +629,9 @@ router.put('/clone', async (req, res) => {
 		await utilsModel.createFirewallDataDir(req.body.fwcloud, idNewFirewall);
 		await Tree.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, idNewFirewall);
 
+		const firewallService = await app().getService(FirewallService.name);
+		await firewallService.clone(req.body.firewall, idNewFirewall, dataI);
+		
 		res.status(200).json(data);
 	} catch(error) { 
 		logger().error('Error cloning firewall: ' + JSON.stringify(error));
