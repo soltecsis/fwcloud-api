@@ -974,6 +974,7 @@ export class IPObj extends Model {
                 if (type === 5) { // ADDRESS
                     search.restrictions.LastAddrInInterfaceInRule = await PolicyRuleToIPObj.searchLastAddrInInterfaceInRule(dbCon, id, type, fwcloud);
                     search.restrictions.LastAddrInHostInRule = await PolicyRuleToIPObj.searchLastAddrInHostInRule(dbCon, id, type, fwcloud);
+                    search.restrictions.LastAddrInGroupHostInRule = await PolicyRuleToIPObj.searchLastAddrInHostInGroup(id, type, fwcloud);
                     search.restrictions.LastAddrInHostInRoute = await Route.getRouteWhichLastAddressInHost(id, type, fwcloud);
                     search.restrictions.LastAddrInHostInRoutingRule = await RoutingRule.getRoutingRuleWhichLastAddressInHost(id, type, fwcloud);
                     search.restrictions.LastAddrInGroupHostInRoute = await Route.getRouteWhichLastAddressInHostInGroup(id, type, fwcloud);
