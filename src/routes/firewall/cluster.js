@@ -73,6 +73,7 @@ import { Interface } from '../../models/interface/Interface';
 import { app, logger } from '../../fonaments/abstract-application';
 import { PgpHelper } from '../../utils/pgp';
 import { FirewallService } from '../../models/firewall/firewall.service';
+import { ClusterService } from '../../models/firewall/cluster.service';
 
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -619,7 +620,9 @@ router.put("/del",
 restrictedCheck.firewall,
 async (req, res) => {
 	try {
-		await Cluster.deleteCluster(req.dbCon, req.body.cluster, req.session.user_id, req.body.fwcloud);
+		const clusterService = await app().getService(ClusterService.name);
+		await clusterService.remove(req.body.cluster, req.body.fwcloud, req.session.user_id);
+
 		res.status(204).end();
 	} catch(error) {
 		logger().error('Error deleting cluster: ' + JSON.stringify(error));
