@@ -125,44 +125,52 @@ export class Route extends Model {
 
 
     public static async getRouteWhichLastAddressInHost(ipobjId: number, type: number, fwcloud:number): Promise<Route[]> {
-        const interfaces: Interface [] = await getRepository(Interface).createQueryBuilder('interface')
-            .select('interface.id')
-            .innerJoinAndSelect('interface.ipObjs', 'ipobj', 'ipobj.id = :id', {id: ipobjId})
-            .innerJoin('interface.hosts', 'InterfaceIPObj')
-            .innerJoin('InterfaceIPObj.hostIPObj', 'host')
-            .innerJoin('host.routeToIPObjs', 'routeToIPObjs')
-            .innerJoin('routeToIPObjs.route', 'route')
+        const routeToIPObjs: RouteToIPObj[] = await getRepository(RouteToIPObj).createQueryBuilder('routeToIPObj')
+            .innerJoin('routeToIPObj.ipObj', 'ipobj')
+            .innerJoin('ipobj.hosts', 'interfaceIPObj')
+            .innerJoin('routeToIPObj.route', 'route')
+            .innerJoin('interfaceIPObj.hostInterface', 'interface')
+            .innerJoin('interface.ipObjs', 'intIPObj')
             .innerJoin('route.routingTable', 'table')
             .innerJoin('table.firewall', 'firewall')
-            .innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloud', {fwcloud})
-            .getMany();
+            .where('intIPObj.id = :ipobjId', {ipobjId})
+            .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud})  
+            .getMany()
 
-        const uniqueInterfaces: Interface[] = [];
-        for(let _interface of interfaces) {
-            let addresses: IPObj[] = await Interface.getInterfaceAddr(db.getQuery(), _interface.id);
+        let result: RouteToIPObj[] = [];
+        
+        for (let routeToIPObj of routeToIPObjs) {
+            let addrs: any = await Interface.getHostAddr(db.getQuery(), routeToIPObj.ipObjId);
 
-            if (addresses.length === 1 && addresses[0].id === ipobjId) {
-                uniqueInterfaces.push(_interface);
+            // Count the amount of interface address with the same IP version of the rule.
+            let n = 0;
+            let id = 0;
+            for (let addr of addrs) {
+                n++;
+                if (n === 1) id = addr.id;
             }
+
+            // We are the last IP address in the host used in a firewall rule.
+            if (n === 1 && ipobjId === id)
+                result.push(routeToIPObj);
         }
 
-        if (uniqueInterfaces.length === 0) {
+        if (result.length === 0) {
             return [];
         }
 
-        return await getRepository(Route)
-            .createQueryBuilder('route')
-            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
-            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-            .innerJoin('route.routeToIPObjs', 'routeToIPObjs')
-            .innerJoin('routeToIPObjs.ipObj', 'ipobj')
-            .innerJoin('ipobj.hosts', 'InterfaceIPObj')
-            .innerJoin('InterfaceIPObj.hostInterface', 'interface')
-            .innerJoinAndSelect('route.routingTable', 'table')
+        return await getRepository(Route).createQueryBuilder('route')
+            .distinct()
+            .addSelect('firewall.id', 'firewall_id')
+            .addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id')
+            .addSelect('cluster.name', 'cluster_name')
+            .addSelect('table.name', 'table_name')
+            .addSelect('table.number', 'table_number')
+            .innerJoin('route.routingTable', 'table')
             .innerJoin('table.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
-            .where(`interface.id IN (${uniqueInterfaces.map(item => item.id).join(',')})`)
-            .getRawMany();
+            .whereInIds(result.map(item => item.routeId)).getRawMany();
     }
 
     public static async getRouteWhichLastAddressInHostInGroup(ipobjId: number, type: number, fwcloud:number): Promise<Route[]> {
