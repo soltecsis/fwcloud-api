@@ -709,17 +709,9 @@ router.put('/del',
 	restrictedCheck.firewall,
 	async(req, res) => {
 		try {
-			const routingTableService = await app().getService(RoutingTableService.name);
-			const firewallEntity = await getRepository(Firewall).findOneOrFail(req.body.firewall, { relations: ['routingTables']});
-			for(let table of firewallEntity.routingTables) {
-				await routingTableService.remove({
-					fwCloudId: firewallEntity.fwCloudId,
-					firewallId: firewallEntity.id,
-					id: table.id
-				});
-			}
+			const firewallService = await app().getService(FirewallService.name);
+			await firewallService.remove(req.body.firewall, req.body.fwcloud, req.session.user_id);
 
-			await Firewall.deleteFirewall(req.session.user_id, req.body.fwcloud, req.body.firewall);
 			res.status(204).end();
 		} catch (error) {
 			logger().error('Error removing firewall: ' + JSON.stringify(error));

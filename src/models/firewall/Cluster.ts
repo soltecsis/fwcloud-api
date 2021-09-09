@@ -173,41 +173,6 @@ export class Cluster extends Model {
     }
 
     //Remove cluster with id to remove
-    public static deleteCluster(dbCon, cluster, iduser, fwcloud) {
-        return new Promise((resolve, reject) => {
-            //BUCLE de FIREWALL en CLUSTER
-            let sql = `SELECT ${iduser} as iduser, F.* FROM firewall F
-                WHERE F.cluster=${cluster} AND F.fwcloud=${fwcloud} ORDER BY fwmaster desc`;
-            dbCon.query(sql, async (error, fws) => {
-                if (error) return reject(error);
-
-                try {
-                    for (let fw of fws)
-                        await Firewall.deleteFirewall(iduser, fwcloud, fw.id)
-                } catch (error) { return reject(error) }
-
-                sql = `SELECT T.* , A.id as idnode FROM ${tableName} T
-                    INNER JOIN fwc_tree A ON A.id_obj=T.id AND A.obj_type=100
-                    WHERE T.id=${cluster}`;
-                dbCon.query(sql, async (error, cluster) => {
-                    if (error) return reject(error);
-
-                    try {
-                        //If exists Id from cluster to remove
-                        if (cluster.length > 0)
-                            await Tree.deleteFwc_TreeFullNode({ id: cluster[0].idnode, fwcloud: fwcloud, iduser: iduser });
-                    } catch (error) { return reject(error) }
-
-                    dbCon.query(`DELETE FROM ${tableName} WHERE id=${cluster[0].id}`, (error, result) => {
-                        if (error) return reject(error);
-                        resolve();
-                    });
-                });
-            });
-        });
-    }
-
-    //Remove cluster with id to remove
     public static deleteClusterSimple(id, iduser, fwcloud, callback) {
 
         db.get((error, connection) => {
