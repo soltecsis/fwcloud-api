@@ -1391,10 +1391,15 @@ export class PolicyRuleToIPObj extends Model {
             .addSelect('cluster.id', 'cluster_id')
             .addSelect('cluster.name', 'cluster_name')
             .addSelect('type.name', 'rule_type_name')
+            .addSelect('position.id', 'rule_position_id')
+            .addSelect('position.name', 'rule_position_name')
+            .innerJoin('rule.policyRuleToIPObjs', 'policyRuleToIPObj')
+            .innerJoin('policyRuleToIPObj.policyPosition', 'position')
+            .innerJoin('policyRuleToIPObj.ipObjGroup', 'group')
             .innerJoin('rule.policyType', 'type')
             .innerJoin('rule.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
-            .whereInIds(result.map(item => item.policyRuleId))
+            .where('rule.id IN (:ids)', {ids: result.map(item => item.policyRuleId)})
         .getRawMany();
     }
 
