@@ -363,6 +363,7 @@ export class IPObj extends Model {
         var ipobjs_cont = 0;
         var interfaces_cont = 0;
 
+
         db.get((error, connection) => {
             if (error)
                 AllDone(error, null);
@@ -372,6 +373,7 @@ export class IPObj extends Model {
                 sqlId = ' AND G.id = ' + connection.escape(id);
             var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableName + ' G ' +
                 'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + connection.escape(fwcloud) + ' OR T.fwcloud IS NULL) ' +
+                'inner join fwc_tree ParentNode ON ParentNode.id = T.id_parent AND ParentNode.node_type = "OIH"' +
                 ' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
             logger().debug(sql);
             connection.query(sql, (error, rows) => {
