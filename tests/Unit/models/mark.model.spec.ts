@@ -50,9 +50,6 @@ describe(Mark.name, () => {
 
         routingRule = await routingRuleService.create({
             routingTableId: fwcloudProduct.routingTable.id,
-        });
-
-        routingRule = await routingRuleService.update(routingRule.id, {
             markIds: [{id: mark.id, order: 1}]
         });
     });

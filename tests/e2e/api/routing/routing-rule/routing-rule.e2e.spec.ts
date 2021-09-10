@@ -44,6 +44,7 @@ import { RoutingRuleControllerBulkUpdateDto } from "../../../../../src/controlle
 import { RoutingRuleControllerCopyDto } from "../../../../../src/controllers/routing/routing-rule/dtos/copy.dto";
 import { RoutingRuleRepository } from "../../../../../src/models/routing/routing-rule/routing-rule.repository";
 import { Offset } from "../../../../../src/offset";
+import { Mark } from "../../../../../src/models/ipobj/Mark";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;
@@ -93,6 +94,14 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: (await getRepository(Mark).save({
+                            code: 1,
+                            name: 'test',
+                            fwCloudId: fwCloud.id
+                        })).id,
+                        order: 0
+                    }]
                 });
             });
 
@@ -153,6 +162,14 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: (await getRepository(Mark).save({
+                            code: 1,
+                            name: 'test',
+                            fwCloudId: fwCloud.id
+                        })).id,
+                        order: 0
+                    }]
                 });
             });   
 
@@ -215,20 +232,42 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             let data: RoutingRuleControllerMoveDto;
 
             beforeEach(async () => {
+                const mark: Mark = await getRepository(Mark).save({
+                    code: 1,
+                    name: 'test',
+                    fwCloudId: fwCloud.id
+                });
+
                 ruleOrder1 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
                 });
                 
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
                 });
 
                 ruleOrder3 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
                 });
                 
                 ruleOrder4 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
                 });
 
                 data = {
@@ -308,6 +347,14 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: (await getRepository(Mark).save({
+                            code: 1,
+                            name: 'test',
+                            fwCloudId: fwCloud.id
+                        })).id,
+                        order: 0
+                    }]
                 });
             });   
 
@@ -372,6 +419,14 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: (await getRepository(Mark).save({
+                            code: 1,
+                            name: 'test',
+                            fwCloudId: fwCloud.id
+                        })).id,
+                        order: 0
+                    }]
                 });
             });   
 
@@ -436,7 +491,15 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
 					.send({
-                        routingTableId: table.id
+                        routingTableId: table.id,
+                        markIds: [{
+                            id: (await getRepository(Mark).save({
+                                code: 1,
+                                name: 'test',
+                                fwCloudId: fwCloud.id
+                            })).id,
+                            order: 0
+                        }]
                     })
 					.expect(401);
 			});
@@ -448,7 +511,15 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
                     .send({
-                        routingTableId: table.id
+                        routingTableId: table.id,
+                        markIds: [{
+                            id: (await getRepository(Mark).save({
+                                code: 1,
+                                name: 'test',
+                                fwCloudId: fwCloud.id
+                            })).id,
+                            order: 0
+                        }]
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
@@ -464,7 +535,15 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
                     .send({
-                        routingTableId: table.id
+                        routingTableId: table.id,
+                        markIds: [{
+                            id: (await getRepository(Mark).save({
+                                code: 1,
+                                name: 'test',
+                                fwCloudId: fwCloud.id
+                            })).id,
+                            order: 0
+                        }]
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(201)
@@ -480,7 +559,15 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
                     .send({
-                        routingTableId: table.id
+                        routingTableId: table.id,
+                        markIds: [{
+                            id: (await getRepository(Mark).save({
+                                code: 1,
+                                name: 'test',
+                                fwCloudId: fwCloud.id
+                            })).id,
+                            order: 0
+                        }]
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(201)
@@ -498,14 +585,28 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             let data: RoutingRuleControllerCopyDto;
 
             beforeEach(async () => {
+                const mark: Mark = await getRepository(Mark).save({
+                    code: 1,
+                    name: 'test',
+                    fwCloudId: fwCloud.id
+                });
+                
                 ruleOrder1 = await routingRuleService.create({
                     routingTableId: table.id,
                     comment: 'comment1',
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
                 });
                 
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
-                    comment: 'comment2'
+                    comment: 'comment2',
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
                 });
 
                 data = {
@@ -581,6 +682,14 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: (await getRepository(Mark).save({
+                            code: 1,
+                            name: 'test',
+                            fwCloudId: fwCloud.id
+                        })).id,
+                        order: 0
+                    }]
                 });
             });
 
@@ -749,12 +858,26 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             }
             
             beforeEach(async () => {
+                const mark: Mark = await getRepository(Mark).save({
+                    code: 1,
+                    name: 'test',
+                    fwCloudId: fwCloud.id
+                });
+
                 ruleOrder1 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
                 });
                 
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
                 });
             });
 
@@ -837,6 +960,14 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: (await getRepository(Mark).save({
+                            code: 1,
+                            name: 'test',
+                            fwCloudId: fwCloud.id
+                        })).id,
+                        order: 0
+                    }]
                 });
             });
 
@@ -906,12 +1037,26 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             let ruleOrder2: RoutingRule;
             
             beforeEach(async () => {
+                const mark: Mark = await getRepository(Mark).save({
+                    code: 1,
+                    name: 'test',
+                    fwCloudId: fwCloud.id
+                });
+
                 ruleOrder1 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
                 });
                 
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
                 });
             });
 

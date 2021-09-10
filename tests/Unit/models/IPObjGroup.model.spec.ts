@@ -92,9 +92,6 @@ describe(IPObjGroup.name, () => {
         
         routingRule = await routingRuleService.create({
             routingTableId: fwcloudProduct.routingTable.id,
-        });
-
-        routingRule = await routingRuleService.update(routingRule.id, {
             ipObjGroupIds: [{id: ipobjGroup.id, order: 1}]
         });
     });

@@ -38,11 +38,9 @@ describe(OpenVPNPrefix.name, () => {
         
         routingRule = await routingRuleService.create({
             routingTableId: fwcloudProduct.routingTable.id,
-        });
-
-        routingRule = await routingRuleService.update(routingRule.id, {
             openVPNPrefixIds: [{id: prefix.id, order: 1}]
         });
+
     });
 
     describe('searchPrefixUsage', () => {

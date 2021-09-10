@@ -46,9 +46,6 @@ describe(OpenVPN.name, () => {
         
         routingRule = await routingRuleService.create({
             routingTableId: fwcloudProduct.routingTable.id,
-        });
-
-        routingRule = await routingRuleService.update(routingRule.id, {
             openVPNIds: [{id: openvpn.id, order: 1}]
         });
     });

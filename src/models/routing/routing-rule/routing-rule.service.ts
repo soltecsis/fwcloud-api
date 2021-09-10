@@ -192,6 +192,7 @@ export class RoutingRuleService extends Service {
 
         const firewall: Firewall = (await this._repository.findOne(rule.id, {relations: ['routingTable', 'routingTable.firewall']})).routingTable.firewall;
 
+        await this.validateFromRestriction(rule.id, data);
 
         if (data.ipObjIds) {
             await this.validateUpdateIPObjs(firewall, data);
@@ -439,6 +440,48 @@ export class RoutingRuleService extends Service {
         if (Object.keys(errors).length > 0) {
             throw new ValidationException('The given data was invalid', errors);
         }
+    }
+
+    /**
+     * Validates FROM won't be empty after update
+     * 
+     * @param ruleId 
+     * @param data 
+     * @returns 
+     */
+    protected async validateFromRestriction(ruleId: number, data: IUpdateRoutingRule): Promise<void> {
+        const rule = await this._repository.findOneOrFail(ruleId, {
+            relations: ['routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
+        });
+
+        const errors: ErrorBag = {};
+        const marks: number = data.markIds ? data.markIds.length : rule.routingRuleToMarks.length;
+        const ipObjs: number = data.ipObjIds ? data.ipObjIds.length: rule.routingRuleToIPObjs.length;
+        const ipObjGroups: number = data.ipObjGroupIds ? data.ipObjGroupIds.length: rule.routingRuleToIPObjGroups.length;
+        const openVPNs: number = data.openVPNIds ? data.openVPNIds.length: rule.routingRuleToOpenVPNs.length;
+        const openVPNPrefixes: number = data.openVPNPrefixIds ? data.openVPNPrefixIds.length: rule.routingRuleToOpenVPNPrefixes.length;
+
+        if (marks + ipObjs + ipObjGroups + openVPNs + openVPNPrefixes > 0 ) {
+            return;
+        }
+
+        if (data.markIds && data.markIds.length === 0) {
+            errors['markIds'] = ['From should contain at least one item'];
+        }
+
+        if (data.ipObjIds && data.ipObjIds.length === 0) {
+            errors['ipObjIds'] = ['From should contain at least one item'];
+        }
+
+        if (data.openVPNIds && data.openVPNIds.length === 0) {
+            errors['ipObjGroupIds'] = ['From should contain at least one item'];
+        }
+
+        if (data.openVPNPrefixIds && data.openVPNPrefixIds.length === 0) {
+            errors['markIds'] = ['From should contain at least one item'];
+        }
+
+        throw new ValidationException('The given data was invalid', errors);
     }
 
     /**

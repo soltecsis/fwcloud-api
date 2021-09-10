@@ -15,6 +15,7 @@ import { FwCloudFactory, FwCloudProduct } from "../../utils/fwcloud-factory";
 import { RoutingTable } from "../../../src/models/routing/routing-table/routing-table.model";
 import { RoutingRule } from "../../../src/models/routing/routing-rule/routing-rule.model";
 import { RoutingRuleService } from "../../../src/models/routing/routing-rule/routing-rule.service";
+import { Mark } from "../../../src/models/ipobj/Mark";
 
 describe(describeName('Firewall E2E Tests'), () => {
     let app: Application;
@@ -173,10 +174,26 @@ describe(describeName('Firewall E2E Tests'), () => {
         
             rule1 = await ruleService.create({
                 routingTableId: table.id,
+                markIds: [{
+                    id: (await getRepository(Mark).save({
+                        code: 1,
+                        name: 'test',
+                        fwCloudId: fwCloud.id
+                    })).id,
+                    order: 0
+                }]
             });
 
             rule2 = await ruleService.create({
-                routingTableId: table.id
+                routingTableId: table.id,
+                markIds: [{
+                    id: (await getRepository(Mark).save({
+                        code: 2,
+                        name: 'test',
+                        fwCloudId: fwCloud.id
+                    })).id,
+                    order: 0
+                }]
             })
         });
 
