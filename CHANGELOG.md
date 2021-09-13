@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed 'Bug in firewall cluster node remove'.
 - Remove restrictions added for groups which are being used in policy rules.
 - Fixed 'Problem getting host information'
+- Disallow adding hosts without addresses to groups.
 
 ## [1.2.0] - 2021-04-30
 ### Added
