@@ -231,6 +231,13 @@ const config = convict({
       format: String,
       default: 'src/database/migrations',
       env: 'TYPEORM_MIGRATION_DIR'
+    },
+    mysqldump: {
+      protocol: {
+        doc: 'mysqldump connection protocol',
+        format: ['tcp', 'socket'],
+        default: 'socket',
+      }
     }
   },
 

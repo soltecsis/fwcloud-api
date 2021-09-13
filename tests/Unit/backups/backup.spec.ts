@@ -321,10 +321,10 @@ describe(describeName('Backup Unit tests'), () => {
             let backup: Backup = new Backup();
             await backup.create(service.config.data_dir);
 
-            process.env.NODE_ENV = 'prod';
+            testSuite.app.config.set('db.mysqldump.protocol', 'socket');
             expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} > "${backup.path}/db.sql"`);
             expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} < "${backup.path}/db.sql"`);
-            process.env.NODE_ENV = 'test';
+            testSuite.app.config.set('db.mysqldump.protocol', 'tcp');
         });
 
         it('should include --protocol=TCP in test environment', async () => {

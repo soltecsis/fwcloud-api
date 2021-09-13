@@ -27,6 +27,7 @@ describe(RoutingRuleService.name, () => {
     let firewall: Firewall;
     let table: RoutingTable;
     let rule: RoutingRule;
+    let mark: Mark;
 
     beforeEach(async () => {
         await testSuite.resetDatabaseData();
@@ -37,9 +38,19 @@ describe(RoutingRuleService.name, () => {
         fwCloud = fwcProduct.fwcloud;
         firewall = fwcProduct.firewall;
         table = fwcProduct.routingTable;
+        
+        mark = fwcProduct.mark;
 
         rule = await service.create({
             routingTableId: table.id,
+            ipObjIds: [{
+                id: fwcProduct.ipobjs.get('address').id,
+                order: 1
+            }],
+            markIds: [{
+                id: mark.id,
+                order: 2
+            }]
         });
     });
 
@@ -52,7 +63,11 @@ describe(RoutingRuleService.name, () => {
             await firewall.reload();
 
             await service.create({
-                routingTableId: table.id
+                routingTableId: table.id,
+                markIds: [{
+                    id: mark.id,
+                    order: 0
+                }]
             });
 
             await firewall.reload();
@@ -70,15 +85,31 @@ describe(RoutingRuleService.name, () => {
             beforeEach(async () => {
                 ruleOrder1 = await service.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order:1
+                    }]
                 });
                 ruleOrder2 = await service.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order:1
+                    }]
                 });
                 ruleOrder3 = await service.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order:1
+                    }]
                 });
                 ruleOrder4 = await service.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order:1
+                    }]
                 });
 
                 table2 = await getRepository(RoutingTable).save({
@@ -90,7 +121,11 @@ describe(RoutingRuleService.name, () => {
 
             it('should set last position if rule_order is not defined', async () => {
                 rule = await service.create({
-                    routingTableId: table2.id
+                    routingTableId: table2.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
                 });
 
                 // Notice rules have been created in the factory
@@ -369,10 +404,18 @@ describe(RoutingRuleService.name, () => {
             ruleOrder1 = await service.create({
                 comment: 'rule1',
                 routingTableId: table.id,
+                markIds: [{
+                    id: mark.id,
+                    order: 1
+                }]
             });
             ruleOrder2 = await service.create({
                 comment: 'rule2',
                 routingTableId: table.id,
+                markIds: [{
+                    id: mark.id,
+                    order: 2
+                }]
             });
         });
 
@@ -417,6 +460,16 @@ describe(RoutingRuleService.name, () => {
             await firewall.reload();
 
             expect(firewall.status).to.eq(3);
+        });
+
+        it('should fail if from is empty', async () => {
+            expect(service.update(rule.id, {
+                ipObjIds: [],
+                ipObjGroupIds: [],
+                openVPNIds: [],
+                openVPNPrefixIds: [],
+                markIds: []
+            })).rejectedWith(ValidationException);
         });
 
 

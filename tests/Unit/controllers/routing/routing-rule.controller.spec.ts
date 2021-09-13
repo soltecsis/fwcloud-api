@@ -16,6 +16,7 @@ import { RoutingRulePolicy } from "../../../../src/policies/routing-rule.policy"
 import { Tree } from "../../../../src/models/tree/Tree";
 import { Authorization } from "../../../../src/fonaments/authorization/policy";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
+import { Mark } from "../../../../src/models/ipobj/Mark";
 
 describe(RoutingRuleController.name, () => {
     let controller: RoutingRuleController;
@@ -24,18 +25,23 @@ describe(RoutingRuleController.name, () => {
     let tableService: RoutingTableService;
     let ruleService: RoutingRuleService;
     let firewall: Firewall;
+    let mark: Mark;
 
     beforeEach(async () => {
         app = testSuite.app;
         tableService = await app.getService<RoutingTableService>(RoutingTableService.name);
         ruleService = await app.getService<RoutingRuleService>(RoutingRuleService.name);
-    
         fwcProduct = await (new FwCloudFactory()).make();
         firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwcProduct.fwcloud.id
         }));
-
+        mark = await getRepository(Mark).save({
+            code: 1,
+            name: 'test',
+            fwCloudId: fwcProduct.fwcloud.id
+        });
+        
         await Tree.createAllTreeCloud(fwcProduct.fwcloud) as {id: number};
         const node: {id: number} = await Tree.getNodeByNameAndType(fwcProduct.fwcloud.id, 'FIREWALLS', 'FDF') as {id: number};
         await Tree.insertFwc_Tree_New_firewall(fwcProduct.fwcloud.id, node.id, firewall.id);
@@ -147,10 +153,18 @@ describe(RoutingRuleController.name, () => {
 
             let rule1: RoutingRule = await ruleService.create({
                 routingTableId: table1.id,
+                markIds: [{
+                    id: mark.id,
+                    order: 0
+                }]
             });
 
             let rule2: RoutingRule = await ruleService.create({
                 routingTableId: table2.id,
+                markIds: [{
+                    id: mark.id,
+                    order: 0
+                }]
             });
 
             await controller.bulkRemove({
