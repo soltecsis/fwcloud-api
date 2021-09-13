@@ -194,6 +194,12 @@ router.put('/addto', async(req, res) => {
 		} else {
 			dataIpobj = await IPObj.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
 			
+			if (dataIpobj.length > 0 && dataIpobj[0].type === 8) {
+				if (dataIpobj[0].interfaces.length === 0 || dataIpobj[0].interfaces.filter(item => item.ipobjs.length > 0).length === 0) {
+					throw fwcError.IPOBJ_EMPTY_CONTAINER;
+				}
+			}
+			
 			await IPObjToIPObjGroup.insertIpobj__ipobjg(req);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 		}
@@ -223,7 +229,8 @@ router.put('/delfrom', async(req, res) => {
 			}
 
 			const routes = await getRepository(Route).createQueryBuilder("route")
-			.innerJoinAndSelect("route.ipObjGroups", "group", `group.id = :group`, {group: req.body.ipobj_g})
+			.innerJoinAndSelect("route.routeToIPObjGroups", "routeToIPObjGroups")
+			.innerJoinAndSelect("routeToIPObjGroups.ipObjGroup", "group", `group.id = :group`, {group: req.body.ipobj_g})
 			.getCount();
 			
 			if (routes > 0) {
@@ -231,7 +238,8 @@ router.put('/delfrom', async(req, res) => {
 			}
 
 			const routingRules = await getRepository(RoutingRule).createQueryBuilder("rule")
-			.innerJoinAndSelect("rule.ipObjGroups", "group", `group.id = :group`, {group: req.body.ipobj_g})
+			.innerJoinAndSelect("rule.routingRuleToIPObjGroups", "routingRuleToIPObjGroups")
+			.innerJoinAndSelect("routingRuleToIPObjGroups.ipObjGroup", "group", `group.id = :group`, {group: req.body.ipobj_g})
 			.getCount();
 			
 			if (routes > 0 || routingRules > 0) {
