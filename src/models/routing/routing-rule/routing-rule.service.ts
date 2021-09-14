@@ -62,7 +62,7 @@ export interface ICreateRoutingRule {
     openVPNPrefixIds?: {id: number, order: number}[],
     markIds?: {id: number, order: number}[],
     to?: number; //Reference where create the rule
-    offset?: 'above' | 'below';
+    offset?: Offset;
 }
 
 interface IUpdateRoutingRule {
