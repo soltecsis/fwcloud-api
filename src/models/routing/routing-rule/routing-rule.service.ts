@@ -26,6 +26,7 @@ import db from "../../../database/database-manager";
 import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
 import { Service } from "../../../fonaments/services/service";
 import { ErrorBag } from "../../../fonaments/validation/validator";
+import { Offset } from "../../../offset";
 import { Firewall } from "../../firewall/Firewall";
 import { FirewallService } from "../../firewall/firewall.service";
 import { Interface } from "../../interface/Interface";
@@ -161,7 +162,7 @@ export class RoutingRuleService extends Service {
         return persisted;    
     }
 
-    async copy(ids: number[], destRule: number, offset: 'above' | 'below'): Promise<RoutingRule[]> {
+    async copy(ids: number[], destRule: number, offset: Offset): Promise<RoutingRule[]> {
         const routes: RoutingRule[] = await this._repository.find({
             where: {
                 id: In(ids)
@@ -299,7 +300,7 @@ export class RoutingRuleService extends Service {
         });
     }
 
-    async move(ids: number[], destRule: number, offset: 'above'|'below'): Promise<RoutingRule[]> {
+    async move(ids: number[], destRule: number, offset: Offset): Promise<RoutingRule[]> {
         const rules: RoutingRule[] = await this._repository.move(ids, destRule, offset);
     
         const firewallIds: number[] = (await this._repository.find({
