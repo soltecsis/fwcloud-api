@@ -40,6 +40,7 @@ import { HttpException } from "../../../fonaments/exceptions/http/http-exception
 import { RoutingRuleControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
 import { RoutingRuleControllerBulkRemoveQueryDto } from "./dtos/bulk-remove.dto";
 import { RoutingRuleControllerCopyDto } from "./dtos/copy.dto";
+import { Offset } from "../../../offset";
 
 export class RoutingRuleController extends Controller {
     
@@ -131,8 +132,7 @@ export class RoutingRuleController extends Controller {
             rules.push(rule);
         }
 
-        const offset: 'above' | 'below' = request.inputs.get('offset') > 0 ? 'below': 'above';
-        const created: RoutingRule[] = await this.routingRuleService.copy(rules.map(item => item.id), request.inputs.get('to'), offset)
+        const created: RoutingRule[] = await this.routingRuleService.copy(rules.map(item => item.id), request.inputs.get('to'), request.inputs.get<Offset>('offset'))
 
         return ResponseBuilder.buildResponse().status(201).body(created);
     }
@@ -195,7 +195,7 @@ export class RoutingRuleController extends Controller {
 
         const offset: 'above' | 'below' = request.inputs.get('offset') >= 0 ? 'below': 'above'
         
-        const result: RoutingRule[] = await this.routingRuleService.move(rules.map(item => item.id), request.inputs.get('to'), offset);
+        const result: RoutingRule[] = await this.routingRuleService.move(rules.map(item => item.id), request.inputs.get('to'), request.inputs.get<Offset>('offset'));
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }

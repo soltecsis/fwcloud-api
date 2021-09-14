@@ -8,6 +8,7 @@ import { RoutingRuleRepository } from "../../../../src/models/routing/routing-ru
 import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
 import { RoutingTableService } from "../../../../src/models/routing/routing-table/routing-table.service";
 import { Tree } from "../../../../src/models/tree/Tree";
+import { Offset } from "../../../../src/offset";
 import StringHelper from "../../../../src/utils/string.helper";
 import { expect, testSuite } from "../../../mocha/global-setup";
 
@@ -116,7 +117,7 @@ describe(RoutingRuleRepository.name, () => {
                 rule_order: 4
             });
 
-            await repository.move([ruleOrder2.id], ruleOrder4.id, 'below');
+            await repository.move([ruleOrder2.id], ruleOrder4.id, Offset.Below);
 
             expect((await repository.findOne(ruleOrder1.id)).rule_order).to.eq(1);
             expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(4);
@@ -142,7 +143,7 @@ describe(RoutingRuleRepository.name, () => {
                 rule_order: 4
             });
 
-            await repository.move([ruleOrder4.id], ruleOrder2.id, 'above');
+            await repository.move([ruleOrder4.id], ruleOrder2.id, Offset.Above);
 
             expect((await repository.findOne(ruleOrder1.id)).rule_order).to.eq(1);
             expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(3);
@@ -170,7 +171,7 @@ describe(RoutingRuleRepository.name, () => {
                 firewallId: firewall.id,
             });
 
-            await repository.move([ruleOrder3.id], ruleOrder2.id, 'above');
+            await repository.move([ruleOrder3.id], ruleOrder2.id, Offset.Above);
 
             expect((await repository.findOne(ruleOrder2.id)).routingGroupId).to.eq(group.id);
             expect((await repository.findOne(ruleOrder3.id)).routingGroupId).to.eq(group.id);
@@ -195,7 +196,7 @@ describe(RoutingRuleRepository.name, () => {
                     rule_order: 4
                 });
     
-                await repository.move([ruleOrder1.id, ruleOrder2.id], ruleOrder4.id, 'above');
+                await repository.move([ruleOrder1.id, ruleOrder2.id], ruleOrder4.id, Offset.Above);
     
                 expect((await repository.findOne(ruleOrder1.id)).rule_order).to.eq(2);
                 expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(3);
@@ -221,7 +222,7 @@ describe(RoutingRuleRepository.name, () => {
                     rule_order: 4
                 });
     
-                await repository.move([ruleOrder3.id, ruleOrder4.id], ruleOrder2.id, 'above');
+                await repository.move([ruleOrder3.id, ruleOrder4.id], ruleOrder2.id, Offset.Above);
     
                 expect((await repository.findOne(ruleOrder1.id)).rule_order).to.eq(1);
                 expect((await repository.findOne(ruleOrder2.id)).rule_order).to.eq(4);
@@ -249,7 +250,7 @@ describe(RoutingRuleRepository.name, () => {
                     firewallId: firewall.id,
                 });
     
-                await repository.move([ruleOrder2.id, ruleOrder3.id], ruleOrder1.id, 'above');
+                await repository.move([ruleOrder2.id, ruleOrder3.id], ruleOrder1.id, Offset.Above);
     
                 expect((await repository.findOne(ruleOrder2.id)).routingGroupId).to.eq(group.id);
                 expect((await repository.findOne(ruleOrder3.id)).routingGroupId).to.eq(group.id);

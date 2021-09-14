@@ -21,6 +21,7 @@
 */
 
 import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, getManager, getRepository, In, LessThan, LessThanOrEqual, MoreThan, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
+import { Offset } from "../../../offset";
 import { Firewall } from "../../firewall/Firewall";
 import { RoutingRule } from "./routing-rule.model";
 
@@ -79,7 +80,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
      * @param to 
      * @returns 
      */
-    async move(ids: number[], toRuleId: number, offset: 'above' | 'below'): Promise<RoutingRule[]> {
+    async move(ids: number[], toRuleId: number, offset: Offset): Promise<RoutingRule[]> {
 
         const rules: RoutingRule[] = await this.find({
             where: {
@@ -102,7 +103,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
             }
         });
         
-        if (offset === 'above') {
+        if (offset === Offset.Above) {
             affectedRules = await this.moveAbove(rules, affectedRules, destRule);
         } else {
             affectedRules = await this.moveBelow(rules, affectedRules, destRule);

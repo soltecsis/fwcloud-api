@@ -16,6 +16,7 @@ import { OpenVPN } from "../../../../src/models/vpn/openvpn/OpenVPN";
 import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
 import { Ca } from "../../../../src/models/vpn/pki/Ca";
 import { Crt } from "../../../../src/models/vpn/pki/Crt";
+import { Offset } from "../../../../src/offset";
 import StringHelper from "../../../../src/utils/string.helper";
 import { expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
@@ -420,7 +421,7 @@ describe(RoutingRuleService.name, () => {
         });
 
         it('should copy routes', async () => {
-            const copied: RoutingRule[] = await service.copy([ruleOrder1.id, ruleOrder2.id], ruleOrder1.id, 'above');
+            const copied: RoutingRule[] = await service.copy([ruleOrder1.id, ruleOrder2.id], ruleOrder1.id, Offset.Above);
             ruleOrder1 = await service.findOneInPath({
                 id: ruleOrder1.id
             });
@@ -437,7 +438,7 @@ describe(RoutingRuleService.name, () => {
             });
             await firewall.reload();
 
-            await service.copy([ruleOrder1.id, ruleOrder2.id], ruleOrder1.id, 'above');
+            await service.copy([ruleOrder1.id, ruleOrder2.id], ruleOrder1.id, Offset.Above);
 
             await firewall.reload();
 
