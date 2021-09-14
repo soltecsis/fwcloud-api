@@ -1023,6 +1023,147 @@ describe(RoutingRuleService.name, () => {
             expect(firewall.status).to.eq(3);
         });
     })
+
+    describe('moveFrom', () => {
+        let rule1: RoutingRule;
+        let rule2: RoutingRule;
+        let mark2: Mark;
+
+        beforeEach(async () => {
+            mark2 = await getRepository(Mark).save({
+                code: 2,
+                name: 'test',
+                fwCloudId: fwcProduct.fwcloud.id
+            });
+            
+            rule1 = await service.create({
+                routingTableId: fwcProduct.routingTable.id,
+                markIds: [{
+                    id: mark.id,
+                    order: 1
+                }, {
+                    id: mark2.id,
+                    order: 2
+                }]
+            });
+
+            rule2 = await service.create({
+                routingTableId: fwcProduct.routingTable.id,
+                markIds: [{
+                    id: mark.id,
+                    order: 1
+                }]
+            });
+        });
+
+        describe('ipObj', () => {
+            it('should move ipObj', async () => {
+                await service.update(rule1.id, {
+                    ipObjIds: [{
+                        id: fwcProduct.ipobjs.get('address').id,
+                        order: 1
+                    }]
+                });
+
+                await service.moveFrom(rule1.id, rule2.id, {
+                    fromId: rule1.id,
+                    toId: rule2.id,
+                    ipObjId: fwcProduct.ipobjs.get('address').id
+                });
+
+                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne(rule1.id, { relations: ['routingRuleToIPObjs']});
+                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne(rule2.id, { relations: ['routingRuleToIPObjs']});
+
+                expect(refreshedRule1.routingRuleToIPObjs).length(0);
+                expect(refreshedRule2.routingRuleToIPObjs).length(1);
+            })
+        });
+
+        describe('ipObjGroups', () => {
+            it('should move ipObjGroup', async () => {
+                await service.update(rule1.id, {
+                    ipObjGroupIds: [{
+                        id: fwcProduct.ipobjGroup.id,
+                        order: 1
+                    }]
+                });
+
+                await service.moveFrom(rule1.id, rule2.id, {
+                    fromId: rule1.id,
+                    toId: rule2.id,
+                    ipObjGroupId: fwcProduct.ipobjGroup.id,
+                });
+
+                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne(rule1.id, { relations: ['routingRuleToIPObjGroups']});
+                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne(rule2.id, { relations: ['routingRuleToIPObjGroups']});
+
+                expect(refreshedRule1.routingRuleToIPObjGroups).length(0);
+                expect(refreshedRule2.routingRuleToIPObjGroups).length(1);
+            })
+        });
+
+        describe('openVPN', () => {
+            it('should move openVPN', async () => {
+                await service.update(rule1.id, {
+                    openVPNIds: [{
+                        id: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
+                        order: 1
+                    }]
+                });
+
+                await service.moveFrom(rule1.id, rule2.id, {
+                    fromId: rule1.id,
+                    toId: rule2.id,
+                    openVPNId: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
+                });
+
+                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne(rule1.id, { relations: ['routingRuleToOpenVPNs']});
+                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne(rule2.id, { relations: ['routingRuleToOpenVPNs']});
+
+                expect(refreshedRule1.routingRuleToOpenVPNs).length(0);
+                expect(refreshedRule2.routingRuleToOpenVPNs).length(1);
+            })
+        })
+
+        describe('openVPNPrefix', () => {
+            it('should move openVPNPrefix', async () => {
+                await service.update(rule1.id, {
+                    openVPNPrefixIds: [{
+                        id: fwcProduct.openvpnPrefix.id,
+                        order: 1
+                    }]
+                });
+
+                await service.moveFrom(rule1.id, rule2.id, {
+                    fromId: rule1.id,
+                    toId: rule2.id,
+                    openVPNPrefixId: fwcProduct.openvpnPrefix.id,
+                });
+
+                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne(rule1.id, { relations: ['routingRuleToOpenVPNPrefixes']});
+                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne(rule2.id, { relations: ['routingRuleToOpenVPNPrefixes']});
+
+                expect(refreshedRule1.routingRuleToOpenVPNPrefixes).length(0);
+                expect(refreshedRule2.routingRuleToOpenVPNPrefixes).length(1);
+            })
+        })
+
+        describe('mark', () => {
+            it('should move marks', async () => {
+                await service.moveFrom(rule1.id, rule2.id, {
+                    fromId: rule1.id,
+                    toId: rule2.id,
+                    markId: mark2.id
+                });
+
+                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne(rule1.id, { relations: ['routingRuleToMarks']});
+                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne(rule2.id, { relations: ['routingRuleToMarks']});
+
+                expect(refreshedRule1.routingRuleToMarks).length(1);
+                expect(refreshedRule2.routingRuleToMarks).length(2);
+            })
+        })
+    });
     
     describe('bulkRemove', () => {
         it('should remove route', async () => {
