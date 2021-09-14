@@ -26,18 +26,24 @@ describe(RoutingRuleController.name, () => {
     let ruleService: RoutingRuleService;
     let firewall: Firewall;
     let mark: Mark;
+    let mark2: Mark;
 
     beforeEach(async () => {
         app = testSuite.app;
         tableService = await app.getService<RoutingTableService>(RoutingTableService.name);
         ruleService = await app.getService<RoutingRuleService>(RoutingRuleService.name);
         fwcProduct = await (new FwCloudFactory()).make();
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
-            name: StringHelper.randomize(10),
-            fwCloudId: fwcProduct.fwcloud.id
-        }));
+        
+        firewall = fwcProduct.firewall;
+
         mark = await getRepository(Mark).save({
             code: 1,
+            name: 'test',
+            fwCloudId: fwcProduct.fwcloud.id
+        });
+
+        mark2 = await getRepository(Mark).save({
+            code: 2,
             name: 'test',
             fwCloudId: fwcProduct.fwcloud.id
         });

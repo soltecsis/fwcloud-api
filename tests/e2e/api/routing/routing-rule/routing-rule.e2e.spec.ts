@@ -45,6 +45,7 @@ import { RoutingRuleControllerCopyDto } from "../../../../../src/controllers/rou
 import { RoutingRuleRepository } from "../../../../../src/models/routing/routing-rule/routing-rule.repository";
 import { Offset } from "../../../../../src/offset";
 import { Mark } from "../../../../../src/models/ipobj/Mark";
+import { RoutingRuleMoveFromDto } from "../../../../../src/controllers/routing/routing-rule/dtos/move-from.dto";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;
@@ -336,6 +337,101 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).rule_order).to.eq(2);
                 expect((await getRepository(RoutingRule).findOne(ruleOrder3.id)).rule_order).to.eq(3);
                 expect((await getRepository(RoutingRule).findOne(ruleOrder4.id)).rule_order).to.eq(4);
+            });
+
+
+        });
+
+        describe('@moveFrom', () => {
+            let rule1: RoutingRule;
+            let rule2: RoutingRule;
+            let data: RoutingRuleMoveFromDto;
+
+            beforeEach(async () => {
+                const mark: Mark = await getRepository(Mark).save({
+                    code: 1,
+                    name: 'test',
+                    fwCloudId: fwCloud.id
+                });
+
+                const mark2: Mark = await getRepository(Mark).save({
+                    code: 2,
+                    name: 'test',
+                    fwCloudId: fwCloud.id
+                });
+
+                rule1 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
+                });
+                
+                rule2 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    markIds: [{
+                        id: mark2.id,
+                        order: 0
+                    }]
+                });
+
+                data = {
+                    fromId: rule1.id,
+                    toId: rule2.id,
+                    markId: mark.id
+                }
+            });
+
+            it('guest user should not move from items between rules', async () => {
+				return await request(app.express)
+					.put(_URL().getURL('fwclouds.firewalls.routing.rules.moveFrom', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not move from items between rules', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.moveFrom', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should move from items between rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.moveFrom', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+            });
+
+            it('admin user should move from items between rules', async () => {
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.moveFrom', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .send(data)
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
             });
 
 

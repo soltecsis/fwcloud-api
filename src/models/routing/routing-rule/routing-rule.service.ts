@@ -87,6 +87,16 @@ export interface RoutingRulesData<T extends ItemForGrid | RoutingRuleItemForCom
     items: (T & { _order: number })[];
 }
 
+interface IMoveFromRoutingRule {
+    fromId: number;
+    toId: number;
+    ipObjId?: number;
+    ipObjGroupId?: number;
+    openVPNId?: number;
+    openVPNPrefixId?: number;
+    markId?: number;
+}
+
 export class RoutingRuleService extends Service {
     protected _repository: RoutingRuleRepository;
     private _ipobjRepository: IPObjRepository;
@@ -318,6 +328,92 @@ export class RoutingRuleService extends Service {
         await this._firewallService.markAsUncompiled(firewallIds);
 
         return rules;
+    }
+
+    async moveFrom(fromId: number, toId: number, data: IMoveFromRoutingRule): Promise<[RoutingRule, RoutingRule]> {
+        const fromRule: RoutingRule = await getRepository(RoutingRule).findOneOrFail(fromId, {
+            relations: ['routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
+        });
+        const toRule: RoutingRule = await getRepository(RoutingRule).findOneOrFail(toId, {
+            relations: ['routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
+        });
+        
+        let lastPosition: number = 0;
+        
+        [].concat(
+            toRule.routingRuleToIPObjs,
+            toRule.routingRuleToIPObjGroups,
+            toRule.routingRuleToOpenVPNs,
+            toRule.routingRuleToOpenVPNPrefixes,
+            toRule.routingRuleToMarks
+        ).forEach(item => {
+            lastPosition < item.order ? lastPosition = item.order : null;
+        });
+
+        if (data.ipObjId !== undefined) {
+            const index: number = fromRule.routingRuleToIPObjs.findIndex(item => item.ipObjId === data.ipObjId);
+            if (index >= 0) {
+                fromRule.routingRuleToIPObjs.splice(index, 1);
+                toRule.routingRuleToIPObjs.push({
+                    routingRuleId: toRule.id,
+                    ipObjId: data.ipObjId,
+                    order: lastPosition + 1
+                } as RoutingRuleToIPObj);
+            }
+        }
+
+        if (data.ipObjGroupId !== undefined) {
+            const index: number = fromRule.routingRuleToIPObjGroups.findIndex(item => item.ipObjGroupId === data.ipObjGroupId);
+            if (index >= 0) {
+                fromRule.routingRuleToIPObjGroups.splice(index, 1);
+                toRule.routingRuleToIPObjGroups.push({
+                    routingRuleId: toRule.id,
+                    ipObjGroupId: data.ipObjGroupId,
+                    order: lastPosition + 1
+                } as RoutingRuleToIPObjGroup);
+
+            }
+        }
+
+        if (data.openVPNId !== undefined) {
+            const index: number = fromRule.routingRuleToOpenVPNs.findIndex(item => item.openVPNId === data.openVPNId);
+            if (index >= 0) {
+                fromRule.routingRuleToOpenVPNs.splice(index, 1);
+                toRule.routingRuleToOpenVPNs.push({
+                    routingRuleId: toRule.id,
+                    openVPNId: data.openVPNId,
+                    order: lastPosition + 1
+                } as RoutingRuleToOpenVPN);
+
+            }
+        }
+
+        if (data.openVPNPrefixId !== undefined) {
+            const index: number = fromRule.routingRuleToOpenVPNPrefixes.findIndex(item => item.openVPNPrefixId === data.openVPNPrefixId);
+            if (index >= 0) {
+                fromRule.routingRuleToOpenVPNPrefixes.splice(index, 1);
+                toRule.routingRuleToOpenVPNPrefixes.push({
+                    routingRuleId: toRule.id,
+                    openVPNPrefixId: data.openVPNPrefixId,
+                    order: lastPosition + 1
+                } as RoutingRuleToOpenVPNPrefix);
+
+            }
+        }
+
+        if (data.markId !== undefined) {
+            const index: number = fromRule.routingRuleToMarks.findIndex(item => item.markId === data.markId);
+            if (index >= 0) {
+                fromRule.routingRuleToMarks.splice(index, 1);
+                toRule.routingRuleToMarks.push({
+                    routingRuleId: toRule.id,
+                    markId: data.markId,
+                    order: lastPosition + 1
+                } as RoutingRuleToMark);
+            }
+        }
+
+        return await this._repository.save([fromRule, toRule]) as [RoutingRule, RoutingRule];
     }
 
     async remove(path: IFindOneRoutingRulePath): Promise<RoutingRule> {
