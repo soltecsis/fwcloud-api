@@ -38,6 +38,8 @@ export type ItemForGrid = {
   firewall_name: string;
   cluster_id: number;
   cluster_name: string;
+  host_id?: number;
+  host_name?: string;
 }
 
 export type RouteItemForCompiler = {
