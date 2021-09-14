@@ -154,13 +154,22 @@ export class RoutingRuleService extends Service {
         
         let persisted: RoutingRule = await this._repository.save(routingRuleData);
 
-        persisted = await this.update(persisted.id, {
-            ipObjIds: data.ipObjIds,
-            ipObjGroupIds: data.ipObjGroupIds,
-            openVPNIds: data.openVPNIds,
-            openVPNPrefixIds: data.openVPNPrefixIds,
-            markIds: data.markIds
-        })
+        try {
+
+            persisted = await this.update(persisted.id, {
+                ipObjIds: data.ipObjIds,
+                ipObjGroupIds: data.ipObjGroupIds,
+                openVPNIds: data.openVPNIds,
+                openVPNPrefixIds: data.openVPNPrefixIds,
+                markIds: data.markIds
+            })
+        } catch(e) {
+            await this.remove({
+                id: persisted.id
+            });
+
+            throw e;
+        }
 
         if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'offset')) {
             return (await this.move([persisted.id], data.to, data.offset))[0];
