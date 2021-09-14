@@ -193,8 +193,6 @@ export class RoutingRuleController extends Controller {
             }
         });
 
-        const offset: 'above' | 'below' = request.inputs.get('offset') >= 0 ? 'below': 'above'
-        
         const result: RoutingRule[] = await this.routingRuleService.move(rules.map(item => item.id), request.inputs.get('to'), request.inputs.get<Offset>('offset'));
 
         return ResponseBuilder.buildResponse().status(200).body(result);
