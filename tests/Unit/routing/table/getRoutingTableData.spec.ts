@@ -181,6 +181,8 @@ describe('Routing table data fetch for compiler or grid', () => {
 
             it('should include address data', async () => {
                 item.id = fwc.ipobjs.get('address').id; item.type = 5; item.name = fwc.ipobjs.get('address').name;
+                item.host_id = null;
+                item.host_name = null;
                 item._order = (await getRepository(RouteToIPObj).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route1').id,
@@ -192,6 +194,8 @@ describe('Routing table data fetch for compiler or grid', () => {
 
             it('should include address range data', async () => {
                 item.id = fwc.ipobjs.get('addressRange').id; item.type = 6; item.name = fwc.ipobjs.get('addressRange').name;
+                item.host_id = null;
+                item.host_name = null;
                 item._order = (await getRepository(RouteToIPObj).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route1').id,
@@ -203,6 +207,8 @@ describe('Routing table data fetch for compiler or grid', () => {
 
             it('should include lan data', async () => {
                 item.id = fwc.ipobjs.get('network').id; item.type = 7; item.name = fwc.ipobjs.get('network').name;
+                item.host_id = null;
+                item.host_name = null;
                 item._order = (await getRepository(RouteToIPObj).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route1').id,
@@ -214,6 +220,8 @@ describe('Routing table data fetch for compiler or grid', () => {
 
             it('should include host data', async () => {
                 item.id = fwc.ipobjs.get('host').id; item.type = 8; item.name = fwc.ipobjs.get('host').name;
+                item.host_id = null;
+                item.host_name = null;
                 item._order = (await getRepository(RouteToIPObj).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route1').id,
