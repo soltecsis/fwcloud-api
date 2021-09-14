@@ -1016,7 +1016,7 @@ describe(RoutingRuleService.name, () => {
             });
             await firewall.reload();
 
-            await service.move([rule.id], rule.id, 'above');
+            await service.move([rule.id], rule.id, Offset.Above);
 
             await firewall.reload();
 
