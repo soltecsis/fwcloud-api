@@ -222,29 +222,29 @@ router.put('/addto', async(req, res) => {
 /* Remove ipobj__ipobjg */
 router.put('/delfrom', async(req, res) => {
 	try {
-		if ((await IPObjGroup.countGroupItems(req.dbCon, req.body.ipobj_g)) === 1) {
-			// No permitir eliminar de grupo si está siendo utilizado en alguna regla y va a quedar vacío.
-			if (await PolicyRuleToIPObj.searchGroupInRule(req.body.ipobj_g, req.body.fwcloud) > 0) {		
-				throw fwcError.IPOBJ_EMPTY_CONTAINER;
-			}
+        // If we are going to remove the last group item, verify before that the group is not being used
+        // in any policy rule, route or routing policy.
+		if ((await IPObjGroup.countGroupItems(req.dbCon, req.body.ipobj_g)) === 1) { 
+			const policyRules = await PolicyRuleToIPObj.searchGroupInRule(req.body.ipobj_g, req.body.fwcloud);			
+			
+            if (policyRules.length > 0) 
+			    throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
 			const routes = await getRepository(Route).createQueryBuilder("route")
 			.innerJoinAndSelect("route.routeToIPObjGroups", "routeToIPObjGroups")
 			.innerJoinAndSelect("routeToIPObjGroups.ipObjGroup", "group", `group.id = :group`, {group: req.body.ipobj_g})
-			.getCount();
+			.getCount();			
 			
-			if (routes > 0) {
+            if (routes > 0)
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
-			}
 
 			const routingRules = await getRepository(RoutingRule).createQueryBuilder("rule")
 			.innerJoinAndSelect("rule.routingRuleToIPObjGroups", "routingRuleToIPObjGroups")
 			.innerJoinAndSelect("routingRuleToIPObjGroups.ipObjGroup", "group", `group.id = :group`, {group: req.body.ipobj_g})
 			.getCount();
 			
-			if (routes > 0 || routingRules > 0) {
+			if (routingRules > 0)
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
-			}
 		}
 
 		if (req.body.obj_type === 311) // OPENVPN CLI

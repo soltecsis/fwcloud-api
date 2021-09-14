@@ -1,14 +1,4 @@
 
-status() {
-  NL=`$IPTABLES -nL | wc -l`
-  if [ $NL -lt 9 ]; then
-    echo "ERROR: Policy not loaded"
-    exit 1
-  else
-    echo "OK. Polilcy loaded."
-  fi 
-}
-
 # Verify that we have all the needed commands.
 check_cmds
 
@@ -18,11 +8,7 @@ test -z "$ACTION" && ACTION="start"
 case "$ACTION" in
   start)
     greeting_msg
-    load_nat_modules
-    policy_empty
-    policy_load
-    default_filter_policy DROP
-    options_load
+    policy_apply
     routing_apply
     ;;
 
@@ -41,7 +27,13 @@ case "$ACTION" in
     default_filter_policy DROP
     ;;
 
+  policy)
+    greeting_msg
+    policy_apply
+    ;;
+
   routing)
+    greeting_msg
     routing_apply
     ;;
 
@@ -88,10 +80,15 @@ case "$ACTION" in
       create_systemd_service
       $SYSTEMCTL enable fwcloud
     fi
+
+    if [ "$SYSTEMCTL" -a ! -f "$SYSTEMD_FILE_ROUTING" ]; then
+      create_systemd_service_routing
+      $SYSTEMCTL enable fwcloud-routing
+    fi
     ;;
 
   *)
-    echo "Usage $0 [start|stop|restart|reload|block|status|install]"
+    echo "Usage $0 [start|stop|restart|reload|block|status|install|routing]"
     ;;
 esac
 

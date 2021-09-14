@@ -357,7 +357,7 @@ export class PolicyScript {
 			this.stream.write('$IP route flush cache\n');
 			this.stream.write('T=1\n');
 			this.stream.write('while [ $T -lt 251 ]; do\n');
-			this.stream.write('  $IP route flush table $T\n');
+			this.stream.write('  $IP route flush table $T 2>/dev/null\n');
 			this.stream.write('  T=`expr $T + 1`\n');
 			this.stream.write('done\n');
 			this.stream.write('$IP route flush scope global table main\n');

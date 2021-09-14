@@ -38,6 +38,9 @@ export class routingFeature1619453385390 implements MigrationInterface {
         await queryRunner.dropTable('routing_position', true);
         await queryRunner.dropTable('routing_g', true);
 
+        // Make sure that show_action is null for the routing policy.
+        await queryRunner.query(`update policy_type set show_action=0 where id=6`);
+
         // Create new database routing tables.
         //routing_table
         await queryRunner.createTable(new Table({
