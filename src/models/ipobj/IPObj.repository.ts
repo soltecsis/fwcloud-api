@@ -243,10 +243,10 @@ export class IPObjRepository extends Repository<IPObj> {
       .addSelect("ipobj.type","type")
       .addSelect("host.id","host_id")
       .addSelect("host.name","host_name")
-      .addSelect("firewall.id","firewall_id")
-      .addSelect("firewall.name","firewall_name")
-      .addSelect("cluster.id","cluster_id")
-      .addSelect("cluster.name","cluster_name")
+      .addSelect("int_firewall.id","firewall_id")
+      .addSelect("int_firewall.name","firewall_name")
+      .addSelect("int_cluster.id","cluster_id")
+      .addSelect("int_cluster.name","cluster_name")
       .addSelect(`${entity}.id`,"entityId");
 
     if(entity === 'route') {
@@ -268,7 +268,8 @@ export class IPObjRepository extends Repository<IPObj> {
       .leftJoin('ipobj.interface', 'int')
       .leftJoin('int.hosts', 'InterfaceIPObj')
       .leftJoin('InterfaceIPObj.hostIPObj', 'host')
-      .leftJoin("firewall.cluster", "cluster")
+      .leftJoin('int.firewall', 'int_firewall')
+      .leftJoin("int_firewall.cluster", "int_cluster")
       .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
       .andWhere("firewall.id = :firewall", {firewall: firewall});
 
