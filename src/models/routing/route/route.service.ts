@@ -537,10 +537,11 @@ export class RouteService extends Service {
         
         const openvpns: OpenVPN[] = await getRepository(OpenVPN).createQueryBuilder('openvpn')
             .innerJoin('openvpn.crt', 'crt')
+            .innerJoin('openvpn.firewall', 'firewall')
             .whereInIds(data.openVPNIds.map(item => item.id))
-            .where('openvpn.firewallId = :firewall', {firewall: firewall.id})
-            .where('openvpn.parentId IS NOT null')
-            .where('crt.type = 1')
+            .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: firewall.fwCloudId})
+            .andWhere('openvpn.parentId IS NOT null')
+            .andWhere('crt.type = 1')
             .getMany();
 
         for (let i = 0; i < data.openVPNIds.length; i++) {
@@ -563,9 +564,10 @@ export class RouteService extends Service {
         }
         
         const openvpnprefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).createQueryBuilder('prefix')
-            .innerJoinAndSelect('prefix.openVPN', 'openvpn')
+            .innerJoin('prefix.openVPN', 'openvpn')
+            .innerJoin('openvpn.firewall', 'firewall')
             .whereInIds(data.openVPNPrefixIds.map(item => item.id))
-            .andWhere('openvpn.firewallId = :firewall', {firewall: firewall.id})
+            .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: firewall.fwCloudId})
             .getMany();
 
         
