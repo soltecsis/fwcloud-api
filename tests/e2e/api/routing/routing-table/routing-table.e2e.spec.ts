@@ -188,7 +188,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
                     .then(response => {
-                        expect(response.body.data).to.deep.eq(table);
+                        expect(response.body.data.id).to.eq(table.id);
                     });
             });
 
@@ -202,7 +202,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
                 .then(response => {
-                    expect(response.body.data).to.deep.eq(table);
+                    expect(response.body.data.id).to.eq(table.id);
                 });
             });
 

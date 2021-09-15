@@ -27,7 +27,7 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
-import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToMany, getRepository } from "typeorm";
 import { Firewall } from "../firewall/Firewall";
 import { logger } from "../../fonaments/abstract-application";
 import { Route } from "../routing/route/route.model";
@@ -96,12 +96,9 @@ export class Interface extends Model {
 	@OneToMany(() => RoutingRuleToInterface, routingRuleToInterface => routingRuleToInterface.interface)
 	routingRuleToInterfaces: RoutingRuleToInterface[]
 
-	/**
-	* Pending foreign keys.
 	@OneToMany(type => PolicyRuleToIPObj, model => model.interface)
 	policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
-	*/
-   
+
 	public getTableName(): string {
 		return tableName;
 	}
@@ -405,6 +402,15 @@ export class Interface extends Model {
 						search.restrictions.InterfaceInFirewall = await this.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
 						search.restrictions.InterfaceInHost = await InterfaceIPObj.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
 						search.restrictions.LastInterfaceWithAddrInHostInRule = await IPObj.searchLastInterfaceWithAddrInHostInRule(id, fwcloud);
+						search.restrictions.InterfaceInRoute = await getRepository(Route).createQueryBuilder('route')
+							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+							.innerJoinAndSelect('route.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoinAndSelect('route.routingTable', 'table')
+							.innerJoin('table.firewall', 'firewall')
+							.leftJoin('firewall.cluster', 'cluster')
+							.where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+							.getRawMany();
 
 						for (let key in search.restrictions) {
 							if (search.restrictions[key].length > 0) {
@@ -427,10 +433,11 @@ export class Interface extends Model {
 				if (error) return reject(error);
 
 				var sql = 'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
-					'C.id cloud_id, C.name cloud_name, F.id firewall_id, F.name firewall_name   ' +
+					'C.id cloud_id, C.name cloud_name, F.id firewall_id, F.name firewall_name, CL.id cluster_id, CL.name cluster_name ' +
 					'from interface I ' +
 					'inner join ipobj_type T on T.id=I.interface_type ' +
-					'INNER JOIN firewall F on F.id=I.firewall   ' +
+					'INNER JOIN firewall F on F.id=I.firewall ' +
+					'LEFT JOIN cluster CL on CL.id=F.cluster ' +
 					'inner join fwcloud C on C.id=F.fwcloud ' +
 					' WHERE I.id=' + _interface + ' AND I.interface_type=' + type + ' AND F.fwcloud=' + fwcloud;
 				connection.query(sql, (error, rows) => {

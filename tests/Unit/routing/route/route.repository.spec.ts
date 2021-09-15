@@ -9,6 +9,7 @@ import { RouteRepository } from "../../../../src/models/routing/route/route.repo
 import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
 import { RoutingTableService } from "../../../../src/models/routing/routing-table/routing-table.service";
 import { Tree } from "../../../../src/models/tree/Tree";
+import { Offset } from "../../../../src/offset";
 import StringHelper from "../../../../src/utils/string.helper";
 import { expect, testSuite } from "../../../mocha/global-setup";
 
@@ -80,7 +81,7 @@ describe(RouteRepository.name, () => {
                 gatewayId: gateway.id
             });
 
-            await repository.move([routeOrder2.id], routeOrder4.id, 'below');
+            await repository.move([routeOrder2.id], routeOrder4.id, Offset.Below);
 
             expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
             expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(4);
@@ -110,7 +111,7 @@ describe(RouteRepository.name, () => {
                 gatewayId: gateway.id
             });
 
-            await repository.move([routeOrder4.id], routeOrder2.id, 'above');
+            await repository.move([routeOrder4.id], routeOrder2.id, Offset.Above);
 
             expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
             expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);
@@ -141,7 +142,7 @@ describe(RouteRepository.name, () => {
                 firewallId: firewall.id,
             });
 
-            await repository.move([routeOrder3.id], routeOrder2.id, 'above');
+            await repository.move([routeOrder3.id], routeOrder2.id, Offset.Above);
 
             expect((await repository.findOne(routeOrder3.id)).routeGroupId).to.eq(group.id);
             expect((await repository.findOne(routeOrder3.id)).routeGroupId).to.eq(group.id);
@@ -170,7 +171,7 @@ describe(RouteRepository.name, () => {
                     gatewayId: gateway.id
                 });
     
-                await repository.move([routeOrder1.id, routeOrder2.id], routeOrder4.id, 'above');
+                await repository.move([routeOrder1.id, routeOrder2.id], routeOrder4.id, Offset.Above);
     
                 expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(2);
                 expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);
@@ -200,7 +201,7 @@ describe(RouteRepository.name, () => {
                     gatewayId: gateway.id
                 });
     
-                await repository.move([routeOrder3.id, routeOrder4.id], routeOrder2.id, 'above');
+                await repository.move([routeOrder3.id, routeOrder4.id], routeOrder2.id, Offset.Above);
     
                 expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
                 expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(4);
@@ -231,7 +232,7 @@ describe(RouteRepository.name, () => {
                     firewallId: firewall.id,
                 });
     
-                await repository.move([routeOrder2.id, routeOrder3.id], routeOrder1.id, 'above');
+                await repository.move([routeOrder2.id, routeOrder3.id], routeOrder1.id, Offset.Above);
     
                 expect((await repository.findOne(routeOrder3.id)).routeGroupId).to.eq(group.id);
                 expect((await repository.findOne(routeOrder3.id)).routeGroupId).to.eq(group.id);

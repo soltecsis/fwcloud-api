@@ -21,6 +21,12 @@
 */
 
 import { before } from "mocha";
+import { getRepository } from "typeorm";
+import { RoutingRuleToIPObjGroup } from "../../../../src/models/routing/routing-rule/routing-rule-to-ipobj-group.model";
+import { RoutingRuleToIPObj } from "../../../../src/models/routing/routing-rule/routing-rule-to-ipobj.model";
+import { RoutingRuleToMark } from "../../../../src/models/routing/routing-rule/routing-rule-to-mark.model";
+import { RoutingRuleToOpenVPNPrefix } from "../../../../src/models/routing/routing-rule/routing-rule-to-openvpn-prefix.model";
+import { RoutingRuleToOpenVPN } from "../../../../src/models/routing/routing-rule/routing-rule-to-openvpn.model";
 import { RoutingRulesData, RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
 import { ItemForGrid, RoutingRuleItemForCompiler } from "../../../../src/models/routing/shared";
 import { expect, testSuite } from "../../../mocha/global-setup";
@@ -155,7 +161,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
     })
 
     describe('For grid', () => {
-        let item: ItemForGrid;
+        let item: ItemForGrid & Partial<{_order: number}>;;
 
         before( async () => {
             routingRules = await routingRuleService.getRoutingRulesData<ItemForGrid>('grid',fwc.fwcloud.id,fwc.firewall.id);            
@@ -176,38 +182,88 @@ describe('Routing rules data fetch for compiler or grid', () => {
                 };
             });
 
-            it('should include address data', () => {
+            it('should include address data', async () => {
                 item.id = fwc.ipobjs.get('address').id; item.type = 5; item.name = fwc.ipobjs.get('address').name;
+                item.host_id = null;
+                item.host_name = null;
+                item._order = (await getRepository(RoutingRuleToIPObj).findOneOrFail({
+                    where: {
+                        routingRuleId: fwc.routingRules.get('routing-rule-1').id,
+                        ipObjId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
 
-            it('should include address range data', () => {
+            it('should include address range data', async () => {
                 item.id = fwc.ipobjs.get('addressRange').id; item.type = 6; item.name = fwc.ipobjs.get('addressRange').name;
+                item.host_id = null;
+                item.host_name = null;
+                item._order = (await getRepository(RoutingRuleToIPObj).findOneOrFail({
+                    where: {
+                        routingRuleId: fwc.routingRules.get('routing-rule-1').id,
+                        ipObjId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
 
-            it('should include lan data', () => {
+            it('should include lan data', async () => {
                 item.id = fwc.ipobjs.get('network').id; item.type = 7; item.name = fwc.ipobjs.get('network').name;
+                item.host_id = null;
+                item.host_name = null;
+                item._order = (await getRepository(RoutingRuleToIPObj).findOneOrFail({
+                    where: {
+                        routingRuleId: fwc.routingRules.get('routing-rule-1').id,
+                        ipObjId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
 
-            it('should include host data', () => {
+            it('should include host data', async () => {
                 item.id = fwc.ipobjs.get('host').id; item.type = 8; item.name = fwc.ipobjs.get('host').name;
+                item.host_id = null;
+                item.host_name = null;
+                item._order = (await getRepository(RoutingRuleToIPObj).findOneOrFail({
+                    where: {
+                        routingRuleId: fwc.routingRules.get('routing-rule-1').id,
+                        ipObjId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
 
-            it('should include OpenVPN data', () => {
+            it('should include OpenVPN data', async() => {
                 item.id = fwc.openvpnClients.get('OpenVPN-Cli-3').id; item.type = 311; item.name = fwc.crts.get('OpenVPN-Cli-3').cn;
+                item._order = (await getRepository(RoutingRuleToOpenVPN).findOneOrFail({
+                    where: {
+                        routingRuleId: fwc.routingRules.get('routing-rule-1').id,
+                        openVPNId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
 
-            it('should include OpenVPN Prefix data', () => {
+            it('should include OpenVPN Prefix data', async () => {
                 item.id = fwc.openvpnPrefix.id; item.type = 401; item.name = fwc.openvpnPrefix.name;
+                item._order = (await getRepository(RoutingRuleToOpenVPNPrefix).findOneOrFail({
+                    where: {
+                        routingRuleId: fwc.routingRules.get('routing-rule-1').id,
+                        openVPNPrefixId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
 
-            it('should include mark data', () => {
+            it('should include mark data', async () => {
                 item.id = fwc.mark.id; item.type = 30; item.name = fwc.mark.name;
+                item._order = (await getRepository(RoutingRuleToMark).findOneOrFail({
+                    where: {
+                        routingRuleId: fwc.routingRules.get('routing-rule-1').id,
+                        markId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
         })
@@ -227,8 +283,14 @@ describe('Routing rules data fetch for compiler or grid', () => {
                 };
             });
 
-            it('should include group', () => {
+            it('should include group', async () => {
                 item.id = fwc.ipobjGroup.id; item.type = 20; item.name = fwc.ipobjGroup.name;
+                item._order = (await getRepository(RoutingRuleToIPObjGroup).findOneOrFail({
+                    where: {
+                        routingRuleId: fwc.routingRules.get('routing-rule-2').id,
+                        ipObjGroupId: item.id
+                    }
+                })).order;
                 expect(items).to.deep.include(item);
             });
         })

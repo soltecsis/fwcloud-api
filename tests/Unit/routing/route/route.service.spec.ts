@@ -16,6 +16,7 @@ import { OpenVPN } from "../../../../src/models/vpn/openvpn/OpenVPN";
 import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
 import { Ca } from "../../../../src/models/vpn/pki/Ca";
 import { Crt } from "../../../../src/models/vpn/pki/Crt";
+import { Offset } from "../../../../src/offset";
 import StringHelper from "../../../../src/utils/string.helper";
 import { expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
@@ -45,6 +46,23 @@ describe(RouteService.name, () => {
     });
 
     describe('create', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.create({
+                routingTableId: table.id,
+                gatewayId: gateway.id
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+
         describe('rule_order', () => {
             let routeOrder1: Route;
             let routeOrder2: Route;
@@ -90,12 +108,15 @@ describe(RouteService.name, () => {
                 route = await service.create({
                     routingTableId: table.id,
                     gatewayId: gateway.id,
-                    ipObjIds: standards.map(item => item.id)
+                    ipObjIds: standards.map((item, index) => ({
+                        id: item.id,
+                        order: index +1
+                    }))
                 });
 
-                route = await getRepository(Route).findOne(route.id, { relations: ['ipObjs']});
+                route = await getRepository(Route).findOne(route.id, { relations: ['routeToIPObjs']});
 
-                expect(route.ipObjs).to.have.length(standards.length);
+                expect(route.routeToIPObjs).to.have.length(standards.length);
             })
 
         });
@@ -118,8 +139,20 @@ describe(RouteService.name, () => {
             });
         });
 
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.copy([routeOrder1.id, routeOrder2.id], routeOrder1.id, Offset.Above);
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+
         it('should copy routes', async () => {
-            const copied: Route[] = await service.copy([routeOrder1.id, routeOrder2.id], routeOrder1.id, 'above');
+            const copied: Route[] = await service.copy([routeOrder1.id, routeOrder2.id], routeOrder1.id, Offset.Above);
             routeOrder1 = await service.findOneInPath({
                 id: routeOrder1.id
             });
@@ -131,6 +164,22 @@ describe(RouteService.name, () => {
     })
 
     describe('update', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.update(route.id, {
+                active: false
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+
         describe('IpObjs', () => {
             let ipobj1: IPObj;
             let ipobj2: IPObj;
@@ -154,31 +203,42 @@ describe(RouteService.name, () => {
             })
             it('should attach ipbojs', async () => {
                 await service.update(route.id, {
-                    ipObjIds: [ipobj1.id, ipobj2.id]
+                    ipObjIds: [
+                        {id: ipobj1.id, order: 1}, 
+                        {id: ipobj2.id, order: 2}
+                    ]
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjs']})).routeToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj1.id, ipobj2.id])
             });
 
             it('should remove ipobjs attachment', async () => {
                 await service.update(route.id, {
-                    ipObjIds: [ipobj1.id, ipobj2.id]
+                    ipObjIds: [
+                        {id: ipobj1.id, order: 1}, 
+                        {id: ipobj2.id, order: 2}
+                    ]
                 });
 
                 await service.update(route.id, {
-                    ipObjIds: [ipobj2.id]
+                    ipObjIds: [
+                        {id: ipobj2.id, order: 2}
+                    ]
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjs']})).routeToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj2.id])
             });
 
             it('should remove all ipobjs attachment', async () => {
                 await service.update(route.id, {
-                    ipObjIds: [ipobj1.id, ipobj2.id]
+                    ipObjIds: [
+                        {id: ipobj1.id, order: 1}, 
+                        {id: ipobj2.id, order: 2}
+                    ]
                 });
 
                 await service.update(route.id, {
@@ -186,7 +246,7 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['ipObjs']})).ipObjs.map(item => item.id)
+                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjs']})).routeToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([])
             });
 
@@ -199,7 +259,9 @@ describe(RouteService.name, () => {
                 }));
 
                 await expect(service.update(route.id, {
-                    ipObjIds: [ipobj2.id]
+                    ipObjIds: [
+                        {id: ipobj2.id, order: 2}
+                    ]
                 })).to.rejectedWith(ValidationException);
             })
         });
@@ -258,7 +320,10 @@ describe(RouteService.name, () => {
             })
             it('should attach ipObjGroups', async () => {
                 await service.update(route.id, {
-                    ipObjGroupIds: [group1.id, group2.id]
+                    ipObjGroupIds: [
+                        {id: group1.id, order: 1},
+                        {id: group2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -268,11 +333,16 @@ describe(RouteService.name, () => {
 
             it('should remove ipObjGroups attachment', async () => {
                 await service.update(route.id, {
-                    ipObjGroupIds: [group1.id, group2.id]
+                    ipObjGroupIds: [
+                        {id: group1.id, order: 1},
+                        {id: group2.id, order: 2}
+                    ]
                 });
 
                 await service.update(route.id, {
-                    ipObjGroupIds: [group2.id]
+                    ipObjGroupIds: [
+                        {id: group2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -282,7 +352,10 @@ describe(RouteService.name, () => {
 
             it('should remove all ipObjGroups attachment', async () => {
                 await service.update(route.id, {
-                    ipObjGroupIds: [group1.id, group2.id]
+                    ipObjGroupIds: [
+                        {id: group1.id, order: 1},
+                        {id: group2.id, order: 2}
+                    ]
                 });
 
                 await service.update(route.id, {
@@ -297,12 +370,15 @@ describe(RouteService.name, () => {
             it('should throw an exception if the group is empty', async () => {
                 group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
-                    type: 1,
+                    type: 20,
                     fwCloudId: fwCloud.id
                 }));
 
                 await expect(service.update(route.id, {
-                    ipObjGroupIds: [group1.id, group2.id]
+                    ipObjGroupIds: [
+                        {id: group1.id, order: 1},
+                        {id: group2.id, order: 2}
+                    ]
                 })).to.rejectedWith(ValidationException);
             });
         });
@@ -314,10 +390,11 @@ describe(RouteService.name, () => {
             beforeEach(async () => {
                 openVPN1 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
                     firewallId: firewall.id,
+                    parentId: fwcProduct.openvpnServer.id,
                     crt: await getRepository(Crt).save(getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
-                        type: 0,
+                        type: 1,
                         ca: await getRepository(Ca).save(getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
@@ -328,10 +405,11 @@ describe(RouteService.name, () => {
 
                 openVPN2 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
                     firewallId: firewall.id,
+                    parentId: fwcProduct.openvpnServer.id,
                     crt: await getRepository(Crt).save(getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
-                        type: 0,
+                        type: 1,
                         ca: await getRepository(Ca).save(getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
@@ -342,7 +420,10 @@ describe(RouteService.name, () => {
             })
             it('should attach openVPNs', async () => {
                 await service.update(route.id, {
-                    openVPNIds: [openVPN1.id, openVPN2.id]
+                    openVPNIds: [
+                        {id: openVPN1.id, order: 1},
+                        {id: openVPN2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -352,11 +433,16 @@ describe(RouteService.name, () => {
 
             it('should remove openVPNs attachment', async () => {
                 await service.update(route.id, {
-                    openVPNIds: [openVPN1.id, openVPN2.id]
+                    openVPNIds: [
+                        {id: openVPN1.id, order: 1},
+                        {id: openVPN2.id, order: 2}
+                    ]
                 });
 
                 await service.update(route.id, {
-                    openVPNIds: [openVPN2.id]
+                    openVPNIds: [
+                        {id: openVPN2.id, order: 2}
+                    ]
                 });
 
                 expect(
@@ -366,7 +452,10 @@ describe(RouteService.name, () => {
 
             it('should remove all openVPNs attachment', async () => {
                 await service.update(route.id, {
-                    openVPNIds: [openVPN1.id, openVPN2.id]
+                    openVPNIds: [
+                        {id: openVPN1.id, order: 1},
+                        {id: openVPN2.id, order: 2}
+                    ]
                 });
 
                 await service.update(route.id, {
@@ -421,7 +510,10 @@ describe(RouteService.name, () => {
 
             it('should attach openVPNPrefixes', async () => {
                 await service.update(route.id, {
-                    openVPNPrefixIds: [openVPNPrefix.id, openVPNPrefix2.id]
+                    openVPNPrefixIds: [
+                        {id: openVPNPrefix.id, order: 1},
+                        {id: openVPNPrefix2.id, order: 2 }
+                    ]
                 });
 
                 expect(
@@ -431,11 +523,16 @@ describe(RouteService.name, () => {
 
             it('should remove openVPNPrefixes attachment', async () => {
                 await service.update(route.id, {
-                    openVPNPrefixIds: [openVPNPrefix.id, openVPNPrefix2.id]
+                    openVPNPrefixIds: [
+                        {id: openVPNPrefix.id, order: 1},
+                        {id: openVPNPrefix2.id, order: 2 }
+                    ]
                 });
 
                 await service.update(route.id, {
-                    openVPNPrefixIds: [openVPNPrefix2.id]
+                    openVPNPrefixIds: [
+                        {id: openVPNPrefix2.id, order: 2 }
+                    ]
                 });
 
                 expect(
@@ -445,7 +542,10 @@ describe(RouteService.name, () => {
 
             it('should remove all openVPNPrefixes attachment', async () => {
                 await service.update(route.id, {
-                    openVPNPrefixIds: [openVPNPrefix.id, openVPNPrefix2.id]
+                    openVPNPrefixIds: [
+                        {id: openVPNPrefix.id, order: 1},
+                        {id: openVPNPrefix2.id, order: 2 }
+                    ]
                 });
 
                 await service.update(route.id, {
@@ -465,7 +565,8 @@ describe(RouteService.name, () => {
                 _interface = await getRepository(Interface).save(getRepository(Interface).create({
                     name: 'eth1',
                     type: '11',
-                    interface_type: '11'
+                    interface_type: '11',
+                    firewallId: firewall.id
                 }));
 
                 route = await service.create({
@@ -482,7 +583,53 @@ describe(RouteService.name, () => {
 
                 expect((await service.findOneInPath({id: route.id})).interfaceId).to.be.null;
             });
+
+            it('should not attach a host interface', async () => {
+                _interface = await getRepository(Interface).save({
+                    name: 'eth1',
+                    type: '11',
+                    interface_type: '11',
+                });
+
+                await expect(service.update(route.id, {
+                    interfaceId: _interface.id
+                })).to.be.rejectedWith(ValidationException);
+            });
         })
+    });
+
+    describe('bulkUpdate', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.bulkUpdate([route.id], {
+                active: false
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
+    });
+
+    describe('move', () => {
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.move([route.id], route.id, Offset.Above);
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
     });
 
     describe('remove', () => {
@@ -499,6 +646,21 @@ describe(RouteService.name, () => {
                 id: route.id
             })).to.be.undefined;
         });
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.remove({
+                id: route.id
+            });
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
+        });
     });
     
     describe('bulkRemove', () => {
@@ -510,6 +672,19 @@ describe(RouteService.name, () => {
                 fwCloudId: fwCloud.id,
                 id: route.id
             })).to.be.undefined;
+        });
+
+        it('should reset firewall compiled flag', async () => {
+            await getRepository(Firewall).update(firewall.id, {
+                status: 1
+            });
+            await firewall.reload();
+
+            await service.bulkRemove([route.id]);
+
+            await firewall.reload();
+
+            expect(firewall.status).to.eq(3);
         });
     })
 })

@@ -108,7 +108,9 @@ describe(describeName('IPObjGroup E2E Tests'), () => {
                 });
 
                 await routeService.update(route.id, {
-                    ipObjGroupIds: [group.id]
+                    ipObjGroupIds: [{
+                        id: group.id, order: 1
+                    }]
                 });
 
                 return await request(app.express)
@@ -124,13 +126,11 @@ describe(describeName('IPObjGroup E2E Tests'), () => {
 			});
 
             it('should throw an exception if the group belongs to a routing_rule', async () => {
-                const rule = await routingRuleService.create({
+                await routingRuleService.create({
                     routingTableId: table.id,
+                    ipObjGroupIds: [{id: group.id, order: 1}]
                 });
 
-                await routingRuleService.update(rule.id, {
-                    ipObjGroupIds: [group.id]
-                });
                 return await request(app.express)
 					.put('/ipobj/group/delfrom')
                     .send({

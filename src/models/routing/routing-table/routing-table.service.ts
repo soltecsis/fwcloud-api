@@ -27,6 +27,7 @@ import { ValidationException } from "../../../fonaments/exceptions/validation-ex
 import { Service } from "../../../fonaments/services/service";
 import { ErrorBag } from "../../../fonaments/validation/validator";
 import { Firewall } from "../../firewall/Firewall";
+import { FirewallService } from "../../firewall/firewall.service";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjRepository } from "../../ipobj/IPObj.repository";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
@@ -38,6 +39,7 @@ import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { OpenVPNPrefixRepository } from "../../vpn/openvpn/OpenVPNPrefix.repository";
 import { Route } from "../route/route.model";
 import { RouteRepository } from "../route/route.repository";
+import { RouteService } from "../route/route.service";
 import { AvailableDestinations, ItemForGrid, RouteItemForCompiler, RoutingRuleItemForCompiler, RoutingUtils } from "../shared";
 import { RoutingTable } from "./routing-table.model";
 
@@ -60,28 +62,38 @@ interface ICreateRoutingTable {
 interface IUpdateRoutingTable {
     name?: string;
     comment?: string;
+    number?: number;
 }
 
 export interface RouteData<T extends ItemForGrid | RouteItemForCompiler> extends Route {
-    items: T[];
+    items: (T & { _order: number })[];
 }
     
 export class RoutingTableService extends Service {
     protected _repository: Repository<RoutingTable>;
+    private _routeService: RouteService;
     private _routeRepository: RouteRepository;
     private _ipobjRepository: IPObjRepository;
     private _ipobjGroupRepository: IPObjGroupRepository;   
     private _openvpnRepository: OpenVPNRepository;
     private _openvpnPrefixRepository: OpenVPNPrefixRepository; 
+    protected _firewallService: FirewallService;
 
     constructor(app: Application) {
         super(app);
         this._repository = getRepository(RoutingTable);
-        this._routeRepository = getCustomRepository(RouteRepository);
         this._ipobjRepository = getCustomRepository(IPObjRepository);
+        this._routeRepository = getCustomRepository(RouteRepository);
         this._ipobjGroupRepository = getCustomRepository(IPObjGroupRepository);
         this._openvpnRepository = getCustomRepository(OpenVPNRepository);
         this._openvpnPrefixRepository = getCustomRepository(OpenVPNPrefixRepository);
+    }
+
+    public async build(): Promise<Service> {
+        this._firewallService = await this._app.getService(FirewallService.name);
+        this._routeService = await this._app.getService<RouteService>(RouteService.name);
+        
+        return this;
     }
 
     findManyInPath(path: IFindManyRoutingTablePath): Promise<RoutingTable[]> {
@@ -97,40 +109,53 @@ export class RoutingTableService extends Service {
     }
 
     async create(data: ICreateRoutingTable): Promise<RoutingTable> {
-        await this.validateCreateRoutingTable(data);
-        const routingTable: RoutingTable = await this._repository.save(data);
+        await this.validateRoutingTableNumber(data);
+        const result: {id: number} = await this._repository.save(data);
+        const routingTable: RoutingTable = await this._repository.findOne(result.id);
+
         const firewall: Firewall = await getRepository(Firewall).findOne(routingTable.firewallId, {relations: ['fwCloud']});
 
         const node: {id: number} = await Tree.getNodeUnderFirewall(db.getQuery(), firewall.fwCloud.id, firewall.id, 'RTS') as {id: number};
-        await Tree.newNode(db.getQuery(), firewall.fwCloud.id, routingTable.name, node.id, 'RT', routingTable.id, null);
-
+        if (node && Object.prototype.hasOwnProperty.call(node, 'id')) {
+            await Tree.newNode(db.getQuery(), firewall.fwCloud.id, routingTable.name, node.id, 'RT', routingTable.id, null);
+        }
+        
+        await this._firewallService.markAsUncompiled(routingTable.firewallId);
 
         return routingTable;
     }
 
     async update(id: number, data: IUpdateRoutingTable): Promise<RoutingTable> {
         let table: RoutingTable = await this._repository.preload(Object.assign(data, {id}));
+        await this.validateRoutingTableNumber(table);
         await this._repository.save(table);
+
+        await this._firewallService.markAsUncompiled(table.firewallId);
 
         return table;
     }
 
     async remove(path: IFindOneRoutingTablePath): Promise<RoutingTable> {
         const table: RoutingTable =  await this.findOneInPath(path);
-
-        const tableWithRules: RoutingTable = await this._repository.findOne(table.id, { relations: ['routingRules']});
+        const tableWithRules: RoutingTable = await this._repository.findOne(table.id, { relations: ['routingRules', 'routes', 'firewall']});
 
         if (tableWithRules.routingRules.length > 0) {
             throw new ValidationException('Routing table cannot be removed', {
                 id: ['Cannot remove a routing table which contains routing rules']
             });
         }
+
+        if (tableWithRules.routes.length > 0) {
+            await this._routeService.bulkRemove(tableWithRules.routes.map(item => item.id));
+        }
         
         await this._repository.remove(table);
         
-        const node: {id: number} = await Tree.getNodeByNameAndType(path.fwCloudId, table.name, 'RT') as {id: number};
-        await Tree.deleteNodesUnderMe(db.getQuery(), path.fwCloudId, node.id);
+        const node: {id: number} = await Tree.getNodeByNameAndType(tableWithRules.firewall.fwCloudId, table.name, 'RT') as {id: number};
+        await Tree.deleteNodesUnderMe(db.getQuery(), tableWithRules.firewall.fwCloudId, node.id);
         await Tree.deleteFwc_Tree_node(node.id);
+
+        await this._firewallService.markAsUncompiled(tableWithRules.firewallId);
 
         return table;
     }
@@ -190,7 +215,10 @@ export class RoutingTableService extends Service {
             this.buildSQLsForCompiler(fwcloud, firewall, routingTable, routes);
         await Promise.all(sqls.map(sql => RoutingUtils.mapEntityData<T>(sql,ItemsArrayMap)));
         
-        return routesData;
+        return routesData.map(data => {
+            data.items = data.items.sort((a,b) => a._order - b._order);
+            return data;
+        });;
     }
 
     /**
@@ -198,25 +226,49 @@ export class RoutingTableService extends Service {
      *  - Number is not already being used by other table in the same firewall
      * 
      */
-     protected async validateCreateRoutingTable(data: ICreateRoutingTable): Promise<void> {
+     protected async validateRoutingTableNumber(routingTable: Partial<RoutingTable>): Promise<void> {
         const errors: ErrorBag = {};
 
         const tablesWithSameNumber: RoutingTable[] = await getRepository(RoutingTable).find({
             where: {
-                number: data.number,
-                firewallId: data.firewallId
+                number: routingTable.number,
+                firewallId: routingTable.firewallId
             }
         });
 
-        if (tablesWithSameNumber.length > 0) {
-            errors['number'] = ['number already used'];
+        // Number is not being used.
+        if (tablesWithSameNumber.length === 0) {
+            return;
         }
 
-        if (Object.keys(errors).length > 0) {
-            throw new ValidationException('The given data was invalid', errors);
+        // The number is assigned to the provided routingTable
+        if (tablesWithSameNumber.filter(item => item.id === routingTable.id).length > 0) {
+            return;
         }
-        
+
+        errors['number'] = ['number already used'];
+        throw new ValidationException('The given data was invalid', errors);
     }
+
+    /**
+     * Move routing tables form source firewall to destination firewall.
+     * @param srcFW 
+     * @param dstFW 
+     * @returns 
+     */
+    public async moveToOtherFirewall(srcFW: number, dstFW: number): Promise<void> {
+        let routingTables: RoutingTable[] = await this._repository.find({
+            where: {
+                firewallId: srcFW
+            }
+        });
+
+        for (let table of routingTables) {
+            table.firewallId = dstFW;
+            await this._repository.update(table.id, table);
+        }
+    }
+
 
     private buildSQLsForCompiler(fwcloud: number, firewall: number, routingTable: number, routes?: number[]): SelectQueryBuilder<IPObj>[] {
         return [

@@ -43,6 +43,9 @@ import { RoutingRuleControllerMoveDto } from "../../../../../src/controllers/rou
 import { RoutingRuleControllerBulkUpdateDto } from "../../../../../src/controllers/routing/routing-rule/dtos/bulk-update.dto";
 import { RoutingRuleControllerCopyDto } from "../../../../../src/controllers/routing/routing-rule/dtos/copy.dto";
 import { RoutingRuleRepository } from "../../../../../src/models/routing/routing-rule/routing-rule.repository";
+import { Offset } from "../../../../../src/offset";
+import { Mark } from "../../../../../src/models/ipobj/Mark";
+import { RoutingRuleMoveFromDto } from "../../../../../src/controllers/routing/routing-rule/dtos/move-from.dto";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;
@@ -92,6 +95,14 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: (await getRepository(Mark).save({
+                            code: 1,
+                            name: 'test',
+                            fwCloudId: fwCloud.id
+                        })).id,
+                        order: 0
+                    }]
                 });
             });
 
@@ -100,7 +111,6 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.get(_URL().getURL('fwclouds.firewalls.routing.rules.index', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
                     }))
 					.expect(401);
 			});
@@ -110,7 +120,6 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.index', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
@@ -124,7 +133,6 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.index', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
@@ -138,7 +146,6 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 .get(_URL().getURL('fwclouds.firewalls.routing.rules.index', {
                     fwcloud: fwCloud.id,
                     firewall: firewall.id,
-                    rule: rule.id
                 }))
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
@@ -156,6 +163,14 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: (await getRepository(Mark).save({
+                            code: 1,
+                            name: 'test',
+                            fwCloudId: fwCloud.id
+                        })).id,
+                        order: 0
+                    }]
                 });
             });   
 
@@ -218,26 +233,48 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             let data: RoutingRuleControllerMoveDto;
 
             beforeEach(async () => {
+                const mark: Mark = await getRepository(Mark).save({
+                    code: 1,
+                    name: 'test',
+                    fwCloudId: fwCloud.id
+                });
+
                 ruleOrder1 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
                 });
                 
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
                 });
 
                 ruleOrder3 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
                 });
                 
                 ruleOrder4 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
                 });
 
                 data = {
                     rules: [ruleOrder1.id, ruleOrder2.id],
                     to: ruleOrder3.id,
-                    offset: -1
+                    offset: Offset.Above
                 }
             });
 
@@ -305,12 +342,115 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
         });
 
+        describe('@moveFrom', () => {
+            let rule1: RoutingRule;
+            let rule2: RoutingRule;
+            let data: RoutingRuleMoveFromDto;
+
+            beforeEach(async () => {
+                const mark: Mark = await getRepository(Mark).save({
+                    code: 1,
+                    name: 'test',
+                    fwCloudId: fwCloud.id
+                });
+
+                const mark2: Mark = await getRepository(Mark).save({
+                    code: 2,
+                    name: 'test',
+                    fwCloudId: fwCloud.id
+                });
+
+                rule1 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
+                });
+                
+                rule2 = await routingRuleService.create({
+                    routingTableId: table.id,
+                    markIds: [{
+                        id: mark2.id,
+                        order: 0
+                    }]
+                });
+
+                data = {
+                    fromId: rule1.id,
+                    toId: rule2.id,
+                    markId: mark.id
+                }
+            });
+
+            it('guest user should not move from items between rules', async () => {
+				return await request(app.express)
+					.put(_URL().getURL('fwclouds.firewalls.routing.rules.moveFrom', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not move from items between rules', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.moveFrom', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should move from items between rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.moveFrom', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+            });
+
+            it('admin user should move from items between rules', async () => {
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.moveFrom', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .send(data)
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+            });
+
+
+        });
+
         describe('@show', () => {
             let rule: RoutingRule;
             
             beforeEach(async () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: (await getRepository(Mark).save({
+                            code: 1,
+                            name: 'test',
+                            fwCloudId: fwCloud.id
+                        })).id,
+                        order: 0
+                    }]
                 });
             });   
 
@@ -319,7 +459,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.get(_URL().getURL('fwclouds.firewalls.routing.rules.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
 					.expect(401);
 			});
@@ -329,7 +469,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
@@ -343,9 +483,10 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(200)
                     .then(response => {
                         expect(response.body.data.id).to.deep.eq(rule.id);
                         expect(response.body.data.routingTableId).to.deep.eq(rule.routingTableId);
@@ -357,7 +498,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))         
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
@@ -374,6 +515,14 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: (await getRepository(Mark).save({
+                            code: 1,
+                            name: 'test',
+                            fwCloudId: fwCloud.id
+                        })).id,
+                        order: 0
+                    }]
                 });
             });   
 
@@ -382,7 +531,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
 					.expect(401);
 			});
@@ -392,7 +541,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
@@ -406,7 +555,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
@@ -420,7 +569,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))         
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
@@ -438,7 +587,15 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
 					.send({
-                        routingTableId: table.id
+                        routingTableId: table.id,
+                        markIds: [{
+                            id: (await getRepository(Mark).save({
+                                code: 1,
+                                name: 'test',
+                                fwCloudId: fwCloud.id
+                            })).id,
+                            order: 0
+                        }]
                     })
 					.expect(401);
 			});
@@ -450,7 +607,15 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
                     .send({
-                        routingTableId: table.id
+                        routingTableId: table.id,
+                        markIds: [{
+                            id: (await getRepository(Mark).save({
+                                code: 1,
+                                name: 'test',
+                                fwCloudId: fwCloud.id
+                            })).id,
+                            order: 0
+                        }]
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
@@ -466,7 +631,15 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
                     .send({
-                        routingTableId: table.id
+                        routingTableId: table.id,
+                        markIds: [{
+                            id: (await getRepository(Mark).save({
+                                code: 1,
+                                name: 'test',
+                                fwCloudId: fwCloud.id
+                            })).id,
+                            order: 0
+                        }]
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(201)
@@ -482,7 +655,15 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         firewall: firewall.id,
                     }))
                     .send({
-                        routingTableId: table.id
+                        routingTableId: table.id,
+                        markIds: [{
+                            id: (await getRepository(Mark).save({
+                                code: 1,
+                                name: 'test',
+                                fwCloudId: fwCloud.id
+                            })).id,
+                            order: 0
+                        }]
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(201)
@@ -500,20 +681,34 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             let data: RoutingRuleControllerCopyDto;
 
             beforeEach(async () => {
+                const mark: Mark = await getRepository(Mark).save({
+                    code: 1,
+                    name: 'test',
+                    fwCloudId: fwCloud.id
+                });
+                
                 ruleOrder1 = await routingRuleService.create({
                     routingTableId: table.id,
                     comment: 'comment1',
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
                 });
                 
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
-                    comment: 'comment2'
+                    comment: 'comment2',
+                    markIds: [{
+                        id: mark.id,
+                        order: 0
+                    }]
                 });
 
                 data = {
                     rules: [ruleOrder1.id, ruleOrder2.id],
                     to: (await getCustomRepository(RoutingRuleRepository).getLastRoutingRuleInFirewall(table.firewallId)).id,
-                    offset: 1
+                    offset: Offset.Below
                 }
             });
 
@@ -583,6 +778,14 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: (await getRepository(Mark).save({
+                            code: 1,
+                            name: 'test',
+                            fwCloudId: fwCloud.id
+                        })).id,
+                        order: 0
+                    }]
                 });
             });
 
@@ -591,7 +794,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
 					.send({
                         comment: 'route'
@@ -604,7 +807,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .send({
                         routingTableId: table.id,
@@ -622,7 +825,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .send({
                         routingTableId: table.id,
@@ -640,7 +843,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .send({
                         routingTableId: table.id,
@@ -665,7 +868,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .send({
                         routingTableId: table.id,
@@ -686,7 +889,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .send({
                         routingTableId: table.id,
@@ -729,7 +932,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .send({
                         routingTableId: table.id,
@@ -751,12 +954,26 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             }
             
             beforeEach(async () => {
+                const mark: Mark = await getRepository(Mark).save({
+                    code: 1,
+                    name: 'test',
+                    fwCloudId: fwCloud.id
+                });
+
                 ruleOrder1 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
                 });
                 
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
                 });
             });
 
@@ -839,6 +1056,14 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             beforeEach(async () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: (await getRepository(Mark).save({
+                            code: 1,
+                            name: 'test',
+                            fwCloudId: fwCloud.id
+                        })).id,
+                        order: 0
+                    }]
                 });
             });
 
@@ -847,7 +1072,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
 					.expect(401);
 			});
@@ -857,7 +1082,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401)
@@ -871,7 +1096,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200);
@@ -888,7 +1113,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        rule: rule.id
+                        routingRule: rule.id
                     }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200);
@@ -908,12 +1133,26 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             let ruleOrder2: RoutingRule;
             
             beforeEach(async () => {
+                const mark: Mark = await getRepository(Mark).save({
+                    code: 1,
+                    name: 'test',
+                    fwCloudId: fwCloud.id
+                });
+
                 ruleOrder1 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
                 });
                 
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
                 });
             });
 

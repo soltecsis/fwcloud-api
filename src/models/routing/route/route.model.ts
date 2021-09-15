@@ -33,6 +33,7 @@ import db from "../../../database/database-manager";
 import { RouteToOpenVPNPrefix } from "./route-to-openvpn-prefix.model";
 import { RouteToOpenVPN } from "./route-to-openvpn.model";
 import { RouteToIPObjGroup } from "./route-to-ipobj-group.model";
+import { RouteToIPObj } from "./route-to-ipobj.model";
 
 const tableName: string = 'route';
 
@@ -98,13 +99,10 @@ export class Route extends Model {
     })
     routeGroup: RouteGroup;
 
-    @ManyToMany(type => IPObj, ipobj => ipobj.routes)
-	@JoinTable({
-		name: 'route__ipobj',
-		joinColumn: { name: 'route'},
-		inverseJoinColumn: { name: 'ipobj'}
-	})
-    ipObjs: IPObj[]
+    @OneToMany(() => RouteToIPObj, model => model.route, {
+        cascade: true,
+    })
+    routeToIPObjs: RouteToIPObj[];
 
     @OneToMany(() => RouteToIPObjGroup, model => model.route, {
         cascade: true,
@@ -127,74 +125,108 @@ export class Route extends Model {
 
 
     public static async getRouteWhichLastAddressInHost(ipobjId: number, type: number, fwcloud:number): Promise<Route[]> {
-        const interfaces: Interface [] = await getRepository(Interface).createQueryBuilder('interface')
-            .select('interface.id')
-            .innerJoinAndSelect('interface.ipObjs', 'ipobj', 'ipobj.id = :id', {id: ipobjId})
-            .innerJoin('interface.hosts', 'InterfaceIPObj')
-            .innerJoin('InterfaceIPObj.hostIPObj', 'host')
-            .innerJoin('host.routes', 'route')
+        const routeToIPObjs: RouteToIPObj[] = await getRepository(RouteToIPObj).createQueryBuilder('routeToIPObj')
+            .innerJoin('routeToIPObj.ipObj', 'ipobj')
+            .innerJoin('ipobj.hosts', 'interfaceIPObj')
+            .innerJoin('routeToIPObj.route', 'route')
+            .innerJoin('interfaceIPObj.hostInterface', 'interface')
+            .innerJoin('interface.ipObjs', 'intIPObj')
             .innerJoin('route.routingTable', 'table')
             .innerJoin('table.firewall', 'firewall')
-            .innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloud', {fwcloud})
-            .getMany();
+            .where('intIPObj.id = :ipobjId', {ipobjId})
+            .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud})  
+            .getMany()
 
-        const uniqueInterfaces: Interface[] = [];
-        for(let _interface of interfaces) {
-            let addresses: IPObj[] = await Interface.getInterfaceAddr(db.getQuery(), _interface.id);
+        let result: RouteToIPObj[] = [];
+        
+        for (let routeToIPObj of routeToIPObjs) {
+            let addrs: any = await Interface.getHostAddr(db.getQuery(), routeToIPObj.ipObjId);
 
-            if (addresses.length === 1 && addresses[0].id === ipobjId) {
-                uniqueInterfaces.push(_interface);
+            // Count the amount of interface address with the same IP version of the rule.
+            let n = 0;
+            let id = 0;
+            for (let addr of addrs) {
+                n++;
+                if (n === 1) id = addr.id;
             }
+
+            // We are the last IP address in the host used in a firewall rule.
+            if (n === 1 && ipobjId === id)
+                result.push(routeToIPObj);
         }
 
-        if (uniqueInterfaces.length === 0) {
+        if (result.length === 0) {
             return [];
         }
 
-        return await getRepository(Route)
-            .createQueryBuilder('route')
-            .innerJoin('route.ipObjs', 'ipobj')
-            .innerJoin('ipobj.hosts', 'InterfaceIPObj')
-            .innerJoin('InterfaceIPObj.hostInterface', 'interface')
-            .where(`interface.id IN (${uniqueInterfaces.map(item => item.id).join(',')})`)
-            .getMany();
+        return await getRepository(Route).createQueryBuilder('route')
+            .distinct()
+            .addSelect('firewall.id', 'firewall_id')
+            .addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id')
+            .addSelect('cluster.name', 'cluster_name')
+            .addSelect('table.id', 'table_id')
+            .addSelect('table.name', 'table_name')
+            .addSelect('table.number', 'table_number')
+            .innerJoin('route.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .whereInIds(result.map(item => item.routeId)).getRawMany();
     }
 
     public static async getRouteWhichLastAddressInHostInGroup(ipobjId: number, type: number, fwcloud:number): Promise<Route[]> {
-        const interfaces: Interface [] = await getRepository(Interface).createQueryBuilder('interface')
-            .select('interface.id')
-            .innerJoinAndSelect('interface.ipObjs', 'ipobj', 'ipobj.id = :id', {id: ipobjId})
-            .innerJoin('interface.hosts', 'InterfaceIPObj')
-            .innerJoin('InterfaceIPObj.hostIPObj', 'host')
-            .innerJoin('host.ipObjToIPObjGroups', 'IPObjToIPObjGroup')
-            .innerJoin('IPObjToIPObjGroup.ipObjGroup', 'group')
-            .innerJoin('group.routeToIPObjGroups', 'routeToIPObjGroups')
+        const routeToIPObjGroups: RouteToIPObjGroup[] = await getRepository(RouteToIPObjGroup).createQueryBuilder('routeToIPObjGroups')
+            .innerJoinAndSelect('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
+            .innerJoinAndSelect('ipObjGroup.ipObjToIPObjGroups', 'ipObjToIPObjGroups')
+            .innerJoin('ipObjToIPObjGroups.ipObj', 'ipobj')
+            .innerJoin('ipobj.hosts', 'interfaceIPObj')
             .innerJoin('routeToIPObjGroups.route', 'route')
+            .innerJoin('interfaceIPObj.hostInterface', 'interface')
+            .innerJoin('interface.ipObjs', 'intIPObj')
             .innerJoin('route.routingTable', 'table')
             .innerJoin('table.firewall', 'firewall')
-            .innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloud', {fwcloud})
+            .where('intIPObj.id = :ipobjId', {ipobjId})
+            .andWhere('ipObjGroup.type = 20')
+            .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud})  
             .getMany();
 
-        const uniqueInterfaces: Interface[] = [];
-        for(let _interface of interfaces) {
-            let addresses: IPObj[] = await Interface.getInterfaceAddr(db.getQuery(), _interface.id);
+        let result: RouteToIPObjGroup[] = [];
+        
+        for (let routeToIPObjGroup of routeToIPObjGroups) {
+            for(let ipObjToIPObjGroup of routeToIPObjGroup.ipObjGroup.ipObjToIPObjGroups) {
+                let addrs: any = await Interface.getHostAddr(db.getQuery(), ipObjToIPObjGroup.ipObjId);
 
-            if (addresses.length === 1 && addresses[0].id === ipobjId) {
-                uniqueInterfaces.push(_interface);
+                // Count the amount of interface address with the same IP version of the rule.
+                let n = 0;
+                let id = 0;
+                for (let addr of addrs) {
+                    n++;
+                    if (n === 1) id = addr.id;
+                }
+
+                // We are the last IP address in the host used in a firewall rule.
+                if (n === 1 && ipobjId === id)
+                    result.push(routeToIPObjGroup);
             }
         }
 
-        if (uniqueInterfaces.length === 0) {
+        if (result.length === 0) {
             return [];
         }
 
-        return await getRepository(Route)
-            .createQueryBuilder('route')
-            .innerJoin('route.ipObjs', 'ipobj')
-            .innerJoin('ipobj.hosts', 'InterfaceIPObj')
-            .innerJoin('InterfaceIPObj.hostInterface', 'interface')
-            .where(`interface.id IN (${uniqueInterfaces.map(item => item.id).join(',')})`)
-            .getMany();
+        return await getRepository(Route).createQueryBuilder('route')
+            .distinct()
+            .addSelect('firewall.id', 'firewall_id')
+            .addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id')
+            .addSelect('cluster.name', 'cluster_name')
+            .addSelect('table.id', 'table_id')
+            .addSelect('table.name', 'table_name')
+            .addSelect('table.number', 'table_number')
+            .innerJoin('route.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .whereInIds(result.map(item => item.routeId))
+        .getRawMany();
     }
-
 }

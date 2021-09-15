@@ -25,6 +25,7 @@ import { PrimaryGeneratedColumn, Column, Entity, getRepository, ManyToOne, JoinC
 import { FwCloud } from "../fwcloud/FwCloud";
 import { PolicyRule } from "../policy/PolicyRule";
 import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
+import { RoutingRuleToMark } from "../routing/routing-rule/routing-rule-to-mark.model";
 
 const fwcError = require('../../utils/error_table');
 
@@ -69,8 +70,8 @@ export class Mark extends Model {
     @OneToMany(type => PolicyRule, policyRule => policyRule.mark)
     policyRules: Array<PolicyRule>;
 
-    @ManyToMany(type => RoutingRule, routingRule => routingRule.marks)
-    routingRules: RoutingRule[];
+    @OneToMany(() => RoutingRuleToMark, model => model.mark)
+    routingRuleToMarks: RoutingRuleToMark[];
 
     public getTableName(): string {
         return tableName;
@@ -164,12 +165,16 @@ export class Mark extends Model {
 
                 search.restrictions.MarkInRule = await this.searchMarkInRule(dbCon, fwcloud, mark);
 
-                search.restrictions.MarkInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
-                    .innerJoinAndSelect('rule.marks', 'mark', 'mark.id = :mark', {mark: mark})
-                    .innerJoin('rule.routingTable', 'table')
+                search.restrictions.MarkInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+                    .innerJoin('routing_rule.routingRuleToMarks', 'routingRuleToMarks')
+                    .innerJoin('routingRuleToMarks.mark', 'mark', 'mark.id = :mark', {mark: mark})
+                    .innerJoin('routing_rule.routingTable', 'table')
                     .innerJoin('table.firewall', 'firewall')
+                    .leftJoin('firewall.cluster', 'cluster')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getMany();
+                    .getRawMany();
 
                 for (let key in search.restrictions) {
                     if (search.restrictions[key].length > 0) {

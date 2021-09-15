@@ -40,9 +40,7 @@ import { RouteData, RoutingTableService } from '../../models/routing/routing-tab
 import { app } from '../../fonaments/abstract-application';
 import { RoutingTable } from '../../models/routing/routing-table/routing-table.model';
 import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
-import { RoutingRulePolicy } from '../../policies/routing-rule.policy';
 import { RoutingRulesData, RoutingRuleService } from '../../models/routing/routing-rule/routing-rule.service';
-import { RoutingRule } from '../../models/routing/routing-rule/routing-rule.model';
 
 var config = require('../../config/config');
 
@@ -359,7 +357,7 @@ export class PolicyScript {
 			this.stream.write('$IP route flush cache\n');
 			this.stream.write('T=1\n');
 			this.stream.write('while [ $T -lt 251 ]; do\n');
-			this.stream.write('  $IP route flush table $T\n');
+			this.stream.write('  $IP route flush table $T 2>/dev/null\n');
 			this.stream.write('  T=`expr $T + 1`\n');
 			this.stream.write('done\n');
 			this.stream.write('$IP route flush scope global table main\n');

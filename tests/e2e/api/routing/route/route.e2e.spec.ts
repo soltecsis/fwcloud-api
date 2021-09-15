@@ -43,6 +43,7 @@ import { RouteControllerMoveDto } from "../../../../../src/controllers/routing/r
 import { RouteControllerBulkUpdateDto } from "../../../../../src/controllers/routing/route/dtos/bulk-update.dto";
 import { RouteControllerCopyDto } from "../../../../../src/controllers/routing/route/dtos/copy.dto";
 import { RouteRepository } from "../../../../../src/models/routing/route/route.repository";
+import { Offset } from "../../../../../src/offset";
 
 describe(describeName('Route E2E Tests'), () => {
     let app: Application;
@@ -192,7 +193,7 @@ describe(describeName('Route E2E Tests'), () => {
                 data = {
                     routes: [routeOrder1.id, routeOrder2.id],
                     to: routeOrder3.id,
-                    offset: -1
+                    offset: Offset.Above
                 }
             });
 
@@ -491,7 +492,7 @@ describe(describeName('Route E2E Tests'), () => {
                 data = {
                     routes: [routeOrder1.id, routeOrder2.id],
                     to: (await getCustomRepository(RouteRepository).getLastRouteInRoutingTable(table.id)).id,
-                    offset: 1
+                    offset: Offset.Below
                 }
             });
 

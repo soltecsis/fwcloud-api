@@ -34,6 +34,7 @@ import { Route } from "../routing/route/route.model";
 import { Interface } from "../interface/Interface";
 import { FwCloud } from "../fwcloud/FwCloud";
 import { RouteToIPObjGroup } from "../routing/route/route-to-ipobj-group.model";
+import { RoutingRuleToIPObjGroup } from "../routing/routing-rule/routing-rule-to-ipobj-group.model";
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
@@ -82,18 +83,15 @@ export class IPObjGroup extends Model {
     @ManyToMany(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.ipObjGroups)
     openVPNPrefixes: Array<OpenVPNPrefix>;
 
-    @ManyToMany(type => RoutingRule, routingRule => routingRule.ipObjGroups)
-    routingRules: RoutingRule[];
+    @OneToMany(() => RoutingRuleToIPObjGroup, model => model.ipObjGroup)
+    routingRuleToIPObjGroups: RoutingRuleToIPObjGroup[];
 
     @OneToMany(() => RouteToIPObjGroup, model => model.ipObjGroup)
     routeToIPObjGroups: RouteToIPObjGroup[];
 
 
-    /**
-    * Pending foreign keys.
     @OneToMany(type => PolicyRuleToIPObj, model => model.ipObjGroup)
     policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
-    */
 
     public getTableName(): string {
         return tableName;
@@ -358,19 +356,26 @@ export class IPObjGroup extends Model {
                 //search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
                 search.restrictions.GroupInRule = await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
                 search.restrictions.GroupInRoute = await getRepository(Route).createQueryBuilder('route')
-                    .innerJoin('route.routingTable', 'table')
+                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+                    .innerJoinAndSelect('route.routingTable', 'table')
                     .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
                     .innerJoin('routeToIPObjGroups.ipObjGroup', 'group', 'group.id = :id', {id: id})
                     .innerJoin('table.firewall', 'firewall')
+                    .leftJoin('firewall.cluster', 'cluster')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getMany();
+                    .getRawMany();
                 
-                search.restrictions.GroupInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
-                    .innerJoin('rule.routingTable', 'table')
-                    .innerJoin('rule.ipObjGroups', 'group', 'group.id = :id', {id: id})
+                search.restrictions.GroupInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+                    .innerJoin('routing_rule.routingTable', 'table')
+                    .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+                    .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'group', 'group.id = :id', {id: id})
                     .innerJoin('table.firewall', 'firewall')
+                    .leftJoin('firewall.cluster', 'cluster')
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getMany();
+                    .getRawMany();
 
                 for (let key in search.restrictions) {
                     if (search.restrictions[key].length > 0) {

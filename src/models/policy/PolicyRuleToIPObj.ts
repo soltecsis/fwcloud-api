@@ -25,7 +25,7 @@ import Model from '../Model';
 import { Interface } from '../../models/interface/Interface';
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, getRepository } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyPosition } from './PolicyPosition';
 import { RulePositionsMap } from '../../models/policy/PolicyPosition';
@@ -77,8 +77,6 @@ export class PolicyRuleToIPObj extends Model {
     })
     policyRule: PolicyRule;
 
-    /**
-    * Pending foreign keys.
     @ManyToOne(type => IPObj, ipObj => ipObj.policyRuleToIPObjs)
     @JoinColumn({
         name: 'ipobj'
@@ -90,13 +88,13 @@ export class PolicyRuleToIPObj extends Model {
         name: 'interface'
     })
     interface: Interface;
-
+    
     @ManyToOne(type => IPObjGroup, model => model.policyRuleToIPObjs)
     @JoinColumn({
         name: 'ipobj_g'
     })
     ipObjGroup: IPObjGroup;
-    */
+    
 
     @ManyToOne(type => PolicyPosition, policyPosition => policyPosition.policyRuleToIPObjs)
     @JoinColumn({
@@ -1348,6 +1346,64 @@ export class PolicyRuleToIPObj extends Model {
         });
     };
 
+    public static async searchLastAddrInHostInGroup(ipObjId: number, type: number, fwcloudId: number): Promise<PolicyRule[]> {
+        const policyRuleToIPObjGroups: PolicyRuleToIPObj[] = await getRepository(PolicyRuleToIPObj).createQueryBuilder('policyRuleToIPObj')
+            .innerJoinAndSelect('policyRuleToIPObj.ipObjGroup', 'ipObjGroup')
+            .innerJoinAndSelect('ipObjGroup.ipObjToIPObjGroups', 'ipObjToIPObjGroups')
+            .innerJoin('ipObjToIPObjGroups.ipObj', 'ipobj')
+            .innerJoin('ipobj.hosts', 'interfaceIPObj')
+            .innerJoin('policyRuleToIPObj.policyRule', 'rule')
+            .innerJoin('interfaceIPObj.hostInterface', 'interface')
+            .innerJoin('interface.ipObjs', 'intIPObj')
+            .innerJoin('rule.firewall', 'firewall')
+            .where('intIPObj.id = :ipObjId', {ipObjId})
+            .andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId})  
+            .getMany();
+
+        let result: PolicyRuleToIPObj[] = [];
+        
+        for (let policyRuleToIPObjGroup of policyRuleToIPObjGroups) {
+            for(let ipObjToIPObjGroup of policyRuleToIPObjGroup.ipObjGroup.ipObjToIPObjGroups) {
+                let addrs: any = await Interface.getHostAddr(db.getQuery(), ipObjToIPObjGroup.ipObjId);
+
+                // Count the amount of interface address with the same IP version of the rule.
+                let n = 0;
+                let id = 0;
+                for (let addr of addrs) {
+                    n++;
+                    if (n === 1) id = addr.id;
+                }
+
+                // We are the last IP address in the host used in a firewall rule.
+                if (n === 1 && ipObjId === id)
+                    result.push(policyRuleToIPObjGroup);
+            }
+        }
+
+        if (result.length === 0) {
+            return [];
+        }
+
+        return await getRepository(PolicyRule).createQueryBuilder('rule')
+            .distinct()
+            .addSelect('firewall.id', 'firewall_id')
+            .addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id')
+            .addSelect('cluster.name', 'cluster_name')
+            .addSelect('type.name', 'rule_type_name')
+            .addSelect('position.id', 'rule_position_id')
+            .addSelect('position.name', 'rule_position_name')
+            .innerJoin('rule.policyRuleToIPObjs', 'policyRuleToIPObj')
+            .innerJoin('policyRuleToIPObj.policyPosition', 'position')
+            .innerJoin('policyRuleToIPObj.ipObjGroup', 'group')
+            .innerJoin('rule.policyType', 'type')
+            .innerJoin('rule.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where('rule.id IN (:ids)', {ids: result.map(item => item.policyRuleId)})
+            .andWhere('group.type = 20')
+        .getRawMany();
+    }
+
     //check if Exist IPOBJS under INTERFACES  IN RULES 
     public static searchIpobjInterfaceInRule = (_interface, type, fwcloud, firewall, diff_firewall) => {
         return new Promise((resolve, reject) => {
@@ -1384,8 +1440,8 @@ export class PolicyRuleToIPObj extends Model {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
-                var sql = `SELECT G.*, I.id obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
-				G.id group_id, G.name group_name
+                var sql = `SELECT I.id obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
+				G.id group_id, G.name group_name, G.type group_type
 				FROM ipobj__ipobjg O
 				INNER JOIN ipobj_g G ON G.id=O.ipobj_g
 				INNER JOIN ipobj I ON I.id=O.ipobj

@@ -414,7 +414,7 @@ export class Backup implements Responsable {
         const dir = cmd==='mysqldump' ? '>' : '<';
 
         // This is necessary for mysqldump/mysql commands to access the docker containers of the test environment.
-        if (process.env.NODE_ENV === 'test') cmd += ' --protocol=TCP';
+        if (app().config.get('db.mysqldump.protocol') === 'tcp') cmd += ' --protocol=TCP';
 
         // If we don't specify the communications protocol and we are running the mysqldump/mysql commands in localhost,
         // they will use by default the socket file.

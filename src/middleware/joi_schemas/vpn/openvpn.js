@@ -57,12 +57,12 @@ schema.validate = req => {
 					'persist-local-ip', 'persist-remote-ip', 'persist-tun', 'ping-exit', 'ping-restart', 'ping-timer-rem', 'ping', 'pkcs12', 'plugin', 'port',
 					'proto', 'pull', 'push-reset', 'push', 'rcvbuf', 'redirect-gateway', 'remap-usr1', 'remote-cert-tls', 'remote-random', 'remote', 'reneg-bytes',
 					'reneg-pkts', 'reneg-sec', 'replay-persist', 'replay-window', 'resolv-retry', 'rmtun', 'route-delay', 'route-gateway', 'route-method',
-					'route-noexec', 'route-up', 'route', 'rport', 'secret', 'server-bridge', 'server', 'service', 'setenv', 'shaper', 'show-adapters',
+					'route-noexec', 'route-up', 'route', 'rport', 'script-security', 'secret', 'server-bridge', 'server', 'service', 'setenv', 'shaper', 'show-adapters',
 					'show-ciphers', 'show-digests', 'show-engines', 'show-net-up', 'show-net', 'show-tls', 'show-valid-subnets', 'single-session', 'sndbuf',
 					'socks-proxy-retry', 'socks-proxy', 'status', 'status-version', 'syslog', 'tap-sleep', 'tcp-queue-limit', 'test-crypto', 'tls-auth',
 					'tls-cipher', 'tls-client', 'tls-exit', 'tls-remote', 'tls-server', 'tls-timeout', 'tls-verify', 'tls-version-min', 'tls-version-max','topology', 
-					'tmp-dir', 'tran-window ', 'tun-ipv6','tun-mtu-extra', 'tun-mtu', 'txqueuelen', 'up-delay', 'up-restart', 'up cmd', 'user', 'username-as-common-name ', 
-					'verb', 'writepid'
+					'tmp-dir', 'tran-window ', 'tun-ipv6','tun-mtu-extra', 'tun-mtu', 'txqueuelen', 'up-delay', 'up-restart', 'up', 'user', 'username-as-common-name ', 
+					'verb', 'writepid', 
 				]),
 				otherwise: Joi.string().valid(['push', 'push-reset', 'iroute', 'iroute-ipv6', 'ifconfig-push',
 					'ifconfig-ipv6-push', 'disable', 'config', 'comp-lzo', 'max-routes-per-client'

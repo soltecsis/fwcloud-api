@@ -213,7 +213,19 @@ utilsModel.renameFirewallDataDir = (fwcloud, fwIdOld, fwIdNew) => {
 		const dir_old=config.get('policy').data_dir+'/'+fwcloud+'/'+fwIdOld;
 		const dir_new=config.get('policy').data_dir+'/'+fwcloud+'/'+fwIdNew;
 		try {
-			fs.renameSync(dir_old,dir_new);
+
+			fs.stat(dir_old, (err, stat) => {
+				if (err) {
+					return reject(err);
+				}
+				
+				if (stat.isDirectory()) {
+					fs.renameSync(dir_old, dir_new);
+				}
+
+				resolve();
+			})
+			
 			resolve();
 		} catch(error) { reject(error) }
   });

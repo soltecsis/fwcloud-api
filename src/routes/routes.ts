@@ -148,10 +148,11 @@ export class Routes extends RouteCollection {
                                 router.get('/grid', RoutingRuleController, 'grid').name('fwclouds.firewalls.routing.rules.grid');
                                 router.post('/copy', RoutingRuleController, 'copy').name('fwclouds.firewalls.routing.rules.copy');
                                 router.put('/move', RoutingRuleController, 'move').name('fwclouds.firewalls.routing.rules.move');
+                                router.put('/moveFrom', RoutingRuleController, 'moveFrom').name('fwclouds.firewalls.routing.rules.moveFrom');
                                 router.get('/compile', FirewallController, 'compileRoutingRules').name('fwclouds.firewalls.routing.compile');
                                 router.put('/bulkUpdate', RoutingRuleController, 'bulkUpdate').name('fwclouds.firewalls.routing.rules.bulkUpdate');
                                 router.delete('/bulkRemove', RoutingRuleController, 'bulkRemove').name('fwclouds.firewalls.routing.rules.bulkRemove');
-                                router.prefix('/:rule(\\d+)', (router:RouterParser) => {
+                                router.prefix('/:routingRule(\\d+)', (router:RouterParser) => {
                                     router.get('/', RoutingRuleController, 'show').name('fwclouds.firewalls.routing.rules.show');
                                     router.get('/compile', RoutingRuleController, 'compile').name('fwclouds.firewalls.routing.rules.compile')
                                     router.put('/', RoutingRuleController, 'update').name('fwclouds.firewalls.routing.rules.update');

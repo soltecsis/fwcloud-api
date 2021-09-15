@@ -33,16 +33,14 @@ describe(OpenVPNPrefix.name, () => {
         })
 
         route = await routeService.update(route.id, {
-            openVPNPrefixIds: [prefix.id]
+            openVPNPrefixIds: [{id: prefix.id, order: 1}]
         });
         
         routingRule = await routingRuleService.create({
             routingTableId: fwcloudProduct.routingTable.id,
+            openVPNPrefixIds: [{id: prefix.id, order: 1}]
         });
 
-        routingRule = await routingRuleService.update(routingRule.id, {
-            openVPNPrefixIds: [prefix.id]
-        });
     });
 
     describe('searchPrefixUsage', () => {
@@ -51,7 +49,6 @@ describe(OpenVPNPrefix.name, () => {
                 const whereUsed: any = await OpenVPNPrefix.searchPrefixUsage(db.getQuery(), fwcloudProduct.fwcloud.id, prefix.id, true);
     
                 expect(whereUsed.restrictions.PrefixInRoute).to.have.length(1);
-                expect(whereUsed.restrictions.PrefixInRoute[0].id).to.be.eq(route.id)
                 expect(whereUsed.restrictions.PrefixInRoute[0].route_id).to.be.eq(route.id)
             })
         });
@@ -61,7 +58,6 @@ describe(OpenVPNPrefix.name, () => {
                 const whereUsed: any = await OpenVPNPrefix.searchPrefixUsage(db.getQuery(), fwcloudProduct.fwcloud.id, prefix.id, true);
     
                 expect(whereUsed.restrictions.PrefixInRoutingRule).to.have.length(1);
-                expect(whereUsed.restrictions.PrefixInRoutingRule[0].id).to.be.eq(routingRule.id)
                 expect(whereUsed.restrictions.PrefixInRoutingRule[0].routing_rule_id).to.be.eq(routingRule.id)
             })
         });

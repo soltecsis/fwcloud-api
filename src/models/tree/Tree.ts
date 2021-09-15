@@ -143,14 +143,27 @@ export class Tree extends Model {
     //Get node info under firewall
     public static getNodeUnderFirewall(dbCon, fwcloud, firewall, node_type) {
         return new Promise((resolve, reject) => {
-            let sql = `SELECT T2.*,T3.* FROM ${tableName} T1
-			INNER JOIN ${tableName} T2 ON T2.id_parent=T1.id
-			INNER JOIN ${tableName} T3 ON T3.id_parent=T2.id
-			WHERE T1.fwcloud=${fwcloud} AND (T1.node_type='FW' OR T1.node_type='CL')  
-			AND T2.id_obj=${firewall} AND (T2.node_type=${dbCon.escape(node_type)} OR T3.node_type=${dbCon.escape(node_type)})`;
+            // Nodes in level 2.
+            let sql = `SELECT T2.* FROM ${tableName} T1
+                INNER JOIN ${tableName} T2 ON T2.id_parent=T1.id
+                WHERE T1.fwcloud=${fwcloud} AND (T1.node_type='FW' OR T1.node_type='CL')  
+                AND T2.id_obj=${firewall} AND T2.node_type=${dbCon.escape(node_type)}`;
             dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
-                resolve(result.length > 0 ? result[0] : null);
+
+                // If found a node in level 2 return it.
+                if (result.length > 0) return resolve(result[0]);
+
+                // If not look for nodes in level 3.
+                sql = `SELECT T3.* FROM ${tableName} T1
+                    INNER JOIN ${tableName} T2 ON T2.id_parent=T1.id
+                    INNER JOIN ${tableName} T3 ON T3.id_parent=T2.id
+                    WHERE T1.fwcloud=${fwcloud} AND (T1.node_type='FW' OR T1.node_type='CL')  
+                    AND T2.id_obj=${firewall} AND T3.node_type=${dbCon.escape(node_type)}`;
+                dbCon.query(sql, (error, result) => {
+                    if (error) return reject(error);
+                    resolve(result.length > 0 ? result[0] : null);
+                });
             });
         });
     };
@@ -472,6 +485,23 @@ export class Tree extends Model {
         });
     }
 
+    //Update routing table node.
+    public static updateRoutingTableNodeName(fwcloud: number, id: number, name: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            db.get((error, connection) => {
+                if (error) return reject(error);
+                
+                let sql = `UPDATE ${tableName} SET name=${connection.escape(name)} 
+                    WHERE node_type='RT' AND fwcloud=${fwcloud} AND id_obj=${id}`;
+
+                connection.query(sql, (error, result) => {
+                    if (error) return reject(error);
+                    resolve();
+                });
+            });
+        });
+    }
+    
     public static createObjectsTree(dbCon: Query, fwCloudId: number) {
         return new Promise(async (resolve, reject) => {
             try {

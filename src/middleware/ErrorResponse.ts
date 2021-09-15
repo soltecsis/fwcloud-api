@@ -23,11 +23,12 @@
 import { Request, Response, NextFunction } from "express";
 import { ResponseBuilder } from "../fonaments/http/response-builder";
 import { ErrorMiddleware } from "../fonaments/http/middleware/Middleware";
+import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
 
 export class ErrorResponse extends ErrorMiddleware {
     public handle(error: Error, req: Request, res: Response, next: NextFunction) {
         const exceptionName: string = error.constructor ? error.constructor.name : 'Error';
-
+        
         if(error.stack) {
             const stackLine: Array<string> = error.stack.split('\n');
 
@@ -43,6 +44,11 @@ export class ErrorResponse extends ErrorMiddleware {
          */
         if (res.headersSent) {
             return;    
+        }
+
+        // If the exception is EntityNotFoundError, then a 404 is returned.
+        if (exceptionName === 'EntityNotFoundError') {
+            error = new NotFoundException(error.message);
         }
         
         return ResponseBuilder.buildResponse().error(error).build(res).send();

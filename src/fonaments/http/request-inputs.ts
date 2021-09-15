@@ -44,13 +44,13 @@ export class RequestInputs {
      * @param name Input name
      * @param defaultValue Default value
      */
-    public get(name: string, defaultValue: any = undefined): any {
+    public get<T extends string | string[] | unknown = unknown>(name: string, defaultValue: T = undefined): T {
         if (Object.prototype.hasOwnProperty.call(this._req.body, name)) {
             return this._req.body[name];
         }
 
         if (Object.prototype.hasOwnProperty.call(this._req.query, name)) {
-            return this._req.query[name];
+            return this._req.query[name] as T;
         }
 
         return defaultValue;

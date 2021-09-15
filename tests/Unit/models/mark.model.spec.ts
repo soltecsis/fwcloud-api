@@ -1,3 +1,25 @@
+/*!
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { getRepository } from "typeorm";
 import db from "../../../src/database/database-manager";
 import { Mark } from "../../../src/models/ipobj/Mark";
@@ -28,10 +50,7 @@ describe(Mark.name, () => {
 
         routingRule = await routingRuleService.create({
             routingTableId: fwcloudProduct.routingTable.id,
-        });
-
-        routingRule = await routingRuleService.update(routingRule.id, {
-            markIds: [mark.id]
+            markIds: [{id: mark.id, order: 1}]
         });
     });
 
@@ -41,7 +60,7 @@ describe(Mark.name, () => {
                 const whereUsed: any = await Mark.searchMarkUsage(db.getQuery(), fwcloudProduct.fwcloud.id, mark.id);
     
                 expect(whereUsed.restrictions.MarkInRoutingRule).to.have.length(1);
-                expect(whereUsed.restrictions.MarkInRoutingRule[0].id).to.be.eq(routingRule.id)
+                expect(whereUsed.restrictions.MarkInRoutingRule[0].routing_rule_id).to.be.eq(routingRule.id)
             })
         });
     })

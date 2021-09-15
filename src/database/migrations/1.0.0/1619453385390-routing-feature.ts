@@ -38,6 +38,9 @@ export class routingFeature1619453385390 implements MigrationInterface {
         await queryRunner.dropTable('routing_position', true);
         await queryRunner.dropTable('routing_g', true);
 
+        // Make sure that show_action is null for the routing policy.
+        await queryRunner.query(`update policy_type set show_action=0 where id=6`);
+
         // Create new database routing tables.
         //routing_table
         await queryRunner.createTable(new Table({
@@ -342,6 +345,12 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     length: '11',
                     isNullable: false,
                     isPrimary: true
+                },
+                {
+                    name: 'order',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false,
                 }
             ],
             foreignKeys: [
@@ -375,6 +384,12 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     length: '11',
                     isNullable: false,
                     isPrimary: true
+                },
+                {
+                    name: 'order',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false,
                 }
             ],
             foreignKeys: [
@@ -408,6 +423,12 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     length: '11',
                     isNullable: false,
                     isPrimary: true
+                },
+                {
+                    name: 'order',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false,
                 }
             ],
             foreignKeys: [
@@ -441,6 +462,12 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     length: '11',
                     isNullable: false,
                     isPrimary: true
+                },
+                {
+                    name: 'order',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false,
                 }
             ],
             foreignKeys: [
@@ -474,6 +501,12 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     length: '11',
                     isNullable: false,
                     isPrimary: true
+                },
+                {
+                    name: 'order',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false,
                 }
             ],
             foreignKeys: [
@@ -508,6 +541,12 @@ export class routingFeature1619453385390 implements MigrationInterface {
                     length: '11',
                     isNullable: false,
                     isPrimary: true
+                },
+                {
+                    name: 'order',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false,
                 }
             ],
             foreignKeys: [

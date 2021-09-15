@@ -40,6 +40,7 @@ import { EventEmitter } from "events";
 import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
 import { Route } from "../../routing/route/route.model";
 import { RouteToOpenVPN } from "../../routing/route/route-to-openvpn.model";
+import { RoutingRuleToOpenVPN } from "../../routing/routing-rule/routing-rule-to-openvpn.model";
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -130,8 +131,8 @@ export class OpenVPN extends Model {
     @OneToMany(type => OpenVPNPrefix, model => model.openVPN)
     openVPNPrefixes: Array<OpenVPNPrefix>;
 
-    @ManyToMany(type => RoutingRule, routingRule => routingRule.openVPNs)
-    routingRules: RoutingRule[]
+    @OneToMany(() => RoutingRuleToOpenVPN, model => model.openVPN)
+    routingRuleToOpenVPNs: RoutingRuleToOpenVPN[];
 
     @OneToMany(() => RouteToOpenVPN, model => model.openVPN)
     routeToOpenVPNs: RouteToOpenVPN[];
@@ -662,23 +663,10 @@ export class OpenVPN extends Model {
                 search.restrictions.LastOpenvpnInPrefixInRule = await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInRule(dbCon, fwcloud, openvpn);
                 search.restrictions.LastOpenvpnInPrefixInGroup = await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInGroup(dbCon, fwcloud, openvpn);
 
-                search.restrictions.OpenVPNInRoute = await getRepository(Route).createQueryBuilder('route')
-                    .innerJoin('route.routeToOpenVPNs', 'routeToOpenVPNs')
-                    .innerJoin('routeToOpenVPNs.openVPN', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
-                    .innerJoin('route.routingTable', 'table')
-                    .innerJoin('table.firewall', 'firewall')
-                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getMany();
-                search.restrictions.OpenVPNInRoute = search.restrictions.OpenVPNInRoute.map(item => ({ ...item, route_id: item.id }));
-
-                search.restrictions.OpenVPNInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('rule')
-                    .innerJoinAndSelect('rule.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
-                    .innerJoin('rule.routingTable', 'table')
-                    .innerJoin('table.firewall', 'firewall')
-                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getMany();
-                search.restrictions.OpenVPNInRoutingRule = search.restrictions.OpenVPNInRoutingRule.map(item => ({ ...item, routing_rule_id: item.id }));
-
+                search.restrictions.OpenVPNInRoute = await this.searchOpenVPNInRoute(fwcloud, openvpn);
+                search.restrictions.OpenVPNInGroupInRoute = await this.searchOpenVPNInGroupInRoute(fwcloud, openvpn);
+                search.restrictions.OpenVPNInRoutingRule = await this.searchOpenVPNInRoutingRule(fwcloud, openvpn);
+                search.restrictions.OpenVPNInGroupInRoutingRule = await this.searchOpenVPNInGroupInRoutingRule(fwcloud, openvpn);
                 
                 if (extendedSearch) {
                     // Include the rules that use the groups in which the OpenVPN is being used.
@@ -710,6 +698,60 @@ export class OpenVPN extends Model {
             } catch (error) { reject(error) }
         });
     };
+
+    public static async searchOpenVPNInRoute(fwcloud: number, openvpn: number): Promise<any> {
+        return await getRepository(Route).createQueryBuilder('route')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoin('route.routeToOpenVPNs', 'routeToOpenVPNs')
+            .innerJoin('routeToOpenVPNs.openVPN', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+            .innerJoinAndSelect('route.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    }
+
+    public static async searchOpenVPNInRoutingRule(fwcloud: number, openvpn: number): Promise<any> {
+        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoin('routing_rule.routingRuleToOpenVPNs', 'routingRuleToOpenVPNs')
+            .innerJoin('routingRuleToOpenVPNs.openVPN', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+            .innerJoinAndSelect('routing_rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    }
+
+    public static async searchOpenVPNInGroupInRoute(fwcloud: number, openvpn: number): Promise<any> {
+        return await getRepository(Route).createQueryBuilder('route')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoinAndSelect('route.routingTable', 'table')
+            .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+            .innerJoin('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
+            .innerJoin('ipObjGroup.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    }
+
+    public static async searchOpenVPNInGroupInRoutingRule(fwcloud: number, openvpn: number): Promise<any> {
+        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+            .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
+            .innerJoin('ipObjGroup.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+            .innerJoin('routing_rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    }
 
     public static searchOpenvpnUsageOutOfThisFirewall(req) {
         return new Promise((resolve, reject) => {

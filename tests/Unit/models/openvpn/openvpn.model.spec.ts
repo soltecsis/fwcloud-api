@@ -31,7 +31,7 @@ describe(OpenVPN.name, () => {
                 caId: fwcloudProduct.ca.id,
                 cn: 'test',
                 days: 1000,
-                type: 2
+                type: 1
             }))).id
         }))
 
@@ -41,15 +41,12 @@ describe(OpenVPN.name, () => {
         })
 
         route = await routeService.update(route.id, {
-            openVPNIds: [openvpn.id]
+            openVPNIds: [{ id: openvpn.id, order: 1}]
         });
         
         routingRule = await routingRuleService.create({
             routingTableId: fwcloudProduct.routingTable.id,
-        });
-
-        routingRule = await routingRuleService.update(routingRule.id, {
-            openVPNIds: [openvpn.id]
+            openVPNIds: [{id: openvpn.id, order: 1}]
         });
     });
 
@@ -59,7 +56,6 @@ describe(OpenVPN.name, () => {
                 const whereUsed: any = await OpenVPN.searchOpenvpnUsage(db.getQuery(), fwcloudProduct.fwcloud.id, openvpn.id, true);
     
                 expect(whereUsed.restrictions.OpenVPNInRoute).to.have.length(1);
-                expect(whereUsed.restrictions.OpenVPNInRoute[0].id).to.be.eq(route.id)
                 expect(whereUsed.restrictions.OpenVPNInRoute[0].route_id).to.be.eq(route.id)
             })
         });
@@ -69,7 +65,6 @@ describe(OpenVPN.name, () => {
                 const whereUsed: any = await OpenVPN.searchOpenvpnUsage(db.getQuery(), fwcloudProduct.fwcloud.id, openvpn.id, true);
     
                 expect(whereUsed.restrictions.OpenVPNInRoutingRule).to.have.length(1);
-                expect(whereUsed.restrictions.OpenVPNInRoutingRule[0].id).to.be.eq(routingRule.id)
                 expect(whereUsed.restrictions.OpenVPNInRoutingRule[0].routing_rule_id).to.be.eq(routingRule.id)
             })
         });

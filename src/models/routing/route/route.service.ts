@@ -26,15 +26,17 @@ import db from "../../../database/database-manager";
 import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
 import { Service } from "../../../fonaments/services/service";
 import { ErrorBag } from "../../../fonaments/validation/validator";
+import { Offset } from "../../../offset";
 import { Firewall } from "../../firewall/Firewall";
+import { FirewallService } from "../../firewall/firewall.service";
 import { Interface } from "../../interface/Interface";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import { PolicyRuleToIPObj } from "../../policy/PolicyRuleToIPObj";
 import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
 import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
-import { RoutingTable } from "../routing-table/routing-table.model";
 import { RouteToIPObjGroup } from "./route-to-ipobj-group.model";
+import { RouteToIPObj } from "./route-to-ipobj.model";
 import { RouteToOpenVPNPrefix } from "./route-to-openvpn-prefix.model";
 import { RouteToOpenVPN } from "./route-to-openvpn.model";
 import { Route } from "./route.model";
@@ -57,12 +59,12 @@ export interface ICreateRoute {
     active?: boolean;
     comment?: string;
     style?: string;
-    ipObjIds?: number[];
-    ipObjGroupIds?: number[];
-    openVPNIds?: number[];
-    openVPNPrefixIds?: number[],
+    ipObjIds?: {id: number, order: number}[];
+    ipObjGroupIds?: {id: number, order: number}[];
+    openVPNIds?: {id: number, order: number}[];
+    openVPNPrefixIds?: {id: number, order: number}[],
     to?: number; //Reference where create the route
-    offset?: 'above' | 'below';
+    offset?: Offset;
 }
 
 interface IUpdateRoute {
@@ -71,10 +73,10 @@ interface IUpdateRoute {
     gatewayId?: number;
     interfaceId?: number;
     style?: string;
-    ipObjIds?: number[];
-    ipObjGroupIds?: number[];
-    openVPNIds?: number[];
-    openVPNPrefixIds?: number[]
+    ipObjIds?: {id: number, order: number}[];
+    ipObjGroupIds?: {id: number, order: number}[];
+    openVPNIds?: {id: number, order: number}[];
+    openVPNPrefixIds?: {id: number, order: number}[]
 }
 
 interface IBulkUpdateRoute {
@@ -84,10 +86,17 @@ interface IBulkUpdateRoute {
 
 export class RouteService extends Service {
     protected _repository: RouteRepository;
+    protected _firewallService: FirewallService;
 
     constructor(app: Application) {
         super(app);
         this._repository = getCustomRepository(RouteRepository);
+    }
+
+    public async build(): Promise<RouteService> {
+        this._firewallService = await this._app.getService(FirewallService.name);
+        
+        return this;
     }
 
     findManyInPath(path: IFindManyRoutePath): Promise<Route[]> {
@@ -103,9 +112,6 @@ export class RouteService extends Service {
     }
 
     async create(data: ICreateRoute): Promise<Route> {
-        const routingTable: RoutingTable = await getRepository(RoutingTable).findOne(data.routingTableId, {relations: ['firewall']});
-        const firewall: Firewall = routingTable.firewall;
-
         const routeData: Partial<Route> = {
             routingTableId: data.routingTableId,
             gatewayId: data.gatewayId,
@@ -133,6 +139,8 @@ export class RouteService extends Service {
             return (await this.move([persisted.id], data.to, data.offset))[0];
         }
 
+        //There is no need to update firewall compilation status as it is done during update()
+        //await this._firewallService.markAsUncompiled(firewall.id);
         return persisted;
     }
 
@@ -148,7 +156,11 @@ export class RouteService extends Service {
 
         if (data.ipObjIds) {
             await this.validateUpdateIPObjs(firewall, data);
-            route.ipObjs = data.ipObjIds.map(id => ({id: id} as IPObj));
+            route.routeToIPObjs = data.ipObjIds.map(item => ({
+                routeId: route.id,
+                ipObjId: item.id,
+                order: item.order
+            } as RouteToIPObj));
         }
 
         if (data.ipObjGroupIds) {
@@ -156,36 +168,28 @@ export class RouteService extends Service {
 
             route.routeToIPObjGroups = data.ipObjGroupIds.map(item => ({
                 routeId: route.id,
-                ipObjGroupId: item,
-                order: 0
+                ipObjGroupId: item.id,
+                order: item.order
             } as RouteToIPObjGroup));
         }
 
         if (data.openVPNIds) {
-            const openVPNs: OpenVPN[] = await getRepository(OpenVPN).find({
-                where: {
-                    id: In(data.openVPNIds)
-                }
-            });
+            await this.validateOpenVPNs(firewall, data);
 
-            route.routeToOpenVPNs = openVPNs.map(item => ({
+            route.routeToOpenVPNs = data.openVPNIds.map(item => ({
                 routeId: route.id,
                 openVPNId: item.id,
-                order: 0
+                order: item.order
             } as RouteToOpenVPN));
         }
 
         if (data.openVPNPrefixIds) {
-            const prefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).find({
-                where: {
-                    id: In(data.openVPNPrefixIds),
-                }
-            })
+            await this.validateOpenVPNPrefixes(firewall, data);
 
-            route.routeToOpenVPNPrefixes = prefixes.map(item => ({
+            route.routeToOpenVPNPrefixes = data.openVPNPrefixIds.map(item => ({
                 routeId: route.id,
                 openVPNPrefixId: item.id,
-                order: 0
+                order: item.order
             } as RouteToOpenVPNPrefix));
         }
 
@@ -198,16 +202,40 @@ export class RouteService extends Service {
         }
 
         route = await this._repository.save(route);
+
+        await this.reorderTo(route.id);
+
+        await this._firewallService.markAsUncompiled(firewall.id);
         
         return route;
     }
 
-    async copy(ids: number[], destRule: number, position: 'above'|'below'): Promise<Route[]> {
+    protected async reorderTo(ruleId: number): Promise<void> {
+        const route: Route = await this._repository.findOneOrFail(ruleId, {relations: [
+            'routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes'
+        ]})
+
+        const items: {order: number}[] = [].concat(
+            route.routeToIPObjs,
+            route.routeToIPObjGroups,
+            route.routeToOpenVPNs,
+            route.routeToOpenVPNPrefixes,
+        );
+
+        items.sort((a, b) => a.order - b.order).map((item, index) => {
+            item.order = index + 1;
+            return item;
+        });
+
+        await this._repository.save(route);
+    }
+
+    async copy(ids: number[], destRule: number, position: Offset): Promise<Route[]> {
         const routes: Route[] = await this._repository.find({
             where: {
                 id: In(ids)
             },
-            relations: ['routingTable', 'ipObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes']
+            relations: ['routingTable', 'routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes']
         });
 
         const lastRuoute: Route = await this._repository.getLastRouteInRoutingTable(routes[0].routingTableId);
@@ -219,6 +247,14 @@ export class RouteService extends Service {
 
         const persisted: Route[] = await this._repository.save(routes);
 
+        const firewalls: Firewall[] = await getRepository(Firewall).find({
+            where: {
+                id: In(routes.map(route => route.routingTable.firewallId))
+            }
+        })
+
+        await this._firewallService.markAsUncompiled(firewalls.map(firewall => firewall.id))
+
         return this.move(persisted.map(item => item.id), destRule, position);
     }
 
@@ -227,6 +263,20 @@ export class RouteService extends Service {
             id: In(ids)
         }, data);
 
+        const firewallIds: number[] = (await this._repository.find({
+            where: {
+                id: In(ids),
+            },
+            join: {
+                alias: 'route',
+                innerJoinAndSelect: {
+                    table: 'route.routingTable',
+                }
+            }
+        })).map(route => route.routingTable.firewallId);
+
+        await this._firewallService.markAsUncompiled(firewallIds);
+
         return this._repository.find({
             where: {
                 id: In(ids)
@@ -234,20 +284,40 @@ export class RouteService extends Service {
         });
     }
 
-    async move(ids: number[], destRule: number, offset: 'above'|'below'): Promise<Route[]> {
-        return this._repository.move(ids, destRule, offset);
+    async move(ids: number[], destRule: number, offset: Offset): Promise<Route[]> {
+        const routes: Route[] = await this._repository.move(ids, destRule, offset);
+        const firewallIds: number[] = (await this._repository.find({
+            where: {
+                id: In(ids),
+            },
+            join: {
+                alias: 'route',
+                innerJoinAndSelect: {
+                    table: 'route.routingTable',
+                }
+            }
+        })).map(route => route.routingTable.firewallId);
+        
+        await this._firewallService.markAsUncompiled(firewallIds);
+
+        return routes;
     }
 
     async remove(path: IFindOneRoutePath): Promise<Route> {
-        const route: Route =  await this.findOneInPath(path, {relations: ['routeToOpenVPNPrefixes']});
-
+        const route: Route =  await this.findOneInPath(path);
+        const firewall: Firewall = await getRepository(Firewall)
+            .createQueryBuilder('firewall')
+            .innerJoin('firewall.routingTables', 'table')
+            .innerJoin('table.routes', 'route', 'route.id = :id', {id: route.id}).getOne();
+        
         route.routeToOpenVPNPrefixes = [];
         route.routeToOpenVPNs = [];
         route.routeToIPObjGroups = [];
+        route.routeToIPObjs = [];
         await this._repository.save(route);
 
         await this._repository.remove(route);
-
+        await this._firewallService.markAsUncompiled(firewall.id);
         return route;
     }
 
@@ -264,6 +334,9 @@ export class RouteService extends Service {
                 id: route.id
             })
         }
+
+        //There is no need to set uncompiled firewalls because this is done in the remove()
+        //await this._firewallService.markAsUncompiled(firewallIds);
 
         return routes;
     }
@@ -283,7 +356,14 @@ export class RouteService extends Service {
         
         const ipObjs: IPObj[] = await getRepository(IPObj).find({
             where: {
-                id: In(data.ipObjIds),
+                id: In(data.ipObjIds.map(item => item.id)),
+                ipObjTypeId: In([
+                    5, // ADDRESS
+                    6, // ADDRESS RANGE
+                    7, // NETWORK
+                    8, // HOST
+                    9, // DNS
+                ])
             },
             relations: ['fwCloud']
         });
@@ -324,7 +404,8 @@ export class RouteService extends Service {
         
         const ipObjGroups: IPObjGroup[] = await getRepository(IPObjGroup).find({
             where: {
-                id: In(data.ipObjGroupIds),
+                id: In(data.ipObjGroupIds.map(item => item.id)),
+                type: 20
             },
             relations: ['fwCloud', 'ipObjToIPObjGroups', 'ipObjToIPObjGroups.ipObj']
         });
@@ -332,7 +413,7 @@ export class RouteService extends Service {
         for (let i = 0; i < ipObjGroups.length; i++) {
             const ipObjGroup: IPObjGroup = ipObjGroups[i];
             
-            if (ipObjGroup.fwCloudId !== firewall.fwCloudId) {
+            if (ipObjGroup.fwCloudId && ipObjGroup.fwCloudId !== firewall.fwCloudId) {
                 errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must exist'];
             } else if (await PolicyRuleToIPObj.isGroupEmpty(db.getQuery(), ipObjGroup.id)) {
                 errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must not be empty'];
@@ -365,6 +446,59 @@ export class RouteService extends Service {
         }
     }
 
+    protected async validateOpenVPNs(firewall: Firewall, data: IUpdateRoute): Promise<void> {
+        const errors: ErrorBag = {};
+
+        if (!data.openVPNIds || data.openVPNIds.length === 0) {
+            return;
+        }
+        
+        const openvpns: OpenVPN[] = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+            .innerJoin('openvpn.crt', 'crt')
+            .whereInIds(data.openVPNIds.map(item => item.id))
+            .where('openvpn.firewallId = :firewall', {firewall: firewall.id})
+            .where('openvpn.parentId IS NOT null')
+            .where('crt.type = 1')
+            .getMany();
+
+        for (let i = 0; i < data.openVPNIds.length; i++) {
+            if (openvpns.findIndex(item => item.id === data.openVPNIds[i].id) < 0) {
+                errors[`openVPNIds.${i}.id`] = ['openVPN does not exists or is not a client']
+            } 
+        }
+        
+        
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
+    }
+
+    protected async validateOpenVPNPrefixes(firewall: Firewall, data: IUpdateRoute): Promise<void> {
+        const errors: ErrorBag = {};
+
+        if (!data.openVPNPrefixIds || data.openVPNPrefixIds.length === 0) {
+            return;
+        }
+        
+        const openvpnprefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).createQueryBuilder('prefix')
+            .innerJoinAndSelect('prefix.openVPN', 'openvpn')
+            .whereInIds(data.openVPNPrefixIds.map(item => item.id))
+            .andWhere('openvpn.firewallId = :firewall', {firewall: firewall.id})
+            .getMany();
+
+        
+        for (let i = 0; i < data.openVPNPrefixIds.length; i++) {
+            if (openvpnprefixes.findIndex(item => item.id === data.openVPNPrefixIds[i].id) < 0) {
+                errors[`openVPNPrefixIds.${i}.id`] = ['openVPNPrefix does not exists']
+            } 
+        }
+        
+        
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
+    }
+
     protected async validateInterface(firewall: Firewall, data: ICreateRoute | IUpdateRoute): Promise<void> {
         const errors: ErrorBag = {};
 
@@ -372,21 +506,17 @@ export class RouteService extends Service {
             return;
         }
         
-        const intr: Interface[] = await getRepository(Interface).find({
-            where: {
-                id: data.interfaceId,
-                firewallId: firewall.id
-            }
-        });
+        const intr: Interface = await getRepository(Interface).createQueryBuilder('interface')
+            .where('interface.id = :id', {id: data.interfaceId})
+            .andWhere('interface.firewallId = :firewallId', {firewallId: firewall.id})
+            .getOne()
 
-        if (!intr) {
-            errors.interfaceId = ['interface is not valid'];
+        if (intr) {
+            return;
         }
         
-        
-        if (Object.keys(errors).length > 0) {
-            throw new ValidationException('The given data was invalid', errors);
-        }
+        errors.interfaceId = ['interface is not valid'];
+        throw new ValidationException('The given data was invalid', errors);
     }
 
     protected getFindInPathOptions(path: Partial<IFindOneRoutePath>, options: FindOneOptions<Route> | FindManyOptions <Route> = {}): FindOneOptions<Route> | FindManyOptions<Route> {

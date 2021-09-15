@@ -38,12 +38,15 @@ export class IPObjGroupRepository extends Repository<IPObjGroup> {
     if (entity === 'route') {
       query
         .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .addSelect('routeToIPObjGroups.order', '_order')
         .innerJoin('routeToIPObjGroups.route', entity)
     }
 
     if (entity === 'rule') {
       query
-        .innerJoin('ipobjGroup.routingRules', entity)
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+        .addSelect('routingRuleToIPObjGroups.order', '_order')
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity)
     }
       
     query
