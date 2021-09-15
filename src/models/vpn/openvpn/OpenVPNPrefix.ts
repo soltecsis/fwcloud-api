@@ -474,25 +474,25 @@ export class OpenVPNPrefix extends Model {
                 let answer: any = {};
                 answer.restrictions = {};
                 answer.restrictions.PrefixInRule = [];
+                answer.restrictions.PrefixInRoute = [];
+                answer.restrictions.PrefixInRoutingRule = [];
                 answer.restrictions.PrefixInGroup = [];
 
                 try {
                     for (let prefix of result) {
                         const data: any = await this.searchPrefixUsage(req.dbCon, req.body.fwcloud, prefix.id);
                         if (data.result) {
-                            // OpenVPN prefix found in rules of other firewall.
-                            if (data.restrictions.PrefixInRule.length > 0) {
-                                for (let rule of data.restrictions.PrefixInRule) {
-                                    if (rule.firewall_id != req.body.firewall)
-                                        answer.restrictions.PrefixInRule.push(rule);
-                                }
-                            }
-
-                            // OpenVPN prefix found in a group.
-                            if (data.restrictions.PrefixInGroup.length > 0)
-                                answer.restrictions.PrefixInGroup = answer.restrictions.PrefixInGroup.concat(data.restrictions.PrefixInGroup);
+                            answer.restrictions.PrefixInRule = answer.restrictions.PrefixInRule.concat(data.restrictions.PrefixInRule);
+                            answer.restrictions.PrefixInRoute = answer.restrictions.PrefixInRoute.concat(data.restrictions.PrefixInRoute);
+                            answer.restrictions.PrefixInRoutingRule = answer.restrictions.PrefixInRoutingRule.concat(data.restrictions.PrefixInRoutingRule);
+                            answer.restrictions.PrefixInGroup = answer.restrictions.PrefixInGroup.concat(data.restrictions.PrefixInGroup);
                         }
                     }
+
+                    // Remove items of this firewall.
+                    answer.restrictions.PrefixInRule = answer.restrictions.PrefixInRule.filter(item => item.firewall_id != req.body.firewall);
+                    answer.restrictions.PrefixInRoute = answer.restrictions.PrefixInRoute.filter(item => item.firewall_id != req.body.firewall);
+                    answer.restrictions.PrefixInRoutingRule = answer.restrictions.PrefixInRoutingRule.filter(item => item.firewall_id != req.body.firewall);
                 } catch (error) { reject(error) }
 
                 resolve(answer);

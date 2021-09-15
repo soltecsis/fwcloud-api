@@ -32,6 +32,8 @@ import { Firewall } from "../firewall/Firewall";
 import { logger } from "../../fonaments/abstract-application";
 import { Route } from "../routing/route/route.model";
 import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface/routing-rule-to-interface.model";
+import { RouteToIPObj } from "../routing/route/route-to-ipobj.model";
+import { RoutingRuleToIPObj } from "../routing/routing-rule/routing-rule-to-ipobj.model";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -359,6 +361,8 @@ export class Interface extends Model {
 			answer.restrictions.InterfaceInRules_I = [];
 			answer.restrictions.InterfaceInRules_O = [];
 			answer.restrictions.IpobjInterfaceInRule = [];
+			answer.restrictions.IpobjInterfaceInRoute = [];
+			answer.restrictions.IpobjInterfaceInRoutingRule = [];
 			answer.restrictions.IpobjInterfaceInGroup = [];
 			answer.restrictions.IpobjInterfaceInOpenvpn = [];
 
@@ -371,10 +375,18 @@ export class Interface extends Model {
 						answer.restrictions.InterfaceInRules_I = answer.restrictions.InterfaceInRules_I.concat(data.restrictions.InterfaceInRules_I);
 						answer.restrictions.InterfaceInRules_O = answer.restrictions.InterfaceInRules_O.concat(data.restrictions.InterfaceInRules_O);
 						answer.restrictions.IpobjInterfaceInRule = answer.restrictions.IpobjInterfaceInRule.concat(data.restrictions.IpobjInterfaceInRule);
+						answer.restrictions.IpobjInterfaceInRoute = answer.restrictions.IpobjInterfaceInRoute.concat(data.restrictions.IpobjInterfaceInRoute);
+						answer.restrictions.IpobjInterfaceInRoutingRule = answer.restrictions.IpobjInterfaceInRoutingRule.concat(data.restrictions.IpobjInterfaceInRoutingRule);
 						answer.restrictions.IpobjInterfaceInGroup = answer.restrictions.IpobjInterfaceInGroup.concat(data.restrictions.IpobjInterfaceInGroup);
 						answer.restrictions.IpobjInterfaceInOpenvpn = answer.restrictions.IpobjInterfaceInOpenvpn.concat(data.restrictions.IpobjInterfaceInOpenvpn);
 					}
 				}
+
+				// Remove items of this firewall.
+				answer.restrictions.IpobjInterfaceInRule = answer.restrictions.IpobjInterfaceInRule.filter(item => item.firewall_id != req.body.firewall);
+				answer.restrictions.IpobjInterfaceInRoute = answer.restrictions.IpobjInterfaceInRoute.filter(item => item.firewall_id != req.body.firewall);
+				answer.restrictions.IpobjInterfaceInRoutingRule = answer.restrictions.IpobjInterfaceInRoutingRule.filter(item => item.firewall_id != req.body.firewall);
+
 			} catch (error) { return reject(error) }
 
 			resolve(answer);
@@ -402,6 +414,7 @@ export class Interface extends Model {
 						search.restrictions.InterfaceInFirewall = await this.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
 						search.restrictions.InterfaceInHost = await InterfaceIPObj.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
 						search.restrictions.LastInterfaceWithAddrInHostInRule = await IPObj.searchLastInterfaceWithAddrInHostInRule(id, fwcloud);
+						
 						search.restrictions.InterfaceInRoute = await getRepository(Route).createQueryBuilder('route')
 							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
 							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
@@ -411,6 +424,30 @@ export class Interface extends Model {
 							.leftJoin('firewall.cluster', 'cluster')
 							.where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
 							.getRawMany();
+
+						search.restrictions.IpobjInterfaceInRoute = await getRepository(RouteToIPObj).createQueryBuilder('routeToIPObj')
+							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+							.innerJoin('routeToIPObj.ipObj', 'ipobj')
+							.innerJoinAndSelect('ipobj.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoin('routeToIPObj.route', 'route')
+							.innerJoin('route.routingTable', 'table')
+							.innerJoin('table.firewall', 'firewall')
+							.leftJoin('firewall.cluster', 'cluster')
+							.where('firewall.fwCloudId = :fwcloud', {fwcloud})  
+							.getRawMany()
+
+						search.restrictions.IpobjInterfaceInRoutingRule = await getRepository(RoutingRuleToIPObj).createQueryBuilder('routingRuleToIPObj')
+							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+							.innerJoin('routingRuleToIPObj.ipObj', 'ipobj')
+							.innerJoinAndSelect('ipobj.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoin('routingRuleToIPObj.routingRule', 'rule')
+							.innerJoin('rule.routingTable', 'table')
+							.innerJoin('table.firewall', 'firewall')
+							.leftJoin('firewall.cluster', 'cluster')
+							.where('firewall.fwCloudId = :fwcloud', {fwcloud})  
+							.getRawMany()
 
 						for (let key in search.restrictions) {
 							if (search.restrictions[key].length > 0) {
