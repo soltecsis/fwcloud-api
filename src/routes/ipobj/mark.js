@@ -73,6 +73,16 @@ router.put('/', async (req, res) => {
 
    	// Modify the mark data.
 		await Mark.modifyMark(req);
+		//Update all group nodes which references the mark to set the new name
+		await getRepository(Tree).createQueryBuilder('node')
+			.update(Tree)
+			.set({
+				name: req.body.name
+			})
+			.where('node_type = :type', {type: "MRK"})
+			.andWhere('id_obj = :id', {id: req.body.mark})
+			.execute();
+
 		const mark = await getRepository(Mark).findOneOrFail(req.body.mark, {
 			relations: ['policyRules', 'routingRuleToMarks', 'routingRuleToMarks.routingRule', 'routingRuleToMarks.routingRule.routingTable']
 		});
