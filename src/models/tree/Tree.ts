@@ -47,6 +47,7 @@ export type TreeNode = {
 
 export type TreeType = 'FIREWALLS' | 'OBJECTS' | 'SERVICES' | 'CA'; 
 
+@Entity(tableName)
 export class Tree extends Model {
 
     @PrimaryGeneratedColumn()

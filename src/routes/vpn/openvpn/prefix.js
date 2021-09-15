@@ -24,7 +24,11 @@
 var express = require('express');
 var router = express.Router();
 import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { logger } from '../../../fonaments/abstract-application';
+import { getRepository } from 'typeorm';
+import { Tree } from '../../../models/tree/Tree';
 const restrictedCheck = require('../../../middleware/restricted');
 const fwcError = require('../../../utils/error_table');
 
@@ -71,16 +75,30 @@ router.put('/', async (req, res) => {
 		if (search.result && (await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.body.name)).length < 1)
 			throw fwcError.IPOBJ_EMPTY_CONTAINER;
 
-   	// Modify the prefix name.
+   		// Modify the prefix name.
 		await OpenVPNPrefix.modifyPrefix(req);
 
 		// Apply the new CRT prefix container.
 		await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, req.prefix.openvpn);
 
+		//Update all group nodes which references the prefix to set the new name
+		await getRepository(Tree).createQueryBuilder('node')
+			.update(Tree)
+			.set({
+				name: req.body.name
+			})
+			.where('node_type = :type', {type: "PRO"})
+			.andWhere('id_obj = :id', {id: req.body.prefix})
+			.execute();
+
 		// Update the compilation/installation flags of all firewalls that use this prefix.
 		await OpenVPNPrefix.updatePrefixesFWStatus(req.dbCon, req.body.fwcloud, req.body.prefix);
 
-		res.status(204).end();
+		var data_return = {};
+		await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
+		await OpenVPN.getOpenvpnStatusNotZero(req, data_return);
+
+		res.status(204).json(data_return);
 	} catch(error) {
 		logger().error('Error updating a prefix: ' + JSON.stringify(error));
 		res.status(400).json(error);
