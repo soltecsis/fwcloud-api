@@ -9,6 +9,7 @@ import { InterfaceIPObj } from "../../../../src/models/interface/InterfaceIPObj"
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
 import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
 import { IPObjToIPObjGroup } from "../../../../src/models/ipobj/IPObjToIPObjGroup";
+import { Mark } from "../../../../src/models/ipobj/Mark";
 import { Route } from "../../../../src/models/routing/route/route.model";
 import { RouteService } from "../../../../src/models/routing/route/route.service";
 import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
@@ -63,7 +64,7 @@ describe(RouteService.name, () => {
             expect(firewall.status).to.eq(3);
         });
 
-        describe('rule_order', () => {
+        describe('route_order', () => {
             let routeOrder1: Route;
             let routeOrder2: Route;
             let routeOrder3: Route;
@@ -629,6 +630,115 @@ describe(RouteService.name, () => {
             await firewall.reload();
 
             expect(firewall.status).to.eq(3);
+        });
+    });
+
+    describe('moveTo', () => {
+        let route1: Route;
+        let route2: Route;
+        
+        beforeEach(async () => {
+            route1 = await service.create({
+                gatewayId: gateway.id,
+                routingTableId: fwcProduct.routingTable.id,
+            });
+
+            route2 = await service.create({
+                routingTableId: fwcProduct.routingTable.id,
+                gatewayId: gateway.id
+            });
+        });
+
+        describe('ipObj', () => {
+            it('should move ipObj', async () => {
+                await service.update(route1.id, {
+                    ipObjIds: [{
+                        id: fwcProduct.ipobjs.get('address').id,
+                        order: 1
+                    }]
+                });
+
+                await service.moveTo(route1.id, route2.id, {
+                    fromId: route1.id,
+                    toId: route2.id,
+                    ipObjId: fwcProduct.ipobjs.get('address').id
+                });
+
+                const refreshedRoute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToIPObjs']});
+                const refreshedroute2: Route = await getRepository(Route).findOne(route2.id, { relations: ['routeToIPObjs']});
+
+                expect(refreshedRoute1.routeToIPObjs).length(0);
+                expect(refreshedroute2.routeToIPObjs).length(1);
+            })
+        });
+
+        describe('ipObjGroups', () => {
+            it('should move ipObjGroup', async () => {
+                await service.update(route1.id, {
+                    ipObjGroupIds: [{
+                        id: fwcProduct.ipobjGroup.id,
+                        order: 1
+                    }]
+                });
+
+                await service.moveTo(route1.id, route2.id, {
+                    fromId: route1.id,
+                    toId: route2.id,
+                    ipObjGroupId: fwcProduct.ipobjGroup.id,
+                });
+
+                const refreshedroute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToIPObjGroups']});
+                const refreshedroute2: Route = await getRepository(Route).findOne(route2.id, { relations: ['routeToIPObjGroups']});
+
+                expect(refreshedroute1.routeToIPObjGroups).length(0);
+                expect(refreshedroute2.routeToIPObjGroups).length(1);
+            })
+        });
+
+        describe('openVPN', () => {
+            it('should move openVPN', async () => {
+                await service.update(route1.id, {
+                    openVPNIds: [{
+                        id: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
+                        order: 1
+                    }]
+                });
+
+                await service.moveTo(route1.id, route2.id, {
+                    fromId: route1.id,
+                    toId: route2.id,
+                    openVPNId: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
+                });
+
+                const refreshedroute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToOpenVPNs']});
+                const refreshedroute2: Route = await getRepository(Route).findOne(route2.id, { relations: ['routeToOpenVPNs']});
+
+                expect(refreshedroute1.routeToOpenVPNs).length(0);
+                expect(refreshedroute2.routeToOpenVPNs).length(1);
+            })
+        })
+
+        describe('openVPNPrefix', () => {
+            it('should move openVPNPrefix', async () => {
+                await service.update(route1.id, {
+                    openVPNPrefixIds: [{
+                        id: fwcProduct.openvpnPrefix.id,
+                        order: 1
+                    }]
+                });
+
+                await service.moveTo(route1.id, route2.id, {
+                    fromId: route1.id,
+                    toId: route2.id,
+                    openVPNPrefixId: fwcProduct.openvpnPrefix.id,
+                });
+
+                const refreshedroute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToOpenVPNPrefixes']});
+                const refreshedroute2: Route = await getRepository(Route).findOne(route2.id, { relations: ['routeToOpenVPNPrefixes']});
+
+                expect(refreshedroute1.routeToOpenVPNPrefixes).length(0);
+                expect(refreshedroute2.routeToOpenVPNPrefixes).length(1);
+            })
         });
     });
 

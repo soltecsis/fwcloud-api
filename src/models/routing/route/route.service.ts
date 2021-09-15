@@ -84,6 +84,15 @@ interface IBulkUpdateRoute {
     active?: boolean;
 }
 
+interface IMoveToRoute {
+    fromId: number;
+    toId: number;
+    ipObjId?: number;
+    ipObjGroupId?: number;
+    openVPNId?: number;
+    openVPNPrefixId?: number;
+}
+
 export class RouteService extends Service {
     protected _repository: RouteRepository;
     protected _firewallService: FirewallService;
@@ -301,6 +310,79 @@ export class RouteService extends Service {
         await this._firewallService.markAsUncompiled(firewallIds);
 
         return routes;
+    }
+
+    async moveTo(fromId: number, toId: number, data: IMoveToRoute): Promise<[Route, Route]> {
+        const fromRule: Route = await getRepository(Route).findOneOrFail(fromId, {
+            relations: ['routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes']
+        });
+        const toRule: Route = await getRepository(Route).findOneOrFail(toId, {
+            relations: ['routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes']
+        });
+        
+        let lastPosition: number = 0;
+        
+        [].concat(
+            toRule.routeToIPObjs,
+            toRule.routeToIPObjGroups,
+            toRule.routeToOpenVPNs,
+            toRule.routeToOpenVPNPrefixes
+        ).forEach(item => {
+            lastPosition < item.order ? lastPosition = item.order : null;
+        });
+
+        if (data.ipObjId !== undefined) {
+            const index: number = fromRule.routeToIPObjs.findIndex(item => item.ipObjId === data.ipObjId);
+            if (index >= 0) {
+                fromRule.routeToIPObjs.splice(index, 1);
+                toRule.routeToIPObjs.push({
+                    routeId: toRule.id,
+                    ipObjId: data.ipObjId,
+                    order: lastPosition + 1
+                } as RouteToIPObj);
+            }
+        }
+
+        if (data.ipObjGroupId !== undefined) {
+            const index: number = fromRule.routeToIPObjGroups.findIndex(item => item.ipObjGroupId === data.ipObjGroupId);
+            if (index >= 0) {
+                fromRule.routeToIPObjGroups.splice(index, 1);
+                toRule.routeToIPObjGroups.push({
+                    routeId: toRule.id,
+                    ipObjGroupId: data.ipObjGroupId,
+                    order: lastPosition + 1
+                } as RouteToIPObjGroup);
+
+            }
+        }
+
+        if (data.openVPNId !== undefined) {
+            const index: number = fromRule.routeToOpenVPNs.findIndex(item => item.openVPNId === data.openVPNId);
+            if (index >= 0) {
+                fromRule.routeToOpenVPNs.splice(index, 1);
+                toRule.routeToOpenVPNs.push({
+                    routeId: toRule.id,
+                    openVPNId: data.openVPNId,
+                    order: lastPosition + 1
+                } as RouteToOpenVPN);
+
+            }
+        }
+
+        if (data.openVPNPrefixId !== undefined) {
+            const index: number = fromRule.routeToOpenVPNPrefixes.findIndex(item => item.openVPNPrefixId === data.openVPNPrefixId);
+            if (index >= 0) {
+                fromRule.routeToOpenVPNPrefixes.splice(index, 1);
+                toRule.routeToOpenVPNPrefixes.push({
+                    routeId: toRule.id,
+                    openVPNPrefixId: data.openVPNPrefixId,
+                    order: lastPosition + 1
+                } as RouteToOpenVPNPrefix);
+
+            }
+        }
+
+        return await this._repository.save([fromRule, toRule]) as [Route, Route];
     }
 
     async remove(path: IFindOneRoutePath): Promise<Route> {
