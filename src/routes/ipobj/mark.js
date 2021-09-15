@@ -25,6 +25,8 @@ var express = require('express');
 var router = express.Router();
 
 import { Mark } from '../../models/ipobj/Mark';
+import { Firewall } from '../../models/firewall/Firewall';
+import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../models/tree/Tree';
 import { app, logger } from '../../fonaments/abstract-application';
 import { getRepository } from 'typeorm';
@@ -83,7 +85,11 @@ router.put('/', async (req, res) => {
 
 		await firewallService.markAsUncompiled(affectedFirewallsIds);
 
-		res.status(204).end();
+		var data_return = {};
+		await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
+		await OpenVPN.getOpenvpnStatusNotZero(req, data_return);
+
+		res.status(200).json(data_return);
 	} catch(error) {
 		logger().error('Error updating new mark: ' + JSON.stringify(error));
 		res.status(400).json(error);
