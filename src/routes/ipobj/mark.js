@@ -26,7 +26,9 @@ var router = express.Router();
 
 import { Mark } from '../../models/ipobj/Mark';
 import { Tree } from '../../models/tree/Tree';
-import { logger } from '../../fonaments/abstract-application';
+import { app, logger } from '../../fonaments/abstract-application';
+import { getRepository } from 'typeorm';
+import { FirewallService } from '../../models/firewall/firewall.service';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -69,6 +71,17 @@ router.put('/', async (req, res) => {
 
    	// Modify the mark data.
 		await Mark.modifyMark(req);
+		const mark = await getRepository(Mark).findOneOrFail(req.body.mark, {
+			relations: ['policyRules', 'routingRuleToMarks', 'routingRuleToMarks.routingRule', 'routingRuleToMarks.routingRule.routingTable']
+		});
+
+		const firewallService = await app().getService(FirewallService.name);
+		const affectedFirewallsIds = [].concat(
+			mark.policyRules.map(item => item.firewallId),
+			mark.routingRuleToMarks.map(item => item.routingRule.routingTable.firewallId)
+		);
+
+		await firewallService.markAsUncompiled(affectedFirewallsIds);
 
 		res.status(204).end();
 	} catch(error) {
