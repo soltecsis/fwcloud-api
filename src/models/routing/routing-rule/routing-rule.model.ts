@@ -166,7 +166,7 @@ export class RoutingRule extends Model {
             .innerJoin('routing_rule.routingTable', 'table')
             .innerJoin('table.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
-            .where('routing_rule.id IN (:ids)', {ids: result.map(item => item.routingRuleId).join(", ")})
+            .whereInIds(result.map(item => item.routingRuleId))
             .getRawMany();
     }
 
@@ -182,6 +182,7 @@ export class RoutingRule extends Model {
             .innerJoin('rule.routingTable', 'table')
             .innerJoin('table.firewall', 'firewall')
             .where('intIPObj.id = :ipobjId', {ipobjId})
+            .andWhere('ipObjGroup.type = 20')
             .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud})  
             .getMany();
 
@@ -224,7 +225,7 @@ export class RoutingRule extends Model {
             .innerJoin('routing_rule.routingTable', 'table')
             .innerJoin('table.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
-            .where('routing_rule.id IN (:ids)', {ids: result.map(item => item.routingRuleId).join(", ")})
+            .whereInIds(result.map(item => item.routingRuleId))
             .getRawMany();
     }
 }

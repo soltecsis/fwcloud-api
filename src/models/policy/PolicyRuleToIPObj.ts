@@ -1400,6 +1400,7 @@ export class PolicyRuleToIPObj extends Model {
             .innerJoin('rule.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
             .where('rule.id IN (:ids)', {ids: result.map(item => item.policyRuleId)})
+            .andWhere('group.type = 20')
         .getRawMany();
     }
 
