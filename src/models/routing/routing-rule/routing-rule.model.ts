@@ -225,6 +225,7 @@ export class RoutingRule extends Model {
             .innerJoin('table.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
             .where('routing_rule.id IN (:ids)', {ids: result.map(item => item.routingRuleId).join(", ")})
+            .andWhere('ipObjGroup.type = 20')
             .getRawMany();
     }
 }

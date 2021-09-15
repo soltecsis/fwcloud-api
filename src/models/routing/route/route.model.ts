@@ -226,6 +226,7 @@ export class Route extends Model {
             .innerJoin('table.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
             .whereInIds(result.map(item => item.routeId))
+            .andWhere('ipObjGroup.type = 20')
         .getRawMany();
     }
 }
