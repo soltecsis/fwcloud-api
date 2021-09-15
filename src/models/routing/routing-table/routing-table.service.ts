@@ -141,7 +141,7 @@ export class RoutingTableService extends Service {
 
         if (tableWithRules.routingRules.length > 0) {
             throw new ValidationException('Routing table cannot be removed', {
-                id: ['Cannot remove a routing table which contains routing rules']
+                id: ['Cannot remove a routing table used in a routing rule']
             });
         }
 
