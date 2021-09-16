@@ -154,7 +154,7 @@ export class RoutingTableController extends Controller {
             .getMany();
 
         return ResponseBuilder.buildResponse().status(200).body({
-            rules
+            routingTableUsedInRule: rules
         });
     }
     
