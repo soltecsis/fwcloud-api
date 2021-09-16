@@ -494,8 +494,8 @@ describe(describeName('Routing Table E2E Tests'), () => {
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
                     .then(response => {
-                        expect(response.body.data.routingTableUsedInRule).to.has.length(1);
-                        expect(response.body.data.routingTableUsedInRule[0].id).to.eq(rule.id);
+                        expect(response.body.data.restrictions.routingTableUsedInRule).to.has.length(1);
+                        expect(response.body.data.restrictions.routingTableUsedInRule[0].id).to.eq(rule.id);
                     });
             });
 
@@ -509,8 +509,8 @@ describe(describeName('Routing Table E2E Tests'), () => {
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200)
                 .then(response => {
-                    expect(response.body.data.routingTableUsedInRule).to.has.length(1);
-                    expect(response.body.data.routingTableUsedInRule[0].id).to.eq(rule.id);
+                    expect(response.body.data.restrictions.routingTableUsedInRule).to.has.length(1);
+                    expect(response.body.data.restrictions.routingTableUsedInRule[0].id).to.eq(rule.id);
                 });
             });
         })
