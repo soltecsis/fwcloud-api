@@ -151,6 +151,7 @@ export class RoutingTableController extends Controller {
 
         const rules: RoutingRule[] = await getRepository(RoutingRule).createQueryBuilder('rule')
             .select('rule.id', 'routing_rule_id')
+            .addSelect('table.id', 'routing_table_id')
             .addSelect("firewall.id","firewall_id")
             .addSelect("firewall.name","firewall_name")
             .addSelect("cluster.id","cluster_id")
