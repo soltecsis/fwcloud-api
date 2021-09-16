@@ -44,6 +44,7 @@ import { RouteControllerBulkUpdateDto } from "../../../../../src/controllers/rou
 import { RouteControllerCopyDto } from "../../../../../src/controllers/routing/route/dtos/copy.dto";
 import { RouteRepository } from "../../../../../src/models/routing/route/route.repository";
 import { Offset } from "../../../../../src/offset";
+import { RouteMoveToDto } from "../../../../../src/controllers/routing/route/dtos/move-to.dto";
 
 describe(describeName('Route E2E Tests'), () => {
     let app: Application;
@@ -260,6 +261,90 @@ describe(describeName('Route E2E Tests'), () => {
                 expect((await getRepository(Route).findOne(routeOrder2.id)).route_order).to.eq(2);
                 expect((await getRepository(Route).findOne(routeOrder3.id)).route_order).to.eq(3);
                 expect((await getRepository(Route).findOne(routeOrder4.id)).route_order).to.eq(4);
+            });
+
+
+        });
+
+        describe('@moveTo', () => {
+            let rule1: Route;
+            let rule2: Route;
+            let data: RouteMoveToDto;
+
+            beforeEach(async () => {
+                rule1 = await routeService.create({
+                    routingTableId: table.id,
+                    gatewayId: gateway.id,
+                    ipObjIds: [
+                        {id: gateway.id, order: 1}
+                    ]
+                });
+                
+                rule2 = await routeService.create({
+                    routingTableId: table.id,
+                    gatewayId: gateway.id
+                });
+
+                data = {
+                    fromId: rule1.id,
+                    toId: rule2.id,
+                    ipObjId: gateway.id
+                }
+            });
+
+            it('guest user should not move from items between rules', async () => {
+				return await request(app.express)
+					.put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveTo', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not move from items between rules', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveTo', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should move from items between rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveTo', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+            });
+
+            it('admin user should move from items between rules', async () => {
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveTo', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .send(data)
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
             });
 
 

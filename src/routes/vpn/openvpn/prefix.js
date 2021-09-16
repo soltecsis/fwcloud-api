@@ -24,7 +24,10 @@
 var express = require('express');
 var router = express.Router();
 import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
-import { logger } from '../../../fonaments/abstract-application';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
+import { app, logger } from '../../../fonaments/abstract-application';
+import { OpenVPNPrefixService } from '../../../models/vpn/openvpn/openvpn-prefix.service';
 const restrictedCheck = require('../../../middleware/restricted');
 const fwcError = require('../../../utils/error_table');
 
@@ -61,26 +64,15 @@ router.post('/', async (req, res) => {
  */
 router.put('/', async (req, res) => {
 	try {
-		// Verify that the new prefix name doesn't already exists.
-		req.body.ca = req.prefix.ca;
-		if (await OpenVPNPrefix.existsPrefix(req.dbCon,req.prefix.openvpn,req.body.name))
-			throw fwcError.ALREADY_EXISTS;
+		
+		const openVPNPrefixService = await app().getService(OpenVPNPrefixService.name);
+		await openVPNPrefixService.update(req);
+		
+		var data_return = {};
+		await Firewall.getFirewallStatusNotZero(req.body.fwcloud, data_return);
+		await OpenVPN.getOpenvpnStatusNotZero(req, data_return);
 
-		// If we modify a prefix used in a rule or group, and the new prefix name has no openvpn clients, then don't allow it.
-		const search = await OpenVPNPrefix.searchPrefixUsage(req.dbCon,req.body.fwcloud,req.body.prefix);
-		if (search.result && (await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon,req.prefix.openvpn,req.body.name)).length < 1)
-			throw fwcError.IPOBJ_EMPTY_CONTAINER;
-
-   	// Modify the prefix name.
-		await OpenVPNPrefix.modifyPrefix(req);
-
-		// Apply the new CRT prefix container.
-		await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, req.prefix.openvpn);
-
-		// Update the compilation/installation flags of all firewalls that use this prefix.
-		await OpenVPNPrefix.updatePrefixesFWStatus(req.dbCon, req.body.fwcloud, req.body.prefix);
-
-		res.status(204).end();
+		res.status(204).json(data_return);
 	} catch(error) {
 		logger().error('Error updating a prefix: ' + JSON.stringify(error));
 		res.status(400).json(error);

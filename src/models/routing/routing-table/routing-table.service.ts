@@ -141,7 +141,7 @@ export class RoutingTableService extends Service {
 
         if (tableWithRules.routingRules.length > 0) {
             throw new ValidationException('Routing table cannot be removed', {
-                id: ['Cannot remove a routing table which contains routing rules']
+                id: ['Cannot remove a routing table used in a routing rule']
             });
         }
 
@@ -151,9 +151,12 @@ export class RoutingTableService extends Service {
         
         await this._repository.remove(table);
         
-        const node: {id: number} = await Tree.getNodeByNameAndType(tableWithRules.firewall.fwCloudId, table.name, 'RT') as {id: number};
-        await Tree.deleteNodesUnderMe(db.getQuery(), tableWithRules.firewall.fwCloudId, node.id);
-        await Tree.deleteFwc_Tree_node(node.id);
+        const nodes: any[] = await Tree.getNodeInfo(db.getQuery(), tableWithRules.firewall.fwCloudId, 'RT', tableWithRules.id) as any[];
+        if (nodes.length > 0) {
+            const node_id = nodes[0].id;
+            await Tree.deleteNodesUnderMe(db.getQuery(), tableWithRules.firewall.fwCloudId, node_id);
+            await Tree.deleteFwc_Tree_node(node_id);
+        }
 
         await this._firewallService.markAsUncompiled(tableWithRules.firewallId);
 

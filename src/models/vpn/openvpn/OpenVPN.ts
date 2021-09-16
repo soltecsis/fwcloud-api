@@ -764,25 +764,25 @@ export class OpenVPN extends Model {
                 let answer: any = {};
                 answer.restrictions = {};
                 answer.restrictions.OpenvpnInRule = [];
+                answer.restrictions.OpenVPNInRoute = [];
+                answer.restrictions.OpenVPNInRoutingRule = [];
                 answer.restrictions.OpenvpnInGroup = [];
 
                 try {
                     for (let openvpn of result) {
                         const data: any = await this.searchOpenvpnUsage(req.dbCon, req.body.fwcloud, openvpn.id);
                         if (data.result) {
-                            // OpenVPN config found in rules of other firewall.
-                            if (data.restrictions.OpenvpnInRule.length > 0) {
-                                for (let rule of data.restrictions.OpenvpnInRule) {
-                                    if (rule.firewall_id != req.body.firewall)
-                                        answer.restrictions.OpenvpnInRule.push(rule);
-                                }
-                            }
-
-                            // OpenVPN config found in a group.
-                            if (data.restrictions.OpenvpnInGroup.length > 0)
-                                answer.restrictions.OpenvpnInGroup = answer.restrictions.OpenvpnInGroup.concat(data.restrictions.OpenvpnInGroup);
+                            answer.restrictions.OpenvpnInRule = answer.restrictions.OpenvpnInRule.concat(data.restrictions.OpenvpnInRule);
+                            answer.restrictions.OpenVPNInRoute = answer.restrictions.OpenVPNInRoute.concat(data.restrictions.OpenVPNInRoute);
+                            answer.restrictions.OpenVPNInRoutingRule = answer.restrictions.OpenVPNInRoutingRule.concat(data.restrictions.OpenVPNInRoutingRule);
+                            answer.restrictions.OpenvpnInGroup = answer.restrictions.OpenvpnInGroup.concat(data.restrictions.OpenvpnInGroup);
                         }
                     }
+
+                    // Remove items of this firewall.
+                    answer.restrictions.OpenvpnInRule = answer.restrictions.OpenvpnInRule.filter(item => item.firewall_id != req.body.firewall);
+                    answer.restrictions.OpenVPNInRoute = answer.restrictions.OpenVPNInRoute.filter(item => item.firewall_id != req.body.firewall);
+                    answer.restrictions.OpenVPNInRoutingRule = answer.restrictions.OpenVPNInRoutingRule.filter(item => item.firewall_id != req.body.firewall);
                 } catch (error) { reject(error) }
 
                 resolve(answer);
