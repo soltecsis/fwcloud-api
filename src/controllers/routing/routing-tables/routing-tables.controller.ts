@@ -155,7 +155,9 @@ export class RoutingTableController extends Controller {
 
         if (rules.length > 0) {
             return ResponseBuilder.buildResponse().status(200).body({
-                routingTableUsedInRule: rules
+                restrictions: {
+                    routingTableUsedInRule: rules
+                }
             });
         }
 
