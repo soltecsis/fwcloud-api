@@ -63,6 +63,7 @@ import { RoutingRuleServiceProvider } from "./models/routing/routing-rule/routin
 import { RoutingGroupServiceProvider } from "./models/routing/routing-group/routing-group.provider";
 import { RouteGroupServiceProvider } from "./models/routing/route-group/route-group.provider";
 import { ClusterServiceProvider } from "./models/firewall/cluster.provider";
+import { OpenVPNPrefixServiceProvider } from "./models/vpn/openvpn/openvpn-prefix.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -127,7 +128,8 @@ export class Application extends HTTPApplication {
             RouteServiceProvider,
             RoutingRuleServiceProvider,
             RoutingGroupServiceProvider,
-            RouteGroupServiceProvider
+            RouteGroupServiceProvider,
+            OpenVPNPrefixServiceProvider
         ]
     }
 

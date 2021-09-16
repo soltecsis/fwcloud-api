@@ -149,7 +149,7 @@ export class OpenVPNPrefix extends Model {
     }
 
     // Get all prefixes for the indicated CA.
-    public static getOpenvpnClientesUnderPrefix(dbCon, openvpn, prefix_name) {
+    public static getOpenvpnClientesUnderPrefix(dbCon, openvpn, prefix_name): Promise<unknown[]> {
         return new Promise((resolve, reject) => {
             let sql = `select VPN.id from openvpn VPN 
                 inner join crt CRT on CRT.id=VPN.crt
@@ -200,25 +200,6 @@ export class OpenVPNPrefix extends Model {
                     for (let j=0; j<PrefixInGroupIpRule.length; j++)
                         await Firewall.updateFirewallStatus(fwcloud, PrefixInGroupIpRule[j].firewall_id, "|3");
                 }    
-            } catch(error) { return reject(error) }
-
-            resolve();
-        });
-    }
-
-    // Activate the compile/install flags of all the firewalls that use this OpenVPN prefix.
-    public static updatePrefixesFWStatus(dbCon: any, fwcloud: number, prefix: number): Promise<void> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const search: any = await OpenVPNPrefix.searchPrefixUsage(dbCon, fwcloud, prefix, true);
-                const PrefixInRule: any = search.restrictions.PrefixInRule;
-                const PrefixInGroupIpRule: any = search.restrictions.PrefixInGroupInRule;
-                
-                for (let j=0; j<PrefixInRule.length; j++)
-                    await Firewall.updateFirewallStatus(fwcloud, PrefixInRule[j].firewall_id, "|3");
-
-                for (let j=0; j<PrefixInGroupIpRule.length; j++)
-                    await Firewall.updateFirewallStatus(fwcloud, PrefixInGroupIpRule[j].firewall_id, "|3");
             } catch(error) { return reject(error) }
 
             resolve();
