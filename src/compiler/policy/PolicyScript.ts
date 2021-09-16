@@ -340,7 +340,7 @@ export class PolicyScript {
 
 		let routingTables: RoutingTable[] = await routingTableService.findManyInPath({fwCloudId: this.fwcloud, firewallId: this.firewall});
 
-		this.stream.write('routing_apply() {\n');
+		this.stream.write('routing_apply() {\necho -n ""\n');
 
 		// Only dump routing compilation if we have routing tables.
 		if (routingTables.length > 0) {
