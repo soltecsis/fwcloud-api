@@ -150,8 +150,16 @@ export class RoutingTableController extends Controller {
         (await RoutingTablePolicy.show(this._routingTable, request.session.user)).authorize();
 
         const rules: RoutingRule[] = await getRepository(RoutingRule).createQueryBuilder('rule')
-            .innerJoin('rule.routingTable', 'table', 'table.id = :id', {id: this._routingTable.id})
-            .getMany();
+            .select('rule.id', 'routing_rule_id')
+            .addSelect("firewall.id","firewall_id")
+            .addSelect("firewall.name","firewall_name")
+            .addSelect("cluster.id","cluster_id")
+            .addSelect("cluster.name","cluster_name")
+            .innerJoin('rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where('table.id = :id', {id: this._routingTable.id})
+            .getRawMany();
 
         if (rules.length > 0) {
             return ResponseBuilder.buildResponse().status(403).body({

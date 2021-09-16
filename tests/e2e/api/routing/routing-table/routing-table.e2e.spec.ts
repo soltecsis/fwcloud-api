@@ -489,7 +489,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                     .expect(403)
                     .then(response => {
                         expect(response.body.data.restrictions.routingTableUsedInRule).to.has.length(1);
-                        expect(response.body.data.restrictions.routingTableUsedInRule[0].id).to.eq(rule.id);
+                        expect(response.body.data.restrictions.routingTableUsedInRule[0].routing_rule_id).to.eq(rule.id);
                     });
             });
 
