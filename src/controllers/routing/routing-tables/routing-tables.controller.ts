@@ -36,6 +36,7 @@ import { RoutingTableControllerCompileRoutesQueryDto } from "./dtos/compile-rout
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { getRepository } from "typeorm";
 import { Tree } from "../../../models/tree/Tree";
+import { RoutingRule } from "../../../models/routing/routing-rule/routing-rule.model";
 
 export class RoutingTableController extends Controller {
     
@@ -142,6 +143,19 @@ export class RoutingTableController extends Controller {
         await Tree.updateRoutingTableNodeName(this._firewall.fwCloudId, result.id, result.name);
 
         return ResponseBuilder.buildResponse().status(200).body(result);
+    }
+
+    @Validate()
+    async restrictions(request: Request): Promise<ResponseBuilder> {
+        (await RoutingTablePolicy.show(this._routingTable, request.session.user)).authorize();
+
+        const rules: RoutingRule[] = await getRepository(RoutingRule).createQueryBuilder('rule')
+            .innerJoin('rule.routingTable', 'table', 'table.id = :id', {id: this._routingTable.id})
+            .getMany();
+
+        return ResponseBuilder.buildResponse().status(200).body({
+            rules
+        });
     }
     
     @Validate()

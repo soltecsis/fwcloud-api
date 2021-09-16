@@ -37,6 +37,8 @@ import { Tree } from "../../../../../src/models/tree/Tree";
 import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
 import { RouteService } from "../../../../../src/models/routing/route/route.service";
 import { Route } from "../../../../../src/models/routing/route/route.model";
+import { RoutingRuleService } from "../../../../../src/models/routing/routing-rule/routing-rule.service";
+import { RoutingRule } from "../../../../../src/models/routing/routing-rule/routing-rule.model";
 
 describe(describeName('Routing Table E2E Tests'), () => {
     let app: Application;
@@ -46,6 +48,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
     let adminUser: User;
     let adminUserSessionId: string;
 
+    let fwcProduct: FwCloudProduct;
     let fwCloud: FwCloud;
     let firewall: Firewall;
 
@@ -58,14 +61,11 @@ describe(describeName('Routing Table E2E Tests'), () => {
         adminUser = await createUser({role: 1});
         adminUserSessionId = generateSession(adminUser);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
-            name: StringHelper.randomize(10)
-        }));
+        fwcProduct = await new FwCloudFactory().make();
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
-            name: StringHelper.randomize(10),
-            fwCloudId: fwCloud.id
-        }));
+        fwCloud = fwcProduct.fwcloud;
+
+        firewall = fwcProduct.firewall;
 
         await Tree.createAllTreeCloud(fwCloud) as {id: number};
         const node: {id: number} = await Tree.getNodeByNameAndType(fwCloud.id, 'FIREWALLS', 'FDF') as {id: number};
@@ -435,6 +435,85 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
         });
 
+        describe('@restrictions', () => {
+            let table: RoutingTable;
+            let tableService: RoutingTableService;
+            let rule: RoutingRule;
+
+            beforeEach(async () => {
+                tableService = await app.getService(RoutingTableService.name);
+                table = await tableService.create({
+                    firewallId: firewall.id,
+                    name: 'name',
+                    number: 1,
+                    comment: null
+                });
+
+                rule = await (await app.getService<RoutingRuleService>(RoutingRuleService.name)).create({
+                    routingTableId: table.id,
+                    markIds: [
+                        {
+                            id: fwcProduct.mark.id,
+                            order: 1
+                        }
+                    ]
+                });
+            });
+
+            it('guest user should not see a routing table restrictions', async () => {
+				return await request(app.express)
+					.get(_URL().getURL('fwclouds.firewalls.routing.tables.restrictions', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not see the table restrictions', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.tables.restrictions', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should see the table restrictions', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.routing.tables.restrictions', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data.rules).to.has.length(1);
+                        expect(response.body.data.rules[0].id).to.eq(rule.id);
+                    });
+            });
+
+            it('admin user should see routing table restrictions', async () => {
+                return await request(app.express)
+                .get(_URL().getURL('fwclouds.firewalls.routing.tables.restrictions', {
+                    fwcloud: fwCloud.id,
+                    firewall: firewall.id,
+                    routingTable: table.id
+                }))
+                .set('Cookie', [attachSession(adminUserSessionId)])
+                .expect(200)
+                .then(response => {
+                    expect(response.body.data.rules).to.has.length(1);
+                    expect(response.body.data.rules[0].id).to.eq(rule.id);
+                });
+            });
+        })
         describe('@remove', () => {
             let table: RoutingTable;
             let tableService: RoutingTableService;
