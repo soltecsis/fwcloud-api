@@ -44,6 +44,7 @@ import { RouteControllerCopyDto } from "./dtos/copy.dto";
 import { Offset } from "../../../offset";
 import { RouteMoveToDto } from "./dtos/move-to.dto";
 import { RouteMoveInterfaceDto } from "./dtos/move-interface.dto";
+import { RouteMoveToGatewayDto } from "./dtos/move-to-gateway.dto";
 
 export class RouteController extends Controller {
     protected _routeService: RouteService;
@@ -255,6 +256,48 @@ export class RouteController extends Controller {
         });
 
         const result: Route[] = await this._routeService.moveTo(fromRule.id, toRule.id, request.inputs.all());
+
+        return ResponseBuilder.buildResponse().status(200).body(result);
+    }
+
+    @Validate(RouteMoveToGatewayDto)
+    async moveToGateway(request: Request): Promise<ResponseBuilder> {
+        (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
+        const fromRule: Route = await getRepository(Route).findOneOrFail({
+            join: {
+                alias: 'route',
+                innerJoin: {
+                    table: 'route.routingTable',
+                    firewall: 'table.firewall',
+                    fwcloud: 'firewall.fwCloud'
+                }
+            },
+            where: (qb: SelectQueryBuilder<Route>) => {
+                qb.where('route.id = :id', {id: request.inputs.get('fromId')})
+                    .andWhere('table.id = :table', {table: this._routingTable.id})
+                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
+                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
+            }
+        });
+
+        const toRule: Route = await getRepository(Route).findOneOrFail({
+            join: {
+                alias: 'route',
+                innerJoin: {
+                    table: 'route.routingTable',
+                    firewall: 'table.firewall',
+                    fwcloud: 'firewall.fwCloud'
+                }
+            },
+            where: (qb: SelectQueryBuilder<Route>) => {
+                qb.where('route.id = :id', {id: request.inputs.get('toId')})
+                    .andWhere('table.id = :table', {table: this._routingTable.id})
+                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
+                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
+            }
+        });
+        
+        const result: Route[] = await this._routeService.moveToGateway(fromRule.id, toRule.id, request.inputs.all());
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }

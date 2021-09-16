@@ -79,13 +79,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
         
             beforeEach(async () => {
                 tableService = await app.getService(RoutingTableService.name);
-                table = await tableService.create({
-                    firewallId: firewall.id,
-                    name: 'name',
-                    number: 1,
-                    comment: null
-                });
-    
+                table = fwcProduct.routingTable;
             });
 
             it('guest user should not see a routing tables', async () => {
@@ -492,7 +486,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                         routingTable: table.id
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
-                    .expect(200)
+                    .expect(403)
                     .then(response => {
                         expect(response.body.data.restrictions.routingTableUsedInRule).to.has.length(1);
                         expect(response.body.data.restrictions.routingTableUsedInRule[0].id).to.eq(rule.id);
@@ -507,7 +501,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                     routingTable: table.id
                 }))
                 .set('Cookie', [attachSession(adminUserSessionId)])
-                .expect(200)
+                .expect(403)
                 .then(response => {
                     expect(response.body.data.restrictions.routingTableUsedInRule).to.has.length(1);
                     expect(response.body.data.restrictions.routingTableUsedInRule[0].id).to.eq(rule.id);

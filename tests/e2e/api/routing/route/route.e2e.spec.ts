@@ -47,6 +47,7 @@ import { Offset } from "../../../../../src/offset";
 import { RouteMoveToDto } from "../../../../../src/controllers/routing/route/dtos/move-to.dto";
 import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
 import { RouteMoveInterfaceDto } from "../../../../../src/controllers/routing/route/dtos/move-interface.dto";
+import { RouteMoveToGatewayDto } from "../../../../../src/controllers/routing/route/dtos/move-to-gateway.dto";
 
 describe(describeName('Route E2E Tests'), () => {
     let app: Application;
@@ -340,6 +341,98 @@ describe(describeName('Route E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data).to.have.length(2);
                     });
+            });
+
+
+        });
+
+        describe('@moveToGateway', () => {
+            let route1: Route;
+            let route2: Route;
+            let gateway2: IPObj;
+            let data: RouteMoveToGatewayDto;
+            
+            beforeEach(async () => {
+                gateway2 = await getRepository(IPObj).save({
+                    name: 'gateway',
+                    address: '1.2.3.4',
+                    ipObjTypeId: 5,
+                    interfaceId: null,
+                    fwCloudId: fwcProduct.fwcloud.id
+                });
+
+                route1 = await routeService.create({
+                    gatewayId: gateway.id,
+                    routingTableId: fwcProduct.routingTable.id,
+                    ipObjIds: [{
+                        id: gateway.id,
+                        order: 1
+                    }]
+                });
+
+                route2 = await routeService.create({
+                    routingTableId: fwcProduct.routingTable.id,
+                    gatewayId: gateway2.id
+                });
+
+                data = {
+                    fromId: route1.id,
+                    toId: route2.id,
+                    ipObjId: gateway.id
+                }
+            });
+
+            it('guest user should not move from items to gateway between rules', async () => {
+				return await request(app.express)
+					.put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveToGateway', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: fwcProduct.routingTable.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not move from items to gateway between rules', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveToGateway', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: fwcProduct.routingTable.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should move from items to gateway between rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveToGateway', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: fwcProduct.routingTable.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(200)
+
+                expect((await getRepository(Route).findOneOrFail(route2.id)).gatewayId).to.eq(gateway.id);
+            });
+
+            it('admin user should move from items to gateway between rules', async () => {
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveToGateway', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: fwcProduct.routingTable.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .send(data)
+                    .expect(200)
+
+                expect((await getRepository(Route).findOneOrFail(route2.id)).gatewayId).to.eq(gateway.id);
             });
 
 

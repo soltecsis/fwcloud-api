@@ -93,6 +93,12 @@ interface IMoveToRoute {
     openVPNPrefixId?: number;
 }
 
+interface IMoveToGatewayRoute {
+    fromId: number;
+    toId: number;
+    ipObjId?: number;
+}
+
 interface IMoveInterfaceRoute {
     fromId: number;
     toId: number;
@@ -385,6 +391,23 @@ export class RouteService extends Service {
                     order: lastPosition + 1
                 } as RouteToOpenVPNPrefix);
 
+            }
+        }
+
+        return await this._repository.save([fromRule, toRule]) as [Route, Route];
+    }
+
+    async moveToGateway(fromId: number, toId: number, data: IMoveToGatewayRoute): Promise<[Route, Route]> {
+        const fromRule: Route = await getRepository(Route).findOneOrFail(fromId, {
+            relations: ['routeToIPObjs']
+        });
+        const toRule: Route = await getRepository(Route).findOneOrFail(toId);
+        
+        if (data.ipObjId !== undefined) {
+            const index: number = fromRule.routeToIPObjs.findIndex(item => item.ipObjId === data.ipObjId);
+            if (index >= 0) {
+                fromRule.routeToIPObjs.splice(index, 1);
+                toRule.gatewayId = data.ipObjId;
             }
         }
 

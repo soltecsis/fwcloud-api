@@ -742,6 +742,50 @@ describe(RouteService.name, () => {
         });
     });
 
+    describe('moveToGateway', () => {
+        let route1: Route;
+        let route2: Route;
+        let gateway2: IPObj;
+        
+        beforeEach(async () => {
+            gateway2 = await getRepository(IPObj).save({
+                name: 'gateway',
+                address: '1.2.3.4',
+                ipObjTypeId: 5,
+                interfaceId: null,
+                fwCloudId: fwcProduct.fwcloud.id
+            });
+
+            route1 = await service.create({
+                gatewayId: gateway.id,
+                routingTableId: fwcProduct.routingTable.id,
+                ipObjIds: [{
+                    id: gateway.id,
+                    order: 1
+                }]
+            });
+
+            route2 = await service.create({
+                routingTableId: fwcProduct.routingTable.id,
+                gatewayId: gateway2.id
+            });
+        });
+
+        it('should move ipObj', async () => {
+            await service.moveToGateway(route1.id, route2.id, {
+                fromId: route1.id,
+                toId: route2.id,
+                ipObjId: gateway.id
+            });
+
+            const refreshedRoute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToIPObjs']});
+            const refreshedroute2: Route = await getRepository(Route).findOne(route2.id);
+
+            expect(refreshedRoute1.routeToIPObjs).length(0);
+            expect(refreshedroute2.gatewayId).to.eq(gateway.id);
+        });
+    });
+
     describe('moveInterface', () => {
         let route1: Route;
         let route2: Route;
