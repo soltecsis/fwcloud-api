@@ -93,6 +93,12 @@ interface IMoveToRoute {
     openVPNPrefixId?: number;
 }
 
+interface IMoveInterfaceRoute {
+    fromId: number;
+    toId: number;
+    interfaceId?: number;
+}
+
 export class RouteService extends Service {
     protected _repository: RouteRepository;
     protected _firewallService: FirewallService;
@@ -380,6 +386,18 @@ export class RouteService extends Service {
                 } as RouteToOpenVPNPrefix);
 
             }
+        }
+
+        return await this._repository.save([fromRule, toRule]) as [Route, Route];
+    }
+
+    async moveInterface(fromId: number, toId: number, data: IMoveInterfaceRoute): Promise<[Route, Route]> {
+        const fromRule: Route = await getRepository(Route).findOneOrFail(fromId);
+        const toRule: Route = await getRepository(Route).findOneOrFail(toId);
+        
+        if (fromRule.interfaceId === data.interfaceId) {
+            toRule.interfaceId = fromRule.interfaceId;
+            fromRule.interfaceId = null;
         }
 
         return await this._repository.save([fromRule, toRule]) as [Route, Route];

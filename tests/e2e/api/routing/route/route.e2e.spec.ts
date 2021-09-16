@@ -45,6 +45,8 @@ import { RouteControllerCopyDto } from "../../../../../src/controllers/routing/r
 import { RouteRepository } from "../../../../../src/models/routing/route/route.repository";
 import { Offset } from "../../../../../src/offset";
 import { RouteMoveToDto } from "../../../../../src/controllers/routing/route/dtos/move-to.dto";
+import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
+import { RouteMoveInterfaceDto } from "../../../../../src/controllers/routing/route/dtos/move-interface.dto";
 
 describe(describeName('Route E2E Tests'), () => {
     let app: Application;
@@ -54,6 +56,7 @@ describe(describeName('Route E2E Tests'), () => {
     let adminUser: User;
     let adminUserSessionId: string;
 
+    let fwcProduct: FwCloudProduct;
     let fwCloud: FwCloud;
     let firewall: Firewall;
     let table: RoutingTable;
@@ -73,21 +76,13 @@ describe(describeName('Route E2E Tests'), () => {
 
         routeService = await app.getService(RouteService.name);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
-            name: StringHelper.randomize(10)
-        }));
+        fwcProduct = await new FwCloudFactory().make();
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
-            name: StringHelper.randomize(10),
-            fwCloudId: fwCloud.id
-        }));
+        fwCloud = fwcProduct.fwcloud;
 
-        gateway = await getRepository(IPObj).save(getRepository(IPObj).create({
-            name: 'test',
-            address: '0.0.0.0',
-            ipObjTypeId: 5,
-            interfaceId: null
-        }));
+        firewall = fwcProduct.firewall;
+
+        gateway = fwcProduct.ipobjs.get('gateway');
 
         table = await getRepository(RoutingTable).save({
             firewallId: firewall.id,
@@ -345,6 +340,88 @@ describe(describeName('Route E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data).to.have.length(2);
                     });
+            });
+
+
+        });
+
+        describe('@moveInterface', () => {
+            let rule1: Route;
+            let rule2: Route;
+            let data: RouteMoveInterfaceDto;
+
+            beforeEach(async () => {
+                rule1 = await routeService.create({
+                    routingTableId: table.id,
+                    gatewayId: gateway.id,
+                    interfaceId: fwcProduct.interfaces.get('firewall-interface1').id
+                });
+                
+                rule2 = await routeService.create({
+                    routingTableId: table.id,
+                    gatewayId: gateway.id
+                });
+
+                data = {
+                    fromId: rule1.id,
+                    toId: rule2.id,
+                    interfaceId: fwcProduct.interfaces.get('firewall-interface1').id
+                }
+            });
+
+            it('guest user should not move interface items between rules', async () => {
+				return await request(app.express)
+					.put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveInterface', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+					.expect(401);
+			});
+
+            it('regular user which does not belong to the fwcloud should not move interface items between rules', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveInterface', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should move interface items between rules', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveInterface', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(200);
+
+                expect((await getRepository(Route).findOneOrFail(rule1.id)).interfaceId).to.be.null;
+                expect((await getRepository(Route).findOneOrFail(rule2.id)).interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
+            });
+
+            it('admin user should move from interface between rules', async () => {
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveInterface', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        routingTable: table.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .send(data)
+                    .expect(200)
+                
+                    expect((await getRepository(Route).findOneOrFail(rule1.id)).interfaceId).to.be.null;
+                    expect((await getRepository(Route).findOneOrFail(rule2.id)).interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
             });
 
 

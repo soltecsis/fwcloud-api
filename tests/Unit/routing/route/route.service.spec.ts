@@ -742,6 +742,38 @@ describe(RouteService.name, () => {
         });
     });
 
+    describe('moveInterface', () => {
+        let route1: Route;
+        let route2: Route;
+        
+        beforeEach(async () => {
+            route1 = await service.create({
+                gatewayId: gateway.id,
+                routingTableId: fwcProduct.routingTable.id,
+                interfaceId: fwcProduct.interfaces.get('firewall-interface1').id
+            });
+
+            route2 = await service.create({
+                routingTableId: fwcProduct.routingTable.id,
+                gatewayId: gateway.id
+            });
+        });
+
+        it('should move interface', async () => {
+            await service.moveInterface(route1.id, route2.id, {
+                fromId: route1.id,
+                toId: route2.id,
+                interfaceId: fwcProduct.interfaces.get('firewall-interface1').id
+            });
+
+            const refreshedRoute1: Route = await getRepository(Route).findOne(route1.id);
+            const refreshedroute2: Route = await getRepository(Route).findOne(route2.id);
+
+            expect(refreshedRoute1.interfaceId).to.be.null;
+            expect(refreshedroute2.interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
+        });
+    });
+
     describe('remove', () => {
         it('should remove route', async () => {
             await service.remove({
