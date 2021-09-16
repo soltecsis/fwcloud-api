@@ -27,10 +27,10 @@ var router = express.Router();
 import { Mark } from '../../models/ipobj/Mark';
 import { Firewall } from '../../models/firewall/Firewall';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
-import { Tree } from '../../models/tree/Tree';
 import { app, logger } from '../../fonaments/abstract-application';
 import { getRepository } from 'typeorm';
 import { FirewallService } from '../../models/firewall/firewall.service';
+import { FwcTree } from '../../models/tree/fwc-tree.model';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -74,8 +74,8 @@ router.put('/', async (req, res) => {
    	// Modify the mark data.
 		await Mark.modifyMark(req);
 		//Update all group nodes which references the mark to set the new name
-		await getRepository(Tree).createQueryBuilder('node')
-			.update(Tree)
+		await getRepository(FwcTree).createQueryBuilder('node')
+			.update(FwcTree)
 			.set({
 				name: req.body.name
 			})
