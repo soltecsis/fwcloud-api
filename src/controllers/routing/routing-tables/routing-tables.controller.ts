@@ -153,9 +153,13 @@ export class RoutingTableController extends Controller {
             .innerJoin('rule.routingTable', 'table', 'table.id = :id', {id: this._routingTable.id})
             .getMany();
 
-        return ResponseBuilder.buildResponse().status(200).body({
-            routingTableUsedInRule: rules
-        });
+        if (rules.length > 0) {
+            return ResponseBuilder.buildResponse().status(200).body({
+                routingTableUsedInRule: rules
+            });
+        }
+
+        return ResponseBuilder.buildResponse().status(204);
     }
     
     @Validate()
