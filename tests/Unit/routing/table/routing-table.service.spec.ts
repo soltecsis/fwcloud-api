@@ -79,7 +79,7 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
             numberUsed = fwcloudProduct.routingTable.number;
             table = await service.create({
                 name: 'newTable',
-                number: 250,
+                number: 2,
                 firewallId: firewall.id
             });
         });
