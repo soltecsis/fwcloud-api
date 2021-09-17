@@ -175,8 +175,8 @@ describe('Routing rules data fetch for compiler or grid', () => {
                     id: 0,
                     name: null,
                     type: 0,
-                    firewall_id: fwc.firewall.id,
-                    firewall_name: fwc.firewall.name,
+                    firewall_id: null,
+                    firewall_name: null,
                     cluster_id: null,
                     cluster_name: null
                 };
@@ -236,6 +236,8 @@ describe('Routing rules data fetch for compiler or grid', () => {
 
             it('should include OpenVPN data', async() => {
                 item.id = fwc.openvpnClients.get('OpenVPN-Cli-3').id; item.type = 311; item.name = fwc.crts.get('OpenVPN-Cli-3').cn;
+                item.firewall_id = fwc.firewall.id;
+                item.firewall_name = fwc.firewall.name;
                 item._order = (await getRepository(RoutingRuleToOpenVPN).findOneOrFail({
                     where: {
                         routingRuleId: fwc.routingRules.get('routing-rule-1').id,
@@ -247,6 +249,8 @@ describe('Routing rules data fetch for compiler or grid', () => {
 
             it('should include OpenVPN Prefix data', async () => {
                 item.id = fwc.openvpnPrefix.id; item.type = 401; item.name = fwc.openvpnPrefix.name;
+                item.firewall_id = fwc.firewall.id;
+                item.firewall_name = fwc.firewall.name;
                 item._order = (await getRepository(RoutingRuleToOpenVPNPrefix).findOneOrFail({
                     where: {
                         routingRuleId: fwc.routingRules.get('routing-rule-1').id,
@@ -258,6 +262,8 @@ describe('Routing rules data fetch for compiler or grid', () => {
 
             it('should include mark data', async () => {
                 item.id = fwc.mark.id; item.type = 30; item.name = fwc.mark.name;
+                item.firewall_id = fwc.firewall.id;
+                item.firewall_name = fwc.firewall.name;
                 item._order = (await getRepository(RoutingRuleToMark).findOneOrFail({
                     where: {
                         routingRuleId: fwc.routingRules.get('routing-rule-1').id,
