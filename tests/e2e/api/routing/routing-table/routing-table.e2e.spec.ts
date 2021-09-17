@@ -54,6 +54,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
     beforeEach(async () => {
         app = testSuite.app;
+        await testSuite.resetDatabaseData();
         
         loggedUser = await createUser({role: 0});
         loggedUserSessionId = generateSession(loggedUser);
