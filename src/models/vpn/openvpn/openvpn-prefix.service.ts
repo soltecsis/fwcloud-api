@@ -4,8 +4,8 @@ import { Service } from "../../../fonaments/services/service";
 import { Firewall } from "../../firewall/Firewall";
 import { OpenVPNPrefix } from "./OpenVPNPrefix";
 import { Request } from "express";
-import { Tree } from "../../tree/Tree";
 import { FirewallService } from "../../firewall/firewall.service";
+import { FwcTree } from "../../tree/fwc-tree.model";
 const fwcError = require('../../../utils/error_table');
 
 export class OpenVPNPrefixService extends Service {
@@ -36,8 +36,8 @@ export class OpenVPNPrefixService extends Service {
 		await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, (req as any).prefix.openvpn);
 
 		//Update all group nodes which references the prefix to set the new name
-		await getRepository(Tree).createQueryBuilder('node')
-			.update(Tree)
+		await getRepository(FwcTree).createQueryBuilder('node')
+			.update(FwcTree)
 			.set({
 				name: req.body.name
 			})
