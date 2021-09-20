@@ -264,7 +264,20 @@ describe(RouteService.name, () => {
                         {id: ipobj2.id, order: 2}
                     ]
                 })).to.rejectedWith(ValidationException);
-            })
+            });
+
+            it('should throw exception if the attachment is a host and is empty', async () => {
+                const host = await getRepository(IPObj).save({
+                    name: 'host',
+                    ipObjTypeId: 8,
+                });
+
+                await expect(service.update(route.id, {
+                    ipObjIds: [
+                        {id: host.id, order: 1}
+                    ]
+                })).to.rejectedWith(ValidationException);
+            });
         });
 
         describe('IpObjGroups', () => {
