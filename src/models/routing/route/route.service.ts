@@ -530,7 +530,7 @@ export class RouteService extends Service {
                 id: In(data.ipObjGroupIds.map(item => item.id)),
                 type: 20
             },
-            relations: ['fwCloud', 'ipObjToIPObjGroups', 'ipObjToIPObjGroups.ipObj']
+            relations: ['fwCloud', 'openVPNPrefixes', 'openVPNs', 'ipObjToIPObjGroups', 'ipObjToIPObjGroups.ipObj']
         });
 
         for (let i = 0; i < ipObjGroups.length; i++) {
@@ -555,6 +555,10 @@ export class RouteService extends Service {
                         || ipObjToIPObjGroup.ipObj.ipObjTypeId === 7) {
                             valid = true;
                     }
+                }
+
+                if (ipObjGroup.openVPNs.length > 0 || ipObjGroup.openVPNPrefixes.length > 0) {
+                    valid = true;
                 }
 
                 if (!valid) {
