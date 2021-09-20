@@ -23,6 +23,7 @@ import { Mark } from "../../../../src/models/ipobj/Mark";
 enum PolicyColumn {
     SOURCE = 1,
     DESTINATION = 2,
+    SERVICE = 3
 }
 
 enum PolicyTypeId {
@@ -992,6 +993,176 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
                         ipobj_g: group.id,
                         interface: -1,
                         position: PolicyColumn.DESTINATION,
+                        position_order: 1
+                    });
+    
+                    return await request(app.express)
+                        .put('/ipobj/group/delfrom')
+                        .set('Cookie', [attachSession(session)])
+                        .send(requestData)
+                        .expect(400)
+                        .then(response => {
+                            expect((response.body as any).fwcErr).to.eq(5001);
+                    });
+                });
+            })
+        });
+    });
+
+    describe('Services', () => {
+        let service: IPObj;
+
+        beforeEach(async () => {
+            service = await getRepository(IPObj).findOneOrFail(10040);
+            
+            group = await getRepository(IPObjGroup).save({
+                name: 'group',
+                type: 21,
+                fwCloudId: fwcProduct.fwcloud.id
+            });
+
+            await getRepository(IPObjToIPObjGroup).save({
+                ipObjGroupId: group.id,
+                ipObjId: service.id
+            });
+
+            requestData.ipobj_g = group.id;
+            requestData.ipobj = service.id;
+            requestData.obj_type = 1;
+        });
+
+        it('should remove the item from the group if it is not used', async () => {
+            return await request(app.express)
+					.put('/ipobj/group/delfrom')
+					.set('Cookie', [attachSession(session)])
+					.send(requestData)
+					.expect(200);
+        });
+
+        describe('used in policy rules', () => {
+            let rule: PolicyRule;
+
+            describe('INPUT', () => {
+
+                beforeEach(async () => {
+                    rule = await getRepository(PolicyRule).findOneOrFail(inputRuleId);
+                });
+
+                it('should throw an exception if item is used in a policy (SERVICE)', async () => {
+                    await PolicyRuleToIPObj.insertPolicy_r__ipobj({
+                        rule: rule.id,
+                        ipobj: -1,
+                        ipobj_g: group.id,
+                        interface: -1,
+                        position: PolicyColumn.SERVICE,
+                        position_order: 1
+                    });
+    
+                    return await request(app.express)
+                        .put('/ipobj/group/delfrom')
+                        .set('Cookie', [attachSession(session)])
+                        .send(requestData)
+                        .expect(400)
+                        .then(response => {
+                            expect((response.body as any).fwcErr).to.eq(5001);
+                    });
+                });
+            })
+
+            describe('OUTPUT', () => {
+
+                beforeEach(async () => {
+                    rule = await getRepository(PolicyRule).findOneOrFail(outputRuleId);
+                });
+
+                it('should throw an exception if item is used in a policy (SERVICE)', async () => {
+                    await PolicyRuleToIPObj.insertPolicy_r__ipobj({
+                        rule: rule.id,
+                        ipobj: -1,
+                        ipobj_g: group.id,
+                        interface: -1,
+                        position: PolicyColumn.SERVICE,
+                        position_order: 1
+                    });
+    
+                    return await request(app.express)
+                        .put('/ipobj/group/delfrom')
+                        .set('Cookie', [attachSession(session)])
+                        .send(requestData)
+                        .expect(400)
+                        .then(response => {
+                            expect((response.body as any).fwcErr).to.eq(5001);
+                    });
+                });
+            })
+
+            describe('FORWARD', () => {
+
+                beforeEach(async () => {
+                    rule = await getRepository(PolicyRule).findOneOrFail(forwardRuleId);
+                });
+
+                it('should throw an exception if item is used in a policy (SERVICE)', async () => {
+                    await PolicyRuleToIPObj.insertPolicy_r__ipobj({
+                        rule: rule.id,
+                        ipobj: -1,
+                        ipobj_g: group.id,
+                        interface: -1,
+                        position: PolicyColumn.SERVICE,
+                        position_order: 1
+                    });
+    
+                    return await request(app.express)
+                        .put('/ipobj/group/delfrom')
+                        .set('Cookie', [attachSession(session)])
+                        .send(requestData)
+                        .expect(400)
+                        .then(response => {
+                            expect((response.body as any).fwcErr).to.eq(5001);
+                    });
+                });
+            })
+
+            describe('DNAT', () => {
+
+                beforeEach(async () => {
+                    rule = await getRepository(PolicyRule).findOneOrFail(dnatRuleId);
+                });
+
+                it('should throw an exception if item is used in a policy (SERVICE)', async () => {
+                    await PolicyRuleToIPObj.insertPolicy_r__ipobj({
+                        rule: rule.id,
+                        ipobj: -1,
+                        ipobj_g: group.id,
+                        interface: -1,
+                        position: PolicyColumn.SERVICE,
+                        position_order: 1
+                    });
+    
+                    return await request(app.express)
+                        .put('/ipobj/group/delfrom')
+                        .set('Cookie', [attachSession(session)])
+                        .send(requestData)
+                        .expect(400)
+                        .then(response => {
+                            expect((response.body as any).fwcErr).to.eq(5001);
+                    });
+                });
+            })
+
+            describe('SNAT', () => {
+
+                beforeEach(async () => {
+                    rule = await getRepository(PolicyRule).findOneOrFail(snatRuleId);
+                });
+
+                it('should throw an exception if item is used in a policy (SERVICE)', async () => {
+                    await PolicyRuleToIPObj.insertPolicy_r__ipobj({
+                        rule: rule.id,
+                        ipobj: -1,
+                        ipobj_g: group.id,
+                        interface: -1,
+                        position: PolicyColumn.SERVICE,
                         position_order: 1
                     });
     
