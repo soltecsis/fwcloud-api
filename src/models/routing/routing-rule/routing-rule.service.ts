@@ -606,7 +606,6 @@ export class RoutingRuleService extends Service {
         const ipObjGroups: IPObjGroup[] = await getRepository(IPObjGroup).find({
             where: {
                 id: In(data.ipObjGroupIds.map(item => item.id)),
-                type: 20
             },
             relations: ['fwCloud', 'ipObjToIPObjGroups', 'ipObjToIPObjGroups.ipObj']
         });
@@ -614,13 +613,14 @@ export class RoutingRuleService extends Service {
         for (let i = 0; i < ipObjGroups.length; i++) {
             const ipObjGroup: IPObjGroup = ipObjGroups[i];
             
-            if (ipObjGroup.fwCloudId && ipObjGroup.fwCloudId !== firewall.fwCloudId) {
+            if (ipObjGroup.type !== 20) {
+                errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId not valid'];
+            } else if (ipObjGroup.fwCloudId && ipObjGroup.fwCloudId !== firewall.fwCloudId) {
                 errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must exist'];
             } else if (await PolicyRuleToIPObj.isGroupEmpty(db.getQuery(), ipObjGroup.id)) {
                 errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must not be empty'];
             }
         }
-        
         
         if (Object.keys(errors).length > 0) {
             throw new ValidationException('The given data was invalid', errors);

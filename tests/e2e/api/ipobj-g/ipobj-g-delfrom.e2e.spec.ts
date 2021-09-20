@@ -487,7 +487,27 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
                         expect((response.body as any).fwcErr).to.eq(5001);
                 });
             });
-        })
+        });
+
+        describe('used in route', () => {
+            it('should throw an exception if item is used in a route', async () => {
+                await routeService.update(route.id, {
+                        ipObjGroupIds: [{
+                            id: group.id,
+                            order: 1
+                        }]
+                    });
+    
+                return await request(app.express)
+                    .put('/ipobj/group/delfrom')
+                    .set('Cookie', [attachSession(session)])
+                    .send(requestData)
+                    .expect(400)
+                    .then(response => {
+                        expect((response.body as any).fwcErr).to.eq(5001);
+                });
+            });
+        });
 
         describe('used in policy rules', () => {
             let rule: PolicyRule;
@@ -767,7 +787,27 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
                         expect((response.body as any).fwcErr).to.eq(5001);
                 });
             });
-        })
+        });
+
+        describe('used in route', () => {
+            it('should throw an exception if item is used in a route', async () => {
+                await routeService.update(route.id, {
+                        ipObjGroupIds: [{
+                            id: group.id,
+                            order: 1
+                        }]
+                    });
+    
+                return await request(app.express)
+                    .put('/ipobj/group/delfrom')
+                    .set('Cookie', [attachSession(session)])
+                    .send(requestData)
+                    .expect(400)
+                    .then(response => {
+                        expect((response.body as any).fwcErr).to.eq(5001);
+                });
+            });
+        });
 
         describe('used in policy rules', () => {
             let rule: PolicyRule;
