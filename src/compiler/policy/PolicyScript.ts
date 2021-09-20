@@ -352,7 +352,7 @@ export class PolicyScript {
 			this.channel.emit('message', new ProgressNoticePayload(""));
 			this.channel.emit('message', new ProgressNoticePayload(""));
 			this.channel.emit('message', new ProgressNoticePayload("ROUTING POLICY:", true));
-			// Flush all routing tables.
+			// Flush all routing tables except the main table.
 			this.stream.write("echo -n \"Flushing routing tables and rules ... \"\n");
 			this.stream.write('$IP route flush cache\n');
 			this.stream.write('T=1\n');
@@ -360,7 +360,6 @@ export class PolicyScript {
 			this.stream.write('  $IP route flush table $T 2>/dev/null\n');
 			this.stream.write('  T=`expr $T + 1`\n');
 			this.stream.write('done\n');
-			this.stream.write('$IP route flush scope global table main\n');
 			this.stream.write('$IP rule flush\n');
 			this.stream.write('$IP rule add from all lookup main pref 32766\n');
 			this.stream.write('$IP rule add from all lookup default pref 32767\n');
@@ -371,6 +370,8 @@ export class PolicyScript {
 				this.stream.write("echo\n");
 				const msg = `ROUTING TABLE: ${routingTables[i].number} (${routingTables[i].name})`;
 				this.stream.write(`echo \"${msg}\"\n`);
+				// If the main table exists in our firewall, then flush it before loading its routes.
+				if (routingTables[i].number === 254) this.stream.write('$IP route flush scope global table main\n');
 				this.channel.emit('message', new ProgressNoticePayload(msg, true));
 
 				routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler', this.fwcloud, this.firewall, routingTables[i].id);            

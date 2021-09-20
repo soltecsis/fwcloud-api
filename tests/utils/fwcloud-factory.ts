@@ -449,7 +449,7 @@ export class FwCloudFactory {
         this.fwc.routingTable = await this._routingTableRepository.save({
             id: this.randomId(10,100000),
             firewallId: this.fwc.firewall.id,
-            number: this.randomId(0,256),
+            number: this.randomId(10,256),
             name: 'Routing table',
         });
 

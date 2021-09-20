@@ -172,8 +172,8 @@ describe('Routing table data fetch for compiler or grid', () => {
                     id: 0,
                     name: null,
                     type: 0,
-                    firewall_id: fwc.firewall.id,
-                    firewall_name: fwc.firewall.name,
+                    firewall_id: null,
+                    firewall_name: null,
                     cluster_id: null,
                     cluster_name: null
                 };
@@ -233,6 +233,8 @@ describe('Routing table data fetch for compiler or grid', () => {
 
             it('should include OpenVPN data', async () => {
                 item.id = fwc.openvpnClients.get('OpenVPN-Cli-3').id; item.type = 311; item.name = fwc.crts.get('OpenVPN-Cli-3').cn;
+                item.firewall_id = fwc.firewall.id;
+                item.firewall_name = fwc.firewall.name;
                 item._order = (await getRepository(RouteToOpenVPN).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route1').id,
@@ -244,6 +246,8 @@ describe('Routing table data fetch for compiler or grid', () => {
 
             it('should include OpenVPN Prefix data', async () => {
                 item.id = fwc.openvpnPrefix.id; item.type = 401; item.name = fwc.openvpnPrefix.name;
+                item.firewall_id = fwc.firewall.id;
+                item.firewall_name = fwc.firewall.name;
                 item._order = (await getRepository(RouteToOpenVPNPrefix).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route1').id,

@@ -102,6 +102,7 @@ export class Routes extends RouteCollection {
                                     router.get('/', RoutingTableController, 'show').name('fwclouds.firewalls.routing.tables.show');
                                     router.get('/grid', RoutingTableController, 'grid').name('fwclouds.firewalls.routing.tables.grid');
                                     router.put('/', RoutingTableController, 'update').name('fwclouds.firewalls.routing.tables.update');
+                                    router.get('/restricted', RoutingTableController, 'restrictions').name('fwclouds.firewalls.routing.tables.restrictions');
                                     router.delete('/', RoutingTableController, 'remove').name('fwclouds.firewalls.routing.tables.delete');
                                     
                                     router.prefix('/routes', (router: RouterParser) => {
@@ -112,6 +113,8 @@ export class Routes extends RouteCollection {
                                         router.put('/bulkUpdate', RouteController, 'bulkUpdate').name('fwclouds.firewalls.routing.tables.routes.bulkUpdate');
                                         router.put('/move', RouteController, 'move').name('fwclouds.firewalls.routing.tables.routes.move');
                                         router.put('/moveTo', RouteController, 'moveTo').name('fwclouds.firewalls.routing.tables.routes.moveTo');
+                                        router.put('/moveInterface', RouteController, 'moveInterface').name('fwclouds.firewalls.routing.tables.routes.moveInterface');
+                                        router.put('/moveToGateway', RouteController, 'moveToGateway').name('fwclouds.firewalls.routing.tables.routes.moveToGateway');
                                         router.delete('/bulkRemove', RouteController, 'bulkRemove').name('fwclouds.firewalls.routing.tables.routes.bulkRemove');
                                         router.prefix('/:route(\\d+)', (router:RouterParser) => {
                                             router.get('/', RouteController, 'show').name('fwclouds.firewalls.routing.tables.routes.show');
