@@ -199,7 +199,7 @@ describe(RoutingRuleService.name, () => {
             beforeEach(async () => {
                 group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
-                    type: 1,
+                    type: 20,
                     fwCloudId: fwCloud.id
                 }));
 
@@ -232,7 +232,7 @@ describe(RoutingRuleService.name, () => {
 
                 group2 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
-                    type: 1,
+                    type: 20,
                     fwCloudId: fwCloud.id
                 }));
 
@@ -554,7 +554,7 @@ describe(RoutingRuleService.name, () => {
             beforeEach(async () => {
                 group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
-                    type: 1,
+                    type: 20,
                     fwCloudId: fwCloud.id
                 }));
 
@@ -587,7 +587,7 @@ describe(RoutingRuleService.name, () => {
 
                 group2 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
-                    type: 1,
+                    type: 20,
                     fwCloudId: fwCloud.id
                 }));
 
@@ -659,6 +659,27 @@ describe(RoutingRuleService.name, () => {
                     ipObjGroupIds: [
                         {id: group1.id, order: 1},
                         {id: group2.id, order: 2}
+                    ]
+                })).to.rejectedWith(ValidationException);
+            });
+
+            it('should not allow attach a service group', async () => {
+                let _service = await getRepository(IPObj).findOneOrFail(10040);
+                
+                let group = await getRepository(IPObjGroup).save({
+                    name: 'group',
+                    type: 21,
+                    fwCloudId: fwcProduct.fwcloud.id
+                });
+
+                await getRepository(IPObjToIPObjGroup).save({
+                    ipObjGroupId: group.id,
+                    ipObjId: _service.id
+                });
+
+                await expect(service.update(rule.id, {
+                    ipObjGroupIds: [
+                        {id: group.id, order: 1}
                     ]
                 })).to.rejectedWith(ValidationException);
             });
