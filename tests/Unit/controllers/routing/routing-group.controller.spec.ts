@@ -20,6 +20,7 @@ describe(RoutingGroupController.name, () => {
 
     beforeEach(async () => {
         app = testSuite.app;
+        await testSuite.resetDatabaseData();
         
         fwcProduct = await (new FwCloudFactory()).make();
         
