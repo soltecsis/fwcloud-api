@@ -26,7 +26,6 @@ const chalk = require('chalk');
 const fs = require('fs-extra');
 const path = require('path');
 const child_process = require('child_process');
-const series = require('async');
 
 function error(message) {
     process.stderr.write("\n");
@@ -46,16 +45,10 @@ async function main()
         throw new Error(`node_modules not found. Please run "npm install" first.`);
     }
 
-    process.stdout.write('Starting compilation...');
-    const stdout = child_process.execSync('npm run smart-compilation');
-    
-    if (stdout.toString().match(/Compiling all files.../) || stdout.toString().match(/Needs compilation.../)) {
-        process.stdout.write(chalk.bold.green('done'));
-    } else {
-        process.stdout.write(chalk.bold.blueBright('[not required]'));
+    if (!fs.existsSync(cliPath)) {
+        throw new Error(`Compiled cli not found. Please run "npm run build" first.`);
     }
 
-    console.log("\n");
     return new Promise((resolve, reject) => {
         const cli = child_process.fork(`${cliPath}`, [...process.argv.slice(2)]);
 

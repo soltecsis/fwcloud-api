@@ -30,6 +30,7 @@ import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { app, logger } from '../../fonaments/abstract-application';
 import { getRepository } from 'typeorm';
 import { FirewallService } from '../../models/firewall/firewall.service';
+import { Tree } from '../../models/tree/Tree';
 import { FwcTree } from '../../models/tree/fwc-tree.model';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');

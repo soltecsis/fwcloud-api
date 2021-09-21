@@ -13,7 +13,7 @@ case "$ACTION" in
     ;;
 
   stop)
-    default_filter_policy ACCEPT
+    iptables_default_filter_policy ACCEPT
     policy_empty
     ;;
 
@@ -24,7 +24,7 @@ case "$ACTION" in
 
   block)
     policy_empty
-    default_filter_policy DROP
+    iptables_default_filter_policy DROP
     ;;
 
   policy)

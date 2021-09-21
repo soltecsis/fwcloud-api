@@ -38,7 +38,7 @@ check_cmds() {
   test -z "$IP" && echo "Command 'ip' not found!" && exit 1
 }
 
-default_filter_policy() { 
+iptables_default_filter_policy() { 
   $IPTABLES  -P OUTPUT  $1
   $IPTABLES  -P INPUT   $1
   $IPTABLES  -P FORWARD $1
@@ -165,6 +165,5 @@ policy_apply() {
   load_nat_modules
   policy_empty
   policy_load
-  default_filter_policy DROP
   options_load
 }
