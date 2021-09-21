@@ -301,6 +301,14 @@ export class PolicyScript {
 			this.stream.write(`$NFT add chain ${family} mangle OUTPUT { type route hook output priority - 150\\; policy accept\\; }\n`);
 			this.stream.write(`$NFT add chain ${family} mangle POSTROUTING { type filter hook postrouting priority - 150\\; policy accept\\; }\n`);
 		}
+
+		this.stream.write('\n\n# What happens when you mix Iptables and Nftables?\n');
+		this.stream.write('# How do they interact?\n');
+		this.stream.write('#    nft       Empty     Accept  Accept      Block        Blank\n');
+		this.stream.write('#    iptables  Empty     Empty   Block       Accept       Accept\n');
+		this.stream.write('#    Results   Pass      Pass    Unreachable Unreachable  Pass \n');
+		this.stream.write('# For this reason, if we have Nftables policy we must allow pass all from Iptables.\n');
+		this.stream.write('iptables_default_filter_policy ACCEPT\n');
 		return;
 	}
 
