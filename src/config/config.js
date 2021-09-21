@@ -231,6 +231,13 @@ const config = convict({
       format: String,
       default: 'src/database/migrations',
       env: 'TYPEORM_MIGRATION_DIR'
+    },
+    mysqldump: {
+      protocol: {
+        doc: 'mysqldump connection protocol',
+        format: ['tcp', 'socket'],
+        default: 'socket',
+      }
     }
   },
 
@@ -282,7 +289,7 @@ const config = convict({
       env: 'POLICY_SCRIPT_NAME'
     },
     script_dir: {
-      doc: 'Directory in wich the script will be installed in the destinatior firewall',
+      doc: 'Destination directory for the FWCloud script.',
       format: String,
       default: '/etc/fwcloud/',
       env: 'POLICY_SCRIPT_DIR'

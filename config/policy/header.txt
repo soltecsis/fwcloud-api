@@ -15,9 +15,11 @@ LSMOD=`which lsmod`
 MODPROBE=`which modprobe`
 IPTABLES=`which iptables`
 IP6TABLES=`which ip6tables`
+NFT=`which nft`
 IP=`which ip`
 SYSTEMCTL=`which systemctl`
 SYSTEMD_FILE="/etc/systemd/system/fwcloud.service"
+SYSTEMD_FILE_ROUTING="/etc/systemd/system/fwcloud-routing.service"
 SYSCTL=`which sysctl`
 
 if [ -z "$HOSTNAME" ]; then
@@ -36,7 +38,7 @@ check_cmds() {
   test -z "$IP" && echo "Command 'ip' not found!" && exit 1
 }
 
-default_filter_policy() { 
+iptables_default_filter_policy() { 
   $IPTABLES  -P OUTPUT  $1
   $IPTABLES  -P INPUT   $1
   $IPTABLES  -P FORWARD $1
@@ -83,9 +85,20 @@ reset_iptables_v6() {
   done
 }
 
+reset_nft() {
+  if [ -f "$NFT" ]; then
+    $NFT flush ruleset arp
+    $NFT flush ruleset ip
+    $NFT flush ruleset ip6
+    $NFT flush ruleset bridge
+    $NFT flush ruleset inet
+  fi
+}
+
 policy_empty() {
   reset_iptables_v4
   reset_iptables_v6
+  reset_nft
 }
 
 create_systemd_service() {
@@ -102,7 +115,7 @@ After=local-fs.target
 DefaultDependencies=no
 
 [Service]
-ExecStart=/etc/fwcloud/fwcloud.sh start
+ExecStart=/etc/fwcloud/fwcloud.sh policy
 ExecStop=/etc/fwcloud/fwcloud.sh stop
 
 # Just Execute the shell script
@@ -114,3 +127,43 @@ WantedBy=multi-user.target
 EOL
 }
 
+create_systemd_service_routing() {
+cat > "$SYSTEMD_FILE_ROUTING" << EOL
+[Unit]
+Description=FWCloud.net routing management script
+
+# Start after network and openvpn service.
+Requires=network.target
+After=network.target
+
+# Do not start after basic.target!
+DefaultDependencies=no
+
+[Service]
+ExecStart=/etc/fwcloud/fwcloud.sh routing
+
+# Just Execute the shell script
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOL
+}
+
+status() {
+  NL=`$IPTABLES -nL | wc -l`
+  if [ $NL -lt 9 ]; then
+    echo "ERROR: Policy not loaded"
+    exit 1
+  else
+    echo "OK. Policy loaded."
+  fi 
+}
+
+policy_apply() {
+  load_nat_modules
+  policy_empty
+  policy_load
+  options_load
+}

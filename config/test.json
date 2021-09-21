@@ -12,7 +12,10 @@
         "port": 8888,
         "name": "fwcloud",
         "user": "fwcdbusr",
-        "pass": "fwcdbusr"
+        "pass": "fwcdbusr",
+        "mysqldump": {
+            "protocol": "tcp"
+        }
     },
     "snapshot": {
         "data_dir": "tests/playground/SNAPSHOT"

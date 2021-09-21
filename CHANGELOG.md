@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Fixed
+- Fixed 'After adding host to a group it is not possible move it to policy positions'.
+- Fixed 'Bug in firewall cluster node remove'.
+- Remove restrictions added for groups which are being used in policy rules.
+- Fixed 'Problem getting host information'
+- Disallow adding hosts without addresses to groups.
+- Adding/removing IPs from hosts used by firewalls updates firewall status flags
+- Changing mark name updates its node in the tree node
+- Changing the OpenVPN prefixes updates all nodes which reference to it
+- Changing mark settings updates firewalls status flags which use it
+
 ## [1.2.0] - 2021-04-30
 ### Added
 - Hook scripts feature at the rule level. It allows to add shell script code before and/or after a policy rule load.

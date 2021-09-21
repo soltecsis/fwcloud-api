@@ -49,6 +49,21 @@ import { OpenVPNToIPObjGroupExporter } from "./exporters/openvpn-to-ipobj-group.
 import { OpenVPNPrefixToIPObjGroupExporter } from "./exporters/openvpn-prefix-to-ipobj-group.exporter";
 import { FwcTreeExporter } from "./exporters/fwc-tree.exporter";
 import { ExporterResult } from "./exporter-result";
+import { RoutingTableExporter } from "./exporters/routing-table.exporter";
+import { RoutingGroupExporter } from "./exporters/routing-group.exporter";
+import { RouteExporter } from "./exporters/route.exporter";
+import { RouteGroupExporter } from "./exporters/route-group.exporter";
+import { RoutingRuleExporter } from "./exporters/routing-rule.exporter";
+import { RoutingRuleToIPObjExporter } from "./exporters/routing-rule-to-ipobj.exporter";
+import { RoutingRuleToIPObjGroupExporter } from "./exporters/routing-rule-to-ipobj-group.exporter";
+import { RoutingRuleToOpenVPNPrefix } from "../../models/routing/routing-rule/routing-rule-to-openvpn-prefix.model";
+import { RoutingRuleToOpenVPNExporter } from "./exporters/routing-rule-to-openvpn.exporter";
+import { RoutingRuleToOpenVPNPrefixExporter } from "./exporters/routing-rule-to-openvpn-prefix.exporter";
+import { RoutingRuleToMarkExporter } from "./exporters/routing-rule-to-mark.exporter";
+import { RouteToIPObjExporter } from "./exporters/route-to-ipobj.exporter";
+import { RouteToIPObjGroupExporter } from "./exporters/route-to-ipobj-group.exporter";
+import { RouteToOpenVPNExporter } from "./exporters/route-to-openvpn.exporter";
+import { RouteToOpenVPNPrefixExporter } from "./exporters/route-to-openvpn-prefix.exporter";
 
 const EXPORTERS = [
     new CaExporter(),
@@ -73,8 +88,22 @@ const EXPORTERS = [
     new PolicyRuleToOpenVPNPrefixExporter(),
     new PolicyRuleToOpenVPNExporter(),
     new PolicyRuleExporter(),
+    new RoutingTableExporter(),
+    new RoutingGroupExporter(),
+    new RoutingRuleExporter(),
+    new RoutingRuleToIPObjExporter(),
+    new RoutingRuleToIPObjGroupExporter(),
+    new RoutingRuleToOpenVPNExporter(),
+    new RoutingRuleToOpenVPNPrefixExporter(),
+    new RoutingRuleToMarkExporter(),
+    new RouteExporter(),
+    new RouteToIPObjExporter(),
+    new RouteToIPObjGroupExporter(),
+    new RouteToOpenVPNExporter(),
+    new RouteToOpenVPNPrefixExporter(),
+    new RouteGroupExporter(),
     new OpenVPNToIPObjGroupExporter(),
-    new FwcTreeExporter()
+    new FwcTreeExporter(),
 ];
 
 export class DatabaseExporter {

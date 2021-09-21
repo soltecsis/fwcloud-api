@@ -1,3 +1,25 @@
+/*!
+    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { Controller } from "../../../fonaments/http/controller";
 import { Request } from "express";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
@@ -11,16 +33,11 @@ import { app } from "../../../fonaments/abstract-application";
 import * as uuid from "uuid";
 import * as path from "path";
 import { Validate } from "../../../decorators/validate.decorator";
-import { Regexp } from "../../../fonaments/validation/rules/regexp.rule";
-import { String } from "../../../fonaments/validation/rules/string.rule";
-import { InstallerGenerator } from "../../../openvpn-installer/installer-generator";
-import { Required } from "../../../fonaments/validation/rules/required.rule";
+import { OpenVPNControllerInstallerDto } from "./dtos/installer.dto";
 
 export class OpenVPNController extends Controller {
     
-    @Validate({
-        connection_name: [new Required(), new String(), new Regexp(InstallerGenerator.connectionNameRegExp)]
-    })
+    @Validate(OpenVPNControllerInstallerDto)
     public async installer(req: Request): Promise<ResponseBuilder> {
         const openVPN: OpenVPN = await getRepository(OpenVPN).createQueryBuilder("openvpn")
             .leftJoinAndSelect("openvpn.firewall", "firewall")

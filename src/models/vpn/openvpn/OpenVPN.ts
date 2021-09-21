@@ -24,7 +24,7 @@ import Model from "../../Model";
 import { Firewall } from '../../../models/firewall/Firewall';
 import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
 import { Interface } from '../../../models/interface/Interface';
-import { PrimaryGeneratedColumn, Column, Entity, OneToOne, ManyToOne, JoinColumn, OneToMany, ManyToMany, JoinTable } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, OneToOne, ManyToOne, JoinColumn, OneToMany, ManyToMany, JoinTable, getRepository } from "typeorm";
 const config = require('../../../config/config');
 import { IPObj } from '../../ipobj/IPObj';
 const readline = require('readline');
@@ -37,6 +37,10 @@ import { OpenVPNPrefix } from "./OpenVPNPrefix";
 import { ProgressInfoPayload, ProgressErrorPayload, ProgressNoticePayload, ProgressWarningPayload } from "../../../sockets/messages/socket-message";
 import { Channel } from "../../../sockets/channels/channel";
 import { EventEmitter } from "events";
+import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
+import { Route } from "../../routing/route/route.model";
+import { RouteToOpenVPN } from "../../routing/route/route-to-openvpn.model";
+import { RoutingRuleToOpenVPN } from "../../routing/routing-rule/routing-rule-to-openvpn.model";
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -126,6 +130,12 @@ export class OpenVPN extends Model {
 
     @OneToMany(type => OpenVPNPrefix, model => model.openVPN)
     openVPNPrefixes: Array<OpenVPNPrefix>;
+
+    @OneToMany(() => RoutingRuleToOpenVPN, model => model.openVPN)
+    routingRuleToOpenVPNs: RoutingRuleToOpenVPN[];
+
+    @OneToMany(() => RouteToOpenVPN, model => model.openVPN)
+    routeToOpenVPNs: RouteToOpenVPN[];
 
 
     public getTableName(): string {
@@ -653,6 +663,11 @@ export class OpenVPN extends Model {
                 search.restrictions.LastOpenvpnInPrefixInRule = await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInRule(dbCon, fwcloud, openvpn);
                 search.restrictions.LastOpenvpnInPrefixInGroup = await PolicyRuleToOpenVPN.searchLastOpenvpnInPrefixInGroup(dbCon, fwcloud, openvpn);
 
+                search.restrictions.OpenVPNInRoute = await this.searchOpenVPNInRoute(fwcloud, openvpn);
+                search.restrictions.OpenVPNInGroupInRoute = await this.searchOpenVPNInGroupInRoute(fwcloud, openvpn);
+                search.restrictions.OpenVPNInRoutingRule = await this.searchOpenVPNInRoutingRule(fwcloud, openvpn);
+                search.restrictions.OpenVPNInGroupInRoutingRule = await this.searchOpenVPNInGroupInRoutingRule(fwcloud, openvpn);
+                
                 if (extendedSearch) {
                     // Include the rules that use the groups in which the OpenVPN is being used.
                     search.restrictions.OpenvpnInGroupInRule = [];
@@ -684,6 +699,60 @@ export class OpenVPN extends Model {
         });
     };
 
+    public static async searchOpenVPNInRoute(fwcloud: number, openvpn: number): Promise<any> {
+        return await getRepository(Route).createQueryBuilder('route')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoin('route.routeToOpenVPNs', 'routeToOpenVPNs')
+            .innerJoin('routeToOpenVPNs.openVPN', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+            .innerJoinAndSelect('route.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    }
+
+    public static async searchOpenVPNInRoutingRule(fwcloud: number, openvpn: number): Promise<any> {
+        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoin('routing_rule.routingRuleToOpenVPNs', 'routingRuleToOpenVPNs')
+            .innerJoin('routingRuleToOpenVPNs.openVPN', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+            .innerJoinAndSelect('routing_rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    }
+
+    public static async searchOpenVPNInGroupInRoute(fwcloud: number, openvpn: number): Promise<any> {
+        return await getRepository(Route).createQueryBuilder('route')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoinAndSelect('route.routingTable', 'table')
+            .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+            .innerJoin('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
+            .innerJoin('ipObjGroup.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    }
+
+    public static async searchOpenVPNInGroupInRoutingRule(fwcloud: number, openvpn: number): Promise<any> {
+        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+            .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
+            .innerJoin('ipObjGroup.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: openvpn})
+            .innerJoin('routing_rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    }
+
     public static searchOpenvpnUsageOutOfThisFirewall(req) {
         return new Promise((resolve, reject) => {
             // First get all firewalls OpenVPN configurations.
@@ -695,25 +764,25 @@ export class OpenVPN extends Model {
                 let answer: any = {};
                 answer.restrictions = {};
                 answer.restrictions.OpenvpnInRule = [];
+                answer.restrictions.OpenVPNInRoute = [];
+                answer.restrictions.OpenVPNInRoutingRule = [];
                 answer.restrictions.OpenvpnInGroup = [];
 
                 try {
                     for (let openvpn of result) {
                         const data: any = await this.searchOpenvpnUsage(req.dbCon, req.body.fwcloud, openvpn.id);
                         if (data.result) {
-                            // OpenVPN config found in rules of other firewall.
-                            if (data.restrictions.OpenvpnInRule.length > 0) {
-                                for (let rule of data.restrictions.OpenvpnInRule) {
-                                    if (rule.firewall_id != req.body.firewall)
-                                        answer.restrictions.OpenvpnInRule.push(rule);
-                                }
-                            }
-
-                            // OpenVPN config found in a group.
-                            if (data.restrictions.OpenvpnInGroup.length > 0)
-                                answer.restrictions.OpenvpnInGroup = answer.restrictions.OpenvpnInGroup.concat(data.restrictions.OpenvpnInGroup);
+                            answer.restrictions.OpenvpnInRule = answer.restrictions.OpenvpnInRule.concat(data.restrictions.OpenvpnInRule);
+                            answer.restrictions.OpenVPNInRoute = answer.restrictions.OpenVPNInRoute.concat(data.restrictions.OpenVPNInRoute);
+                            answer.restrictions.OpenVPNInRoutingRule = answer.restrictions.OpenVPNInRoutingRule.concat(data.restrictions.OpenVPNInRoutingRule);
+                            answer.restrictions.OpenvpnInGroup = answer.restrictions.OpenvpnInGroup.concat(data.restrictions.OpenvpnInGroup);
                         }
                     }
+
+                    // Remove items of this firewall.
+                    answer.restrictions.OpenvpnInRule = answer.restrictions.OpenvpnInRule.filter(item => item.firewall_id != req.body.firewall);
+                    answer.restrictions.OpenVPNInRoute = answer.restrictions.OpenVPNInRoute.filter(item => item.firewall_id != req.body.firewall);
+                    answer.restrictions.OpenVPNInRoutingRule = answer.restrictions.OpenVPNInRoutingRule.filter(item => item.firewall_id != req.body.firewall);
                 } catch (error) { reject(error) }
 
                 resolve(answer);

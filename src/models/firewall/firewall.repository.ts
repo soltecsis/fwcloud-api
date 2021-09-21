@@ -30,7 +30,7 @@ export class FirewallRepository extends Repository<Firewall> {
     public async markAsUncompiled(Firewall: Firewall): Promise<Firewall>;
     public async markAsUncompiled(Firewalls: Array<Firewall>): Promise<Firewall>;
     public async markAsUncompiled(oneOrMany: Firewall | Array<Firewall>): Promise<Firewall | Array<Firewall>> {
-        const entities: Array<Firewall> = isArray(oneOrMany) ? oneOrMany: [oneOrMany];
+        const entities: Array<Firewall> = Array.isArray(oneOrMany) ? oneOrMany: [oneOrMany];
 
         await this.createQueryBuilder().update(Firewall)
         .where({id: In(this.getIdsFromEntityCollection(entities))})

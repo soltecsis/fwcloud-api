@@ -26,7 +26,7 @@ import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { Validate } from "../../decorators/validate.decorator";
 
 export class PingController extends Controller {
-    @Validate({})
+    @Validate()
     public async ping(request: Request): Promise<ResponseBuilder> {
         return ResponseBuilder.buildResponse().status(200);
     }

@@ -152,7 +152,7 @@ router.put('/type/grouped/get', async (req, res) => {
 /* Get all policy_rs by firewall and type and Rule */
 router.put('/get', async (req, res) => {
 	try {
-		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule, null);
+		const policy = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, [req.body.rule], null);
 		//If exists policy_r get data
 		if (policy && policy.length > 0) 
 			res.status(200).json(policy[0]);
@@ -168,7 +168,7 @@ router.put('/get', async (req, res) => {
 /* Get all policy_rs by firewall and type and Rule */
 router.put('/full/get', async (req, res) => {
 	try { 
-		const data = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, req.body.rule, null);
+		const data = await PolicyRule.getPolicyData('grid', req.dbCon, req.body.fwcloud, req.body.firewall, req.body.type, [req.body.rule], null);
 		if (data && data.length > 0) 
 			res.status(200).json(data);
 		else
@@ -343,6 +343,9 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 				comment: copyRule.comment,
 				type: copyRule.type,
 				style: copyRule.style,
+				fw_apply_to: copyRule.fw_apply_to,
+				negate: copyRule.negate,
+				mark: copyRule.mark,
 				run_before: copyRule.run_before,
 				run_after: copyRule.run_after
 			};

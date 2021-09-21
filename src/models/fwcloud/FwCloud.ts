@@ -35,6 +35,7 @@ import { FwcTree } from "../tree/fwc-tree.model";
 import { IPObj } from "../ipobj/IPObj";
 import { Mark } from "../ipobj/Mark";
 import { FSHelper } from "../../utils/fs-helper";
+import { IPObjGroup } from "../ipobj/IPObjGroup";
 
 const fwcError = require('../../utils/error_table');
 
@@ -98,6 +99,9 @@ export class FwCloud extends Model {
 
 	@OneToMany(type => IPObj, ipobj => ipobj.fwCloud)
 	ipObjs: Array<IPObj>;
+
+	@OneToMany(type => IPObjGroup, ipObjGroup => ipObjGroup.fwCloud)
+	ipObjGroups: Array<IPObjGroup>;
 
 	@OneToMany(type => Mark, mark => mark.fwCloud)
 	marks: Array<Mark>;
@@ -169,7 +173,25 @@ export class FwCloud extends Model {
 				delete RULE from policy_r RULE inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
 				delete PG from policy_g PG inner join firewall FW on FW.id=PG.firewall where FW.fwcloud=${this.id};`
 
-        // Next the OpenVPN entities of the database.
+				// Next the routing policy rules.
+			+`delete RRO from routing_r__ipobj RRO inner join routing_r RULE on RULE.id=RRO.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
+				delete RROG from routing_r__ipobj_g RROG inner join routing_r RULE on RULE.id=RROG.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
+				delete RRVPN from routing_r__openvpn RRVPN inner join routing_r RULE on RULE.id=RRVPN.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
+				delete RRPRE from routing_r__openvpn_prefix RRPRE inner join routing_r RULE on RULE.id=RRPRE.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
+				delete RRM from routing_r__mark RRM inner join routing_r RULE on RULE.id=RRM.rule inner join routing_table RT on RT.id=RULE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
+				delete RR from routing_r RR inner join routing_table RT on RT.id=RR.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
+				delete RRG from routing_g RRG inner join firewall FW on FW.id=RRG.firewall where FW.fwcloud=${this.id};`
+
+				// Next the routing tables.
+				+`delete RO from route__ipobj RO inner join route ROUTE on ROUTE.id=RO.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
+				delete ROG from route__ipobj_g ROG inner join route ROUTE on ROUTE.id=ROG.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
+				delete RVPN from route__openvpn RVPN inner join route ROUTE on ROUTE.id=RVPN.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
+				delete RPRE from route__openvpn_prefix RPRE inner join route ROUTE on ROUTE.id=RPRE.route inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
+				delete ROUTE from route ROUTE inner join routing_table RT on RT.id=ROUTE.routing_table inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
+				delete RT from routing_table RT inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
+				delete RG from route_g RG inner join firewall FW on FW.id=RG.firewall where FW.fwcloud=${this.id};`
+
+				// Next the OpenVPN entities of the database.
 			+`delete OPT from openvpn_opt OPT inner join openvpn VPN on VPN.id=OPT.openvpn inner join firewall FW On FW.id=VPN.firewall where FW.fwcloud=${this.id};
 				delete VPN from openvpn__ipobj_g VPN inner join ipobj_g G on G.id=VPN.ipobj_g where G.fwcloud=${this.id};
 				delete PRE from openvpn_prefix__ipobj_g PRE inner join ipobj_g G on G.id=PRE.ipobj_g where G.fwcloud=${this.id};

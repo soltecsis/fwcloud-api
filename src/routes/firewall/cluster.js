@@ -70,8 +70,10 @@ import { Tree } from '../../models/tree/Tree';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { Firewall } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
-import { logger } from '../../fonaments/abstract-application';
+import { app, logger } from '../../fonaments/abstract-application';
 import { PgpHelper } from '../../utils/pgp';
+import { FirewallService } from '../../models/firewall/firewall.service';
+import { ClusterService } from '../../models/firewall/cluster.service';
 
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -587,6 +589,8 @@ router.put('/clone', (req, res) => {
 						let dataI = await Interface.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
 						await PolicyRule.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
 						await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
+						const firewallService = await app().getService(FirewallService.name);
+						await firewallService.clone(oldFirewall, fwNewMaster, dataI);
 					}
 				}
 
@@ -616,7 +620,9 @@ router.put("/del",
 restrictedCheck.firewall,
 async (req, res) => {
 	try {
-		await Cluster.deleteCluster(req.dbCon, req.body.cluster, req.session.user_id, req.body.fwcloud);
+		const clusterService = await app().getService(ClusterService.name);
+		await clusterService.remove(req.body.cluster, req.body.fwcloud, req.session.user_id);
+
 		res.status(204).end();
 	} catch(error) {
 		logger().error('Error deleting cluster: ' + JSON.stringify(error));

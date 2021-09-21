@@ -23,10 +23,9 @@
 import { Snapshot } from "../../snapshots/snapshot";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { ExporterResult } from "../database-exporter/exporter-result";
-import { QueryRunner, DeepPartial, createQueryBuilder } from "typeorm";
+import { QueryRunner, DeepPartial, createQueryBuilder, getRepository } from "typeorm";
 import { app } from "../../fonaments/abstract-application";
 import { DatabaseService } from "../../database/database.service";
-import { Terraformer } from "./terraformer/terraformer";
 import { IdManager } from "./terraformer/mapper/id-manager";
 import { ImportMapping } from "./terraformer/mapper/import-mapping";
 import * as path from "path";
@@ -103,6 +102,13 @@ export class DatabaseImporter {
         }
 
         const fwCloud: FwCloud = await FwCloud.findOne(fwCloudId);
+
+        if (!snapshot.isHashCompatible()) {
+            await getRepository(Firewall).update({fwCloudId: fwCloud.id}, {
+                install_user: null,
+                install_pass: null
+            });
+        }
 
         await DatabaseImporter.importDataDirectories(snapshot.path, fwCloud, this._mapper);
 

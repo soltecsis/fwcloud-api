@@ -42,6 +42,9 @@ import { Tree } from '../../models/tree/Tree';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
 import { logger } from '../../fonaments/abstract-application';
+import { getRepository } from 'typeorm';
+import { Route } from '../../models/routing/route/route.model';
+import { RoutingRule } from '../../models/routing/routing-rule/routing-rule.model';
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
 
@@ -170,7 +173,7 @@ router.put('/addto', async(req, res) => {
 		// Insert object in group.
 		let dataIpobj;
 		if (req.body.node_type === 'OCL') {
-			if (groupIPv === 6) throw fwcError.IPOBJ_MIX_IP_VERSION;
+			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
 			await OpenVPN.addToGroup(req.dbCon, req.body.ipobj, req.body.ipobj_g);
 			dataIpobj = await OpenVPN.getOpenvpnInfo(req.dbCon, req.body.fwcloud, req.body.ipobj, 1);
@@ -178,7 +181,7 @@ router.put('/addto', async(req, res) => {
 			dataIpobj[0].name = dataIpobj[0].cn;
 			dataIpobj[0].type = 311;
 		} else if (req.body.node_type === 'PRO') {
-			if (groupIPv === 6) throw fwcError.IPOBJ_MIX_IP_VERSION;
+			if (groupIPv.ipv6) throw fwcError.IPOBJ_MIX_IP_VERSION;
 
 			// Don't allow adding an empty OpenVPN server prefix to a group.
 			if ((await OpenVPNPrefix.getOpenvpnClientesUnderPrefix(req.dbCon, req.prefix.openvpn, req.prefix.name)).length < 1)
@@ -190,8 +193,13 @@ router.put('/addto', async(req, res) => {
 			dataIpobj[0].type = 401;
 		} else {
 			dataIpobj = await IPObj.getIpobj(req.dbCon, req.body.fwcloud, req.body.ipobj);
-			if (groupIPv!=0 && dataIpobj[0].ip_version!==groupIPv) throw fwcError.IPOBJ_MIX_IP_VERSION;
-
+			
+			if (dataIpobj.length > 0 && dataIpobj[0].type === 8) {
+				if (dataIpobj[0].interfaces.length === 0 || dataIpobj[0].interfaces.filter(item => item.ipobjs.length > 0).length === 0) {
+					throw fwcError.IPOBJ_EMPTY_CONTAINER;
+				}
+			}
+			
 			await IPObjToIPObjGroup.insertIpobj__ipobjg(req);
 			if (!dataIpobj || dataIpobj.length !== 1) throw fwcError.NOT_FOUND;
 		}
@@ -200,7 +208,7 @@ router.put('/addto', async(req, res) => {
 		await Tree.newNode(req.dbCon, req.body.fwcloud, dataIpobj[0].name, req.body.node_parent, req.body.node_type, req.body.ipobj, dataIpobj[0].type);
 
 		// Update affected firewalls status.
-		await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
+		await Firewall.updateFirewallStatusIPOBJGroup(req.body.fwcloud, [req.body.ipobj_g]);
 
 		const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(req.body.fwcloud, null);
 		res.status(200).json(not_zero_status_fws);
@@ -214,10 +222,28 @@ router.put('/addto', async(req, res) => {
 /* Remove ipobj__ipobjg */
 router.put('/delfrom', async(req, res) => {
 	try {
-		// No permitir eliminar de grupo si está siendo utilizado en alguna regla y va a quedar vacío.
-		const search = await PolicyRuleToIPObj.searchGroupInRule(req.body.ipobj_g, req.body.fwcloud);
-		if (search.length > 0) {
-			if ((await IPObjGroup.countGroupItems(req.dbCon, req.body.ipobj_g)) === 1)
+        // If we are going to remove the last group item, verify before that the group is not being used
+        // in any policy rule, route or routing policy.
+		if ((await IPObjGroup.countGroupItems(req.dbCon, req.body.ipobj_g)) === 1) { 
+			const policyRules = await PolicyRuleToIPObj.searchGroupInRule(req.body.ipobj_g, req.body.fwcloud);			
+			
+            if (policyRules.length > 0) 
+			    throw fwcError.IPOBJ_EMPTY_CONTAINER;
+
+			const routes = await getRepository(Route).createQueryBuilder("route")
+			.innerJoinAndSelect("route.routeToIPObjGroups", "routeToIPObjGroups")
+			.innerJoinAndSelect("routeToIPObjGroups.ipObjGroup", "group", `group.id = :group`, {group: req.body.ipobj_g})
+			.getCount();			
+			
+            if (routes > 0)
+				throw fwcError.IPOBJ_EMPTY_CONTAINER;
+
+			const routingRules = await getRepository(RoutingRule).createQueryBuilder("rule")
+			.innerJoinAndSelect("rule.routingRuleToIPObjGroups", "routingRuleToIPObjGroups")
+			.innerJoinAndSelect("routingRuleToIPObjGroups.ipObjGroup", "group", `group.id = :group`, {group: req.body.ipobj_g})
+			.getCount();
+			
+			if (routingRules > 0)
 				throw fwcError.IPOBJ_EMPTY_CONTAINER;
 		}
 
@@ -230,7 +256,7 @@ router.put('/delfrom', async(req, res) => {
 
 		await Tree.deleteFwc_TreeGroupChild(req.dbCon, req.body.fwcloud, req.body.ipobj_g, req.body.ipobj);
 
-		await Firewall.updateFirewallStatusIPOBJ(req.body.fwcloud, -1, req.body.ipobj_g, -1, -1, "|3");
+		await Firewall.updateFirewallStatusIPOBJGroup(req.body.fwcloud, [req.body.ipobj_g]);
 
 		const not_zero_status_fws = await Firewall.getFirewallStatusNotZero(req.body.fwcloud, null);
 		res.status(200).json(not_zero_status_fws);

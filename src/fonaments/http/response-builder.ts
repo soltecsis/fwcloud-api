@@ -29,6 +29,7 @@ import { isArray } from "util";
 import { HttpCodeResponse } from "./http-code-response";
 import ObjectHelpers from "../../utils/object-helpers";
 import { FwCloudError } from "../exceptions/error";
+import { classToPlain } from "class-transformer";
 
 interface ResponseBody {
     status: number,
@@ -183,7 +184,7 @@ export class ResponseBuilder {
         const result: Array<Object> = [];
 
         for (let i = 0; i < payload.length; i++) {
-            result.push(isResponsable(payload[i]) ? payload[i].toResponse() : payload[i]);
+            result.push(isResponsable(payload[i]) ? payload[i].toResponse() : classToPlain(payload[i]));
         }
 
         return {data: result};

@@ -27,10 +27,14 @@ import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-import { Entity, Column, getRepository, PrimaryGeneratedColumn, Repository, OneToMany, ManyToMany, ManyToOne } from "typeorm";
+import { Entity, Column, getRepository, PrimaryGeneratedColumn, OneToMany, ManyToMany, ManyToOne, JoinColumn } from "typeorm";
+import { logger } from "../../fonaments/abstract-application";
+import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
+import { Route } from "../routing/route/route.model";
+import { Interface } from "../interface/Interface";
 import { FwCloud } from "../fwcloud/FwCloud";
-import { app, logger } from "../../fonaments/abstract-application";
-import { RoutingRuleToIPObj } from "../routing/routing-rule-to-ipobj.model";
+import { RouteToIPObjGroup } from "../routing/route/route-to-ipobj-group.model";
+import { RoutingRuleToIPObjGroup } from "../routing/routing-rule/routing-rule-to-ipobj-group.model";
 var asyncMod = require('async');
 var ipobj_g_Data = require('../data/data_ipobj_g');
 var ipobj_Data = require('../data/data_ipobj');
@@ -54,14 +58,21 @@ export class IPObjGroup extends Model {
     @Column({name: 'type'})
     type: number;
 
-    @Column({name: 'fwcloud'})
-    fwCloudId: number;
-
     @Column()
     created_at: Date;
 
     @Column()
     updated_at: Date;
+
+
+    @Column({name: 'fwcloud'})
+    fwCloudId: number;
+
+	@ManyToOne(type => FwCloud, fwcloud => fwcloud.ipObjGroups)
+	@JoinColumn({
+		name: 'fwcloud'
+	})
+	fwCloud: FwCloud;
 
     @OneToMany(type => IPObjToIPObjGroup, ipObjToIPObjGroup => ipObjToIPObjGroup.ipObjGroup)
     ipObjToIPObjGroups!: Array<IPObjToIPObjGroup>;
@@ -72,14 +83,15 @@ export class IPObjGroup extends Model {
     @ManyToMany(type => OpenVPNPrefix, openVPNPrefix => openVPNPrefix.ipObjGroups)
     openVPNPrefixes: Array<OpenVPNPrefix>;
 
-    @OneToMany(type => RoutingRuleToIPObj, routingRuleToIPObj => routingRuleToIPObj.ipObjGroup)
-    routingRuleToIPObjs: Array<RoutingRuleToIPObj>;
+    @OneToMany(() => RoutingRuleToIPObjGroup, model => model.ipObjGroup)
+    routingRuleToIPObjGroups: RoutingRuleToIPObjGroup[];
 
-    /**
-    * Pending foreign keys.
+    @OneToMany(() => RouteToIPObjGroup, model => model.ipObjGroup)
+    routeToIPObjGroups: RouteToIPObjGroup[];
+
+
     @OneToMany(type => PolicyRuleToIPObj, model => model.ipObjGroup)
     policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
-    */
 
     public getTableName(): string {
         return tableName;
@@ -125,36 +137,78 @@ export class IPObjGroup extends Model {
 
 
     //IP version of the group items.
-    public static groupIPVersion(dbCon, group) {
+    public static groupIPVersion(dbCon, group): Promise<{ipv4: boolean, ipv6: boolean}> {
+        const ipVersions: {ipv4: boolean, ipv6: boolean} = {ipv4: false, ipv6: false};
+
         return new Promise((resolve, reject) => {
-            dbCon.query(`select type from ${tableName} where id=${group}`, (error, result) => {
-                if (error) return reject(error);
-                if (result.length !== 1) return reject(fwcError.NOT_FOUND);
-                // If this is not an IP objects group then finish without IP version.
-                if (result[0].type !== 20) return resolve(0);
+            dbCon.query(`select type from ${tableName} where id=${group}`, async (error, result) => {
+                try {
 
-                let sql = `select O.type,O.ip_version from ipobj__ipobjg G
-                inner join ipobj O on O.id=G.ipobj
-                where G.ipobj_g=${group}`
-                dbCon.query(sql, (error, result) => {
                     if (error) return reject(error);
-                    if (result.length > 0) return resolve(parseInt(result[0].ip_version));
+                    if (result.length !== 1) return reject(fwcError.NOT_FOUND);
+                    // If this is not an IP objects group then finish without IP version.
+                    if (result[0].type !== 20) return resolve(ipVersions);
 
+                    const ipObjs: IPObj[] = await getRepository(IPObj)
+                        .createQueryBuilder('ipobj')
+                        .where((qb) => {
+                            const query: string = qb.subQuery()
+                                .select('interface.id')
+                                .from(Interface, 'interface')
+                                .innerJoin('interface.hosts', 'InterfaceIPObj')
+                                .innerJoin('InterfaceIPObj.hostIPObj', 'host')
+                                .innerJoin('host.ipObjToIPObjGroups', 'ipObjToIPObjGroup', 'ipObjToIPObjGroup.ipObjGroup = :id', {id: group})
+                                .getQuery();
+                        
+                            return `ipobj.interface IN ${query}`;
+                        })
+                        .orWhere((qb) => {
+                            const query: string = qb.subQuery()
+                                .select('ipobj.id')
+                                .from(IPObj, 'ipobj')
+                                .innerJoin('ipobj.ipObjToIPObjGroups', 'ipObjToIPObjGroup', 'ipObjToIPObjGroup.ipObjGroup = :id', {id: group})
+                                .getQuery()
+                        
+                            return `ipobj.id IN ${query}`;
+                        }).getMany()
+                    
+                    if (ipObjs.length > 0) {
+                        ipObjs.forEach(ipobj => {
+                            if (ipobj.ip_version === 4) {
+                                ipVersions.ipv4 = true;
+                            }
+
+                            if (ipobj.ip_version === 6) {
+                                ipVersions.ipv6 = true;
+                            }
+                        })
+
+                        return resolve(ipVersions);
+                    }
+                    
                     dbCon.query(`select count(*) as n from openvpn__ipobj_g where ipobj_g=${group}`, (error, result) => {
                         if (error) return reject(error);
                         // If there is an OpenVPN configuration in the group, then this is an IPv4 group.
-                        if (result[0].n > 0) return resolve(4);
+                        if (result[0].n > 0) return resolve({
+                            ipv4: true,
+                            ipv6: false
+                        });
 
                         dbCon.query(`select count(*) as n from openvpn_prefix__ipobj_g where ipobj_g=${group}`, (error, result) => {
                             if (error) return reject(error);
                             // If there is an OpenVPN prefix in the group, then this is an IPv4 group.
-                            if (result[0].n > 0) return resolve(4);
+                            if (result[0].n > 0) return resolve({
+                                ipv4: true,
+                                ipv6: false
+                            });
 
                             // If we arrive here, then the group is empty.
-                            resolve(0);
+                            resolve(ipVersions);
                         });
                     });
-                });
+                } catch(err) {
+                    return reject(err);
+                }
             });
         });
     }
@@ -301,6 +355,27 @@ export class IPObjGroup extends Model {
                 search.restrictions = {};
                 //search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
                 search.restrictions.GroupInRule = await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+                search.restrictions.GroupInRoute = await getRepository(Route).createQueryBuilder('route')
+                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+                    .innerJoinAndSelect('route.routingTable', 'table')
+                    .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+                    .innerJoin('routeToIPObjGroups.ipObjGroup', 'group', 'group.id = :id', {id: id})
+                    .innerJoin('table.firewall', 'firewall')
+                    .leftJoin('firewall.cluster', 'cluster')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getRawMany();
+                
+                search.restrictions.GroupInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+                    .innerJoin('routing_rule.routingTable', 'table')
+                    .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+                    .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'group', 'group.id = :id', {id: id})
+                    .innerJoin('table.firewall', 'firewall')
+                    .leftJoin('firewall.cluster', 'cluster')
+                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+                    .getRawMany();
 
                 for (let key in search.restrictions) {
                     if (search.restrictions[key].length > 0) {

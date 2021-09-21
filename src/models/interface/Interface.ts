@@ -27,13 +27,13 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
-import { getRepository, Column, PrimaryGeneratedColumn, Entity, Repository, ManyToOne, JoinColumn, OneToMany, JoinTable } from "typeorm";
+import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToMany, getRepository } from "typeorm";
 import { Firewall } from "../firewall/Firewall";
-import { app, logger } from "../../fonaments/abstract-application";
-import { PolicyRule } from "../policy/PolicyRule";
-import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface.model";
-import { string } from "joi";
-import { FwCloudError } from "../../fonaments/exceptions/error";
+import { logger } from "../../fonaments/abstract-application";
+import { Route } from "../routing/route/route.model";
+import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface/routing-rule-to-interface.model";
+import { RouteToIPObj } from "../routing/route/route-to-ipobj.model";
+import { RoutingRuleToIPObj } from "../routing/routing-rule/routing-rule-to-ipobj.model";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -92,15 +92,15 @@ export class Interface extends Model {
 	@OneToMany(type => PolicyRuleToInterface, policyRuleToInterface => policyRuleToInterface.policyRuleInterface)
 	policyRuleToInterfaces: Array<PolicyRuleToInterface>;
 
-	@OneToMany(type => RoutingRuleToInterface, routingRuleToInterface => routingRuleToInterface.routingRuleInterface)
-	routingRuleToInterfaces: Array<RoutingRuleToInterface>;
+	@OneToMany(type => Route, model => model.routingTable)
+	routes: Route[];
 
-	/**
-	* Pending foreign keys.
+	@OneToMany(() => RoutingRuleToInterface, routingRuleToInterface => routingRuleToInterface.interface)
+	routingRuleToInterfaces: RoutingRuleToInterface[]
+
 	@OneToMany(type => PolicyRuleToIPObj, model => model.interface)
 	policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
-	*/
-   
+
 	public getTableName(): string {
 		return tableName;
 	}
@@ -325,7 +325,7 @@ export class Interface extends Model {
 	};
 
 	// Get interface address.
-	public static getInterfaceAddr(dbCon, _interface) {
+	public static getInterfaceAddr(dbCon, _interface): Promise<IPObj[]> {
 		return new Promise((resolve, reject) => {
 			dbCon.query(`select id,interface,ip_version from ipobj where interface=${_interface}`, (error, result) => {
 				if (error) return reject(error);
@@ -361,6 +361,8 @@ export class Interface extends Model {
 			answer.restrictions.InterfaceInRules_I = [];
 			answer.restrictions.InterfaceInRules_O = [];
 			answer.restrictions.IpobjInterfaceInRule = [];
+			answer.restrictions.IpobjInterfaceInRoute = [];
+			answer.restrictions.IpobjInterfaceInRoutingRule = [];
 			answer.restrictions.IpobjInterfaceInGroup = [];
 			answer.restrictions.IpobjInterfaceInOpenvpn = [];
 
@@ -373,10 +375,18 @@ export class Interface extends Model {
 						answer.restrictions.InterfaceInRules_I = answer.restrictions.InterfaceInRules_I.concat(data.restrictions.InterfaceInRules_I);
 						answer.restrictions.InterfaceInRules_O = answer.restrictions.InterfaceInRules_O.concat(data.restrictions.InterfaceInRules_O);
 						answer.restrictions.IpobjInterfaceInRule = answer.restrictions.IpobjInterfaceInRule.concat(data.restrictions.IpobjInterfaceInRule);
+						answer.restrictions.IpobjInterfaceInRoute = answer.restrictions.IpobjInterfaceInRoute.concat(data.restrictions.IpobjInterfaceInRoute);
+						answer.restrictions.IpobjInterfaceInRoutingRule = answer.restrictions.IpobjInterfaceInRoutingRule.concat(data.restrictions.IpobjInterfaceInRoutingRule);
 						answer.restrictions.IpobjInterfaceInGroup = answer.restrictions.IpobjInterfaceInGroup.concat(data.restrictions.IpobjInterfaceInGroup);
 						answer.restrictions.IpobjInterfaceInOpenvpn = answer.restrictions.IpobjInterfaceInOpenvpn.concat(data.restrictions.IpobjInterfaceInOpenvpn);
 					}
 				}
+
+				// Remove items of this firewall.
+				answer.restrictions.IpobjInterfaceInRule = answer.restrictions.IpobjInterfaceInRule.filter(item => item.firewall_id != req.body.firewall);
+				answer.restrictions.IpobjInterfaceInRoute = answer.restrictions.IpobjInterfaceInRoute.filter(item => item.firewall_id != req.body.firewall);
+				answer.restrictions.IpobjInterfaceInRoutingRule = answer.restrictions.IpobjInterfaceInRoutingRule.filter(item => item.firewall_id != req.body.firewall);
+
 			} catch (error) { return reject(error) }
 
 			resolve(answer);
@@ -404,6 +414,40 @@ export class Interface extends Model {
 						search.restrictions.InterfaceInFirewall = await this.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
 						search.restrictions.InterfaceInHost = await InterfaceIPObj.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
 						search.restrictions.LastInterfaceWithAddrInHostInRule = await IPObj.searchLastInterfaceWithAddrInHostInRule(id, fwcloud);
+						
+						search.restrictions.InterfaceInRoute = await getRepository(Route).createQueryBuilder('route')
+							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+							.innerJoinAndSelect('route.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoinAndSelect('route.routingTable', 'table')
+							.innerJoin('table.firewall', 'firewall')
+							.leftJoin('firewall.cluster', 'cluster')
+							.where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+							.getRawMany();
+
+						search.restrictions.IpobjInterfaceInRoute = await getRepository(RouteToIPObj).createQueryBuilder('routeToIPObj')
+							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+							.innerJoin('routeToIPObj.ipObj', 'ipobj')
+							.innerJoin('ipobj.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoinAndSelect('routeToIPObj.route', 'route')
+							.innerJoinAndSelect('route.routingTable', 'table')
+							.innerJoin('table.firewall', 'firewall')
+							.leftJoin('firewall.cluster', 'cluster')
+							.where('firewall.fwCloudId = :fwcloud', {fwcloud})  
+							.getRawMany()
+
+						search.restrictions.IpobjInterfaceInRoutingRule = await getRepository(RoutingRuleToIPObj).createQueryBuilder('routingRuleToIPObj')
+							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+							.innerJoin('routingRuleToIPObj.ipObj', 'ipobj')
+							.innerJoin('ipobj.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoinAndSelect('routingRuleToIPObj.routingRule', 'rule')
+							.innerJoin('rule.routingTable', 'table')
+							.innerJoin('table.firewall', 'firewall')
+							.leftJoin('firewall.cluster', 'cluster')
+							.where('firewall.fwCloudId = :fwcloud', {fwcloud})  
+							.getRawMany()
 
 						for (let key in search.restrictions) {
 							if (search.restrictions[key].length > 0) {
@@ -426,10 +470,11 @@ export class Interface extends Model {
 				if (error) return reject(error);
 
 				var sql = 'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
-					'C.id cloud_id, C.name cloud_name, F.id firewall_id, F.name firewall_name   ' +
+					'C.id cloud_id, C.name cloud_name, F.id firewall_id, F.name firewall_name, CL.id cluster_id, CL.name cluster_name ' +
 					'from interface I ' +
 					'inner join ipobj_type T on T.id=I.interface_type ' +
-					'INNER JOIN firewall F on F.id=I.firewall   ' +
+					'INNER JOIN firewall F on F.id=I.firewall ' +
+					'LEFT JOIN cluster CL on CL.id=F.cluster ' +
 					'inner join fwcloud C on C.id=F.fwcloud ' +
 					' WHERE I.id=' + _interface + ' AND I.interface_type=' + type + ' AND F.fwcloud=' + fwcloud;
 				connection.query(sql, (error, rows) => {

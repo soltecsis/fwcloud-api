@@ -32,9 +32,9 @@ import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 import { StdChains, TcpFlags, NetfilterTablePolicyTypeMap, PositionMap, GroupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
 import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../models/policy/PolicyGroup';
-import { IPTablesCompiler } from '../compiler/iptables/iptables-compiler';
 import { PolicyRuleToOpenVPN } from '../models/policy/PolicyRuleToOpenVPN';
 import moment from "moment";
+import { PolicyCompilerTools } from "../compiler/policy/PolicyCompilerTools";
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
@@ -978,12 +978,12 @@ export class IptablesSaveToFWCloud extends Service {
       return;
     }
 
-    let data: any = await PolicyRule.getPolicyData('compiler', this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.previousRuleId, null);
+    let data: any = await PolicyRule.getPolicyData('compiler', this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.policyType, [this.previousRuleId], null);
     this.previousRuleId = this.ruleId; // Important, do it here before check the data result of the previous method call.
     if (!data || !data.length || data.length!=1) return;
     const previousRule = data[0];
 
-    data = await PolicyRule.getPolicyData('compiler', this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.policyType, this.ruleId, null);
+    data = await PolicyRule.getPolicyData('compiler', this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, this.policyType, [this.ruleId], null);
     if (!data || !data.length || data.length!=1) return;
     const currentRule = data[0];
 
@@ -1005,8 +1005,8 @@ export class IptablesSaveToFWCloud extends Service {
       const currPosObjs = JSON.stringify(currentRule.positions[i].ipobjs);
 
       // Check position negation!!!!
-      const currPosNegated = IPTablesCompiler.isPositionNegated(currentRule.negate,currentRule.positions[i].id);
-      const prevPosNegated = IPTablesCompiler.isPositionNegated(previousRule.negate,previousRule.positions[i].id);
+      const currPosNegated = PolicyCompilerTools.isPositionNegated(currentRule.negate,currentRule.positions[i].id);
+      const prevPosNegated = PolicyCompilerTools.isPositionNegated(previousRule.negate,previousRule.positions[i].id);
       if (currPosNegated !== prevPosNegated) return; // Rules with different negation status in the same position can not be merged.
 
       if (prevPosObjs !== currPosObjs) {
