@@ -165,6 +165,5 @@ policy_apply() {
   load_nat_modules
   policy_empty
   policy_load
-  iptables_default_filter_policy DROP
   options_load
 }
