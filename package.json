@@ -13,10 +13,8 @@
     "clean": "rm -fr dist/",
     "build": "npm run clean && mkdir -p dist/src && cp -r src/views dist/src/views && node_modules/.bin/tsc",
     "watch": "npm run build -- -w",
-    "reload": "node_modules/.bin/gulp reload",
-    "smart-compilation": "node_modules/.bin/gulp smartCompilation",
-    "fwcloud": "npm run smart-compilation -- --silent && node --no-warnings dist/src/cli/cli.js",
-    "test": "npm run smart-compilation && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --colors dist/tests/**/*spec.js"
+    "fwcloud": "node --no-warnings dist/src/cli/cli.js",
+    "test": "npm run build && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --colors dist/tests/**/*spec.js"
   },
   "apidoc": {
     "title": "FWCloud.net API",
@@ -53,7 +51,6 @@
     "express-session": "^1.17.1",
     "fancy-log": "1.3.3",
     "fs-extra": "^8.1.0",
-    "gulp-typescript": "6.0.0-alpha.1",
     "helmet": "^3.21.2",
     "http-proxy": "^1.18.1",
     "ip": "^1.1.5",
@@ -114,7 +111,6 @@
     "chai-json-schema": "^1.5.1",
     "cookie": "0.4.0",
     "cookie-signature": "1.1.0",
-    "gulp": "4.0.2",
     "mocha": "^7.1.2",
     "sinon": "9.0.0",
     "supertest": "4.0.2",
