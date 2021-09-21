@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove restrictions added for groups which are being used in policy rules.
 - Fixed 'Problem getting host information'
 - Disallow adding hosts without addresses to groups.
+- Adding/removing IPs from hosts used by firewalls updates firewall status flags
+- Changing mark name updates its node in the tree node
+- Changing the OpenVPN prefixes updates all nodes which reference to it
+- Changing mark settings updates firewalls status flags which use it
 
 ## [1.2.0] - 2021-04-30
 ### Added
