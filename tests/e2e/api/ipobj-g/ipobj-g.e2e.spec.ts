@@ -54,7 +54,7 @@ describe(describeName('IPObjGroup E2E Tests'), () => {
         }));
     });
 
-    describe(RouteController.name, () => {
+    describe('ipobj-g controller', () => {
         describe('@delfrom', () => {
             let group: IPObjGroup;
             let ipobj: IPObj;

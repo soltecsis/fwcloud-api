@@ -23,6 +23,7 @@ describe(RouteController.name, () => {
 
     beforeEach(async () => {
         app = testSuite.app;
+        await testSuite.resetDatabaseData();
         product = await new FwCloudFactory().make();
         
         fwcloud = product.fwcloud;
