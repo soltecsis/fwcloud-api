@@ -59,6 +59,7 @@ import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload } from '../../sockets/messages/socket-message';
 import { logger } from '../../fonaments/abstract-application';
 import { getRepository } from 'typeorm';
+import { IPObj } from '../../models/ipobj/IPObj';
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
@@ -68,11 +69,21 @@ router.post('/', async (req, res) => {
     const channel = await Channel.fromRequest(req);
 
     if (firewall.install_communication === FirewallInstallCommunication.SSH) {
-      await PolicyScript.installBySSH(req,data.SSHconn,firewall.id_fwmaster ?? firewall.id, channel)
+      await PolicyScript.installBySSH(req, {
+        host: (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
+        port: firewall.install_port,
+        username: firewall.install_user,
+        password: firewall.install_pass
+      }, firewall.id_fwmaster ?? firewall.id, channel)
     }
 
     if (firewall.install_communication === FirewallInstallCommunication.Agent) {
-      await PolicyScript.installByAgent(req, firewall.id_fwmaster ?? firewall.id, channel);
+      await PolicyScript.installByAgent({
+        protocol: firewall.install_protocol,
+        host: (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
+        port: firewall.install_port,
+        apikey: firewall.install_apikey
+      }, firewall.id_fwmaster ?? firewall.id, channel);
     }
 
     await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
