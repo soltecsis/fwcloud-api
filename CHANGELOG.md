@@ -4,7 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] - 2021-09-22
+### Added
+- Advanced routing management using the drag and drop features of FWCloud-UI. It is possible to easily create routing tables, routes and routing policy by means of the user web interface FWCloud-UI and the new set of API calls for routing management.
+- Routing compiler for generate the script code that allows apply the routing configuration in the destination firewall.
+- NFTables compiler. A new firewall policy compiler that allows generate the policy installation script using the NFTables Linux kernel packet classification framework. At this moment two compilers are available: IPTables and NFTables.
+- Improved the `Where used` feature including the new routing feature.
+- Better control to avoid leaving empty groups or hosts used in policy, routes or routing policy.
+- Take into account routes and routing rules in the API call for the most used colors.
+- Compilation of several firewall rules, routes or routing rules.
+- Hundreds of new software tests.
+
 ### Fixed
 - Fixed 'After adding host to a group it is not possible move it to policy positions'.
 - Fixed 'Bug in firewall cluster node remove'.
