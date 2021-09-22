@@ -62,7 +62,7 @@ var router = express.Router();
  * 
  * 
  */
-import { Firewall } from '../../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication, FirewallInstallProtocol } from '../../models/firewall/Firewall';
 import { FirewallExport } from '../../export/FirewallExport';
 
 /**
@@ -147,6 +147,7 @@ router.post('/', async(req, res) => {
 		status: 3,
 		comment: req.body.comment,
 		fwcloud: req.body.fwcloud,
+		install_communication: req.body.install_communication === 'ssh' ? FirewallInstallCommunication.SSH : FirewallInstallCommunication.Agent,
 		install_user: req.body.install_user,
 		install_pass: req.body.install_pass,
 		save_user_pass: req.body.save_user_pass,
@@ -157,6 +158,14 @@ router.post('/', async(req, res) => {
 		by_user: req.session.user_id,
 		options: req.body.options
 	};
+
+	if (req.body.install_protocol) {
+		firewallData.install_protocol = req.body.install_protocol === 'http' ? FirewallInstallProtocol.HTTP : FirewallInstallProtocol.HTTPS;
+	}
+
+	if (req.body.install_apikey) {
+		firewallData.install_apikey = await utilsModel.encrypt(req.body.install_apikey);
+	}
 
 	try {
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
@@ -247,7 +256,8 @@ router.put('/', async (req, res) => {
 		cluster: req.body.cluster,
 		name: req.body.name,
 		comment: req.body.comment,
-		fwcloud: req.body.fwcloud, //working cloud      
+		fwcloud: req.body.fwcloud, //working cloud
+		install_communication: req.body.install_communication === 'ssh' ? FirewallInstallCommunication.SSH : FirewallInstallCommunication.Agent, 
 		install_user: req.body.install_user,
 		install_pass: req.body.install_pass,
 		save_user_pass: req.body.save_user_pass,
@@ -271,6 +281,14 @@ router.put('/', async (req, res) => {
 		if (!firewallData.save_user_pass) {
 			firewallData.install_user = '';
 			firewallData.install_pass = '';
+		}
+
+		if (req.body.install_protocol) {
+			firewallData.install_protocol = req.body.install_protocol === 'http' ? FirewallInstallProtocol.HTTP : FirewallInstallProtocol.HTTPS;
+		}
+	
+		if (req.body.install_apikey) {
+			firewallData.install_apikey = await utilsModel.encrypt(req.body.install_apikey);
 		}
 
 		await Firewall.updateFirewall(req.dbCon, req.session.user_id, firewallData);

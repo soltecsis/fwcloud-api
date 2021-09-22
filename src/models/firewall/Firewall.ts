@@ -52,6 +52,16 @@ import { IPObjGroup } from "../ipobj/IPObjGroup";
 
 const tableName: string = 'firewall';
 
+export enum FirewallInstallCommunication {
+	SSH = 'ssh',
+	Agent = 'agent'
+}
+
+export enum FirewallInstallProtocol {
+	HTTPS = 'https',
+	HTTP = 'http'
+}
+
 @Entity(tableName)
 export class Firewall extends Model {
 
@@ -82,6 +92,21 @@ export class Firewall extends Model {
 	@Column()
 	status: number;
 
+	@Column({
+		type: 'enum',
+		enum: FirewallInstallCommunication
+	})
+	install_communication: FirewallInstallCommunication;
+
+	@Column({
+		type: 'enum',
+		enum: FirewallInstallProtocol
+	})
+	install_protocol: FirewallInstallProtocol;
+
+	@Column()
+	install_apikey: string;
+
 	@Column()
 	install_user: string;
 
@@ -89,13 +114,13 @@ export class Firewall extends Model {
 	install_pass: string;
 
 	@Column()
-	save_user_pass: number;
-
-	@Column()
 	install_interface: number;
 
 	@Column()
 	install_ipobj: number;
+
+	@Column()
+	save_user_pass: number;
 
 	@Column()
 	fwmaster: number;
