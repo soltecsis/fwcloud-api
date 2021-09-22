@@ -54,20 +54,27 @@ var router = express.Router();
  * @type ../../models/compile/
  */
 import { PolicyScript } from '../../compiler/policy/PolicyScript';
-import { Firewall } from '../../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../../models/firewall/Firewall';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload } from '../../sockets/messages/socket-message';
 import { logger } from '../../fonaments/abstract-application';
+import { getRepository } from 'typeorm';
 
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.post('/', async (req, res) => {
   try {
-    const data = await Firewall.getFirewallSSH(req);
-
+    const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
     const channel = await Channel.fromRequest(req);
 
-    await PolicyScript.install(req,data.SSHconn,((data.id_fwmaster) ? data.id_fwmaster : data.id), channel)
+    if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+      await PolicyScript.installBySSH(req,data.SSHconn,firewall.id_fwmaster ?? firewall.id, channel)
+    }
+
+    if (firewall.install_communication === FirewallInstallCommunication.Agent) {
+      await PolicyScript.installByAgent(req, firewall.id_fwmaster ?? firewall.id, channel);
+    }
+
     await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
     await Firewall.updateFirewallInstallDate(req.body.fwcloud,req.body.firewall);
     

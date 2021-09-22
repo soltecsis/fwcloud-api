@@ -259,7 +259,7 @@ export class PolicyScript {
 		});
 	}
 
-	public static install(req, SSHconn, firewall, eventEmitter: EventEmitter = new EventEmitter()) {
+	public static installBySSH(req, SSHconn, firewall, eventEmitter: EventEmitter = new EventEmitter()) {
 		return new Promise(async (resolve, reject) => {
 			try {
 				eventEmitter.emit('message', new ProgressNoticePayload(`Uploading firewall script (${SSHconn.host})`));
@@ -287,6 +287,10 @@ export class PolicyScript {
 				reject(error);
 			}
 		});
+	}
+
+	public static installByAgent(req, firewall, eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
+		throw new Error('Agent communication not implemented');
 	}
 
 	private dumpNFTablesStd(): Promise<void> {
