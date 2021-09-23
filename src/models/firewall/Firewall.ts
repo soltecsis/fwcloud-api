@@ -550,9 +550,12 @@ export class Firewall extends Model {
 					install_user=${dbCon.escape(firewallData.install_user)},
 					install_pass=${dbCon.escape(firewallData.install_pass)},
 					save_user_pass=${firewallData.save_user_pass},
+					install_communication="${firewallData.install_communication}",
+					install_protocol="${firewallData.install_protocol}",
 					install_interface=${firewallData.install_interface},
 					install_ipobj=${firewallData.install_ipobj},
 					install_port=${firewallData.install_port},
+					install_apikey="${firewallData.install_apikey}",
 					by_user=${iduser},
 					options=${firewallData.options}
 					WHERE id=${firewallData.id}`;
