@@ -1,7 +1,6 @@
 import { EventEmitter } from "events";
 import { Communication } from "./communication";
-import * as http from 'http';
-import * as https from 'https';
+import axios, { AxiosResponse } from 'axios';
 
 type AgentCommunicationData = {
     protocol: 'https' | 'http',
@@ -11,7 +10,8 @@ type AgentCommunicationData = {
 }
 
 export class AgentCommunication extends Communication<AgentCommunicationData> {
-    protected readonly options: http.RequestOptions | https.RequestOptions;
+    protected readonly url: string;
+    protected readonly headers: Record<string, unknown>;
 
     constructor(connectionData: AgentCommunicationData) {
         super(connectionData);
@@ -20,22 +20,37 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             throw new Error("Cannot connect to agent without apikey");
         }
 
-        this.options = {
-            protocol: connectionData.protocol,
-            host: connectionData.host,
-            port: connectionData.port,
-            headers: {
-                'X-API-Key': connectionData.apikey
-            }
+        this.url = `${this.connectionData.protocol}://${this.connectionData.host}:${this.connectionData.protocol}`
+        this.headers = {
+            'X-API-Key': this.connectionData.apikey
         }
     }
-    install(scriptPath: string, eventEmitter?: EventEmitter): Promise<string> {
-        throw new Error("Method not implemented.");
+
+    async install(scriptPath: string, eventEmitter?: EventEmitter): Promise<string> {
+        const path: string = this.url + '/api/v1/fwcloud_script/upload';
+
+        const response: AxiosResponse<any> = await axios.post(path, {
+            headers: this.headers
+        });
+
+        if (response.status >= 400) {
+            throw new Error('Installation failed');
+        }
+
+        return "DONE";
     }
     
-    ping(): Promise<void> {
-        this.options.path = 'api/v1';
-        
-        throw new Error("Method not implemented.");
+    async ping(): Promise<void> {
+        const path: string = this.url + '/api/v1';
+    
+        const response: AxiosResponse<any> = await axios.get(path, {
+            headers: this.headers
+        });
+
+        if (response.status >= 400) {
+            throw new Error('Agent connection failed');
+        }
+
+        return;
     }
 }
