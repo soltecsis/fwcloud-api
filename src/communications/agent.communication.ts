@@ -1,6 +1,9 @@
 import { EventEmitter } from "events";
 import { Communication } from "./communication";
 import axios, { AxiosResponse } from 'axios';
+import { ProgressErrorPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
+var utilsModel = require("../utils/utils.js");
+const config = require('../config/config');
 
 type AgentCommunicationData = {
     protocol: 'https' | 'http',
@@ -20,30 +23,38 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             throw new Error("Cannot connect to agent without apikey");
         }
 
-        this.url = `${this.connectionData.protocol}://${this.connectionData.host}:${this.connectionData.protocol}`
+        const decipherApiKey: string = utilsModel.decrypt(this.connectionData.apikey);
+
+        this.url = `${this.connectionData.protocol}://${this.connectionData.host}:${this.connectionData.port}`
         this.headers = {
-            'X-API-Key': this.connectionData.apikey
+            'X-API-Key': decipherApiKey
         }
     }
 
-    async install(scriptPath: string, eventEmitter?: EventEmitter): Promise<string> {
-        const path: string = this.url + '/api/v1/fwcloud_script/upload';
+    async installFirewallPolicy(scriptPath: string, eventEmitter?: EventEmitter): Promise<string> {
+        try {
+            const path: string = this.url + '/api/v1/fwcloud_script/upload';
 
-        const response: AxiosResponse<any> = await axios.post(path, {
-            headers: this.headers
-        });
+            eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
+            const response: AxiosResponse<any> = await axios.post(path, "", {
+                headers: this.headers
+            });
 
-        if (response.status >= 400) {
-            throw new Error('Installation failed');
+            if (response.status >= 400) {
+                throw new Error('Installation failed');
+            }
+
+            return "DONE";
+        } catch(error) {
+            eventEmitter.emit('message', new ProgressErrorPayload(`ERROR: ${error}`));
+            throw error;
         }
-
-        return "DONE";
     }
     
     async ping(): Promise<void> {
         const path: string = this.url + '/api/v1';
     
-        const response: AxiosResponse<any> = await axios.get(path, {
+        const response: AxiosResponse<any> = await axios.put(path, "", {
             headers: this.headers
         });
 

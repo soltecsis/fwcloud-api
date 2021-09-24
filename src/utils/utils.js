@@ -112,16 +112,10 @@ utilsModel.encrypt = (text) =>  {
 	});
 };
 utilsModel.decrypt = (text) => {
-	return new Promise((resolve, reject) => {
-		try {
-			var decipher = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
-			var dec = decipher.update(text, 'hex', 'utf8');
-			dec += decipher.final('utf8');
-			resolve(dec);
-		} catch (e) {
-			resolve(text);
-		}
-	});
+	var decipher = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
+	var dec = decipher.update(text, 'hex', 'utf8');
+	dec += decipher.final('utf8');
+	return dec;
 };
 
 utilsModel.decryptDataUserPass = (data) => {

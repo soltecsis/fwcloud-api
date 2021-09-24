@@ -90,7 +90,7 @@ router.post('/', async (req, res) => {
       })
     }
 
-    await communication.install(path.join(config.get('policy').data_dir, req.body.fwcloud.toString(), firewall.toString(), config.get('policy').script_name), channel);
+    await communication.installFirewallPolicy(path.join(config.get('policy').data_dir, req.body.fwcloud.toString(), firewall.toString(), config.get('policy').script_name), channel);
     await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
     await Firewall.updateFirewallInstallDate(req.body.fwcloud,req.body.firewall);
     

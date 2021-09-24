@@ -14,7 +14,7 @@ type SSHConnectionData = {
 
 export class SSHCommunication extends Communication<SSHConnectionData> {
     
-    async install(scriptPath: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
+    async installFirewallPolicy(scriptPath: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         try {
             eventEmitter.emit('message', new ProgressNoticePayload(`Uploading firewall script (${this.connectionData.host})`));
             await sshTools.uploadFile(this.connectionData, scriptPath, config.get('policy').script_name);
