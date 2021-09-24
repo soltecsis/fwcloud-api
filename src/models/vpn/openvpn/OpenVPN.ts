@@ -466,23 +466,6 @@ export class OpenVPN extends Model {
         });
     };
 
-    public static uninstallCfg(req, dir, name, channel: EventEmitter = new EventEmitter()) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const fwData: any = await Firewall.getFirewallSSH(req);
-
-                channel.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/${name}' from: (${fwData.SSHconn.host})\n`));
-                const sudo = fwData.SSHconn.username === 'root' ? '' : 'sudo';
-                await sshTools.runCommand(fwData.SSHconn, `${sudo} rm -f "${dir}/${name}"`);
-
-                resolve();
-            } catch (error) {
-                channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
-                reject(error);
-            }
-        });
-    };
-
     public static ccdCompare(req, dir, clients, channel: EventEmitter = new EventEmitter()) {
         return new Promise(async (resolve, reject) => {
             try {
