@@ -58,38 +58,16 @@ import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload } from '../../sockets/messages/socket-message';
 import { logger } from '../../fonaments/abstract-application';
 import { getRepository } from 'typeorm';
-import { IPObj } from '../../models/ipobj/IPObj';
-import { SSHCommunication } from '../../communications/ssh.communication';
 var config = require('../../config/config');
 import * as path from 'path';
-import { AgentCommunication } from '../../communications/agent.communication';
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.post('/', async (req, res) => {
   try {
     const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
     const channel = await Channel.fromRequest(req);
-    let communication = null;
+    let communication = await firewall.getCommunication();
     
-    if (firewall.install_communication === FirewallInstallCommunication.SSH) {
-      communication = new SSHCommunication({
-        host: (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
-        port: firewall.install_port,
-        username: firewall.install_user,
-        password: firewall.install_pass,
-        options: firewall.options
-      })
-    }
-
-    if (firewall.install_communication === FirewallInstallCommunication.Agent) {
-      communication = new AgentCommunication({
-        protocol: firewall.install_protocol,
-        host: (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
-        port: firewall.install_port,
-        apikey: firewall.install_apikey
-      })
-    }
-
     await communication.installFirewallPolicy(path.join(config.get('policy').data_dir, req.body.fwcloud.toString(), firewall.toString(), config.get('policy').script_name), channel);
     await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
     await Firewall.updateFirewallInstallDate(req.body.fwcloud,req.body.firewall);

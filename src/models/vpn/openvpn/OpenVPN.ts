@@ -466,53 +466,6 @@ export class OpenVPN extends Model {
         });
     };
 
-
-    public static installCfg(req, cfg, dir, name, type, channel: EventEmitter = new EventEmitter()) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const fwData: any = await Firewall.getFirewallSSH(req);
-
-                if (type === 1) { 
-                    // Client certificarte
-                    channel.emit('message', new ProgressInfoPayload(`Uploading CCD configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`));
-                } else {
-                    channel.emit('message', new ProgressNoticePayload(`Uploading OpenVPN configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`));
-                }
-                
-                await sshTools.uploadStringToFile(fwData.SSHconn, cfg, name);
-
-                const sudo = fwData.SSHconn.username === 'root' ? '' : 'sudo';
-
-                const existsDir = await sshTools.runCommand(fwData.SSHconn, `if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
-                if (existsDir === "0") {
-                    channel.emit('message', new ProgressNoticePayload(`Creating install directory.\n`));
-                    await sshTools.runCommand(fwData.SSHconn, `${sudo} mkdir "${dir}"`);
-                    await sshTools.runCommand(fwData.SSHconn, `${sudo} chown root:root "${dir}"`);
-                    await sshTools.runCommand(fwData.SSHconn, `${sudo} chmod 755 "${dir}"`);
-                }
-
-                channel.emit('message', new ProgressNoticePayload(`Installing OpenVPN configuration file.\n`));
-                await sshTools.runCommand(fwData.SSHconn, `${sudo} mv ${name} ${dir}/`);
-
-                channel.emit('message', new ProgressNoticePayload(`Setting up file permissions.\n\n`));
-                await sshTools.runCommand(fwData.SSHconn, `${sudo} chown root:root ${dir}/${name}`);
-
-                if (type === 1) { 
-                    // Client certificate.
-                    await sshTools.runCommand(fwData.SSHconn, `${sudo} chmod 644 ${dir}/${name}`);
-                } else {
-                    // Server certificate.
-                    await sshTools.runCommand(fwData.SSHconn, `${sudo} chmod 600 ${dir}/${name}`);
-                }
-
-                resolve();
-            } catch (error) {
-                channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
-                reject(error);
-            }
-        });
-    };
-
     public static uninstallCfg(req, dir, name, channel: EventEmitter = new EventEmitter()) {
         return new Promise(async (resolve, reject) => {
             try {

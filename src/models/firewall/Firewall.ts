@@ -49,6 +49,9 @@ import { RouteGroup } from "../routing/route-group/route-group.model";
 import { AvailablePolicyCompilers } from "../../compiler/policy/PolicyCompiler";
 import { IPObj } from "../ipobj/IPObj";
 import { IPObjGroup } from "../ipobj/IPObjGroup";
+import { Communication } from "../../communications/communication";
+import { SSHCommunication } from "../../communications/ssh.communication";
+import { AgentCommunication } from "../../communications/agent.communication";
 
 const tableName: string = 'firewall';
 
@@ -172,6 +175,25 @@ export class Firewall extends Model {
 	
 	public getTableName(): string {
 		return tableName;
+	}
+
+	async getCommunication(): Promise<Communication<unknown>> {
+		if (this.install_communication === FirewallInstallCommunication.SSH) {
+			return new SSHCommunication({
+				host: (await getRepository(IPObj).findOneOrFail(this.install_ipobj)).address,
+				port: this.install_port,
+				username: this.install_user,
+				password: this.install_pass,
+				options: this.options
+			})
+		}
+
+		return new AgentCommunication({
+			protocol: this.install_protocol,
+			host: (await getRepository(IPObj).findOneOrFail(this.install_ipobj)).address,
+			port: this.install_port,
+			apikey: this.install_apikey
+		});
 	}
 
 	public getPolicyFilePath(): string {
