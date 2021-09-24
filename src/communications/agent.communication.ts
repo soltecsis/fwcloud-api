@@ -54,6 +54,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     installOpenVPNConfig(config: unknown, dir: string, name: string, type: number, channel?: EventEmitter): Promise<void> {
         throw new Error("Method not implemented.");
     }
+
+    uninstallOpenVPNConfig(dir: string, name: string, channel?: EventEmitter): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
     
     async ping(): Promise<void> {
         const path: string = this.url + '/api/v1';

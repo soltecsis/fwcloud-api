@@ -83,6 +83,19 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
             throw error;
         }
     }
+
+    async uninstallOpenVPNConfig(dir: string, name: string, channel: EventEmitter = new EventEmitter()): Promise<void> {
+        try {
+            channel.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/${name}' from: (${this.connectionData.host})\n`));
+            const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+            await sshTools.runCommand(this.connectionData, `${sudo} rm -f "${dir}/${name}"`);
+
+            return;
+        } catch (error) {
+            channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
+            throw error;
+        }
+    }
     
     ping(): Promise<void> {
         throw new Error("Method not implemented.");

@@ -352,8 +352,10 @@ router.put('/install', async(req, res) => {
  */
 router.put('/uninstall', async(req, res) => {
 	try {
+		const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
 		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
+		const communication = await firewall.getCommunication();
 
 		channel.emit('message', new ProgressPayload('start', false, 'Uninstalling OpenVPN'));
 
@@ -362,12 +364,12 @@ router.put('/uninstall', async(req, res) => {
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
 			const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
 			if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
-			await OpenVPN.uninstallCfg(req,openvpn_opt.arg,crt.cn, channel);
+			await communication.uninstallOpenVPNConfig(openvpn_opt.arg,crt.cn, channel);
 		}
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw {'msg': 'Empty install dir or install name'};
-			await OpenVPN.uninstallCfg(req,req.openvpn.install_dir,req.openvpn.install_name, channel);
+			await communication.uninstallOpenVPNConfig(req.openvpn.install_dir,req.openvpn.install_name, channel);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
