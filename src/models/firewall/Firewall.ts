@@ -272,7 +272,7 @@ export class Firewall extends Model {
 				if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
 
 				try {
-					let firewall_data:any = (await Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data))))[0];
+					let firewall_data:any = (await Promise.all(rows.map(data => utilsModel.decryptFirewallData(data))))[0];
 					resolve(firewall_data);
 				} catch(error) { return reject(error) } 
 			});
@@ -313,7 +313,7 @@ export class Firewall extends Model {
 
 			req.dbCon.query(sql, (error, rows) => {
 				if (error) return reject(error);
-				Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
+				Promise.all(rows.map(data => utilsModel.decryptFirewallData(data)))
 					.then(data => resolve(data))
 					.catch(error => reject(error));
 			});
@@ -443,7 +443,7 @@ export class Firewall extends Model {
 				if (error)
 					callback(error, null);
 				else {
-					Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
+					Promise.all(rows.map(data => utilsModel.decryptFirewallData(data)))
 						.then(data => {
 							Promise.all(data.map(data => this.getfirewallData(data)))
 								.then(dataF => {
@@ -480,7 +480,7 @@ export class Firewall extends Model {
 					callback(error, null);
 				else {
 					try {
-						let firewall_data:any = await Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)));	
+						let firewall_data:any = await Promise.all(rows.map(data => utilsModel.decryptFirewallData(data)));
 						callback(null, firewall_data);
 					} catch(error) { return callback(error, null) } 
 				}

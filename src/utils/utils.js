@@ -118,7 +118,7 @@ utilsModel.decrypt = (text) => {
 	return dec;
 };
 
-utilsModel.decryptDataUserPass = (data) => {
+utilsModel.decryptFirewallData = (data) => {
 	return new Promise((resolve, reject) => {
 		try {
 			logger().debug("DENTRO de decryptDataUserPass");
@@ -135,6 +135,14 @@ utilsModel.decryptDataUserPass = (data) => {
 				var decPass = decipherPass.update(data.install_pass, 'hex', 'utf8');
 				decPass += decipherPass.final('utf8');
 				data.install_pass = decPass;
+			}
+
+			if (data.install_apikey !== null) {
+				logger().debug("DECRYPT PASS: ", data.install_apikey);
+				var decipherPass = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
+				var decPass = decipherPass.update(data.install_apikey, 'hex', 'utf8');
+				decPass += decipherPass.final('utf8');
+				data.install_apikey = decPass;
 			}
 
 			resolve(data);
