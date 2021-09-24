@@ -39,6 +39,7 @@ schema.validate = req => {
 				// SSH user and password are encrypted with the PGP session key.
 				if (req.body.install_user) req.body.install_user = await pgp.decrypt(req.body.install_user);
 				if (req.body.install_pass) req.body.install_pass = await pgp.decrypt(req.body.install_pass);
+				if (req.body.install_apikey) req.body.install_apikey = await pgp.decrypt(req.body.install_apikey);
 			} catch(error) { return reject(fwcError.other(`PGP decrypt: ${error.message}`)) }
 			
 			schema = Joi.object().keys({
