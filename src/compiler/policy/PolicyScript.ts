@@ -259,40 +259,6 @@ export class PolicyScript {
 		});
 	}
 
-	public static installBySSH(req, SSHconn, firewall, eventEmitter: EventEmitter = new EventEmitter()) {
-		return new Promise(async (resolve, reject) => {
-			try {
-				eventEmitter.emit('message', new ProgressNoticePayload(`Uploading firewall script (${SSHconn.host})`));
-				await sshTools.uploadFile(SSHconn, `${config.get('policy').data_dir}/${req.body.fwcloud}/${firewall}/${config.get('policy').script_name}`, config.get('policy').script_name);
-
-				// Enable sh debug if it is selected in firewalls/cluster options.
-				const options: any = await Firewall.getFirewallOptions(req.body.fwcloud, firewall);
-				const sh_debug = (options & 0x0008) ? '-x' : '';
-
-				const sudo = SSHconn.username === 'root' ? '' : 'sudo';
-
-				eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
-				await sshTools.runCommand(SSHconn, `${sudo} sh ${sh_debug} ./${config.get('policy').script_name} install`);
-
-				eventEmitter.emit('message', new ProgressNoticePayload("Loading firewall policy."));
-				const cmd = `${sudo} sh ${sh_debug} -c 'if [ -d /etc/fwcloud ]; then
-					sh ${sh_debug} /etc/fwcloud/${config.get('policy').script_name} start;
-					else sh ${sh_debug} /config/scripts/post-config.d/${config.get('policy').script_name} start;
-				fi'`
-				await sshTools.runCommand(SSHconn, cmd, eventEmitter);
-
-				resolve("DONE");
-			} catch (error) {
-				eventEmitter.emit('message', new ProgressErrorPayload(`ERROR: ${error}`));
-				reject(error);
-			}
-		});
-	}
-
-	public static installByAgent(req, firewall, eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
-		throw new Error('Agent communication not implemented');
-	}
-
 	private dumpNFTablesStd(): Promise<void> {
 		// Code for create the standard nftables tables and chain.
 		this.stream.write("\n\necho\n");
