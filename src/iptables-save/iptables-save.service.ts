@@ -29,6 +29,7 @@ import { Firewall } from '../models/firewall/Firewall';
 import { Channel } from '../sockets/channels/channel';
 import { ProgressNoticePayload } from '../sockets/messages/socket-message';
 import { PolicyRule } from '../models/policy/PolicyRule';
+import { SSHCommunication } from "../communications/ssh.communication";
 
 export class IptablesSaveService extends IptablesSaveToFWCloud {
   public async import(request: Request): Promise<IptablesSaveStats> {
@@ -102,14 +103,17 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
   
   public async importSSH(request: Request): Promise<IptablesSaveStats> {
     const SSHconn = {
-			host: request.body.ip,
-			port: request.body.port,
-			username: request.body.sshuser,
-			password: request.body.sshpass
+      host: request.body.ip,
+      port: request.body.port,
+      username: request.body.sshuser,
+      password: request.body.sshpass,
+      options: null
     }
 
+    const communication: SSHCommunication = new SSHCommunication(SSHconn);
+
     try {
-      request.body.data = await Firewall.getIptablesSave(SSHconn);
+      request.body.data = await communication.getFirewallIptablesSave();
     } catch(err) { throw new HttpException(`${err.message} `,401); }
 		
     await this.import(request);

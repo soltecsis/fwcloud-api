@@ -7,5 +7,6 @@ export abstract class Communication<ConnectionData> {
     abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
     abstract uninstallOpenVPNConfig(dir: string, name: string, channel?: EventEmitter): Promise<void>;
     abstract getFirewallInterfaces(): Promise<string>;
+    abstract getFirewallIptablesSave(): Promise<string[]>;
     abstract ping(): Promise<void>;
 }

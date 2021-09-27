@@ -104,6 +104,18 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
 		return data;
     }
+
+    async getFirewallIptablesSave(): Promise<string[]> {
+        const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+        const data: string = await sshTools.runCommand(this.connectionData, `${sudo} iptables-save`);
+        let iptablesSaveOutput: string[] = data.split('\r\n');
+
+        if (iptablesSaveOutput[0].startsWith('[sudo]')) iptablesSaveOutput.shift();
+        if (iptablesSaveOutput[iptablesSaveOutput.length-1] === '') iptablesSaveOutput = iptablesSaveOutput.slice(0, -1);;
+
+        return iptablesSaveOutput;
+    }
+
     
     ping(): Promise<void> {
         throw new Error("Method not implemented.");

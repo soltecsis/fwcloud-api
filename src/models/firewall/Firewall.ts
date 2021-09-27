@@ -1271,20 +1271,4 @@ export class Firewall extends Model {
 			} catch (error) { reject(error) }
 		});
 	};
-
-
-	public static getIptablesSave(SSHconn): Promise<string[]> {
-		return new Promise(async (resolve, reject) => {
-			try {
-				const sudo = SSHconn.username === 'root' ? '' : 'sudo';
-				const data: any = await sshTools.runCommand(SSHconn, `${sudo} iptables-save`);
-				let iptablesSaveOutput: string[] = data.split('\r\n');
-
-				if (iptablesSaveOutput[0].startsWith('[sudo]')) iptablesSaveOutput.shift();
-				if (iptablesSaveOutput[iptablesSaveOutput.length-1] === '') iptablesSaveOutput = iptablesSaveOutput.slice(0, -1);;
-
-				resolve(iptablesSaveOutput);
-			} catch (error) { reject(error) }
-		});
-	}
 }

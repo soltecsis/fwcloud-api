@@ -62,6 +62,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     getFirewallInterfaces(): Promise<string> {
         throw new Error("Method not implemented.");
     }
+
+    getFirewallIptablesSave(): Promise<string[]> {
+        throw new Error("Method not implemented.");
+    }
     
     async ping(): Promise<void> {
         const path: string = this.url + '/api/v1';
