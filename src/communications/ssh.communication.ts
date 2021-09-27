@@ -117,40 +117,37 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     }
 
     async ccdCompare(dir: string, clients: unknown[], channel: EventEmitter = new EventEmitter()): Promise<string> {
-        return new Promise(async (resolve, reject) => {
-            try {
+        try {
+            channel.emit('message', new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`));
+            const fileList = (await sshTools.runCommand(this.connectionData, `cd ${dir}; ls -p | grep -v "/$"`)).trim().split('\r\n');
 
-                channel.emit('message', new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`));
-                const fileList = (await sshTools.runCommand(this.connectionData, `cd ${dir}; ls -p | grep -v "/$"`)).trim().split('\r\n');
-
-                let found;
-                let notFoundList = "";
-                for (let file of fileList) {
-                    found = 0;
-                    for (let client of clients) {
-                        if ((client as Record<string, unknown>).cn === file) {
-                            found = 1;
-                            break;
-                        }
+            let found;
+            let notFoundList = "";
+            for (let file of fileList) {
+                found = 0;
+                for (let client of clients) {
+                    if ((client as Record<string, unknown>).cn === file) {
+                        found = 1;
+                        break;
                     }
-                    if (!found) notFoundList += `${file}\n`;
                 }
-
-                if (notFoundList) {
-                    channel.emit('message', new ProgressWarningPayload(`Found files in the directory '${dir}' without OpenVPN config:
-                        ${notFoundList}
-                        `));
-                }
-                else {
-                    channel.emit('message', new ProgressInfoPayload(`Ok.\n\n`));
-                }
-
-                return notFoundList;
-            } catch (error) {
-                channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
-                throw error;
+                if (!found) notFoundList += `${file}\n`;
             }
-        });
+
+            if (notFoundList) {
+                channel.emit('message', new ProgressWarningPayload(`Found files in the directory '${dir}' without OpenVPN config:
+                    ${notFoundList}
+                    `));
+            }
+            else {
+                channel.emit('message', new ProgressInfoPayload(`Ok.\n\n`));
+            }
+
+            return notFoundList;
+        } catch (error) {
+            channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
+            throw error;
+        }
     };
 
     
