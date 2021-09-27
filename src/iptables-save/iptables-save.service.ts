@@ -126,7 +126,8 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
 
     try {
       const data: any = await Firewall.getFirewallSSH(request);
-      result = await Firewall.getIptablesSave(data.SSHconn);
+      const communication: SSHCommunication = new SSHCommunication(data.SSHconn);
+      result = await communication.getFirewallIptablesSave();
     } catch(err) { throw new HttpException(`${err.message} `,401); }
    
     return result;
