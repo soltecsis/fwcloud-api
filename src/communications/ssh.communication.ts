@@ -128,7 +128,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
                 for (let file of fileList) {
                     found = 0;
                     for (let client of clients) {
-                        if (client.cn === file) {
+                        if ((client as Record<string, unknown>).cn === file) {
                             found = 1;
                             break;
                         }
