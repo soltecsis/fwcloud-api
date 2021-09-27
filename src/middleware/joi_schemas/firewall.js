@@ -54,7 +54,7 @@ schema.validate = req => {
 				install_ipobj: sharedSch.id.allow(null).optional(),
 				install_port: Joi.number().positive().optional(),
 				install_protocol: Joi.string().regex(/http|https/).optional().default('https'),
-				install_apikey: Joi.string().allow("").optional().default(null),
+				install_apikey: Joi.string().allow("").allow(null).optional().default(null),
 				save_user_pass: sharedSch._0_1,
 				fwmaster: sharedSch._0_1,
 				install_port: Joi.number().port(),

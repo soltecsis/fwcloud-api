@@ -2,6 +2,9 @@ import { EventEmitter } from "events";
 import { Communication } from "./communication";
 import axios, { AxiosResponse } from 'axios';
 import { ProgressErrorPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
+import * as fs from 'fs';
+import FormData from 'form-data';
+
 var utilsModel = require("../utils/utils.js");
 const config = require('../config/config');
 
@@ -35,14 +38,15 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         try {
             const path: string = this.url + '/api/v1/fwcloud_script/upload';
 
-            eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
-            const response: AxiosResponse<any> = await axios.post(path, "", {
-                headers: this.headers
-            });
+            const form = new FormData();
+            form.append('upload', fs.createReadStream(scriptPath));
+            form.append('dst_dir', config.get('policy').script_name);
+            form.append('perms', 700);
 
-            if (response.status >= 400) {
-                throw new Error('Installation failed');
-            }
+            eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
+            const response: AxiosResponse<any> = await axios.post(path, form, {
+                headers: Object.assign(form.getHeaders(), this.headers)
+            });
 
             return "DONE";
         } catch(error) {
