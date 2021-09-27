@@ -5,7 +5,7 @@ export abstract class Communication<ConnectionData> {
 
     abstract installOpenVPNConfig(config: unknown, dir: string, name: string, type: number, channel?: EventEmitter): Promise<void>
     abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
-    abstract uninstallOpenVPNConfig(dir: string, name: string, channel?: EventEmitter): Promise<void>;
+    abstract uninstallOpenVPNConfig(dir: string, files: string[], channel?: EventEmitter): Promise<void>;
     abstract getFirewallInterfaces(): Promise<string>;
     abstract getFirewallIptablesSave(): Promise<string[]>;
     abstract ccdCompare(dir: string, clients: unknown[], channel?: EventEmitter): Promise<string>

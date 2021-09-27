@@ -59,8 +59,23 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         throw new Error("Method not implemented.");
     }
 
-    uninstallOpenVPNConfig(dir: string, name: string, channel?: EventEmitter): Promise<void> {
-        throw new Error("Method not implemented.");
+    async uninstallOpenVPNConfig(dir: string, files: string[], channel?: EventEmitter): Promise<void> {
+        try {
+            channel.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/[${files.join(", ")}]' from: (${this.connectionData.host})\n`));
+
+            const path: string = this.url + '/api/v1/openvpn/files/remove';
+
+            axios.delete(path, {
+                data: Object.assign(this.headers, {
+                    dir: dir,
+                    files: files
+                })
+            });
+
+        } catch(error) {
+            channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
+            throw error;
+        }
     }
 
     getFirewallInterfaces(): Promise<string> {
