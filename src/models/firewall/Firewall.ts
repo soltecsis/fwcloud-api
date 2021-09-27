@@ -1273,19 +1273,6 @@ export class Firewall extends Model {
 	};
 
 
-	public static getInterfacesData(SSHconn) {
-		return new Promise(async (resolve, reject) => {
-			try {
-				const sudo = SSHconn.username === 'root' ? '' : 'sudo';
-				const data: any = await sshTools.runCommand(SSHconn, `${sudo} ip a`);
-				
-				// Before answer, parse data to see if we have get a valid answer.
-
-				resolve(data);
-			} catch (error) { reject(error) }
-		});
-	}
-
 	public static getIptablesSave(SSHconn): Promise<string[]> {
 		return new Promise(async (resolve, reject) => {
 			try {

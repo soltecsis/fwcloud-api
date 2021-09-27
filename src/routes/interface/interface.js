@@ -29,6 +29,7 @@ import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { Tree } from '../../models/tree/Tree';
 import { IPObj } from '../../models/ipobj/IPObj';
 import { logger } from '../../fonaments/abstract-application';
+import { SSHCommunication } from '../../communications/ssh.communication';
 const restrictedCheck = require('../../middleware/restricted');
 
 const fwcError = require('../../utils/error_table');
@@ -280,7 +281,7 @@ router.put('/autodiscover', async(req, res) => {
 			username: req.body.sshuser,
 			password: req.body.sshpass
 		}
-		const rawData = await Firewall.getInterfacesData(SSHconn);
+		const rawData = await (new SSHCommunication(SSHconn)).getFirewallInterfaces();
 		
 		// Process raw interfaces data and convert into a json object.
 		const ifsData = await Interface.ifsDataToJson(rawData);

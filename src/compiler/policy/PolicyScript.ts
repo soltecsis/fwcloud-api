@@ -27,9 +27,7 @@
  * @type /models/compile/
  */
 import { Firewall } from '../../models/firewall/Firewall';
-import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressNoticePayload, ProgressErrorPayload, ProgressPayload } from '../../sockets/messages/socket-message';
-import sshTools from '../../utils/ssh';
 import { AvailablePolicyCompilers, PolicyCompiler } from './PolicyCompiler';
 import { Channel } from '../../sockets/channels/channel';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';

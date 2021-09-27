@@ -13,7 +13,6 @@ type SSHConnectionData = {
 }
 
 export class SSHCommunication extends Communication<SSHConnectionData> {
-    
     async installFirewallPolicy(scriptPath: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         try {
             eventEmitter.emit('message', new ProgressNoticePayload(`Uploading firewall script (${this.connectionData.host})`));
@@ -95,6 +94,15 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
             channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
             throw error;
         }
+    }
+
+    async getFirewallInterfaces(): Promise<string> {
+        const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+        const data: any = await sshTools.runCommand(this.connectionData, `${sudo} ip a`);
+
+        // Before answer, parse data to see if we have get a valid answer.
+
+		return data;
     }
     
     ping(): Promise<void> {
