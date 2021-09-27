@@ -91,15 +91,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
     
     async ping(): Promise<void> {
-        const path: string = this.url + '/api/v1';
+        const path: string = this.url + '/api/v1/ping';
     
         const response: AxiosResponse<any> = await axios.put(path, "", {
             headers: this.headers
         });
-
-        if (response.status >= 400) {
-            throw new Error('Agent connection failed');
-        }
 
         return;
     }
