@@ -42,7 +42,6 @@ const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
 
-import sshTools from '../../utils/ssh';
 import { RoutingTable } from "../routing/routing-table/routing-table.model";
 import { RoutingGroup } from "../routing/routing-group/routing-group.model";
 import { RouteGroup } from "../routing/route-group/route-group.model";

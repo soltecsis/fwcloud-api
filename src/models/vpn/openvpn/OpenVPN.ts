@@ -34,9 +34,6 @@ import { OpenVPNOption } from "./openvpn-option.model";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import sshTools from '../../../utils/ssh';
 import { OpenVPNPrefix } from "./OpenVPNPrefix";
-import { ProgressInfoPayload, ProgressErrorPayload, ProgressNoticePayload, ProgressWarningPayload } from "../../../sockets/messages/socket-message";
-import { Channel } from "../../../sockets/channels/channel";
-import { EventEmitter } from "events";
 import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
 import { Route } from "../../routing/route/route.model";
 import { RouteToOpenVPN } from "../../routing/route/route-to-openvpn.model";
@@ -465,44 +462,6 @@ export class OpenVPN extends Model {
             });
         });
     };
-
-    public static ccdCompare(req, dir, clients, channel: EventEmitter = new EventEmitter()) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const fwData: any = await Firewall.getFirewallSSH(req);
-
-                channel.emit('message', new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`));
-                const fileList = (await sshTools.runCommand(fwData.SSHconn, `cd ${dir}; ls -p | grep -v "/$"`)).trim().split('\r\n');
-                let found;
-                let notFoundList = "";
-                for (let file of fileList) {
-                    found = 0;
-                    for (let client of clients) {
-                        if (client.cn === file) {
-                            found = 1;
-                            break;
-                        }
-                    }
-                    if (!found) notFoundList += `${file}\n`;
-                }
-
-                if (notFoundList) {
-                    channel.emit('message', new ProgressWarningPayload(`Found files in the directory '${dir}' without OpenVPN config:
-                        ${notFoundList}
-                        `));
-                }
-                else {
-                    channel.emit('message', new ProgressInfoPayload(`Ok.\n\n`));
-                }
-
-                resolve(notFoundList);
-            } catch (error) {
-                channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
-                reject(error);
-            }
-        });
-    };
-
 
     public static updateOpenvpnStatus(dbCon, openvpn, status_action) {
         return new Promise((resolve, reject) => {

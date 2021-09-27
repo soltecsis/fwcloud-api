@@ -66,6 +66,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     getFirewallIptablesSave(): Promise<string[]> {
         throw new Error("Method not implemented.");
     }
+
+    ccdCompare(dir: string, clients: unknown[], channel?: EventEmitter): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
     
     async ping(): Promise<void> {
         const path: string = this.url + '/api/v1';

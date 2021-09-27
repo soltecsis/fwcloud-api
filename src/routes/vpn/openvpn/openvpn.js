@@ -429,7 +429,7 @@ router.put('/ccdsync', async(req, res) => {
 
 		// Get the list of files into the client-config-dir directory.
 		// If we have files in the client-config-dir with no corresponding OpenVPN configuration inform the user.
-		await OpenVPN.ccdCompare(req,client_config_dir,clients, channel)
+		await communication.ccdCompare(req,client_config_dir,clients, channel)
 
 		channel.emit('message', new ProgressPayload('end', false, 'Sync OpenVPN CCD'));
 

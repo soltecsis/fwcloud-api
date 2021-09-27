@@ -8,5 +8,6 @@ export abstract class Communication<ConnectionData> {
     abstract uninstallOpenVPNConfig(dir: string, name: string, channel?: EventEmitter): Promise<void>;
     abstract getFirewallInterfaces(): Promise<string>;
     abstract getFirewallIptablesSave(): Promise<string[]>;
+    abstract ccdCompare(dir: string, clients: unknown[], channel?: EventEmitter): Promise<string>
     abstract ping(): Promise<void>;
 }
