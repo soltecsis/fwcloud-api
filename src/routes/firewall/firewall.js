@@ -287,8 +287,8 @@ router.put('/', async (req, res) => {
 			firewallData.install_protocol = req.body.install_protocol === 'http' ? FirewallInstallProtocol.HTTP : FirewallInstallProtocol.HTTPS;
 		}
 	
-		if (req.body.install_apikey) {
-			firewallData.install_apikey = await utilsModel.encrypt(req.body.install_apikey);
+		if (Object.prototype.hasOwnProperty.call(req.body, 'install_apikey')) {
+			firewallData.install_apikey = req.body.install_apikey === null ? null : await utilsModel.encrypt(req.body.install_apikey);
 		}
 
 		await Firewall.updateFirewall(req.dbCon, req.session.user_id, firewallData);
