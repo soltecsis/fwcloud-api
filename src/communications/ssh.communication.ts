@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressWarningPayload } from "../sockets/messages/socket-message";
 import sshTools from "../utils/ssh";
-import { Communication } from "./communication";
+import { CCDHash, Communication } from "./communication";
 var config = require('../config/config');
 
 type SSHConnectionData = {
@@ -119,38 +119,8 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         return iptablesSaveOutput;
     }
 
-    async ccdCompare(dir: string, clients: unknown[], channel: EventEmitter = new EventEmitter()): Promise<string> {
-        try {
-            channel.emit('message', new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`));
-            const fileList = (await sshTools.runCommand(this.connectionData, `cd ${dir}; ls -p | grep -v "/$"`)).trim().split('\r\n');
-
-            let found;
-            let notFoundList = "";
-            for (let file of fileList) {
-                found = 0;
-                for (let client of clients) {
-                    if ((client as Record<string, unknown>).cn === file) {
-                        found = 1;
-                        break;
-                    }
-                }
-                if (!found) notFoundList += `${file}\n`;
-            }
-
-            if (notFoundList) {
-                channel.emit('message', new ProgressWarningPayload(`Found files in the directory '${dir}' without OpenVPN config:
-                    ${notFoundList}
-                    `));
-            }
-            else {
-                channel.emit('message', new ProgressInfoPayload(`Ok.\n\n`));
-            }
-
-            return notFoundList;
-        } catch (error) {
-            channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
-            throw error;
-        }
+    async ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]> {
+        return;
     };
 
     

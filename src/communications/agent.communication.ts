@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { Communication } from "./communication";
+import { CCDHash, Communication } from "./communication";
 import axios, { AxiosResponse } from 'axios';
 import { ProgressErrorPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
 import * as fs from 'fs';
@@ -106,7 +106,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         throw new Error("Unexpected getInterfaces response");
     }
 
-    ccdCompare(dir: string, clients: unknown[], channel?: EventEmitter): Promise<string> {
+    async ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]> {
         throw new Error("Method not implemented.");
     }
     

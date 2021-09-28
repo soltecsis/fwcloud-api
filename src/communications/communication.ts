@@ -1,5 +1,10 @@
 import { EventEmitter } from "events";
 
+export type CCDHash = {
+    filename: string,
+    hash: string
+}
+
 export abstract class Communication<ConnectionData> {
     constructor(protected readonly connectionData: ConnectionData) {}
 
@@ -8,6 +13,6 @@ export abstract class Communication<ConnectionData> {
     abstract uninstallOpenVPNConfig(dir: string, files: string[], channel?: EventEmitter): Promise<void>;
     abstract getFirewallInterfaces(): Promise<string>;
     abstract getFirewallIptablesSave(): Promise<string[]>;
-    abstract ccdCompare(dir: string, clients: unknown[], channel?: EventEmitter): Promise<string>
+    abstract ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]>
     abstract ping(): Promise<void>;
 }
