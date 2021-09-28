@@ -92,8 +92,18 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         throw new Error("Unexpected getInterfaces response");
     }
 
-    getFirewallIptablesSave(): Promise<string[]> {
-        throw new Error("Method not implemented.");
+    async getFirewallIptablesSave(): Promise<string[]> {
+        const path: string = this.url + "/api/v1/iptables-save/data";
+
+        const response: AxiosResponse<string> = await axios.get(path, {
+            headers: this.headers
+        });
+
+        if (response.status === 200) {
+            return response.data.split("\n");
+        }
+
+        throw new Error("Unexpected getInterfaces response");
     }
 
     ccdCompare(dir: string, clients: unknown[], channel?: EventEmitter): Promise<string> {
