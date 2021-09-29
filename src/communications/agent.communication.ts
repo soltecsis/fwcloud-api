@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { CCDHash, Communication } from "./communication";
 import axios, { AxiosResponse } from 'axios';
-import { ProgressErrorPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
+import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
 import * as fs from 'fs';
 import FormData from 'form-data';
 
@@ -56,7 +56,29 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     installOpenVPNConfig(config: unknown, dir: string, name: string, type: number, channel?: EventEmitter): Promise<void> {
-        throw new Error("Method not implemented.");
+        try {
+            const path: string = this.url + '/api/v1/openvpn/files/upload';
+            const form = new FormData();
+            form.append('data', config, name);
+            form.append('dst_dir', dir);
+
+            if (type === 1) {
+                // Client certificarte
+                channel.emit('message', new ProgressInfoPayload(`Uploading CCD configuration file '${dir}/${name}' to: (${this.connectionData.host})\n`));
+                form.append('perms', 644);
+            } else {
+                channel.emit('message', new ProgressNoticePayload(`Uploading OpenVPN configuration file '${dir}/${name}' to: (${this.connectionData.host})\n`));
+                form.append('perms', 600);
+            }
+
+            axios.post(path, form, {
+                headers: Object.assign(form.getHeaders(), this.headers)
+            });
+
+        } catch(error) {
+            channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
+            throw error;
+        }
     }
 
     async uninstallOpenVPNConfig(dir: string, files: string[], channel?: EventEmitter): Promise<void> {
