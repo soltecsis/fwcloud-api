@@ -25,11 +25,13 @@ import { Request } from "express";
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { IptablesSaveToFWCloud } from './iptables-save.model';
 import { NetFilterTables, IptablesSaveStats } from './iptables-save.data';
-import { Firewall } from '../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../models/firewall/Firewall';
 import { Channel } from '../sockets/channels/channel';
 import { ProgressNoticePayload } from '../sockets/messages/socket-message';
 import { PolicyRule } from '../models/policy/PolicyRule';
 import { SSHCommunication } from "../communications/ssh.communication";
+import { Communication } from "../communications/communication";
+import { AgentCommunication } from "../communications/agent.communication";
 
 export class IptablesSaveService extends IptablesSaveToFWCloud {
   public async import(request: Request): Promise<IptablesSaveStats> {
@@ -101,16 +103,25 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
   }
 
   
-  public async importSSH(request: Request): Promise<IptablesSaveStats> {
-    const SSHconn = {
-      host: request.body.ip,
-      port: request.body.port,
-      username: request.body.sshuser,
-      password: request.body.sshpass,
-      options: null
-    }
+  public async importThroughCommunication(request: Request): Promise<IptablesSaveStats> {
+    let communication: Communication<unknown>;
 
-    const communication: SSHCommunication = new SSHCommunication(SSHconn);
+		if (request.body.communication === FirewallInstallCommunication.SSH) {
+			communication = new SSHCommunication({
+				host: request.body.ip,
+				port: request.body.port,
+				username: request.body.sshuser,
+				password: request.body.sshpass,
+				options: null
+			});
+		} else {
+			communication = new AgentCommunication({
+				host: request.body.ip,
+				port: request.body.port,
+				protocol: request.body.protocol,
+				apikey: request.body.apikey
+			});
+		}
 
     try {
       request.body.data = await communication.getFirewallIptablesSave();
