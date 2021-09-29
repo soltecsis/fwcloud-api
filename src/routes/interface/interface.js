@@ -23,13 +23,14 @@
 
 var express = require('express');
 var router = express.Router();
-import { Firewall } from '../../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { Tree } from '../../models/tree/Tree';
 import { IPObj } from '../../models/ipobj/IPObj';
 import { logger } from '../../fonaments/abstract-application';
 import { SSHCommunication } from '../../communications/ssh.communication';
+import { AgentCommunication } from '../../communications/agent.communication';
 const restrictedCheck = require('../../middleware/restricted');
 
 const fwcError = require('../../utils/error_table');
@@ -274,15 +275,28 @@ router.put('/restricted', restrictedCheck.interface, (req, res) => res.status(20
 
 /* Get all network interface information from a firewall.  */
 router.put('/autodiscover', async(req, res) => {
-  try {
-		const SSHconn = {
-			host: req.body.ip,
-			port: req.body.port,
-			username: req.body.sshuser,
-			password: req.body.sshpass
+	try {
+		let communication = null;
+
+		if (req.body.communication === FirewallInstallCommunication.SSH) {
+			communication = new SSHCommunication({
+				host: req.body.ip,
+				port: req.body.port,
+				username: req.body.sshuser,
+				password: req.body.sshpass,
+				options: null
+			});
+		} else {
+			communication = new AgentCommunication({
+				host: req.body.ip,
+				port: req.body.port,
+				protocol: req.body.protocol,
+				apikey: req.body.apikey
+			});
 		}
-		const rawData = await (new SSHCommunication(SSHconn)).getFirewallInterfaces();
-		
+
+		const rawData = await communication.getFirewallInterfaces();
+
 		// Process raw interfaces data and convert into a json object.
 		const ifsData = await Interface.ifsDataToJson(rawData);
 
