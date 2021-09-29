@@ -89,6 +89,9 @@ export class Routes extends RouteCollection {
 
                     router.prefix('/firewalls', (router: RouterParser) => {
                         router.prefix('/:firewall(\\d+)', (router:RouterParser) => {
+
+                            router.get('/communication/ping', FirewallController, 'pingCommunication').name('fwclouds.firewalls.communication.ping');
+
                             router.prefix('/openvpns', (router: RouterParser) => {
                                 router.prefix('/:openvpn(\\d+)', (router: RouterParser) => {
                                     router.post('/installer', OpenVPNController, 'installer').name('fwclouds.firewalls.openvpns.installer');

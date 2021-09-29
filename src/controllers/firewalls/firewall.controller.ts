@@ -36,6 +36,7 @@ import { RoutingRulesData, RoutingRuleService } from "../../models/routing/routi
 import { RoutingRuleItemForCompiler } from "../../models/routing/shared";
 import { RoutingCompiler } from "../../compiler/routing/RoutingCompiler";
 import { FirewallControllerCompileRoutingRuleQueryDto } from "./dtos/compile-routing-rules.dto";
+import { Communication } from "../../communications/communication";
 
 export class FirewallController extends Controller {
     
@@ -114,5 +115,19 @@ export class FirewallController extends Controller {
         const compilation = new RoutingCompiler().compile('Rule', rules);
 
         return ResponseBuilder.buildResponse().status(200).body(compilation)
+    }
+
+    @Validate()
+    async pingCommunication(request: Request): Promise<ResponseBuilder> {
+         let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+            id: parseInt(request.params.firewall),
+            fwCloudId: parseInt(request.params.fwcloud)
+        });
+
+        (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
+
+        await (await firewall.getCommunication()).ping();
+
+        return ResponseBuilder.buildResponse().status(200);
     }
 }
