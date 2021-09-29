@@ -119,8 +119,16 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         return iptablesSaveOutput;
     }
 
-    async ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]> {
-        return;
+    async ccdHashList(dir: string, channel: EventEmitter = new EventEmitter()): Promise<CCDHash[]> {
+        channel.emit('message', new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`));
+        const commandResult: string = (await sshTools.runCommand(this.connectionData,
+            `echo "file,sha256"; find ${dir} -maxdepth 1 -type f -exec sh -c "basename -z {}; echo -n ','; grep -v '^#' {} | sha256sum" \; | awk '{print $1}'`
+        ));
+
+        return commandResult.split("\n").slice(1).map(item => ({
+            filename: item.split(',')[0],
+            hash: item.split(',')[1]
+        }));
     };
 
     

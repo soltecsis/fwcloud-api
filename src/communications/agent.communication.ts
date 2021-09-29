@@ -107,7 +107,25 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     async ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]> {
-        throw new Error("Method not implemented.");
+        const path: string = this.url + "/api/v1/openvpn/files/sha256";
+
+        const response: AxiosResponse<string> = await axios.put(path, {
+            dir: dir,
+            files: []
+        }, {
+            headers: Object.assign({
+                "Content-Type": "application/json"
+            }, this.headers)
+        });
+
+        if (response.status === 200) {
+            return response.data.split("\n").slice(1).map(item => ({
+                filename: item.split(',')[0],
+                hash: item.split(',')[1]
+            }));
+        }
+
+        throw new Error("Unexpected ccdHashList response");
     }
     
     async ping(): Promise<void> {
