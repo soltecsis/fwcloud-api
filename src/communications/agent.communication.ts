@@ -55,7 +55,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
     }
 
-    installOpenVPNConfig(config: unknown, dir: string, name: string, type: number, channel?: EventEmitter): Promise<void> {
+    async installOpenVPNConfig(config: unknown, dir: string, name: string, type: number, channel?: EventEmitter): Promise<void> {
         try {
             const path: string = this.url + '/api/v1/openvpn/files/upload';
             const form = new FormData();
@@ -71,7 +71,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 form.append('perms', 600);
             }
 
-            axios.post(path, form, {
+            await axios.post(path, form, {
                 headers: Object.assign(form.getHeaders(), this.headers)
             });
 
