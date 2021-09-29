@@ -65,10 +65,11 @@ import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { logger } from '../../../fonaments/abstract-application';
 import { Firewall } from '../../../models/firewall/Firewall';
-import { Cluster } from '../../../models/firewall/Cluster';
 import { getRepository } from 'typeorm';
+import db from '../../../database/database-manager';
 const fwcError = require('../../../utils/error_table');
-
+import * as crypto from "crypto";
+import { CCDComparer } from '../../../models/vpn/openvpn/ccd-comparer';
 
 /**
  * Create a new OpenVPN configuration in firewall.
@@ -393,6 +394,76 @@ router.put('/uninstall', async(req, res) => {
  * ROUTE CALL:  /vpn/openvpn/ccdsync
  */
 router.put('/ccdsync', async(req, res) => {
+	const channel = await Channel.fromRequest(req);
+	const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+		.where('firewall.id', req.body.firewall)
+		.andWhere('firewall.fwCloudId', req.body.fwcloud)
+		.getOneOrFail();
+	const communication = await firewall.getCommunication();
+	const openvpn = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+		.innerJoin('openvpn.firewall', 'firewall')
+		.innerJoinAndSelect('openvpn.crt', 'crt')
+		.where('openvpn.id', req.body.openvpn)
+		.andWhere('firewall.id', req.body.firewall)
+		.andWhere('firewall.fwCloudId', req.body.fwcloud)
+		.getOneOrFail();
+
+	// This action only can be done in server OpenVPN configurations.
+	if (openvpn.crt.type !== 2) {
+		throw fwcError.VPN_NOT_SER;
+	}
+
+	// Obtain the configuration directory in the client-config-dir configuration option of the OpenVPN
+	// server configuration.
+	const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.body.openvpn,'client-config-dir');
+	if (!openvpn_opt) {
+		throw fwcError.VPN_NOT_FOUND_CFGDIR;
+	}
+	const client_config_dir = openvpn_opt.arg;
+
+	// Get all client configurations for this OpenVPN server configuration.
+	const clients = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+		.innerJoinAndSelect('openvpn.crt', 'crt')
+		.where('openvpn.parentId', openvpn.id).getMany();
+
+	const ccdRemoteHashes = await communication.ccdHashList(client_config_dir, channel);
+	const ccdLocalHashes = [];
+	for (let client of clients) {
+		let cfgDump = await OpenVPN.dumpCfg(db.getQuery(), req.body.fwcloud, client.id);
+
+		//We must remove comment from ccd before generate the hash
+		const ccdContent = cfgDump.ccd.replace(/#*\n/, '');
+		const ccdName = client.crt.cn;
+		const hash = crypto.createHash('sha256');
+		hash.update(ccdContent);
+		const digest = hash.digest('hex');
+
+		ccdLocalHashes.push({
+			filename: ccdName,
+			hash: digest
+		});
+	}
+
+	const compare = CCDComparer.compare(ccdLocalHashes, ccdRemoteHashes);
+
+	// Unsynced and onlyLocal certificates must be installed
+	const toBeInstalled = [].concat(compare.onlyLocal, compare.unsynced);
+	if (toBeInstalled.length > 0) {
+		const toBeInstalledOpeVPNs = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+			.innerJoinAndSelect('openvpn.crt', 'crt')
+			.where('crt.cn IN (:names)', {names: toBeInstalled.join(", ")})
+			.getMany();
+
+		for(let client of toBeInstalledOpeVPNs) {
+			let cfgDump = await OpenVPN.dumpCfg(db.getQuery(), req.body.fwcloud, client.id);
+			await communication.installOpenVPNConfig(cfgDump.ccd, client_config_dir, client.crt.cn, 1, channel);
+		}
+	}
+
+	//onlyRemote certificates must be uninstalled
+	const toBeUnInstalled = compare.onlyRemote;
+	await communication.uninstallOpenVPNConfig(client_config_dir, toBeUnInstalled, channel);
+
 	res.status(501).send('Not implemented');
 });
 
