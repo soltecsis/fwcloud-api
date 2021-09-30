@@ -182,8 +182,6 @@ schema.validate = req => {
 					sshpass: sharedSch.linux_pass,
 					socketid: sharedSch.socketio_id.optional()
 				});
-
-				if (req.path==='/vpn/openvpn/ccdsync') schema = schema.append({ onlyPending: Joi.number().integer().valid([0, 1]).optional() });
 			}
 			else if (req.path==='/vpn/openvpn/get' || req.path==='/vpn/openvpn/del' 
 					|| req.path==='/vpn/openvpn/ip/get' || req.path==='/vpn/openvpn/ipobj/get'
