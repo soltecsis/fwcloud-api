@@ -125,7 +125,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
             `echo "file,sha256"; find ${dir} -maxdepth 1 -type f -exec sh -c "basename -z {}; echo -n ','; grep -v '^#' {} | sha256sum" \; | awk '{print $1}'`
         ));
 
-        return commandResult.split("\n").slice(1).map(item => ({
+        return commandResult.split("\n").filter(item => item !== '').slice(1).map(item => ({
             filename: item.split(',')[0],
             hash: item.split(',')[1]
         }));

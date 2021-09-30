@@ -396,16 +396,16 @@ router.put('/uninstall', async(req, res) => {
 router.put('/ccdsync', async(req, res) => {
 	const channel = await Channel.fromRequest(req);
 	const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
-		.where('firewall.id', req.body.firewall)
-		.andWhere('firewall.fwCloudId', req.body.fwcloud)
+		.where('firewall.id = :firewallId', {firewallId: req.body.firewall})
+		.andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId: req.body.fwcloud})
 		.getOneOrFail();
 	const communication = await firewall.getCommunication();
 	const openvpn = await getRepository(OpenVPN).createQueryBuilder('openvpn')
 		.innerJoin('openvpn.firewall', 'firewall')
 		.innerJoinAndSelect('openvpn.crt', 'crt')
-		.where('openvpn.id', req.body.openvpn)
-		.andWhere('firewall.id', req.body.firewall)
-		.andWhere('firewall.fwCloudId', req.body.fwcloud)
+		.where('openvpn.id = :openvpnId', {openvpnId: req.body.openvpn})
+		.andWhere('firewall.id = :firewallId', {firewallId: req.body.firewall})
+		.andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId: req.body.fwcloud})
 		.getOneOrFail();
 
 	// This action only can be done in server OpenVPN configurations.
@@ -424,7 +424,8 @@ router.put('/ccdsync', async(req, res) => {
 	// Get all client configurations for this OpenVPN server configuration.
 	const clients = await getRepository(OpenVPN).createQueryBuilder('openvpn')
 		.innerJoinAndSelect('openvpn.crt', 'crt')
-		.where('openvpn.parentId', openvpn.id).getMany();
+		.where('openvpn.parentId = :parentId', {parentId: openvpn.id})
+		.getMany();
 
 	const ccdRemoteHashes = await communication.ccdHashList(client_config_dir, channel);
 	const ccdLocalHashes = [];
@@ -432,7 +433,7 @@ router.put('/ccdsync', async(req, res) => {
 		let cfgDump = await OpenVPN.dumpCfg(db.getQuery(), req.body.fwcloud, client.id);
 
 		//We must remove comment from ccd before generate the hash
-		const ccdContent = cfgDump.ccd.replace(/#*\n/, '');
+		const ccdContent = cfgDump.ccd;
 		const ccdName = client.crt.cn;
 		const hash = crypto.createHash('sha256');
 		hash.update(ccdContent);
@@ -462,9 +463,13 @@ router.put('/ccdsync', async(req, res) => {
 
 	//onlyRemote certificates must be uninstalled
 	const toBeUnInstalled = compare.onlyRemote;
-	await communication.uninstallOpenVPNConfig(client_config_dir, toBeUnInstalled, channel);
+	if (toBeUnInstalled.length > 0) {
+		await communication.uninstallOpenVPNConfig(client_config_dir, toBeUnInstalled, channel);
+	}
 
-	res.status(501).send('Not implemented');
+	channel.emit('message', new ProgressPayload('end', false, 'Sync OpenVPN CCD'));
+
+	res.status(200).send().end();
 });
 
 

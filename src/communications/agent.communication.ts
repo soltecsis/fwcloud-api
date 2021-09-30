@@ -59,8 +59,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         try {
             const path: string = this.url + '/api/v1/openvpn/files/upload';
             const form = new FormData();
-            form.append('data', config, name);
             form.append('dst_dir', dir);
+            form.append('data', config, name);
+
 
             if (type === 1) {
                 // Client certificarte
@@ -88,10 +89,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             const path: string = this.url + '/api/v1/openvpn/files/remove';
 
             axios.delete(path, {
-                data: Object.assign(this.headers, {
+                headers: this.headers,
+                data: {
                     dir: dir,
                     files: files
-                })
+                }
             });
 
         } catch(error) {
@@ -141,7 +143,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         });
 
         if (response.status === 200) {
-            return response.data.split("\n").slice(1).map(item => ({
+            return response.data.split("\n").filter(item => item !== '').slice(1).map(item => ({
                 filename: item.split(',')[0],
                 hash: item.split(',')[1]
             }));
