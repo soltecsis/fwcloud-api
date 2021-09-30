@@ -408,6 +408,9 @@ router.put('/ccdsync', async(req, res) => {
 		.andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId: req.body.fwcloud})
 		.getOneOrFail();
 
+	const cluster = await Firewall.getClusterId(req.dbCon, req.body.firewall);
+	let lastClusterNodeId = cluster ? await Firewall.getLastClusterNodeId(req.dbCon, cluster) : null;
+
 	// This action only can be done in server OpenVPN configurations.
 	if (openvpn.crt.type !== 2) {
 		throw fwcError.VPN_NOT_SER;
@@ -458,6 +461,12 @@ router.put('/ccdsync', async(req, res) => {
 		for(let client of toBeInstalledOpeVPNs) {
 			let cfgDump = await OpenVPN.dumpCfg(db.getQuery(), req.body.fwcloud, client.id);
 			await communication.installOpenVPNConfig(cfgDump.ccd, client_config_dir, client.crt.cn, 1, channel);
+
+			// Update the status flag for the OpenVPN configuration.
+			// In a cluster update only if this is the last cluster node.
+			if (!cluster || req.body.firewall===lastClusterNodeId)  {
+				await OpenVPN.updateOpenvpnStatus(req.dbCon,client.id,"&~1");
+			}
 		}
 	}
 
