@@ -38,10 +38,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         try {
             const path: string = this.url + '/api/v1/fwcloud_script/upload';
 
+
             const form = new FormData();
-            form.append('upload', fs.createReadStream(scriptPath));
             form.append('dst_dir', config.get('policy').script_name);
             form.append('perms', 700);
+            form.append('upload', fs.createReadStream(scriptPath));
 
             eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
             const response: AxiosResponse<any> = await axios.post(path, form, {
