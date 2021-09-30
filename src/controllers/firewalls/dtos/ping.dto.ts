@@ -1,4 +1,4 @@
-import { IsEnum, isEnum, IsObject, IsOptional, IsString } from "class-validator";
+import { IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
 import { FirewallInstallCommunication, FirewallInstallProtocol } from "../../../models/firewall/Firewall";
 
 export class PingDto {
@@ -8,7 +8,7 @@ export class PingDto {
     @IsString()
     host: string;
 
-    @IsString()
+    @IsNumber()
     port: number;
 
     @IsOptional()
