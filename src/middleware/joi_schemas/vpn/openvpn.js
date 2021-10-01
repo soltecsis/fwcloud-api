@@ -178,8 +178,8 @@ schema.validate = req => {
 				schema = schema.append({
 					firewall: sharedSch.id,
 					openvpn: sharedSch.id,
-					sshuser: sharedSch.linux_user,
-					sshpass: sharedSch.linux_pass,
+					sshuser: sharedSch.linux_user.optional(),
+					sshpass: sharedSch.linux_pass.optional(),
 					socketid: sharedSch.socketio_id.optional()
 				});
 			}
