@@ -38,9 +38,8 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         try {
             const path: string = this.url + '/api/v1/fwcloud_script/upload';
 
-
             const form = new FormData();
-            form.append('dst_dir', config.get('policy').script_name);
+            form.append('dst_dir', './tmp');
             form.append('perms', 700);
             form.append('upload', fs.createReadStream(scriptPath));
 
