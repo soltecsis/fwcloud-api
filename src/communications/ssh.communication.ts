@@ -135,7 +135,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
         return commandResult.replace("\x00", "").split("\n").filter(item => item !== '').slice(1).map(item => ({
             filename: item.split(',')[0],
-            hash: item.split(',')[1]
+            hash: item.split(',')[1].replace("\r", "")
         }));
     };
 
