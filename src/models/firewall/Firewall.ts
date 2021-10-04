@@ -41,6 +41,7 @@ import * as path from "path";
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
+var utilsModel = require("../../utils/utils.js");
 
 import { RoutingTable } from "../routing/routing-table/routing-table.model";
 import { RoutingGroup } from "../routing/routing-group/routing-group.model";
@@ -181,8 +182,8 @@ export class Firewall extends Model {
 			return new SSHCommunication({
 				host: (await getRepository(IPObj).findOneOrFail(this.install_ipobj)).address,
 				port: this.install_port,
-				username: this.install_user,
-				password: this.install_pass,
+				username: utilsModel.decrypt(this.install_user),
+				password: utilsModel.decrypt(this.install_pass),
 				options: this.options
 			})
 		}
@@ -191,7 +192,7 @@ export class Firewall extends Model {
 			protocol: this.install_protocol,
 			host: (await getRepository(IPObj).findOneOrFail(this.install_ipobj)).address,
 			port: this.install_port,
-			apikey: this.install_apikey
+			apikey: utilsModel.decrypt(this.install_apikey)
 		});
 	}
 

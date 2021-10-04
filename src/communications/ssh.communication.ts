@@ -3,7 +3,6 @@ import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, Progr
 import sshTools from "../utils/ssh";
 import { CCDHash, Communication } from "./communication";
 var config = require('../config/config');
-var utilsModel = require("../utils/utils.js");
 
 type SSHConnectionData = {
     host: string;
@@ -14,12 +13,6 @@ type SSHConnectionData = {
 }
 
 export class SSHCommunication extends Communication<SSHConnectionData> {
-
-    constructor(connectionData: SSHConnectionData) {
-        connectionData.username = utilsModel.decrypt(connectionData.username);
-        connectionData.password = utilsModel.decrypt(connectionData.password);
-        super(connectionData);
-    }
 
     async installFirewallPolicy(scriptPath: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         try {

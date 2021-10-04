@@ -5,9 +5,6 @@ import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload } from
 import * as fs from 'fs';
 import FormData from 'form-data';
 
-var utilsModel = require("../utils/utils.js");
-const config = require('../config/config');
-
 type AgentCommunicationData = {
     protocol: 'https' | 'http',
     host: string,
@@ -26,11 +23,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             throw new Error("Cannot connect to agent without apikey");
         }
 
-        const decipherApiKey: string = utilsModel.decrypt(this.connectionData.apikey);
-
         this.url = `${this.connectionData.protocol}://${this.connectionData.host}:${this.connectionData.port}`
         this.headers = {
-            'X-API-Key': decipherApiKey
+            'X-API-Key': this.connectionData.apikey
         }
     }
 
