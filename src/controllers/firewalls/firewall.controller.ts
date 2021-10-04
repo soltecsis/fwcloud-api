@@ -41,6 +41,7 @@ import { PingDto } from "./dtos/ping.dto";
 import { Communication } from "../../communications/communication";
 import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
+import { PgpHelper } from "../../utils/pgp";
 
 export class FirewallController extends Controller {
     
@@ -133,6 +134,8 @@ export class FirewallController extends Controller {
 
         (await FirewallPolicy.ping(this._fwCloud, request.session.user)).authorize();
 
+        const pgp = new PgpHelper(request.session.pgp);
+
         try {
             let communication: Communication<unknown>;
 
@@ -140,8 +143,8 @@ export class FirewallController extends Controller {
                 communication = new SSHCommunication({
                     host: input.host,
                     port: input.port,
-                    username: input.username,
-                    password: input.password,
+                    username: await pgp.decrypt(input.username),
+                    password: await pgp.decrypt(input.password),
                     options: null
                 })
             } else {
@@ -149,7 +152,7 @@ export class FirewallController extends Controller {
                     host: input.host,
                     port: input.port,
                     protocol: input.protocol,
-                    apikey: input.apikey
+                    apikey: await pgp.decrypt(input.apikey)
                 })
             }
 
