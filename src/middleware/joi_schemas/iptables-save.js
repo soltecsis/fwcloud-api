@@ -49,7 +49,7 @@ schema.validate = req => {
             }
               
             if (!req.body.type) return reject(fwcError.other('iptables-save import type expected'));
-            schema = schema.append({ type: Joi.string().valid(['data', 'ssh']) });
+            schema = schema.append({ type: Joi.string().valid(['data', 'remote']) });
       
             if (req.body.type==='data')
                 schema = schema.append({ data: Joi.array().items(Joi.string()) });

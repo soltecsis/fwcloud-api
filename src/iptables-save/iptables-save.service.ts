@@ -107,15 +107,14 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
 
   
   public async importThroughCommunication(request: Request): Promise<IptablesSaveStats> {
-    const pgp = new PgpHelper(request.session.pgp);
     let communication: Communication<unknown>;
 
 		if (request.body.communication === FirewallInstallCommunication.SSH) {
 			communication = new SSHCommunication({
 				host: request.body.ip,
 				port: request.body.port,
-				username: await pgp.decrypt(request.body.sshuser),
-				password: await pgp.decrypt(request.body.sshpass),
+				username: request.body.sshuser,
+				password: request.body.sshpass,
 				options: null
 			});
 		} else {
@@ -123,7 +122,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
 				host: request.body.ip,
 				port: request.body.port,
 				protocol: request.body.protocol,
-				apikey: await pgp.decrypt(request.body.apikey)
+				apikey: request.body.apikey
 			});
 		}
 
@@ -146,13 +145,11 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
       let communication: Communication<unknown>;
 
       if (firewall.install_communication === FirewallInstallCommunication.SSH) {
-        const pgp = new PgpHelper(request.session.pgp);
-
         communication = new SSHCommunication({
           host: Object.prototype.hasOwnProperty.call(request.body, "host") ? request.body.host : (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
           port: Object.prototype.hasOwnProperty.call(request.body, "port") ? request.body.port : firewall.install_port,
-          username: Object.prototype.hasOwnProperty.call(request.body, "sshuser") ? pgp.decrypt(request.body.sshuser) : utilsModel.decrypt(firewall.install_user),
-          password: Object.prototype.hasOwnProperty.call(request.body, "sshpass") ? pgp.decrypt(request.body.sshpass) : utilsModel.decrypt(firewall.install_pass),
+          username: Object.prototype.hasOwnProperty.call(request.body, "sshuser") ? request.body.sshuser : utilsModel.decrypt(firewall.install_user),
+          password: Object.prototype.hasOwnProperty.call(request.body, "sshpass") ? request.body.sshpass : utilsModel.decrypt(firewall.install_pass),
           options: null
         });
       } else {
