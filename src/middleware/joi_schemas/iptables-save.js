@@ -53,7 +53,7 @@ schema.validate = req => {
       
             if (req.body.type==='data')
                 schema = schema.append({ data: Joi.array().items(Joi.string()) });
-            else if (req.body.type==='ssh') {
+            else if (req.body.type === 'remote') {
                 try {
                     const pgp = new PgpHelper(req.session.pgp);
                     // SSH user and password are encrypted with the PGP session key.
