@@ -153,19 +153,13 @@ router.post('/', async(req, res) => {
 		save_user_pass: req.body.save_user_pass,
 		install_interface: req.body.install_interface,
 		install_ipobj: req.body.install_ipobj,
+		install_apikey: req.body.install_apikey !== null ? await utilsModel.encrypt(req.body.install_apikey): null,
+		install_protocol: req.body.install_protocol,
 		fwmaster: req.body.fwmaster,
 		install_port: req.body.install_port,
 		by_user: req.session.user_id,
 		options: req.body.options
 	};
-
-	if (req.body.install_protocol) {
-		firewallData.install_protocol = req.body.install_protocol === 'http' ? FirewallInstallProtocol.HTTP : FirewallInstallProtocol.HTTPS;
-	}
-
-	if (Object.prototype.hasOwnProperty.call(req.body, 'install_apikey')) {
-		firewallData.install_apikey = req.body.install_apikey === null ? null : await utilsModel.encrypt(req.body.install_apikey);
-	}
 
 	try {
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
@@ -258,6 +252,8 @@ router.put('/', async (req, res) => {
 		comment: req.body.comment,
 		fwcloud: req.body.fwcloud, //working cloud
 		install_communication: req.body.install_communication === 'ssh' ? FirewallInstallCommunication.SSH : FirewallInstallCommunication.Agent, 
+		install_apikey: req.body.install_apikey !== null ? await utilsModel.encrypt(req.body.install_apikey): null,
+		install_protocol: req.body.install_protocol,
 		install_user: req.body.install_user,
 		install_pass: req.body.install_pass,
 		save_user_pass: req.body.save_user_pass,
@@ -281,14 +277,6 @@ router.put('/', async (req, res) => {
 		if (!firewallData.save_user_pass) {
 			firewallData.install_user = '';
 			firewallData.install_pass = '';
-		}
-
-		if (req.body.install_protocol) {
-			firewallData.install_protocol = req.body.install_protocol === 'http' ? FirewallInstallProtocol.HTTP : FirewallInstallProtocol.HTTPS;
-		}
-	
-		if (Object.prototype.hasOwnProperty.call(req.body, 'install_apikey')) {
-			firewallData.install_apikey = req.body.install_apikey === null ? null : await utilsModel.encrypt(req.body.install_apikey);
 		}
 
 		await Firewall.updateFirewall(req.dbCon, req.session.user_id, firewallData);
@@ -372,7 +360,7 @@ router.put('/get', async (req, res) => {
 			// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
 			if (data.install_user) data.install_user = await pgp.encrypt(data.install_user);
 			if (data.install_pass) data.install_pass = await pgp.encrypt(data.install_pass);
-			if (data.install_apikey) data.install_apikey = await pgp.encrypt(data.install_apikey);
+			if (data.install_apikey !== null) data.install_apikey = await pgp.encrypt(data.install_apikey);
 
 			res.status(200).json(data);
 		}
