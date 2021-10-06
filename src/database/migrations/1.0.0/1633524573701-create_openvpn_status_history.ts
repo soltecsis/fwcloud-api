@@ -48,9 +48,17 @@ export class createOpenvpnStatusHistory1633524573701 implements MigrationInterfa
                 {
                     name: 'openvpn_server_id',
                     type: 'int',
-                    isNullable: false,
+                    isNullable: true,
                 },
             ],
+            foreignKeys: [
+                {
+                    columnNames: ['openvpn_server_id'],
+                    referencedTableName: 'openvpn',
+                    referencedColumnNames: ['id'],
+                    onDelete: 'set null'
+                }
+            ]
         }), true);
     }
 
