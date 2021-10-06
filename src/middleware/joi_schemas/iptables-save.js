@@ -84,8 +84,8 @@ schema.validate = req => {
             } catch(error) { return reject(fwcError.other(`PGP decrypt: ${error.message}`)) }
 
             schema = schema.append({ 
-                sshuser: sharedSch.linux_user, 
-                sshpass: sharedSch.linux_pass 
+                sshuser: sharedSch.linux_user.optional(),
+                sshpass: sharedSch.linux_pass.optional()
             });
         }
         else return reject(fwcError.BAD_API_CALL);
