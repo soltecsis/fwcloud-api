@@ -38,6 +38,7 @@ import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
 import { Route } from "../../routing/route/route.model";
 import { RouteToOpenVPN } from "../../routing/route/route-to-openvpn.model";
 import { RoutingRuleToOpenVPN } from "../../routing/routing-rule/routing-rule-to-openvpn.model";
+import { OpenVPNStatusHistory } from "./status/openvpn-status-history";
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -133,6 +134,9 @@ export class OpenVPN extends Model {
 
     @OneToMany(() => RouteToOpenVPN, model => model.openVPN)
     routeToOpenVPNs: RouteToOpenVPN[];
+
+    @OneToMany(() => OpenVPNStatusHistory, model => model.openVPNServer)
+    historyRecords: OpenVPNStatusHistory[]
 
 
     public getTableName(): string {
