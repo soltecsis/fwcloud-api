@@ -38,7 +38,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             form.append('perms', 700);
             form.append('upload', fs.createReadStream(scriptPath));
 
+            eventEmitter.emit('message', new ProgressNoticePayload(`Uploading firewall script (${this.connectionData.host})`));
             eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
+            eventEmitter.emit('message', new ProgressNoticePayload("Loading firewall policy."));
             const response: AxiosResponse<any> = await axios.post(path, form, {
                 headers: Object.assign(form.getHeaders(), this.headers)
             });
