@@ -64,6 +64,7 @@ import { RoutingGroupServiceProvider } from "./models/routing/routing-group/rout
 import { RouteGroupServiceProvider } from "./models/routing/route-group/route-group.provider";
 import { ClusterServiceProvider } from "./models/firewall/cluster.provider";
 import { OpenVPNPrefixServiceProvider } from "./models/vpn/openvpn/openvpn-prefix.provider";
+import { OpenVPNStatusHistoryServiceProvider } from "./models/vpn/openvpn/status/openvpn-status-history.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -129,7 +130,8 @@ export class Application extends HTTPApplication {
             RoutingRuleServiceProvider,
             RoutingGroupServiceProvider,
             RouteGroupServiceProvider,
-            OpenVPNPrefixServiceProvider
+            OpenVPNPrefixServiceProvider,
+            OpenVPNStatusHistoryServiceProvider
         ]
     }
 
