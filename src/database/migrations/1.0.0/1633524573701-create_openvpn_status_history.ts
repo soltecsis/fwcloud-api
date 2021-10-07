@@ -8,7 +8,8 @@ export class createOpenvpnStatusHistory1633524573701 implements MigrationInterfa
             columns: [
                 {
                     name: 'id',
-                    type: 'bigint',
+                    type: 'int',
+                    unsigned: true,
                     isPrimary: true,
                     isGenerated: true,
                     generationStrategy: "increment",

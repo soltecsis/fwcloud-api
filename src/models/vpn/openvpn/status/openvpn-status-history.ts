@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import Model from "../../../Model";
 import { OpenVPN } from "../OpenVPN";
 
@@ -38,6 +38,9 @@ export class OpenVPNStatusHistory extends Model {
     openVPNServerId: number;
 
     @ManyToOne(() => OpenVPN, model => model.historyRecords)
+    @JoinColumn({
+        name: 'openvpn_server_id'
+    })
     openVPNServer: OpenVPN;
 
     public getTableName(): string {
