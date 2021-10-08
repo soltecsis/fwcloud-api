@@ -21,7 +21,7 @@
 */
 
 import { Service } from "../fonaments/services/service";
-import { Connection, QueryRunner, Migration, getConnectionManager, ConnectionOptions, MigrationExecutor } from "typeorm";
+import { Connection, QueryRunner, Migration, getConnectionManager, ConnectionOptions, MigrationExecutor, Tree } from "typeorm";
 import * as path from "path";
 import * as fs from "fs";
 import moment from "moment";
@@ -29,6 +29,52 @@ import ObjectHelpers from "../utils/object-helpers";
 import { FSHelper } from "../utils/fs-helper";
 import * as semver from "semver";
 import { DatabaseLogger } from "./logger";
+import { Cluster } from "../models/firewall/Cluster";
+import { Firewall } from "../models/firewall/Firewall";
+import { FwCloud } from "../models/fwcloud/FwCloud";
+import { Interface } from "../models/interface/Interface";
+import { InterfaceIPObj } from "../models/interface/InterfaceIPObj";
+import { IPObj } from "../models/ipobj/IPObj";
+import { IPObjGroup } from "../models/ipobj/IPObjGroup";
+import { IPObjToIPObjGroup } from "../models/ipobj/IPObjToIPObjGroup";
+import { IPObjType } from "../models/ipobj/IPObjType";
+import { IPObjTypeToPolicyPosition } from "../models/ipobj/IPObjTypeToPolicyPosition";
+import { Mark } from "../models/ipobj/Mark";
+import { PolicyGroup } from "../models/policy/PolicyGroup";
+import { PolicyPosition } from "../models/policy/PolicyPosition";
+import { PolicyRule } from "../models/policy/PolicyRule";
+import { PolicyRuleToInterface } from "../models/policy/PolicyRuleToInterface";
+import { PolicyRuleToIPObj } from "../models/policy/PolicyRuleToIPObj";
+import { PolicyRuleToOpenVPN } from "../models/policy/PolicyRuleToOpenVPN";
+import { PolicyRuleToOpenVPNPrefix } from "../models/policy/PolicyRuleToOpenVPNPrefix";
+import { PolicyType } from "../models/policy/PolicyType";
+import { RouteToIPObj } from "../models/routing/route/route-to-ipobj.model";
+import { RouteToIPObjGroup } from "../models/routing/route/route-to-ipobj-group.model";
+import { RouteToOpenVPN } from "../models/routing/route/route-to-openvpn.model";
+import { RouteToOpenVPNPrefix } from "../models/routing/route/route-to-openvpn-prefix.model";
+import { Route } from "../models/routing/route/route.model";
+import { RouteGroup } from "../models/routing/route-group/route-group.model";
+import { RoutingGroup } from "../models/routing/routing-group/routing-group.model";
+import { RoutingRuleToIPObjGroup } from "../models/routing/routing-rule/routing-rule-to-ipobj-group.model";
+import { RoutingRuleToIPObj } from "../models/routing/routing-rule/routing-rule-to-ipobj.model";
+import { RoutingRuleToMark } from "../models/routing/routing-rule/routing-rule-to-mark.model";
+import { RoutingRuleToOpenVPNPrefix } from "../models/routing/routing-rule/routing-rule-to-openvpn-prefix.model";
+import { RoutingRuleToOpenVPN } from "../models/routing/routing-rule/routing-rule-to-openvpn.model";
+import { RoutingRule } from "../models/routing/routing-rule/routing-rule.model";
+import { RoutingRuleToInterface } from "../models/routing/routing-rule-to-interface/routing-rule-to-interface.model";
+import { RoutingTable } from "../models/routing/routing-table/routing-table.model";
+import { Folder } from "../models/tree/Folder";
+import { FwcTree } from "../models/tree/fwc-tree.model";
+import { Repair } from "../models/tree/Repair";
+import { Customer } from "../models/user/Customer";
+import { User } from "../models/user/User";
+import { OpenVPNOption } from "../models/vpn/openvpn/openvpn-option.model";
+import { OpenVPN } from "../models/vpn/openvpn/OpenVPN";
+import { OpenVPNPrefix } from "../models/vpn/openvpn/OpenVPNPrefix";
+import { OpenVPNStatusHistory } from "../models/vpn/openvpn/status/openvpn-status-history";
+import { Ca } from "../models/vpn/pki/Ca";
+import { CaPrefix } from "../models/vpn/pki/CaPrefix";
+import { Crt } from "../models/vpn/pki/Crt";
 
 export interface DatabaseConfig {
     host: string,
@@ -225,7 +271,50 @@ export class DatabaseService extends Service {
                 migrationsDir: this._config.migration_directory
             },
             entities: [
-                path.join(process.cwd(), 'dist', 'src', 'models', '**', '*'),
+                Cluster,
+                Firewall,
+                FwCloud,
+                Interface,
+                InterfaceIPObj,
+                IPObj,
+                IPObjGroup,
+                IPObjToIPObjGroup,
+                IPObjType,
+                IPObjTypeToPolicyPosition,
+                Mark,
+                PolicyGroup,
+                PolicyPosition,
+                PolicyRule,
+                PolicyRuleToInterface,
+                PolicyRuleToIPObj,
+                PolicyRuleToOpenVPN,
+                PolicyRuleToOpenVPNPrefix,
+                PolicyType,
+                RouteToIPObjGroup,
+                RouteToIPObj,
+                RouteToOpenVPNPrefix,
+                RouteToOpenVPN,
+                Route,
+                RouteGroup,
+                RoutingGroup,
+                RoutingRuleToIPObjGroup,
+                RoutingRuleToIPObj,
+                RoutingRuleToMark,
+                RoutingRuleToOpenVPNPrefix,
+                RoutingRuleToOpenVPN,
+                RoutingRule,
+                RoutingRuleToInterface,
+                RoutingTable,
+                FwcTree,
+                Customer,
+                User,
+                OpenVPNOption,
+                OpenVPN,
+                OpenVPNPrefix,
+                OpenVPNStatusHistory,
+                Ca,
+                CaPrefix,
+                Crt
             ]
         }
     }
