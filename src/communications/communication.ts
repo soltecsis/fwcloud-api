@@ -5,6 +5,15 @@ export type CCDHash = {
     hash: string
 }
 
+export type OpenVPNHistoryRecord = {
+    timestamp: number;
+    name: string;
+    address: string;
+    bytesReceived: number;
+    bytesSent: number;
+    connected_at: Date;
+}
+
 export abstract class Communication<ConnectionData> {
     constructor(protected readonly connectionData: ConnectionData) {}
 
@@ -14,5 +23,6 @@ export abstract class Communication<ConnectionData> {
     abstract getFirewallInterfaces(): Promise<string>;
     abstract getFirewallIptablesSave(): Promise<string[]>;
     abstract ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]>
+    abstract getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]>;
     abstract ping(): Promise<void>;
 }

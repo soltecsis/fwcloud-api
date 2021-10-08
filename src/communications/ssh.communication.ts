@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressWarningPayload } from "../sockets/messages/socket-message";
 import sshTools from "../utils/ssh";
-import { CCDHash, Communication } from "./communication";
+import { CCDHash, Communication, OpenVPNHistoryRecord } from "./communication";
 var config = require('../config/config');
 
 type SSHConnectionData = {
@@ -13,6 +13,9 @@ type SSHConnectionData = {
 }
 
 export class SSHCommunication extends Communication<SSHConnectionData> {
+    getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]> {
+        throw new Error("Method not implemented.");
+    }
 
     async installFirewallPolicy(scriptPath: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         try {

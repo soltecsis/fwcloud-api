@@ -1,9 +1,10 @@
 import { EventEmitter } from "events";
-import { CCDHash, Communication } from "./communication";
+import { CCDHash, Communication, OpenVPNHistoryRecord } from "./communication";
 import axios, { AxiosResponse } from 'axios';
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
 import * as fs from 'fs';
 import FormData from 'form-data';
+import * as path from "path";
 
 type AgentCommunicationData = {
     protocol: 'https' | 'http',
@@ -31,7 +32,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
     async installFirewallPolicy(scriptPath: string, eventEmitter?: EventEmitter): Promise<string> {
         try {
-            const path: string = this.url + '/api/v1/fwcloud_script/upload';
+            const pathUrl: string = this.url + '/api/v1/fwcloud_script/upload';
 
             const form = new FormData();
             form.append('dst_dir', './tmp');
@@ -39,7 +40,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             form.append('upload', fs.createReadStream(scriptPath));
 
             eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
-            const response: AxiosResponse<any> = await axios.post(path, form, {
+            const response: AxiosResponse<any> = await axios.post(pathUrl, form, {
                 headers: Object.assign(form.getHeaders(), this.headers)
             });
 
@@ -52,7 +53,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
     async installOpenVPNConfig(config: unknown, dir: string, name: string, type: number, channel?: EventEmitter): Promise<void> {
         try {
-            const path: string = this.url + '/api/v1/openvpn/files/upload';
+            const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
             const form = new FormData();
             form.append('dst_dir', dir);
             form.append('data', config, name);
@@ -67,7 +68,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 form.append('perms', 600);
             }
 
-            await axios.post(path, form, {
+            await axios.post(pathUrl, form, {
                 headers: Object.assign(form.getHeaders(), this.headers)
             });
 
@@ -81,9 +82,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         try {
             channel.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/[${files.join(", ")}]' from: (${this.connectionData.host})\n`));
 
-            const path: string = this.url + '/api/v1/openvpn/files/remove';
+            const pathUrl: string = this.url + '/api/v1/openvpn/files/remove';
 
-            axios.delete(path, {
+            axios.delete(pathUrl, {
                 headers: this.headers,
                 data: {
                     dir: dir,
@@ -98,9 +99,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     async getFirewallInterfaces(): Promise<string> {
-        const path: string = this.url + "/api/v1/interfaces/info";
+        const pathUrl: string = this.url + "/api/v1/interfaces/info";
 
-        const response: AxiosResponse<string> = await axios.get(path, {
+        const response: AxiosResponse<string> = await axios.get(pathUrl, {
             headers: this.headers
         });
 
@@ -112,9 +113,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     async getFirewallIptablesSave(): Promise<string[]> {
-        const path: string = this.url + "/api/v1/iptables-save/data";
+        const pathUrl: string = this.url + "/api/v1/iptables-save/data";
 
-        const response: AxiosResponse<string> = await axios.get(path, {
+        const response: AxiosResponse<string> = await axios.get(pathUrl, {
             headers: this.headers
         });
 
@@ -126,9 +127,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     async ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]> {
-        const path: string = this.url + "/api/v1/openvpn/files/sha256";
+        const pathUrl: string = this.url + "/api/v1/openvpn/files/sha256";
 
-        const response: AxiosResponse<string> = await axios.put(path, {
+        const response: AxiosResponse<string> = await axios.put(pathUrl, {
             dir: dir,
             files: []
         }, {
@@ -148,12 +149,41 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
     
     async ping(): Promise<void> {
-        const path: string = this.url + '/api/v1/ping';
+        const pathUrl: string = this.url + '/api/v1/ping';
     
-        const response: AxiosResponse<any> = await axios.put(path, "", {
+        const response: AxiosResponse<any> = await axios.put(pathUrl, "", {
             headers: this.headers
         });
 
         return;
     }
+
+    async getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]> {
+        const filename: string = path.basename(filepath);
+        const dir: string = path.dirname(filepath);
+        const pathUrl: string = this.url + "/api/v1/openvpn/get/status";
+
+        const response: AxiosResponse<string> = await axios.put(pathUrl, {
+            dir,
+            files: [filename]
+        }, {
+            headers: Object.assign({
+                "Content-Type": "application/json"
+            }, this.headers)
+        });
+
+        if (response.status === 200) {
+            return response.data.split("\n").filter(item => item !== '').slice(1).map(item => ({
+                timestamp: parseInt(item.split(',')[0]),
+                name: item.split(',')[1],
+                address: item.split(',')[2],
+                bytesReceived: parseInt(item.split(',')[3]),
+                bytesSent: parseInt(item.split(',')[4]),
+                connected_at: new Date(item.split(',')[5])
+            }));
+        }
+
+        throw new Error("Unexpected getOpenVPNHistoryFile response");
+    }
+    
 }
