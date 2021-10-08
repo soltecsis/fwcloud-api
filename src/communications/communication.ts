@@ -14,5 +14,6 @@ export abstract class Communication<ConnectionData> {
     abstract getFirewallInterfaces(): Promise<string>;
     abstract getFirewallIptablesSave(): Promise<string[]>;
     abstract ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]>
+    abstract getRealtimeStatus(statusFilepath: string): Promise<string>
     abstract ping(): Promise<void>;
 }

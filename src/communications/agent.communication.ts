@@ -4,6 +4,7 @@ import axios, { AxiosResponse } from 'axios';
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
 import * as fs from 'fs';
 import FormData from 'form-data';
+import * as path from "path";
 
 type AgentCommunicationData = {
     protocol: 'https' | 'http',
@@ -31,7 +32,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
     async installFirewallPolicy(scriptPath: string, eventEmitter?: EventEmitter): Promise<string> {
         try {
-            const path: string = this.url + '/api/v1/fwcloud_script/upload';
+            const urlpath: string = this.url + '/api/v1/fwcloud_script/upload';
 
             const form = new FormData();
             form.append('dst_dir', './tmp');
@@ -41,7 +42,8 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             eventEmitter.emit('message', new ProgressNoticePayload(`Uploading firewall script (${this.connectionData.host})`));
             eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
             eventEmitter.emit('message', new ProgressNoticePayload("Loading firewall policy."));
-            const response: AxiosResponse<any> = await axios.post(path, form, {
+
+            const response: AxiosResponse<any> = await axios.post(urlpath, form, {
                 headers: Object.assign(form.getHeaders(), this.headers)
             });
 
@@ -54,7 +56,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
     async installOpenVPNConfig(config: unknown, dir: string, name: string, type: number, channel?: EventEmitter): Promise<void> {
         try {
-            const path: string = this.url + '/api/v1/openvpn/files/upload';
+            const urlPath: string = this.url + '/api/v1/openvpn/files/upload';
             const form = new FormData();
             form.append('dst_dir', dir);
             form.append('data', config, name);
@@ -69,7 +71,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 form.append('perms', 600);
             }
 
-            await axios.post(path, form, {
+            await axios.post(urlPath, form, {
                 headers: Object.assign(form.getHeaders(), this.headers)
             });
 
@@ -83,9 +85,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         try {
             channel.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/[${files.join(", ")}]' from: (${this.connectionData.host})\n`));
 
-            const path: string = this.url + '/api/v1/openvpn/files/remove';
+            const urlPath: string = this.url + '/api/v1/openvpn/files/remove';
 
-            axios.delete(path, {
+            axios.delete(urlPath, {
                 headers: this.headers,
                 data: {
                     dir: dir,
@@ -100,9 +102,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     async getFirewallInterfaces(): Promise<string> {
-        const path: string = this.url + "/api/v1/interfaces/info";
+        const urlPath: string = this.url + "/api/v1/interfaces/info";
 
-        const response: AxiosResponse<string> = await axios.get(path, {
+        const response: AxiosResponse<string> = await axios.get(urlPath, {
             headers: this.headers
         });
 
@@ -114,9 +116,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     async getFirewallIptablesSave(): Promise<string[]> {
-        const path: string = this.url + "/api/v1/iptables-save/data";
+        const urlPath: string = this.url + "/api/v1/iptables-save/data";
 
-        const response: AxiosResponse<string> = await axios.get(path, {
+        const response: AxiosResponse<string> = await axios.get(urlPath, {
             headers: this.headers
         });
 
@@ -128,9 +130,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     async ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]> {
-        const path: string = this.url + "/api/v1/openvpn/files/sha256";
+        const urlPath: string = this.url + "/api/v1/openvpn/files/sha256";
 
-        const response: AxiosResponse<string> = await axios.put(path, {
+        const response: AxiosResponse<string> = await axios.put(urlPath, {
             dir: dir,
             files: []
         }, {
@@ -150,12 +152,34 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
     
     async ping(): Promise<void> {
-        const path: string = this.url + '/api/v1/ping';
+        const urlPath: string = this.url + '/api/v1/ping';
     
-        const response: AxiosResponse<any> = await axios.put(path, "", {
+        const response: AxiosResponse<any> = await axios.put(urlPath, "", {
             headers: this.headers
         });
 
         return;
     }
+
+    async getRealtimeStatus(statusFilepath: string): Promise<string> {
+        const urlPath: string = this.url + '/api/v1/openvpn/get/status/rt';
+        const dir: string = path.dirname(statusFilepath);
+        const filename: string = path.basename(statusFilepath);
+
+        const response: AxiosResponse<string> = await axios.put(urlPath, {
+            dir: dir,
+            files: [filename]
+        }, {
+            headers: Object.assign({
+                "Content-Type": "application/json"
+            }, this.headers)
+        });
+
+        if (response.status === 200) {
+            return response.data;
+        }
+
+        throw new Error("Unexpected getRealtimeStatus response");
+    }
+
 }

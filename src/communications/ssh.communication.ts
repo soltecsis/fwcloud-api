@@ -132,7 +132,17 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         }));
     };
 
-    
+    async getRealtimeStatus(statusFilepath: string): Promise<string> {
+        const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+        let data = await sshTools.runCommand(this.connectionData, `${sudo} cat "${statusFilepath}"`);
+        // Remove the first line ()
+        let lines = data.split('\n');
+        if (lines[0].startsWith('[sudo] password for ')) {
+            lines.splice(0, 1);
+        }
+        return lines.join('\n');
+    }
+
     ping(): Promise<void> {
         throw new Error("Method not implemented.");
     }
