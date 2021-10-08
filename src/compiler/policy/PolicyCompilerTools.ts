@@ -106,10 +106,12 @@ export abstract class PolicyCompilerTools {
 
     if (JSON.stringify(metaData) !== '{}') comment = `${JSON.stringify(metaData)}${comment}`;
 
-    if (comment) {
+    comment = comment.trim();
+
+    if (comment.length > 0) {
       if (this._compiler === 'IPTables') {
         // Avoid the presence of the ' character, used as comment delimiter for the iptables command.
-        comment = comment.trim().replace(/'/g, '"'); 
+        comment = comment.replace(/'/g, '"'); 
 
         // IPTables comment extension allows you to add comments (up to 256 characters) to any rule.
         comment = shellescape([comment]).substring(0,250);
@@ -118,13 +120,11 @@ export abstract class PolicyCompilerTools {
         if (comment.charAt(comment.length-1) !== "'") comment =`${comment}'`;
         comment = `-m comment --comment ${comment.replace(/\r/g,' ').replace(/\n/g,' ')} `;
       } else { // NFTables compiler.
-        comment = comment.trim().replace(/"/g,"'"); 
+        comment = comment.replace(/"/g,"'"); 
         comment = comment.trim().replace(/(['$`\\&><!()|])/g,'\\$1'); 
 
         // Comment must start and and end with \" characters.
-        if (comment.charAt(0) !== '\\' && comment.charAt(1) !== '"') comment =`\\"${comment}`;
-        if (comment.charAt(comment.length-2) !== '\\' && comment.charAt(comment.length-1) !== '"') comment =`${comment}\\"`;
-        comment = ` comment ${comment.replace(/\r/g,' ').replace(/\n/g,' ')}\n`;
+        comment = ` comment \\"${comment.replace(/\r/g,' ').replace(/\n/g,' ')}\\"\n`;
       }
     }
 
