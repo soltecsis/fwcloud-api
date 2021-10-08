@@ -64,7 +64,7 @@ import { IPObj } from '../../../models/ipobj/IPObj';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { logger } from '../../../fonaments/abstract-application';
-import { Firewall } from '../../../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
 import { getRepository } from 'typeorm';
 import db from '../../../database/database-manager';
 const fwcError = require('../../../utils/error_table');
@@ -499,7 +499,20 @@ router.put('/status/get', async(req, res) => {
 			.where(`firewall.id = :id`, {id: req.body.firewall})
 			.andWhere(`firewall.fwCloudId = :fwcloud`, {fwcloud: req.body.fwcloud})
 			.getOneOrFail();
-		const communication = await firewall.getCommunication();
+		let communication = null;
+
+		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+			communication = new SSHCommunication({
+				host: Object.prototype.hasOwnProperty.call(request.body, "host") ? request.body.host : (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
+				port: Object.prototype.hasOwnProperty.call(request.body, "port") ? request.body.port : firewall.install_port,
+				username: Object.prototype.hasOwnProperty.call(request.body, "sshuser") ? request.body.sshuser : utilsModel.decrypt(firewall.install_user),
+				password: Object.prototype.hasOwnProperty.call(request.body, "sshpass") ? request.body.sshpass : utilsModel.decrypt(firewall.install_pass),
+				options: null
+			});
+		} else {
+			communication = await firewall.getCommunication();
+		}
+
 
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
