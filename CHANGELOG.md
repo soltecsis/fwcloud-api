@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2021-10-08
+### Added
+- Allow the use of vtun interfaces in OpenVPN configurations. 
+  
+### Fixed
+- Bug in compiler for firewall policy comments.
+
+
 ## [1.3.0] - 2021-09-22
 ### Added
 - Advanced routing management using the drag and drop features of FWCloud-UI. It is possible to easily create routing tables, routes and routing policy by means of the user web interface FWCloud-UI and the new set of API calls for routing management.
@@ -25,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changing mark name updates its node in the tree node
 - Changing the OpenVPN prefixes updates all nodes which reference to it
 - Changing mark settings updates firewalls status flags which use it
+
 
 ## [1.2.0] - 2021-04-30
 ### Added
