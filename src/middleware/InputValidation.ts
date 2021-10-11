@@ -73,6 +73,10 @@ export class InputValidation extends Middleware {
             // If we arrive here then input data has been sucessfully validated.  
             next();
         } catch (error) {
+            if (Object.prototype.hasOwnProperty.call(error, "_object")) {
+                delete error._object;
+            }
+
             logger().error('Error during input validation check: ' + JSON.stringify(error));
             
             if (error.code === "MODULE_NOT_FOUND") {
