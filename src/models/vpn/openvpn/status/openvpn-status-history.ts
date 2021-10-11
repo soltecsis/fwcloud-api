@@ -17,12 +17,14 @@ export class OpenVPNStatusHistory extends Model {
     address: string;
 
     @Column({
-        name: 'bytes_received'
+        name: 'bytes_received',
+        type: 'bigint'
     })
     bytesReceived: number;
 
     @Column({
-        name: 'bytes_sent'
+        name: 'bytes_sent',
+        type: 'bigint'
     })
     bytesSent: number;
 
