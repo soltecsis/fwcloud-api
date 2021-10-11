@@ -24,5 +24,6 @@ export abstract class Communication<ConnectionData> {
     abstract getFirewallIptablesSave(): Promise<string[]>;
     abstract ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]>
     abstract getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]>;
+    abstract getRealtimeStatus(statusFilepath: string): Promise<string>
     abstract ping(): Promise<void>;
 }

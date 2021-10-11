@@ -39,7 +39,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             form.append('perms', 700);
             form.append('upload', fs.createReadStream(scriptPath));
 
+            eventEmitter.emit('message', new ProgressNoticePayload(`Uploading firewall script (${this.connectionData.host})`));
             eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
+            eventEmitter.emit('message', new ProgressNoticePayload("Loading firewall policy."));
+
             const response: AxiosResponse<any> = await axios.post(pathUrl, form, {
                 headers: Object.assign(form.getHeaders(), this.headers)
             });
@@ -158,6 +161,27 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         return;
     }
 
+    async getRealtimeStatus(statusFilepath: string): Promise<string> {
+        const urlPath: string = this.url + '/api/v1/openvpn/get/status/rt';
+        const dir: string = path.dirname(statusFilepath);
+        const filename: string = path.basename(statusFilepath);
+
+        const response: AxiosResponse<string> = await axios.put(urlPath, {
+            dir: dir,
+            files: [filename]
+        }, {
+            headers: Object.assign({
+                "Content-Type": "application/json"
+            }, this.headers)
+        });
+
+        if (response.status === 200) {
+            return response.data;
+        }
+
+        throw new Error("Unexpected getRealtimeStatus response");
+    }
+
     async getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]> {
         const filename: string = path.basename(filepath);
         const dir: string = path.dirname(filepath);
@@ -185,5 +209,4 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
         throw new Error("Unexpected getOpenVPNHistoryFile response");
     }
-    
 }

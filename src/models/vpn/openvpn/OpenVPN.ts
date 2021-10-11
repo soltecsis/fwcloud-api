@@ -751,26 +751,6 @@ export class OpenVPN extends Model {
     };
 
 
-    public static getStatusFile(req, status_file_path) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const fwData: any = await Firewall.getFirewallSSH(req);
-
-                const sudo = fwData.SSHconn.username === 'root' ? '' : 'sudo';
-                let data = await sshTools.runCommand(fwData.SSHconn, `${sudo} cat "${status_file_path}"`);
-                // Remove the first line ()
-                let lines = data.split('\n');
-                if (lines[0].startsWith('[sudo] password for '))
-                    lines.splice(0, 1);
-                // join the array back into a single string
-                data = lines.join('\n');
-
-                resolve(data);
-            } catch (error) { reject(error) }
-        });
-    };
-
-
     public static createOpenvpnServerInterface(req, cfg) {
         return new Promise(async (resolve, reject) => {
             try {
