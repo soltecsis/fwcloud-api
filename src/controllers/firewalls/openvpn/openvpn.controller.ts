@@ -32,11 +32,37 @@ import { FSHelper } from "../../../utils/fs-helper";
 import { app } from "../../../fonaments/abstract-application";
 import * as uuid from "uuid";
 import * as path from "path";
-import { Validate } from "../../../decorators/validate.decorator";
+import { Validate, ValidateQuery } from "../../../decorators/validate.decorator";
 import { OpenVPNControllerInstallerDto } from "./dtos/installer.dto";
+import { Firewall } from "../../../models/firewall/Firewall";
+import { FwCloud } from "../../../models/fwcloud/FwCloud";
+import { FindOpenVPNStatusHistoryOptions, OpenVPNStatusHistoryService } from "../../../models/vpn/openvpn/status/openvpn-status-history.service";
+import { OpenVPNStatusHistory } from "../../../models/vpn/openvpn/status/openvpn-status-history";
+import { HistoryQueryDto } from "./dtos/history-query.dto";
 
 export class OpenVPNController extends Controller {
-    
+    protected _openvpn: OpenVPN;
+    protected _firewall: Firewall;
+    protected _fwCloud: FwCloud;
+
+    public async make(request: Request): Promise<void> {
+        if (request.params.openvpn) {
+            this._openvpn = await getRepository(OpenVPN).findOneOrFail(parseInt(request.params.openvpn));
+        }
+
+        const firewallQueryBuilder = getRepository(Firewall).createQueryBuilder('firewall')
+            .where('firewall.id = :id', {id: parseInt(request.params.firewall)});
+        if (request.params.openvpn) {
+            firewallQueryBuilder.innerJoin('firewall.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: parseInt(request.params.openvpn)})
+        }
+        this._firewall = await firewallQueryBuilder.getOneOrFail();
+
+        this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
+            .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {firewallId: parseInt(request.params.firewall)})
+            .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)})
+            .getOneOrFail();
+    }
+
     @Validate(OpenVPNControllerInstallerDto)
     public async installer(req: Request): Promise<ResponseBuilder> {
         const openVPN: OpenVPN = await getRepository(OpenVPN).createQueryBuilder("openvpn")
@@ -77,6 +103,48 @@ export class OpenVPNController extends Controller {
         }, 30000);
         
         return ResponseBuilder.buildResponse().status(201).download(exePath, "fwcloud-vpn.exe");
+    }
+
+    @ValidateQuery(HistoryQueryDto)
+    @Validate()
+    public async history(req: Request): Promise<ResponseBuilder> {
+        const openVPN: OpenVPN = await getRepository(OpenVPN).createQueryBuilder("openvpn")
+            .innerJoinAndSelect("openvpn.firewall", "firewall")
+            .innerJoinAndSelect("firewall.fwCloud", "fwcloud")
+            .innerJoin('openvpn.crt', 'crt')
+            .where("fwcloud.id = :fwcloudId", {fwcloudId: parseInt(req.params.fwcloud)})
+            .andWhere("firewall.id = :firewallId", {firewallId: parseInt(req.params.firewall)})
+            .andWhere('openvpn.id = :openvpnId', { openvpnId: parseInt(req.params.openvpn)})
+            .andWhere('openvpn.parentId IS NULL')
+            .andWhere('crt.type =  2')
+            .getOneOrFail();
+
+        (await OpenVPNPolicy.history(openVPN, req.session.user)).authorize();
+
+        const options: FindOpenVPNStatusHistoryOptions = {
+            rangeTimestamp: [new Date().getTime(), new Date().getTime()]
+        }
+
+        if (req.query.starts_at) {
+            options.rangeTimestamp[0] = parseInt(req.query.starts_at as string);
+        }
+
+        if (req.query.ends_at) {
+            options.rangeTimestamp[1] = parseInt(req.query.ends_at as string);
+        }
+
+        if (req.query.name) {
+            options.name = req.query.name as string;
+        }
+
+        if (req.query.address) {
+            options.address = req.query.address as string;
+        }
+
+        const historyService: OpenVPNStatusHistoryService = await app().getService<OpenVPNStatusHistoryService>(OpenVPNStatusHistoryService.name);
+        const results: OpenVPNStatusHistory[] = await historyService.find(options);
+
+        return ResponseBuilder.buildResponse().status(200).body(results);
     }
 
     /**
