@@ -31,7 +31,14 @@ async function iterate(application: Application): Promise<void> {
 
                     const data: OpenVPNHistoryRecord[] = await communication.getOpenVPNHistoryFile(statusOption.arg);
 
-                    await service.create(openvpn.id, data);
+                    await service.create(openvpn.id, data.map(item => ({
+                        timestamp: item.registeredAt.getTime(),
+                        name: item.name,
+                        address: item.address,
+                        bytesReceived: item.bytesReceived,
+                        bytesSent: item.bytesSent,
+                        connectedAt: item.connectedAt
+                    })));
                 }
             } catch(e) {
                 application.logger().error(`WorkerError: ${e.message}`);
