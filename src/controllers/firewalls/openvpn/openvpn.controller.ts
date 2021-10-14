@@ -36,7 +36,7 @@ import { Validate, ValidateQuery } from "../../../decorators/validate.decorator"
 import { OpenVPNControllerInstallerDto } from "./dtos/installer.dto";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { FindOpenVPNStatusHistoryOptions, OpenVPNStatusHistoryService } from "../../../models/vpn/openvpn/status/openvpn-status-history.service";
+import { FindOpenVPNStatusHistoryOptions, FindResponse, OpenVPNStatusHistoryService } from "../../../models/vpn/openvpn/status/openvpn-status-history.service";
 import { OpenVPNStatusHistory } from "../../../models/vpn/openvpn/status/openvpn-status-history";
 import { HistoryQueryDto } from "./dtos/history-query.dto";
 
@@ -142,7 +142,7 @@ export class OpenVPNController extends Controller {
         }
 
         const historyService: OpenVPNStatusHistoryService = await app().getService<OpenVPNStatusHistoryService>(OpenVPNStatusHistoryService.name);
-        const results: OpenVPNStatusHistory[] = await historyService.find(options);
+        const results: FindResponse = await historyService.find(options);
 
         return ResponseBuilder.buildResponse().status(200).body(results);
     }

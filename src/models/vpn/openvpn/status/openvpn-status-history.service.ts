@@ -20,6 +20,22 @@ export type FindOpenVPNStatusHistoryOptions = {
     openVPNServerId?: number;
 }
 
+export type ClientHistoryConnection = {
+    connected_at: Date,
+    disconnected_at: Date | null,
+    bytesSent: number,
+    bytesReceived: number,
+    address: string
+}
+
+export type ClientHistory = {
+    connections: ClientHistoryConnection[]
+}
+
+export type FindResponse = {
+    [cn: string]: ClientHistory
+}
+
 export class OpenVPNStatusHistoryService extends Service {
     protected _repository: Repository<OpenVPNStatusHistory>;
 
@@ -107,7 +123,7 @@ export class OpenVPNStatusHistoryService extends Service {
         return entries;
     }
 
-    async find(options: FindOpenVPNStatusHistoryOptions = {}): Promise<OpenVPNStatusHistory[]> {
+    async find(options: FindOpenVPNStatusHistoryOptions = {}): Promise<FindResponse> {
         const query: SelectQueryBuilder<OpenVPNStatusHistory> = this._repository.createQueryBuilder('record');
 
         if (Object.prototype.hasOwnProperty.call(options, "rangeTimestamp")) {
@@ -129,6 +145,44 @@ export class OpenVPNStatusHistoryService extends Service {
             query.andWhere(`record.openVPNServerId = :openVPNServerId`, {openVPNServerId: options.openVPNServerId})
         }
 
-        return query.getMany();
+        const results: OpenVPNStatusHistory[] = await query.orderBy('timestamp', 'ASC').getMany();
+        let names: string[] = [...new Set(results.map(item => item.name))];
+        let result: FindResponse = {}
+
+        for(let name of names) {
+            const entries: OpenVPNStatusHistory[] = results.filter(item => item.name === name);
+            let connections: ClientHistoryConnection[] = [];
+            
+            let currentConnection: undefined | ClientHistoryConnection = undefined;
+            for(let entry of entries) {
+                if (currentConnection === undefined) {
+                    currentConnection = {
+                        connected_at: entry.connectedAt,
+                        disconnected_at: null,
+                        bytesSent: entry.bytesSent,
+                        bytesReceived: entry.bytesReceived,
+                        address: entry.address
+                    }
+
+                    currentConnection.bytesReceived = entry.bytesReceived;
+                    currentConnection.bytesSent = entry.bytesSent;
+
+                    if (entry.disconnectedAt) {
+                        currentConnection.disconnected_at = entry.disconnectedAt
+                        connections.push(currentConnection);
+                        currentConnection = undefined;
+                    }
+                }
+            }
+            if (currentConnection) {
+                connections.push(currentConnection);
+            }
+
+            result[name] = {
+                connections: connections
+            }
+        }
+
+        return result;
     }
 }

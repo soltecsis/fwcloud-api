@@ -1,6 +1,6 @@
 import { getRepository } from "typeorm";
 import { OpenVPNStatusHistory } from "../../../../../src/models/vpn/openvpn/status/openvpn-status-history";
-import { CreateOpenVPNStatusHistoryData, OpenVPNStatusHistoryService } from "../../../../../src/models/vpn/openvpn/status/openvpn-status-history.service";
+import { CreateOpenVPNStatusHistoryData, FindResponse, OpenVPNStatusHistoryService } from "../../../../../src/models/vpn/openvpn/status/openvpn-status-history.service";
 import { describeName, expect, testSuite } from "../../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
 
@@ -90,7 +90,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
 
     describe("find", () => {
         let records: OpenVPNStatusHistory[];
-
+        const date: Date = new Date();
+        date.setMilliseconds(0);
         beforeEach(async () => {
             records = await service.create(fwcProduct.openvpnServer.id, [{
                 timestamp: 10,
@@ -98,90 +99,91 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 address: '1.1.1.1',
                 bytesReceived: 100,
                 bytesSent: 200,
-                connectedAt: new Date()
+                connectedAt: date
             }]);
         });
 
         it('should return the record', async () => {
-            const results: OpenVPNStatusHistory[] = await service.find();
+            const results: FindResponse = await service.find();
 
-            expect(results).to.have.length(1);
-            expect(results[0].id).to.eq(records[0].id);
+            expect(results).to.have.property("name");
+            expect(results["name"].connections).to.have.length(1);
+            expect(results["name"].connections[0].connected_at).to.deep.eq(records[0].connectedAt);
+            expect(results["name"].connections[0].disconnected_at).to.be.null;
+            expect(results["name"].connections[0].address).to.eq(records[0].address);
+            expect(results["name"].connections[0].bytesSent).to.eq(records[0].bytesSent);
+            expect(results["name"].connections[0].bytesReceived).to.eq(records[0].bytesReceived);
         });
 
         describe('filter: name', () => {
             it('should return record with the same name', async () => {
-                const results: OpenVPNStatusHistory[] = await service.find({
+                const results: FindResponse = await service.find({
                     name: records[0].name
                 });
 
-                expect(results).to.have.length(1);
-                expect(results[0].id).to.eq(records[0].id);
+                expect(results).to.have.property("name");
             });
 
             it('should ignore records which name is not equal', async () => {
-                const results: OpenVPNStatusHistory[] = await service.find({
+                const results: FindResponse = await service.find({
                     name: 'test'
                 });
 
-                expect(results).to.have.length(0);
+                expect(results).to.not.have.property("name");
             })
         });
 
         describe('filter: timestamp range', () => {
             it('should return record within the timestamp range', async () => {
-                const results: OpenVPNStatusHistory[] = await service.find({
+                const results: FindResponse = await service.find({
                     rangeTimestamp: [8, 12]
                 });
 
-                expect(results).to.have.length(1);
-                expect(results[0].id).to.eq(records[0].id);
+                expect(results).to.have.property("name");
             });
 
             it('should ignore records not within timestamp range', async () => {
-                const results: OpenVPNStatusHistory[] = await service.find({
+                const results: FindResponse = await service.find({
                     rangeTimestamp: [1, 9]
                 });
 
-                expect(results).to.have.length(0);
+                expect(results).to.not.have.property("name");
             })
         });
 
         describe('filter: openvpn server', () => {
             it('should return records belongs to openvpn server', async () => {
-                const results: OpenVPNStatusHistory[] = await service.find({
+                const results: FindResponse = await service.find({
                     openVPNServerId: records[0].openVPNServerId
                 });
 
-                expect(results).to.have.length(1);
-                expect(results[0].id).to.eq(records[0].id);
+                expect(results).to.have.property("name");
             });
 
             it('should ignore records which does not belong to openvpn server', async () => {
-                const results: OpenVPNStatusHistory[] = await service.find({
+                const results: FindResponse = await service.find({
                     openVPNServerId: -1
                 });
 
-                expect(results).to.have.length(0);
+                expect(results).to.not.have.property("name");
             })
         })
 
         describe('filter: address', () => {
             it('should return records which uses the address provided', async () => {
-                const results: OpenVPNStatusHistory[] = await service.find({
+                const results: FindResponse = await service.find({
                     address: records[0].address
                 });
 
-                expect(results).to.have.length(1);
-                expect(results[0].id).to.eq(records[0].id);
+                expect(results).to.have.property("name");
             });
 
             it('should return records which does not use the address provided', async () => {
-                const results: OpenVPNStatusHistory[] = await service.find({
+                const results: FindResponse = await service.find({
                     address: '0.0.0.0'
                 });
 
-                expect(results).to.have.length(0);
+                expect(results).to.not.have.property("name");
             })
         })
 

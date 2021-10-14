@@ -249,7 +249,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     .expect(401)
             });
 
-            it('regular user which belongs to the fwcloud should generate an installer', async () => {
+            it('regular user which belongs to the fwcloud should list history', async () => {
                 loggedUser.fwClouds = [fwCloud];
                 await getRepository(User).save(loggedUser);
 
@@ -266,11 +266,11 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
                     .then(response => {
-                        expect(response.body.data).to.have.length(1)
+                        expect(response.body.data.name.connections).to.have.length(1)
                     })
             });
 
-            it('admin user should generate an installer', async () => {
+            it('admin user should list history', async () => {
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.openvpns.history', {
                         fwcloud: fwCloud.id,
@@ -284,7 +284,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
                     .then(response => {
-                        expect(response.body.data).to.have.length(1)
+                        expect(response.body.data.name.connections).to.have.length(1)
                     })
             });
         })
