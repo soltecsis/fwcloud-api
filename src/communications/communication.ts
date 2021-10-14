@@ -11,7 +11,7 @@ export type OpenVPNHistoryRecord = {
     address: string;
     bytesReceived: number;
     bytesSent: number;
-    connected_at: Date;
+    connectedAt: Date;
 }
 
 export abstract class Communication<ConnectionData> {

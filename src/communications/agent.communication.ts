@@ -203,7 +203,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 address: item.split(',')[2],
                 bytesReceived: parseInt(item.split(',')[3]),
                 bytesSent: parseInt(item.split(',')[4]),
-                connected_at: new Date(item.split(',')[5])
+                connectedAt: new Date(item.split(',')[5])
             }));
         }
 

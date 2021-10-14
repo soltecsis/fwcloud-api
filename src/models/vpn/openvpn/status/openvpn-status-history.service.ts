@@ -1,5 +1,6 @@
 import { getRepository, QueryBuilder, Repository, SelectQueryBuilder } from "typeorm";
 import { Service } from "../../../../fonaments/services/service";
+import { OpenVPN } from "../OpenVPN";
 import { OpenVPNStatusHistory } from "./openvpn-status-history";
 
 export type CreateOpenVPNStatusHistoryData = {
@@ -9,7 +10,7 @@ export type CreateOpenVPNStatusHistoryData = {
     bytesReceived: number;
     bytesSent: number;
     connectedAt: Date;
-    openVPNServerId: number;
+    disconnectedAt?: Date;
 }
 
 export type FindOpenVPNStatusHistoryOptions = {
@@ -27,8 +28,83 @@ export class OpenVPNStatusHistoryService extends Service {
         return this;
     }
 
-    async create(data: CreateOpenVPNStatusHistoryData): Promise<OpenVPNStatusHistory> {
-        return await this._repository.save(data)
+    /**
+     * Creates and persists a batch.
+     * It detects CN disconnection and creates entries with disconnectedAt information
+     * 
+     * @param serverOpenVPNId 
+     * @param data 
+     * @returns 
+     */
+    async create(serverOpenVPNId: number, data: CreateOpenVPNStatusHistoryData[]): Promise<OpenVPNStatusHistory[]> {
+        // Makes sure openvpn is a server
+        const serverOpenVPN: OpenVPN = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+            .innerJoin('openvpn.crt', 'crt')
+            .innerJoinAndSelect('openvpn.firewall', 'firewall')
+            .where('openvpn.parentId IS NULL')
+            .andWhere('crt.type =  2')
+            .andWhere('openvpn.id = :id', {id: serverOpenVPNId})
+            .getOneOrFail();
+
+        // Get the timestamps of the records to be persisted
+        // IMPORTANT! timestamps must be ordered from lower to higher in order to detect disconnection correctly
+        let timestamps: number[] = [...new Set(data.map(item => item.timestamp))].sort((a,b) => a < b ? 1 : -1);
+
+        // This covers the case when data is empty. Artificially we set the current timestamp in order
+        // to detect disconnections.
+        if (timestamps.length === 0) {
+            timestamps = [new Date().getTime()];
+        }
+        
+        // Get the last entry already persisted from the openvpn server. The entry's timestamp will be used to
+        // retrieve the last batch. If there is not lastEntry means there is not lastBatch thus all disconnect detection logic
+        // won't be applied.
+        const lastEntry: OpenVPNStatusHistory | undefined = await getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
+            .where('history.openVPNServerId = :openvpn', {openvpn: serverOpenVPN.id})
+            .orderBy('history.timestamp', 'DESC')
+            .getOne()
+        
+        let lastbatch: OpenVPNStatusHistory[] = [];
+        if (lastEntry) {
+            const lastTimestamp: number = lastEntry.timestamp;
+            
+            lastbatch = await getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
+            .where('history.openVPNServerId = :openvpn', {openvpn: serverOpenVPN.id})
+            .andWhere('history.timestamp = :timestamp', {timestamp: lastTimestamp})
+            .getMany();
+        }
+
+        let entries: OpenVPNStatusHistory[] = [];
+
+        for(let timestamp of timestamps) {
+            const batch: CreateOpenVPNStatusHistoryData[] = data.filter(item => item.timestamp === timestamp);
+        
+            // If the current batch doesn't have an entry which exists on the previous batch,
+            // then we must add an entry to the batch with a disconnectedAt value
+            lastbatch.filter(item => item.disconnectedAt === null).forEach(persisted => {
+                //If the persisted name is not present in the batch, then we must set as disconnected
+                if (batch.findIndex(item => persisted.name === item.name ) < 0) {
+                    batch.push({
+                        timestamp,
+                        name: persisted.name,
+                        address: persisted.address,
+                        bytesReceived: persisted.bytesReceived,
+                        bytesSent: persisted.bytesSent,
+                        connectedAt: persisted.connectedAt,
+                        disconnectedAt: new Date(timestamp),
+                    });
+                }
+            });
+
+            //Once this batch is persisted, they become lastbatch for the next iteration
+            lastbatch = await getRepository(OpenVPNStatusHistory).save(batch.map(item => {
+                (item as OpenVPNStatusHistory).openVPNServerId = serverOpenVPN.id;
+                return item;
+            }));
+
+            entries = entries.concat(lastbatch);
+        }
+        return entries;
     }
 
     async find(options: FindOpenVPNStatusHistoryOptions = {}): Promise<OpenVPNStatusHistory[]> {

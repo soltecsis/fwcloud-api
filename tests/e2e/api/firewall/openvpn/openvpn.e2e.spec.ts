@@ -218,15 +218,14 @@ describe(describeName('OpenVPN E2E Tests'), () => {
 
             beforeEach(async () => {
                 historyService = await app.getService(OpenVPNStatusHistoryService.name);
-                historyService.create({
+                historyService.create(serverOpenVPN.id, [{
                     timestamp: 1,
                     name: 'name',
                     address: '1.1.1.1',
                     bytesReceived: 100,
                     bytesSent: 200,
-                    connectedAt: new Date(),
-                    openVPNServerId: serverOpenVPN.id
-                })
+                    connectedAt: new Date()
+                }])
             })
 
             it('guest user should not generate an installer', async () => {
