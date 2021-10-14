@@ -1,4 +1,4 @@
-import { getRepository, QueryBuilder, Repository, SelectQueryBuilder } from "typeorm";
+import { getRepository, Repository, SelectQueryBuilder } from "typeorm";
 import { Service } from "../../../../fonaments/services/service";
 import { OpenVPN } from "../OpenVPN";
 import { OpenVPNStatusHistory } from "./openvpn-status-history";
@@ -130,7 +130,7 @@ export class OpenVPNStatusHistoryService extends Service {
         }
 
         if (Object.prototype.hasOwnProperty.call(options, "name")) {
-            query.andWhere(`record.name = :name`, {name: options.name})
+            query.andWhere(`record.name like :name`, {name: options.name})
         }
 
         if (Object.prototype.hasOwnProperty.call(options, "address")) {
