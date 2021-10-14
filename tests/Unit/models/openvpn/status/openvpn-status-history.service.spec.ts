@@ -55,7 +55,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
         });
 
         it('should disconnect a name if it is not present', async () => {
-            await service.create(fwcProduct.openvpnServer.id, data);
+            const previous: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, data);
             const persisted: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, [{
                 timestamp: 2,
                 name: 'other-name',
@@ -65,26 +65,21 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 connectedAt: date
             }]);
 
-            expect(persisted).to.have.length(2);
-            expect(persisted[1].name).to.eq(data[0].name);
-            expect(persisted[1].address).to.eq(data[0].address);
-            expect(persisted[1].bytesReceived).to.eq(data[0].bytesReceived);
-            expect(persisted[1].bytesSent).to.eq(data[0].bytesSent);
-            expect(persisted[1].connectedAt.toISOString()).to.eq(data[0].connectedAt.toISOString());
-            expect(persisted[1].disconnectedAt).not.to.be.null;
+            const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail(previous[0].id);
+            expect(persisted).to.have.length(1);
+            expect(shouldDisconnect.disconnectedAt).not.to.be.null;
+
+            
         });
 
         it('should disconnect a name if data is empty', async () => {
-            await service.create(fwcProduct.openvpnServer.id, data);
+            const previous: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, data);
             const persisted: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, []);
 
-            expect(persisted).to.have.length(1);
-            expect(persisted[0].name).to.eq(data[0].name);
-            expect(persisted[0].address).to.eq(data[0].address);
-            expect(persisted[0].bytesReceived).to.eq(data[0].bytesReceived);
-            expect(persisted[0].bytesSent).to.eq(data[0].bytesSent);
-            expect(persisted[0].connectedAt.toISOString()).to.eq(data[0].connectedAt.toISOString());
-            expect(persisted[0].disconnectedAt).not.to.be.null;
+            const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail(previous[0].id);
+            
+            expect(persisted).to.have.length(0);
+            expect(shouldDisconnect.disconnectedAt).not.to.be.null;
         });
     });
 

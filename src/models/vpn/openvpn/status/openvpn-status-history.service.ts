@@ -62,17 +62,7 @@ export class OpenVPNStatusHistoryService extends Service {
             .andWhere('openvpn.id = :id', {id: serverOpenVPNId})
             .getOneOrFail();
 
-        // Get the timestamps of the records to be persisted
-        // IMPORTANT! timestamps must be ordered from lower to higher in order to detect disconnection correctly
-        let timestamps: number[] = [...new Set(data.map(item => item.timestamp))].sort((a,b) => a < b ? 1 : -1);
-
-        // This covers the case when data is empty. Artificially we set the current timestamp in order
-        // to detect disconnections.
-        if (timestamps.length === 0) {
-            timestamps = [new Date().getTime()];
-        }
-        
-        // Get the last entry already persisted from the openvpn server. The entry's timestamp will be used to
+        // Get the last entry already persisted from the openvpn server. This entry is used to get  its timestamp as it will be used to
         // retrieve the last batch. If there is not lastEntry means there is not lastBatch thus all disconnect detection logic
         // won't be applied.
         const lastEntry: OpenVPNStatusHistory | undefined = await getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
@@ -82,13 +72,26 @@ export class OpenVPNStatusHistoryService extends Service {
         
         let lastbatch: OpenVPNStatusHistory[] = [];
         if (lastEntry) {
-            const lastTimestamp: number = lastEntry.timestamp;
-            
             lastbatch = await getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
             .where('history.openVPNServerId = :openvpn', {openvpn: serverOpenVPN.id})
-            .andWhere('history.timestamp = :timestamp', {timestamp: lastTimestamp})
+            .andWhere('history.timestamp = :timestamp', {timestamp: lastEntry.timestamp})
             .getMany();
         }
+
+        // If the data is empty, then set disconnect timestamp on the previous batch and returns
+        if (data.length === 0) {
+            lastbatch.forEach(item => {
+                if (item.disconnectedAt === null) {
+                    item.disconnectedAt = new Date(item.timestamp);
+                }
+            })
+            await getRepository(OpenVPNStatusHistory).save(lastbatch);
+            return [];
+        }
+
+        // Get the timestamps of the records to be persisted
+        // IMPORTANT! timestamps must be ordered from lower to higher in order to detect disconnection correctly
+        let timestamps: number[] = [...new Set(data.map(item => item.timestamp))].sort((a,b) => a < b ? 1 : -1);
 
         let entries: OpenVPNStatusHistory[] = [];
 
@@ -97,20 +100,13 @@ export class OpenVPNStatusHistoryService extends Service {
         
             // If the current batch doesn't have an entry which exists on the previous batch,
             // then we must add an entry to the batch with a disconnectedAt value
-            lastbatch.filter(item => item.disconnectedAt === null).forEach(persisted => {
+            for (let previous of lastbatch.filter(item => item.disconnectedAt === null)) {
                 //If the persisted name is not present in the batch, then we must set as disconnected
-                if (batch.findIndex(item => persisted.name === item.name ) < 0) {
-                    batch.push({
-                        timestamp,
-                        name: persisted.name,
-                        address: persisted.address,
-                        bytesReceived: persisted.bytesReceived,
-                        bytesSent: persisted.bytesSent,
-                        connectedAt: persisted.connectedAt,
-                        disconnectedAt: new Date(timestamp),
-                    });
+                if (batch.findIndex(item => previous.name === item.name ) < 0) {
+                    previous.disconnectedAt = new Date(previous.timestamp);
+                    await getRepository(OpenVPNStatusHistory).save(previous);
                 }
-            });
+            }
 
             //Once this batch is persisted, they become lastbatch for the next iteration
             lastbatch = await getRepository(OpenVPNStatusHistory).save(batch.map(item => {
