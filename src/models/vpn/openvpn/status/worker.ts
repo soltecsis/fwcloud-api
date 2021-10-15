@@ -32,7 +32,7 @@ async function iterate(application: Application): Promise<void> {
                     const data: OpenVPNHistoryRecord[] = await communication.getOpenVPNHistoryFile(statusOption.arg);
 
                     await service.create(openvpn.id, data.map(item => ({
-                        timestamp: item.registeredAt.getTime(),
+                        timestamp: item.timestamp,
                         name: item.name,
                         address: item.address,
                         bytesReceived: item.bytesReceived,

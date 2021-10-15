@@ -6,7 +6,7 @@ export type CCDHash = {
 }
 
 export type OpenVPNHistoryRecord = {
-    registeredAt: Date;
+    timestamp: number;
     name: string;
     address: string;
     bytesReceived: number;
