@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { CCDHash, Communication, OpenVPNHistoryRecord } from "./communication";
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
+import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressSSHCmdPayload } from "../sockets/messages/socket-message";
 import * as fs from 'fs';
 import FormData from 'form-data';
 import * as path from "path";
@@ -56,7 +56,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             const config: AxiosRequestConfig = Object.assign(this.config, {});
             config.headers = Object.assign(form.getHeaders(), config.headers);
 
-            await axios.post(pathUrl, form, config);
+            const response: AxiosResponse<string> = await axios.post(pathUrl, form, config);
+
+            response.data.split("\n").forEach(item => eventEmitter.emit('message', new ProgressSSHCmdPayload(item));
 
             return "DONE";
         } catch(error) {
