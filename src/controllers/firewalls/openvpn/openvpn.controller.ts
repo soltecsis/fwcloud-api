@@ -126,11 +126,11 @@ export class OpenVPNController extends Controller {
         }
 
         if (req.query.starts_at) {
-            options.rangeTimestamp[0] = parseInt(req.query.starts_at as string);
+            options.rangeTimestamp[0] = new Date(req.query.starts_at as string).getTime();
         }
 
         if (req.query.ends_at) {
-            options.rangeTimestamp[1] = parseInt(req.query.ends_at as string);
+            options.rangeTimestamp[1] = new Date(req.query.ends_at as string).getTime();
         }
 
         if (req.query.name) {

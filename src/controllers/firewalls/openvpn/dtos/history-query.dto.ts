@@ -1,13 +1,13 @@
-import { IsIP, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsDate, IsIP, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class HistoryQueryDto {
-    @IsNumber()
+    @IsDate()
     @IsOptional()
-    starts_at: number;
+    starts_at: Date;
 
-    @IsNumber()
+    @IsDate()
     @IsOptional()
-    ends_at: number;
+    ends_at: Date;
 
     @IsOptional()
     @IsString()
