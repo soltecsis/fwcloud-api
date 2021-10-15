@@ -65,10 +65,19 @@ import * as path from 'path';
 router.post('/', async (req, res) => {
   try {
     const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
+    let nodeId = firewall.id;
+    if (firewall.clusterId && firewall.clusterId > 0) {
+      const masterNode = await getRepository(Firewall).createQueryBuilder('firewall')
+        .where('firewall.clusterId = :cluster', {cluster: firewall.clusterId})
+        .where('firewall.fwmaster = 1')
+        .getOneOrFail();
+
+      nodeId = masterNode.id;
+    }
     const channel = await Channel.fromRequest(req);
     let communication = await firewall.getCommunication();
-    
-    await communication.installFirewallPolicy(path.join(config.get('policy').data_dir, req.body.fwcloud.toString(), firewall.id.toString(), config.get('policy').script_name), channel);
+
+    await communication.installFirewallPolicy(path.join(config.get('policy').data_dir, req.body.fwcloud.toString(), nodeId.toString(), config.get('policy').script_name), channel);
     await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
     await Firewall.updateFirewallInstallDate(req.body.fwcloud,req.body.firewall);
     
