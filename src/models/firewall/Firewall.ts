@@ -1175,6 +1175,14 @@ export class Firewall extends Model {
 				if (param === undefined || param === '' || isNaN(param) || param == null) {
 					body.install_port = 22;
 				}
+				param = body.install_protocol;
+				if (param === undefined || param === '' || param == null) {
+					body.install_protocol = FirewallInstallProtocol.HTTPS;
+				}
+				param = body.install_apikey;
+				if (param === undefined || param === '' || param == null) {
+					body.install_apikey = null;
+				}
 				param = body.fwmaster;
 				if (param === undefined || param === '' || isNaN(param) || param == null) {
 					body.fwmaster = 0;
