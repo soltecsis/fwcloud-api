@@ -69,7 +69,7 @@ router.post('/', async (req, res) => {
     if (firewall.clusterId && firewall.clusterId > 0) {
       const masterNode = await getRepository(Firewall).createQueryBuilder('firewall')
         .where('firewall.clusterId = :cluster', {cluster: firewall.clusterId})
-        .where('firewall.fwmaster = 1')
+        .andWhere('firewall.fwmaster = 1')
         .getOneOrFail();
 
       nodeId = masterNode.id;
