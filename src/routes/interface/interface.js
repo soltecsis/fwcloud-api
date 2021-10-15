@@ -302,7 +302,8 @@ router.put('/autodiscover', async(req, res) => {
 
 		res.status(200).json(ifsData);
 	} catch(error) {
-		logger().error('Error getting network interface information: ' + JSON.stringify(error));
+		logger().error('Error getting network interface information: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else

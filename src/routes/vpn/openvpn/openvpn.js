@@ -339,7 +339,7 @@ router.put('/install', async(req, res) => {
 		channel.emit('message', new ProgressPayload('end', false, 'Installing OpenVPN'));
 		res.status(200).send();
 	} catch(error) { 
-		logger().error('Error installing openvpn: ' + JSON.stringify(error));
+		logger().error('Error installing openvpn: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else
@@ -380,7 +380,7 @@ router.put('/uninstall', async(req, res) => {
 
 		res.status(200).send().end();
 	} catch(error) { 
-		logger().error('Error uninstalling openvpn: ' + JSON.stringify(error));
+		logger().error('Error uninstalling openvpn: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else
@@ -481,7 +481,7 @@ router.put('/ccdsync', async(req, res) => {
 
 		res.status(200).send().end();
 	}  catch(error) { 
-		logger().error('Error openvpn ccd sync: ' + JSON.stringify(error));
+		logger().error('Error openvpn ccd sync: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else
@@ -527,7 +527,7 @@ router.put('/status/get', async(req, res) => {
 
 		res.status(200).json(data);
 	} catch(error) { 
-		logger().error('Error getting openvpn log file: ' + JSON.stringify(error));
+		logger().error('Error getting openvpn log file: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else
