@@ -58,7 +58,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
             const response: AxiosResponse<string> = await axios.post(pathUrl, form, config);
 
-            response.data.split("\n").forEach(item => eventEmitter.emit('message', new ProgressSSHCmdPayload(item));
+            response.data.split("\n").forEach(item => eventEmitter.emit('message', new ProgressSSHCmdPayload(item)));
 
             return "DONE";
         } catch(error) {
