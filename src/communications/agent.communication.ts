@@ -34,11 +34,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
 
         if (this.connectionData.protocol === 'https') {
-            this.config = {
-                httpsAgent: new https.Agent({
-                    rejectUnauthorized: false
-                })
-            }
+            this.config.httpsAgent = new https.Agent({
+                rejectUnauthorized: false
+            });
         }
     }
 
