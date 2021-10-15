@@ -3,6 +3,7 @@ import axios from 'axios';
 import sinon from "sinon";
 import { CCDHash } from "../../../src/communications/communication";
 import { expect } from "../../mocha/global-setup";
+import * as https from "https";
 
 describe(AgentCommunication.name, () => {
     let agent: AgentCommunication;
@@ -15,6 +16,17 @@ describe(AgentCommunication.name, () => {
             apikey: ''
         });
     });
+
+    it('should set custom agent when https is enabled', () => {
+        agent = new AgentCommunication({
+            protocol: 'https',
+            host: 'host',
+            port: 0,
+            apikey: ''
+        })
+
+        expect ((agent["config"].httpsAgent as https.Agent).options.rejectUnauthorized).to.be.false;
+    })
 
     describe('ccdHashList', () => {
         let stub: sinon.SinonStub;

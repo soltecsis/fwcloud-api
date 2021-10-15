@@ -1,10 +1,11 @@
 import { EventEmitter } from "events";
 import { CCDHash, Communication, OpenVPNHistoryRecord } from "./communication";
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
 import * as fs from 'fs';
 import FormData from 'form-data';
 import * as path from "path";
+import * as https from 'https';
 
 type AgentCommunicationData = {
     protocol: 'https' | 'http',
@@ -16,6 +17,7 @@ type AgentCommunicationData = {
 export class AgentCommunication extends Communication<AgentCommunicationData> {
     protected readonly url: string;
     protected readonly headers: Record<string, unknown>;
+    protected readonly config: AxiosRequestConfig;
 
     constructor(connectionData: AgentCommunicationData) {
         super(connectionData);
@@ -25,8 +27,18 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
 
         this.url = `${this.connectionData.protocol}://${this.connectionData.host}:${this.connectionData.port}`
-        this.headers = {
-            'X-API-Key': this.connectionData.apikey
+        this.config = {
+            headers: {
+                'X-API-Key': this.connectionData.apikey
+            }
+        }
+
+        if (this.connectionData.protocol === 'https') {
+            this.config = {
+                httpsAgent: new https.Agent({
+                    rejectUnauthorized: false
+                })
+            }
         }
     }
 
@@ -43,9 +55,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
             eventEmitter.emit('message', new ProgressNoticePayload("Loading firewall policy."));
 
-            const response: AxiosResponse<any> = await axios.post(pathUrl, form, {
-                headers: Object.assign(form.getHeaders(), this.headers)
-            });
+            const config: AxiosRequestConfig = Object.assign(this.config, {});
+            config.headers = Object.assign(form.getHeaders(), config.headers);
+
+            await axios.post(pathUrl, form, config);
 
             return "DONE";
         } catch(error) {
@@ -71,9 +84,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 form.append('perms', 600);
             }
 
-            await axios.post(pathUrl, form, {
-                headers: Object.assign(form.getHeaders(), this.headers)
-            });
+            const requestConfig: AxiosRequestConfig = Object.assign(this.config, {});
+            requestConfig.headers = Object.assign(form.getHeaders(), requestConfig.headers);
+
+            await axios.post(pathUrl, form, requestConfig);
 
         } catch(error) {
             channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
@@ -87,13 +101,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
             const pathUrl: string = this.url + '/api/v1/openvpn/files/remove';
 
-            axios.delete(pathUrl, {
-                headers: this.headers,
-                data: {
-                    dir: dir,
-                    files: files
-                }
-            });
+            const config: AxiosRequestConfig = Object.assign(this.config, {});
+            config.data = {
+                dir: dir,
+                files: files
+            }
+
+            axios.delete(pathUrl, this.config);
 
         } catch(error) {
             channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
@@ -104,9 +118,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     async getFirewallInterfaces(): Promise<string> {
         const pathUrl: string = this.url + "/api/v1/interfaces/info";
 
-        const response: AxiosResponse<string> = await axios.get(pathUrl, {
-            headers: this.headers
-        });
+        const response: AxiosResponse<string> = await axios.get(pathUrl, this.config);
 
         if (response.status === 200) {
             return response.data;
@@ -118,9 +130,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     async getFirewallIptablesSave(): Promise<string[]> {
         const pathUrl: string = this.url + "/api/v1/iptables-save/data";
 
-        const response: AxiosResponse<string> = await axios.get(pathUrl, {
-            headers: this.headers
-        });
+        const response: AxiosResponse<string> = await axios.get(pathUrl, this.config);
 
         if (response.status === 200) {
             return response.data.split("\n");
@@ -132,14 +142,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     async ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]> {
         const pathUrl: string = this.url + "/api/v1/openvpn/files/sha256";
 
+        const config: AxiosRequestConfig = Object.assign(this.config, {});
+        config.headers["Content-Type"] = "application/json";
+
         const response: AxiosResponse<string> = await axios.put(pathUrl, {
             dir: dir,
             files: []
-        }, {
-            headers: Object.assign({
-                "Content-Type": "application/json"
-            }, this.headers)
-        });
+        }, config);
 
         if (response.status === 200) {
             return response.data.split("\n").filter(item => item !== '').slice(1).map(item => ({
@@ -154,9 +163,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     async ping(): Promise<void> {
         const pathUrl: string = this.url + '/api/v1/ping';
     
-        const response: AxiosResponse<any> = await axios.put(pathUrl, "", {
-            headers: this.headers
-        });
+        const response: AxiosResponse<any> = await axios.put(pathUrl, "", this.config);
 
         return;
     }
@@ -166,14 +173,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         const dir: string = path.dirname(statusFilepath);
         const filename: string = path.basename(statusFilepath);
 
+        const config: AxiosRequestConfig = Object.assign(this.config, {});
+        config.headers["Content-Type"] = "application/json";
+
         const response: AxiosResponse<string> = await axios.put(urlPath, {
             dir: dir,
             files: [filename]
-        }, {
-            headers: Object.assign({
-                "Content-Type": "application/json"
-            }, this.headers)
-        });
+        }, this.config);
 
         if (response.status === 200) {
             return response.data;
@@ -187,14 +193,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         const dir: string = path.dirname(filepath);
         const pathUrl: string = this.url + "/api/v1/openvpn/get/status";
 
+        const config: AxiosRequestConfig = Object.assign(this.config, {});
+        config.headers["Content-Type"] = "application/json";
+
         const response: AxiosResponse<string> = await axios.put(pathUrl, {
             dir,
             files: [filename]
-        }, {
-            headers: Object.assign({
-                "Content-Type": "application/json"
-            }, this.headers)
-        });
+        }, this.config);
 
         if (response.status === 200) {
             return response.data.split("\n").filter(item => item !== '').slice(1).map(item => ({
