@@ -242,6 +242,20 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         if (axios.isAxiosError(error)) {
             if (error.response?.data?.message) {
                 eventEmitter?.emit('message', new ProgressErrorPayload(`ERROR: ${error.response.data.message}\n`));
+                let message = error.response.data.message;
+
+                if (error.response.data.message === 'API key not found') {
+                    message = `ApiKeyNotFound: ${error.response.data.message}`;
+                }
+
+                if (error.response.data.message === 'Authorization error, access from your IP is not allowed') {
+                    message = `NotAllowedIP: ${error.response.data.message}`;
+                }
+
+                if (error.response.data.message === 'Directory not found') {
+                    message = `DirNotFound: ${error.response.data.message}`;
+                }
+
                 throw new HttpException(error.response.data.message, error.response.status)
             }
         }
