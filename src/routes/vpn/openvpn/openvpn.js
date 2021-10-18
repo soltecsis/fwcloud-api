@@ -401,13 +401,25 @@ router.put('/ccdsync', async(req, res) => {
 			.andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId: req.body.fwcloud})
 			.getOneOrFail();
 		const communication = await firewall.getCommunication();
-		const openvpn = await getRepository(OpenVPN).createQueryBuilder('openvpn')
-			.innerJoin('openvpn.firewall', 'firewall')
+		const openvpnQuery = getRepository(OpenVPN).createQueryBuilder('openvpn')
 			.innerJoinAndSelect('openvpn.crt', 'crt')
+			.innerJoin('openvpn.firewall', 'firewall')
 			.where('openvpn.id = :openvpnId', {openvpnId: req.body.openvpn})
-			.andWhere('firewall.id = :firewallId', {firewallId: req.body.firewall})
-			.andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId: req.body.fwcloud})
-			.getOneOrFail();
+			.andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId: req.body.fwcloud});
+
+		// If the firewall belongs to a cluster we must get the openvpn assigned to the master
+		// firewall. Otherwise, we must get the openvpn assigned to the firewall defined in the request
+		if (firewall.clusterId) {
+			openvpnQuery
+				.andWhere('firewall.cluster = :cluster', {cluster: firewall.clusterId})
+				.andWhere('firewall.fwmaster = 1');
+		} else {
+			openvpnQuery.andWhere('firewall.id = :firewallId', {firewallId: req.body.firewall})
+		}
+
+
+		//If the firewall belongs to a cluster, openvpn will belong to the master node of the cluster
+		const openvpn = await openvpnQuery.getOneOrFail();
 
 		const cluster = await Firewall.getClusterId(req.dbCon, req.body.firewall);
 		let lastClusterNodeId = cluster ? await Firewall.getLastClusterNodeId(req.dbCon, cluster) : null;
