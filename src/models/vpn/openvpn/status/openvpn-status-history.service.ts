@@ -16,8 +16,7 @@ export type CreateOpenVPNStatusHistoryData = {
 export type FindOpenVPNStatusHistoryOptions = {
     rangeTimestamp?: [number, number],
     name?: string,
-    address?: string,
-    openVPNServerId?: number;
+    address?: string
 }
 
 export type ClientHistoryConnection = {
@@ -119,8 +118,9 @@ export class OpenVPNStatusHistoryService extends Service {
         return entries;
     }
 
-    async find(options: FindOpenVPNStatusHistoryOptions = {}): Promise<FindResponse> {
-        const query: SelectQueryBuilder<OpenVPNStatusHistory> = this._repository.createQueryBuilder('record');
+    async find(openVpnServerId: number, options: FindOpenVPNStatusHistoryOptions = {}): Promise<FindResponse> {
+        const query: SelectQueryBuilder<OpenVPNStatusHistory> = this._repository.createQueryBuilder('record')
+            .andWhere(`record.openVPNServerId = :serverId`, {serverId: openVpnServerId});
 
         if (Object.prototype.hasOwnProperty.call(options, "rangeTimestamp")) {
             query.andWhere(`record.timestamp BETWEEN :start and :end`, {
@@ -135,10 +135,6 @@ export class OpenVPNStatusHistoryService extends Service {
 
         if (Object.prototype.hasOwnProperty.call(options, "address")) {
             query.andWhere(`record.address = :address`, {address: options.address})
-        }
-
-        if (Object.prototype.hasOwnProperty.call(options, "openVPNServerId")) {
-            query.andWhere(`record.openVPNServerId = :openVPNServerId`, {openVPNServerId: options.openVPNServerId})
         }
 
         const results: OpenVPNStatusHistory[] = await query.orderBy('timestamp', 'ASC').getMany();

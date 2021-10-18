@@ -142,7 +142,7 @@ export class OpenVPNController extends Controller {
         }
 
         const historyService: OpenVPNStatusHistoryService = await app().getService<OpenVPNStatusHistoryService>(OpenVPNStatusHistoryService.name);
-        const results: FindResponse = await historyService.find(options);
+        const results: FindResponse = await historyService.find(openVPN.id, options);
 
         return ResponseBuilder.buildResponse().status(200).body(results);
     }

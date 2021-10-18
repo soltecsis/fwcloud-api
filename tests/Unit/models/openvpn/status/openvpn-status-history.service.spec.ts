@@ -99,7 +99,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
         });
 
         it('should return the record', async () => {
-            const results: FindResponse = await service.find();
+            const results: FindResponse = await service.find(fwcProduct.openvpnServer.id);
 
             expect(results).to.have.property("name");
             expect(results["name"].connections).to.have.length(1);
@@ -112,7 +112,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
 
         describe('filter: name', () => {
             it('should return record with the same name', async () => {
-                const results: FindResponse = await service.find({
+                const results: FindResponse = await service.find(fwcProduct.openvpnServer.id, {
                     name: records[0].name
                 });
 
@@ -120,7 +120,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             });
 
             it('should ignore records which name is not equal', async () => {
-                const results: FindResponse = await service.find({
+                const results: FindResponse = await service.find(fwcProduct.openvpnServer.id, {
                     name: 'test'
                 });
 
@@ -130,7 +130,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
 
         describe('filter: timestamp range', () => {
             it('should return record within the timestamp range', async () => {
-                const results: FindResponse = await service.find({
+                const results: FindResponse = await service.find(fwcProduct.openvpnServer.id, {
                     rangeTimestamp: [8, 12]
                 });
 
@@ -138,7 +138,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             });
 
             it('should ignore records not within timestamp range', async () => {
-                const results: FindResponse = await service.find({
+                const results: FindResponse = await service.find(fwcProduct.openvpnServer.id, {
                     rangeTimestamp: [1, 9]
                 });
 
@@ -146,27 +146,9 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             })
         });
 
-        describe('filter: openvpn server', () => {
-            it('should return records belongs to openvpn server', async () => {
-                const results: FindResponse = await service.find({
-                    openVPNServerId: records[0].openVPNServerId
-                });
-
-                expect(results).to.have.property("name");
-            });
-
-            it('should ignore records which does not belong to openvpn server', async () => {
-                const results: FindResponse = await service.find({
-                    openVPNServerId: -1
-                });
-
-                expect(results).to.not.have.property("name");
-            })
-        })
-
         describe('filter: address', () => {
             it('should return records which uses the address provided', async () => {
-                const results: FindResponse = await service.find({
+                const results: FindResponse = await service.find(fwcProduct.openvpnServer.id, {
                     address: records[0].address
                 });
 
@@ -174,7 +156,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             });
 
             it('should return records which does not use the address provided', async () => {
-                const results: FindResponse = await service.find({
+                const results: FindResponse = await service.find(fwcProduct.openvpnServer.id, {
                     address: '0.0.0.0'
                 });
 
