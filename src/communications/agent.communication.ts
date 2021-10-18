@@ -241,28 +241,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
         if (axios.isAxiosError(error)) {
             if (error.response?.data?.message) {
-                eventEmitter.emit('message', new ProgressErrorPayload(`ERROR: ${error.response.data.message}\n`));
+                eventEmitter?.emit('message', new ProgressErrorPayload(`ERROR: ${error.response.data.message}\n`));
                 throw new HttpException(error.response.data.message, error.response.status)
             }
-
-            if (error.code === "ECONNREFUSED") {
-                eventEmitter.emit('message', new ProgressErrorPayload(`ERROR: Port ${this.connectionData.port} is not valid\n`));
-                throw new HttpException(`Port ${this.connectionData.port} is not valid`, 400)
-            }
-
-            if (error.code === "ETIMEDOUT") {
-                eventEmitter.emit('message', new ProgressErrorPayload(`ERROR: Host ${this.connectionData.host} is not valid\n`));
-                throw new HttpException(`Host ${this.connectionData.host} is not valid`, 400)
-            }
-
-            if (error.code === "ECONNRESET") {
-                eventEmitter.emit('message', new ProgressErrorPayload(`ERROR: ECONNRESET: Port or protocol might not be valid\n`));
-                throw new HttpException(`ECONNRESET: Port or protocol might not be valid`, 400)
-            }
-
-            throw new InternalServerException('Something wrong happened during agent connection');
         }
 
-        throw error;
+        return super.handleRequestException(error, eventEmitter);
     }
 }

@@ -31,6 +31,7 @@ import { IPObj } from '../../models/ipobj/IPObj';
 import { logger } from '../../fonaments/abstract-application';
 import { SSHCommunication } from '../../communications/ssh.communication';
 import { AgentCommunication } from '../../communications/agent.communication';
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 const restrictedCheck = require('../../middleware/restricted');
 
 const fwcError = require('../../utils/error_table');
@@ -274,7 +275,7 @@ router.put('/restricted', restrictedCheck.interface, (req, res) => res.status(20
 
 
 /* Get all network interface information from a firewall.  */
-router.put('/autodiscover', async(req, res) => {
+router.put('/autodiscover', async(req, res, next) => {
 	try {
 		let communication = null;
 
@@ -303,6 +304,10 @@ router.put('/autodiscover', async(req, res) => {
 		res.status(200).json(ifsData);
 	} catch(error) {
 		logger().error('Error getting network interface information: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
 
 		if (error.message)
 			res.status(400).json({message: error.message});

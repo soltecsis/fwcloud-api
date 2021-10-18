@@ -60,9 +60,10 @@ import { logger } from '../../fonaments/abstract-application';
 import { getRepository } from 'typeorm';
 var config = require('../../config/config');
 import * as path from 'path';
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
   try {
     const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
     let nodeId = firewall.id;
@@ -85,6 +86,11 @@ router.post('/', async (req, res) => {
 		res.status(204).end();
 	} catch(error) {
     logger().error(`Installing policy script${error.message ? ': '+error.message : JSON.stringify(error)}`);
+
+    if (error instanceof HttpException) {
+      return next(error);
+    }
+
     if (error.message)
       res.status(400).json({message: error.message});
     else

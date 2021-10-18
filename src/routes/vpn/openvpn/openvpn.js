@@ -70,6 +70,7 @@ import db from '../../../database/database-manager';
 const fwcError = require('../../../utils/error_table');
 import * as crypto from "crypto";
 import { CCDComparer } from '../../../models/vpn/openvpn/ccd-comparer';
+import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 
 /**
  * Create a new OpenVPN configuration in firewall.
@@ -306,7 +307,7 @@ router.put('/where', async (req, res) => {
 /**
  * Install OpenVPN configuration in the destination firewall.
  */
-router.put('/install', async(req, res) => {
+router.put('/install', async(req, res, next) => {
 	try {
 		const channel = await Channel.fromRequest(req);
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
@@ -340,6 +341,11 @@ router.put('/install', async(req, res) => {
 		res.status(200).send();
 	} catch(error) { 
 		logger().error('Error installing openvpn: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else
@@ -351,7 +357,7 @@ router.put('/install', async(req, res) => {
 /**
  * Uninstall OpenVPN configuration from the destination firewall.
  */
-router.put('/uninstall', async(req, res) => {
+router.put('/uninstall', async(req, res, next) => {
 	try {
 		const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
 		const channel = await Channel.fromRequest(req);
@@ -381,6 +387,11 @@ router.put('/uninstall', async(req, res) => {
 		res.status(200).send().end();
 	} catch(error) { 
 		logger().error('Error uninstalling openvpn: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else
@@ -393,7 +404,7 @@ router.put('/uninstall', async(req, res) => {
  * Remove first all the server CCD files and then install all the CCD files.
  * ROUTE CALL:  /vpn/openvpn/ccdsync
  */
-router.put('/ccdsync', async(req, res) => {
+router.put('/ccdsync', async(req, res, next) => {
 	try {
 		const channel = await Channel.fromRequest(req);
 		const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
@@ -494,6 +505,11 @@ router.put('/ccdsync', async(req, res) => {
 		res.status(200).send().end();
 	}  catch(error) { 
 		logger().error('Error openvpn ccd sync: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else
@@ -505,7 +521,7 @@ router.put('/ccdsync', async(req, res) => {
 /**
  * Get the OpenVPN server status log file.
  */
-router.put('/status/get', async(req, res) => {
+router.put('/status/get', async(req, res, next) => {
 	try {
 		const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
 			.where(`firewall.id = :id`, {id: req.body.firewall})
@@ -540,6 +556,11 @@ router.put('/status/get', async(req, res) => {
 		res.status(200).json(data);
 	} catch(error) { 
 		logger().error('Error getting openvpn log file: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else
