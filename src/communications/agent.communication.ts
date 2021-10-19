@@ -242,6 +242,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
         if (axios.isAxiosError(error)) {
+
+            if (error.code === 'ECONNABORTED' && new RegExp(/timeout/).test(error.message)) {
+                eventEmitter?.emit('message', new ProgressErrorPayload(`ERROR: Timeout\n`));
+                throw new HttpException(`ECONNABORTED: Timeout`, 400)
+            }
+
             if (error.response?.data?.message) {
                 eventEmitter?.emit('message', new ProgressErrorPayload(`ERROR: ${error.response.data.message}\n`));
                 let message = error.response.data.message;
