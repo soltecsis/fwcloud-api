@@ -248,6 +248,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                     message = `ApiKeyNotFound: ${error.response.data.message}`;
                 }
 
+                if (error.response.data.message === 'Invalid API key') {
+                    message = `ApiKeyNotValid: ${error.response.data.message}`;
+                }
+
                 if (error.response.data.message === 'Authorization error, access from your IP is not allowed') {
                     message = `NotAllowedIP: ${error.response.data.message}`;
                 }
