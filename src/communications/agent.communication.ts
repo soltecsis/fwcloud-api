@@ -260,7 +260,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                     message = `DirNotFound: ${error.response.data.message}`;
                 }
 
-                throw new HttpException(error.response.data.message, error.response.status)
+                throw new HttpException(message, error.response.status)
             }
         }
 
