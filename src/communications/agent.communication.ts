@@ -8,6 +8,7 @@ import * as path from "path";
 import * as https from 'https';
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { InternalServerException } from "../fonaments/exceptions/internal-server-exception";
+import { app } from "../fonaments/abstract-application";
 
 type AgentCommunicationData = {
     protocol: 'https' | 'http',
@@ -30,6 +31,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
         this.url = `${this.connectionData.protocol}://${this.connectionData.host}:${this.connectionData.port}`
         this.config = {
+            timeout: app().config.get('openvpn.agent.timeout'),
             headers: {
                 'X-API-Key': this.connectionData.apikey
             }

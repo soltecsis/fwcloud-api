@@ -446,11 +446,18 @@ const config = convict({
         }
       }
     },
-    history: {
-      interval: {
-        doc: 'Interval, in minutes, to retrieve history data from the agent',
+    agent: {
+      timeout: {
+        doc: 'Socket timeout in milliseconds. This will set the timeout after the socket is connected.',
         format: Number,
-        default: 5
+        default: 30000
+      },
+      history: {
+        interval: {
+          doc: 'Interval, in minutes, to retrieve history data from the agent',
+          format: Number,
+          default: 5
+        }
       }
     }
   },
