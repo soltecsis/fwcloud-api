@@ -54,6 +54,11 @@ export abstract class Communication<ConnectionData> {
                 eventEmitter?.emit('message', new ProgressErrorPayload(`ECONNRESET: Port or protocol might not be valid\n`));
                 throw new HttpException(`ECONNRESET: Port or protocol might not be valid`, 400)
             }
+
+            if (error.code === 'EPROTO') {
+                eventEmitter?.emit('message', new ProgressErrorPayload(`EPROTO: Protocol error\n`));
+                throw new HttpException(`EPROTO: Protocol error`, 400)
+            }
         }
 
         throw error;
