@@ -33,27 +33,31 @@ async function iterate(application: Application): Promise<void> {
                 : [openvpn.firewall];
 
             for(let firewall of firewalls) {
-                const communication: AgentCommunication = await firewall.getCommunication() as AgentCommunication;
+                try {
+                    const communication: AgentCommunication = await firewall.getCommunication() as AgentCommunication;
 
-                const statusOption: OpenVPNOption = await OpenVPN.getOptData(db.getQuery(), openvpn.id, 'status') as OpenVPNOption;
+                    const statusOption: OpenVPNOption = await OpenVPN.getOptData(db.getQuery(), openvpn.id, 'status') as OpenVPNOption;
 
-                if (statusOption) {
+                    if (statusOption) {
 
-                    const data: OpenVPNHistoryRecord[] = await communication.getOpenVPNHistoryFile(statusOption.arg);
+                        const data: OpenVPNHistoryRecord[] = await communication.getOpenVPNHistoryFile(statusOption.arg);
 
-                    await service.create(openvpn.id, data.map(item => ({
-                        timestamp: item.timestamp,
-                        name: item.name,
-                        address: item.address,
-                        bytesReceived: item.bytesReceived,
-                        bytesSent: item.bytesSent,
-                        connectedAt: item.connectedAt
-                    })));
+                        await service.create(openvpn.id, data.map(item => ({
+                            timestamp: item.timestamp,
+                            name: item.name,
+                            address: item.address,
+                            bytesReceived: item.bytesReceived,
+                            bytesSent: item.bytesSent,
+                            connectedAt: item.connectedAt
+                        })));
+                    }
+                } catch(error) {
+                    application.logger().error(`WorkerError: Opevpn ${openvpn.id} for firewall ${firewall.id} failed: ${error.message}`);
                 }
             }
         }
-    } catch(e) {
-        application.logger().error(`WorkerError: ${e.message}`);
+    } catch(error) {
+        application.logger().error(`WorkerError: ${error.message}`);
     }
 }
 
