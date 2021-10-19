@@ -445,6 +445,13 @@ const config = convict({
           env: 'OSSLSIGNCODE_URL'
         }
       }
+    },
+    history: {
+      interval: {
+        doc: 'Interval, in minutes, to retrieve history data from the agent',
+        format: Number,
+        default: 5
+      }
     }
   },
 
