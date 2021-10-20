@@ -122,15 +122,15 @@ export class OpenVPNController extends Controller {
         (await OpenVPNPolicy.history(openVPN, req.session.user)).authorize();
 
         const options: FindOpenVPNStatusHistoryOptions = {
-            rangeTimestamp: [new Date().getTime(), new Date().getTime()]
+            rangeTimestamp: [0, new Date().getTime()]
         }
 
         if (req.query.starts_at) {
-            options.rangeTimestamp[0] = new Date(req.query.starts_at as string).getTime();
+            options.rangeTimestamp[0] =  new Date(parseInt(req.query.starts_at as string)).getTime();
         }
 
         if (req.query.ends_at) {
-            options.rangeTimestamp[1] = new Date(req.query.ends_at as string).getTime();
+            options.rangeTimestamp[1] = new Date(parseInt(req.query.ends_at as string)).getTime();
         }
 
         if (req.query.name) {
