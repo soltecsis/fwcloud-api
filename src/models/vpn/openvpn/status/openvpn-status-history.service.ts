@@ -202,7 +202,7 @@ export class OpenVPNStatusHistoryService extends Service {
         return timestamps.map(timestamp => {
             const records: OpenVPNStatusHistory[] = results.filter(item => item.timestamp === timestamp);
 
-            const bytesReceivedSent: [number, number] = records.reduce<[number, number]>((bytes: [number, number], item: ) => {
+            const bytesReceivedSent: [number, number] = records.reduce<[number, number]>((bytes: [number, number], item: OpenVPNStatusHistory) => {
                 return [bytes[0] + item.bytesReceived, bytes[1] + item.bytesSent];
             }, [0, 0])
 
