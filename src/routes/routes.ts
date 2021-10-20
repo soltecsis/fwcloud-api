@@ -95,6 +95,7 @@ export class Routes extends RouteCollection {
                                 router.prefix('/:openvpn(\\d+)', (router: RouterParser) => {
                                     router.post('/installer', OpenVPNController, 'installer').name('fwclouds.firewalls.openvpns.installer');
                                     router.get('/history', OpenVPNController, 'history').name('fwclouds.firewalls.openvpns.history');
+                                    router.get('/graph', OpenVPNController, 'graph').name('fwclouds.firewalls.openvpns.graph');
                                 })
                             });
 

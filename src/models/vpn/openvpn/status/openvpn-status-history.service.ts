@@ -41,7 +41,7 @@ type GraphDataPoint = {
     bytesSent: number
 }
 
-type GraphDataResponse = GraphDataPoint[];
+export type GraphDataResponse = GraphDataPoint[];
 
 
 export class OpenVPNStatusHistoryService extends Service {

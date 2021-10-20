@@ -36,9 +36,11 @@ import { Validate, ValidateQuery } from "../../../decorators/validate.decorator"
 import { OpenVPNControllerInstallerDto } from "./dtos/installer.dto";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { FindOpenVPNStatusHistoryOptions, FindResponse, OpenVPNStatusHistoryService } from "../../../models/vpn/openvpn/status/openvpn-status-history.service";
+import { FindOpenVPNStatusHistoryOptions, FindResponse, GraphDataResponse, OpenVPNStatusHistoryService } from "../../../models/vpn/openvpn/status/openvpn-status-history.service";
 import { OpenVPNStatusHistory } from "../../../models/vpn/openvpn/status/openvpn-status-history";
 import { HistoryQueryDto } from "./dtos/history-query.dto";
+import { option } from "yargs";
+import { GraphQueryDto } from "./dtos/graph-query.dto";
 
 export class OpenVPNController extends Controller {
     protected _openvpn: OpenVPN;
@@ -108,41 +110,37 @@ export class OpenVPNController extends Controller {
     @ValidateQuery(HistoryQueryDto)
     @Validate()
     public async history(req: Request): Promise<ResponseBuilder> {
-        const openVPN: OpenVPN = await getRepository(OpenVPN).createQueryBuilder("openvpn")
-            .innerJoinAndSelect("openvpn.firewall", "firewall")
-            .innerJoinAndSelect("firewall.fwCloud", "fwcloud")
-            .innerJoin('openvpn.crt', 'crt')
-            .where("fwcloud.id = :fwcloudId", {fwcloudId: parseInt(req.params.fwcloud)})
-            .andWhere("firewall.id = :firewallId", {firewallId: parseInt(req.params.firewall)})
-            .andWhere('openvpn.id = :openvpnId', { openvpnId: parseInt(req.params.openvpn)})
-            .andWhere('openvpn.parentId IS NULL')
-            .andWhere('crt.type =  2')
-            .getOneOrFail();
+        const openVPN: OpenVPN = await this.getOpenVPNServerOrFail(
+            parseInt(req.params.fwcloud),
+            parseInt(req.params.firewall),
+            parseInt(req.params.openvpn)
+        );
 
         (await OpenVPNPolicy.history(openVPN, req.session.user)).authorize();
 
-        const options: FindOpenVPNStatusHistoryOptions = {
-            rangeTimestamp: [0, new Date().getTime()]
-        }
-
-        if (req.query.starts_at) {
-            options.rangeTimestamp[0] =  new Date(parseInt(req.query.starts_at as string)).getTime();
-        }
-
-        if (req.query.ends_at) {
-            options.rangeTimestamp[1] = new Date(parseInt(req.query.ends_at as string)).getTime();
-        }
-
-        if (req.query.name) {
-            options.name = req.query.name as string;
-        }
-
-        if (req.query.address) {
-            options.address = req.query.address as string;
-        }
+        const options: FindOpenVPNStatusHistoryOptions = this.buildOptions(req.query);
 
         const historyService: OpenVPNStatusHistoryService = await app().getService<OpenVPNStatusHistoryService>(OpenVPNStatusHistoryService.name);
         const results: FindResponse = await historyService.history(openVPN.id, options);
+
+        return ResponseBuilder.buildResponse().status(200).body(results);
+    }
+
+    @ValidateQuery(GraphQueryDto)
+    @Validate()
+    public async graph(req: Request): Promise<ResponseBuilder> {
+        const openVPN: OpenVPN = await this.getOpenVPNServerOrFail(
+            parseInt(req.params.fwcloud),
+            parseInt(req.params.firewall),
+            parseInt(req.params.openvpn)
+        );
+
+        (await OpenVPNPolicy.history(openVPN, req.session.user)).authorize();
+
+        const options: FindOpenVPNStatusHistoryOptions = this.buildOptions(req.query);
+
+        const historyService: OpenVPNStatusHistoryService = await app().getService<OpenVPNStatusHistoryService>(OpenVPNStatusHistoryService.name);
+        const results: GraphDataResponse = await historyService.graph(openVPN.id, options);
 
         return ResponseBuilder.buildResponse().status(200).body(results);
     }
@@ -154,5 +152,42 @@ export class OpenVPNController extends Controller {
      */
     protected generateTemporaryPath(filename: string): string {
         return path.join(app().config.get('tmp.directory'), uuid.v4(), filename);
+    }
+
+    protected getOpenVPNServerOrFail(fwcloudId: number, firewallId: number, openVPNId: number): Promise<OpenVPN> {
+        return getRepository(OpenVPN).createQueryBuilder("openvpn")
+        .innerJoinAndSelect("openvpn.firewall", "firewall")
+        .innerJoinAndSelect("firewall.fwCloud", "fwcloud")
+        .innerJoin('openvpn.crt', 'crt')
+        .where("fwcloud.id = :fwcloudId", {fwcloudId})
+        .andWhere("firewall.id = :firewallId", {firewallId})
+        .andWhere('openvpn.id = :openVPNId', { openVPNId})
+        .andWhere('openvpn.parentId IS NULL')
+        .andWhere('crt.type =  2')
+        .getOneOrFail();
+    }
+
+    protected buildOptions(query: Record<string, unknown>): FindOpenVPNStatusHistoryOptions {
+        const options: FindOpenVPNStatusHistoryOptions = {
+            rangeTimestamp: [0, new Date().getTime()]
+        }
+
+        if (query.starts_at) {
+            options.rangeTimestamp[0] =  new Date(parseInt(query.starts_at as string)).getTime();
+        }
+
+        if (query.ends_at) {
+            options.rangeTimestamp[1] = new Date(parseInt(query.ends_at as string)).getTime();
+        }
+
+        if (query.name) {
+            options.name = query.name as string;
+        }
+
+        if (query.address) {
+            options.address = query.address as string;
+        }
+
+        return options;
     }
 }
