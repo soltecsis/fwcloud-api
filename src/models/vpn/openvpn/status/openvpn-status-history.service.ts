@@ -118,7 +118,7 @@ export class OpenVPNStatusHistoryService extends Service {
         return entries;
     }
 
-    async find(openVpnServerId: number, options: FindOpenVPNStatusHistoryOptions = {}): Promise<FindResponse> {
+    find(openVpnServerId: number, options: FindOpenVPNStatusHistoryOptions = {}): Promise<OpenVPNStatusHistory[]> {
         const query: SelectQueryBuilder<OpenVPNStatusHistory> = this._repository.createQueryBuilder('record')
             .andWhere(`record.openVPNServerId = :serverId`, {serverId: openVpnServerId});
 
@@ -137,7 +137,12 @@ export class OpenVPNStatusHistoryService extends Service {
             query.andWhere(`record.address = :address`, {address: options.address})
         }
 
-        const results: OpenVPNStatusHistory[] = await query.orderBy('timestamp', 'ASC').getMany();
+        return query.orderBy('timestamp', 'ASC').getMany();
+    }
+
+    async history(openVpnServerId: number, options: FindOpenVPNStatusHistoryOptions = {}): Promise<FindResponse> {
+        const results: OpenVPNStatusHistory[] = await this.find(openVpnServerId, options);
+
         let names: string[] = [...new Set(results.map(item => item.name))];
         let result: FindResponse = {}
 
