@@ -35,6 +35,15 @@ export type FindResponse = {
     [cn: string]: ClientHistory
 }
 
+type GraphDataPoint = {
+    timestamp: number,
+    bytesReceived: number,
+    bytesSent: number
+}
+
+type GraphDataResponse = GraphDataPoint[];
+
+
 export class OpenVPNStatusHistoryService extends Service {
     protected _repository: Repository<OpenVPNStatusHistory>;
 
@@ -181,5 +190,27 @@ export class OpenVPNStatusHistoryService extends Service {
         }
 
         return result;
+    }
+
+    async graph(openVpnServerId: number, options: FindOpenVPNStatusHistoryOptions = {}): Promise<GraphDataResponse> {
+        const results: OpenVPNStatusHistory[] = await this.find(openVpnServerId, options);
+
+        // Get results timestamps
+        // IMPORTANT! timestamps must be ordered from lower to higher in order to detect disconnection correctly
+        let timestamps: number[] = [...new Set(results.map(item => item.timestamp))].sort((a,b) => a < b ? 1 : -1);
+
+        return timestamps.map(timestamp => {
+            const records: OpenVPNStatusHistory[] = results.filter(item => item.timestamp === timestamp);
+
+            const bytesReceivedSent: [number, number] = records.reduce<[number, number]>((bytes: [number, number], item: ) => {
+                return [bytes[0] + item.bytesReceived, bytes[1] + item.bytesSent];
+            }, [0, 0])
+
+            return {
+                timestamp,
+                bytesReceived: bytesReceivedSent[0] / records.length,
+                bytesSent: bytesReceivedSent[1] / records.length,
+            };
+        });
     }
 }
