@@ -1,6 +1,6 @@
 import { getRepository } from "typeorm";
 import { OpenVPNStatusHistory } from "../../../../../src/models/vpn/openvpn/status/openvpn-status-history";
-import { CreateOpenVPNStatusHistoryData, FindResponse, OpenVPNStatusHistoryService } from "../../../../../src/models/vpn/openvpn/status/openvpn-status-history.service";
+import { CreateOpenVPNStatusHistoryData, FindResponse, GraphDataResponse, OpenVPNStatusHistoryService } from "../../../../../src/models/vpn/openvpn/status/openvpn-status-history.service";
 import { describeName, expect, testSuite } from "../../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
 
@@ -83,7 +83,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
         });
     });
 
-    describe("find", () => {
+    describe("history", () => {
         let records: OpenVPNStatusHistory[];
         const date: Date = new Date();
         date.setMilliseconds(0);
@@ -161,6 +161,107 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 });
 
                 expect(results).to.not.have.property("name");
+            })
+        })
+
+    });
+
+    describe("graph", () => {
+        let records: OpenVPNStatusHistory[];
+        const date: Date = new Date();
+        date.setMilliseconds(0);
+        beforeEach(async () => {
+            records = await service.create(fwcProduct.openvpnServer.id, [{
+                timestamp: 10,
+                name: 'name',
+                address: '1.1.1.1',
+                bytesReceived: 100,
+                bytesSent: 200,
+                connectedAt: date
+            }]);
+        });
+
+        it('should return the record', async () => {
+            const results: GraphDataResponse = await service.graph(fwcProduct.openvpnServer.id);
+
+            expect(results).to.have.length(1);
+            expect(results[0]).to.deep.eq({
+                timestamp: 10,
+                bytesReceived: 100,
+                bytesSent: 200,
+            })
+        });
+
+        it('should use average values when there are multiple results for the same timestamp', async () => {
+            await service.create(fwcProduct.openvpnServer.id, [{
+                timestamp: 10,
+                name: 'name',
+                address: '1.1.1.1',
+                bytesReceived: 0,
+                bytesSent: 0,
+                connectedAt: date
+            }]);
+
+            const results: GraphDataResponse = await service.graph(fwcProduct.openvpnServer.id);
+
+            expect(results[0]).to.deep.eq({
+                timestamp: 10,
+                bytesReceived: 50,
+                bytesSent: 100,
+            })
+        })
+
+        describe('filter: name', () => {
+            it('should return record with the same name', async () => {
+                const results: GraphDataResponse = await service.graph(fwcProduct.openvpnServer.id, {
+                    name: records[0].name
+                });
+
+                expect(results).to.have.length(1);
+            });
+
+            it('should ignore records which name is not equal', async () => {
+                const results: GraphDataResponse = await service.graph(fwcProduct.openvpnServer.id, {
+                    name: 'test'
+                });
+
+                expect(results).to.have.length(0);
+            })
+        });
+
+        describe('filter: timestamp range', () => {
+            it('should return record within the timestamp range', async () => {
+                const results: GraphDataResponse = await service.graph(fwcProduct.openvpnServer.id, {
+                    rangeTimestamp: [8, 12]
+                });
+
+                expect(results).to.have.length(1);
+            });
+
+            it('should ignore records not within timestamp range', async () => {
+                const results: GraphDataResponse = await service.graph(fwcProduct.openvpnServer.id, {
+                    rangeTimestamp: [1, 9]
+                });
+
+                expect(results).to.have.length(0);
+            })
+        });
+
+        describe('filter: address', () => {
+            it('should return records which uses the address provided', async () => {
+                const results: GraphDataResponse = await service.graph(fwcProduct.openvpnServer.id, {
+                    address: records[0].address
+                });
+
+                expect(results).to.have.length(1);
+            });
+
+            it('should return records which does not use the address provided', async () => {
+                const results: GraphDataResponse = await service.graph(fwcProduct.openvpnServer.id, {
+                    address: '0.0.0.0'
+                });
+
+                expect(results).to.have.length(0);
             })
         })
 

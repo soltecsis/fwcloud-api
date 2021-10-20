@@ -288,5 +288,81 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     })
             });
         })
+
+        describe('OpenVPNController@graph', () => {
+            let historyService: OpenVPNStatusHistoryService;
+
+            beforeEach(async () => {
+                historyService = await app.getService(OpenVPNStatusHistoryService.name);
+                historyService.create(serverOpenVPN.id, [{
+                    timestamp: 1,
+                    name: 'name',
+                    address: '1.1.1.1',
+                    bytesReceived: 100,
+                    bytesSent: 200,
+                    connectedAt: new Date()
+                }])
+            })
+
+            it('guest user should not get graph data', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.openvpns.graph', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        openvpn: serverOpenVPN.id
+                    }))
+                    .expect(401);
+            });
+
+            it('regular user which does not belong to the fwcloud should not get graph data', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.openvpns.graph', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        openvpn: serverOpenVPN.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(401)
+            });
+
+            it('regular user which belongs to the fwcloud should list graph data', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.openvpns.graph', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        openvpn: serverOpenVPN.id
+                    }))
+                    .query({
+                        'starts_at': new Date(0).getTime(),
+                        'ends_at': new Date(100).getTime()
+                    })
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(1)
+                    })
+            });
+
+            it('admin user should list graph data', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.openvpns.graph', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        openvpn: serverOpenVPN.id
+                    }))
+                    .query({
+                        'starts_at': new Date(0).getTime(),
+                        'ends_at': new Date(100).getTime()
+                    })
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(1)
+                    })
+            });
+        })
     })
 })
