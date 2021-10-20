@@ -260,8 +260,8 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                         openvpn: serverOpenVPN.id
                     }))
                     .query({
-                        'starts_at': new Date(0),
-                        'ends_at': new Date(100)
+                        'starts_at': new Date(0).getTime(),
+                        'ends_at': new Date(100).getTime()
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
@@ -278,8 +278,8 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                         openvpn: serverOpenVPN.id
                     }))
                     .query({
-                        'starts_at': new Date(0),
-                        'ends_at': new Date(100)
+                        'starts_at': new Date(0).getTime(),
+                        'ends_at': new Date(100).getTime()
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
