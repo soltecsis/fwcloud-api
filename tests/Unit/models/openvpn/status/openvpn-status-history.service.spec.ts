@@ -192,13 +192,13 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             })
         });
 
-        it('should use average values when there are multiple results for the same timestamp', async () => {
+        it('should add values when there are multiple results for the same timestamp', async () => {
             await service.create(fwcProduct.openvpnServer.id, [{
                 timestamp: 10,
                 name: 'name',
                 address: '1.1.1.1',
-                bytesReceived: 0,
-                bytesSent: 0,
+                bytesReceived: 100,
+                bytesSent: 200,
                 connectedAt: date
             }]);
 
@@ -206,8 +206,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
 
             expect(results[0]).to.deep.eq({
                 timestamp: 10,
-                bytesReceived: 50,
-                bytesSent: 100,
+                bytesReceived: 200,
+                bytesSent: 400,
             })
         })
 
