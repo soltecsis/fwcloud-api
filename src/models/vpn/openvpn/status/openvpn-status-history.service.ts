@@ -38,7 +38,9 @@ export type FindResponse = {
 type GraphDataPoint = {
     timestamp: number,
     bytesReceived: number,
-    bytesSent: number
+    bytesReceivedSpeed: number,
+    bytesSent: number,
+    bytesSentSpeed: number,
 }
 
 export type GraphDataResponse = GraphDataPoint[];
@@ -99,7 +101,7 @@ export class OpenVPNStatusHistoryService extends Service {
 
         // Get the timestamps of the records to be persisted
         // IMPORTANT! timestamps must be ordered from lower to higher in order to detect disconnection correctly
-        let timestamps: number[] = [...new Set(data.map(item => item.timestamp))].sort((a,b) => a < b ? 1 : -1);
+        let timestamps: number[] = [...new Set(data.map(item => item.timestamp))].sort((a,b) => a < b ? -1 : 1);
 
         let entries: OpenVPNStatusHistory[] = [];
 
@@ -218,7 +220,7 @@ export class OpenVPNStatusHistoryService extends Service {
 
         // Get results timestamps
         // IMPORTANT! timestamps must be ordered from lower to higher in order to detect disconnection correctly
-        let timestamps: number[] = [...new Set(results.map(item => item.timestamp))].sort((a,b) => a < b ? 1 : -1);
+        let timestamps: number[] = [...new Set(results.map(item => item.timestamp))].sort((a,b) => a < b ? -1 : 1);
 
         const response: GraphDataResponse = timestamps.map(timestamp => {
             //Get all records with the same timestamp
@@ -233,11 +235,30 @@ export class OpenVPNStatusHistoryService extends Service {
             return {
                 timestamp,
                 bytesReceived: bytesReceivedSent[0],
-                bytesSent: bytesReceivedSent[1]
+                bytesSent: bytesReceivedSent[1],
+                bytesReceivedSpeed: null,
+                bytesSentSpeed: null
             };
         });
 
-        return this.limitGraphPoints(response);
+        return this.limitGraphPoints(response)
+            // bytesReceivedSpeed and bytesSentSpeed calculation
+            .map((item, index, results) => {
+                // If index = 0, there is not previous value thus speeds must be null
+                if (index !== 0) {
+                    const previous = results[index - 1];
+                    item.bytesReceivedSpeed = item.bytesReceived - previous.bytesReceived > 0
+                        ? (item.bytesReceived - previous.bytesReceived) / ((item.timestamp - previous.timestamp) / 1000)
+                        : 0;
+
+                    item.bytesSentSpeed = item.bytesSent - previous.bytesSent > 0
+                        ? (item.bytesSent - previous.bytesSent) / ((item.timestamp - previous.timestamp) / 1000)
+                        : 0;
+                }
+
+                return item;
+            }
+        );
     }
 
     /**
@@ -265,6 +286,8 @@ export class OpenVPNStatusHistoryService extends Service {
                 // BytesReceived / Sent average
                 bytesReceived: group.reduce<number>((average, item) => { return average + item.bytesReceived}, 0) / group.length,
                 bytesSent: group.reduce<number>((average, item) => { return average + item.bytesSent}, 0) / group.length,
+                bytesSentSpeed: null,
+                bytesReceivedSpeed: null
             });
         }
 
