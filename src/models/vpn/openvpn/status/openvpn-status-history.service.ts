@@ -267,5 +267,7 @@ export class OpenVPNStatusHistoryService extends Service {
                 bytesSent: group.reduce<number>((average, item) => { return average + item.bytesSent}, 0) / group.length,
             });
         }
+
+        return result;
     }
 }
