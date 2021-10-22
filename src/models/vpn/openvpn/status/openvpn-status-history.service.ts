@@ -286,7 +286,7 @@ export class OpenVPNStatusHistoryService extends Service {
 
             result.push({
                 //Timestamp median
-                timestamp: group[0].timestamp + ((group[count - 1].timestamp - group[0].timestamp)/2),
+                timestamp: group[0].timestamp + ((group[group.length - 1].timestamp - group[0].timestamp)/2),
                 // BytesReceived / Sent average
                 bytesReceived: group.reduce<number>((average, item) => { return average + item.bytesReceived}, 0) / group.length,
                 bytesSent: group.reduce<number>((average, item) => { return average + item.bytesSent}, 0) / group.length,
