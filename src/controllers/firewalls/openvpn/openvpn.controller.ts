@@ -36,7 +36,7 @@ import { Validate, ValidateQuery } from "../../../decorators/validate.decorator"
 import { OpenVPNControllerInstallerDto } from "./dtos/installer.dto";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { FindOpenVPNStatusHistoryOptions, FindResponse, GraphDataResponse, OpenVPNStatusHistoryService } from "../../../models/vpn/openvpn/status/openvpn-status-history.service";
+import { FindOpenVPNStatusHistoryOptions, FindResponse, GraphDataResponse, GraphOpenVPNStatusHistoryOptions, OpenVPNStatusHistoryService } from "../../../models/vpn/openvpn/status/openvpn-status-history.service";
 import { OpenVPNStatusHistory } from "../../../models/vpn/openvpn/status/openvpn-status-history";
 import { HistoryQueryDto } from "./dtos/history-query.dto";
 import { option } from "yargs";
@@ -137,7 +137,11 @@ export class OpenVPNController extends Controller {
 
         (await OpenVPNPolicy.history(openVPN, req.session.user)).authorize();
 
-        const options: FindOpenVPNStatusHistoryOptions = this.buildOptions(req.query);
+        const options: GraphOpenVPNStatusHistoryOptions = this.buildOptions(req.query);
+
+        if (req.query.limit) {
+            options.limit = parseInt(req.query.limit as string);
+        }
 
         const historyService: OpenVPNStatusHistoryService = await app().getService<OpenVPNStatusHistoryService>(OpenVPNStatusHistoryService.name);
         const results: GraphDataResponse = await historyService.graph(openVPN.id, options);

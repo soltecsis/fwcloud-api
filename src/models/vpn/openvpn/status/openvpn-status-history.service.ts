@@ -19,6 +19,10 @@ export type FindOpenVPNStatusHistoryOptions = {
     address?: string
 }
 
+export type GraphOpenVPNStatusHistoryOptions = {
+    limit?: number
+} & FindOpenVPNStatusHistoryOptions;
+
 export type ClientHistoryConnection = {
     connected_at: Date,
     disconnected_at: Date | null,
@@ -215,7 +219,7 @@ export class OpenVPNStatusHistoryService extends Service {
      * @param options 
      * @returns 
      */
-    async graph(openVpnServerId: number, options: FindOpenVPNStatusHistoryOptions = {}): Promise<GraphDataResponse> {
+    async graph(openVpnServerId: number, options: GraphOpenVPNStatusHistoryOptions = {}): Promise<GraphDataResponse> {
         const results: OpenVPNStatusHistory[] = await this.find(openVpnServerId, options);
 
         // Get results timestamps
@@ -241,7 +245,7 @@ export class OpenVPNStatusHistoryService extends Service {
             };
         });
 
-        return this.limitGraphPoints(response)
+        return this.limitGraphPoints(response, options.limit)
             // bytesReceivedSpeed and bytesSentSpeed calculation
             .map((item, index, results) => {
                 // If index = 0, there is not previous value thus speeds must be null
@@ -269,7 +273,7 @@ export class OpenVPNStatusHistoryService extends Service {
      * @param limit 
      * @returns 
      */
-    protected limitGraphPoints(data: GraphDataResponse, limit: number = 200): GraphDataResponse {
+    protected limitGraphPoints(data: GraphDataResponse, limit: number = Infinity): GraphDataResponse {
         if (data.length < limit) {
             return data;
         }
