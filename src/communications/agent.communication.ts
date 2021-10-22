@@ -98,7 +98,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
     async uninstallOpenVPNConfig(dir: string, files: string[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
         try {
-            eventEmitter.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/[${files.join(", ")}]' from: (${this.connectionData.host})\n`));
+            files.forEach(file => {
+                eventEmitter.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`));
+            });
+
 
             const pathUrl: string = this.url + '/api/v1/openvpn/files/remove';
 
@@ -108,7 +111,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 files: files
             }
 
-            axios.delete(pathUrl, this.config);
+            axios.delete(pathUrl, config);
 
         } catch(error) {
             this.handleRequestException(error, eventEmitter);
@@ -196,7 +199,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             const response: AxiosResponse<string> = await axios.put(urlPath, {
                 dir: dir,
                 files: [filename]
-            }, this.config);
+            }, config);
 
             if (response.status === 200) {
                 return response.data;
@@ -220,7 +223,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             const response: AxiosResponse<string> = await axios.put(pathUrl, {
                 dir,
                 files: [filename]
-            }, this.config);
+            }, config);
 
             if (response.status === 200) {
                 return response.data.split("\n").filter(item => item !== '').slice(1).map(item => ({
