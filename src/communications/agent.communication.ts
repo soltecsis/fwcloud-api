@@ -57,8 +57,8 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
             eventEmitter.emit('message', new ProgressNoticePayload("Loading firewall policy."));
 
-            const config: AxiosRequestConfig = Object.assign(this.config, {});
-            config.headers = Object.assign(form.getHeaders(), config.headers);
+            const config: AxiosRequestConfig = Object.assign({}, this.config);
+            config.headers = Object.assign({}, form.getHeaders(), config.headers);
 
             const response: AxiosResponse<string> = await axios.post(pathUrl, form, config);
 
@@ -87,11 +87,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 form.append('perms', 600);
             }
 
-            const requestConfig: AxiosRequestConfig = Object.assign(this.config, {});
-            requestConfig.headers = Object.assign(form.getHeaders(), requestConfig.headers);
+            const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
+            requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
 
             await axios.post(pathUrl, form, requestConfig);
-
         } catch(error) {
             this.handleRequestException(error, eventEmitter);
         }
@@ -103,7 +102,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
             const pathUrl: string = this.url + '/api/v1/openvpn/files/remove';
 
-            const config: AxiosRequestConfig = Object.assign(this.config, {});
+            const config: AxiosRequestConfig = Object.assign({}, this.config);
             config.data = {
                 dir: dir,
                 files: files
@@ -152,7 +151,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         try {
             const pathUrl: string = this.url + "/api/v1/openvpn/files/sha256";
 
-            const config: AxiosRequestConfig = Object.assign(this.config, {});
+            const config: AxiosRequestConfig = Object.assign({}, this.config);
             config.headers["Content-Type"] = "application/json";
 
             const response: AxiosResponse<string> = await axios.put(pathUrl, {
@@ -191,7 +190,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             const dir: string = path.dirname(statusFilepath);
             const filename: string = path.basename(statusFilepath);
 
-            const config: AxiosRequestConfig = Object.assign(this.config, {});
+            const config: AxiosRequestConfig = Object.assign({}, this.config);
             config.headers["Content-Type"] = "application/json";
 
             const response: AxiosResponse<string> = await axios.put(urlPath, {
@@ -215,7 +214,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             const dir: string = path.dirname(filepath);
             const pathUrl: string = this.url + "/api/v1/openvpn/get/status";
 
-            const config: AxiosRequestConfig = Object.assign(this.config, {});
+            const config: AxiosRequestConfig = Object.assign({}, this.config);
             config.headers["Content-Type"] = "application/json";
 
             const response: AxiosResponse<string> = await axios.put(pathUrl, {
