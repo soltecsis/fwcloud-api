@@ -477,13 +477,16 @@ router.put('/ccdsync', async(req, res, next) => {
 		// Unsynced and onlyLocal certificates must be installed
 		const toBeInstalled = [].concat(compare.onlyLocal, compare.unsynced);
 		if (toBeInstalled.length > 0) {
+
 			const toBeInstalledOpeVPNs = await getRepository(OpenVPN).createQueryBuilder('openvpn')
 				.innerJoinAndSelect('openvpn.crt', 'crt')
-				.where('crt.cn IN (:names)', {names: toBeInstalled.join(", ")})
+				.where('openvpn.parentId = :openvpn', {openvpn: openvpn.id})
+				.andWhere('crt.cn IN (:...names)', {names: toBeInstalled})
 				.getMany();
 
 			for(let client of toBeInstalledOpeVPNs) {
 				let cfgDump = await OpenVPN.dumpCfg(db.getQuery(), req.body.fwcloud, client.id);
+
 				await communication.installOpenVPNConfig(cfgDump.ccd, client_config_dir, client.crt.cn, 1, channel);
 
 				// Update the status flag for the OpenVPN configuration.
