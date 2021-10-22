@@ -323,12 +323,18 @@ router.put('/install', async(req, res, next) => {
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
 			const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
 			if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
-			await communication.installOpenVPNConfig(cfgDump.ccd, openvpn_opt.arg, crt.cn, 1, channel);
+			await communication.installOpenVPNConfig(openvpn_opt.arg, [{
+				content: cfgDump.ccd,
+				name:  crt.cn
+			}], 1, channel);
 		}
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw {'msg': 'Empty install dir or install name'};
-				await communication.installOpenVPNConfig(cfgDump.cfg, req.openvpn.install_dir, req.openvpn.install_name, 2, channel);
+				await communication.installOpenVPNConfig(req.openvpn.install_dir, [{
+					content: cfgDump.cfg,
+					name: req.openvpn.install_name
+				}], 2, channel);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
@@ -487,7 +493,7 @@ router.put('/ccdsync', async(req, res, next) => {
 			for(let client of toBeInstalledOpeVPNs) {
 				let cfgDump = await OpenVPN.dumpCfg(db.getQuery(), req.body.fwcloud, client.id);
 
-				await communication.installOpenVPNConfig(cfgDump.ccd, client_config_dir, client.crt.cn, 1, channel);
+				await communication.installOpenVPNConfig(client_config_dir, [{name: client.crt.cn, content: cfgDump.ccd}], 1, channel);
 
 				// Update the status flag for the OpenVPN configuration.
 				// In a cluster update only if this is the last cluster node.

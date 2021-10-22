@@ -70,20 +70,25 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
     }
 
-    async installOpenVPNConfig(config: unknown, dir: string, name: string, type: number, eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
+    async installOpenVPNConfig(dir: string, configs: {name: string, content: string}[], type: number, eventEmitter?: EventEmitter): Promise<void> {
         try {
             const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
             const form = new FormData();
             form.append('dst_dir', dir);
-            form.append('data', config, name);
 
+            configs.forEach(config => {
+                form.append('data', config.content, config.name);
+                if (type === 1) {
+                    eventEmitter.emit('message', new ProgressInfoPayload(`Uploading configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
+                } else {
+                    eventEmitter.emit('message', new ProgressNoticePayload(`Uploading OpenVPN configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
+                }
+            });
 
             if (type === 1) {
                 // Client certificarte
-                eventEmitter.emit('message', new ProgressInfoPayload(`Uploading CCD configuration file '${dir}/${name}' to: (${this.connectionData.host})\n`));
                 form.append('perms', 644);
             } else {
-                eventEmitter.emit('message', new ProgressNoticePayload(`Uploading OpenVPN configuration file '${dir}/${name}' to: (${this.connectionData.host})\n`));
                 form.append('perms', 600);
             }
 

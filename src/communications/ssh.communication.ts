@@ -44,17 +44,8 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         }
     }
 
-    async installOpenVPNConfig(config: unknown, dir: string, name: string, type: number, eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
+    async installOpenVPNConfig(dir: string, configs: {name: string, content: string}[], type: number, eventEmitter?: EventEmitter): Promise<void> {
         try {
-            if (type === 1) { 
-                // Client certificarte
-                eventEmitter.emit('message', new ProgressInfoPayload(`Uploading CCD configuration file '${dir}/${name}' to: (${this.connectionData.host})\n`));
-            } else {
-                eventEmitter.emit('message', new ProgressNoticePayload(`Uploading OpenVPN configuration file '${dir}/${name}' to: (${this.connectionData.host})\n`));
-            }
-            
-            await sshTools.uploadStringToFile(this.connectionData, config, name);
-
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
 
             const existsDir = await sshTools.runCommand(this.connectionData, `if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
@@ -65,18 +56,27 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
                 await sshTools.runCommand(this.connectionData, `${sudo} chmod 755 "${dir}"`);
             }
 
-            eventEmitter.emit('message', new ProgressNoticePayload(`Installing OpenVPN configuration file.\n`));
-            await sshTools.runCommand(this.connectionData, `${sudo} mv ${name} ${dir}/`);
+            for(let config of configs) {
+                if (type === 1) {
+                    // Client certificarte
+                    eventEmitter.emit('message', new ProgressInfoPayload(`Uploading CCD configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
+                } else {
+                    eventEmitter.emit('message', new ProgressNoticePayload(`Uploading OpenVPN configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
+                }
 
-            eventEmitter.emit('message', new ProgressNoticePayload(`Setting up file permissions.\n\n`));
-            await sshTools.runCommand(this.connectionData, `${sudo} chown root:root ${dir}/${name}`);
+                eventEmitter.emit('message', new ProgressNoticePayload(`Installing OpenVPN configuration file.\n`));
+                await sshTools.uploadStringToFile(this.connectionData, config.content, config.name);
+                await sshTools.runCommand(this.connectionData, `${sudo} mv ${config.name} ${dir}/`);
+                eventEmitter.emit('message', new ProgressNoticePayload(`Setting up file permissions.\n\n`));
+                await sshTools.runCommand(this.connectionData, `${sudo} chown root:root ${dir}/${config.name}`);
 
-            if (type === 1) { 
-                // Client certificate.
-                await sshTools.runCommand(this.connectionData, `${sudo} chmod 644 ${dir}/${name}`);
-            } else {
-                // Server certificate.
-                await sshTools.runCommand(this.connectionData, `${sudo} chmod 600 ${dir}/${name}`);
+                if (type === 1) {
+                    // Client certificate.
+                    await sshTools.runCommand(this.connectionData, `${sudo} chmod 644 ${dir}/${config.name}`);
+                } else {
+                    // Server certificate.
+                    await sshTools.runCommand(this.connectionData, `${sudo} chmod 600 ${dir}/${config.name}`);
+                }
             }
 
             return;
