@@ -70,27 +70,17 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
     }
 
-    async installOpenVPNConfig(dir: string, configs: {name: string, content: string}[], type: number, eventEmitter?: EventEmitter): Promise<void> {
+    async installOpenVPNServerConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<void> {
         try {
             const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
             const form = new FormData();
             form.append('dst_dir', dir);
+            form.append('perms', 600);
 
             configs.forEach(config => {
+                eventEmitter.emit('message', new ProgressNoticePayload(`Uploading OpenVPN configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
                 form.append('data', config.content, config.name);
-                if (type === 1) {
-                    eventEmitter.emit('message', new ProgressInfoPayload(`Uploading configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
-                } else {
-                    eventEmitter.emit('message', new ProgressNoticePayload(`Uploading OpenVPN configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
-                }
             });
-
-            if (type === 1) {
-                // Client certificarte
-                form.append('perms', 644);
-            } else {
-                form.append('perms', 600);
-            }
 
             const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
             requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
@@ -101,7 +91,28 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
     }
 
-    async uninstallOpenVPNConfig(dir: string, files: string[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
+    async installOpenVPNClientConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
+        try {
+            const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
+            const form = new FormData();
+            form.append('dst_dir', dir);
+            form.append('perms', 644);
+
+            configs.forEach(config => {
+                form.append('data', config.content, config.name);
+                eventEmitter.emit('message', new ProgressInfoPayload(`Uploading configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
+            });
+
+            const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
+            requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+
+            await axios.post(pathUrl, form, requestConfig);
+        } catch(error) {
+            this.handleRequestException(error, eventEmitter);
+        }
+    }
+
+    async uninstallOpenVPNConfigs(dir: string, files: string[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
         try {
             files.forEach(file => {
                 eventEmitter.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`));

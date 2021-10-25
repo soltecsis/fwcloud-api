@@ -28,14 +28,16 @@ function errorHasCode(error: Error): error is ErrorWithCode {
 export abstract class Communication<ConnectionData> {
     constructor(protected readonly connectionData: ConnectionData) {}
 
-    abstract installOpenVPNConfig(dir: string, configs: {name: string, content: string}[], type: number, channel?: EventEmitter): Promise<void>
-    abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
-    abstract uninstallOpenVPNConfig(dir: string, files: string[], channel?: EventEmitter): Promise<void>;
-    abstract getFirewallInterfaces(): Promise<string>;
-    abstract getFirewallIptablesSave(): Promise<string[]>;
+    abstract installOpenVPNServerConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<void>
+    abstract installOpenVPNClientConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<void>
     abstract ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]>
     abstract getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]>;
     abstract getRealtimeStatus(statusFilepath: string): Promise<string>
+    abstract uninstallOpenVPNConfigs(dir: string, files: string[], channel?: EventEmitter): Promise<void>;
+
+    abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
+    abstract getFirewallInterfaces(): Promise<string>;
+    abstract getFirewallIptablesSave(): Promise<string[]>;
     abstract ping(): Promise<void>;
 
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
