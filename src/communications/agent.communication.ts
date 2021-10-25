@@ -115,7 +115,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     async uninstallOpenVPNConfigs(dir: string, files: string[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
         try {
             files.forEach(file => {
-                eventEmitter.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`));
+                eventEmitter.emit('message', new ProgressInfoPayload(`Removing OpenVPN configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`));
             });
 
 

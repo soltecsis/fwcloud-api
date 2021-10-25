@@ -150,8 +150,8 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
                 `echo "file,sha256"; find ${dir} -maxdepth 1 -type f -exec sh -c "basename -z {}; echo -n ','; grep -v '^#' {} | sha256sum" \\; | awk '{print $1}'`
             ));
 
-            return commandResult.replace("\x00", "").split("\n").filter(item => item !== '').slice(1).map(item => ({
-                filename: item.split(',')[0],
+            return commandResult.split("\n").filter(item => item !== '').slice(1).map(item => ({
+                filename: item.split(',')[0].replace("\x00", ""),
                 hash: item.split(',')[1].replace("\r", "")
             }));
         } catch(error) {
