@@ -189,6 +189,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 timestamp: 10,
                 bytesReceived: 100,
                 bytesSent: 200,
+                bytesReceivedSpeed: null,
+                bytesSentSpeed: null,
             })
         });
 
@@ -208,6 +210,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 timestamp: 10,
                 bytesReceived: 200,
                 bytesSent: 400,
+                bytesReceivedSpeed: null,
+                bytesSentSpeed: null,
             })
         })
 
