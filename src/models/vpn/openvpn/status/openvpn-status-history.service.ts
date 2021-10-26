@@ -94,12 +94,10 @@ export class OpenVPNStatusHistoryService extends Service {
 
         // If the data is empty, then set disconnect timestamp on the previous batch and returns
         if (data.length === 0) {
-            lastbatch.forEach(item => {
-                if (item.disconnectedAt === null) {
-                    item.disconnectedAt = new Date(item.timestamp);
-                }
-            })
-            await getRepository(OpenVPNStatusHistory).save(lastbatch);
+            for (let item of lastbatch.filter(item => item.disconnectedAt === null)) {
+                item.disconnectedAt = new Date(item.timestamp);
+                await getRepository(OpenVPNStatusHistory).save(item);
+            }
             return [];
         }
 
@@ -189,15 +187,15 @@ export class OpenVPNStatusHistoryService extends Service {
                         bytesReceived: entry.bytesReceived,
                         address: entry.address
                     }
+                }
 
-                    currentConnection.bytesReceived = entry.bytesReceived;
-                    currentConnection.bytesSent = entry.bytesSent;
-
-                    if (entry.disconnectedAt) {
-                        currentConnection.disconnected_at = entry.disconnectedAt
-                        connections.push(currentConnection);
-                        currentConnection = undefined;
-                    }
+                currentConnection.bytesReceived = entry.bytesReceived;
+                currentConnection.bytesSent = entry.bytesSent;
+                
+                if (entry.disconnectedAt) {
+                    currentConnection.disconnected_at = entry.disconnectedAt
+                    connections.push(currentConnection);
+                    currentConnection = undefined;
                 }
             }
             if (currentConnection) {
