@@ -60,7 +60,7 @@ export class OpenVPNStatusHistoryService extends Service {
 
     /**
      * Creates and persists a batch.
-     * It detects CN disconnection and creates entries with disconnectedAt information
+     * It detects CN disconnection and updates entries with disconnectedAt information
      * 
      * @param serverOpenVPNId 
      * @param data 
@@ -84,20 +84,18 @@ export class OpenVPNStatusHistoryService extends Service {
             .orderBy('history.timestamp', 'DESC')
             .getOne()
         
-        let lastbatch: OpenVPNStatusHistory[] = [];
+        let lastTimestampedBatch: OpenVPNStatusHistory[] = [];
         if (lastEntry) {
-            lastbatch = await getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
+            lastTimestampedBatch = await getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
             .where('history.openVPNServerId = :openvpn', {openvpn: serverOpenVPN.id})
             .andWhere('history.timestamp = :timestamp', {timestamp: lastEntry.timestamp})
             .getMany();
         }
 
-        // If the data is empty, then set disconnect timestamp on the previous batch and returns
+        // If the data is empty, then detect disconnections and returns.
         if (data.length === 0) {
-            for (let item of lastbatch.filter(item => item.disconnectedAt === null)) {
-                item.disconnectedAt = new Date(item.timestamp);
-                await getRepository(OpenVPNStatusHistory).save(item);
-            }
+            // In this case, all previous connections will be set as disconnected.
+            await this.detectDisconnections([], lastTimestampedBatch);
             return [];
         }
 
@@ -108,25 +106,17 @@ export class OpenVPNStatusHistoryService extends Service {
         let entries: OpenVPNStatusHistory[] = [];
 
         for(let timestamp of timestamps) {
-            const batch: CreateOpenVPNStatusHistoryData[] = data.filter(item => item.timestamp === timestamp);
+            const timestampedBatch: CreateOpenVPNStatusHistoryData[] = data.filter(item => item.timestamp === timestamp);
         
-            // If the current batch doesn't have an entry which exists on the previous batch,
-            // then we must add an entry to the batch with a disconnectedAt value
-            for (let previous of lastbatch.filter(item => item.disconnectedAt === null)) {
-                //If the persisted name is not present in the batch, then we must set as disconnected
-                if (batch.findIndex(item => previous.name === item.name ) < 0) {
-                    previous.disconnectedAt = new Date(previous.timestamp);
-                    await getRepository(OpenVPNStatusHistory).save(previous);
-                }
-            }
+            await this.detectDisconnections(timestampedBatch, lastTimestampedBatch);
 
-            //Once this batch is persisted, they become lastbatch for the next iteration
-            lastbatch = await getRepository(OpenVPNStatusHistory).save(batch.map(item => {
+            //Once this batch is persisted, they become lastTimestampedBatch for the next iteration
+            lastTimestampedBatch = await getRepository(OpenVPNStatusHistory).save(timestampedBatch.map(item => {
                 (item as OpenVPNStatusHistory).openVPNServerId = serverOpenVPN.id;
                 return item;
             }));
 
-            entries = entries.concat(lastbatch);
+            entries = entries.concat(lastTimestampedBatch);
         }
         return entries;
     }
@@ -294,5 +284,39 @@ export class OpenVPNStatusHistoryService extends Service {
         }
 
         return result;
+    }
+
+    /**
+     * Detects client disconnections. If a client disconnection is detected, then
+     * a Date is set into "disconnectedAt" in the previous entry.
+     *
+     * A client has disconnected when:
+     *
+     *  1. It is present in the previous timestamped bacth but it isn't in the new one.
+     *  2. It is present in both batches but using different address.
+     *
+     * @param newTimestampedBatch
+     * @param previousTimestampedBatch
+     */
+    protected async detectDisconnections(newTimestampedBatch: CreateOpenVPNStatusHistoryData[], previousTimestampedBatch: OpenVPNStatusHistory[]): Promise<void> {
+        // If the current batch doesn't have an entry which exists on the previous batch,
+        // then we must add an entry to the batch with a disconnectedAt value
+        for (let previous of previousTimestampedBatch.filter(item => item.disconnectedAt === null)) {
+            const matchIndex: number = newTimestampedBatch.findIndex(item => previous.name === item.name);
+
+            //If the persisted batch name is not present in the current batch, then we must set as disconnected
+            if ( matchIndex < 0) {
+                previous.disconnectedAt = new Date(previous.timestamp);
+                await getRepository(OpenVPNStatusHistory).save(previous);
+
+            } else {
+                // If the persisted batch name is present in the current batch but its address is different,
+                // then is a new connection.
+                if (previous.address !== newTimestampedBatch[matchIndex].address) {
+                    previous.disconnectedAt = new Date(previous.timestamp);
+                    await getRepository(OpenVPNStatusHistory).save(previous);
+                }
+            }
+        }
     }
 }

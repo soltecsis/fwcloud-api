@@ -14,7 +14,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
         service = await testSuite.app.getService<OpenVPNStatusHistoryService>(OpenVPNStatusHistoryService.name);
     });
 
-    describe("create", () => {
+    describe.only("create", () => {
         let data: CreateOpenVPNStatusHistoryData[];
         let date: Date = new Date(new Date().setMilliseconds(0));
 
@@ -68,8 +68,6 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail(previous[0].id);
             expect(persisted).to.have.length(1);
             expect(shouldDisconnect.disconnectedAt).not.to.be.null;
-
-            
         });
 
         it('should disconnect a name if data is empty', async () => {
@@ -81,6 +79,23 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(persisted).to.have.length(0);
             expect(shouldDisconnect.disconnectedAt).not.to.be.null;
         });
+
+        it('should disconnect a name if address has changed', async () => {
+            const previous: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, data);
+            const persisted: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, [{
+                timestamp: 2,
+                name: 'name',
+                address: '1.1.1.2',
+                bytesReceived: 100,
+                bytesSent: 200,
+                connectedAt: date
+            }]);
+
+            const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail(previous[0].id);
+
+            expect(persisted).to.have.length(1);
+            expect(shouldDisconnect.disconnectedAt).not.to.be.null;
+        })
     });
 
     describe("history", () => {
@@ -98,7 +113,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             }]);
         });
 
-        it('should return the record', async () => {
+        it('should return the connection list', async () => {
             const results: FindResponse = await service.history(fwcProduct.openvpnServer.id);
 
             expect(results).to.have.property("name");
@@ -109,6 +124,45 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(results["name"].connections[0].bytesSent).to.eq(records[0].bytesSent);
             expect(results["name"].connections[0].bytesReceived).to.eq(records[0].bytesReceived);
         });
+
+        it('should return bytes sent and recevied for each connection', async () => {
+            const recordFirstConnections: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, [{
+                timestamp: 11,
+                name: 'name',
+                address: '1.1.1.1',
+                bytesReceived: 100,
+                bytesSent: 200,
+                connectedAt: date
+            }]);
+
+            //Close previous connection
+            await service.create(fwcProduct.openvpnServer.id, []);
+
+            const recordSecondConnections: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, [{
+                timestamp: 12,
+                name: 'name',
+                address: '1.1.1.1',
+                bytesReceived: 100,
+                bytesSent: 200,
+                connectedAt: date
+            }]);
+
+            const results: FindResponse = await service.history(fwcProduct.openvpnServer.id);
+
+            expect(results["name"].connections).to.have.length(2);
+
+            expect(results["name"].connections[0].connected_at).to.deep.eq(recordFirstConnections[0].connectedAt);
+            expect(results["name"].connections[0].disconnected_at).to.deep.eq(new Date(new Date(recordFirstConnections[0].timestamp).setMilliseconds(0)));
+            expect(results["name"].connections[0].address).to.eq(recordFirstConnections[0].address);
+            expect(results["name"].connections[0].bytesSent).to.eq(recordFirstConnections[0].bytesSent);
+            expect(results["name"].connections[0].bytesReceived).to.eq(recordFirstConnections[0].bytesReceived);
+
+            expect(results["name"].connections[1].connected_at).to.deep.eq(recordSecondConnections[0].connectedAt);
+            expect(results["name"].connections[1].disconnected_at).to.be.null;
+            expect(results["name"].connections[1].address).to.eq(recordSecondConnections[0].address);
+            expect(results["name"].connections[1].bytesSent).to.eq(recordSecondConnections[0].bytesSent);
+            expect(results["name"].connections[1].bytesReceived).to.eq(recordSecondConnections[0].bytesReceived);
+        })
 
         describe('filter: name', () => {
             it('should return record with the same name', async () => {
