@@ -14,7 +14,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
         service = await testSuite.app.getService<OpenVPNStatusHistoryService>(OpenVPNStatusHistoryService.name);
     });
 
-    describe.only("create", () => {
+    describe("create", () => {
         let data: CreateOpenVPNStatusHistoryData[];
         let date: Date = new Date(new Date().setMilliseconds(0));
 
