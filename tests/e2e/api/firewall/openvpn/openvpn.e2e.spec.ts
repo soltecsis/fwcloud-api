@@ -222,8 +222,8 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     timestamp: 1,
                     name: 'name',
                     address: '1.1.1.1',
-                    bytesReceived: 100,
-                    bytesSent: 200,
+                    megaBytesReceived: 100,
+                    megaBytesSent: 200,
                     connectedAt: new Date()
                 }])
             })
@@ -298,8 +298,8 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     timestamp: 1,
                     name: 'name',
                     address: '1.1.1.1',
-                    bytesReceived: 100,
-                    bytesSent: 200,
+                    megaBytesReceived: 100,
+                    megaBytesSent: 200,
                     connectedAt: new Date()
                 }])
             })

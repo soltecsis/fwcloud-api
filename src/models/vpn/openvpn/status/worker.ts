@@ -46,8 +46,8 @@ async function iterate(application: Application): Promise<void> {
                             timestamp: item.timestamp,
                             name: item.name,
                             address: item.address,
-                            bytesReceived: item.bytesReceived,
-                            bytesSent: item.bytesSent,
+                            megaBytesReceived: item.bytesReceived / (1024 * 1024),
+                            megaBytesSent: item.bytesSent / (1024 * 1024),
                             connectedAt: item.connectedAt
                         })));
                     }

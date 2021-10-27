@@ -7,8 +7,8 @@ export type CreateOpenVPNStatusHistoryData = {
     timestamp: number;
     name: string;
     address: string;
-    bytesReceived: number;
-    bytesSent: number;
+    megaBytesReceived: number;
+    megaBytesSent: number;
     connectedAt: Date;
     disconnectedAt?: Date;
 }
@@ -26,8 +26,8 @@ export type GraphOpenVPNStatusHistoryOptions = {
 export type ClientHistoryConnection = {
     connected_at: Date,
     disconnected_at: Date | null,
-    bytesSent: number,
-    bytesReceived: number,
+    megaBytesSent: number,
+    megaBytesReceived: number,
     address: string
 }
 
@@ -41,10 +41,10 @@ export type FindResponse = {
 
 type GraphDataPoint = {
     timestamp: number,
-    bytesReceived: number,
-    bytesReceivedSpeed: number,
-    bytesSent: number,
-    bytesSentSpeed: number,
+    megaBytesReceived: number,
+    megaBytesReceivedSpeed: number,
+    megaBytesSent: number,
+    megaBytesSentSpeed: number,
 }
 
 export type GraphDataResponse = GraphDataPoint[];
@@ -173,14 +173,14 @@ export class OpenVPNStatusHistoryService extends Service {
                     currentConnection = {
                         connected_at: entry.connectedAt,
                         disconnected_at: null,
-                        bytesSent: entry.bytesSent,
-                        bytesReceived: entry.bytesReceived,
+                        megaBytesSent: entry.megaBytesSent,
+                        megaBytesReceived: entry.megaBytesReceived,
                         address: entry.address
                     }
                 }
 
-                currentConnection.bytesReceived = entry.bytesReceived;
-                currentConnection.bytesSent = entry.bytesSent;
+                currentConnection.megaBytesReceived = entry.megaBytesReceived;
+                currentConnection.megaBytesSent = entry.megaBytesSent;
                 
                 if (entry.disconnectedAt) {
                     currentConnection.disconnected_at = entry.disconnectedAt
@@ -218,33 +218,33 @@ export class OpenVPNStatusHistoryService extends Service {
             //Get all records with the same timestamp
             const records: OpenVPNStatusHistory[] = results.filter(item => item.timestamp === timestamp);
 
-            // Then calculate bytesReceived/bytesSent accumulated.
-            // bytesReceviedSent will contain all bytesReceived added in index 0 and all bytesSent added in index 1
-            const bytesReceivedSent: [number, number] = records.reduce<[number, number]>((bytes: [number, number], item: OpenVPNStatusHistory) => {
-                return [bytes[0] + item.bytesReceived, bytes[1] + item.bytesSent];
+            // Then calculate megaBytesReceived/megaBytesSent accumulated.
+            // megaBytesReceviedSent will contain all megaBytesReceived added in index 0 and all megaBytesSent added in index 1
+            const megaBytesReceivedSent: [number, number] = records.reduce<[number, number]>((megaBytes: [number, number], item: OpenVPNStatusHistory) => {
+                return [megaBytes[0] + item.megaBytesReceived, megaBytes[1] + item.megaBytesSent];
             }, [0, 0])
 
             return {
                 timestamp,
-                bytesReceived: bytesReceivedSent[0],
-                bytesSent: bytesReceivedSent[1],
-                bytesReceivedSpeed: null,
-                bytesSentSpeed: null
+                megaBytesReceived: megaBytesReceivedSent[0],
+                megaBytesSent: megaBytesReceivedSent[1],
+                megaBytesReceivedSpeed: null,
+                megaBytesSentSpeed: null
             };
         });
 
         return this.limitGraphPoints(response, options.limit)
-            // bytesReceivedSpeed and bytesSentSpeed calculation
+            // megaBytesReceivedSpeed and megaBytesSentSpeed calculation
             .map((item, index, results) => {
                 // If index = 0, there is not previous value thus speeds must be null
                 if (index !== 0) {
                     const previous = results[index - 1];
-                    item.bytesReceivedSpeed = item.bytesReceived - previous.bytesReceived > 0
-                        ? (item.bytesReceived - previous.bytesReceived) / ((item.timestamp - previous.timestamp) / 1000)
+                    item.megaBytesReceivedSpeed = item.megaBytesReceived - previous.megaBytesReceived > 0
+                        ? (item.megaBytesReceived - previous.megaBytesReceived) / ((item.timestamp - previous.timestamp) / 1000)
                         : 0;
 
-                    item.bytesSentSpeed = item.bytesSent - previous.bytesSent > 0
-                        ? (item.bytesSent - previous.bytesSent) / ((item.timestamp - previous.timestamp) / 1000)
+                    item.megaBytesSentSpeed = item.megaBytesSent - previous.megaBytesSent > 0
+                        ? (item.megaBytesSent - previous.megaBytesSent) / ((item.timestamp - previous.timestamp) / 1000)
                         : 0;
                 }
 
@@ -275,11 +275,11 @@ export class OpenVPNStatusHistoryService extends Service {
             result.push({
                 //Timestamp median
                 timestamp: group[0].timestamp + ((group[group.length - 1].timestamp - group[0].timestamp)/2),
-                // BytesReceived / Sent average
-                bytesReceived: group.reduce<number>((average, item) => { return average + item.bytesReceived}, 0) / group.length,
-                bytesSent: group.reduce<number>((average, item) => { return average + item.bytesSent}, 0) / group.length,
-                bytesSentSpeed: null,
-                bytesReceivedSpeed: null
+                // megaBytesReceived / Sent average
+                megaBytesReceived: group.reduce<number>((average, item) => { return average + item.megaBytesReceived}, 0) / group.length,
+                megaBytesSent: group.reduce<number>((average, item) => { return average + item.megaBytesSent}, 0) / group.length,
+                megaBytesSentSpeed: null,
+                megaBytesReceivedSpeed: null
             });
         }
 

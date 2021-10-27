@@ -23,8 +23,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 timestamp: 1,
                 name: 'name',
                 address: '1.1.1.1',
-                bytesReceived: 100,
-                bytesSent: 200,
+                megaBytesReceived: 100,
+                megaBytesSent: 200,
                 connectedAt: date
             }];
         });
@@ -36,8 +36,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(persisted.name).to.eq(data[0].name);
             expect(persisted.timestamp).to.eq(data[0].timestamp);
             expect(persisted.address).to.eq(data[0].address);
-            expect(persisted.bytesReceived).to.eq(data[0].bytesReceived);
-            expect(persisted.bytesSent).to.eq(data[0].bytesSent);
+            expect(persisted.megaBytesReceived).to.eq(data[0].megaBytesReceived);
+            expect(persisted.megaBytesSent).to.eq(data[0].megaBytesSent);
             expect(persisted.connectedAt.toISOString()).to.eq(data[0].connectedAt.toISOString());
             expect(persisted.openVPNServerId).to.eq(fwcProduct.openvpnServer.id);
         });
@@ -48,8 +48,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(persisted[0].name).to.eq(data[0].name);
             expect(persisted[0].timestamp).to.eq(data[0].timestamp);
             expect(persisted[0].address).to.eq(data[0].address);
-            expect(persisted[0].bytesReceived).to.eq(data[0].bytesReceived);
-            expect(persisted[0].bytesSent).to.eq(data[0].bytesSent);
+            expect(persisted[0].megaBytesReceived).to.eq(data[0].megaBytesReceived);
+            expect(persisted[0].megaBytesSent).to.eq(data[0].megaBytesSent);
             expect(persisted[0].connectedAt.toISOString()).to.eq(data[0].connectedAt.toISOString());
             expect(persisted[0].openVPNServerId).to.eq(fwcProduct.openvpnServer.id);
         });
@@ -60,8 +60,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 timestamp: 2,
                 name: 'other-name',
                 address: '1.1.1.1',
-                bytesReceived: 100,
-                bytesSent: 200,
+                megaBytesReceived: 100,
+                megaBytesSent: 200,
                 connectedAt: date
             }]);
 
@@ -86,8 +86,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 timestamp: 2,
                 name: 'name',
                 address: '1.1.1.2',
-                bytesReceived: 100,
-                bytesSent: 200,
+                megaBytesReceived: 100,
+                megaBytesSent: 200,
                 connectedAt: date
             }]);
 
@@ -107,8 +107,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 timestamp: 10,
                 name: 'name',
                 address: '1.1.1.1',
-                bytesReceived: 100,
-                bytesSent: 200,
+                megaBytesReceived: 100,
+                megaBytesSent: 200,
                 connectedAt: date
             }]);
         });
@@ -121,17 +121,17 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(results["name"].connections[0].connected_at).to.deep.eq(records[0].connectedAt);
             expect(results["name"].connections[0].disconnected_at).to.be.null;
             expect(results["name"].connections[0].address).to.eq(records[0].address);
-            expect(results["name"].connections[0].bytesSent).to.eq(records[0].bytesSent);
-            expect(results["name"].connections[0].bytesReceived).to.eq(records[0].bytesReceived);
+            expect(results["name"].connections[0].megaBytesSent).to.eq(records[0].megaBytesSent);
+            expect(results["name"].connections[0].megaBytesReceived).to.eq(records[0].megaBytesReceived);
         });
 
-        it('should return bytes sent and recevied for each connection', async () => {
+        it('should return megaBytes sent and recevied for each connection', async () => {
             const recordFirstConnections: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, [{
                 timestamp: 11,
                 name: 'name',
                 address: '1.1.1.1',
-                bytesReceived: 100,
-                bytesSent: 200,
+                megaBytesReceived: 100,
+                megaBytesSent: 200,
                 connectedAt: date
             }]);
 
@@ -142,8 +142,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 timestamp: 12,
                 name: 'name',
                 address: '1.1.1.1',
-                bytesReceived: 100,
-                bytesSent: 200,
+                megaBytesReceived: 100,
+                megaBytesSent: 200,
                 connectedAt: date
             }]);
 
@@ -154,14 +154,14 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(results["name"].connections[0].connected_at).to.deep.eq(recordFirstConnections[0].connectedAt);
             expect(results["name"].connections[0].disconnected_at).to.deep.eq(new Date(new Date(recordFirstConnections[0].timestamp).setMilliseconds(0)));
             expect(results["name"].connections[0].address).to.eq(recordFirstConnections[0].address);
-            expect(results["name"].connections[0].bytesSent).to.eq(recordFirstConnections[0].bytesSent);
-            expect(results["name"].connections[0].bytesReceived).to.eq(recordFirstConnections[0].bytesReceived);
+            expect(results["name"].connections[0].megaBytesSent).to.eq(recordFirstConnections[0].megaBytesSent);
+            expect(results["name"].connections[0].megaBytesReceived).to.eq(recordFirstConnections[0].megaBytesReceived);
 
             expect(results["name"].connections[1].connected_at).to.deep.eq(recordSecondConnections[0].connectedAt);
             expect(results["name"].connections[1].disconnected_at).to.be.null;
             expect(results["name"].connections[1].address).to.eq(recordSecondConnections[0].address);
-            expect(results["name"].connections[1].bytesSent).to.eq(recordSecondConnections[0].bytesSent);
-            expect(results["name"].connections[1].bytesReceived).to.eq(recordSecondConnections[0].bytesReceived);
+            expect(results["name"].connections[1].megaBytesSent).to.eq(recordSecondConnections[0].megaBytesSent);
+            expect(results["name"].connections[1].megaBytesReceived).to.eq(recordSecondConnections[0].megaBytesReceived);
         })
 
         describe('filter: name', () => {
@@ -229,8 +229,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 timestamp: 10,
                 name: 'name',
                 address: '1.1.1.1',
-                bytesReceived: 100,
-                bytesSent: 200,
+                megaBytesReceived: 100,
+                megaBytesSent: 200,
                 connectedAt: date
             }]);
         });
@@ -241,10 +241,10 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(results).to.have.length(1);
             expect(results[0]).to.deep.eq({
                 timestamp: 10,
-                bytesReceived: 100,
-                bytesSent: 200,
-                bytesReceivedSpeed: null,
-                bytesSentSpeed: null,
+                megaBytesReceived: 100,
+                megaBytesSent: 200,
+                megaBytesReceivedSpeed: null,
+                megaBytesSentSpeed: null,
             })
         });
 
@@ -253,8 +253,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 timestamp: 10,
                 name: 'name',
                 address: '1.1.1.1',
-                bytesReceived: 100,
-                bytesSent: 200,
+                megaBytesReceived: 100,
+                megaBytesSent: 200,
                 connectedAt: date
             }]);
 
@@ -262,10 +262,10 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
 
             expect(results[0]).to.deep.eq({
                 timestamp: 10,
-                bytesReceived: 200,
-                bytesSent: 400,
-                bytesReceivedSpeed: null,
-                bytesSentSpeed: null,
+                megaBytesReceived: 200,
+                megaBytesSent: 400,
+                megaBytesReceivedSpeed: null,
+                megaBytesSentSpeed: null,
             })
         })
 
