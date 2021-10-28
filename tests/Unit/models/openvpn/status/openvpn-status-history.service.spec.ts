@@ -34,7 +34,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
 
             const persisted: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).createQueryBuilder('history').getOneOrFail();
             expect(persisted.name).to.eq(data[0].name);
-            expect(persisted.timestamp).to.eq(data[0].timestampInSeconds);
+            expect(persisted.timestampInSeconds).to.eq(data[0].timestampInSeconds);
             expect(persisted.address).to.eq(data[0].address);
             expect(persisted.megaBytesReceived).to.eq(data[0].megaBytesReceived);
             expect(persisted.megaBytesSent).to.eq(data[0].megaBytesSent);
@@ -46,7 +46,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             const persisted: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, data);
 
             expect(persisted[0].name).to.eq(data[0].name);
-            expect(persisted[0].timestamp).to.eq(data[0].timestampInSeconds);
+            expect(persisted[0].timestampInSeconds).to.eq(data[0].timestampInSeconds);
             expect(persisted[0].address).to.eq(data[0].address);
             expect(persisted[0].megaBytesReceived).to.eq(data[0].megaBytesReceived);
             expect(persisted[0].megaBytesSent).to.eq(data[0].megaBytesSent);
@@ -152,7 +152,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(results["name"].connections).to.have.length(2);
 
             expect(results["name"].connections[0].connected_at).to.deep.eq(recordFirstConnections[0].connectedAt);
-            expect(results["name"].connections[0].disconnected_at).to.deep.eq(new Date(new Date(recordFirstConnections[0].timestamp).setMilliseconds(0)));
+            expect(results["name"].connections[0].disconnected_at).to.deep.eq(new Date(new Date(recordFirstConnections[0].timestampInSeconds * 1000)));
             expect(results["name"].connections[0].address).to.eq(recordFirstConnections[0].address);
             expect(results["name"].connections[0].megaBytesSent).to.eq(recordFirstConnections[0].megaBytesSent);
             expect(results["name"].connections[0].megaBytesReceived).to.eq(recordFirstConnections[0].megaBytesReceived);

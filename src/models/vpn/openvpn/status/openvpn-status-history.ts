@@ -38,8 +38,10 @@ export class OpenVPNStatusHistory extends Model {
     })
     disconnectedAt: Date;
 
-    @Column()
-    timestamp: number;
+    @Column({
+        name: 'timestamp'
+    })
+    timestampInSeconds: number;
 
     @Column({name: 'openvpn_server_id'})
     openVPNServerId: number;
