@@ -4,7 +4,7 @@ import { OpenVPN } from "../OpenVPN";
 import { OpenVPNStatusHistory } from "./openvpn-status-history";
 
 export type CreateOpenVPNStatusHistoryData = {
-    timestamp: number;
+    timestampInSeconds: number;
     name: string;
     address: string;
     megaBytesReceived: number;
@@ -14,7 +14,7 @@ export type CreateOpenVPNStatusHistoryData = {
 }
 
 export type FindOpenVPNStatusHistoryOptions = {
-    rangeTimestamp?: [number, number],
+    rangeTimestamp?: [Date, Date],
     name?: string,
     address?: string
 }
@@ -101,20 +101,25 @@ export class OpenVPNStatusHistoryService extends Service {
 
         // Get the timestamps of the records to be persisted
         // IMPORTANT! timestamps must be ordered from lower to higher in order to detect disconnection correctly
-        let timestamps: number[] = [...new Set(data.map(item => item.timestamp))].sort((a,b) => a < b ? -1 : 1);
+        let timestamps: number[] = [...new Set(data.map(item => item.timestampInSeconds))].sort((a,b) => a < b ? -1 : 1);
 
         let entries: OpenVPNStatusHistory[] = [];
 
         for(let timestamp of timestamps) {
-            const timestampedBatch: CreateOpenVPNStatusHistoryData[] = data.filter(item => item.timestamp === timestamp);
+            const timestampedBatch: CreateOpenVPNStatusHistoryData[] = data.filter(item => item.timestampInSeconds === timestamp);
         
             await this.detectDisconnections(timestampedBatch, lastTimestampedBatch);
 
             //Once this batch is persisted, they become lastTimestampedBatch for the next iteration
-            lastTimestampedBatch = await getRepository(OpenVPNStatusHistory).save(timestampedBatch.map(item => {
-                (item as OpenVPNStatusHistory).openVPNServerId = serverOpenVPN.id;
-                return item;
-            }));
+            lastTimestampedBatch = await getRepository(OpenVPNStatusHistory).save(timestampedBatch.map<Partial<OpenVPNStatusHistory>>(item => ({
+                timestamp: item.timestampInSeconds,
+                name: item.name,
+                address: item.address,
+                megaBytesReceived: item.megaBytesReceived,
+                megaBytesSent: item.megaBytesSent,
+                connectedAt: item.connectedAt,
+                openVPNServerId: serverOpenVPN.id
+            })));
 
             entries = entries.concat(lastTimestampedBatch);
         }
@@ -134,8 +139,8 @@ export class OpenVPNStatusHistoryService extends Service {
 
         if (Object.prototype.hasOwnProperty.call(options, "rangeTimestamp")) {
             query.andWhere(`record.timestamp BETWEEN :start and :end`, {
-                start: options.rangeTimestamp[0],
-                end: options.rangeTimestamp[1]
+                start: options.rangeTimestamp[0].getTime() / 1000,
+                end: options.rangeTimestamp[1].getTime() / 1000
             })
         }
 
@@ -225,7 +230,7 @@ export class OpenVPNStatusHistoryService extends Service {
             }, [0, 0])
 
             return {
-                timestamp,
+                timestamp: timestamp * 1000,
                 megaBytesReceived: megaBytesReceivedSent[0],
                 megaBytesSent: megaBytesReceivedSent[1],
                 megaBytesReceivedSpeed: null,

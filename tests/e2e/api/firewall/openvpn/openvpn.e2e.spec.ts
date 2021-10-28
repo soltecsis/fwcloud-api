@@ -219,7 +219,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
             beforeEach(async () => {
                 historyService = await app.getService(OpenVPNStatusHistoryService.name);
                 historyService.create(serverOpenVPN.id, [{
-                    timestamp: 1,
+                    timestampInSeconds: 2,
                     name: 'name',
                     address: '1.1.1.1',
                     megaBytesReceived: 100,
@@ -261,7 +261,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     }))
                     .query({
                         'starts_at': new Date(0).getTime(),
-                        'ends_at': new Date(100).getTime()
+                        'ends_at': new Date(2000).getTime()
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
@@ -279,7 +279,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     }))
                     .query({
                         'starts_at': new Date(0).getTime(),
-                        'ends_at': new Date(100).getTime()
+                        'ends_at': new Date(2000).getTime()
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
@@ -295,7 +295,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
             beforeEach(async () => {
                 historyService = await app.getService(OpenVPNStatusHistoryService.name);
                 historyService.create(serverOpenVPN.id, [{
-                    timestamp: 1,
+                    timestampInSeconds: 1,
                     name: 'name',
                     address: '1.1.1.1',
                     megaBytesReceived: 100,
@@ -337,7 +337,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     }))
                     .query({
                         'starts_at': new Date(0).getTime(),
-                        'ends_at': new Date(100).getTime()
+                        'ends_at': new Date(2000).getTime()
                     })
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
@@ -355,7 +355,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     }))
                     .query({
                         'starts_at': new Date(0).getTime(),
-                        'ends_at': new Date(100).getTime()
+                        'ends_at': new Date(2000).getTime()
                     })
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)

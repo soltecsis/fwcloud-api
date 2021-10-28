@@ -37,9 +37,7 @@ import { OpenVPNControllerInstallerDto } from "./dtos/installer.dto";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { FindOpenVPNStatusHistoryOptions, FindResponse, GraphDataResponse, GraphOpenVPNStatusHistoryOptions, OpenVPNStatusHistoryService } from "../../../models/vpn/openvpn/status/openvpn-status-history.service";
-import { OpenVPNStatusHistory } from "../../../models/vpn/openvpn/status/openvpn-status-history";
 import { HistoryQueryDto } from "./dtos/history-query.dto";
-import { option } from "yargs";
 import { GraphQueryDto } from "./dtos/graph-query.dto";
 
 export class OpenVPNController extends Controller {
@@ -173,15 +171,15 @@ export class OpenVPNController extends Controller {
 
     protected buildOptions(query: Record<string, unknown>): FindOpenVPNStatusHistoryOptions {
         const options: FindOpenVPNStatusHistoryOptions = {
-            rangeTimestamp: [0, new Date().getTime()]
+            rangeTimestamp: [new Date(0), new Date()]
         }
 
         if (query.starts_at) {
-            options.rangeTimestamp[0] =  new Date(parseInt(query.starts_at as string)).getTime();
+            options.rangeTimestamp[0] =  new Date(parseInt(query.starts_at as string));
         }
 
         if (query.ends_at) {
-            options.rangeTimestamp[1] = new Date(parseInt(query.ends_at as string)).getTime();
+            options.rangeTimestamp[1] = new Date(parseInt(query.ends_at as string));
         }
 
         if (query.name) {
