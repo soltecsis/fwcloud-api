@@ -14,7 +14,7 @@ export type OpenVPNHistoryRecord = {
     address: string;
     bytesReceived: number;
     bytesSent: number;
-    connectedAt: Date;
+    connectedAtTimestampInSeconds: number;
 }
 
 type ErrorWithCode = {

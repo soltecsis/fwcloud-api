@@ -48,7 +48,7 @@ async function iterate(application: Application): Promise<void> {
                             address: item.address,
                             megaBytesReceived: item.bytesReceived / (1024 * 1024),
                             megaBytesSent: item.bytesSent / (1024 * 1024),
-                            connectedAt: item.connectedAt
+                            connectedAtTimestampInSeconds: item.connectedAtTimestampInSeconds
                         })));
                     }
                 } catch(error) {

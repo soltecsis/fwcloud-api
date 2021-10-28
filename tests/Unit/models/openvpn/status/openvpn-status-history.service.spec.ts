@@ -16,7 +16,6 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
 
     describe("create", () => {
         let data: CreateOpenVPNStatusHistoryData[];
-        let date: Date = new Date(new Date().setMilliseconds(0));
 
         beforeEach(() => {
             data = [{
@@ -25,7 +24,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 address: '1.1.1.1',
                 megaBytesReceived: 100,
                 megaBytesSent: 200,
-                connectedAt: date
+                connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
             }];
         });
 
@@ -38,7 +37,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(persisted.address).to.eq(data[0].address);
             expect(persisted.megaBytesReceived).to.eq(data[0].megaBytesReceived);
             expect(persisted.megaBytesSent).to.eq(data[0].megaBytesSent);
-            expect(persisted.connectedAt.toISOString()).to.eq(data[0].connectedAt.toISOString());
+            expect(persisted.connectedAtTimestampInSeconds).to.eq(Math.floor(data[0].connectedAtTimestampInSeconds));
             expect(persisted.openVPNServerId).to.eq(fwcProduct.openvpnServer.id);
         });
 
@@ -50,7 +49,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(persisted[0].address).to.eq(data[0].address);
             expect(persisted[0].megaBytesReceived).to.eq(data[0].megaBytesReceived);
             expect(persisted[0].megaBytesSent).to.eq(data[0].megaBytesSent);
-            expect(persisted[0].connectedAt.toISOString()).to.eq(data[0].connectedAt.toISOString());
+            expect(persisted[0].connectedAtTimestampInSeconds).to.eq(data[0].connectedAtTimestampInSeconds);
             expect(persisted[0].openVPNServerId).to.eq(fwcProduct.openvpnServer.id);
         });
 
@@ -62,12 +61,12 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 address: '1.1.1.1',
                 megaBytesReceived: 100,
                 megaBytesSent: 200,
-                connectedAt: date
+                connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
             }]);
 
             const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail(previous[0].id);
             expect(persisted).to.have.length(1);
-            expect(shouldDisconnect.disconnectedAt).not.to.be.null;
+            expect(shouldDisconnect.disconnectedAtTimestampInSeconds).not.to.be.null;
         });
 
         it('should disconnect a name if data is empty', async () => {
@@ -77,7 +76,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail(previous[0].id);
             
             expect(persisted).to.have.length(0);
-            expect(shouldDisconnect.disconnectedAt).not.to.be.null;
+            expect(shouldDisconnect.disconnectedAtTimestampInSeconds).not.to.be.null;
         });
 
         it('should disconnect a name if address has changed', async () => {
@@ -88,13 +87,13 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 address: '1.1.1.2',
                 megaBytesReceived: 100,
                 megaBytesSent: 200,
-                connectedAt: date
+                connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
             }]);
 
             const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail(previous[0].id);
 
             expect(persisted).to.have.length(1);
-            expect(shouldDisconnect.disconnectedAt).not.to.be.null;
+            expect(shouldDisconnect.disconnectedAtTimestampInSeconds).not.to.be.null;
         })
     });
 
@@ -109,7 +108,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 address: '1.1.1.1',
                 megaBytesReceived: 100,
                 megaBytesSent: 200,
-                connectedAt: date
+                connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
             }]);
         });
 
@@ -118,7 +117,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
 
             expect(results).to.have.property("name");
             expect(results["name"].connections).to.have.length(1);
-            expect(results["name"].connections[0].connected_at).to.deep.eq(records[0].connectedAt);
+            expect(results["name"].connections[0].connected_at).to.deep.eq(new Date(records[0].connectedAtTimestampInSeconds * 1000));
             expect(results["name"].connections[0].disconnected_at).to.be.null;
             expect(results["name"].connections[0].address).to.eq(records[0].address);
             expect(results["name"].connections[0].megaBytesSent).to.eq(records[0].megaBytesSent);
@@ -132,7 +131,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 address: '1.1.1.1',
                 megaBytesReceived: 100,
                 megaBytesSent: 200,
-                connectedAt: date
+                connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
             }]);
 
             //Close previous connection
@@ -144,20 +143,20 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 address: '1.1.1.1',
                 megaBytesReceived: 100,
                 megaBytesSent: 200,
-                connectedAt: date
+                connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
             }]);
 
             const results: FindResponse = await service.history(fwcProduct.openvpnServer.id);
 
             expect(results["name"].connections).to.have.length(2);
 
-            expect(results["name"].connections[0].connected_at).to.deep.eq(recordFirstConnections[0].connectedAt);
+            expect(results["name"].connections[0].connected_at).to.deep.eq(new Date(recordFirstConnections[0].connectedAtTimestampInSeconds * 1000));
             expect(results["name"].connections[0].disconnected_at).to.deep.eq(new Date(new Date(recordFirstConnections[0].timestampInSeconds * 1000)));
             expect(results["name"].connections[0].address).to.eq(recordFirstConnections[0].address);
             expect(results["name"].connections[0].megaBytesSent).to.eq(recordFirstConnections[0].megaBytesSent);
             expect(results["name"].connections[0].megaBytesReceived).to.eq(recordFirstConnections[0].megaBytesReceived);
 
-            expect(results["name"].connections[1].connected_at).to.deep.eq(recordSecondConnections[0].connectedAt);
+            expect(results["name"].connections[1].connected_at).to.deep.eq(new Date(recordSecondConnections[0].connectedAtTimestampInSeconds * 1000));
             expect(results["name"].connections[1].disconnected_at).to.be.null;
             expect(results["name"].connections[1].address).to.eq(recordSecondConnections[0].address);
             expect(results["name"].connections[1].megaBytesSent).to.eq(recordSecondConnections[0].megaBytesSent);
@@ -231,7 +230,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 address: '1.1.1.1',
                 megaBytesReceived: 100,
                 megaBytesSent: 200,
-                connectedAt: date
+                connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
             }]);
         });
 
@@ -255,7 +254,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 address: '1.1.1.1',
                 megaBytesReceived: 100,
                 megaBytesSent: 200,
-                connectedAt: date
+                connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
             }]);
 
             const results: GraphDataResponse = await service.graph(fwcProduct.openvpnServer.id);

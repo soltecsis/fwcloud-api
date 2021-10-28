@@ -248,7 +248,8 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                     address: item.split(',')[2],
                     bytesReceived: parseInt(item.split(',')[3]),
                     bytesSent: parseInt(item.split(',')[4]),
-                    connectedAt: new Date(item.split(',')[5])
+                    //TODO: Fix this once agent returns a second timestamp
+                    connectedAtTimestampInSeconds: new Date(item.split(',')[5]).getTime() / 1000,
                 }));
             }
 

@@ -27,16 +27,14 @@ export class OpenVPNStatusHistory extends Model {
     megaBytesSent: number;
 
     @Column({
-        name: 'connected_at',
-        type: Date
+        name: 'connected_at_timestamp',
     })
-    connectedAt: Date;
+    connectedAtTimestampInSeconds: number;
 
     @Column({
-        name: 'disconnected_at',
-        type: Date
+        name: 'disconnected_at_timestamp',
     })
-    disconnectedAt: Date;
+    disconnectedAtTimestampInSeconds: number;
 
     @Column({
         name: 'timestamp'

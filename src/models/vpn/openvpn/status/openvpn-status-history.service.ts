@@ -9,8 +9,8 @@ export type CreateOpenVPNStatusHistoryData = {
     address: string;
     megaBytesReceived: number;
     megaBytesSent: number;
-    connectedAt: Date;
-    disconnectedAt?: Date;
+    connectedAtTimestampInSeconds: number;
+    disconnectedAtTimestampInSeconds?: number;
 }
 
 export type FindOpenVPNStatusHistoryOptions = {
@@ -117,7 +117,7 @@ export class OpenVPNStatusHistoryService extends Service {
                 address: item.address,
                 megaBytesReceived: item.megaBytesReceived,
                 megaBytesSent: item.megaBytesSent,
-                connectedAt: item.connectedAt,
+                connectedAtTimestampInSeconds: item.connectedAtTimestampInSeconds,
                 openVPNServerId: serverOpenVPN.id
             })));
 
@@ -176,7 +176,7 @@ export class OpenVPNStatusHistoryService extends Service {
             for(let entry of entries) {
                 if (currentConnection === undefined) {
                     currentConnection = {
-                        connected_at: entry.connectedAt,
+                        connected_at: new Date(entry.connectedAtTimestampInSeconds * 1000),
                         disconnected_at: null,
                         megaBytesSent: entry.megaBytesSent,
                         megaBytesReceived: entry.megaBytesReceived,
@@ -187,8 +187,8 @@ export class OpenVPNStatusHistoryService extends Service {
                 currentConnection.megaBytesReceived = entry.megaBytesReceived;
                 currentConnection.megaBytesSent = entry.megaBytesSent;
                 
-                if (entry.disconnectedAt) {
-                    currentConnection.disconnected_at = entry.disconnectedAt
+                if (entry.disconnectedAtTimestampInSeconds) {
+                    currentConnection.disconnected_at = new Date(entry.disconnectedAtTimestampInSeconds * 1000);
                     connections.push(currentConnection);
                     currentConnection = undefined;
                 }
@@ -306,19 +306,19 @@ export class OpenVPNStatusHistoryService extends Service {
     protected async detectDisconnections(newTimestampedBatch: CreateOpenVPNStatusHistoryData[], previousTimestampedBatch: OpenVPNStatusHistory[]): Promise<void> {
         // If the current batch doesn't have an entry which exists on the previous batch,
         // then we must add an entry to the batch with a disconnectedAt value
-        for (let previous of previousTimestampedBatch.filter(item => item.disconnectedAt === null)) {
+        for (let previous of previousTimestampedBatch.filter(item => item.disconnectedAtTimestampInSeconds === null)) {
             const matchIndex: number = newTimestampedBatch.findIndex(item => previous.name === item.name);
 
             //If the persisted batch name is not present in the current batch, then we must set as disconnected
             if ( matchIndex < 0) {
-                previous.disconnectedAt = new Date(previous.timestampInSeconds * 1000);
+                previous.disconnectedAtTimestampInSeconds = previous.timestampInSeconds;
                 await getRepository(OpenVPNStatusHistory).save(previous);
 
             } else {
                 // If the persisted batch name is present in the current batch but its address is different,
                 // then is a new connection.
                 if (previous.address !== newTimestampedBatch[matchIndex].address) {
-                    previous.disconnectedAt = new Date(previous.timestampInSeconds * 1000);
+                    previous.disconnectedAtTimestampInSeconds = previous.timestampInSeconds;
                     await getRepository(OpenVPNStatusHistory).save(previous);
                 }
             }
