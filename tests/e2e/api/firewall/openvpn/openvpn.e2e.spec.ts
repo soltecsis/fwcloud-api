@@ -222,8 +222,8 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     timestampInSeconds: 2,
                     name: 'name',
                     address: '1.1.1.1',
-                    megaBytesReceived: 100,
-                    megaBytesSent: 200,
+                    bytesReceived: 100,
+                    bytesSent: 200,
                     connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
                 }])
             })
@@ -298,8 +298,8 @@ describe(describeName('OpenVPN E2E Tests'), () => {
                     timestampInSeconds: 1,
                     name: 'name',
                     address: '1.1.1.1',
-                    megaBytesReceived: 100,
-                    megaBytesSent: 200,
+                    bytesReceived: 100,
+                    bytesSent: 200,
                     connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
                 }])
             })

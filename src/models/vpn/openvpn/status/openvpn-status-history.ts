@@ -17,14 +17,14 @@ export class OpenVPNStatusHistory extends Model {
     address: string;
 
     @Column({
-        name: 'mb_received',
+        name: 'bytes_received',
     })
-    megaBytesReceived: number;
+    bytesReceived: number;
 
     @Column({
-        name: 'mb_sent',
+        name: 'bytes_sent',
     })
-    megaBytesSent: number;
+    bytesSent: number;
 
     @Column({
         name: 'connected_at_timestamp',

@@ -27,12 +27,12 @@ export class createOpenvpnStatusHistory1633524573701 implements MigrationInterfa
                     isNullable: false,
                 },
                 {
-                    name: 'mb_received',
+                    name: 'bytes_received',
                     type: 'double',
                     isNullable: false,
                 },
                 {
-                    name: 'mb_sent',
+                    name: 'bytes_sent',
                     type: 'double',
                     isNullable: false,
                 },
