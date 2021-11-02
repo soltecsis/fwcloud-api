@@ -115,8 +115,8 @@ export class OpenVPNStatusHistoryService extends Service {
                 timestampInSeconds: item.timestampInSeconds,
                 name: item.name,
                 address: item.address,
-                bytesReceived: item.bytesReceived,
-                bytesSent: item.bytesSent,
+                bytesReceived: item.bytesReceived.toString(),
+                bytesSent: item.bytesSent.toString(),
                 connectedAtTimestampInSeconds: item.connectedAtTimestampInSeconds,
                 openVPNServerId: serverOpenVPN.id
             })));
@@ -178,14 +178,14 @@ export class OpenVPNStatusHistoryService extends Service {
                     currentConnection = {
                         connected_at: new Date(entry.connectedAtTimestampInSeconds * 1000),
                         disconnected_at: null,
-                        bytesSent: entry.bytesSent,
-                        bytesReceived: entry.bytesReceived,
+                        bytesSent: parseInt(entry.bytesSent),
+                        bytesReceived: parseInt(entry.bytesReceived),
                         address: entry.address
                     }
                 }
 
-                currentConnection.bytesReceived = entry.bytesReceived;
-                currentConnection.bytesSent = entry.bytesSent;
+                currentConnection.bytesReceived = parseInt(entry.bytesReceived);
+                currentConnection.bytesSent = parseInt(entry.bytesSent);
                 
                 if (entry.disconnectedAtTimestampInSeconds) {
                     currentConnection.disconnected_at = new Date(entry.disconnectedAtTimestampInSeconds * 1000);
@@ -226,7 +226,7 @@ export class OpenVPNStatusHistoryService extends Service {
             // Then calculate bytesReceived/bytesSent accumulated.
             // bytesReceviedSent will contain all bytesReceived added in index 0 and all bytesSent added in index 1
             const bytesReceivedSent: [number, number] = records.reduce<[number, number]>((bytes: [number, number], item: OpenVPNStatusHistory) => {
-                return [bytes[0] + item.bytesReceived, bytes[1] + item.bytesSent];
+                return [bytes[0] + parseInt(item.bytesReceived), bytes[1] + parseInt(item.bytesSent)];
             }, [0, 0])
 
             return {

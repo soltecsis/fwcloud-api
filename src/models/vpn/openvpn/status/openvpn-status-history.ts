@@ -19,12 +19,12 @@ export class OpenVPNStatusHistory extends Model {
     @Column({
         name: 'bytes_received',
     })
-    bytesReceived: number;
+    bytesReceived: string;
 
     @Column({
         name: 'bytes_sent',
     })
-    bytesSent: number;
+    bytesSent: string;
 
     @Column({
         name: 'connected_at_timestamp',

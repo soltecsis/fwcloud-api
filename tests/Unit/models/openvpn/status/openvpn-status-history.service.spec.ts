@@ -35,8 +35,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(persisted.name).to.eq(data[0].name);
             expect(persisted.timestampInSeconds).to.eq(data[0].timestampInSeconds);
             expect(persisted.address).to.eq(data[0].address);
-            expect(persisted.bytesReceived).to.eq(data[0].bytesReceived);
-            expect(persisted.bytesSent).to.eq(data[0].bytesSent);
+            expect(persisted.bytesReceived).to.eq(data[0].bytesReceived.toString());
+            expect(persisted.bytesSent).to.eq(data[0].bytesSent.toString());
             expect(persisted.connectedAtTimestampInSeconds).to.eq(Math.floor(data[0].connectedAtTimestampInSeconds));
             expect(persisted.openVPNServerId).to.eq(fwcProduct.openvpnServer.id);
         });
@@ -47,8 +47,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(persisted[0].name).to.eq(data[0].name);
             expect(persisted[0].timestampInSeconds).to.eq(data[0].timestampInSeconds);
             expect(persisted[0].address).to.eq(data[0].address);
-            expect(persisted[0].bytesReceived).to.eq(data[0].bytesReceived);
-            expect(persisted[0].bytesSent).to.eq(data[0].bytesSent);
+            expect(persisted[0].bytesReceived).to.eq(data[0].bytesReceived.toString());
+            expect(persisted[0].bytesSent).to.eq(data[0].bytesSent.toString());
             expect(persisted[0].connectedAtTimestampInSeconds).to.eq(data[0].connectedAtTimestampInSeconds);
             expect(persisted[0].openVPNServerId).to.eq(fwcProduct.openvpnServer.id);
         });
@@ -120,8 +120,8 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(results["name"].connections[0].connected_at).to.deep.eq(new Date(records[0].connectedAtTimestampInSeconds * 1000));
             expect(results["name"].connections[0].disconnected_at).to.be.null;
             expect(results["name"].connections[0].address).to.eq(records[0].address);
-            expect(results["name"].connections[0].bytesSent).to.eq(records[0].bytesSent);
-            expect(results["name"].connections[0].bytesReceived).to.eq(records[0].bytesReceived);
+            expect(results["name"].connections[0].bytesSent).to.eq(parseInt(records[0].bytesSent));
+            expect(results["name"].connections[0].bytesReceived).to.eq(parseInt(records[0].bytesReceived));
         });
 
         it('should return bytes sent and recevied for each connection', async () => {
@@ -153,14 +153,14 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             expect(results["name"].connections[0].connected_at).to.deep.eq(new Date(recordFirstConnections[0].connectedAtTimestampInSeconds * 1000));
             expect(results["name"].connections[0].disconnected_at).to.deep.eq(new Date(new Date(recordFirstConnections[0].timestampInSeconds * 1000)));
             expect(results["name"].connections[0].address).to.eq(recordFirstConnections[0].address);
-            expect(results["name"].connections[0].bytesSent).to.eq(recordFirstConnections[0].bytesSent);
-            expect(results["name"].connections[0].bytesReceived).to.eq(recordFirstConnections[0].bytesReceived);
+            expect(results["name"].connections[0].bytesSent).to.eq(parseInt(recordFirstConnections[0].bytesSent));
+            expect(results["name"].connections[0].bytesReceived).to.eq(parseInt(recordFirstConnections[0].bytesReceived));
 
             expect(results["name"].connections[1].connected_at).to.deep.eq(new Date(recordSecondConnections[0].connectedAtTimestampInSeconds * 1000));
             expect(results["name"].connections[1].disconnected_at).to.be.null;
             expect(results["name"].connections[1].address).to.eq(recordSecondConnections[0].address);
-            expect(results["name"].connections[1].bytesSent).to.eq(recordSecondConnections[0].bytesSent);
-            expect(results["name"].connections[1].bytesReceived).to.eq(recordSecondConnections[0].bytesReceived);
+            expect(results["name"].connections[1].bytesSent).to.eq(parseInt(recordSecondConnections[0].bytesSent));
+            expect(results["name"].connections[1].bytesReceived).to.eq(parseInt(recordSecondConnections[0].bytesReceived));
         })
 
         describe('filter: name', () => {
