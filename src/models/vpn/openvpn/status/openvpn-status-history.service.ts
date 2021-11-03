@@ -107,11 +107,9 @@ export class OpenVPNStatusHistoryService extends Service {
 
         for(let timestamp of timestamps) {
             const timestampedBatch: CreateOpenVPNStatusHistoryData[] = data.filter(item => item.timestampInSeconds === timestamp);
-        
             await this.detectDisconnections(timestampedBatch, lastTimestampedBatch);
 
-            //Once this batch is persisted, they become lastTimestampedBatch for the next iteration
-            lastTimestampedBatch = await getRepository(OpenVPNStatusHistory).save(timestampedBatch.map<Partial<OpenVPNStatusHistory>>(item => ({
+            const persistedBatch = await getRepository(OpenVPNStatusHistory).save(timestampedBatch.map<Partial<OpenVPNStatusHistory>>(item => ({
                 timestampInSeconds: item.timestampInSeconds,
                 name: item.name,
                 address: item.address,
@@ -120,6 +118,10 @@ export class OpenVPNStatusHistoryService extends Service {
                 connectedAtTimestampInSeconds: item.connectedAtTimestampInSeconds,
                 openVPNServerId: serverOpenVPN.id
             })));
+
+
+            //Once this batch is persisted, they become lastTimestampedBatch for the next iteration
+            lastTimestampedBatch = await getRepository(OpenVPNStatusHistory).findByIds(persistedBatch.map(item => item.id));
 
             entries = entries.concat(lastTimestampedBatch);
         }
@@ -308,7 +310,6 @@ export class OpenVPNStatusHistoryService extends Service {
         // then we must add an entry to the batch with a disconnectedAt value
         for (let previous of previousTimestampedBatch.filter(item => item.disconnectedAtTimestampInSeconds === null)) {
             const matchIndex: number = newTimestampedBatch.findIndex(item => previous.name === item.name);
-
             //If the persisted batch name is not present in the current batch, then we must set as disconnected
             if ( matchIndex < 0) {
                 previous.disconnectedAtTimestampInSeconds = previous.timestampInSeconds;
