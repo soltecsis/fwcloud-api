@@ -43,6 +43,7 @@ schema.validate = req => {
 						// SSH user and password are encrypted with the PGP session key.
 						if (nodes[i].install_user) nodes[i].install_user = await pgp.decrypt(nodes[i].install_user);
 						if (nodes[i].install_pass) nodes[i].install_pass = await pgp.decrypt(nodes[i].install_pass);
+						if (nodes[i].install_apikey) nodes[i].install_apikey = await pgp.decrypt(nodes[i].install_apikey);
 					}
 				}
 			} catch(error) { return reject(fwcError.other(`PGP decrypt: ${error.message}`)) }
@@ -50,13 +51,16 @@ schema.validate = req => {
 			var schemaItem = Joi.object().keys({
 				name: sharedSch.name,
 				comment: sharedSch.comment,
-				install_user: sharedSch.linux_user.allow(null).allow('').optional(),
-				install_pass: sharedSch.linux_pass.allow(null).allow('').optional(),
 				save_user_pass: sharedSch._0_1,
+				install_communication: Joi.string().regex(/ssh|agent/).default('ssh'),
 				install_interface: sharedSch.id.allow(null).optional(),
 				install_ipobj: sharedSch.id.allow(null).optional(),
+				install_user: sharedSch.linux_user.allow(null).allow('').optional(),
+				install_pass: sharedSch.linux_pass.allow(null).allow('').optional(),
+				install_protocol: Joi.string().regex(/http|https/).allow(null),
+				install_apikey: Joi.string().allow("").allow(null),
+				install_port: Joi.number().port(),
 				fwmaster: sharedSch._0_1,
-				install_port: Joi.number().port()
 			});
 
 			var schemaClusterData = Joi.object().keys({

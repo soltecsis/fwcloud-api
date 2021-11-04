@@ -53,21 +53,32 @@ var router = express.Router();
  * @property PolicyScript
  * @type ../../models/compile/
  */
-import { PolicyScript } from '../../compiler/policy/PolicyScript';
-import { Firewall } from '../../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../../models/firewall/Firewall';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload } from '../../sockets/messages/socket-message';
 import { logger } from '../../fonaments/abstract-application';
-
+import { getRepository } from 'typeorm';
+var config = require('../../config/config');
+import * as path from 'path';
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 
 /*----------------------------------------------------------------------------------------------------------------------*/
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
   try {
-    const data = await Firewall.getFirewallSSH(req);
+    const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
+    let nodeId = firewall.id;
+    if (firewall.clusterId && firewall.clusterId > 0) {
+      const masterNode = await getRepository(Firewall).createQueryBuilder('firewall')
+        .where('firewall.clusterId = :cluster', {cluster: firewall.clusterId})
+        .andWhere('firewall.fwmaster = 1')
+        .getOneOrFail();
 
+      nodeId = masterNode.id;
+    }
     const channel = await Channel.fromRequest(req);
+    let communication = await firewall.getCommunication();
 
-    await PolicyScript.install(req,data.SSHconn,((data.id_fwmaster) ? data.id_fwmaster : data.id), channel)
+    await communication.installFirewallPolicy(path.join(config.get('policy').data_dir, req.body.fwcloud.toString(), nodeId.toString(), config.get('policy').script_name), channel);
     await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
     await Firewall.updateFirewallInstallDate(req.body.fwcloud,req.body.firewall);
     
@@ -75,6 +86,11 @@ router.post('/', async (req, res) => {
 		res.status(204).end();
 	} catch(error) {
     logger().error(`Installing policy script${error.message ? ': '+error.message : JSON.stringify(error)}`);
+
+    if (error instanceof HttpException) {
+      return next(error);
+    }
+
     if (error.message)
       res.status(400).json({message: error.message});
     else
