@@ -95,7 +95,6 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 					.set('Cookie', [attachSession(adminUserSessionId)])
 					.expect(200)
 					.then(response => {
-						//console.log(response.body);
 						expect(response.body).to.be.jsonSchema(fwcloudDataSchema); 
 						expect(response.body).to.have.property("name").which.is.equal(fwcData.name);
 						expect(response.body).to.have.property("image").which.is.equal(fwcData.image);
@@ -109,7 +108,6 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 					.set('Cookie', [attachSession(adminUserSessionId)])
 					.expect(200)
 					.then(response => {
-						//console.log(response.body);
 						expect(response.body).to.be.an('array').not.to.be.empty; 
 						for (let item of response.body)
 							expect(response.body).to.be.jsonSchema(item); 

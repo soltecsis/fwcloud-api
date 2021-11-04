@@ -34,13 +34,11 @@ import { OpenVPNOption } from "./openvpn-option.model";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import sshTools from '../../../utils/ssh';
 import { OpenVPNPrefix } from "./OpenVPNPrefix";
-import { ProgressInfoPayload, ProgressErrorPayload, ProgressNoticePayload, ProgressWarningPayload } from "../../../sockets/messages/socket-message";
-import { Channel } from "../../../sockets/channels/channel";
-import { EventEmitter } from "events";
 import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
 import { Route } from "../../routing/route/route.model";
 import { RouteToOpenVPN } from "../../routing/route/route-to-openvpn.model";
 import { RoutingRuleToOpenVPN } from "../../routing/routing-rule/routing-rule-to-openvpn.model";
+import { OpenVPNStatusHistory } from "./status/openvpn-status-history";
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -136,6 +134,9 @@ export class OpenVPN extends Model {
 
     @OneToMany(() => RouteToOpenVPN, model => model.openVPN)
     routeToOpenVPNs: RouteToOpenVPN[];
+
+    @OneToMany(() => OpenVPNStatusHistory, model => model.openVPNServer)
+    historyRecords: OpenVPNStatusHistory[]
 
 
     public getTableName(): string {
@@ -466,108 +467,6 @@ export class OpenVPN extends Model {
         });
     };
 
-
-    public static installCfg(req, cfg, dir, name, type, channel: EventEmitter = new EventEmitter()) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const fwData: any = await Firewall.getFirewallSSH(req);
-
-                if (type === 1) { 
-                    // Client certificarte
-                    channel.emit('message', new ProgressInfoPayload(`Uploading CCD configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`));
-                } else {
-                    channel.emit('message', new ProgressNoticePayload(`Uploading OpenVPN configuration file '${dir}/${name}' to: (${fwData.SSHconn.host})\n`));
-                }
-                
-                await sshTools.uploadStringToFile(fwData.SSHconn, cfg, name);
-
-                const sudo = fwData.SSHconn.username === 'root' ? '' : 'sudo';
-
-                const existsDir = await sshTools.runCommand(fwData.SSHconn, `if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
-                if (existsDir === "0") {
-                    channel.emit('message', new ProgressNoticePayload(`Creating install directory.\n`));
-                    await sshTools.runCommand(fwData.SSHconn, `${sudo} mkdir "${dir}"`);
-                    await sshTools.runCommand(fwData.SSHconn, `${sudo} chown root:root "${dir}"`);
-                    await sshTools.runCommand(fwData.SSHconn, `${sudo} chmod 755 "${dir}"`);
-                }
-
-                channel.emit('message', new ProgressNoticePayload(`Installing OpenVPN configuration file.\n`));
-                await sshTools.runCommand(fwData.SSHconn, `${sudo} mv ${name} ${dir}/`);
-
-                channel.emit('message', new ProgressNoticePayload(`Setting up file permissions.\n\n`));
-                await sshTools.runCommand(fwData.SSHconn, `${sudo} chown root:root ${dir}/${name}`);
-
-                if (type === 1) { 
-                    // Client certificate.
-                    await sshTools.runCommand(fwData.SSHconn, `${sudo} chmod 644 ${dir}/${name}`);
-                } else {
-                    // Server certificate.
-                    await sshTools.runCommand(fwData.SSHconn, `${sudo} chmod 600 ${dir}/${name}`);
-                }
-
-                resolve();
-            } catch (error) {
-                channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
-                reject(error);
-            }
-        });
-    };
-
-    public static uninstallCfg(req, dir, name, channel: EventEmitter = new EventEmitter()) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const fwData: any = await Firewall.getFirewallSSH(req);
-
-                channel.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/${name}' from: (${fwData.SSHconn.host})\n`));
-                const sudo = fwData.SSHconn.username === 'root' ? '' : 'sudo';
-                await sshTools.runCommand(fwData.SSHconn, `${sudo} rm -f "${dir}/${name}"`);
-
-                resolve();
-            } catch (error) {
-                channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
-                reject(error);
-            }
-        });
-    };
-
-    public static ccdCompare(req, dir, clients, channel: EventEmitter = new EventEmitter()) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const fwData: any = await Firewall.getFirewallSSH(req);
-
-                channel.emit('message', new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`));
-                const fileList = (await sshTools.runCommand(fwData.SSHconn, `cd ${dir}; ls -p | grep -v "/$"`)).trim().split('\r\n');
-                let found;
-                let notFoundList = "";
-                for (let file of fileList) {
-                    found = 0;
-                    for (let client of clients) {
-                        if (client.cn === file) {
-                            found = 1;
-                            break;
-                        }
-                    }
-                    if (!found) notFoundList += `${file}\n`;
-                }
-
-                if (notFoundList) {
-                    channel.emit('message', new ProgressWarningPayload(`Found files in the directory '${dir}' without OpenVPN config:
-                        ${notFoundList}
-                        `));
-                }
-                else {
-                    channel.emit('message', new ProgressInfoPayload(`Ok.\n\n`));
-                }
-
-                resolve(notFoundList);
-            } catch (error) {
-                channel.emit('message', new ProgressErrorPayload(`ERROR: ${error}\n`));
-                reject(error);
-            }
-        });
-    };
-
-
     public static updateOpenvpnStatus(dbCon, openvpn, status_action) {
         return new Promise((resolve, reject) => {
             dbCon.query(`UPDATE openvpn SET status=status${status_action} WHERE id=${openvpn}`, (error, result) => {
@@ -848,26 +747,6 @@ export class OpenVPN extends Model {
                 if (error) return reject(error);
                 resolve(result.insertId);
             });
-        });
-    };
-
-
-    public static getStatusFile(req, status_file_path) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const fwData: any = await Firewall.getFirewallSSH(req);
-
-                const sudo = fwData.SSHconn.username === 'root' ? '' : 'sudo';
-                let data = await sshTools.runCommand(fwData.SSHconn, `${sudo} cat "${status_file_path}"`);
-                // Remove the first line ()
-                let lines = data.split('\n');
-                if (lines[0].startsWith('[sudo] password for '))
-                    lines.splice(0, 1);
-                // join the array back into a single string
-                data = lines.join('\n');
-
-                resolve(data);
-            } catch (error) { reject(error) }
         });
     };
 

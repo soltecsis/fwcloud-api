@@ -41,16 +41,29 @@ import * as path from "path";
 const config = require('../../config/config');
 var firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
+var utilsModel = require("../../utils/utils.js");
 
-import sshTools from '../../utils/ssh';
 import { RoutingTable } from "../routing/routing-table/routing-table.model";
 import { RoutingGroup } from "../routing/routing-group/routing-group.model";
 import { RouteGroup } from "../routing/route-group/route-group.model";
 import { AvailablePolicyCompilers } from "../../compiler/policy/PolicyCompiler";
 import { IPObj } from "../ipobj/IPObj";
 import { IPObjGroup } from "../ipobj/IPObjGroup";
+import { Communication } from "../../communications/communication";
+import { SSHCommunication } from "../../communications/ssh.communication";
+import { AgentCommunication } from "../../communications/agent.communication";
 
 const tableName: string = 'firewall';
+
+export enum FirewallInstallCommunication {
+	SSH = 'ssh',
+	Agent = 'agent'
+}
+
+export enum FirewallInstallProtocol {
+	HTTPS = 'https',
+	HTTP = 'http'
+}
 
 @Entity(tableName)
 export class Firewall extends Model {
@@ -82,6 +95,21 @@ export class Firewall extends Model {
 	@Column()
 	status: number;
 
+	@Column({
+		type: 'enum',
+		enum: FirewallInstallCommunication
+	})
+	install_communication: FirewallInstallCommunication;
+
+	@Column({
+		type: 'enum',
+		enum: FirewallInstallProtocol
+	})
+	install_protocol: FirewallInstallProtocol;
+
+	@Column()
+	install_apikey: string;
+
 	@Column()
 	install_user: string;
 
@@ -89,13 +117,13 @@ export class Firewall extends Model {
 	install_pass: string;
 
 	@Column()
-	save_user_pass: number;
-
-	@Column()
 	install_interface: number;
 
 	@Column()
 	install_ipobj: number;
+
+	@Column()
+	save_user_pass: number;
 
 	@Column()
 	fwmaster: number;
@@ -147,6 +175,25 @@ export class Firewall extends Model {
 	
 	public getTableName(): string {
 		return tableName;
+	}
+
+	async getCommunication(): Promise<Communication<unknown>> {
+		if (this.install_communication === FirewallInstallCommunication.SSH) {
+			return new SSHCommunication({
+				host: (await getRepository(IPObj).findOneOrFail(this.install_ipobj)).address,
+				port: this.install_port,
+				username: utilsModel.decrypt(this.install_user),
+				password: utilsModel.decrypt(this.install_pass),
+				options: this.options
+			})
+		}
+
+		return new AgentCommunication({
+			protocol: this.install_protocol,
+			host: (await getRepository(IPObj).findOneOrFail(this.install_ipobj)).address,
+			port: this.install_port,
+			apikey: utilsModel.decrypt(this.install_apikey)
+		});
 	}
 
 	public getPolicyFilePath(): string {
@@ -225,7 +272,7 @@ export class Firewall extends Model {
 				if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
 
 				try {
-					let firewall_data:any = (await Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data))))[0];
+					let firewall_data:any = (await Promise.all(rows.map(data => utilsModel.decryptFirewallData(data))))[0];
 					resolve(firewall_data);
 				} catch(error) { return reject(error) } 
 			});
@@ -266,7 +313,7 @@ export class Firewall extends Model {
 
 			req.dbCon.query(sql, (error, rows) => {
 				if (error) return reject(error);
-				Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
+				Promise.all(rows.map(data => utilsModel.decryptFirewallData(data)))
 					.then(data => resolve(data))
 					.catch(error => reject(error));
 			});
@@ -396,7 +443,7 @@ export class Firewall extends Model {
 				if (error)
 					callback(error, null);
 				else {
-					Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)))
+					Promise.all(rows.map(data => utilsModel.decryptFirewallData(data)))
 						.then(data => {
 							Promise.all(data.map(data => this.getfirewallData(data)))
 								.then(dataF => {
@@ -433,7 +480,7 @@ export class Firewall extends Model {
 					callback(error, null);
 				else {
 					try {
-						let firewall_data:any = await Promise.all(rows.map(data => utilsModel.decryptDataUserPass(data)));	
+						let firewall_data:any = await Promise.all(rows.map(data => utilsModel.decryptFirewallData(data)));
 						callback(null, firewall_data);
 					} catch(error) { return callback(error, null) } 
 				}
@@ -525,9 +572,12 @@ export class Firewall extends Model {
 					install_user=${dbCon.escape(firewallData.install_user)},
 					install_pass=${dbCon.escape(firewallData.install_pass)},
 					save_user_pass=${firewallData.save_user_pass},
+					install_communication="${firewallData.install_communication}",
+					install_protocol="${firewallData.install_protocol}",
 					install_interface=${firewallData.install_interface},
 					install_ipobj=${firewallData.install_ipobj},
 					install_port=${firewallData.install_port},
+					install_apikey="${firewallData.install_apikey}",
 					by_user=${iduser},
 					options=${firewallData.options}
 					WHERE id=${firewallData.id}`;
@@ -1125,6 +1175,14 @@ export class Firewall extends Model {
 				if (param === undefined || param === '' || isNaN(param) || param == null) {
 					body.install_port = 22;
 				}
+				param = body.install_protocol;
+				if (param === undefined || param === '' || param == null) {
+					body.install_protocol = FirewallInstallProtocol.HTTPS;
+				}
+				param = body.install_apikey;
+				if (param === undefined || param === '' || param == null) {
+					body.install_apikey = null;
+				}
 				param = body.fwmaster;
 				if (param === undefined || param === '' || isNaN(param) || param == null) {
 					body.fwmaster = 0;
@@ -1221,33 +1279,4 @@ export class Firewall extends Model {
 			} catch (error) { reject(error) }
 		});
 	};
-
-
-	public static getInterfacesData(SSHconn) {
-		return new Promise(async (resolve, reject) => {
-			try {
-				const sudo = SSHconn.username === 'root' ? '' : 'sudo';
-				const data: any = await sshTools.runCommand(SSHconn, `${sudo} ip a`);
-				
-				// Before answer, parse data to see if we have get a valid answer.
-
-				resolve(data);
-			} catch (error) { reject(error) }
-		});
-	}
-
-	public static getIptablesSave(SSHconn): Promise<string[]> {
-		return new Promise(async (resolve, reject) => {
-			try {
-				const sudo = SSHconn.username === 'root' ? '' : 'sudo';
-				const data: any = await sshTools.runCommand(SSHconn, `${sudo} iptables-save`);
-				let iptablesSaveOutput: string[] = data.split('\r\n');
-
-				if (iptablesSaveOutput[0].startsWith('[sudo]')) iptablesSaveOutput.shift();
-				if (iptablesSaveOutput[iptablesSaveOutput.length-1] === '') iptablesSaveOutput = iptablesSaveOutput.slice(0, -1);;
-
-				resolve(iptablesSaveOutput);
-			} catch (error) { reject(error) }
-		});
-	}
 }
