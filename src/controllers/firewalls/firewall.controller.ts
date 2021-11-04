@@ -21,7 +21,7 @@
 */
 
 import { Controller } from "../../fonaments/http/controller";
-import { Firewall, FirewallInstallCommunication } from "../../models/firewall/Firewall";
+import { Firewall } from "../../models/firewall/Firewall";
 import { getRepository } from "typeorm";
 import { Request } from "express";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
@@ -36,25 +36,13 @@ import { RoutingRulesData, RoutingRuleService } from "../../models/routing/routi
 import { RoutingRuleItemForCompiler } from "../../models/routing/shared";
 import { RoutingCompiler } from "../../compiler/routing/RoutingCompiler";
 import { FirewallControllerCompileRoutingRuleQueryDto } from "./dtos/compile-routing-rules.dto";
-import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { PingDto } from "./dtos/ping.dto";
-import { Communication } from "../../communications/communication";
-import { SSHCommunication } from "../../communications/ssh.communication";
-import { AgentCommunication } from "../../communications/agent.communication";
-import { PgpHelper } from "../../utils/pgp";
 
 export class FirewallController extends Controller {
     
     protected firewallService: FirewallService;
     protected routingRuleService: RoutingRuleService;
-    protected _fwCloud: FwCloud;
 
-    public async make(request: Request): Promise<void> {
-        //Get the fwcloud from the URL which contains the firewall
-        this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
-            .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)})
-            .getOneOrFail();
-
+    public async make(): Promise<void> {
         this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
         this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
     }
@@ -126,47 +114,5 @@ export class FirewallController extends Controller {
         const compilation = new RoutingCompiler().compile('Rule', rules);
 
         return ResponseBuilder.buildResponse().status(200).body(compilation)
-    }
-
-    @Validate(PingDto)
-    async pingCommunication(request: Request): Promise<ResponseBuilder> {
-        const input: PingDto = request.body;
-
-        (await FirewallPolicy.ping(this._fwCloud, request.session.user)).authorize();
-
-        const pgp = new PgpHelper(request.session.pgp);
-
-        try {
-            let communication: Communication<unknown>;
-
-            if (input.communication === FirewallInstallCommunication.SSH) {
-                communication = new SSHCommunication({
-                    host: input.host,
-                    port: input.port,
-                    username: await pgp.decrypt(input.username),
-                    password: await pgp.decrypt(input.password),
-                    options: null
-                })
-            } else {
-                communication = new AgentCommunication({
-                    host: input.host,
-                    port: input.port,
-                    protocol: input.protocol,
-                    apikey: await pgp.decrypt(input.apikey)
-                })
-            }
-
-            await communication.ping();
-
-            return ResponseBuilder.buildResponse().status(200).body({
-                status: 'OK'
-            })
-        } catch(error) {
-            if (error.message === 'Method not implemented') {
-                return ResponseBuilder.buildResponse().status(501);
-            }
-
-            throw error;
-        }
     }
 }

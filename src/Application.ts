@@ -64,8 +64,6 @@ import { RoutingGroupServiceProvider } from "./models/routing/routing-group/rout
 import { RouteGroupServiceProvider } from "./models/routing/route-group/route-group.provider";
 import { ClusterServiceProvider } from "./models/firewall/cluster.provider";
 import { OpenVPNPrefixServiceProvider } from "./models/vpn/openvpn/openvpn-prefix.provider";
-import { OpenVPNStatusHistoryServiceProvider } from "./models/vpn/openvpn/status/openvpn-status-history.provider";
-import { isMainThread } from "worker_threads";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -92,22 +90,20 @@ export class Application extends HTTPApplication {
         await super.bootstrap();
         await this.startDatabaseService();
 
-        if (isMainThread) {
-            this.logger().info(`------- Starting application -------`);
-            this.logger().info(`FWCloud API v${this.version.tag} (PID=${process.pid}) (${this.config.get('env')}) | schema: v${this.version.schema}`);
+        this.logger().info(`------- Starting application -------`);
+        this.logger().info(`FWCloud API v${this.version.tag} (PID=${process.pid}) (${this.config.get('env')}) | schema: v${this.version.schema}`);
 
-            // If stdout log mode is not enabled, log messages are not shown in terminal.
-            // As a result, user doesn't know when application has started.
-            // So, we print out the message directly
-            if (this._config.get('env') !== 'test' && this._config.get('log.stdout') === false) {
-                console.log(`------- Starting application -------`);
-                console.log(`FWCloud API v${this.version.tag} (PID=${process.pid}) (${this.config.get('env')}) | schema: v${this.version.schema}`);
-            }
-
-            process.on('SIGINT', this.signalHandler);
-            process.on('SIGTERM', this.signalHandler);
+        // If stdout log mode is not enabled, log messages are not shown in terminal. 
+        // As a result, user doesn't know when application has started.
+        // So, we print out the message directly 
+        if (this._config.get('env') !== 'test' && this._config.get('log.stdout') === false) {
+            console.log(`------- Starting application -------`);
+            console.log(`FWCloud API v${this.version.tag} (PID=${process.pid}) (${this.config.get('env')}) | schema: v${this.version.schema}`);
         }
 
+        process.on('SIGINT', this.signalHandler);
+        process.on('SIGTERM', this.signalHandler);
+        
         return this;
     }
 
@@ -133,8 +129,7 @@ export class Application extends HTTPApplication {
             RoutingRuleServiceProvider,
             RoutingGroupServiceProvider,
             RouteGroupServiceProvider,
-            OpenVPNPrefixServiceProvider,
-            OpenVPNStatusHistoryServiceProvider
+            OpenVPNPrefixServiceProvider
         ]
     }
 

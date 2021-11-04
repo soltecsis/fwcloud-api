@@ -204,7 +204,6 @@ router.post('/', async (req, res) => {
 
 			firewallData.install_user = (firewallData.install_user) ? await utilsModel.encrypt(firewallData.install_user) : '';
 			firewallData.install_pass = (firewallData.install_pass) ? await utilsModel.encrypt(firewallData.install_pass) : '';
-			firewallData.install_apikey = (firewallData.install_apikey) ? await utilsModel.encrypt(firewallData.install_apikey) : null;
 
 			const idfirewall = await Firewall.insertFirewall(firewallData);
 

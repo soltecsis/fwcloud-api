@@ -31,9 +31,6 @@ function firewalls_Data(data) {
 	this.status = data.status;
 	this.install_user = data.install_user;
 	this.install_pass = data.install_pass;
-	this.install_protocol = data.install_protocol;
-	this.install_communication = data.install_communication;
-	this.install_apikey = data.install_apikey;
 	this.save_user_pass = data.save_user_pass;
 	this.install_interface = data.install_interface;
 	this.install_ipobj = data.install_ipobj;

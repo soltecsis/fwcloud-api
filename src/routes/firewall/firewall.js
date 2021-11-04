@@ -62,7 +62,7 @@ var router = express.Router();
  * 
  * 
  */
-import { Firewall, FirewallInstallCommunication, FirewallInstallProtocol } from '../../models/firewall/Firewall';
+import { Firewall } from '../../models/firewall/Firewall';
 import { FirewallExport } from '../../export/FirewallExport';
 
 /**
@@ -147,14 +147,11 @@ router.post('/', async(req, res) => {
 		status: 3,
 		comment: req.body.comment,
 		fwcloud: req.body.fwcloud,
-		install_communication: req.body.install_communication === 'ssh' ? FirewallInstallCommunication.SSH : FirewallInstallCommunication.Agent,
 		install_user: req.body.install_user,
 		install_pass: req.body.install_pass,
 		save_user_pass: req.body.save_user_pass,
 		install_interface: req.body.install_interface,
 		install_ipobj: req.body.install_ipobj,
-		install_apikey: req.body.install_apikey !== null ? await utilsModel.encrypt(req.body.install_apikey): null,
-		install_protocol: req.body.install_protocol,
 		fwmaster: req.body.fwmaster,
 		install_port: req.body.install_port,
 		by_user: req.session.user_id,
@@ -250,10 +247,7 @@ router.put('/', async (req, res) => {
 		cluster: req.body.cluster,
 		name: req.body.name,
 		comment: req.body.comment,
-		fwcloud: req.body.fwcloud, //working cloud
-		install_communication: req.body.install_communication === 'ssh' ? FirewallInstallCommunication.SSH : FirewallInstallCommunication.Agent, 
-		install_apikey: req.body.install_apikey !== null ? await utilsModel.encrypt(req.body.install_apikey): null,
-		install_protocol: req.body.install_protocol,
+		fwcloud: req.body.fwcloud, //working cloud      
 		install_user: req.body.install_user,
 		install_pass: req.body.install_pass,
 		save_user_pass: req.body.save_user_pass,
@@ -360,7 +354,6 @@ router.put('/get', async (req, res) => {
 			// SSH user and password are encrypted with the PGP session key supplied by fwcloud-ui.
 			if (data.install_user) data.install_user = await pgp.encrypt(data.install_user);
 			if (data.install_pass) data.install_pass = await pgp.encrypt(data.install_pass);
-			if (data.install_apikey !== null) data.install_apikey = await pgp.encrypt(data.install_apikey);
 
 			res.status(200).json(data);
 		}

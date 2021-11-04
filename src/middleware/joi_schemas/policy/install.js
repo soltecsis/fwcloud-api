@@ -40,8 +40,8 @@ schema.validate = req => {
     var schema = Joi.object().keys({ 
       fwcloud: sharedSch.id,
       firewall: sharedSch.id,
-      sshuser: sharedSch.linux_user.optional(),
-      sshpass: sharedSch.linux_pass.optional(),
+      sshuser: sharedSch.linux_user,
+      sshpass: sharedSch.linux_pass,
       socketid: sharedSch.socketio_id.optional()
      });
     
