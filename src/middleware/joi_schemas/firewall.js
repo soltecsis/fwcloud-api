@@ -39,7 +39,6 @@ schema.validate = req => {
 				// SSH user and password are encrypted with the PGP session key.
 				if (req.body.install_user) req.body.install_user = await pgp.decrypt(req.body.install_user);
 				if (req.body.install_pass) req.body.install_pass = await pgp.decrypt(req.body.install_pass);
-				if (req.body.install_apikey) req.body.install_apikey = await pgp.decrypt(req.body.install_apikey);
 			} catch(error) { return reject(fwcError.other(`PGP decrypt: ${error.message}`)) }
 			
 			schema = Joi.object().keys({
@@ -47,15 +46,11 @@ schema.validate = req => {
 				cluster: sharedSch.id.allow(null).optional(),
 				name: sharedSch.name,
 				comment: sharedSch.comment,
-				install_communication: Joi.string().regex(/ssh|agent/).default('ssh'),
-				install_interface: sharedSch.id.allow(null).optional(),
-				install_ipobj: sharedSch.id.allow(null).optional(),
 				install_user: sharedSch.linux_user.allow(null).allow('').optional(),
 				install_pass: sharedSch.linux_pass.allow(null).allow('').optional(),
-				install_protocol: Joi.string().regex(/http|https/).allow(null),
-				install_apikey: Joi.string().allow("").allow(null),
-				install_port: Joi.number().port(),
 				save_user_pass: sharedSch._0_1,
+				install_interface: sharedSch.id.allow(null).optional(),
+				install_ipobj: sharedSch.id.allow(null).optional(),
 				fwmaster: sharedSch._0_1,
 				install_port: Joi.number().port(),
 				options: sharedSch.u16bits

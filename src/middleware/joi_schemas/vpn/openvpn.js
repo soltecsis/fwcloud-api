@@ -178,10 +178,12 @@ schema.validate = req => {
 				schema = schema.append({
 					firewall: sharedSch.id,
 					openvpn: sharedSch.id,
-					sshuser: sharedSch.linux_user.optional(),
-					sshpass: sharedSch.linux_pass.optional(),
+					sshuser: sharedSch.linux_user,
+					sshpass: sharedSch.linux_pass,
 					socketid: sharedSch.socketio_id.optional()
 				});
+
+				if (req.path==='/vpn/openvpn/ccdsync') schema = schema.append({ onlyPending: Joi.number().integer().valid([0, 1]).optional() });
 			}
 			else if (req.path==='/vpn/openvpn/get' || req.path==='/vpn/openvpn/del' 
 					|| req.path==='/vpn/openvpn/ip/get' || req.path==='/vpn/openvpn/ipobj/get'

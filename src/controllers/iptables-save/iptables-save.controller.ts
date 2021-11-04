@@ -45,7 +45,7 @@ export class IptablesSaveController extends Controller {
         if (request.body.type === 'data')
             result = await this._iptablesSaveService.import(request);
         else // ssh
-            result = await this._iptablesSaveService.importThroughCommunication(request);
+            result = await this._iptablesSaveService.importSSH(request);
 
         return ResponseBuilder.buildResponse().status(200).body(result);
     }

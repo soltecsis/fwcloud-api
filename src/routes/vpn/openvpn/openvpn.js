@@ -64,13 +64,10 @@ import { IPObj } from '../../../models/ipobj/IPObj';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { logger } from '../../../fonaments/abstract-application';
-import { Firewall, FirewallInstallCommunication } from '../../../models/firewall/Firewall';
-import { getRepository } from 'typeorm';
-import db from '../../../database/database-manager';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { Cluster } from '../../../models/firewall/Cluster';
 const fwcError = require('../../../utils/error_table');
-import * as crypto from "crypto";
-import { CCDComparer } from '../../../models/vpn/openvpn/ccd-comparer';
-import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
+
 
 /**
  * Create a new OpenVPN configuration in firewall.
@@ -307,13 +304,11 @@ router.put('/where', async (req, res) => {
 /**
  * Install OpenVPN configuration in the destination firewall.
  */
-router.put('/install', async(req, res, next) => {
+router.put('/install', async(req, res) => {
 	try {
 		const channel = await Channel.fromRequest(req);
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
-		const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
-		const communication = await firewall.getCommunication();
 		
 		channel.emit('message', new ProgressPayload('start', false, 'Installing OpenVPN'));
 
@@ -323,18 +318,12 @@ router.put('/install', async(req, res, next) => {
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
 			const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
 			if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
-			await communication.installOpenVPNClientConfigs(openvpn_opt.arg, [{
-				content: cfgDump.ccd,
-				name:  crt.cn
-			}], channel);
+			await OpenVPN.installCfg(req,cfgDump.ccd, openvpn_opt.arg, crt.cn, 1, channel);
 		}
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw {'msg': 'Empty install dir or install name'};
-				await communication.installOpenVPNServerConfigs(req.openvpn.install_dir, [{
-					content: cfgDump.cfg,
-					name: req.openvpn.install_name
-				}], channel);
+			await OpenVPN.installCfg(req, cfgDump.cfg, req.openvpn.install_dir, req.openvpn.install_name, 2, channel);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
@@ -346,12 +335,7 @@ router.put('/install', async(req, res, next) => {
 		channel.emit('message', new ProgressPayload('end', false, 'Installing OpenVPN'));
 		res.status(200).send();
 	} catch(error) { 
-		logger().error('Error installing openvpn: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
-
-		if (error instanceof HttpException) {
-			return next(error);
-		}
-
+		logger().error('Error installing openvpn: ' + JSON.stringify(error));
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else
@@ -363,12 +347,10 @@ router.put('/install', async(req, res, next) => {
 /**
  * Uninstall OpenVPN configuration from the destination firewall.
  */
-router.put('/uninstall', async(req, res, next) => {
+router.put('/uninstall', async(req, res) => {
 	try {
-		const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
 		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
-		const communication = await firewall.getCommunication();
 
 		channel.emit('message', new ProgressPayload('start', false, 'Uninstalling OpenVPN'));
 
@@ -377,12 +359,12 @@ router.put('/uninstall', async(req, res, next) => {
 			// req.openvpn.openvpn === ID of the server's OpenVPN configuration to which this OpenVPN client config belongs.
 			const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.openvpn.openvpn,'client-config-dir');
 			if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
-			await communication.uninstallOpenVPNConfigs(openvpn_opt.arg,[crt.cn], channel);
+			await OpenVPN.uninstallCfg(req,openvpn_opt.arg,crt.cn, channel);
 		}
 		else { // Server certificate
 			if (!req.openvpn.install_dir || !req.openvpn.install_name)
 				throw {'msg': 'Empty install dir or install name'};
-			await communication.uninstallOpenVPNConfigs(req.openvpn.install_dir,[req.openvpn.install_name], channel);
+			await OpenVPN.uninstallCfg(req,req.openvpn.install_dir,req.openvpn.install_name, channel);
 		}
 
 		// Update the status flag for the OpenVPN configuration.
@@ -392,12 +374,7 @@ router.put('/uninstall', async(req, res, next) => {
 
 		res.status(200).send().end();
 	} catch(error) { 
-		logger().error('Error uninstalling openvpn: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
-
-		if (error instanceof HttpException) {
-			return next(error);
-		}
-
+		logger().error('Error uninstalling openvpn: ' + JSON.stringify(error));
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else
@@ -410,123 +387,48 @@ router.put('/uninstall', async(req, res, next) => {
  * Remove first all the server CCD files and then install all the CCD files.
  * ROUTE CALL:  /vpn/openvpn/ccdsync
  */
-router.put('/ccdsync', async(req, res, next) => {
+router.put('/ccdsync', async(req, res) => {
 	try {
 		const channel = await Channel.fromRequest(req);
-		const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
-			.where('firewall.id = :firewallId', {firewallId: req.body.firewall})
-			.andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId: req.body.fwcloud})
-			.getOneOrFail();
-		const communication = await firewall.getCommunication();
-		const openvpnQuery = getRepository(OpenVPN).createQueryBuilder('openvpn')
-			.innerJoinAndSelect('openvpn.crt', 'crt')
-			.innerJoin('openvpn.firewall', 'firewall')
-			.where('openvpn.id = :openvpnId', {openvpnId: req.body.openvpn})
-			.andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId: req.body.fwcloud});
+		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
+		
+		channel.emit('message', new ProgressPayload('start', false, 'Sync OpenVPN CCD'));
 
-		// If the firewall belongs to a cluster we must get the openvpn assigned to the master
-		// firewall. Otherwise, we must get the openvpn assigned to the firewall defined in the request
-		if (firewall.clusterId) {
-			openvpnQuery
-				.andWhere('firewall.cluster = :cluster', {cluster: firewall.clusterId})
-				.andWhere('firewall.fwmaster = 1');
-		} else {
-			openvpnQuery.andWhere('firewall.id = :firewallId', {firewallId: req.body.firewall})
-		}
-
-
-		//If the firewall belongs to a cluster, openvpn will belong to the master node of the cluster
-		const openvpn = await openvpnQuery.getOneOrFail();
-
-		const cluster = await Firewall.getClusterId(req.dbCon, req.body.firewall);
-		let lastClusterNodeId = cluster ? await Firewall.getLastClusterNodeId(req.dbCon, cluster) : null;
-
-		// This action only can be done in server OpenVPN configurations.
-		if (openvpn.crt.type !== 2) {
+		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw fwcError.VPN_NOT_SER;
-		}
 
 		// Obtain the configuration directory in the client-config-dir configuration option of the OpenVPN
 		// server configuration.
 		const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.body.openvpn,'client-config-dir');
-		if (!openvpn_opt) {
-			throw fwcError.VPN_NOT_FOUND_CFGDIR;
-		}
+		if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_CFGDIR;
 		const client_config_dir = openvpn_opt.arg;
 
 		// Get all client configurations for this OpenVPN server configuration.
-		const clients = await getRepository(OpenVPN).createQueryBuilder('openvpn')
-			.innerJoinAndSelect('openvpn.crt', 'crt')
-			.where('openvpn.parentId = :parentId', {parentId: openvpn.id})
-			.getMany();
+		const clients = await OpenVPN.getOpenvpnClients(req.dbCon,req.body.openvpn);
 
-		const ccdRemoteHashes = await communication.ccdHashList(client_config_dir, channel);
-		const ccdLocalHashes = [];
+		const cluster = await Firewall.getClusterId(req.dbCon, req.body.firewall);
+		let lastClusterNodeId = cluster ? await Firewall.getLastClusterNodeId(req.dbCon, cluster) : null;
+
 		for (let client of clients) {
-			let cfgDump = await OpenVPN.dumpCfg(db.getQuery(), req.body.fwcloud, client.id);
+			if (req.body.onlyPending && client.status===0) continue; // Only synchronize CCD files of pending OpenVPN client configs.
 
-			//We must remove comment from ccd before generate the hash
-			const ccdContent = cfgDump.ccd;
-			const ccdName = client.crt.cn;
-			const hash = crypto.createHash('sha256');
-			hash.update(ccdContent);
-			const digest = hash.digest('hex');
+			let cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,client.id);
+			await OpenVPN.installCfg(req,cfgDump.ccd,client_config_dir,client.cn,1, channel);
 
-			ccdLocalHashes.push({
-				filename: ccdName,
-				hash: digest
-			});
+			// Update the status flag for the OpenVPN configuration.
+			if (!cluster || req.body.firewall===lastClusterNodeId) // In a cluster update only if this is the last cluster node.
+				await OpenVPN.updateOpenvpnStatus(req.dbCon,client.id,"&~1");
 		}
 
-		const compare = CCDComparer.compare(ccdLocalHashes, ccdRemoteHashes);
-
-		// Unsynced and onlyLocal certificates must be installed
-		const toBeInstalled = [].concat(compare.onlyLocal, compare.unsynced);
-		if (toBeInstalled.length > 0) {
-
-			const toBeInstalledOpeVPNs = await getRepository(OpenVPN).createQueryBuilder('openvpn')
-				.innerJoinAndSelect('openvpn.crt', 'crt')
-				.where('openvpn.parentId = :openvpn', {openvpn: openvpn.id})
-				.andWhere('crt.cn IN (:...names)', {names: toBeInstalled})
-				.getMany();
-
-			while(toBeInstalledOpeVPNs.length > 0) {
-				const clients = toBeInstalledOpeVPNs.splice(0, 10);
-				const options = []
-				for(let client of clients) {
-					let cfgDump = await OpenVPN.dumpCfg(db.getQuery(), req.body.fwcloud, client.id);
-					options.push({
-						name: client.crt.cn,
-						content: cfgDump.ccd
-					});
-				}
-				await communication.installOpenVPNClientConfigs(client_config_dir, options, channel);
-				for(let client of clients) {
-					// Update the status flag for the OpenVPN configuration.
-					// In a cluster update only if this is the last cluster node.
-					if (!cluster || req.body.firewall===lastClusterNodeId)  {
-						await OpenVPN.updateOpenvpnStatus(req.dbCon,client.id,"&~1");
-					}
-				}
-			}
-		}
-
-		//onlyRemote certificates must be uninstalled
-		const toBeUnInstalled = compare.onlyRemote;
-		if (toBeUnInstalled.length > 0) {
-			await communication.uninstallOpenVPNConfigs(client_config_dir, toBeUnInstalled, channel);
-		}
+		// Get the list of files into the client-config-dir directory.
+		// If we have files in the client-config-dir with no corresponding OpenVPN configuration inform the user.
+		await OpenVPN.ccdCompare(req,client_config_dir,clients, channel)
 
 		channel.emit('message', new ProgressPayload('end', false, 'Sync OpenVPN CCD'));
 
 		res.status(200).send().end();
-	}  catch(error) { 
-		logger().error('Error openvpn ccd sync: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
-
-		if (error instanceof HttpException) {
-			return next(error);
-		}
-
+	} catch(error) {
+		logger().error('Error sync openvpn: ' + JSON.stringify(error));
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else
@@ -538,27 +440,8 @@ router.put('/ccdsync', async(req, res, next) => {
 /**
  * Get the OpenVPN server status log file.
  */
-router.put('/status/get', async(req, res, next) => {
+router.put('/status/get', async(req, res) => {
 	try {
-		const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
-			.where(`firewall.id = :id`, {id: req.body.firewall})
-			.andWhere(`firewall.fwCloudId = :fwcloud`, {fwcloud: req.body.fwcloud})
-			.getOneOrFail();
-		let communication = null;
-
-		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
-			communication = new SSHCommunication({
-				host: Object.prototype.hasOwnProperty.call(request.body, "host") ? request.body.host : (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
-				port: Object.prototype.hasOwnProperty.call(request.body, "port") ? request.body.port : firewall.install_port,
-				username: Object.prototype.hasOwnProperty.call(request.body, "sshuser") ? request.body.sshuser : utilsModel.decrypt(firewall.install_user),
-				password: Object.prototype.hasOwnProperty.call(request.body, "sshpass") ? request.body.sshpass : utilsModel.decrypt(firewall.install_pass),
-				options: null
-			});
-		} else {
-			communication = await firewall.getCommunication();
-		}
-
-
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw fwcError.VPN_NOT_SER;
@@ -568,16 +451,11 @@ router.put('/status/get', async(req, res, next) => {
 		if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_STATUS;
 		const status_file_path = openvpn_opt.arg;
 
-		const data = await communication.getRealtimeStatus(status_file_path);
+		const data = await OpenVPN.getStatusFile(req,status_file_path);
 
 		res.status(200).json(data);
 	} catch(error) { 
-		logger().error('Error getting openvpn log file: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
-
-		if (error instanceof HttpException) {
-			return next(error);
-		}
-
+		logger().error('Error getting openvpn log file: ' + JSON.stringify(error));
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else

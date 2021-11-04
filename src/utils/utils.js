@@ -112,13 +112,19 @@ utilsModel.encrypt = (text) =>  {
 	});
 };
 utilsModel.decrypt = (text) => {
-	var decipher = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
-	var dec = decipher.update(text, 'hex', 'utf8');
-	dec += decipher.final('utf8');
-	return dec;
+	return new Promise((resolve, reject) => {
+		try {
+			var decipher = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
+			var dec = decipher.update(text, 'hex', 'utf8');
+			dec += decipher.final('utf8');
+			resolve(dec);
+		} catch (e) {
+			resolve(text);
+		}
+	});
 };
 
-utilsModel.decryptFirewallData = (data) => {
+utilsModel.decryptDataUserPass = (data) => {
 	return new Promise((resolve, reject) => {
 		try {
 			logger().debug("DENTRO de decryptDataUserPass");
@@ -135,14 +141,6 @@ utilsModel.decryptFirewallData = (data) => {
 				var decPass = decipherPass.update(data.install_pass, 'hex', 'utf8');
 				decPass += decipherPass.final('utf8');
 				data.install_pass = decPass;
-			}
-
-			if (data.install_apikey !== null) {
-				logger().debug("DECRYPT PASS: ", data.install_apikey);
-				var decipherPass = crypto.createDecipher(config.get('crypt').algorithm, config.get('crypt').secret);
-				var decPass = decipherPass.update(data.install_apikey, 'hex', 'utf8');
-				decPass += decipherPass.final('utf8');
-				data.install_apikey = decPass;
 			}
 
 			resolve(data);

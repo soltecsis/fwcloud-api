@@ -88,14 +88,10 @@ export class Routes extends RouteCollection {
                     router.put('/', FwCloudController, 'update').name('fwclouds.update');
 
                     router.prefix('/firewalls', (router: RouterParser) => {
-                        router.post('/communication/ping', FirewallController, 'pingCommunication').name('fwclouds.firewalls.communication.ping');
                         router.prefix('/:firewall(\\d+)', (router:RouterParser) => {
-
                             router.prefix('/openvpns', (router: RouterParser) => {
                                 router.prefix('/:openvpn(\\d+)', (router: RouterParser) => {
                                     router.post('/installer', OpenVPNController, 'installer').name('fwclouds.firewalls.openvpns.installer');
-                                    router.get('/history', OpenVPNController, 'history').name('fwclouds.firewalls.openvpns.history');
-                                    router.get('/graph', OpenVPNController, 'graph').name('fwclouds.firewalls.openvpns.graph');
                                 })
                             });
 
