@@ -76,7 +76,8 @@ router.post('/', async (req, res, next) => {
       nodeId = masterNode.id;
     }
     const channel = await Channel.fromRequest(req);
-    let communication = await firewall.getCommunication();
+    
+    let communication = await firewall.getCommunication({sshuser?: req.body.sshuser, sshpassword?: req.body.sshpass});
 
     await communication.installFirewallPolicy(path.join(config.get('policy').data_dir, req.body.fwcloud.toString(), nodeId.toString(), config.get('policy').script_name), channel);
     await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");

@@ -177,13 +177,20 @@ export class Firewall extends Model {
 		return tableName;
 	}
 
-	async getCommunication(): Promise<Communication<unknown>> {
+	/**
+	 * Returns communication manager. If the firewall is configured to use SSH, custom optional credentials can be provided
+	 * 
+	 * @param sshuser 
+	 * @param sshpassword 
+	 * @returns 
+	 */
+	async getCommunication(custom: {sshuser?: string, sshpassword?: string} = {}): Promise<Communication<unknown>> {
 		if (this.install_communication === FirewallInstallCommunication.SSH) {
 			return new SSHCommunication({
 				host: (await getRepository(IPObj).findOneOrFail(this.install_ipobj)).address,
 				port: this.install_port,
-				username: utilsModel.decrypt(this.install_user),
-				password: utilsModel.decrypt(this.install_pass),
+				username: custom.sshuser ?? utilsModel.decrypt(this.install_user),
+				password: custom.sshpassword ?? utilsModel.decrypt(this.install_pass),
 				options: this.options
 			})
 		}
