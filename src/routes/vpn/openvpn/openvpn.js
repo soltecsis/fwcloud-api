@@ -71,6 +71,7 @@ const fwcError = require('../../../utils/error_table');
 import * as crypto from "crypto";
 import { CCDComparer } from '../../../models/vpn/openvpn/ccd-comparer';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
+import { SSHCommunication } from '../../../communications/ssh.communication';
 
 /**
  * Create a new OpenVPN configuration in firewall.
@@ -313,7 +314,7 @@ router.put('/install', async(req, res, next) => {
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 		const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
-		const communication = await firewall.getCommunication();
+		const communication = await firewall.getCommunication({sshuser?: req.body.sshuser, sshpassword?: req.body.sshpass});
 		
 		channel.emit('message', new ProgressPayload('start', false, 'Installing OpenVPN'));
 
@@ -368,7 +369,7 @@ router.put('/uninstall', async(req, res, next) => {
 		const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
 		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
-		const communication = await firewall.getCommunication();
+		const communication = await firewall.getCommunication({sshuser?: req.body.sshuser, sshpassword?: req.body.sshpass});
 
 		channel.emit('message', new ProgressPayload('start', false, 'Uninstalling OpenVPN'));
 
@@ -417,7 +418,7 @@ router.put('/ccdsync', async(req, res, next) => {
 			.where('firewall.id = :firewallId', {firewallId: req.body.firewall})
 			.andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId: req.body.fwcloud})
 			.getOneOrFail();
-		const communication = await firewall.getCommunication();
+		const communication = await firewall.getCommunication({sshuser?: req.body.sshuser, sshpassword?: req.body.sshpass});
 		const openvpnQuery = getRepository(OpenVPN).createQueryBuilder('openvpn')
 			.innerJoinAndSelect('openvpn.crt', 'crt')
 			.innerJoin('openvpn.firewall', 'firewall')
@@ -548,10 +549,10 @@ router.put('/status/get', async(req, res, next) => {
 
 		if (firewall.install_communication === FirewallInstallCommunication.SSH) {
 			communication = new SSHCommunication({
-				host: Object.prototype.hasOwnProperty.call(request.body, "host") ? request.body.host : (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
-				port: Object.prototype.hasOwnProperty.call(request.body, "port") ? request.body.port : firewall.install_port,
-				username: Object.prototype.hasOwnProperty.call(request.body, "sshuser") ? request.body.sshuser : utilsModel.decrypt(firewall.install_user),
-				password: Object.prototype.hasOwnProperty.call(request.body, "sshpass") ? request.body.sshpass : utilsModel.decrypt(firewall.install_pass),
+				host: Object.prototype.hasOwnProperty.call(req.body, "host") ? req.body.host : (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
+				port: Object.prototype.hasOwnProperty.call(req.body, "port") ? req.body.port : firewall.install_port,
+				username: Object.prototype.hasOwnProperty.call(req.body, "sshuser") ? req.body.sshuser : utilsModel.decrypt(firewall.install_user),
+				password: Object.prototype.hasOwnProperty.call(req.body, "sshpass") ? req.body.sshpass : utilsModel.decrypt(firewall.install_pass),
 				options: null
 			});
 		} else {
