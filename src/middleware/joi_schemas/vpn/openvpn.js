@@ -88,7 +88,7 @@ schema.validate = req => {
 				.when('name', { is: 'remote-cert-tls', then: Joi.string().valid(['server','client']) })
 				.when('name', { is: 'ns-cert-type', then: Joi.string().valid(['server','client']) })
 				.when('name', { is: 'resolv-retry', then: Joi.string().regex(/^infinite|[0-9]{1,10}$/) })
-				.when('name', { is: 'dev', then: Joi.string().regex(/^tun|tap[0-9]{1,6}$/).allow('') })
+				.when('name', { is: 'dev', then: Joi.string().regex(/^tun|vtun|tap[0-9]{1,6}$/).allow('') })
 				.when('name', { is: 'dev-type', then: Joi.string().valid(['tun','tap']) })
 				.when('name', { is: 'cipher', then: Joi.string().regex(/^[a-zA-Z0-9\-]{2,64}$/) })
 				.when('name', { is: 'config', then: sharedSch.linux_path })

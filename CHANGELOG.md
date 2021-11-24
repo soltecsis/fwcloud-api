@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Firewall communication through FWCloud Agent
 - OpenVPN history statistics and graphs
 ### Fixed
+- Remove `_object` property from ValidationError response.
+
+## [1.3.1] - 2021-10-08
+### Added
+- Allow the use of vtun interfaces in OpenVPN configurations. 
+  
+### Fixed
+- Bug in compiler for firewall policy comments.
+
+
+## [1.3.0] - 2021-09-22
+### Added
+- Advanced routing management using the drag and drop features of FWCloud-UI. It is possible to easily create routing tables, routes and routing policy by means of the user web interface FWCloud-UI and the new set of API calls for routing management.
+- Routing compiler for generate the script code that allows apply the routing configuration in the destination firewall.
+- NFTables compiler. A new firewall policy compiler that allows generate the policy installation script using the NFTables Linux kernel packet classification framework. At this moment two compilers are available: IPTables and NFTables.
+- Improved the `Where used` feature including the new routing feature.
+- Better control to avoid leaving empty groups or hosts used in policy, routes or routing policy.
+- Take into account routes and routing rules in the API call for the most used colors.
+- Compilation of several firewall rules, routes or routing rules.
+- Hundreds of new software tests.
+
+### Fixed
 - Fixed 'After adding host to a group it is not possible move it to policy positions'.
 - Fixed 'Bug in firewall cluster node remove'.
 - Remove restrictions added for groups which are being used in policy rules.
@@ -18,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changing mark name updates its node in the tree node
 - Changing the OpenVPN prefixes updates all nodes which reference to it
 - Changing mark settings updates firewalls status flags which use it
+
 
 ## [1.2.0] - 2021-04-30
 ### Added
