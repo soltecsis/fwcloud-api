@@ -314,7 +314,7 @@ router.put('/install', async(req, res, next) => {
 		const cfgDump = await OpenVPN.dumpCfg(req.dbCon,req.body.fwcloud,req.body.openvpn);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
 		const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
-		const communication = await firewall.getCommunication({sshuser?: req.body.sshuser, sshpassword?: req.body.sshpass});
+		const communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
 		
 		channel.emit('message', new ProgressPayload('start', false, 'Installing OpenVPN'));
 
@@ -369,7 +369,7 @@ router.put('/uninstall', async(req, res, next) => {
 		const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
 		const channel = await Channel.fromRequest(req);
 		const crt = await Crt.getCRTdata(req.dbCon,req.openvpn.crt);
-		const communication = await firewall.getCommunication({sshuser?: req.body.sshuser, sshpassword?: req.body.sshpass});
+		const communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
 
 		channel.emit('message', new ProgressPayload('start', false, 'Uninstalling OpenVPN'));
 
@@ -418,7 +418,7 @@ router.put('/ccdsync', async(req, res, next) => {
 			.where('firewall.id = :firewallId', {firewallId: req.body.firewall})
 			.andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId: req.body.fwcloud})
 			.getOneOrFail();
-		const communication = await firewall.getCommunication({sshuser?: req.body.sshuser, sshpassword?: req.body.sshpass});
+		const communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpass});
 		const openvpnQuery = getRepository(OpenVPN).createQueryBuilder('openvpn')
 			.innerJoinAndSelect('openvpn.crt', 'crt')
 			.innerJoin('openvpn.firewall', 'firewall')
