@@ -69,13 +69,18 @@ schema.validate = req => {
 					// SSH user and password are encrypted with the PGP session key.
 					if (req.body.sshuser) req.body.sshuser = await pgp.decrypt(req.body.sshuser);
 					if (req.body.sshpass) req.body.sshpass = await pgp.decrypt(req.body.sshpass);
+					if (req.body.apikey) req.body.apikey = await pgp.decrypt(req.body.apikey);
 				} catch(error) { return reject(fwcError.other(`PGP decrypt: ${error.message}`)) }
 
 				schema = schema.append({ 
 					ip: sharedSch.ipv4,
 					port: Joi.number().port(), 
-					sshuser: sharedSch.linux_user, 
-					sshpass: sharedSch.linux_pass });
+					sshuser: sharedSch.linux_user.optional(),
+					sshpass: sharedSch.linux_pass.optional(),
+					protocol: Joi.string().regex(/http|https/).optional().default('https'),
+					apikey: Joi.string().allow("").allow(null).optional().default(null),
+					communication: Joi.string().regex(/ssh|agent/).default('ssh'),
+				});
 			}
 		} else return reject(fwcError.BAD_API_CALL);
 
