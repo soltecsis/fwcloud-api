@@ -23,12 +23,15 @@
 
 var express = require('express');
 var router = express.Router();
-import { Firewall } from '../../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../../models/firewall/Firewall';
 import { Interface } from '../../models/interface/Interface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { Tree } from '../../models/tree/Tree';
 import { IPObj } from '../../models/ipobj/IPObj';
 import { logger } from '../../fonaments/abstract-application';
+import { SSHCommunication } from '../../communications/ssh.communication';
+import { AgentCommunication } from '../../communications/agent.communication';
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 const restrictedCheck = require('../../middleware/restricted');
 
 const fwcError = require('../../utils/error_table');
@@ -272,22 +275,40 @@ router.put('/restricted', restrictedCheck.interface, (req, res) => res.status(20
 
 
 /* Get all network interface information from a firewall.  */
-router.put('/autodiscover', async(req, res) => {
-  try {
-		const SSHconn = {
-			host: req.body.ip,
-			port: req.body.port,
-			username: req.body.sshuser,
-			password: req.body.sshpass
+router.put('/autodiscover', async(req, res, next) => {
+	try {
+		let communication = null;
+
+		if (req.body.communication === FirewallInstallCommunication.SSH) {
+			communication = new SSHCommunication({
+				host: req.body.ip,
+				port: req.body.port,
+				username: req.body.sshuser,
+				password: req.body.sshpass,
+				options: null
+			});
+		} else {
+			communication = new AgentCommunication({
+				host: req.body.ip,
+				port: req.body.port,
+				protocol: req.body.protocol,
+				apikey: req.body.apikey
+			});
 		}
-		const rawData = await Firewall.getInterfacesData(SSHconn);
-		
+
+		const rawData = await communication.getFirewallInterfaces();
+
 		// Process raw interfaces data and convert into a json object.
 		const ifsData = await Interface.ifsDataToJson(rawData);
 
 		res.status(200).json(ifsData);
 	} catch(error) {
-		logger().error('Error getting network interface information: ' + JSON.stringify(error));
+		logger().error('Error getting network interface information: ' + Object.prototype.hasOwnProperty(error, "message") ? error.message : JSON.stringify(error));
+
+		if (error instanceof HttpException) {
+			return next(error);
+		}
+
 		if (error.message)
 			res.status(400).json({message: error.message});
 		else

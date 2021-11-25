@@ -24,6 +24,7 @@ import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { Firewall } from "../models/firewall/Firewall";
 import { User } from "../models/user/User";
 import { getRepository } from "typeorm";
+import { FwCloud } from "../models/fwcloud/FwCloud";
 
 export class FirewallPolicy extends Policy {
 
@@ -40,6 +41,18 @@ export class FirewallPolicy extends Policy {
             return match.length > 0 ? Authorization.grant() : Authorization.revoke();
         }
         return Authorization.revoke();
+    }
+
+    static async ping(fwcloud: FwCloud, user: User): Promise<Authorization> {
+        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+
+        if (user.role === 1) {
+            return Authorization.grant();
+        }
+
+        const match = user.fwClouds.filter(item => { return item.id === fwcloud.id});
+
+        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
 
     static async install(firewall: Firewall, user: User): Promise<Authorization> {

@@ -20,15 +20,21 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { logger } from "../fonaments/abstract-application";
 import { Request } from "express";
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { IptablesSaveToFWCloud } from './iptables-save.model';
 import { NetFilterTables, IptablesSaveStats } from './iptables-save.data';
-import { Firewall } from '../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../models/firewall/Firewall';
 import { Channel } from '../sockets/channels/channel';
 import { ProgressNoticePayload } from '../sockets/messages/socket-message';
 import { PolicyRule } from '../models/policy/PolicyRule';
+import { SSHCommunication } from "../communications/ssh.communication";
+import { Communication } from "../communications/communication";
+import { AgentCommunication } from "../communications/agent.communication";
+import { getRepository } from "typeorm";
+import { PgpHelper } from "../utils/pgp";
+import { IPObj } from "../models/ipobj/IPObj";
+var utilsModel = require("../utils/utils.js");
 
 export class IptablesSaveService extends IptablesSaveToFWCloud {
   public async import(request: Request): Promise<IptablesSaveStats> {
@@ -100,16 +106,28 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
   }
 
   
-  public async importSSH(request: Request): Promise<IptablesSaveStats> {
-    const SSHconn = {
-			host: request.body.ip,
-			port: request.body.port,
-			username: request.body.sshuser,
-			password: request.body.sshpass
-    }
+  public async importThroughCommunication(request: Request): Promise<IptablesSaveStats> {
+    let communication: Communication<unknown>;
+
+		if (request.body.communication === FirewallInstallCommunication.SSH) {
+			communication = new SSHCommunication({
+				host: request.body.ip,
+				port: request.body.port,
+				username: request.body.sshuser,
+				password: request.body.sshpass,
+				options: null
+			});
+		} else {
+			communication = new AgentCommunication({
+				host: request.body.ip,
+				port: request.body.port,
+				protocol: request.body.protocol,
+				apikey: request.body.apikey
+			});
+		}
 
     try {
-      request.body.data = await Firewall.getIptablesSave(SSHconn);
+      request.body.data = await communication.getFirewallIptablesSave();
     } catch(err) { throw new HttpException(`${err.message} `,401); }
 		
     await this.import(request);
@@ -121,8 +139,25 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     let result: any;
 
     try {
-      const data: any = await Firewall.getFirewallSSH(request);
-      result = await Firewall.getIptablesSave(data.SSHconn);
+      const firewall: Firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+        .where('firewall.id = :id', {id: request.body.firewall})
+        .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: request.body.fwcloud}).getOneOrFail();
+      let communication: Communication<unknown>;
+
+      if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+        communication = new SSHCommunication({
+          host: Object.prototype.hasOwnProperty.call(request.body, "host") ? request.body.host : (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
+          port: Object.prototype.hasOwnProperty.call(request.body, "port") ? request.body.port : firewall.install_port,
+          username: Object.prototype.hasOwnProperty.call(request.body, "sshuser") ? request.body.sshuser : utilsModel.decrypt(firewall.install_user),
+          password: Object.prototype.hasOwnProperty.call(request.body, "sshpass") ? request.body.sshpass : utilsModel.decrypt(firewall.install_pass),
+          options: null
+        });
+      } else {
+        communication = await firewall.getCommunication();
+      }
+
+      result = await communication.getFirewallIptablesSave();
+
     } catch(err) { throw new HttpException(`${err.message} `,401); }
    
     return result;
