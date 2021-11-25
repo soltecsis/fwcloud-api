@@ -41,7 +41,7 @@
     "compression": "^1.7.4",
     "convict": "^6.0.0",
     "convict-format-with-moment": "^6.0.0",
-    "convict-format-with-validator": "^6.0.0",
+    "convict-format-with-validator": "^6.2.0",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
     "cron": "^1.8.2",
@@ -112,7 +112,7 @@
     "chai-json-schema": "^1.5.1",
     "cookie": "0.4.0",
     "cookie-signature": "1.1.0",
-    "mocha": "^7.1.2",
+    "mocha": "^9.1.3",
     "sinon": "9.0.0",
     "supertest": "4.0.2",
     "tree-kill": "1.2.2"
