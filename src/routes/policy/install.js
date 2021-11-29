@@ -83,8 +83,12 @@ router.post('/', async (req, res, next) => {
     await Firewall.updateFirewallStatus(req.body.fwcloud,req.body.firewall,"&~2");
     await Firewall.updateFirewallInstallDate(req.body.fwcloud,req.body.firewall);
     
-    channel.emit('message', new ProgressPayload('end', false, 'Firewall installed'));
-		res.status(204).end();
+    // This is a patch for the issue: https://github.com/soltecsis/fwcloud-ui-src/issues/592
+    // With this pause we give time for avoid sending the end message before other messages in the channel.
+    setInterval(() => {
+      channel.emit('message', new ProgressPayload('end', false, 'Firewall installed'));
+      res.status(204).end();
+    },500);
 	} catch(error) {
     logger().error(`Installing policy script${error.message ? ': '+error.message : JSON.stringify(error)}`);
 
