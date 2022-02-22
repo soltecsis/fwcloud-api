@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -22,6 +22,7 @@
 
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { AvailablePolicyCompilers } from './PolicyCompiler';
+import { SpecialRuleCode, RuleOptionsMask } from '../../models/Policy/PolicyRule';
 const ip = require('ip');
 const fwcError = require('../../utils/error_table');
 const shellescape = require('shell-escape');
@@ -184,16 +185,17 @@ export abstract class PolicyCompilerTools {
         this._cs += `add rule ${this._family} ${this._table} ${POLICY_TYPE[this._policyType]} `;  
       }
 
-			if (this._ruleData.special === 1) // Special rule for ESTABLISHED,RELATED packages.
+      this._ruleData.special = parseInt(this._ruleData.special);
+			if (this._ruleData.special === SpecialRuleCode.get('STATEFUL')) // Special rule for ESTABLISHED,RELATED packages.
 				this._action = CompilerAction.get(`${this._compiler}:1`); // 1 = ACCEPT
-			else if (this._ruleData.special === 2) // Special rule for catch-all.
+			else if (this._ruleData.special === SpecialRuleCode.get('CATCHALL')) // Special rule for catch-all.
 				this._action = CompilerAction.get(`${this._compiler}:${this._ruleData.action}`);
 			else {
 				this._action = CompilerAction.get(`${this._compiler}:${this._ruleData.action}`);
 				if (this._action === CompilerAction.get(`${this._compiler}:1`)) { // 1 = ACCEPT
 					if (this._ruleData.options & 0x0001) // Stateful rule.
 						this._stateful = this._compiler=='IPTables' ? '-m conntrack --ctstate  NEW ' : 'ct state new ';
-					else if ((this._ruleData.firewall_options & 0x0001) && !(this._ruleData.options & 0x0002)) // Statefull firewall and this rule is not stateless.
+					else if ((this._ruleData.firewall_options & RuleOptionsMask.get('STATEFUL')) && !(this._ruleData.options & RuleOptionsMask.get('CATCHALL'))) // Stateful firewall and this rule is not stateless.
             this._stateful = this._compiler=='IPTables' ? '-m conntrack --ctstate  NEW ' : 'ct state new ';
 					}
 				else if (this._action === "ACCOUNTING") {
@@ -213,10 +215,19 @@ export abstract class PolicyCompilerTools {
 			}
 		}
 
-		if (parseInt(this._ruleData.special) === 1) // Special rule for ESTABLISHED,RELATED packages.
-			this._csEnd = `${this._compiler=='IPTables' ? '-m conntrack --ctstate ESTABLISHED,RELATED -j' : 'ct state related,established'} ${this._action}\n`;
-		else
-			this._csEnd = `${this._stateful} ${this._compiler=='IPTables' ? '-j ' :''}${this._action}\n`;
+    switch(this._ruleData.special) {
+      case SpecialRuleCode.get('STATEFUL'): // Special rule for ESTABLISHED,RELATED packages.
+        this._csEnd = `${this._compiler=='IPTables' ? '-m conntrack --ctstate ESTABLISHED,RELATED -j' : 'ct state related,established'} ${this._action}\n`;
+        break;
+
+      case SpecialRuleCode.get('CROWDSEC'): 
+        this._csEnd = `${this._compiler=='IPTables' ? `-m set --match-set crowdsec${this._family==='ip6' ? '6' : ''}-blacklists src -j` : ''} ${this._action}\n`;
+        break;
+
+        default:
+        this._csEnd = `${this._stateful} ${this._compiler=='IPTables' ? '-j ' :''}${this._action}\n`;
+        break;
+    }
 	}
 
 
