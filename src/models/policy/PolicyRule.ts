@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -38,6 +38,14 @@ import { Mark } from "../ipobj/Mark";
 const fwcError = require('../../utils/error_table');
 
 var tableName: string = "policy_r";
+
+// Special rules codes.
+const SR_STATEFUL = 1;
+const SR_CATCHALL = 2;
+const SR_DOCKER = 3;
+const SR_CROWDSEC = 4;
+const SR_FAIL2BAN = 5;
+const sr_mask: number[] = [0, 0x0001, 0, 0x0020, 0x0040, 0x0080];
 
 type RulePosMap = Map<string, []>;
 
@@ -1119,7 +1127,7 @@ public static allowRulePosition(dbCon, firewall, rule, position) {
 };
 
 //Allow all positions of a rule that are empty.
-public static allowEmptyRulePositions(req) {
+public static allowEmptyRulePositions(req: any): Promise<void> {
 	return new Promise(async (resolve, reject) => {
 		try {
 			req.body.type = await this.getPolicyRuleType(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.rule);
@@ -1134,117 +1142,7 @@ public static allowEmptyRulePositions(req) {
 	});
 }
 
-// Check special rules for stateful firewalls.
-public static checkStatefulRules(dbCon, firewall, options) {
-	return new Promise(async (resolve, reject) => {
-        // In first place make sure that the firewall is not in a cluster
-        // or if it is part of a cluster that it is the master node of the cluster.
-        let sql = `select id from firewall where id=${firewall} and (cluster is null or fwmaster=1)`;
-        dbCon.query(sql, async (error, result) => {
-            if (error) return reject(error);
 
-            // No result means that the firewall is part of a cluster and it is not the master node.
-            // In this case nothing must be done, for this reason finish the promise.
-            if (result.length===0) return resolve();
-
-            // If this a stateful firewall verify that the stateful special rules exists.
-            if (options & 0x0001) { // Statefull firewall
-                sql = `select id from ${tableName} where firewall=${firewall} and special=1`;
-                dbCon.query(sql, async (error, result) => {
-                    if (error) return reject(error);
-
-                    if (result.length===0) { 
-                        // If this is a stateful firewall and it doesn't has the stateful special rules, then create them.
-                        var policy_rData = {
-                            id: null,
-                            idgroup: null,
-                            firewall: firewall,
-                            rule_order: 1,
-                            action: 1, // ACCEPT
-                            time_start: null,
-                            time_end: null,
-                            active: 1,
-                            options: 0,
-                            comment: 'Stateful firewall rule.',
-                            type: 1,
-                            special: 1,
-                            style: null
-                        };					
-                        try {
-                            for(policy_rData.type of [1,2,3,61,62,63]) { // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
-                                await this.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
-                                await this.insertPolicy_r(policy_rData);
-                            }
-                        } catch(error) { return reject(error) }
-                    }
-                    resolve();
-                });
-            } else { // Stateless firewall
-                // Or remove them if this is not a stateful firewall.
-                dbCon.query(`delete from ${tableName} where firewall=${firewall} and special=1`, (error, result) => {
-                    if (error) return reject(error);
-                    resolve();
-                });
-            }
-        });
-	});
-};
-
-// Check if exists the catch all special rule by firewall and type.
-public static existsCatchAllSpecialRule(dbCon, firewall, type) {
-	return new Promise((resolve, reject) => {
-		dbCon.query(`select id from ${tableName} where firewall=${firewall} and type=${type} and special=2`, async (error, result) => {
-			if (error) return reject(error);
-			resolve(result.length>0 ? result[0].id : 0);
-		});
-	});
-};
-
-// Check that the catch-all special rule exists. If not, create it.
-public static checkCatchAllRules(dbCon, firewall) {
-	return new Promise(async (resolve, reject) => {
-		var policy_rData = {
-			id: null,
-			idgroup: null,
-			firewall: firewall,
-			rule_order: null,
-			action: null,
-			time_start: null,
-			time_end: null,
-			active: 1,
-			options: 0,
-			comment: 'Catch-all rule.',
-			type: null,
-			special: 2,
-			style: null
-		};
-
-		try {
-			for(policy_rData.type of [1,2,3,61,62,63]) { // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
-				if (policy_rData.type===2 || policy_rData.type===62) // OUTPUT chains for IPv4 and IPv6
-					policy_rData.action = 1 // ACCEPT
-				else 
-					policy_rData.action = 2 // DENY
-				policy_rData.rule_order = (await this.getLastRuleOrder(dbCon, firewall, policy_rData.type));
-				const rule_id = await this.existsCatchAllSpecialRule(dbCon, firewall, policy_rData.type);
-
-				if (!rule_id) {
-					// If catch-all special rule don't exists create it.
-					policy_rData.rule_order++;
-					await this.insertPolicy_r(policy_rData);
-				} else {
-					// If catch-all rule exists, verify that is the last one.
-					const rule_data: any = await this.getPolicy_r(dbCon, firewall, rule_id);
-					if (rule_data.rule_order < policy_rData.rule_order) {
-						// If it is not the last one, move to the last one position.
-						await this.updatePolicy_r(dbCon,{"id": rule_id, "rule_order": policy_rData.rule_order+1})
-					}
-				}
-			}
-		} catch(error) { return reject(error) }
-		resolve();
-	});
-};
 
 //Allow all positions of a rule that are empty.
 public static firewallWithMarkRules(dbCon, firewall) {
@@ -1265,4 +1163,175 @@ public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall) {
 		});
 	});
 }
+
+// Check that the catch-all special rule exists. If not, create it.
+public static checkCatchAllRules(dbCon: any, firewall: number): Promise<void> {
+	return new Promise(async (resolve, reject) => {
+		var policy_rData = {
+			id: null,
+			idgroup: null,
+			firewall: firewall,
+			rule_order: null,
+			action: null,
+			time_start: null,
+			time_end: null,
+			active: 1,
+			options: 0,
+			comment: 'Catch-all rule.',
+			type: null,
+			special: SR_CATCHALL,
+			style: null
+		};
+
+		try {
+			for(policy_rData.type of [1,2,3,61,62,63]) { // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
+				if (policy_rData.type===2 || policy_rData.type===62) // OUTPUT chains for IPv4 and IPv6
+					policy_rData.action = 1 // ACCEPT
+				else 
+					policy_rData.action = 2 // DENY
+				policy_rData.rule_order = (await this.getLastRuleOrder(dbCon, firewall, policy_rData.type));
+				const rule_id = await this.existsSpecialRule(dbCon, firewall, SR_CATCHALL, policy_rData.type);
+
+				if (!rule_id) {
+					// If catch-all special rule don't exists create it.
+					policy_rData.rule_order++;
+					await this.insertPolicy_r(policy_rData);
+				} else {
+					// If catch-all rule exists, verify that is the last one.
+					const rule_data: any = await this.getPolicy_r(dbCon, firewall, rule_id);
+					if (rule_data.rule_order < policy_rData.rule_order) {
+						// If it is not the last one, move to the last one position.
+						await this.updatePolicy_r(dbCon,{"id": rule_id, "rule_order": policy_rData.rule_order+1})
+					}
+				}
+			}
+		} catch(error) { return reject(error) }
+		resolve();
+	});
+};
+
+// Returns true if firewall is not part of a cluster or if it is part of a cluster and it is the master node of the cluster.
+public static aloneFirewallOrMasterNode(dbCon: any, firewall: number): Promise<boolean> {
+	return new Promise((resolve, reject) => {
+        dbCon.query(`select id from firewall where id=${firewall} and (cluster is null or fwmaster=1)`, async (error, result) => {
+            if (error) return reject(error);
+
+            // No result means that the firewall is part of a cluster and it is not the master node.
+            resolve(result.length === 0 ? false : true);
+        });
+    });
+}
+
+
+// Check if exists the catch all special rule by firewall and type.
+public static existsSpecialRule(dbCon: any, firewall: number, code: number, type?: number): Promise<number> {
+	return new Promise((resolve, reject) => {
+        const sql = `select id from ${tableName} where firewall=${firewall} ${type ? `and type=${type}` : ''} and special=${code}`
+		dbCon.query(sql, async (error, result) => {
+			if (error) return reject(error);
+			resolve(result.length>0 ? result[0].id : 0);
+		});
+	});
+};
+
+public static createSpecialRule(dbCon: any, firewall: number, code: number): Promise<void> {
+	return new Promise(async (resolve, reject) => {
+        let policy_rData = {
+            id: null,
+            idgroup: null,
+            firewall: firewall,
+            rule_order: 1,
+            action: 1, // ACCEPT
+            time_start: null,
+            time_end: null,
+            active: 1,
+            options: 0,
+            comment: '',
+            type: 1,
+            special: code,
+            style: null
+        };
+
+        let policyType: number[];
+        
+        try {
+            switch(code) {
+                case SR_STATEFUL:
+                    policy_rData.comment = 'Stateful firewall rule.';
+                    policyType = [1,2,3,61,62,63]; // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
+                    break;
+
+                case SR_DOCKER:
+                    policy_rData.comment = 'Docker compatibility rule.';
+                    policyType = [1,2,3,61,62,63]; // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
+                    break;
+
+                case SR_CROWDSEC:
+                    policy_rData.comment = 'CrowdSec firewall bouncer compatibility rule.';
+                    policyType = [1,3,61,63]; // INPUT and FORWARD chains for IPv4 and IPv6
+                    policy_rData.action = 2;
+                    break;
+            }
+        
+            for(policy_rData.type of policyType) { 
+                await this.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
+                await this.insertPolicy_r(policy_rData);
+            }    
+        } catch(error) { return reject(error) }
+
+        resolve();
+	});
+};
+
+public static deleteSpecialRule(dbCon: any, firewall: number, code: number): Promise<void> {
+	return new Promise((resolve, reject) => {
+		dbCon.query(`delete from ${tableName} where firewall=${firewall} and special=${code}`, async (error, result) => {
+			if (error) return reject(error);
+            resolve();
+		});
+	});
+};
+
+public static checkSpecialRule(dbCon: any, firewall: number, options: number, code: number): Promise<void> {
+	return new Promise(async (resolve, reject) => {
+        try {
+             // Special rule is enabled in the options flags.
+            if (options & sr_mask[code]) {
+                // Special rule already exists, then nothing to do.
+                if (await this.existsSpecialRule(dbCon,firewall,code)) return resolve(); 
+                
+                // If special rule is enabled and it doesn't exists, then create it.
+                await this.createSpecialRule(dbCon,firewall,code); 
+            } else {
+                // Special rule is not enabled, then make sure that it doesn't exists.
+                await this.deleteSpecialRule(dbCon,firewall,code);
+            }
+        } catch(error) { return reject(error) }
+        resolve();
+	});
+};
+
+public static checkSpecialRules(dbCon: any, firewall: number, options: number): Promise<void> {
+	return new Promise(async (resolve, reject) => {
+        try {
+            // If firewall is not an alone firewall or it is in a cluster but it is not the cluster's master node,
+            // then nothing must be done.
+            if (!(await this.aloneFirewallOrMasterNode(dbCon,firewall))) return resolve();
+
+            // All the firewalls must have the catch all rules.
+            await this.checkCatchAllRules(dbCon, firewall);
+            
+            // If this a stateful firewall verify that the stateful special rules exists.
+		    // Or remove them if this is not a stateful firewall.
+		    await this.checkSpecialRule(dbCon, firewall, options, SR_STATEFUL);
+
+            // Compatibility rules with other software solutions.
+		    await this.checkSpecialRule(dbCon, firewall, options, SR_DOCKER);
+		    await this.checkSpecialRule(dbCon, firewall, options, SR_CROWDSEC);
+		    await this.checkSpecialRule(dbCon, firewall, options, SR_FAIL2BAN);
+        } catch(error) { return reject(error) }
+
+        resolve();
+	});
+};
 }

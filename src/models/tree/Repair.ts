@@ -242,7 +242,7 @@ export class Repair extends Model {
     }
 
     // Check that all firewalls appear in the tree.
-    public static checkFirewallsInTree(rootNode, channel: EventEmitter = new EventEmitter()) {
+    public static checkFirewallsInTree(rootNode, channel: EventEmitter = new EventEmitter()): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = 'SELECT id,name,options FROM firewall WHERE cluster is null AND fwcloud=' + dbCon.escape(fwcloud);
             dbCon.query(sql, async (error, firewalls) => {
@@ -250,11 +250,9 @@ export class Repair extends Model {
                 try {
                     for (let firewall of firewalls) {
                         await this.regenerateFirewallTree(rootNode, firewall, channel);
-                        await PolicyRule.checkStatefulRules(dbCon, firewall.id, firewall.options);
-                        await PolicyRule.checkCatchAllRules(dbCon, firewall.id);
+                        await PolicyRule.checkSpecialRules(dbCon, firewall.id, firewall.options);
                     }
                 } catch (error) { return reject(error) };
-                resolve();
             });
         });
     }
@@ -300,7 +298,7 @@ export class Repair extends Model {
     }
 
     // Check that all clusters appear in the tree.
-    public static checkClustersInTree(rootNode, channel: EventEmitter = new EventEmitter()) {
+    public static checkClustersInTree(rootNode, channel: EventEmitter = new EventEmitter()): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = 'SELECT C.id,C.name,F.id as fwmaster_id,F.options FROM cluster C ' +
                 ' INNER JOIN firewall F on F.cluster=C.id ' +
@@ -310,11 +308,9 @@ export class Repair extends Model {
                 try {
                     for (let cluster of clusters) {
                         await this.regenerateClusterTree(rootNode, cluster, channel);
-                        await PolicyRule.checkStatefulRules(dbCon, cluster.fwmaster_id, cluster.options);
-                        await PolicyRule.checkCatchAllRules(dbCon, cluster.fwmaster_id);
+                        await PolicyRule.checkSpecialRules(dbCon, cluster.fwmaster_id, cluster.options);
                     }
                 } catch (error) { return reject(error) };
-                resolve();
             });
         });
     }
