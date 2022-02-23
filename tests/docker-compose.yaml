@@ -1,7 +1,18 @@
 version: "3"
 services:
-  # mysql
+
   mysql:
+    image: "mysql:5.7"
+    container_name: "fwcloud-mysql"
+    ports:
+      - "8887:3306"
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_USER: "fwcdbusr"
+      MYSQL_PASSWORD: "fwcdbusr"
+      MYSQL_DATABASE: "fwcloud"
+      
+  mysql-test:
     image: "mysql:5.7"
     container_name: "fwcloud-testing-mysql"
     ports:
@@ -12,7 +23,6 @@ services:
       MYSQL_PASSWORD: "fwcdbusr"
       MYSQL_DATABASE: "fwcloud"
 
-  # mariadb
   mariadb:
     image: "mariadb:10.1"
     container_name: "fwcloud-testing-mariadb"
