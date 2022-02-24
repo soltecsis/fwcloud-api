@@ -8,10 +8,9 @@ if [ ! -e /config/.env ]; then
 fi
 
 # And create a symlink to the right place where .env should be present
-ln -s /config/.env .env
-
-# Grace time until database is ready in case we use docker-compose
-sleep 10 
+if [ ! -e .env ]; then
+    ln -s /config/.env .env
+fi
 
 node fwcli keys:generate 
 node fwcli migration:run 
