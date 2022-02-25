@@ -28,6 +28,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-buildx-
 
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v3
+      with:
+        tags: |
+          type=semver,pattern={{version}}
+
 #    - name: Login to DockerHub
 #      uses: docker/login-action@v1
 #      with:
@@ -44,8 +51,8 @@ jobs:
         context: ./docker
         file: ./docker/Dockerfile
         builder: ${{ steps.buildx.outputs.name }}
-        tags: soltecsis/fwcloud-api:${{ VERSION }}
-        build-args: FWCLOUD_VERSION=${{ VERSION }}
+        tags: soltecsis/fwcloud-api:${{ steps.meta.outputs.tags }}
+        build-args: FWCLOUD_VERSION=${{ steps.meta.outputs.tags }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache
       
