@@ -1,17 +1,15 @@
 name: FWCloud-API Docker Image CI
 
-#on:
-#  workflow_run:
-#    workflows: ["FWCloud-API CI"]
-#    types:
-#      - completed
-
-on: [push, pull_request]
+on:
+  workflow_run:
+    workflows: ["FWCloud-API CI"]
+    types:
+      - completed
 
 jobs:
   build:
     name: 'FWCloud-API Docker Image Build'
-    #if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
