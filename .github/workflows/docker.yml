@@ -41,8 +41,8 @@ jobs:
         context: ./docker
         file: ./docker/Dockerfile
         builder: ${{ steps.buildx.outputs.name }}
-        tags: soltecsis/fwcloud-api:${{ env.MOCK_TAG:1 }}
-        build-args: FWCLOUD_VERSION=${{ env.MOCK_TAG:1 }}
+        tags: soltecsis/fwcloud-api:${{ env.MOCK_TAG }}
+        build-args: FWCLOUD_VERSION=${{ env.MOCK_TAG }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache
       
