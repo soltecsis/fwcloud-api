@@ -45,7 +45,7 @@ jobs:
         file: ./docker/Dockerfile
         builder: ${{ steps.buildx.outputs.name }}
         tags: ${{ steps.meta.outputs.tags }}
-        build-args: FWCLOUD_VERSION=v${{ steps.meta.outputs.tags[0] }}
+        build-args: FWCLOUD_VERSION=v${{ fromJSON(steps.meta.outputs.json).tags[0] }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache
       
