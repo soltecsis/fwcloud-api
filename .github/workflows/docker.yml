@@ -1,14 +1,9 @@
 name: CI to Docker Hub 
 
-#on:
-#  push:
-#    tags:
-#      - "v*.*.*"
-
-on: [push, pull_request]
-
-env:
-  MOCK_TAG: v1.4.0
+on:
+  push:
+    tags:
+      - "v*.*.*"
 
 jobs:
   build:
@@ -41,8 +36,8 @@ jobs:
         context: ./docker
         file: ./docker/Dockerfile
         builder: ${{ steps.buildx.outputs.name }}
-        tags: soltecsis/fwcloud-api:${{ env.MOCK_TAG }}
-        build-args: FWCLOUD_VERSION=${{ env.MOCK_TAG }}
+        tags: soltecsis/fwcloud-api:${{ env.GITHUB_REF_NAME }}
+        build-args: FWCLOUD_VERSION=${{ env.GITHUB_REF_NAME }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache
       
