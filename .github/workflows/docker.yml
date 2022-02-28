@@ -36,8 +36,8 @@ jobs:
         context: ./docker
         file: ./docker/Dockerfile
         builder: ${{ steps.buildx.outputs.name }}
-        tags: soltecsis/fwcloud-api:${{ github.GITHUB_REF_NAME }}
-        build-args: FWCLOUD_VERSION=${{ github.GITHUB_REF_NAME }}
+        tags: soltecsis/fwcloud-api:${{ github.ref_name }}
+        build-args: FWCLOUD_VERSION=${{ github.ref_name }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache
       
