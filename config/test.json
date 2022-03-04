@@ -41,5 +41,8 @@
     "api_server": {
         "https": false
     },
-    "confirmation_token": false
+    "confirmation_token": false,
+    "CORS": {
+        "enabled": false
+    }
 }

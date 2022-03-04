@@ -107,6 +107,12 @@ const config = convict({
 
   // CORS (Cross-Origin Resource Sharing) options.
   CORS: {
+    enabled: {
+      doc: 'Enable CORS (Cross-Origin Resource Sharing)',
+      format: Boolean,
+      default: true,
+      env: 'CORS_ENABLED'
+    },
     whitelist: {
       doc: 'CORS (Cross-Origin Resource Sharing) withelist.',
       format:  String,
