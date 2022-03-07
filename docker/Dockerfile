@@ -6,14 +6,13 @@ RUN apt update && apt install -y default-mysql-client
 RUN wget -c -O /tmp/fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/tags/$FWCLOUD_VERSION.zip
 
 WORKDIR /tmp
-RUN unzip fwcloud-api.zip
-RUN mkdir -p /opt/fwcloud/api
-RUN mv fwcloud-api-$(echo $FWCLOUD_VERSION | sed 's/v//')/* /opt/fwcloud/api/
-RUN rm -rf fwcloud-api-$(echo $FWCLOUD_VERSION | sed 's/v//')
+RUN unzip fwcloud-api.zip && rm -f fwcloud-api.zip
+RUN mkdir -p /opt/fwcloud
+RUN mv fwcloud-api-$(echo $FWCLOUD_VERSION | sed 's/v//') /opt/fwcloud/api
 
 WORKDIR /opt/fwcloud/api
-
 RUN npm install && npm run build
+RUN rm -rf .github .gitignore .DS_Store .vscode tests src
 
 COPY env.default .env.default
 COPY run.sh run.sh
