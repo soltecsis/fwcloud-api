@@ -7,9 +7,10 @@ RUN wget -c -O /tmp/fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/arc
 
 WORKDIR /tmp
 RUN unzip /tmp/fwcloud-api.zip
-RUN mv fwcloud-api-$(echo $FWCLOUD_VERSION | sed 's/v//') /fwcloud-api
+RUN mkdir -p /opt/fwcloud/api
+RUN mv fwcloud-api-$(echo $FWCLOUD_VERSION | sed 's/v//')/* /opt/fwcloud/api/
 
-WORKDIR /fwcloud-api
+WORKDIR /opt/fwcloud/api/
 
 RUN npm install && npm run build
 
