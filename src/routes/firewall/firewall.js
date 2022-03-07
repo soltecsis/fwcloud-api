@@ -730,7 +730,6 @@ router.put('/del',
 
 //DELETE FIREWALL FROM CLUSTER
 router.put('/delfromcluster',
-restrictedCheck.firewall,
 restrictedCheck.firewallApplyTo,
 async (req, res) => {
 	//CHECK FIREWALL DATA TO DELETE
