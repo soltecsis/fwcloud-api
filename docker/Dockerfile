@@ -12,7 +12,7 @@ RUN mv fwcloud-api-$(echo $FWCLOUD_VERSION | sed 's/v//') /opt/fwcloud/api
 
 WORKDIR /opt/fwcloud/api
 RUN npm install && npm run build
-RUN rm -rf .github .gitignore .DS_Store .vscode tests src
+RUN rm -rf .github .gitignore .DS_Store .vscode tests
 
 COPY env.default .env.default
 COPY run.sh run.sh
