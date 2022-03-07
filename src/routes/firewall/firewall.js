@@ -179,7 +179,7 @@ router.post('/', async(req, res) => {
 
 		if ((firewallData.cluster > 0 && firewallData.fwmaster === 1) || firewallData.cluster === null) {
 			// Create the loop backup interface.
-			loData = await Interface.createLoInterface(req.body.fwcloud, newFirewallId);
+			loData = await Interface.createLoInterface(req.dbCon, req.body.fwcloud, newFirewallId);
 			await PolicyRule.insertDefaultPolicy(newFirewallId, loData.ifId, req.body.options);
 		}
 

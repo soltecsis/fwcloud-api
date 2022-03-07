@@ -146,6 +146,34 @@ export abstract class PolicyCompilerTools {
   }
 
 
+  protected specialRuleCompilation(): void {
+    // SPECIAL POLICY RULES
+    switch(this._ruleData.special) {
+      case SpecialRuleCode.get('STATEFUL'): // Special rule for ESTABLISHED,RELATED packages.
+        this._csEnd = `${this._compiler=='IPTables' ? '-m conntrack --ctstate ESTABLISHED,RELATED -j' : 'ct state related,established'} ${this._action}\n`;
+        break;
+
+      case SpecialRuleCode.get('CROWDSEC'): 
+        const setName = `crowdsec${this._family==='ip6' ? '6' : ''}-blacklists`;
+        this._csEnd = `${this._compiler=='IPTables' ? `-m set --match-set ${setName} src -j` : `ip saddr . ip daddr vmap @${setName}`} ${this._action}\n`;
+        break;
+
+      case SpecialRuleCode.get('DOCKER'):
+        if (this._policyType === PolicyTypesMap.get('IPv4:OUTPUT') || this._policyType === PolicyTypesMap.get('IPv6:OUTPUT')) {
+          this._csEnd = `${this._compiler=='IPTables' ? '! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER' : 'ip daddr != 127.0.0.0/8 fib daddr type local counter jump DOCKER'}\n`;
+        } else if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD') || this._policyType === PolicyTypesMap.get('IPv6:FORWARD')) {
+          this._csEnd = `${this._compiler=='IPTables' ? '-j DOCKER-USER' : 'counter jump DOCKER-USER'}\n`;
+          this._csEnd += `${this._compiler=='IPTables' ? '$IPTABLES -A FORWARD -j DOCKER-ISOLATION-STAGE-1' : '$NFT add rule ip filter FORWARD counter jump DOCKER-ISOLATION-STAGE-1'}\n`;
+        }
+        break;
+
+      default:
+        this._csEnd = `${this._stateful} ${this._compiler=='IPTables' ? '-j ' :''}${this._action}\n`;
+        break;
+    }
+  }
+
+
 	protected beforeCompilation(): void {
 		if (!this.validPolicyType()) throw(new Error('Invalid policy type'));
 
@@ -214,20 +242,6 @@ export abstract class PolicyCompilerTools {
 					this._afterLogAction = this._compiler=='IPTables' ? 'RETURN' : 'counter return';
 			}
 		}
-
-    switch(this._ruleData.special) {
-      case SpecialRuleCode.get('STATEFUL'): // Special rule for ESTABLISHED,RELATED packages.
-        this._csEnd = `${this._compiler=='IPTables' ? '-m conntrack --ctstate ESTABLISHED,RELATED -j' : 'ct state related,established'} ${this._action}\n`;
-        break;
-
-      case SpecialRuleCode.get('CROWDSEC'): 
-        this._csEnd = `${this._compiler=='IPTables' ? `-m set --match-set crowdsec${this._family==='ip6' ? '6' : ''}-blacklists src -j` : ''} ${this._action}\n`;
-        break;
-
-        default:
-        this._csEnd = `${this._stateful} ${this._compiler=='IPTables' ? '-j ' :''}${this._action}\n`;
-        break;
-    }
 	}
 
 

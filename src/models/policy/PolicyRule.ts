@@ -35,6 +35,8 @@ import { logger } from "../../fonaments/abstract-application";
 import { PolicyType } from "./PolicyType";
 import { Firewall } from "../firewall/Firewall";
 import { Mark } from "../ipobj/Mark";
+import { PolicyTypesMap } from '../../models/policy/PolicyType';
+import { Interface } from "../interface/Interface";
 const fwcError = require('../../utils/error_table');
 
 var tableName: string = "policy_r";
@@ -1263,23 +1265,39 @@ public static createSpecialRule(dbCon: any, firewall: number, name: SpecialRuleN
             switch(name) {
                 case'STATEFUL':
                     policy_rData.comment = 'Stateful firewall rule.';
-                    policyType = [1,2,3,61,62,63]; // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
+                    policyType = [
+                        PolicyTypesMap.get('IPv4:INPUT'), PolicyTypesMap.get('IPv4:OUTPUT'), PolicyTypesMap.get('IPv4:FORWARD'),
+                        PolicyTypesMap.get('IPv6:INPUT'), PolicyTypesMap.get('IPv6:OUTPUT'), PolicyTypesMap.get('IPv6:FORWARD')
+                    ];
                     break;
 
                 case 'DOCKER':
+                    // Create the Docker interface.
+                    const fwcloud = await Firewall.getFWCloud(dbCon,firewall);
+                    await Interface.createDockerInterface(dbCon, fwcloud, firewall);
+
                     policy_rData.comment = 'Docker compatibility.';
-                    policyType = [1,2,3,61,62,63]; // INPUT, OUTPUT and FORWARD chains for IPv4 and IPv6
+                    policyType = [
+                        PolicyTypesMap.get('IPv4:OUTPUT'), PolicyTypesMap.get('IPv4:FORWARD'), PolicyTypesMap.get('IPv4:SNAT'),
+                        PolicyTypesMap.get('IPv6:OUTPUT'), PolicyTypesMap.get('IPv6:FORWARD'), PolicyTypesMap.get('IPv6:SNAT')
+                    ];
                     break;
 
                 case 'CROWDSEC':
                     policy_rData.comment = 'CrowdSec firewall bouncer compatibility.';
-                    policyType = [1,3,61,63]; // INPUT and FORWARD chains for IPv4 and IPv6
+                    policyType = [
+                        PolicyTypesMap.get('IPv4:INPUT'), PolicyTypesMap.get('IPv4:FORWARD'),
+                        PolicyTypesMap.get('IPv6:INPUT'), PolicyTypesMap.get('IPv6:FORWARD')
+                    ];
                     policy_rData.action = 2;
                     break;
 
                 case 'FAIL2BAN':
                     policy_rData.comment = 'Fail2Ban compatibility.';
-                    policyType = [1,3,61,63]; // INPUT and FORWARD chains for IPv4 and IPv6
+                    policyType = [
+                        PolicyTypesMap.get('IPv4:INPUT'), PolicyTypesMap.get('IPv4:FORWARD'),
+                        PolicyTypesMap.get('IPv6:INPUT'), PolicyTypesMap.get('IPv6:FORWARD')
+                    ];
                     policy_rData.action = 2;
                     break;
             }
@@ -1327,7 +1345,7 @@ public static checkSpecialRules(dbCon: any, firewall: number, options: number): 
         try {
             // If firewall is not an alone firewall or it is in a cluster but it is not the cluster's master node,
             // then nothing must be done.
-            if (!(await this.aloneFirewallOrMasterNode(dbCon,firewall))) return resolve();
+            if (!(await this.aloneFirewallOrMasterNode(dbCon, firewall))) return resolve();
 
             // All the firewalls must have the catch all rules.
             await this.checkCatchAllRules(dbCon, firewall);
