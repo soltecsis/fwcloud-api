@@ -22,7 +22,7 @@
 
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { AvailablePolicyCompilers } from './PolicyCompiler';
-import { SpecialRuleCode, RuleOptionsMask } from '../../models/Policy/PolicyRule';
+import { SpecialRuleCode, RuleOptionsMask } from '../../models/policy/PolicyRule';
 const ip = require('ip');
 const fwcError = require('../../utils/error_table');
 const shellescape = require('shell-escape');

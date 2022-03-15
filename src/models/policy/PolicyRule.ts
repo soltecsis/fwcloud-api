@@ -36,7 +36,6 @@ import { PolicyType } from "./PolicyType";
 import { Firewall } from "../firewall/Firewall";
 import { Mark } from "../ipobj/Mark";
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
-import { Interface } from "../interface/Interface";
 const fwcError = require('../../utils/error_table');
 
 var tableName: string = "policy_r";
