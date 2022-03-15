@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Bug in docker workflow.
 
+
 ## [1.4.1] - 2022-03-07
 ### Added
 - Added `Dockerfile`.
@@ -17,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bug in restrictions check when removing node from a firewall cluster.
 - Prevent `keys:generate` cli command from generating new keys if they are already defined (included `--force` option)
 - Prevent `migration:data` cli command from importing default data if data is already imported (included `--force` option)
+
 
 ## [1.4.0] - 2021-12-02
 ### Added

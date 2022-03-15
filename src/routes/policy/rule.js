@@ -57,7 +57,8 @@ async (req, res) => {
 		style: req.body.style,
 		fw_apply_to: req.body.fw_apply_to,
 		run_before: req.body.run_before,
-		run_after: req.body.run_after
+		run_after: req.body.run_after,
+		special: req.body.special ? req.body.special : 0
 	};
 
 	try {

@@ -158,13 +158,9 @@ export abstract class PolicyCompilerTools {
         this._csEnd = `${this._compiler=='IPTables' ? `-m set --match-set ${setName} src -j` : `ip saddr . ip daddr vmap @${setName}`} ${this._action}\n`;
         break;
 
-      case SpecialRuleCode.get('DOCKER'):
-        if (this._policyType === PolicyTypesMap.get('IPv4:OUTPUT') || this._policyType === PolicyTypesMap.get('IPv6:OUTPUT')) {
-          this._csEnd = `${this._compiler=='IPTables' ? '! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER' : 'ip daddr != 127.0.0.0/8 fib daddr type local counter jump DOCKER'}\n`;
-        } else if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD') || this._policyType === PolicyTypesMap.get('IPv6:FORWARD')) {
-          this._csEnd = `${this._compiler=='IPTables' ? '-j DOCKER-USER' : 'counter jump DOCKER-USER'}\n`;
-          this._csEnd += `${this._compiler=='IPTables' ? '$IPTABLES -A FORWARD -j DOCKER-ISOLATION-STAGE-1' : '$NFT add rule ip filter FORWARD counter jump DOCKER-ISOLATION-STAGE-1'}\n`;
-        }
+      case SpecialRuleCode.get('HOOKSCRIPT'):
+        this._cs = "###########################\n# Hook script rule code:\n";
+        this._cs += `${this._ruleData.run_before ? this._ruleData.run_before : ''}\n###########################\n`; 
         break;
 
       default:
@@ -258,9 +254,11 @@ export abstract class PolicyCompilerTools {
       this._cs = "if [ \"$HOSTNAME\" = \"" + this._ruleData.firewall_name + "\" ]; then\n" + this._cs + "fi\n";
 
     // Include before and/or after rule script code.
-    if (this._ruleData.run_before) this._cs = `###########################\n# Before rule load code:\n${this._ruleData.run_before}\n###########################\n${this._cs}`;
-    if (this._ruleData.run_after) this._cs += `###########################\n# After rule load code:\n${this._ruleData.run_after}\n###########################\n`;
-  
+    if (this._ruleData.special != SpecialRuleCode.get('HOOKSCRIPT')) {
+      if (this._ruleData.run_before) this._cs = `###########################\n# Before rule load code:\n${this._ruleData.run_before}\n###########################\n${this._cs}`;
+      if (this._ruleData.run_after) this._cs += `###########################\n# After rule load code:\n${this._ruleData.run_after}\n###########################\n`;  
+    }
+
     return this._cs;
   }
 

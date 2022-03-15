@@ -41,11 +41,11 @@ const fwcError = require('../../utils/error_table');
 
 var tableName: string = "policy_r";
 
-export type SpecialRuleNames = 'STATEFUL' | 'CATCHALL' | 'DOCKER' | 'CROWDSEC' | 'FAIL2BAN';
+export type SpecialRuleNames = 'STATEFUL' | 'CATCHALL' | 'DOCKER' | 'CROWDSEC' | 'FAIL2BAN' | 'HOOKSCRIPT';
 
 // Special rules codes.
 export const SpecialRuleCode = new Map<string, number>([
-    ['STATEFUL',1], ['CATCHALL',2], ['DOCKER',3], ['CROWDSEC',4], ['FAIL2BAN',5]
+    ['STATEFUL',1], ['CATCHALL',2], ['DOCKER',3], ['CROWDSEC',4], ['FAIL2BAN',5], ['HOOKSCRIPT',6]
   ]);
 
 export const RuleOptionsMask = new Map<string, number>([
@@ -1272,15 +1272,8 @@ public static createSpecialRule(dbCon: any, firewall: number, name: SpecialRuleN
                     break;
 
                 case 'DOCKER':
-                    // Create the Docker interface.
-                    const fwcloud = await Firewall.getFWCloud(dbCon,firewall);
-                    await Interface.createDockerInterface(dbCon, fwcloud, firewall);
-
-                    policy_rData.comment = 'Docker compatibility.';
-                    policyType = [
-                        PolicyTypesMap.get('IPv4:OUTPUT'), PolicyTypesMap.get('IPv4:FORWARD'), PolicyTypesMap.get('IPv4:SNAT'),
-                        PolicyTypesMap.get('IPv6:OUTPUT'), PolicyTypesMap.get('IPv6:FORWARD'), PolicyTypesMap.get('IPv6:SNAT')
-                    ];
+                    /* Do nothing, because the only solution for integrate Docker with FWCloud is disable the option
+                    that allows Docker to create IPTables rules. */
                     break;
 
                 case 'CROWDSEC':

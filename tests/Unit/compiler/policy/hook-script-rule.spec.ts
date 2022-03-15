@@ -32,7 +32,7 @@ import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
 import { populateRule } from "./utils";
 import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/policy/PolicyCompiler";
 
-describe.only(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
+describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
   let fwcloud: number;
   let dbCon: any;
   const IPv = 'IPv4' ;
