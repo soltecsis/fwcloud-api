@@ -21,12 +21,10 @@
 */
 
 import * as yargs from "yargs";
-import { Application } from "../Application";
 import * as path from "path";
 import { promises as fs, Stats } from "fs";
 import * as crypto from "crypto";
-import { logger } from "../../fonaments/abstract-application";
-import { Command } from "../command";
+import { Command, Option } from "../command";
 /**
  * Runs migration command.
  */
@@ -41,25 +39,41 @@ export class KeysGenerateCommand extends Command {
     public description: string = "Generates random keys";
 
     async handle(args: yargs.Arguments) {
+        const forceFlag: boolean = (args.force ?? false) as boolean;
         const envFilePath: string = path.join(this._app.path, KeysGenerateCommand.ENV_FILENAME);
-
         const stat: Stats = await fs.stat(envFilePath)
+        
         if (stat && !stat.isFile()) {
             throw new Error('File ' + envFilePath + ' does not exists');
         }
-        
-        const session_secret = await this.generateRandomString();
-        const crypt_secret = await this.generateRandomString();
 
         let envContent: string = (await fs.readFile(envFilePath)).toString();
 
-        envContent = envContent.replace(new RegExp('^SESSION_SECRET\\s*=.*\n', 'm'), `SESSION_SECRET=${session_secret}\n`);
-        envContent = envContent.replace(new RegExp('^CRYPT_SECRET\\s*=.*\n', 'm'), `CRYPT_SECRET=${crypt_secret}\n`);
+        if (forceFlag || new RegExp('^SESSION_SECRET\\s*=\\s*\n', 'm').test(envContent)) {
+            const session_secret = await this.generateRandomString();
+            envContent = envContent.replace(new RegExp('^SESSION_SECRET\\s*=.*\n', 'm'), `SESSION_SECRET=${session_secret}\n`);
+            this.output.success(`SESSION_SECRET key generated.`);
+        } else {
+            this.output.warn(`SESSION_SECRET already defined.`);
+        }
 
-        await fs.writeFile(envFilePath, envContent);
+        if (forceFlag || new RegExp('^CRYPT_SECRET\\s*=\\s*\n', 'm').test(envContent)) {
+            const crypt_secret = await this.generateRandomString();
+            envContent = envContent.replace(new RegExp('^CRYPT_SECRET\\s*=.*\n', 'm'), `CRYPT_SECRET=${crypt_secret}\n`);
+            this.output.success(`CRYPT_SECRET key generated.`);
+        } else {
+            this.output.warn(`CRYPT_SECRET already defined.`);
+        }
         
-        this.output.success(`Application key generated.`);
+        await fs.writeFile(envFilePath, envContent);
+
         return;
+    }
+
+    public getOptions(): Option[] {
+        return [
+            { name: 'force', alias: null, type: "boolean", description: 'Force key generation even when they are already defined', required: false },
+        ]
     }
 
     protected async generateRandomString(): Promise<String> {
