@@ -1,14 +1,12 @@
-FROM node:16.14.0
-
-ARG FWCLOUD_VERSION=v1.4.0
+FROM node:16
 
 RUN apt update && apt install -y default-mysql-client
-RUN wget -c -O /tmp/fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/tags/$FWCLOUD_VERSION.zip
+RUN wget -c -O /tmp/fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/main.zip
 
 WORKDIR /tmp
 RUN unzip fwcloud-api.zip && rm -f fwcloud-api.zip
 RUN mkdir -p /opt/fwcloud
-RUN mv fwcloud-api-$(echo $FWCLOUD_VERSION | sed 's/v//') /opt/fwcloud/api
+RUN mv fwcloud-api-main /opt/fwcloud/api
 
 WORKDIR /opt/fwcloud/api
 RUN npm install && npm run build
