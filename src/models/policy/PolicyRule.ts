@@ -40,16 +40,22 @@ const fwcError = require('../../utils/error_table');
 
 var tableName: string = "policy_r";
 
-export type SpecialRuleNames = 'STATEFUL' | 'CATCHALL' | 'DOCKER' | 'CROWDSEC' | 'FAIL2BAN' | 'HOOKSCRIPT';
-
 // Special rules codes.
-export const SpecialRuleCode = new Map<string, number>([
-    ['STATEFUL',1], ['CATCHALL',2], ['DOCKER',3], ['CROWDSEC',4], ['FAIL2BAN',5], ['HOOKSCRIPT',6]
-  ]);
+export enum SpecialPolicyRules {
+    STATEFUL   = 1, 
+    CATCHALL   = 2,
+    DOCKER     = 3, 
+    CROWDSEC   = 4,
+    FAIL2BAN   = 5,
+    HOOKSCRIPT = 6
+}
 
-export const RuleOptionsMask = new Map<string, number>([
-    ['STATEFUL',0x0001], ['DOCKER',0x0020], ['CROWDSEC',0x0040], ['FAIL2BAN',0x0080]
-  ]);
+export const RuleOptionsMask = new Map<SpecialPolicyRules, number>([
+    [SpecialPolicyRules.STATEFUL, 0x0001],
+    [SpecialPolicyRules.DOCKER,   0x0020], 
+    [SpecialPolicyRules.CROWDSEC, 0x0040], 
+    [SpecialPolicyRules.FAIL2BAN, 0x0080]
+]);
 
 type RulePosMap = Map<string, []>;
 
@@ -1183,7 +1189,7 @@ public static checkCatchAllRules(dbCon: any, firewall: number): Promise<void> {
 			options: 0,
 			comment: 'Catch-all rule.',
 			type: null,
-			special: SpecialRuleCode.get('CATCHALL'),
+			special: SpecialPolicyRules.CATCHALL,
 			style: null
 		};
 
@@ -1194,7 +1200,7 @@ public static checkCatchAllRules(dbCon: any, firewall: number): Promise<void> {
 				else 
 					policy_rData.action = 2 // DENY
 				policy_rData.rule_order = (await this.getLastRuleOrder(dbCon, firewall, policy_rData.type));
-				const rule_id = await this.existsSpecialRule(dbCon, firewall, 'CATCHALL', policy_rData.type);
+				const rule_id = await this.existsSpecialRule(dbCon, firewall, SpecialPolicyRules.CATCHALL, policy_rData.type);
 
 				if (!rule_id) {
 					// If catch-all special rule don't exists create it.
@@ -1228,9 +1234,9 @@ public static aloneFirewallOrMasterNode(dbCon: any, firewall: number): Promise<b
 
 
 // Check if exists the catch all special rule by firewall and type.
-public static existsSpecialRule(dbCon: any, firewall: number, name: SpecialRuleNames, type?: number): Promise<number> {
+public static existsSpecialRule(dbCon: any, firewall: number, specialRule: SpecialPolicyRules, type?: number): Promise<number> {
 	return new Promise((resolve, reject) => {
-        const sql = `select id from ${tableName} where firewall=${firewall} ${type ? `and type=${type}` : ''} and special=${SpecialRuleCode.get(name)}`
+        const sql = `select id from ${tableName} where firewall=${firewall} ${type ? `and type=${type}` : ''} and special=${specialRule}`
 		dbCon.query(sql, async (error, result) => {
 			if (error) return reject(error);
 			resolve(result.length>0 ? result[0].id : 0);
@@ -1238,10 +1244,8 @@ public static existsSpecialRule(dbCon: any, firewall: number, name: SpecialRuleN
 	});
 };
 
-public static createSpecialRule(dbCon: any, firewall: number, name: SpecialRuleNames): Promise<void> {
+public static createSpecialRule(dbCon: any, firewall: number, specialRule: SpecialPolicyRules): Promise<void> {
 	return new Promise(async (resolve, reject) => {
-        const code = SpecialRuleCode.get(name);
-
         let policy_rData = {
             id: null,
             idgroup: null,
@@ -1254,15 +1258,15 @@ public static createSpecialRule(dbCon: any, firewall: number, name: SpecialRuleN
             options: 0,
             comment: '',
             type: 1,
-            special: code,
+            special: specialRule,
             style: null
         };
 
-        let policyType: number[];
+        let policyType: number[] = [];
         
         try {
-            switch(name) {
-                case'STATEFUL':
+            switch(specialRule) {
+                case SpecialPolicyRules.STATEFUL:
                     policy_rData.comment = 'Stateful firewall rule.';
                     policyType = [
                         PolicyTypesMap.get('IPv4:INPUT'), PolicyTypesMap.get('IPv4:OUTPUT'), PolicyTypesMap.get('IPv4:FORWARD'),
@@ -1270,12 +1274,12 @@ public static createSpecialRule(dbCon: any, firewall: number, name: SpecialRuleN
                     ];
                     break;
 
-                case 'DOCKER':
+                case SpecialPolicyRules.DOCKER:
                     /* Do nothing, because the only solution for integrate Docker with FWCloud is disable the option
                     that allows Docker to create IPTables rules. */
                     break;
 
-                case 'CROWDSEC':
+                case SpecialPolicyRules.CROWDSEC:
                     policy_rData.comment = 'CrowdSec firewall bouncer compatibility.';
                     policyType = [
                         PolicyTypesMap.get('IPv4:INPUT'), PolicyTypesMap.get('IPv4:FORWARD'),
@@ -1284,7 +1288,7 @@ public static createSpecialRule(dbCon: any, firewall: number, name: SpecialRuleN
                     policy_rData.action = 2;
                     break;
 
-                case 'FAIL2BAN':
+                case SpecialPolicyRules.FAIL2BAN:
                     policy_rData.comment = 'Fail2Ban compatibility.';
                     policyType = [
                         PolicyTypesMap.get('IPv4:INPUT'), PolicyTypesMap.get('IPv4:FORWARD'),
@@ -1304,28 +1308,28 @@ public static createSpecialRule(dbCon: any, firewall: number, name: SpecialRuleN
 	});
 };
 
-public static deleteSpecialRule(dbCon: any, firewall: number, name: SpecialRuleNames): Promise<void> {
+public static deleteSpecialRule(dbCon: any, firewall: number, specialRule: SpecialPolicyRules): Promise<void> {
 	return new Promise((resolve, reject) => {
-		dbCon.query(`delete from ${tableName} where firewall=${firewall} and special=${SpecialRuleCode.get(name)}`, async (error, result) => {
+		dbCon.query(`delete from ${tableName} where firewall=${firewall} and special=${specialRule}`, async (error, result) => {
 			if (error) return reject(error);
             resolve();
 		});
 	});
 };
 
-public static checkSpecialRule(dbCon: any, firewall: number, options: number, name: SpecialRuleNames): Promise<void> {
+public static checkSpecialRule(dbCon: any, firewall: number, options: number, specialRule: SpecialPolicyRules): Promise<void> {
 	return new Promise(async (resolve, reject) => {
         try {
              // Special rule is enabled in the options flags.
-            if (options & RuleOptionsMask.get(name)) {
+            if (options & RuleOptionsMask.get(specialRule)) {
                 // Special rule already exists, then nothing to do.
-                if (await this.existsSpecialRule(dbCon,firewall,name)) return resolve(); 
+                if (await this.existsSpecialRule(dbCon,firewall,specialRule)) return resolve(); 
                 
                 // If special rule is enabled and it doesn't exists, then create it.
-                await this.createSpecialRule(dbCon,firewall,name); 
+                await this.createSpecialRule(dbCon,firewall,specialRule); 
             } else {
                 // Special rule is not enabled, then make sure that it doesn't exists.
-                await this.deleteSpecialRule(dbCon,firewall,name);
+                await this.deleteSpecialRule(dbCon,firewall,specialRule);
             }
         } catch(error) { return reject(error) }
         resolve();
@@ -1344,12 +1348,12 @@ public static checkSpecialRules(dbCon: any, firewall: number, options: number): 
             
             // If this a stateful firewall verify that the stateful special rules exists.
 		    // Or remove them if this is not a stateful firewall.
-		    await this.checkSpecialRule(dbCon, firewall, options, 'STATEFUL');
+		    await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.STATEFUL);
 
             // Compatibility rules with other software solutions.
-		    await this.checkSpecialRule(dbCon, firewall, options, 'DOCKER');
-		    await this.checkSpecialRule(dbCon, firewall, options, 'CROWDSEC');
-		    await this.checkSpecialRule(dbCon, firewall, options, 'FAIL2BAN');
+		    await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.DOCKER);
+		    await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.CROWDSEC);
+		    await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.FAIL2BAN);
         } catch(error) { return reject(error) }
 
         resolve();

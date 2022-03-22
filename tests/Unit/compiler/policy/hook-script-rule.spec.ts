@@ -25,7 +25,7 @@ import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { PolicyRule, SpecialRuleCode } from "../../../../src/models/policy/PolicyRule";
+import { PolicyRule, SpecialPolicyRules } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
@@ -50,7 +50,7 @@ describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
       rule_order: 1,
       action: 1,
       active: 1,
-      special: SpecialRuleCode.get('HOOKSCRIPT'),
+      special: SpecialPolicyRules.HOOKSCRIPT,
       options: 1,
       run_before: null,
       run_after: null,

@@ -22,7 +22,7 @@
 
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { AvailablePolicyCompilers } from './PolicyCompiler';
-import { SpecialRuleCode, RuleOptionsMask } from '../../models/policy/PolicyRule';
+import { SpecialPolicyRules, RuleOptionsMask } from '../../models/policy/PolicyRule';
 const ip = require('ip');
 const fwcError = require('../../utils/error_table');
 const shellescape = require('shell-escape');
@@ -149,16 +149,16 @@ export abstract class PolicyCompilerTools {
   protected specialRuleCompilation(): void {
     // SPECIAL POLICY RULES
     switch(this._ruleData.special) {
-      case SpecialRuleCode.get('STATEFUL'): // Special rule for ESTABLISHED,RELATED packages.
+      case SpecialPolicyRules.STATEFUL: // Special rule for ESTABLISHED,RELATED packages.
         this._csEnd = `${this._compiler=='IPTables' ? '-m conntrack --ctstate ESTABLISHED,RELATED -j' : 'ct state related,established'} ${this._action}\n`;
         break;
 
-      case SpecialRuleCode.get('CROWDSEC'): 
+      case SpecialPolicyRules.CROWDSEC: 
         const setName = `crowdsec${this._family==='ip6' ? '6' : ''}-blacklists`;
         this._csEnd = `${this._compiler=='IPTables' ? `-m set --match-set ${setName} src -j` : `ip saddr . ip daddr vmap @${setName}`} ${this._action}\n`;
         break;
 
-      case SpecialRuleCode.get('HOOKSCRIPT'):
+      case SpecialPolicyRules.HOOKSCRIPT:
         this._cs = "###########################\n# Hook script rule code:\n";
         this._cs += `${this._ruleData.run_before ? this._ruleData.run_before : ''}\n###########################\n`; 
         break;
@@ -210,16 +210,16 @@ export abstract class PolicyCompilerTools {
       }
 
       this._ruleData.special = parseInt(this._ruleData.special);
-			if (this._ruleData.special === SpecialRuleCode.get('STATEFUL')) // Special rule for ESTABLISHED,RELATED packages.
+			if (this._ruleData.special === SpecialPolicyRules.STATEFUL) // Special rule for ESTABLISHED,RELATED packages.
 				this._action = CompilerAction.get(`${this._compiler}:1`); // 1 = ACCEPT
-			else if (this._ruleData.special === SpecialRuleCode.get('CATCHALL')) // Special rule for catch-all.
+			else if (this._ruleData.special === SpecialPolicyRules.CATCHALL) // Special rule for catch-all.
 				this._action = CompilerAction.get(`${this._compiler}:${this._ruleData.action}`);
 			else {
 				this._action = CompilerAction.get(`${this._compiler}:${this._ruleData.action}`);
 				if (this._action === CompilerAction.get(`${this._compiler}:1`)) { // 1 = ACCEPT
 					if (this._ruleData.options & 0x0001) // Stateful rule.
 						this._stateful = this._compiler=='IPTables' ? '-m conntrack --ctstate  NEW ' : 'ct state new ';
-					else if ((this._ruleData.firewall_options & RuleOptionsMask.get('STATEFUL')) && !(this._ruleData.options & RuleOptionsMask.get('CATCHALL'))) // Stateful firewall and this rule is not stateless.
+					else if ((this._ruleData.firewall_options & RuleOptionsMask.get(SpecialPolicyRules.STATEFUL)) && !(this._ruleData.options & RuleOptionsMask.get(SpecialPolicyRules.CATCHALL))) // Stateful firewall and this rule is not stateless.
             this._stateful = this._compiler=='IPTables' ? '-m conntrack --ctstate  NEW ' : 'ct state new ';
 					}
 				else if (this._action === "ACCOUNTING") {
@@ -254,7 +254,7 @@ export abstract class PolicyCompilerTools {
       this._cs = "if [ \"$HOSTNAME\" = \"" + this._ruleData.firewall_name + "\" ]; then\n" + this._cs + "fi\n";
 
     // Include before and/or after rule script code.
-    if (this._ruleData.special != SpecialRuleCode.get('HOOKSCRIPT')) {
+    if (this._ruleData.special != SpecialPolicyRules.HOOKSCRIPT) {
       if (this._ruleData.run_before) this._cs = `###########################\n# Before rule load code:\n${this._ruleData.run_before}\n###########################\n${this._cs}`;
       if (this._ruleData.run_after) this._cs += `###########################\n# After rule load code:\n${this._ruleData.run_after}\n###########################\n`;  
     }
