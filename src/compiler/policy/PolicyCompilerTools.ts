@@ -243,7 +243,7 @@ export abstract class PolicyCompilerTools {
 
   protected afterCompilation(): string {
     // In NFTables comment goes at the end.
-    if (this._compiler=='NFTables' && this._comment)
+    if (this._compiler=='NFTables' && this._comment && this._ruleData.special!=SpecialPolicyRules.HOOKSCRIPT)
       this._cs = `${this._cs.slice(0,-1)} ${this._comment}`;
 
     // Replace two consecutive spaces by only one.
