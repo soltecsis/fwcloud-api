@@ -212,7 +212,7 @@ router.post('/', async (req, res) => {
 
 			if (firewallData.fwmaster === 1) {
 				// Create the loop backup interface.
-				loData = await Interface.createLoInterface(req.body.fwcloud, idfirewall);
+				loData = await Interface.createLoInterface(req.dbCon, req.body.fwcloud, idfirewall);
 				// Create the default policy rules.							
 				await PolicyRule.insertDefaultPolicy(idfirewall, loData.ifId, firewallData.options);
 				// Create the directory used for store firewall data.

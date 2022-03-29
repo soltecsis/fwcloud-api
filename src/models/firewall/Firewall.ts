@@ -242,6 +242,16 @@ export class Firewall extends Model {
 		});
 	}
 
+	public static getFWCloud(dbCon: any, firewall: number): Promise<number | null> {
+		return new Promise((resolve, reject) => {
+			dbCon.query(`select fwcloud from ${tableName} where id=${firewall}`, (error, rows) => {
+				if (error) return reject(error);
+				if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
+				resolve(rows[0].fwcloud);
+			});
+		});
+	}
+
 	public static getLastClusterNodeId(dbCon: any, cluster: number): Promise<number> {
 		return new Promise((resolve, reject) => {
 			dbCon.query(`select id from ${tableName} where cluster=${cluster} order by id desc limit 1`, (error, rows) => {

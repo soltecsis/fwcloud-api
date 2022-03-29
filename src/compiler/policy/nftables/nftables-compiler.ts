@@ -40,6 +40,9 @@ export class NFTablesCompiler extends PolicyCompilerTools {
 		// Prepare for compilation.
 		this.beforeCompilation();
 
+		// Compile special rules.
+		this.specialRuleCompilation();
+
 		// Compile items of each rule position.
 		this.compileRulePositions();
 
