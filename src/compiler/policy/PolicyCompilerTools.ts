@@ -153,7 +153,13 @@ export abstract class PolicyCompilerTools {
         this._csEnd = `${this._compiler=='IPTables' ? '-m conntrack --ctstate ESTABLISHED,RELATED -j' : 'ct state related,established'} ${this._action}\n`;
         break;
 
-      case SpecialPolicyRules.CROWDSEC: 
+      case SpecialPolicyRules.CROWDSEC:
+        if (this._policyType != PolicyTypesMap.get('IPv4:INPUT') && 
+            this._policyType != PolicyTypesMap.get('IPv4:FORWARD') &&
+            this._policyType != PolicyTypesMap.get('IPv6:INPUT') &&
+            this._policyType != PolicyTypesMap.get('IPv6:FORWARD'))
+          throw(fwcError.other("Invalid chain for CrowdSec special rule"));
+
         const setName = `crowdsec${this._family==='ip6' ? '6' : ''}-blacklists`;
         this._csEnd = `${this._compiler=='IPTables' ? `-m set --match-set ${setName} src -j` : `ip saddr . ip daddr vmap @${setName}`} ${this._action}\n`;
         break;

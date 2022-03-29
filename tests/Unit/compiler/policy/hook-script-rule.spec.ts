@@ -21,10 +21,6 @@
 */
 
 import { describeName, expect } from "../../../mocha/global-setup";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { getRepository } from "typeorm";
-import StringHelper from "../../../../src/utils/string.helper";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { PolicyRule, SpecialPolicyRules } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
@@ -35,9 +31,8 @@ import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 
 describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
   let fwcProduct: FwCloudProduct;
-  let fwcloud: number;
   let dbCon: any;
-  const IPv = 'IPv4' ;
+  let IPv: string;
   let compiler: AvailablePolicyCompilers;
 
   const code_before_cmt = '###########################\n# Hook script rule code:';
@@ -47,8 +42,6 @@ describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
   const run_after_code = 'echo "Other code"';
 
   const comment = "This is the comment text.\nSecond comment line.\n";
-
-  const node_name = "MyHostName"
 
   let ruleData = {
       firewall: 0,
@@ -70,7 +63,7 @@ describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
     const rule = await PolicyRule.insertPolicy_r(ruleData);
     if (ruleData.type === PolicyTypesMap.get(`${IPv}:DNAT`))
       await populateRule(rule,RulePositionsMap.get(`${IPv}:DNAT:Translated Destination`),50010); // 50010 = Standard VRRP IP
-    const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcloud, ruleData.firewall, ruleData.type, [rule], null);
+    const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcProduct.fwcloud.id, ruleData.firewall, ruleData.type, [rule], null);
     const result = await PolicyCompiler.compile(compiler, rulesData);
     
     expect(result).to.eql([{
@@ -83,292 +76,574 @@ describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
 
 
   before(async () => {
-    fwcProduct = await (new FwCloudFactory()).make();
-    
-    ruleData.firewall = fwcProduct.firewall.id;
-
     dbCon = db.getQuery();
-
-    fwcloud = (await getRepository(FwCloud).save(getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id;
-    ruleData.firewall = (await getRepository(Firewall).save(getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
+    fwcProduct = await (new FwCloudFactory()).make();
+    ruleData.firewall = fwcProduct.firewall.id;
   });
   
-  describe('Hook script rule code is included in rule compilation (IPTables, INPUT chain)', () => {
-    before(() => { 
-      compiler = 'IPTables'; 
-      ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`); 
-      ruleData.comment = null; 
-      ruleData.fw_apply_to = null; 
+  describe('IPv4', () => {
+    before(() => { IPv = 'IPv4' });
+
+    describe('Hook script rule code is included in rule compilation (IPTables, INPUT chain)', () => {
+      before(() => { 
+        compiler = 'IPTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null; 
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should compile as expected', async () => {
-      await runTest();
+    describe('Hook script rule code is included in rule compilation (NFTables, INPUT chain)', () => {
+      before(() => { 
+        compiler = 'NFTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null; 
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should not include after run code', async () => {
-      ruleData.run_after = run_after_code;
-      await runTest();
+    describe('Hook script rule code is included in rule compilation (IPTables, OUTPUT chain)', () => {
+      before(() => { 
+        compiler = 'IPTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null;
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should not include rule comment', async () => {
-      ruleData.comment = comment;
-      await runTest();
+    describe('Hook script rule code is included in rule compilation (NFTables, OUTPUT chain)', () => {
+      before(() => { 
+        compiler = 'NFTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`); 
+        ruleData.comment = null;
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should compile with firewall apply to', async () => {
-      ruleData.fw_apply_to = fwcProduct.firewall.id;
-      await runTest();
+    describe('Hook script rule code is included in rule compilation (IPTables, FORWARD chain)', () => {
+      before(() => { 
+        compiler = 'IPTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`); 
+        ruleData.comment = null;
+        ruleData.fw_apply_to = null; 
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
+    });
+
+    describe('Hook script rule code is included in rule compilation (NFTables, FORWARD chain)', () => {
+      before(() => { 
+        compiler = 'NFTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null;
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
+    });
+
+    describe('Hook script rule code is included in rule compilation (IPTables, SNAT)', () => {
+      before(() => { 
+        compiler = 'IPTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null;
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
+    });
+
+    describe('Hook script rule code is included in rule compilation (NFTables, SNAT)', () => {
+      before(() => { 
+        compiler = 'NFTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null;
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
+    });
+
+    describe('Hook script rule code is included in rule compilation (IPTables, DNAT)', () => {
+      before(() => { 
+        compiler = 'IPTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null;
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
+    });
+
+    describe('Hook script rule code is included in rule compilation (NFTables, DNAT)', () => {
+      before(() => { 
+        compiler = 'NFTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null;
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
   });
 
-  describe('Hook script rule code is included in rule compilation (NFTables, INPUT chain)', () => {
-    before(() => { 
-      compiler = 'NFTables'; 
-      ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`); 
-      ruleData.comment = null; 
-      ruleData.fw_apply_to = null; 
+  describe('IPv6', () => {
+    before(() => { IPv = 'IPv6' });
+
+    describe('Hook script rule code is included in rule compilation (IPTables, INPUT chain)', () => {
+      before(() => { 
+        compiler = 'IPTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null; 
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should compile as expected', async () => {
-      await runTest();
+    describe('Hook script rule code is included in rule compilation (NFTables, INPUT chain)', () => {
+      before(() => { 
+        compiler = 'NFTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null; 
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should not include after run code', async () => {
-      ruleData.run_after = run_after_code;
-      await runTest();
+    describe('Hook script rule code is included in rule compilation (IPTables, OUTPUT chain)', () => {
+      before(() => { 
+        compiler = 'IPTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null;
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should not include rule comment', async () => {
-      ruleData.comment = comment;
-      await runTest();
+    describe('Hook script rule code is included in rule compilation (NFTables, OUTPUT chain)', () => {
+      before(() => { 
+        compiler = 'NFTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`); 
+        ruleData.comment = null;
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should compile with firewall apply to', async () => {
-      ruleData.fw_apply_to = fwcProduct.firewall.id;
-      await runTest();
-    });
-  });
+    describe('Hook script rule code is included in rule compilation (IPTables, FORWARD chain)', () => {
+      before(() => { 
+        compiler = 'IPTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`); 
+        ruleData.comment = null;
+        ruleData.fw_apply_to = null; 
+      });
 
-  describe('Hook script rule code is included in rule compilation (IPTables, OUTPUT chain)', () => {
-    before(() => { 
-      compiler = 'IPTables'; 
-      ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`); 
-      ruleData.comment = null; 
-      ruleData.fw_apply_to = null;
-    });
+      it('should compile as expected', async () => {
+        await runTest();
+      });
 
-    it('should compile as expected', async () => {
-      await runTest();
-    });
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
 
-    it('should not include after run code', async () => {
-      ruleData.run_after = run_after_code;
-      await runTest();
-    });
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
 
-    it('should not include rule comment', async () => {
-      ruleData.comment = comment;
-      await runTest();
-    });
-
-    it('should compile with firewall apply to', async () => {
-      ruleData.fw_apply_to = fwcProduct.firewall.id;
-      await runTest();
-    });
-  });
-
-  describe('Hook script rule code is included in rule compilation (NFTables, OUTPUT chain)', () => {
-    before(() => { 
-      compiler = 'NFTables'; 
-      ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`); 
-      ruleData.comment = null;
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should compile as expected', async () => {
-      await runTest();
+    describe('Hook script rule code is included in rule compilation (NFTables, FORWARD chain)', () => {
+      before(() => { 
+        compiler = 'NFTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null;
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should not include after run code', async () => {
-      ruleData.run_after = run_after_code;
-      await runTest();
+    describe('Hook script rule code is included in rule compilation (IPTables, SNAT)', () => {
+      before(() => { 
+        compiler = 'IPTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null;
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should not include rule comment', async () => {
-      ruleData.comment = comment;
-      await runTest();
+    describe('Hook script rule code is included in rule compilation (NFTables, SNAT)', () => {
+      before(() => { 
+        compiler = 'NFTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null;
+      });
+
+      it('should compile as expected', async () => {
+        await runTest();
+      });
+
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
+
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
+
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should compile with firewall apply to', async () => {
-      ruleData.fw_apply_to = fwcProduct.firewall.id;
-      await runTest();
-    });
-  });
+    describe('Hook script rule code is included in rule compilation (IPTables, DNAT)', () => {
+      before(() => { 
+        compiler = 'IPTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null;
+      });
 
-  describe('Hook script rule code is included in rule compilation (IPTables, FORWARD chain)', () => {
-    before(() => { 
-      compiler = 'IPTables'; 
-      ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`); 
-      ruleData.comment = null;
-      ruleData.fw_apply_to = null; 
-    });
+      it('should compile as expected', async () => {
+        await runTest();
+      });
 
-    it('should compile as expected', async () => {
-      await runTest();
-    });
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
 
-    it('should not include after run code', async () => {
-      ruleData.run_after = run_after_code;
-      await runTest();
-    });
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
 
-    it('should not include rule comment', async () => {
-      ruleData.comment = comment;
-      await runTest();
-    });
-
-    it('should compile with firewall apply to', async () => {
-      ruleData.fw_apply_to = fwcProduct.firewall.id;
-      await runTest();
-    });
-  });
-
-  describe('Hook script rule code is included in rule compilation (NFTables, FORWARD chain)', () => {
-    before(() => { 
-      compiler = 'NFTables'; 
-      ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`); 
-      ruleData.comment = null; 
-      ruleData.fw_apply_to = null;
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
 
-    it('should compile as expected', async () => {
-      await runTest();
-    });
+    describe('Hook script rule code is included in rule compilation (NFTables, DNAT)', () => {
+      before(() => { 
+        compiler = 'NFTables'; 
+        ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`); 
+        ruleData.comment = null; 
+        ruleData.fw_apply_to = null;
+      });
 
-    it('should not include after run code', async () => {
-      ruleData.run_after = run_after_code;
-      await runTest();
-    });
+      it('should compile as expected', async () => {
+        await runTest();
+      });
 
-    it('should not include rule comment', async () => {
-      ruleData.comment = comment;
-      await runTest();
-    });
+      it('should not include after run code', async () => {
+        ruleData.run_after = run_after_code;
+        await runTest();
+      });
 
-    it('should compile with firewall apply to', async () => {
-      ruleData.fw_apply_to = fwcProduct.firewall.id;
-      await runTest();
-    });
-  });
+      it('should not include rule comment', async () => {
+        ruleData.comment = comment;
+        await runTest();
+      });
 
-  describe('Hook script rule code is included in rule compilation (IPTables, SNAT)', () => {
-    before(() => { 
-      compiler = 'IPTables'; 
-      ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`); 
-      ruleData.comment = null; 
-      ruleData.fw_apply_to = null;
-    });
-
-    it('should compile as expected', async () => {
-      await runTest();
-    });
-
-    it('should not include after run code', async () => {
-      ruleData.run_after = run_after_code;
-      await runTest();
-    });
-
-    it('should not include rule comment', async () => {
-      ruleData.comment = comment;
-      await runTest();
-    });
-
-    it('should compile with firewall apply to', async () => {
-      ruleData.fw_apply_to = fwcProduct.firewall.id;
-      await runTest();
-    });
-  });
-
-  describe('Hook script rule code is included in rule compilation (NFTables, SNAT)', () => {
-    before(() => { 
-      compiler = 'NFTables'; 
-      ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`); 
-      ruleData.comment = null; 
-      ruleData.fw_apply_to = null;
-    });
-
-    it('should compile as expected', async () => {
-      await runTest();
-    });
-
-    it('should not include after run code', async () => {
-      ruleData.run_after = run_after_code;
-      await runTest();
-    });
-
-    it('should not include rule comment', async () => {
-      ruleData.comment = comment;
-      await runTest();
-    });
-
-    it('should compile with firewall apply to', async () => {
-      ruleData.fw_apply_to = fwcProduct.firewall.id;
-      await runTest();
-    });
-  });
-
-  describe('Hook script rule code is included in rule compilation (IPTables, DNAT)', () => {
-    before(() => { 
-      compiler = 'IPTables'; 
-      ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`); 
-      ruleData.comment = null; 
-      ruleData.fw_apply_to = null;
-    });
-
-    it('should compile as expected', async () => {
-      await runTest();
-    });
-
-    it('should not include after run code', async () => {
-      ruleData.run_after = run_after_code;
-      await runTest();
-    });
-
-    it('should not include rule comment', async () => {
-      ruleData.comment = comment;
-      await runTest();
-    });
-
-    it('should compile with firewall apply to', async () => {
-      ruleData.fw_apply_to = fwcProduct.firewall.id;
-      await runTest();
-    });
-  });
-
-  describe('Hook script rule code is included in rule compilation (NFTables, DNAT)', () => {
-    before(() => { 
-      compiler = 'NFTables'; 
-      ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`); 
-      ruleData.comment = null; 
-      ruleData.fw_apply_to = null;
-    });
-
-    it('should compile as expected', async () => {
-      await runTest();
-    });
-
-    it('should not include after run code', async () => {
-      ruleData.run_after = run_after_code;
-      await runTest();
-    });
-
-    it('should not include rule comment', async () => {
-      ruleData.comment = comment;
-      await runTest();
-    });
-
-    it('should compile with firewall apply to', async () => {
-      ruleData.fw_apply_to = fwcProduct.firewall.id;
-      await runTest();
+      it('should compile with firewall apply to', async () => {
+        ruleData.fw_apply_to = fwcProduct.firewall.id;
+        await runTest();
+      });
     });
   });
 });
