@@ -58,8 +58,8 @@ describe(describeName('Policy Compiler Unit Tests - Hook scripts'), () => {
   }
 
   async function runTest(where: 'B' | 'A' | 'BA', cs: string): Promise<void> {
-    ruleData.run_before = (where==='B' || where==='BA') ? code_before : null;
-    ruleData.run_after = (where==='A' || where==='BA') ? code_after : null;
+    ruleData.run_before = (where==='B' || where==='BA') ? code_before : null;
+    ruleData.run_after = (where==='A' || where==='BA') ? code_after : null;
 
     const rule = await PolicyRule.insertPolicy_r(ruleData);
     if (ruleData.type === PolicyTypesMap.get(`${IPv}:DNAT`))

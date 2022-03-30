@@ -22,7 +22,9 @@
 
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { AvailablePolicyCompilers } from './PolicyCompiler';
-import { SpecialPolicyRules, RuleOptionsMask } from '../../models/policy/PolicyRule';
+import { SpecialPolicyRules, PolicyRuleOptMask } from '../../models/policy/PolicyRule';
+import { FireWallOptMask } from '../../models/firewall/Firewall';
+
 const ip = require('ip');
 const fwcError = require('../../utils/error_table');
 const shellescape = require('shell-escape');
@@ -223,9 +225,9 @@ export abstract class PolicyCompilerTools {
 			else {
 				this._action = CompilerAction.get(`${this._compiler}:${this._ruleData.action}`);
 				if (this._action === CompilerAction.get(`${this._compiler}:1`)) { // 1 = ACCEPT
-					if (this._ruleData.options & 0x0001) // Stateful rule.
+					if (this._ruleData.options & FireWallOptMask.STATEFUL) // Stateful rule.
 						this._stateful = this._compiler=='IPTables' ? '-m conntrack --ctstate  NEW ' : 'ct state new ';
-					else if ((this._ruleData.firewall_options & RuleOptionsMask.get(SpecialPolicyRules.STATEFUL)) && !(this._ruleData.options & RuleOptionsMask.get(SpecialPolicyRules.CATCHALL))) // Stateful firewall and this rule is not stateless.
+					else if ((this._ruleData.firewall_options & FireWallOptMask.STATEFUL) && !(this._ruleData.options & PolicyRuleOptMask.STATELESS )) // Stateful firewall and this rule is not stateless.
             this._stateful = this._compiler=='IPTables' ? '-m conntrack --ctstate  NEW ' : 'ct state new ';
 					}
 				else if (this._action === "ACCOUNTING") {
@@ -235,7 +237,7 @@ export abstract class PolicyCompilerTools {
 			}
 
 			// If log all rules option is enabled or log option for this rule is enabled.
-			if ((this._ruleData.firewall_options & 0x0010) || (this._ruleData.options & 0x0004)) {
+			if ((this._ruleData.special !== SpecialPolicyRules.HOOKSCRIPT) && ((this._ruleData.firewall_options & FireWallOptMask.LOG_ALL) || (this._ruleData.options & 0x0004))) {
 				this._logChain = "FWCRULE" + this._ruleData.id + ".LOG";
 				if (!this._accChain) {
 					this._afterLogAction = this._action;

@@ -33,7 +33,7 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { logger } from "../../fonaments/abstract-application";
 import { PolicyType } from "./PolicyType";
-import { Firewall } from "../firewall/Firewall";
+import { Firewall, FireWallOptMask } from "../firewall/Firewall";
 import { Mark } from "../ipobj/Mark";
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 const fwcError = require('../../utils/error_table');
@@ -50,7 +50,13 @@ export enum SpecialPolicyRules {
     HOOKSCRIPT = 6
 }
 
-export const RuleOptionsMask = new Map<SpecialPolicyRules, number>([
+export enum PolicyRuleOptMask {
+    STATEFUL   = 0x0001, 
+    STATELESS  = 0x0002, 
+    LOG        = 0x0004
+}
+
+export const SpecialRuleToFireWallOptMask = new Map<SpecialPolicyRules, number>([
     [SpecialPolicyRules.STATEFUL, 0x0001],
     [SpecialPolicyRules.DOCKER,   0x0020], 
     [SpecialPolicyRules.CROWDSEC, 0x0040], 
@@ -605,7 +611,7 @@ export class PolicyRule extends Model {
                 /**************************************/
                 policy_rData.action = 1;
 
-                if (options & 0x0001) { // Statefull firewall
+                if (options & FireWallOptMask.STATEFUL) { // Statefull firewall
                     policy_rData.special = 1;
                     policy_rData.comment = 'Stateful firewall rule.';
                     policy_rData.type = 1; // INPUT IPv4
@@ -656,7 +662,7 @@ export class PolicyRule extends Model {
                 /****************************************/
                 /* Generate the default FORWARD policy. */
                 /****************************************/
-                if (options & 0x0001) { // Statefull firewall
+                if (options & FireWallOptMask.STATEFUL) { // Statefull firewall
                     policy_rData.special = 1;
                     policy_rData.rule_order = 1;
                     policy_rData.action = 1;
@@ -684,7 +690,7 @@ export class PolicyRule extends Model {
                 /***************************************/
                 policy_rData.action = 1; // For the OUTPUT chain by default allow all traffic.
 
-                if (options & 0x0001) { // Statefull firewall
+                if (options & FireWallOptMask.STATEFUL) { // Statefull firewall
                     policy_rData.special = 1;
                     policy_rData.rule_order = 1;
                     policy_rData.comment = 'Stateful firewall rule.';
@@ -1321,7 +1327,7 @@ public static checkSpecialRule(dbCon: any, firewall: number, options: number, sp
 	return new Promise(async (resolve, reject) => {
         try {
              // Special rule is enabled in the options flags.
-            if (options & RuleOptionsMask.get(specialRule)) {
+            if (options & SpecialRuleToFireWallOptMask.get(specialRule)) {
                 // Special rule already exists, then nothing to do.
                 if (await this.existsSpecialRule(dbCon,firewall,specialRule)) return resolve(); 
                 

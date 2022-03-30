@@ -65,6 +65,18 @@ export enum FirewallInstallProtocol {
 	HTTP = 'http'
 }
 
+// Special rules codes.
+export enum FireWallOptMask {
+	STATEFUL   			= 0x0001, 
+	IPv4_FORWARDING = 0x0002,
+	IPv6_FORWARDING = 0x0004,
+	DEBUG 					= 0x0008,
+	LOG_ALL					= 0x0010,
+	DOCKER_COMPAT		= 0x0020, 
+	CROWDSEC_COMPAT	= 0x0040,
+	FAIL2BAN_COMPAT	= 0x0080
+}
+
 @Entity(tableName)
 export class Firewall extends Model {
 
