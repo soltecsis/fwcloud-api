@@ -1265,7 +1265,8 @@ public static createSpecialRule(dbCon: any, firewall: number, specialRule: Speci
             comment: '',
             type: 1,
             special: specialRule,
-            style: null
+            style: null,
+            run_before: null
         };
 
         let policyType: number[] = [];
@@ -1287,20 +1288,17 @@ public static createSpecialRule(dbCon: any, firewall: number, specialRule: Speci
 
                 case SpecialPolicyRules.CROWDSEC:
                     policy_rData.comment = 'CrowdSec firewall bouncer compatibility.';
+                    policy_rData.action = 2;
                     policyType = [
                         PolicyTypesMap.get('IPv4:INPUT'), PolicyTypesMap.get('IPv4:FORWARD'),
                         PolicyTypesMap.get('IPv6:INPUT'), PolicyTypesMap.get('IPv6:FORWARD')
                     ];
-                    policy_rData.action = 2;
                     break;
 
                 case SpecialPolicyRules.FAIL2BAN:
                     policy_rData.comment = 'Fail2Ban compatibility.';
-                    policyType = [
-                        PolicyTypesMap.get('IPv4:INPUT'), PolicyTypesMap.get('IPv4:FORWARD'),
-                        PolicyTypesMap.get('IPv6:INPUT'), PolicyTypesMap.get('IPv6:FORWARD')
-                    ];
-                    policy_rData.action = 2;
+                    policy_rData.run_before = 'systemctl restart fail2ban'
+                    policyType = [ PolicyTypesMap.get('IPv4:INPUT') ];
                     break;
             }
         

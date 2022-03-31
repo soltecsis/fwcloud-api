@@ -93,7 +93,7 @@ export class PolicyRuleRepository extends Repository<PolicyRule> {
         .set({active: active})
         .where({
             id: In(this.getIdsFromEntityCollection(entities))
-        }).andWhere(`(special=0 or special=${SpecialPolicyRules.HOOKSCRIPT})`) 
+        }).andWhere(`(special=0 or special=${SpecialPolicyRules.HOOKSCRIPT} or special=${SpecialPolicyRules.FAIL2BAN})`) 
         .execute();
 
         return await this.reloadEntities(oneOrMany);
