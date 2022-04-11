@@ -22,7 +22,9 @@
 
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { AvailablePolicyCompilers } from './PolicyCompiler';
-import { SpecialPolicyRules, RuleOptionsMask } from '../../models/policy/PolicyRule';
+import { SpecialPolicyRules, PolicyRuleOptMask } from '../../models/policy/PolicyRule';
+import { FireWallOptMask } from '../../models/firewall/Firewall';
+
 const ip = require('ip');
 const fwcError = require('../../utils/error_table');
 const shellescape = require('shell-escape');
@@ -164,10 +166,14 @@ export abstract class PolicyCompilerTools {
         this._csEnd = `${this._compiler=='IPTables' ? `-m set --match-set ${setName} src -j` : `ip saddr . ip daddr vmap @${setName}`} ${this._action}\n`;
         break;
 
+      case SpecialPolicyRules.FAIL2BAN:
+        if (this._family === 'ip6' || this._policyType != PolicyTypesMap.get('IPv4:INPUT'))
+          throw(fwcError.other("Invalid chain for Fail2Ban special rule"));
       case SpecialPolicyRules.HOOKSCRIPT:
         this._cs = "###########################\n# Hook script rule code:\n";
         this._cs += `${this._ruleData.run_before ? this._ruleData.run_before : ''}\n###########################\n`; 
         break;
+
 
       default:
         this._csEnd = `${this._stateful} ${this._compiler=='IPTables' ? '-j ' :''}${this._action}\n`;
@@ -223,9 +229,9 @@ export abstract class PolicyCompilerTools {
 			else {
 				this._action = CompilerAction.get(`${this._compiler}:${this._ruleData.action}`);
 				if (this._action === CompilerAction.get(`${this._compiler}:1`)) { // 1 = ACCEPT
-					if (this._ruleData.options & 0x0001) // Stateful rule.
+					if (this._ruleData.options & FireWallOptMask.STATEFUL) // Stateful rule.
 						this._stateful = this._compiler=='IPTables' ? '-m conntrack --ctstate  NEW ' : 'ct state new ';
-					else if ((this._ruleData.firewall_options & RuleOptionsMask.get(SpecialPolicyRules.STATEFUL)) && !(this._ruleData.options & RuleOptionsMask.get(SpecialPolicyRules.CATCHALL))) // Stateful firewall and this rule is not stateless.
+					else if ((this._ruleData.firewall_options & FireWallOptMask.STATEFUL) && !(this._ruleData.options & PolicyRuleOptMask.STATELESS )) // Stateful firewall and this rule is not stateless.
             this._stateful = this._compiler=='IPTables' ? '-m conntrack --ctstate  NEW ' : 'ct state new ';
 					}
 				else if (this._action === "ACCOUNTING") {
@@ -235,7 +241,9 @@ export abstract class PolicyCompilerTools {
 			}
 
 			// If log all rules option is enabled or log option for this rule is enabled.
-			if ((this._ruleData.firewall_options & 0x0010) || (this._ruleData.options & 0x0004)) {
+			if (this._ruleData.special !== SpecialPolicyRules.HOOKSCRIPT &&
+          this._ruleData.special !== SpecialPolicyRules.FAIL2BAN && 
+          ((this._ruleData.firewall_options & FireWallOptMask.LOG_ALL) || (this._ruleData.options & 0x0004))) {
 				this._logChain = "FWCRULE" + this._ruleData.id + ".LOG";
 				if (!this._accChain) {
 					this._afterLogAction = this._action;
@@ -249,7 +257,10 @@ export abstract class PolicyCompilerTools {
 
   protected afterCompilation(): string {
     // In NFTables comment goes at the end.
-    if (this._compiler=='NFTables' && this._comment && this._ruleData.special!=SpecialPolicyRules.HOOKSCRIPT)
+    if (this._compiler=='NFTables' && 
+        this._comment && 
+        this._ruleData.special!=SpecialPolicyRules.HOOKSCRIPT &&
+        this._ruleData.special!=SpecialPolicyRules.FAIL2BAN)
       this._cs = `${this._cs.slice(0,-1)} ${this._comment}`;
 
     // Replace two consecutive spaces by only one.
@@ -260,7 +271,7 @@ export abstract class PolicyCompilerTools {
       this._cs = "if [ \"$HOSTNAME\" = \"" + this._ruleData.firewall_name + "\" ]; then\n" + this._cs + "fi\n";
 
     // Include before and/or after rule script code.
-    if (this._ruleData.special != SpecialPolicyRules.HOOKSCRIPT) {
+    if (this._ruleData.special != SpecialPolicyRules.HOOKSCRIPT && this._ruleData.special != SpecialPolicyRules.FAIL2BAN) {
       if (this._ruleData.run_before) this._cs = `###########################\n# Before rule load code:\n${this._ruleData.run_before}\n###########################\n${this._cs}`;
       if (this._ruleData.run_after) this._cs += `###########################\n# After rule load code:\n${this._ruleData.run_after}\n###########################\n`;  
     }
@@ -477,7 +488,9 @@ export abstract class PolicyCompilerTools {
     }
 
     // For DNAT the translated destination is mandatory.
-    if (this._policyType === PolicyTypesMap.get('IPv4:DNAT') && this._ruleData.positions[4].ipobjs.length === 0)
+    if (this._policyType === PolicyTypesMap.get('IPv4:DNAT') &&
+        this._ruleData.special != SpecialPolicyRules.HOOKSCRIPT &&
+        this._ruleData.positions[4].ipobjs.length === 0)
       throw(fwcError.other("For DNAT 'Translated Destination' is mandatory"));
 
     // Only TCP and UDP protocols are allowed for the translated service position.

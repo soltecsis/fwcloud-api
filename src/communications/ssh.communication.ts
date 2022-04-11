@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import { FireWallOptMask } from "../models/firewall/Firewall";
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressWarningPayload } from "../sockets/messages/socket-message";
 import sshTools from "../utils/ssh";
 import { CCDHash, Communication, OpenVPNHistoryRecord } from "./communication";
@@ -23,7 +24,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
             await sshTools.uploadFile(this.connectionData, scriptPath, config.get('policy').script_name);
 
             // Enable sh debug if it is selected in firewalls/cluster options.
-            const sh_debug = (this.connectionData.options & 0x0008) ? '-x' : '';
+            const sh_debug = (this.connectionData.options & FireWallOptMask.DEBUG) ? '-x' : '';
 
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
 
