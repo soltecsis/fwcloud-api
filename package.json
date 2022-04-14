@@ -28,7 +28,7 @@
   "dependencies": {
     "apidoc": "^0.19.1",
     "archiver": "^4.0.2",
-    "async": "^3.2.0",
+    "async": "^3.2.2",
     "axios": "^0.21.4",
     "bcrypt-cli": "^1.1.0",
     "bcryptjs": "^2.4.3",
