@@ -772,7 +772,9 @@ export class PolicyRule extends Model {
                     fw_apply_to: rowData.fw_apply_to,
                     negate: rowData.negate,
                     mark: rowData.mark,
-                    special: rowData.special
+                    special: rowData.special,
+                    run_before: rowData.run_before,
+                    run_after: rowData.run_after,
                 };
 
                 var newRule;
