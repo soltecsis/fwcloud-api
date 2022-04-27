@@ -212,7 +212,7 @@ router.post('/', async (req, res) => {
 
 			if (firewallData.fwmaster === 1) {
 				// Create the loop backup interface.
-				loData = await Interface.createLoInterface(req.body.fwcloud, idfirewall);
+				loData = await Interface.createLoInterface(req.dbCon, req.body.fwcloud, idfirewall);
 				// Create the default policy rules.							
 				await PolicyRule.insertDefaultPolicy(idfirewall, loData.ifId, firewallData.options);
 				// Create the directory used for store firewall data.
@@ -423,9 +423,8 @@ router.put('/', async (req, res) => {
 		const masterFirewallID = await Firewall.getMasterFirewallId(clusterData.fwcloud, clusterData.id);
 		await Cluster.updateCluster(req.dbCon, req.body.fwcloud, clusterData);
 
-		// If this a stateful cluster verify that the stateful special rules exists.
-		// Or remove them if this is not a stateful firewall cluster.
-		await PolicyRule.checkStatefulRules(req.dbCon, masterFirewallID, clusterData.options);
+		// Verify all special rules.
+		await PolicyRule.checkSpecialRules(req.dbCon, masterFirewallID, clusterData.options);
 
 		await Tree.updateFwc_Tree_Cluster(req.dbCon, req.body.fwcloud, clusterData);
 		res.status(204).end();

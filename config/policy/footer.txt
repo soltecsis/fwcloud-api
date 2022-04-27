@@ -10,6 +10,9 @@ case "$ACTION" in
     greeting_msg
     policy_apply
     routing_apply
+    if [ $DOCKER_COMPATIBILITY ]; then
+      check_docker_iptables_disabled
+    fi
     ;;
 
   stop)

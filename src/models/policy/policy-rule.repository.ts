@@ -21,7 +21,7 @@
 */
 
 import { In, EntityRepository } from "typeorm";
-import { PolicyRule } from "./PolicyRule";
+import { PolicyRule, SpecialPolicyRules } from "./PolicyRule";
 import { PolicyGroup } from "./PolicyGroup";
 import Model from "../Model";
 import { isArray } from "util";
@@ -92,9 +92,9 @@ export class PolicyRuleRepository extends Repository<PolicyRule> {
         await this.createQueryBuilder().update(PolicyRule)
         .set({active: active})
         .where({
-            id: In(this.getIdsFromEntityCollection(entities)),
-            special: 0
-        }).execute();
+            id: In(this.getIdsFromEntityCollection(entities))
+        }).andWhere(`(special=0 or special=${SpecialPolicyRules.HOOKSCRIPT} or special=${SpecialPolicyRules.FAIL2BAN})`) 
+        .execute();
 
         return await this.reloadEntities(oneOrMany);
     }

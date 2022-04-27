@@ -34,6 +34,7 @@ import { Route } from "../routing/route/route.model";
 import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface/routing-rule-to-interface.model";
 import { RouteToIPObj } from "../routing/route/route-to-ipobj.model";
 import { RoutingRuleToIPObj } from "../routing/routing-rule/routing-rule-to-ipobj.model";
+import { Tree } from '../../models/tree/Tree';
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -513,62 +514,59 @@ export class Interface extends Model {
 		});
 	};
 
-	public static createLoInterface(fwcloud, fwId) {
+
+	public static createLoInterface(dbCon: any, fwcloud: number, firewall: number): Promise<any> {
 		return new Promise((resolve, reject) => {
-			db.get((error, connection) => {
+			// Loopback interface.
+			const interfaceData = {
+				id: null,
+				firewall: firewall,
+				name: 'lo',
+				labelName: '',
+				type: 10,
+				interface_type: 10,
+				comment: 'Loopback interface.',
+				mac: ''
+			};
+
+			// Create the IPv4 loopbackup interface address.
+			dbCon.query('INSERT INTO ' + tableName + ' SET ?', interfaceData, async (error, result) => {
 				if (error) return reject(error);
 
-				// Loopback interface.
-				const interfaceData = {
+				const interfaceId = result.insertId;
+				const ipobjData = {
 					id: null,
-					firewall: fwId,
+					fwcloud: fwcloud,
+					interface: interfaceId,
 					name: 'lo',
-					labelName: '',
-					type: 10,
-					interface_type: 10,
-					comment: 'Loopback interface.',
-					mac: ''
+					type: 5,
+					protocol: null,
+					address: '127.0.0.1',
+					netmask: '/8',
+					diff_serv: null,
+					ip_version: 4,
+					icmp_code: null,
+					icmp_type: null,
+					tcp_flags_mask: null,
+					tcp_flags_settings: null,
+					range_start: null,
+					range_end: null,
+					source_port_start: 0,
+					source_port_end: 0,
+					destination_port_start: 0,
+					destination_port_end: 0,
+					options: null,
+					comment: 'IPv4 loopback interface address.'
 				};
+				const ipv4Id = await IPObj.insertIpobj(dbCon, ipobjData);
 
-				// Create the IPv4 loopbackup interface address.
-				connection.query('INSERT INTO ' + tableName + ' SET ?', interfaceData, async (error, result) => {
-					if (error) return reject(error);
+				ipobjData.address = '::1';
+				ipobjData.netmask = '/128';
+				ipobjData.ip_version = 6;
+				ipobjData.comment = 'IPv6 loopback interface address.';
+				const ipv6Id = await IPObj.insertIpobj(dbCon, ipobjData);
 
-					const interfaceId = result.insertId;
-					const ipobjData = {
-						id: null,
-						fwcloud: fwcloud,
-						interface: interfaceId,
-						name: 'lo',
-						type: 5,
-						protocol: null,
-						address: '127.0.0.1',
-						netmask: '/8',
-						diff_serv: null,
-						ip_version: 4,
-						icmp_code: null,
-						icmp_type: null,
-						tcp_flags_mask: null,
-						tcp_flags_settings: null,
-						range_start: null,
-						range_end: null,
-						source_port_start: 0,
-						source_port_end: 0,
-						destination_port_start: 0,
-						destination_port_end: 0,
-						options: null,
-						comment: 'IPv4 loopback interface address.'
-					};
-					const ipv4Id = await IPObj.insertIpobj(connection, ipobjData);
-
-					ipobjData.address = '::1';
-					ipobjData.netmask = '/128';
-					ipobjData.ip_version = 6;
-					ipobjData.comment = 'IPv6 loopback interface address.';
-					const ipv6Id = await IPObj.insertIpobj(connection, ipobjData);
-
-					resolve({ "ifId": interfaceId, "ipv4Id": ipv4Id, "ipv6Id": ipv6Id });
-				});
+				resolve({ "ifId": interfaceId, "ipv4Id": ipv4Id, "ipv6Id": ipv6Id });
 			});
 		});
 	};

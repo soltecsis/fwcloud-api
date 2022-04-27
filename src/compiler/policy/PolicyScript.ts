@@ -26,7 +26,7 @@
  * @property RuleCompileModel
  * @type /models/compile/
  */
-import { Firewall } from '../../models/firewall/Firewall';
+import { Firewall, FireWallOptMask } from '../../models/firewall/Firewall';
 import { ProgressNoticePayload, ProgressErrorPayload, ProgressPayload } from '../../sockets/messages/socket-message';
 import { AvailablePolicyCompilers, PolicyCompiler } from './PolicyCompiler';
 import { Channel } from '../../sockets/channels/channel';
@@ -87,7 +87,7 @@ export class PolicyScript {
 			'  echo \"-------\"\n');
 
 		// IPv4 packet forwarding
-		action = (options & 0x0002) ? '1' : '0';
+		action = (options & FireWallOptMask.IPv4_FORWARDING) ? '1' : '0';
 		this.stream.write('  if [ -z "$SYSCTL" ]; then\n' +
 			`    echo ${action} > /proc/sys/net/ipv4/ip_forward\n` +
 			'  else\n' +
@@ -95,12 +95,15 @@ export class PolicyScript {
 			'  fi\n\n');
 
 		// IPv6 packet forwarding
-		action = (options & 0x0004) ? '1' : '0';
+		action = (options & FireWallOptMask.IPv6_FORWARDING) ? '1' : '0';
 		this.stream.write(`  $SYSCTL -w net.ipv6.conf.all.forwarding=${action}\n`);
+
+		if (options & FireWallOptMask.DOCKER_COMPAT)
+			this.stream.write('\n  DOCKER_COMPATIBILITY=1\n');
 
 		this.stream.write('}\n\n');
 
-		this.channel.emit('message', new ProgressNoticePayload(`--- STATE${(options & 0x0001) ? 'FUL':'LESS'} FIREWALL ---`, true));
+		this.channel.emit('message', new ProgressNoticePayload(`--- STATE${(options & FireWallOptMask.STATEFUL) ? 'FUL':'LESS'} FIREWALL ---`, true));
 		return;
 	}
 

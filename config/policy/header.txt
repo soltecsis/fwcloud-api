@@ -151,6 +151,28 @@ WantedBy=multi-user.target
 EOL
 }
 
+check_docker_iptables_disabled() {
+  DOCKER_CFG="/etc/docker/daemon.json"
+  if [ ! -f $DOCKER_CFG ]; then
+    echo
+    echo "********"
+    echo "WARNING: Docker configuration file ($DOCKER_CFG) not found."
+    echo "********"
+    echo
+    return
+  fi
+
+  IPTABLES_VALUE=`grep iptables $DOCKER_CFG | sed -r 's/[ {}"]//gi' | awk -F":" '{print $2}'`
+  if [ "$IPTABLES_VALUE" != "false" ]; then
+    echo
+    echo "********"
+    echo "WARNING: IPTables not disabled in Docker configuration."
+    echo "********"
+    echo
+    return
+  fi
+}
+
 status() {
   NL=`$IPTABLES -nL | wc -l`
   if [ $NL -lt 9 ]; then

@@ -57,7 +57,8 @@ async (req, res) => {
 		style: req.body.style,
 		fw_apply_to: req.body.fw_apply_to,
 		run_before: req.body.run_before,
-		run_after: req.body.run_after
+		run_after: req.body.run_after,
+		special: req.body.special ? req.body.special : 0
 	};
 
 	try {
@@ -347,7 +348,8 @@ function ruleCopy(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 				negate: copyRule.negate,
 				mark: copyRule.mark,
 				run_before: copyRule.run_before,
-				run_after: copyRule.run_after
+				run_after: copyRule.run_after,
+				special: copyRule.special
 			};
 			newRuleId = await PolicyRule.insertPolicy_r(policy_rData);
 

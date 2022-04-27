@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -52,6 +52,7 @@ schema.validate = req => {
 				run_before: sharedSch.script_code.optional(),
 				run_after: sharedSch.script_code.optional()
 			});
+			if (req.method === 'POST') schema = schema.append({ special: sharedSch.SpecialPolicyRule.optional() });
 			if (req.method === 'PUT') schema = schema.append({ rule: sharedSch.id });
 		} else if (req.method === 'PUT') {
 			if (req.url === '/policy/rule/type/get' || req.url === '/policy/rule/type/grouped/get')

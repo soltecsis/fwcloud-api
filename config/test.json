@@ -9,7 +9,7 @@
     },
     "db": {
         "host": "localhost",
-        "port": 8888,
+        "port": 8889,
         "name": "fwcloud",
         "user": "fwcdbusr",
         "pass": "fwcdbusr",
