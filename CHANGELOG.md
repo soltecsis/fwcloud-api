@@ -6,11 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.5.0] - 2022-04-28
 ### Added
+- Added `mysql:8` support.
 - New special Hook script rule.
 - New special CrowdSec compatibility rule for IPTables/NFTables CrowdSec firewall bouncer.
 - New special Fail2Ban compatibility rule.
 - Code in policy script for detect if Docker automatic rule generation is disabled when the Docker compatibility option is enabled.
-- Added `mysql:8` support.
 
 
 ## [1.4.3] - 2022-03-18
