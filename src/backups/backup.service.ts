@@ -49,6 +49,7 @@ export class BackupService extends Service {
     protected _cronService: CronService;
 
     protected _scheduledBackupCreationJob: CronJob;
+    protected _scheduledBackupRetentionJob: CronJob;
 
     public get config(): any {
         return this._config;
@@ -68,7 +69,6 @@ export class BackupService extends Service {
     }
 
     public startScheduledTasks(): void {
-        // This scheduled task will create automatically a backup
         this._scheduledBackupCreationJob = this._cronService.addJob(this._config.schedule, async () => {
             try {
                 logger().info("Starting BACKUP job.");
@@ -79,6 +79,15 @@ export class BackupService extends Service {
             } catch (error) { logger().error("BACKUP job ERROR: ", error.message) }
         });
         this._scheduledBackupCreationJob.start();
+
+        this._scheduledBackupRetentionJob = this._cronService.addJob('0 0 * * * *', async () => {
+            try {
+                logger().info("Starting RETENTION BACKUP job.");
+                const backups: Backup[] = await this.applyRetentionPolicy();
+                logger().info(`BACKUPS removed: ${backups.length}`);
+            } catch (error) { logger().error("BACKUP job ERROR: ", error.message) }
+        });
+        this._scheduledBackupRetentionJob.start();
     }
 
     /**
