@@ -31,4 +31,8 @@ export class DatabaseServiceProvider extends ServiceProvider {
             return DatabaseService.make(app);
         }); 
     }
+
+    public async bootstrap(app: AbstractApplication) {
+        await app.getService<DatabaseService>(DatabaseService.name);
+    }
 }
