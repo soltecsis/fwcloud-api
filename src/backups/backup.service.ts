@@ -31,7 +31,6 @@ import { CronTime, CronJob } from "cron";
 import { CronService } from "./cron/cron.service";
 import * as fse from "fs-extra";
 import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
-import { Progress } from "../fonaments/http/progress/progress";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 import { logger } from "../fonaments/abstract-application";
 import * as uuid from "uuid";
@@ -49,9 +48,8 @@ export class BackupService extends Service {
     protected _db: DatabaseService;
     protected _cronService: CronService;
 
-    protected _runningJob: CronJob;
-    protected _schedule: string;
-    protected _task: any;
+    protected _scheduledBackupCreationJob: CronJob;
+    protected _scheduledBackupRetentionJob: CronJob;
 
     public get config(): any {
         return this._config;
@@ -67,8 +65,11 @@ export class BackupService extends Service {
             fs.mkdirSync(backupDirectory);
         }
 
-        this._schedule = this._config.schedule;
-        this._task = async () => {
+        return this;
+    }
+
+    public startScheduledTasks(): void {
+        this._scheduledBackupCreationJob = this._cronService.addJob(this._config.schedule, async () => {
             try {
                 logger().info("Starting BACKUP job.");
                 const backup = new Backup();
@@ -76,12 +77,17 @@ export class BackupService extends Service {
                 await backup.create(this._config.data_dir);
                 logger().info(`BACKUP job completed: ${backup.id}`);
             } catch (error) { logger().error("BACKUP job ERROR: ", error.message) }
-        }
+        });
+        this._scheduledBackupCreationJob.start();
 
-        this._runningJob = this._cronService.addJob(this._schedule, this._task);
-        this._runningJob.start();
-
-        return this;
+        this._scheduledBackupRetentionJob = this._cronService.addJob('0 0 0 * * *', async () => {
+            try {
+                logger().info("Starting RETENTION BACKUP job.");
+                const backups: Backup[] = await this.applyRetentionPolicy();
+                logger().info(`BACKUPS removed: ${backups.length}`);
+            } catch (error) { logger().error("BACKUP job ERROR: ", error.message) }
+        });
+        this._scheduledBackupRetentionJob.start();
     }
 
     /**
@@ -278,8 +284,8 @@ export class BackupService extends Service {
         this._config = await this.loadCustomizedConfig(this._config);
         
         const cronTime: CronTime = new CronTime(this._config.schedule);
-        this._runningJob.setTime(cronTime);
-        this._runningJob.start();
+        this._scheduledBackupCreationJob.setTime(cronTime);
+        this._scheduledBackupCreationJob.start();
         logger().info(`New backup cron task schedule: ${custom_config.schedule}`);
 
         return custom_config;

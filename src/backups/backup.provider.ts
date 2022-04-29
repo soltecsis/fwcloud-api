@@ -32,10 +32,4 @@ export class BackupServiceProvider extends ServiceProvider {
             return BackupService.make(app);
         });
     }
-
-    public async bootstrap(app: AbstractApplication) {
-        // Call to backup service in order to start cron job task
-        await app.getService<BackupService>(BackupService.name);
-    }
-
 }

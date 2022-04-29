@@ -66,6 +66,7 @@ import { ClusterServiceProvider } from "./models/firewall/cluster.provider";
 import { OpenVPNPrefixServiceProvider } from "./models/vpn/openvpn/openvpn-prefix.provider";
 import { OpenVPNStatusHistoryServiceProvider } from "./models/vpn/openvpn/status/openvpn-status-history.provider";
 import { isMainThread } from "worker_threads";
+import { BackupService } from "./backups/backup.service";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -106,6 +107,9 @@ export class Application extends HTTPApplication {
 
             process.on('SIGINT', this.signalHandler);
             process.on('SIGTERM', this.signalHandler);
+
+            //Starting scheduled tasks from the backup service
+            (await this.getService<BackupService>(BackupService.name)).startScheduledTasks();
         }
 
         return this;
