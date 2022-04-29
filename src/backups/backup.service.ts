@@ -80,7 +80,7 @@ export class BackupService extends Service {
         });
         this._scheduledBackupCreationJob.start();
 
-        this._scheduledBackupRetentionJob = this._cronService.addJob('0 0 * * * *', async () => {
+        this._scheduledBackupRetentionJob = this._cronService.addJob('0 0 0 * * *', async () => {
             try {
                 logger().info("Starting RETENTION BACKUP job.");
                 const backups: Backup[] = await this.applyRetentionPolicy();
