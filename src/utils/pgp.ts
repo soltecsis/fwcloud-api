@@ -45,7 +45,7 @@ export class PgpHelper {
         return new Promise(async (resolve, reject) => {
             try {
                 const { publicKeyArmored, privateKeyArmored } = await openpgp.generateKey({
-                    userIds: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }], 
+                    userIDs: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }], 
                     rsaBits: rsaBits     
                 });
                 this._publicKey = publicKeyArmored;
