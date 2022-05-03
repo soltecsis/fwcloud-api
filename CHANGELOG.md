@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Backup related tasks are not scheduled twice.
 - Backup retention policy task is scheduled.
+- Fixed tree repair process.
 
 ## [1.5.1] - 2022-04-28
 ### Fixed
