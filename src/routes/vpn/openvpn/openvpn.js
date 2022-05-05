@@ -116,7 +116,7 @@ router.post('/', async(req, res) => {
 		// Create the OpenVPN configuration node in the tree.
 		let nodeId;
 		if (req.tree_node.node_type === 'OPN') // This will be an OpenVPN server configuration.
-			nodeId = await Tree.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OSR', newOpenvpn, 312);
+			nodeId = await Tree.newNode(req.dbCon, req.body.fwcloud, req.crt.cn + "(...)", req.body.node_id, 'OSR', newOpenvpn, 312);
 		else if (req.tree_node.node_type === 'OSR') { // This will be an OpenVPN client configuration.
 			//nodeId = await fwc_treeModel.newNode(req.dbCon, req.body.fwcloud, req.crt.cn, req.body.node_id, 'OCL', cfg, 311);
 			await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon,req.body.fwcloud,req.body.openvpn);
@@ -172,7 +172,8 @@ router.put('/', async(req, res) => {
  */
 router.put('/get', async(req, res) => {
 	try {
-		const data = await OpenVPN.getCfg(req);
+		const data = await OpenVPN.getCfg(req.body.openvpn);
+
 		res.status(200).json(data);
 	} catch(error) {
 		logger().error('Error getting an openvpn: ' + JSON.stringify(error));
@@ -200,7 +201,7 @@ router.put('/file/get', async(req, res) => {
  */
 router.put('/ipobj/get', async(req, res) => {
 	try {
-		const cfgData = await OpenVPN.getCfg(req);
+		const cfgData = await OpenVPN.getCfg(req.body.openvpn);
 		let data = [];
 		for (let openvpn_opt of cfgData.options) {
 			if (openvpn_opt.ipobj)

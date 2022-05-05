@@ -262,22 +262,15 @@ export class OpenVPN extends Model {
         });
     };
 
-    public static getCfg(req) {
-        return new Promise((resolve, reject) => {
-            let sql = `select * from ${tableName} where id=${req.body.openvpn}`;
-            req.dbCon.query(sql, (error, result) => {
-                if (error) return reject(error);
-
-                let data = result[0];
-                sql = 'select * from openvpn_opt where openvpn=' + req.body.openvpn;
-                req.dbCon.query(sql, (error, result) => {
-                    if (error) return reject(error);
-
-                    data.options = result;
-                    resolve(data);
-                });
-            });
+    public static async getCfg(openVpnId: number) {
+        const data = await getRepository(OpenVPN).findOneOrFail(openVpnId, {
+            relations: ['openVPNOptions', 'crt']
         });
+
+        data['options'] = data.openVPNOptions;
+        data.openVPNOptions = undefined;
+
+        return {...data};
     };
 
     public static getOptData(dbCon, openvpn, name) {
