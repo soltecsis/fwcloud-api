@@ -67,6 +67,7 @@ import { OpenVPNPrefixServiceProvider } from "./models/vpn/openvpn/openvpn-prefi
 import { OpenVPNStatusHistoryServiceProvider } from "./models/vpn/openvpn/status/openvpn-status-history.provider";
 import { isMainThread } from "worker_threads";
 import { BackupService } from "./backups/backup.service";
+import { PolicyRuleServiceProvider } from "./policy-rule/policy-rule.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -138,7 +139,8 @@ export class Application extends HTTPApplication {
             RoutingGroupServiceProvider,
             RouteGroupServiceProvider,
             OpenVPNPrefixServiceProvider,
-            OpenVPNStatusHistoryServiceProvider
+            OpenVPNStatusHistoryServiceProvider,
+            PolicyRuleServiceProvider
         ]
     }
 
