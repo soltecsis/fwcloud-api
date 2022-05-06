@@ -23,11 +23,13 @@
 
 import db from '../../database/database-manager';
 import Model from "../Model";
-import { PrimaryGeneratedColumn, Column, Entity, In, Not, Like, Between, IsNull } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, In, Not, Like, Between, IsNull, getRepository, SelectQueryBuilder } from 'typeorm';
 import Query from '../../database/Query';
 import { logger } from '../../fonaments/abstract-application';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { OpenVPN } from '../vpn/openvpn/OpenVPN';
+import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
+import { IPObj } from '../ipobj/IPObj';
 const fwcError = require('../../utils/error_table');
 var asyncMod = require('async');
 var _Tree = require('easy-tree');
@@ -234,7 +236,7 @@ export class Tree extends Model {
                             
                             // Include data for OpenVpn Nodes Server
                             if(nodes[i].node_type == 'OSR' || nodes[i].node_type == 'OCL'){
-                                nodes[i] = await this.addSearchInfoOpenVPN(dbCon,nodes[i])
+                                nodes[i] = await this.addSearchInfoOpenVPN(nodes[i])
                             }
                             // Add the new nodes children arrays to the map.
                             nodes[i].children = [];
@@ -305,41 +307,22 @@ export class Tree extends Model {
         });
     }
 
-    private static addSearchInfoOpenVPN(dbCon: any, node:OpenVPNNode): Promise<OpenVPNNode> {
-        return new Promise((resolve, reject) => {
-            let fields = ['address'];
+    private static async addSearchInfoOpenVPN(node:OpenVPNNode): Promise<OpenVPNNode> {
+    
+        const qb: SelectQueryBuilder<IPObj> = getRepository(IPObj).createQueryBuilder('ipobj')
+            .innerJoin(OpenVPNOption, 'option', 'option.ipObj = ipobj.id')
+            .where('fwcloud = :fwcloud', {fwcloud: node.fwcloud})
+            .andWhere('option.openVPNId = :id', {id: node.id_obj});
 
-            let sql = `select * from openvpn where id=${node.id_obj}`;
-            dbCon.query(sql,(error, result) => {
-                if(error) return reject(error);
+        if (node.node_type !== 'OSR') {
+            qb.andWhere('option.name = :name', {name: 'ifconfig-push'})
+        }
 
-                let data = result[0];
-                if(node.node_type == 'OSR'){
-                    sql = `select * from openvpn_opt where openvpn=${node.id_obj}`;
-                }else {
-                    sql = `select * from openvpn_opt where openvpn=${node.id_obj} and name='ifconfig-push'`;
-                }
-                dbCon.query(sql,(error,result)=>{
-                    if(error) return reject(error);
+        const result: IPObj = await qb.getOne();
 
-                    data.options = result;
-                    for(let openvpn_opt of data.options){
-                        if(openvpn_opt.ipobj){
-                            // Don't call IPObj.getIpobjInto(...) for possible extensions
-                            sql = `select ${fields.join(', ')} from ipobj where fwcloud=${data.firewall} and id=${openvpn_opt.ipobj}`;
-                            dbCon.query(sql,(error, result)=> {
-                                if(error) return reject(error);
-                                if(result.length < 1) return reject(fwcError.NOT_FOUND);                              
-                                
-                                //fields.forEach(field => node.field = result[0].field)
-                                node.address = result[0].address;
-                                resolve(node);
-                            })
-                        }
-                    }
-                })
-            })
-        });
+        node.address = result.address ?? '';
+        
+        return node;
     }
 
     // Put STD folders first.
