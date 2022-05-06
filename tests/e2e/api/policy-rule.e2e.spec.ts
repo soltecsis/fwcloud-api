@@ -60,7 +60,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
 
     });
 
-    describe.only('PolicyRuleController@read', ()=>{
+    describe('PolicyRuleController@read', ()=>{
     
         it('guest user should not read a compiled file content of a firewall', async()=>{
             
@@ -104,8 +104,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
                 .set('Cookie', [attachSession(adminUserSessionId)])
                 .expect(200);
         });
-        it.only('404 should be thrown if the file content does not exist', async()=>{
-            console.log(filePath)
+        it('404 should be thrown if the file content does not exist', async()=>{
 
             fs.unlinkSync(filePath);
             
