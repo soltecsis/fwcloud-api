@@ -27,6 +27,7 @@ import { ValidationException } from "../../../fonaments/exceptions/validation-ex
 import { Service } from "../../../fonaments/services/service";
 import { ErrorBag } from "../../../fonaments/validation/validator";
 import { Offset } from "../../../offset";
+import { Cluster } from "../../firewall/Cluster";
 import { Firewall } from "../../firewall/Firewall";
 import { FirewallService } from "../../firewall/firewall.service";
 import { Interface } from "../../interface/Interface";
@@ -56,6 +57,7 @@ export interface ICreateRoutingRule {
     active?: boolean;
     comment?: string;
     style?: string;
+    fwApplyToId?: number;
     ipObjIds?: {id: number, order: number}[];
     ipObjGroupIds?: {id: number, order: number}[];
     openVPNIds?: {id: number, order: number}[];
@@ -71,6 +73,7 @@ interface IUpdateRoutingRule {
     comment?: string;
     rule_order?: number;
     style?: string;
+    fwApplyToId?: number;
     ipObjIds?: {id: number, order: number}[];
     ipObjGroupIds?: {id: number, order: number}[];
     openVPNIds?: {id: number, order: number}[];
@@ -161,6 +164,7 @@ export class RoutingRuleService extends Service {
                 ipObjGroupIds: data.ipObjGroupIds,
                 openVPNIds: data.openVPNIds,
                 openVPNPrefixIds: data.openVPNPrefixIds,
+                fwApplyToId: data.fwApplyToId,
                 markIds: data.markIds
             })
         } catch(e) {
@@ -251,7 +255,10 @@ export class RoutingRuleService extends Service {
                 order: item.order
             } as RoutingRuleToOpenVPNPrefix));
         }
-
+        if (data.fwApplyToId) {
+            await this.validateFwApplyToId(firewall, data);
+            rule.firewallApplyToId = data.fwApplyToId;
+        }
         if(data.markIds) {
             await this.validateMarks(firewall, data);
 
@@ -680,6 +687,28 @@ export class RoutingRuleService extends Service {
         if (Object.keys(errors).length > 0) {
             throw new ValidationException('The given data was invalid', errors);
         }
+    }
+
+    protected async validateFwApplyToId(firewall: Firewall, data: IUpdateRoutingRule): Promise<void>{
+        const errors: ErrorBag = {}
+
+        if(!data.fwApplyToId){
+            return;
+        } 
+
+        const fwApplyToId: Firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+        .where("firewall.id = :id", { id: data.fwApplyToId })
+        .getOne()
+
+       if(fwApplyToId.clusterId !== firewall.clusterId){
+            errors[`fwApplyToId`] = ['This firewall does not belong to cluster']
+        } 
+
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
+
+
     }
 
     protected async validateMarks(firewall: Firewall, data: IUpdateRoutingRule): Promise<void> {
