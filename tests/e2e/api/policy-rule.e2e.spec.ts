@@ -26,7 +26,6 @@ describe(describeName('Policy-rules E2E Test'), () =>{
     let fwCloud: FwCloud;
     let firewall: Firewall;
     let service : PolicyRuleService;
-    let compile : void;
     let content : string;
     let filePath : string;
 
@@ -53,7 +52,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
 
         service = await app.getService<PolicyRuleService>(PolicyRuleService.name)
 
-        compile = await service.compile(firewall.fwCloudId, firewall.id)
+        await service.compile(firewall.fwCloudId, firewall.id)
         content = await service.content(firewall.fwCloudId, firewall.id)
         
         filePath = (new PolicyScript(db.getQuery(), fwCloud.id, firewall.id)).getScriptPath();
