@@ -1,6 +1,8 @@
+import { attempt } from "joi";
 import { getRepository } from "typeorm";
 import db from "../../../../src/database/database-manager";
 import { ValidationException } from "../../../../src/fonaments/exceptions/validation-exception";
+import { Cluster } from "../../../../src/models/firewall/Cluster";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { fwcloudColors } from "../../../../src/models/fwcloud/FwCloud-colors";
@@ -24,13 +26,13 @@ import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 
 describe(RouteService.name, () => {
     let service: RouteService;
-
     let fwcProduct: FwCloudProduct;
     let fwCloud: FwCloud;
     let firewall: Firewall;
     let table: RoutingTable;
     let gateway: IPObj;
     let route: Route;
+    let ctr: Cluster;
 
     beforeEach(async () => {
         await testSuite.resetDatabaseData();
@@ -39,7 +41,18 @@ describe(RouteService.name, () => {
         service = await testSuite.app.getService<RouteService>(RouteService.name);
 
         fwCloud = fwcProduct.fwcloud;
+
+        ctr = await getRepository(Cluster).save(getRepository(Cluster).create({
+            name: StringHelper.randomize(10),
+            fwCloudId: fwCloud.id
+        }))
+        
         firewall = fwcProduct.firewall;
+        firewall.clusterId = ctr.id;
+        firewall.fwmaster = 1;
+
+        await getRepository(Firewall).save(firewall)
+
         gateway = fwcProduct.ipobjs.get('gateway');
         table = fwcProduct.routingTable;
 
@@ -121,6 +134,48 @@ describe(RouteService.name, () => {
             })
 
         });
+        describe('FwApplyToId', ()=>{
+            it('should attach fwApplyToId', async ()=>{
+                route = await service.create({
+                    routingTableId: table.id,
+                    gatewayId: gateway.id,
+                    fwApplyToId: firewall.id
+                })
+
+                route = await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})
+                expect(route.firewallApplyTo.id).to.eq(firewall.id)
+            });
+
+            it('should fwApplyToId set null to default when does not have any firewall', async ()=>{
+                route = await service.create({
+                    routingTableId: table.id,
+                    gatewayId: gateway.id,
+                })
+
+                route = await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})
+                expect(route.firewallApplyToId).to.eq(null)
+            })
+
+            it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
+                
+                let fw1: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+                    name: StringHelper.randomize(10),
+                    fwCloudId: fwCloud.id,   
+                }));
+
+                route = await service.create({
+                    routingTableId: table.id,
+                    fwApplyToId: firewall.id,
+                    gatewayId: gateway.id
+                })
+ 
+                await expect(service.create({
+                    routingTableId: table.id,
+                    fwApplyToId: fw1.id, 
+                    gatewayId: gateway.id
+                })).to.rejectedWith(ValidationException);
+            })
+        })
     });
 
     describe('copy', () => {
@@ -180,6 +235,51 @@ describe(RouteService.name, () => {
 
             expect(firewall.status).to.eq(3);
         });
+
+        describe('FwApplyToId', ()=>{
+            it('should attach fwApplyToId', async ()=>{
+                await service.update(route.id, {
+                    fwApplyToId: firewall.id
+                })
+
+                expect((await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})).firewallApplyTo.id).to.eq(firewall.id)
+            })
+
+            it('should remove fwApplyToId when remove a firewall attached', async ()=>{
+                await service.update(route.id, {
+                    fwApplyToId: firewall.id, 
+                });
+
+                await service.update(route.id, {
+                    fwApplyToId: null,
+                });
+                
+                
+                expect((await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})).firewallApplyToId).to.eq(null)
+            })
+
+            it('should fwApplyToId null default when does not have any firewall', async () =>{    
+                await service.update(route.id, {   
+                });
+                
+
+                expect((await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})).firewallApplyToId).to.eq(null)
+            })
+
+            it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
+
+                let fw1: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+                    name: StringHelper.randomize(10),
+                    fwCloudId: fwCloud.id,
+                    
+                }));
+
+                await expect(service.update(route.id, {
+                    fwApplyToId: fw1.id, 
+                    gatewayId: gateway.id
+                })).to.rejectedWith(ValidationException);
+            })
+        })
 
         describe('IpObjs', () => {
             let ipobj1: IPObj;

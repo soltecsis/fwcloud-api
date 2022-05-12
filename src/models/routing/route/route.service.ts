@@ -59,6 +59,7 @@ export interface ICreateRoute {
     active?: boolean;
     comment?: string;
     style?: string;
+    fwApplyToId?: number;
     ipObjIds?: {id: number, order: number}[];
     ipObjGroupIds?: {id: number, order: number}[];
     openVPNIds?: {id: number, order: number}[];
@@ -73,6 +74,7 @@ interface IUpdateRoute {
     gatewayId?: number;
     interfaceId?: number;
     style?: string;
+    fwApplyToId?: number;
     ipObjIds?: {id: number, order: number}[];
     ipObjGroupIds?: {id: number, order: number}[];
     openVPNIds?: {id: number, order: number}[];
@@ -153,6 +155,7 @@ export class RouteService extends Service {
             ipObjGroupIds: data.ipObjGroupIds,
             openVPNIds: data.openVPNIds,
             openVPNPrefixIds: data.openVPNPrefixIds,
+            fwApplyToId: data.fwApplyToId,
             interfaceId: data.interfaceId,
         })
 
@@ -214,6 +217,11 @@ export class RouteService extends Service {
             } as RouteToOpenVPNPrefix));
         }
 
+        if (data.fwApplyToId) {
+            await this.validateFwApplyToId(firewall, data);
+            route.firewallApplyToId = data.fwApplyToId;
+        }
+
         if (Object.prototype.hasOwnProperty.call(data, "interfaceId")) {
             if (data.interfaceId !== null) {
                 await this.validateInterface(firewall, data);
@@ -228,7 +236,9 @@ export class RouteService extends Service {
 
         await this._firewallService.markAsUncompiled(firewall.id);
         
-        return route;
+        return route
+        
+        /* return getRepository(Route).findOneOrFail(route); */
     }
 
     protected async reorderTo(ruleId: number): Promise<void> {
@@ -623,6 +633,26 @@ export class RouteService extends Service {
         }
         
         
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
+    }
+
+    protected async validateFwApplyToId(firewall: Firewall, data: IUpdateRoute): Promise<void> {
+        const errors: ErrorBag = {};
+
+        if(!data.fwApplyToId){
+            return;
+        } 
+
+        const fwApplyToId: Firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+        .where("firewall.id = :id", { id: data.fwApplyToId })
+        .getOne()
+
+       if(fwApplyToId.clusterId !== firewall.clusterId){
+            errors[`fwApplyToId`] = ['This firewall does not belong to cluster']
+        } 
+
         if (Object.keys(errors).length > 0) {
             throw new ValidationException('The given data was invalid', errors);
         }
