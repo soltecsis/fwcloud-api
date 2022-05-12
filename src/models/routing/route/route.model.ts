@@ -34,6 +34,7 @@ import { RouteToOpenVPNPrefix } from "./route-to-openvpn-prefix.model";
 import { RouteToOpenVPN } from "./route-to-openvpn.model";
 import { RouteToIPObjGroup } from "./route-to-ipobj-group.model";
 import { RouteToIPObj } from "./route-to-ipobj.model";
+import { Firewall } from "../../firewall/Firewall";
 
 const tableName: string = 'route';
 
@@ -87,6 +88,17 @@ export class Route extends Model {
         type: Number
     })
     route_order: number;
+
+    @Column({
+        name: 'fw_apply_to'
+    })
+    firewallApplyToId: number;
+
+    @ManyToOne(type => Firewall, firewall => firewall.routes)
+    @JoinColumn({
+        name: 'fw_apply_to'
+    })
+    firewallApplyTo: Firewall;
 
     @Column({
         name: 'group'
