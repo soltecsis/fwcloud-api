@@ -7,8 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] -
 
 ### Added
-- Added policy rule to allow display policy script.
-- Added policy rule to allow download policy script.
+- Download and show policy script routes.
 
 ### Fixed
 - Backup related tasks are not scheduled twice.
