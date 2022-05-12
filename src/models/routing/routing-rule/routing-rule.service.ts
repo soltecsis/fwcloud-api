@@ -255,10 +255,10 @@ export class RoutingRuleService extends Service {
                 order: item.order
             } as RoutingRuleToOpenVPNPrefix));
         }
-        if (data.fwApplyToId) {
-            await this.validateFwApplyToId(firewall, data);
-            rule.firewallApplyToId = data.fwApplyToId;
-        }
+        
+        await this.validateFwApplyToId(firewall, data);
+        rule.firewallApplyToId = data.fwApplyToId;
+    
         if(data.markIds) {
             await this.validateMarks(firewall, data);
 

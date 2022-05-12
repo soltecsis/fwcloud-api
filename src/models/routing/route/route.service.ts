@@ -217,10 +217,9 @@ export class RouteService extends Service {
             } as RouteToOpenVPNPrefix));
         }
 
-        if (data.fwApplyToId) {
-            await this.validateFwApplyToId(firewall, data);
-            route.firewallApplyToId = data.fwApplyToId;
-        }
+        await this.validateFwApplyToId(firewall, data);
+        route.firewallApplyToId = data.fwApplyToId;
+        
 
         if (Object.prototype.hasOwnProperty.call(data, "interfaceId")) {
             if (data.interfaceId !== null) {
