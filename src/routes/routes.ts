@@ -94,7 +94,7 @@ export class Routes extends RouteCollection {
 
                             router.prefix('/policyRules', (router: RouterParser) => {
                                 router.get('/read', PolicyRuleController, 'read').name('fwclouds.firewalls.policyRules.read');
-                                router.get('/download', PolicyRuleController, 'download').name('fwclouds.firewalls.policyRules.download');
+                                router.post('/download', PolicyRuleController, 'download').name('fwclouds.firewalls.policyRules.download');
                             })
 
                             router.prefix('/openvpns', (router: RouterParser) => {
