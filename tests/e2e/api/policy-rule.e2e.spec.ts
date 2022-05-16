@@ -119,7 +119,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
     describe('PolicyRuleController@download', ()=>{
         it('guest user should not download a compiled file content of a firewall', async()=>{
             return await request(app.express)
-                .get(_URL().getURL('fwclouds.firewalls.policyRules.download', {
+                .post(_URL().getURL('fwclouds.firewalls.policyRules.download', {
                     fwcloud : firewall.fwCloudId,
                     firewall : firewall.id
                 }))
@@ -127,7 +127,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
         })
         it('regular user should not download a compiled file content of a firewall if it does not belong to the fwcloud', async()=>{
             return await request(app.express)
-                .get(_URL().getURL('fwclouds.firewalls.policyRules.download', {
+                .post(_URL().getURL('fwclouds.firewalls.policyRules.download', {
                     fwcloud : firewall.fwCloudId,
                     firewall : firewall.id
                 }))
