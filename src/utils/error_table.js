@@ -35,6 +35,7 @@ var errorTable = {
   "SESSION_EXPIRED":      {"fwcErr": 1009, "msg": "Session expired"},
   "SESSION_BAD":          {"fwcErr": 1010, "msg": "Invalid session"},
   "NOT_ALLOWED_CORS":     {"fwcErr": 1011, "msg": "Not allowed by CORS"},
+  "PGP_KEYS_GEN":         {"fwcErr": 1012, "msg": "PGP keys not generated"},
 
   // Input validation error codes.
   "NOT_ACCEPTED_METHOD":  {"fwcErr": 2001, "msg": "HTTP method not accepted by FWCloud.net API"},
