@@ -546,37 +546,37 @@ export class Tree extends Model {
 				// COUNTRIES / AS
 				id = await this.newNode( dbCon, fwCloudId, "AS", ids.COUNTRIES, "CON", 6, 23
 				);
-				await this.createCountriesTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 22);
 
 				// COUNTRIES / EU
 				id = await this.newNode( dbCon, fwCloudId, "EU", ids.COUNTRIES, "CON", 7, 23
 				);
-				await this.createCountriesTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 22);
 
 				// CONTRIES / AF
 				id = await this.newNode( dbCon, fwCloudId, "AF", ids.COUNTRIES, "CON", 8, 23
 				);
-				await this.createCountriesTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 22);
 
 				// COUNTRIES / OC
 				id = await this.newNode( dbCon, fwCloudId, "OC", ids.COUNTRIES, "CON", 9, 23
 				);
-				await this.createCountriesTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 22);
 
 				// COUNTRIES / NA
 				id = await this.newNode( dbCon, fwCloudId, "NA", ids.COUNTRIES, "CON", 10, 23
 				);
-				await this.createCountriesTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 22);
 
 				// COUNTRIES / AN
 				id = await this.newNode( dbCon, fwCloudId, "AN", ids.COUNTRIES, "CON", 11, 23
 				);
-				await this.createCountriesTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 22);
 
 				// COUNTRIES / SA
 				id = await this.newNode( dbCon, fwCloudId, "SA", ids.COUNTRIES, "CON", 12, 23
 				);
-				await this.createCountriesTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 22);
 
                 resolve(ids);
             } catch (error) { return reject(error) }
@@ -646,7 +646,11 @@ export class Tree extends Model {
     // Create tree with standard objects.
     public static createStdObjectsTree(dbCon, node_id, node_type, ipobj_type) {
         return new Promise((resolve, reject) => {
-            let sql = 'SELECT id,name FROM ipobj WHERE fwcloud is null and type=' + ipobj_type;
+            let sql: string
+            (ipobj_type === 22 && node_type === "COD") ? 
+            sql = `SELECT i.id, i.name FROM ipobj i JOIN ipobj__ipobjg ii ON i.id=ii.ipobj JOIN ipobj_g ig ON ii.ipobj_g=ig.id WHERE ig.id=(SELECT fwt.id_obj FROM fwc_tree fwt WHERE fwt.id=${node_id})` 
+            : 
+            sql = 'SELECT id,name FROM ipobj WHERE fwcloud is null and type=' + ipobj_type;
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
 
@@ -666,36 +670,6 @@ export class Tree extends Model {
             });
         });
     };
-
-	// Create country tree for each Continent
-	public static createCountriesTree(dbCon, node_id, node_type, ipobj_type) {
-		return new Promise((resolve, reject) => {
-			let sql = `SELECT i.id, i.name FROM ipobj i JOIN ipobj__ipobjg ii ON i.id=ii.ipobj JOIN ipobj_g ig ON ii.ipobj_g=ig.id WHERE ig.id=(SELECT fwt.id_obj FROM fwc_tree fwt WHERE fwt.id=${node_id})`;
-			dbCon.query(sql, async (error, result) => {
-				if (error) return reject(error);
-	
-				try {
-					sql = `INSERT INTO ${tableName} (name,id_parent,node_type,id_obj,obj_type,fwcloud) VALUES `;
-					for (let ipobj of result) {
-						//await this.newNode(dbCon, null, ipobj.name, node_id, node_type, ipobj.id, ipobj_type);
-						sql += `(${dbCon.escape(
-							ipobj.name
-						)},${node_id} ,${dbCon.escape(node_type)},${
-							ipobj.id
-						},${ipobj_type},NULL),`;
-					}
-					sql = sql.slice(0, -1);
-					dbCon.query(sql, async (error, result) => {
-						if (error) return reject(error);
-	
-						resolve();
-					});
-				} catch (error) {
-					return reject(error);
-				}
-			});
-		});
-	}
 
     // Create nodes under group.
     public static createGroupNodes(dbCon, fwcloud, node_id, group) {
