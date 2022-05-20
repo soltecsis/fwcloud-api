@@ -541,42 +541,42 @@ export class Tree extends Model {
                 await this.createStdGroupsTree(dbCon, id, 'OIG', 20);
 
 				// COUNTRIES
-				ids.COUNTRIES = await this.newNode(dbCon, fwCloudId, "COUNTRIES", null, "COD", null, null);
-
+				ids.COUNTRIES = await this.newNode(dbCon, fwCloudId, "COUNTRIES", null, "COF", null, null);
+                console.log(ids.COUNTRIES)
 				// COUNTRIES / AS
 				id = await this.newNode( dbCon, fwCloudId, "AS", ids.COUNTRIES, "CON", 6, 23
 				);
-				await this.createStdObjectsTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
 
 				// COUNTRIES / EU
 				id = await this.newNode( dbCon, fwCloudId, "EU", ids.COUNTRIES, "CON", 7, 23
 				);
-				await this.createStdObjectsTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
 
 				// CONTRIES / AF
 				id = await this.newNode( dbCon, fwCloudId, "AF", ids.COUNTRIES, "CON", 8, 23
 				);
-				await this.createStdObjectsTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
 
 				// COUNTRIES / OC
 				id = await this.newNode( dbCon, fwCloudId, "OC", ids.COUNTRIES, "CON", 9, 23
 				);
-				await this.createStdObjectsTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
 
 				// COUNTRIES / NA
 				id = await this.newNode( dbCon, fwCloudId, "NA", ids.COUNTRIES, "CON", 10, 23
 				);
-				await this.createStdObjectsTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
 
 				// COUNTRIES / AN
 				id = await this.newNode( dbCon, fwCloudId, "AN", ids.COUNTRIES, "CON", 11, 23
 				);
-				await this.createStdObjectsTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
 
 				// COUNTRIES / SA
 				id = await this.newNode( dbCon, fwCloudId, "SA", ids.COUNTRIES, "CON", 12, 23
 				);
-				await this.createStdObjectsTree(dbCon, id, "COD", 22);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
 
                 resolve(ids);
             } catch (error) { return reject(error) }
@@ -647,7 +647,7 @@ export class Tree extends Model {
     public static createStdObjectsTree(dbCon, node_id, node_type, ipobj_type) {
         return new Promise((resolve, reject) => {
             let sql: string
-            (ipobj_type === 22 && node_type === "COD") ? 
+            (ipobj_type === 24 && node_type === "COD") ? 
             sql = `SELECT i.id, i.name FROM ipobj i JOIN ipobj__ipobjg ii ON i.id=ii.ipobj JOIN ipobj_g ig ON ii.ipobj_g=ig.id WHERE ig.id=(SELECT fwt.id_obj FROM fwc_tree fwt WHERE fwt.id=${node_id})` 
             : 
             sql = 'SELECT id,name FROM ipobj WHERE fwcloud is null and type=' + ipobj_type;
