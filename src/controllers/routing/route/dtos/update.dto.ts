@@ -53,6 +53,10 @@ export class RouteControllerUpdateDto {
     @IsOptional()
     style?: string;
 
+    @IsNumber()
+    @IsOptional()
+    fwApplyToId?: number
+
     @IsArray()
     @IsOptional()
     @ValidateNested({

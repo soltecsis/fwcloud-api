@@ -48,6 +48,10 @@ export class RoutingRuleControllerCreateDto {
     @IsOptional()
     rule_order?: number;
 
+    @IsNumber()
+    @IsOptional()
+    fwApplyToId?: number;
+
     @IsArray()
     @IsOptional()
     @ValidateNested({
