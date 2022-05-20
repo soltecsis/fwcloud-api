@@ -150,12 +150,12 @@ describe(RoutingRuleService.name, () => {
             });
         });
 
-        describe('FwApplyToId', () =>{
-            it('should attach fwApplyToId', async () =>{
+        describe('FirewallApplyToId', () =>{
+            it('should attach firewallApplyToId', async () =>{
                 
                 rule = await service.create({
                     routingTableId: table.id,
-                    fwApplyToId: firewall.id, 
+                    firewallApplyToId: firewall.id, 
                     markIds: [{
                         id: mark.id,
                         order: 1
@@ -166,7 +166,7 @@ describe(RoutingRuleService.name, () => {
                 
                 expect(rule.firewallApplyTo.id).to.eq(firewall.id)
             })
-            it('should fwApplyToId set null to default when does not have any firewall', async () =>{
+            it('should firewallApplyToId set null to default when does not have any firewall', async () =>{
                 
                 rule = await service.create({
                     routingTableId: table.id, 
@@ -189,7 +189,7 @@ describe(RoutingRuleService.name, () => {
 
                 rule = await service.create({
                     routingTableId: table.id,
-                    fwApplyToId: firewall.id,
+                    firewallApplyToId: firewall.id,
                     markIds: [{
                         id: mark.id,
                         order: 1
@@ -198,7 +198,7 @@ describe(RoutingRuleService.name, () => {
  
                 await expect(service.create({
                     routingTableId: table.id,
-                    fwApplyToId: fw1.id, 
+                    firewallApplyToId: fw1.id, 
                     markIds: [{
                         id: mark.id,
                         order: 1
@@ -546,11 +546,11 @@ describe(RoutingRuleService.name, () => {
             })).rejectedWith(ValidationException);
         });
 
-        describe('FwApplyToId', () =>{
-            it('should attach fwApplyToId', async () =>{
+        describe('FirewallApplyToId', () =>{
+            it('should attach firewallApplyToId', async () =>{
 
                 await service.update(rule.id, {
-                    fwApplyToId: firewall.id, 
+                    firewallApplyToId: firewall.id, 
                     markIds: [{
                         id: mark.id,
                         order: 1
@@ -560,10 +560,10 @@ describe(RoutingRuleService.name, () => {
                 expect((await getRepository(RoutingRule).findOne(rule.id, {relations: ['firewallApplyTo']})).firewallApplyTo.id).to.eq(firewall.id)
             })
 
-            it('should remove fwApplyToId when remove a firewall attached', async () =>{
+            it('should remove firewallApplyToId when remove a firewall attached', async () =>{
 
                 await service.update(rule.id, {
-                    fwApplyToId: firewall.id, 
+                    firewallApplyToId: firewall.id, 
                     markIds: [{
                         id: mark.id,
                         order: 1
@@ -571,7 +571,7 @@ describe(RoutingRuleService.name, () => {
                 });
                 
                 await service.update(rule.id, {
-                    fwApplyToId: null,
+                    firewallApplyToId: null,
                     markIds: [{
                         id: mark.id,
                         order: 1
@@ -581,7 +581,7 @@ describe(RoutingRuleService.name, () => {
                 expect((await getRepository(RoutingRule).findOne(rule.id, {relations: ['firewallApplyTo']})).firewallApplyToId).to.eq(null)
             })
 
-            it('should fwApplyToId null default when does not have any firewall', async () =>{
+            it('should firewallApplyToId null default when does not have any firewall', async () =>{
                 
                 await service.update(rule.id, {   
                     markIds: [{
@@ -602,7 +602,7 @@ describe(RoutingRuleService.name, () => {
                 }));
 
                 await expect(service.update(rule.id, {
-                    fwApplyToId: fw1.id, 
+                    firewallApplyToId: fw1.id, 
                     markIds: [{
                         id: mark.id,
                         order: 1

@@ -55,7 +55,7 @@ export class RouteControllerUpdateDto {
 
     @IsNumber()
     @IsOptional()
-    fwApplyToId?: number
+    firewallApplyToId?: number
 
     @IsArray()
     @IsOptional()

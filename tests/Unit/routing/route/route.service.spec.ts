@@ -134,19 +134,19 @@ describe(RouteService.name, () => {
             })
 
         });
-        describe('FwApplyToId', ()=>{
-            it('should attach fwApplyToId', async ()=>{
+        describe('FirewallApplyToId', ()=>{
+            it('should attach firewallApplyToId', async ()=>{
                 route = await service.create({
                     routingTableId: table.id,
                     gatewayId: gateway.id,
-                    fwApplyToId: firewall.id
+                    firewallApplyToId: firewall.id
                 })
 
                 route = await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})
                 expect(route.firewallApplyTo.id).to.eq(firewall.id)
             });
 
-            it('should fwApplyToId set null to default when does not have any firewall', async ()=>{
+            it('should firewallApplyToId set null to default when does not have any firewall', async ()=>{
                 route = await service.create({
                     routingTableId: table.id,
                     gatewayId: gateway.id,
@@ -165,13 +165,13 @@ describe(RouteService.name, () => {
 
                 route = await service.create({
                     routingTableId: table.id,
-                    fwApplyToId: firewall.id,
+                    firewallApplyToId: firewall.id,
                     gatewayId: gateway.id
                 })
  
                 await expect(service.create({
                     routingTableId: table.id,
-                    fwApplyToId: fw1.id, 
+                    firewallApplyToId: fw1.id, 
                     gatewayId: gateway.id
                 })).to.rejectedWith(ValidationException);
             })
@@ -236,29 +236,29 @@ describe(RouteService.name, () => {
             expect(firewall.status).to.eq(3);
         });
 
-        describe('FwApplyToId', ()=>{
-            it('should attach fwApplyToId', async ()=>{
+        describe('FirewallApplyToId', ()=>{
+            it('should attach firewallApplyToId', async ()=>{
                 await service.update(route.id, {
-                    fwApplyToId: firewall.id
+                    firewallApplyToId: firewall.id
                 })
 
                 expect((await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})).firewallApplyTo.id).to.eq(firewall.id)
             })
 
-            it('should remove fwApplyToId when remove a firewall attached', async ()=>{
+            it('should remove firewallApplyToId when remove a firewall attached', async ()=>{
                 await service.update(route.id, {
-                    fwApplyToId: firewall.id, 
+                    firewallApplyToId: firewall.id, 
                 });
 
                 await service.update(route.id, {
-                    fwApplyToId: null,
+                    firewallApplyToId: null,
                 });
                 
                 
                 expect((await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})).firewallApplyToId).to.eq(null)
             })
 
-            it('should fwApplyToId null default when does not have any firewall', async () =>{    
+            it('should firewallApplyToId null default when does not have any firewall', async () =>{    
                 await service.update(route.id, {   
                 });
                 
@@ -275,7 +275,7 @@ describe(RouteService.name, () => {
                 }));
 
                 await expect(service.update(route.id, {
-                    fwApplyToId: fw1.id, 
+                    firewallApplyToId: fw1.id, 
                     gatewayId: gateway.id
                 })).to.rejectedWith(ValidationException);
             })

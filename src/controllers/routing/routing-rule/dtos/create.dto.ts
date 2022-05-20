@@ -50,7 +50,7 @@ export class RoutingRuleControllerCreateDto {
 
     @IsNumber()
     @IsOptional()
-    fwApplyToId?: number;
+    firewallApplyToId?: number;
 
     @IsArray()
     @IsOptional()

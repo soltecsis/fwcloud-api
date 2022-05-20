@@ -48,7 +48,7 @@ export class RoutingRuleControllerUpdateDto {
 
     @IsNumber()
     @IsOptional()
-    fwApplyToId?: number;
+    firewallApplyToId?: number;
 
     @IsArray()
     @IsOptional()

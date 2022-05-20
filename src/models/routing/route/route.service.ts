@@ -59,7 +59,7 @@ export interface ICreateRoute {
     active?: boolean;
     comment?: string;
     style?: string;
-    fwApplyToId?: number;
+    firewallApplyToId?: number;
     ipObjIds?: {id: number, order: number}[];
     ipObjGroupIds?: {id: number, order: number}[];
     openVPNIds?: {id: number, order: number}[];
@@ -74,7 +74,7 @@ interface IUpdateRoute {
     gatewayId?: number;
     interfaceId?: number;
     style?: string;
-    fwApplyToId?: number;
+    firewallApplyToId?: number;
     ipObjIds?: {id: number, order: number}[];
     ipObjGroupIds?: {id: number, order: number}[];
     openVPNIds?: {id: number, order: number}[];
@@ -155,7 +155,7 @@ export class RouteService extends Service {
             ipObjGroupIds: data.ipObjGroupIds,
             openVPNIds: data.openVPNIds,
             openVPNPrefixIds: data.openVPNPrefixIds,
-            fwApplyToId: data.fwApplyToId,
+            firewallApplyToId: data.firewallApplyToId,
             interfaceId: data.interfaceId,
         })
 
@@ -217,8 +217,8 @@ export class RouteService extends Service {
             } as RouteToOpenVPNPrefix));
         }
 
-        await this.validateFwApplyToId(firewall, data);
-        route.firewallApplyToId = data.fwApplyToId;
+        await this.validateFirewallApplyToId(firewall, data);
+        route.firewallApplyToId = data.firewallApplyToId;
         
 
         if (Object.prototype.hasOwnProperty.call(data, "interfaceId")) {
@@ -637,19 +637,19 @@ export class RouteService extends Service {
         }
     }
 
-    protected async validateFwApplyToId(firewall: Firewall, data: IUpdateRoute): Promise<void> {
+    protected async validateFirewallApplyToId(firewall: Firewall, data: IUpdateRoute): Promise<void> {
         const errors: ErrorBag = {};
 
-        if(!data.fwApplyToId){
+        if(!data.firewallApplyToId){
             return;
         } 
 
-        const fwApplyToId: Firewall = await getRepository(Firewall).createQueryBuilder('firewall')
-        .where("firewall.id = :id", { id: data.fwApplyToId })
+        const firewallApplyToId: Firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+        .where("firewall.id = :id", { id: data.firewallApplyToId })
         .getOne()
 
-       if(fwApplyToId.clusterId !== firewall.clusterId){
-            errors[`fwApplyToId`] = ['This firewall does not belong to cluster']
+       if(firewallApplyToId.clusterId !== firewall.clusterId){
+            errors[`firewallApplyToId`] = ['This firewall does not belong to cluster']
         } 
 
         if (Object.keys(errors).length > 0) {

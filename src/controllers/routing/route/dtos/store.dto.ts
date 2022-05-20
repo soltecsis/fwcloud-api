@@ -55,7 +55,7 @@ export class RouteControllerStoreDto {
 
     @IsNumber()
     @IsOptional()
-    fwApplyToId?: number
+    firewallApplyToId?: number
 
     @IsArray()
     @IsOptional()
