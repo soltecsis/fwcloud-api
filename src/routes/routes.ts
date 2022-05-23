@@ -40,6 +40,7 @@ import { RoutingRuleController } from "../controllers/routing/routing-rule/routi
 import { RoutingGroupController } from "../controllers/routing/routing-group/routing-group.controller";
 import { RouteGroupController } from "../controllers/routing/route-group/route-group.controller";
 import { FirewallController } from "../controllers/firewalls/firewall.controller";
+import { PolicyRuleController } from "../controllers/policy-rule/policy-rule.controller";
 
 export class Routes extends RouteCollection {
 
@@ -90,6 +91,11 @@ export class Routes extends RouteCollection {
                     router.prefix('/firewalls', (router: RouterParser) => {
                         router.post('/communication/ping', FirewallController, 'pingCommunication').name('fwclouds.firewalls.communication.ping');
                         router.prefix('/:firewall(\\d+)', (router:RouterParser) => {
+
+                            router.prefix('/policyRules', (router: RouterParser) => {
+                                router.get('/read', PolicyRuleController, 'read').name('fwclouds.firewalls.policyRules.read');
+                                router.post('/download', PolicyRuleController, 'download').name('fwclouds.firewalls.policyRules.download');
+                            })
 
                             router.prefix('/openvpns', (router: RouterParser) => {
                                 router.prefix('/:openvpn(\\d+)', (router: RouterParser) => {

@@ -29,7 +29,6 @@
 import { Firewall, FireWallOptMask } from '../../models/firewall/Firewall';
 import { ProgressNoticePayload, ProgressErrorPayload, ProgressPayload } from '../../sockets/messages/socket-message';
 import { AvailablePolicyCompilers, PolicyCompiler } from './PolicyCompiler';
-import { Channel } from '../../sockets/channels/channel';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { RoutingCompiled, RoutingCompiler } from '../routing/RoutingCompiler';
@@ -39,34 +38,38 @@ import { app } from '../../fonaments/abstract-application';
 import { RoutingTable } from '../../models/routing/routing-table/routing-table.model';
 import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
 import { RoutingRulesData, RoutingRuleService } from '../../models/routing/routing-rule/routing-rule.service';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import * as path from 'path';
+import { mkdirp, mkdirpSync } from 'fs-extra';
 
 var config = require('../../config/config');
 
 export class PolicyScript {
 	private routingCompiler: RoutingCompiler;
 	private policyCompiler: AvailablePolicyCompilers;
-  private path: string;
-  private stream: any;
-
-  constructor(private dbCon: any, private fwcloud: number, private firewall: number, private channel: Channel) {
+	private path: string;
+	private stream: any;
+	
+	constructor(private dbCon: any, private fwcloud: number, private firewall: number, private channel: EventEmitter = new EventEmitter()) {
 		this.routingCompiler = new RoutingCompiler;
 		this.buildPath();
-		this.stream = fs.createWriteStream(this.path);
-  }
+	}
 
+
+	public getScriptPath(): string {
+		return this.path;
+	}
+	
 	private buildPath(): void {
-		this.path = config.get('policy').data_dir;
+		this.path = path.join(
+			config.get('policy').data_dir,
+			this.fwcloud.toString(),
+			this.firewall.toString(),
+			config.get('policy').script_name
+		);
 
-		if (!fs.existsSync(this.path))
-			fs.mkdirSync(this.path);		
-		this.path += "/" + this.fwcloud;
-		if (!fs.existsSync(this.path))
-			fs.mkdirSync(this.path);
-		this.path += "/" + this.firewall;
-		if (!fs.existsSync(this.path))
-			fs.mkdirSync(this.path);
-		
-		this.path += "/" + config.get('policy').script_name;
+
+		mkdirpSync(path.dirname(this.path));
 	}
 
 	private greetingMessage(): Promise<void> {
@@ -124,6 +127,7 @@ export class PolicyScript {
 
 	public dump(): Promise<void> {
 		return new Promise(async (resolve, reject) => {
+			this.stream = fs.createWriteStream(this.path);
 			this.stream.on('open', async () => {
 				try {
 					/* Generate the policy script. */
