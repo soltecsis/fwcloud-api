@@ -37,7 +37,8 @@ import { Ca } from '../models/vpn/pki/Ca';
 import { Crt } from '../models/vpn/pki/Crt';
 import { OpenVPN } from '../models/vpn/openvpn/OpenVPN';
 import { IPObj } from '../models/ipobj/IPObj';
-
+import  db  from '../database/database-manager'
+import { SimpleConsoleLogger } from 'typeorm';
 
 
 restrictedCheck.customer = async(req, res, next) => {
@@ -89,28 +90,59 @@ restrictedCheck.firewall = async(req, res, next) => {
 
 
 restrictedCheck.firewallApplyTo = (req, res, next) => {
-	// Is this firewall part of a cluster?
-	let sql = 'SELECT cluster from firewall where id=' + req.body.firewall + ' AND fwcloud=' + req.body.fwcloud;
-	req.dbCon.query(sql, (error, result) => {
-		if (error) return res.status(400).json(error);
-		if (result && result.length === 0) return next(); // No, it is not part of a cluster.
 
-		// If it is part of a cluster then look if it appears in the apply to column of a rule of the cluster.
-		sql = 'SELECT count(*) as cont FROM policy_r R inner join firewall F on R.firewall=F.id ' +
+	const promise = new Promise(async (resolve, reject) => {
+		const queryRunner = db.getQueryRunner();
+		
+		try{
+			// Is this firewall part of a cluster?
+			let result = await queryRunner.query('SELECT cluster from firewall where id=' + req.body.firewall + ' AND fwcloud=' + req.body.fwcloud);
+			
+			let data_pr = await queryRunner.query('SELECT count(*) as cont FROM policy_r R inner join firewall F on R.firewall=F.id'+
 			' where fw_apply_to=' + req.body.firewall +
 			' AND F.cluster=' + result[0].cluster +
-			' AND F.fwcloud=' + req.body.fwcloud;
-		req.dbCon.query(sql, (error, row) => {
-			if (error) return res.status(400).json(error);
-			if (row && row.length > 0) {
-				if (row[0].cont > 0) {
-					const restricted = { "result": false, "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES" };
-					res.status(403).json(restricted);
-				} else next();
-			} else next();
-		});
-	});
-};
+			' AND F.fwcloud=' + req.body.fwcloud);
+
+			let data_rr = await queryRunner.query('SELECT count(*) as cont FROM routing_r RR inner join routing_table RT on RR.routing_table = RT.id'+
+			' inner join firewall F on RT.firewall = F.id' + 
+			' where RR.fw_apply_to=' + req.body.firewall +
+			' AND F.cluster=' + result[0].cluster +
+			' AND F.fwcloud=' + req.body.fwcloud);
+
+			let data_r = await queryRunner.query('SELECT count(*) as cont FROM route R inner join routing_table RT on R.routing_table = RT.id'+
+			' inner join firewall F on RT.firewall = F.id' + 
+			' where R.fw_apply_to=' + req.body.firewall +
+			' AND F.cluster=' + result[0].cluster +
+			' AND F.fwcloud=' + req.body.fwcloud);
+			
+			if(data_pr[0].cont > 0 || data_rr[0].cont > 0 || data_r[0].cont > 0) {
+				
+				return resolve('restrictedErr')
+			}
+			return resolve()
+		}catch(error){
+			return reject(error)
+		}finally{
+			await queryRunner.release();
+		}
+	})
+		promise.then((message)=> {
+			if(message){
+				const restricted = { "result": false, "restrictions": "FIREWALL WITH RESTRICTIONS APPLY_TO ON RULES" };
+				res.status(403).json(restricted);
+			}else{
+				next()
+			}
+		}).catch((err) =>{
+			return res.status(400).json(err)
+		})
+	}
+
+
+
+	
+	
+	
 
 
 restrictedCheck.interface = async(req, res, next) => {
