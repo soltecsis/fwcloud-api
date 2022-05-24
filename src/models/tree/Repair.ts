@@ -252,6 +252,8 @@ export class Repair extends Model {
                         await this.regenerateFirewallTree(rootNode, firewall, channel);
                         await PolicyRule.checkSpecialRules(dbCon, firewall.id, firewall.options);
                     }
+
+                    return resolve();
                 } catch (error) { return reject(error) };
             });
         });
@@ -310,6 +312,8 @@ export class Repair extends Model {
                         await this.regenerateClusterTree(rootNode, cluster, channel);
                         await PolicyRule.checkSpecialRules(dbCon, cluster.fwmaster_id, cluster.options);
                     }
+
+                    return resolve();
                 } catch (error) { return reject(error) };
             });
         });

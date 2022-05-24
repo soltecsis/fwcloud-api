@@ -111,7 +111,7 @@ router.post('/login',async (req, res) => {
 			throw fwcError.BAD_LOGIN;
 		}
 	} catch(error) {
-		logger().error('Error loggin in a user: ' + JSON.stringify(error));
+		logger().error(`Login error${error.message ? `: ${error.message}`: '.'}`);
 		res.status(401).json(error);
 	}
 });
