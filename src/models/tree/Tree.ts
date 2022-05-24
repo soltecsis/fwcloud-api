@@ -23,10 +23,13 @@
 
 import db from '../../database/database-manager';
 import Model from "../Model";
-import { PrimaryGeneratedColumn, Column, Entity, In, Not, Like, Between, IsNull } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, In, Not, Like, Between, IsNull, getRepository, SelectQueryBuilder } from 'typeorm';
 import Query from '../../database/Query';
 import { logger } from '../../fonaments/abstract-application';
 import { FwCloud } from '../fwcloud/FwCloud';
+import { OpenVPN } from '../vpn/openvpn/OpenVPN';
+import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
+import { IPObj } from '../ipobj/IPObj';
 const fwcError = require('../../utils/error_table');
 var asyncMod = require('async');
 var _Tree = require('easy-tree');
@@ -43,6 +46,10 @@ export type TreeNode = {
     obj_type: number;
     fwcloud: number;
     children: TreeNode[]
+}
+
+export type OpenVPNNode = TreeNode & {
+    address: string
 }
 
 export type TreeType = 'FIREWALLS' | 'OBJECTS' | 'SERVICES' | 'CA'; 
@@ -226,6 +233,11 @@ export class Tree extends Model {
                         nodes = await this.nodesUnderNodes(dbCon,nodes,orderBy);
 
                         for(let i=0; i<nodes.length; i++) {
+                            
+                            // Include data for OpenVpn Nodes Server
+                            if(nodes[i].node_type == 'OSR' || nodes[i].node_type == 'OCL'){
+                                nodes[i] = await this.addSearchInfoOpenVPN(nodes[i])
+                            }
                             // Add the new nodes children arrays to the map.
                             nodes[i].children = [];
                             childrenArrayMap.set(nodes[i].id, nodes[i].children);
@@ -240,7 +252,7 @@ export class Tree extends Model {
                         await Promise.all(rootNode.children.map(node => this.oderNodeBy(node,['FD','FDI'],'text')));
                     else if (treeType==='SERVICES' || treeType==='OBJECTS') // Include data for advanced search.
                         await this.addSearchInfo(dbCon, childrenArrayMap, treeType);
-
+                    
                     resolve(rootNode);
                 } catch (error) { reject(error) }
             });
@@ -295,6 +307,23 @@ export class Tree extends Model {
         });
     }
 
+    private static async addSearchInfoOpenVPN(node:OpenVPNNode): Promise<OpenVPNNode> {
+    
+        const qb: SelectQueryBuilder<IPObj> = getRepository(IPObj).createQueryBuilder('ipobj')
+            .innerJoin(OpenVPNOption, 'option', 'option.ipObj = ipobj.id')
+            .where('fwcloud = :fwcloud', {fwcloud: node.fwcloud})
+            .andWhere('option.openVPNId = :id', {id: node.id_obj});
+
+        if (node.node_type !== 'OSR') {
+            qb.andWhere('option.name = :name', {name: 'ifconfig-push'})
+        }
+
+        const result: IPObj = await qb.getOne();
+
+        node.address = result.address ?? '';
+        
+        return node;
+    }
 
     // Put STD folders first.
     public static stdFoldersFirst(root_node) {
