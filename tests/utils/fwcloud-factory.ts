@@ -1,5 +1,5 @@
 /*!
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -483,6 +483,32 @@ export class FwCloudFactory {
             route_order: 4
         }));
 
+        this.fwc.routes.set('route5', await this._routeRepository.save({
+            id: lastRouteId++,
+            routingTableId: this.fwc.routingTable.id,
+            gatewayId: this.fwc.ipobjs.get('gateway').id,
+            interfaceId: this.fwc.interfaces.get('firewall-interface1').id,
+            firewallApplyToId: this.fwc.firewall.id,
+            route_order: 5
+        }));
+
+        this.fwc.routes.set('route6', await this._routeRepository.save({
+            id: lastRouteId++,
+            routingTableId: this.fwc.routingTable.id,
+            gatewayId: this.fwc.ipobjs.get('gateway').id,
+            interfaceId: this.fwc.interfaces.get('firewall-interface1').id,
+            firewallApplyToId: this.fwc.firewall.id,
+            route_order: 6
+        }));
+
+        this.fwc.routes.set('route7', await this._routeRepository.save({
+            id: lastRouteId++,
+            routingTableId: this.fwc.routingTable.id,
+            gatewayId: this.fwc.ipobjs.get('gateway').id,
+            firewallApplyToId: this.fwc.firewall.id,
+            route_order: 7
+        }));
+
         this.fwc.routingRules.set('routing-rule-1', await this._routingRuleRepository.save({
             id: lastRoutingRuleId++,
             routingTableId: this.fwc.routingTable.id,
@@ -499,6 +525,20 @@ export class FwCloudFactory {
             id: lastRoutingRuleId++,
             routingTableId: this.fwc.routingTable.id,
             rule_order: 3
+        }));
+
+        this.fwc.routingRules.set('routing-rule-4', await this._routingRuleRepository.save({
+            id: lastRoutingRuleId++,
+            routingTableId: this.fwc.routingTable.id,
+            firewallApplyToId: this.fwc.firewall.id,
+            rule_order: 4
+        }));
+
+        this.fwc.routingRules.set('routing-rule-5', await this._routingRuleRepository.save({
+            id: lastRoutingRuleId++,
+            routingTableId: this.fwc.routingTable.id,
+            firewallApplyToId: this.fwc.firewall.id,
+            rule_order: 5
         }));
 
         await routeService.update(this.fwc.routes.get('route1').id, {
@@ -521,7 +561,46 @@ export class FwCloudFactory {
             ipObjGroupIds: [{id: this.fwc.ipobjGroup.id, order: 1}]
         });
         
+        await routeService.update(this.fwc.routes.get('route6').id, {
+            ipObjIds: [
+                { id: this.fwc.ipobjs.get('address').id, order: 1 }, 
+                { id: this.fwc.ipobjs.get('addressRange').id, order: 2 },
+                { id: this.fwc.ipobjs.get('network').id, order: 3 },
+                { id: this.fwc.ipobjs.get('networkNoCIDR').id, order: 4 },
+                { id: this.fwc.ipobjs.get('host').id, order: 5 }, 
+            ],
+            openVPNIds: [
+                {id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6}
+            ],
+            openVPNPrefixIds: [
+                {id: this.fwc.openvpnPrefix.id, order: 7}
+            ]
+        });
+  
+        await routeService.update(this.fwc.routes.get('route7').id, {
+            ipObjGroupIds: [{id: this.fwc.ipobjGroup.id, order: 1}]
+        });
+        
         await routingRuleService.update(this.fwc.routingRules.get('routing-rule-1').id, {
+            ipObjIds: [
+                { id: this.fwc.ipobjs.get('address').id, order: 1 }, 
+                { id: this.fwc.ipobjs.get('addressRange').id, order: 2 },
+                { id: this.fwc.ipobjs.get('network').id, order: 3 },
+                { id: this.fwc.ipobjs.get('networkNoCIDR').id, order: 4 },
+                { id: this.fwc.ipobjs.get('host').id, order: 5 }, 
+            ],
+            openVPNIds: [
+                {id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6}
+            ],
+            openVPNPrefixIds: [
+                {id: this.fwc.openvpnPrefix.id, order: 7}
+            ],
+            markIds: [{
+                id: this.fwc.mark.id, order: 8
+            }]
+          });
+
+          await routingRuleService.update(this.fwc.routingRules.get('routing-rule-4').id, {
             ipObjIds: [
                 { id: this.fwc.ipobjs.get('address').id, order: 1 }, 
                 { id: this.fwc.ipobjs.get('addressRange').id, order: 2 },
@@ -543,6 +622,11 @@ export class FwCloudFactory {
           await routingRuleService.update(this.fwc.routingRules.get('routing-rule-2').id, {
             ipObjGroupIds: [{id: this.fwc.ipobjGroup.id, order: 1}]
           });              
+
+          await routingRuleService.update(this.fwc.routingRules.get('routing-rule-5').id, {
+            ipObjGroupIds: [{id: this.fwc.ipobjGroup.id, order: 1}]
+          });              
+
     }
 
     private async makeMark(): Promise<void> {
