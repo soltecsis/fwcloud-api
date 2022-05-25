@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] -
+
 ### Added
 - Download and show policy script routes.
 
@@ -15,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Backup related tasks are not scheduled twice.
 - Backup retention policy task is scheduled.
 - Fixed tree repair process.
+- Updated easy-rsa package from 3.0.6 to 3.1.0.
 
 ## [1.5.1] - 2022-04-28
 ### Fixed
