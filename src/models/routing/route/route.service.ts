@@ -235,9 +235,7 @@ export class RouteService extends Service {
 
         await this._firewallService.markAsUncompiled(firewall.id);
         
-        return route
-        
-        /* return getRepository(Route).findOneOrFail(route); */
+        return route;
     }
 
     protected async reorderTo(ruleId: number): Promise<void> {

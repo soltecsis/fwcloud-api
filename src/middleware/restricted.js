@@ -98,18 +98,18 @@ restrictedCheck.firewallApplyTo = (req, res, next) => {
 			// Is this firewall part of a cluster?
 			let result = await queryRunner.query('SELECT cluster from firewall where id=' + req.body.firewall + ' AND fwcloud=' + req.body.fwcloud);
 			
-			let data_pr = await queryRunner.query('SELECT count(*) as cont FROM policy_r R inner join firewall F on R.firewall=F.id'+
+			const data_pr = await queryRunner.query('SELECT count(*) as cont FROM policy_r R inner join firewall F on R.firewall=F.id'+
 			' where fw_apply_to=' + req.body.firewall +
 			' AND F.cluster=' + result[0].cluster +
 			' AND F.fwcloud=' + req.body.fwcloud);
 
-			let data_rr = await queryRunner.query('SELECT count(*) as cont FROM routing_r RR inner join routing_table RT on RR.routing_table = RT.id'+
+			const data_rr = await queryRunner.query('SELECT count(*) as cont FROM routing_r RR inner join routing_table RT on RR.routing_table = RT.id'+
 			' inner join firewall F on RT.firewall = F.id' + 
 			' where RR.fw_apply_to=' + req.body.firewall +
 			' AND F.cluster=' + result[0].cluster +
 			' AND F.fwcloud=' + req.body.fwcloud);
 
-			let data_r = await queryRunner.query('SELECT count(*) as cont FROM route R inner join routing_table RT on R.routing_table = RT.id'+
+			const data_r = await queryRunner.query('SELECT count(*) as cont FROM route R inner join routing_table RT on R.routing_table = RT.id'+
 			' inner join firewall F on RT.firewall = F.id' + 
 			' where R.fw_apply_to=' + req.body.firewall +
 			' AND F.cluster=' + result[0].cluster +
