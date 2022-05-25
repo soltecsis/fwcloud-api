@@ -26,7 +26,6 @@ describe(describeName('Policy-rules E2E Test'), () =>{
     let fwCloud: FwCloud;
     let firewall: Firewall;
     let service : PolicyRuleService;
-    let compile : void;
     let content : string;
     let filePath : string;
 
@@ -53,7 +52,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
 
         service = await app.getService<PolicyRuleService>(PolicyRuleService.name)
 
-        compile = await service.compile(firewall.fwCloudId, firewall.id)
+        await service.compile(firewall.fwCloudId, firewall.id)
         content = await service.content(firewall.fwCloudId, firewall.id)
         
         filePath = (new PolicyScript(db.getQuery(), fwCloud.id, firewall.id)).getScriptPath();
@@ -120,7 +119,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
     describe('PolicyRuleController@download', ()=>{
         it('guest user should not download a compiled file content of a firewall', async()=>{
             return await request(app.express)
-                .get(_URL().getURL('fwclouds.firewalls.policyRules.download', {
+                .post(_URL().getURL('fwclouds.firewalls.policyRules.download', {
                     fwcloud : firewall.fwCloudId,
                     firewall : firewall.id
                 }))
@@ -128,7 +127,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
         })
         it('regular user should not download a compiled file content of a firewall if it does not belong to the fwcloud', async()=>{
             return await request(app.express)
-                .get(_URL().getURL('fwclouds.firewalls.policyRules.download', {
+                .post(_URL().getURL('fwclouds.firewalls.policyRules.download', {
                     fwcloud : firewall.fwCloudId,
                     firewall : firewall.id
                 }))
@@ -140,7 +139,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
             await getRepository(User).save(loggedUser);
 
             return await request(app.express)
-                .get(_URL().getURL('fwclouds.firewalls.policyRules.download', {
+                .post(_URL().getURL('fwclouds.firewalls.policyRules.download', {
                     fwcloud: firewall.fwCloudId,
                     firewall: firewall.id
                 }))
@@ -152,7 +151,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
         });
         it('admin user should download a compiled file content of a firewall', async () => {
             return await request(app.express)
-                .get(_URL().getURL('fwclouds.firewalls.policyRules.download', {
+                .post(_URL().getURL('fwclouds.firewalls.policyRules.download', {
                     fwcloud: firewall.fwCloudId,
                     firewall: firewall.id
                 }))
@@ -164,7 +163,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
         it('check the download content is the compiled file content', async () => {
             
             return await request(app.express)
-                .get(_URL().getURL('fwclouds.firewalls.policyRules.download', {
+                .post(_URL().getURL('fwclouds.firewalls.policyRules.download', {
                     fwcloud: firewall.fwCloudId,
                     firewall: firewall.id
                 }))

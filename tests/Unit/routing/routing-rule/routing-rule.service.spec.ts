@@ -146,7 +146,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 // Notice rules have been created in the factory
-                expect(rule.rule_order).to.eq(9);
+                expect(rule.rule_order).to.eq(11);
             });
         });
 

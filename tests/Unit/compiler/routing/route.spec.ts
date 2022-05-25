@@ -1,5 +1,5 @@
 /*!
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -39,6 +39,8 @@ describe('Routing route compiler', async () => {
     let rtn: number; // Routing table number.
 
     let cs: string;
+    let cs_start: string;
+    let cs_end: string;  
     const head = '$IP route add';
     let tail: string;
 
@@ -49,6 +51,9 @@ describe('Routing route compiler', async () => {
       gw = fwc.ipobjs.get('gateway').address;
       dev = fwc.interfaces.get('firewall-interface1').name;
       rtn = fwc.routingTable.number;
+
+      cs_start = `if [ "$HOSTNAME" = "${fwc.firewall.name}" ]; then\n`;
+      cs_end = '\nfi\n'
 
       routingTableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
       const routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>('compiler',fwc.fwcloud.id, fwc.firewall.id, fwc.routingTable.id);            
@@ -66,6 +71,10 @@ describe('Routing route compiler', async () => {
 
         it('should include default route with interface', () => {
             expect(compilation[3].cs).to.equal(`${head} default via ${gw} dev ${dev} ${tail}`);
+        });
+
+        it('should include default route with interface and firewall apply to code', () => {
+            expect(compilation[4].cs).to.equal(`if [ "$HOSTNAME" = "${fwc.firewall.name}" ]; then\n${head} default via ${gw} dev ${dev} ${tail}fi\n`);
         });
     });
 
@@ -110,9 +119,101 @@ describe('Routing route compiler', async () => {
     });
 
 
+    describe('Compilation of route with objects and firewall apply to', () => {
+        before(() => { 
+            cs = compilation[5].cs;
+            tail = `via ${gw} dev ${dev} table ${rtn}\n`; // The first route has interface.
+        });
+
+        it('should include address data', () => {
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('address').address} ${tail}`);
+            expect(cs.startsWith(cs_start)).to.be.true;
+            expect(cs.endsWith(cs_end)).to.be.true;
+        });
+
+        it('should include network data', () => {
+            const net = ip.subnet(fwc.ipobjs.get('networkNoCIDR').address, fwc.ipobjs.get('networkNoCIDR').netmask);
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`);
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('networkNoCIDR').address}/${net.subnetMaskLength} ${tail}`);
+            expect(cs.startsWith(cs_start)).to.be.true;
+            expect(cs.endsWith(cs_end)).to.be.true;
+        });
+
+        it('should include address range data', () => {
+            const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
+            const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
+            for(let current=firstLong; current<=lastLong; current++)
+                expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+            expect(cs.startsWith(cs_start)).to.be.true;
+            expect(cs.endsWith(cs_end)).to.be.true;
+        });
+
+        it('should include host data', () => {
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('host-eth2-addr1').address} ${tail}`);
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('host-eth3-addr1').address} ${tail}`);
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('host-eth3-addr2').address} ${tail}`);
+            expect(cs.startsWith(cs_start)).to.be.true;
+            expect(cs.endsWith(cs_end)).to.be.true;
+        });
+
+        it('should include OpenVPN data', () => {
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`);
+            expect(cs.startsWith(cs_start)).to.be.true;
+            expect(cs.endsWith(cs_end)).to.be.true;
+        });
+
+        it('should include OpenVPN prefix data', () => {
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`);
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli2-addr').address} ${tail}`);
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`);
+            expect(cs.startsWith(cs_start)).to.be.true;
+            expect(cs.endsWith(cs_end)).to.be.true;
+        });
+    });
+
+
     describe('Compilation of route with objects group', () => {
         before(() => { 
             cs = compilation[1].cs;
+            tail = `via ${gw} table ${rtn}\n`; // The second route has no interface.
+        });
+
+        it('should include address data', () => {
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('address').address} ${tail}`);
+        });
+
+        it('should include network data', () => {
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`);
+        });
+
+        it('should include address range data', () => {
+            const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
+            const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
+            for(let current=firstLong; current<=lastLong; current++)
+                expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+        });
+
+        it('should include host data', () => {
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('host-eth2-addr1').address} ${tail}`);
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('host-eth3-addr1').address} ${tail}`);
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('host-eth3-addr2').address} ${tail}`);
+        });
+
+        it('should include OpenVPN data', () => {
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`);
+        });
+
+        it('should include OpenVPN prefix data', () => {
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`);
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli2-addr').address} ${tail}`);
+            expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`);
+        });
+    });
+
+
+    describe('Compilation of route with objects group and firewall apply to', () => {
+        before(() => { 
+            cs = compilation[6].cs;
             tail = `via ${gw} table ${rtn}\n`; // The second route has no interface.
         });
 

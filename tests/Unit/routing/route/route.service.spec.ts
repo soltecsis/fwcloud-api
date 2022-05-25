@@ -109,7 +109,7 @@ describe(RouteService.name, () => {
                 });
 
                 // Notice rules have been created in the factory
-                expect(route.route_order).to.eq(9);
+                expect(route.route_order).to.eq(12);
             });
 
             it('should attach standard ipobj', async () => {

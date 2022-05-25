@@ -18,7 +18,7 @@ export class PolicyRuleService extends Service {
 
     public async compile(fwcloudId: number, firewallId: number, channel?: EventEmitter): Promise<void> {
         let policyScript = this.getPolicyScript(fwcloudId, firewallId, channel);
-		await policyScript.dump();
+        await policyScript.dump();
     }
 
     public content(fwcloudId: number, firewallId: number): Promise<string>{

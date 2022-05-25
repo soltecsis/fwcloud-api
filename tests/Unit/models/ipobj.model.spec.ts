@@ -64,7 +64,7 @@ describe(IPObj.name, () => {
                 await getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr1').id})
                 await getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr2').id})
                 const whereUsed: any = await IPObj.searchIpobjUsage(db.getQuery(), fwcloudProduct.fwcloud.id, fwcloudProduct.ipobjs.get('host-eth2-addr1').id, 5);
-                expect(whereUsed.restrictions.LastAddrInHostInRoute).to.have.length(1);
+                expect(whereUsed.restrictions.LastAddrInHostInRoute).to.have.length(2);
             })
         });
 
