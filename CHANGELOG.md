@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] -
 
+### Fixed
+- Updated easy-rsa package from 3.0.6 to 3.1.0
+
 ### Added
 - Download and show policy script routes.
 
