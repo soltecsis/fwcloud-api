@@ -46,6 +46,10 @@ export class RoutingRuleControllerUpdateDto {
     @IsOptional()
     style?: string;
 
+    @IsNumber()
+    @IsOptional()
+    firewallApplyToId?: number;
+
     @IsArray()
     @IsOptional()
     @ValidateNested({

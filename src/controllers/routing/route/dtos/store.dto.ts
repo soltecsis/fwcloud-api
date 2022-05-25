@@ -53,6 +53,10 @@ export class RouteControllerStoreDto {
     @IsOptional()
     style: string;
 
+    @IsNumber()
+    @IsOptional()
+    firewallApplyToId?: number
+
     @IsArray()
     @IsOptional()
     @ValidateNested({

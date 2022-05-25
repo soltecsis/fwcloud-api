@@ -52,6 +52,8 @@ import { IPObjGroup } from "../ipobj/IPObjGroup";
 import { Communication } from "../../communications/communication";
 import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
+import { Route } from '../routing/route/route.model';
+import { RoutingRule } from './../routing/routing-rule/routing-rule.model';
 
 const tableName: string = 'firewall';
 
@@ -184,7 +186,13 @@ export class Firewall extends Model {
 
 	@OneToMany(type => RouteGroup, model => model.firewall)
 	routeGroups: RouteGroup[]
-	
+
+	@OneToMany(type => RoutingRule, routingRule => routingRule.firewallApplyTo)
+	routingRules: RoutingRule[]
+
+	@OneToMany(type => Route, route => route.firewallApplyTo)
+	routes: Route[]
+
 	public getTableName(): string {
 		return tableName;
 	}

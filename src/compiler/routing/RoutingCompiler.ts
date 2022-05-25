@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -41,6 +41,10 @@ export class RoutingCompiler {
 
     for (let i=0; i<items.length; i++)
       cs += `$IP rule add ${items[i]} table ${ruleData.routingTable.number}\n`;
+    
+    // Apply routing rule only to the selected firewall.
+    if (ruleData.firewallApplyTo && ruleData.firewallApplyTo.name)
+      cs = `if [ "$HOSTNAME" = "${ruleData.firewallApplyTo.name}" ]; then\n${cs}fi\n`;
 
     return cs;
   }
@@ -58,6 +62,10 @@ export class RoutingCompiler {
     for (let i=0; i<items.length; i++)
       cs += `$IP route add ${items[i]} via ${gw}${dev}table ${routeData.routingTable.number}\n`;
 
+    // Apply route only to the selected firewall.
+    if (routeData.firewallApplyTo && routeData.firewallApplyTo.name)
+      cs = `if [ "$HOSTNAME" = "${routeData.firewallApplyTo.name}" ]; then\n${cs}fi\n`;
+  
     return cs;
   }
 
