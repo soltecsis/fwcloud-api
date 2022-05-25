@@ -6,16 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] -
 
-### Fixed
-- Updated easy-rsa package from 3.0.6 to 3.1.0
-
 ### Added
 - Download and show policy script routes.
+
+### Changed
+- New call created returns the openvpn nodes with additional information such as the address.
 
 ### Fixed
 - Backup related tasks are not scheduled twice.
 - Backup retention policy task is scheduled.
 - Fixed tree repair process.
+- Updated easy-rsa package from 3.0.6 to 3.1.0.
 
 ## [1.5.1] - 2022-04-28
 ### Fixed

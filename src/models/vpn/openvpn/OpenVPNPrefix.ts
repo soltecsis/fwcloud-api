@@ -276,8 +276,9 @@ export class OpenVPNPrefix extends Model {
 
                 // Create all OpenVPN client config nodes.
                 let openvpn_cli_list: any = await OpenVPN.getOpenvpnClients(dbCon, openvpn_srv);
-                for (let openvpn_cli of openvpn_cli_list)
+                for (let openvpn_cli of openvpn_cli_list){
                     await Tree.newNode(dbCon, fwcloud, openvpn_cli.cn, node_id, 'OCL', openvpn_cli.id, 311);
+                }
 
                 // Create the nodes for all the prefixes.
                 const prefix_list: any = await this.getPrefixes(dbCon, openvpn_srv);
