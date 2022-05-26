@@ -1485,6 +1485,9 @@ export class PolicyRuleToIPObj extends Model {
                     // If this is a services group, then we don't need to check the IP version.
                     if (groupData[0].type === 21) return resolve(true);
 
+                    // If this is a continent group, then we don't need to check the IP version.
+                    if (groupData[0].type === 23) return resolve(true); 
+
                     const groupIPv: {ipv4: boolean, ipv6: boolean} = await IPObjGroup.groupIPVersion(req.dbCon, req.body.ipobj_g);
 
                     if (rule_ip_version === 4 && groupIPv.ipv4) {
