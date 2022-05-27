@@ -110,7 +110,7 @@ describe(describeName('Crt E2E Test'), () => {
             })
             .expect(200)
             .then(async (response)=>{
-                const crtWithNewComment: Crt = await Crt.findOne(ca.id);
+                const crtWithNewComment: Crt = await Crt.findOne(crt.id);
                 expect(crtWithNewComment.comment).to.be.equal(comment)
             })
 
@@ -129,7 +129,7 @@ describe(describeName('Crt E2E Test'), () => {
             })
             .expect(200)
             .then(async (response)=>{
-                const crtWithNewComment = await Crt.findOne(ca.id);                
+                const crtWithNewComment = await Crt.findOne(crt.id);                
                 expect(response.body.data.comment).to.be.equal(crtWithNewComment.comment)
             })
         })
