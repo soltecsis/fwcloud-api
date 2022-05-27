@@ -21,6 +21,7 @@
 */
 
 const openpgp = require('openpgp');
+const fwcError = require('./error_table');
 
 export class PgpHelper {
     private _publicKey: string;
@@ -45,9 +46,13 @@ export class PgpHelper {
         return new Promise(async (resolve, reject) => {
             try {
                 const { publicKeyArmored, privateKeyArmored } = await openpgp.generateKey({
-                    userIDs: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }], 
-                    rsaBits: rsaBits     
+                    rsaBits: rsaBits,     
+                    userIds: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }]
                 });
+
+                if (!publicKeyArmored || !privateKeyArmored)
+                    return reject(fwcError.PGP_KEYS_GEN);
+
                 this._publicKey = publicKeyArmored;
                 this._privateKey = privateKeyArmored;
                 resolve();
