@@ -12,7 +12,7 @@ import { Crt } from "../../../src/models/vpn/pki/Crt";
 import { CrtService } from "../../../src/crt/crt.service";
 
 
-describe.only(describeName('Crt E2E Test'), () => {
+describe(describeName('Crt E2E Test'), () => {
     let app: Application;
 
     let loggedUser: User;
