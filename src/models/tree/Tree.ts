@@ -571,7 +571,7 @@ export class Tree extends Model {
 
 				// COUNTRIES
 				ids.COUNTRIES = await this.newNode(dbCon, fwCloudId, "COUNTRIES", null, "COF", null, null);
-                console.log(ids.COUNTRIES)
+
 				// COUNTRIES / AS
 				id = await this.newNode( dbCon, fwCloudId, "AS", ids.COUNTRIES, "CON", 6, 23
 				);
