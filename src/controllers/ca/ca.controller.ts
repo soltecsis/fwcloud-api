@@ -7,6 +7,7 @@ import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { Ca } from '../../models/vpn/pki/Ca';
 import { Validate } from '../../decorators/validate.decorator';
 import { CaPolicy } from '../../policies/ca.policy';
+import { CaControllerUpdateDto } from './dtos/update.dto';
 
 export class CaController extends Controller {
     
@@ -26,7 +27,7 @@ export class CaController extends Controller {
             .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)})
             .getOneOrFail();
     }
-    @Validate()
+    @Validate(CaControllerUpdateDto)
     public async update(request: Request): Promise<ResponseBuilder> {
 
         (await CaPolicy.update(this._ca, request.session.user)).authorize();

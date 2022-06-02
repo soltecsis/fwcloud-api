@@ -8,6 +8,7 @@ import { Ca } from "../../models/vpn/pki/Ca";
 import { Crt } from "../../models/vpn/pki/Crt";
 import { Validate } from '../../decorators/validate.decorator';
 import { CrtPolicy } from '../../policies/crt.policy';
+import { CrtControllerUpdateDto } from './dtos/update.dto';
 
 export class CrtController extends Controller {
 
@@ -30,7 +31,7 @@ export class CrtController extends Controller {
         .getOneOrFail();
     }
 
-    @Validate()
+    @Validate(CrtControllerUpdateDto)
     public async update(request: Request): Promise <ResponseBuilder> {
 
         (await CrtPolicy.update(this._crt, request.session.user)).authorize()
