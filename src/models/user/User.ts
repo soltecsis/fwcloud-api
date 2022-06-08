@@ -237,6 +237,78 @@ export class User extends Model {
             });
         });
     }
+    
+    public static _update_tfa(req) {
+        return new Promise(async (resolve, reject) => {
+            var tfData = {
+                secret: req.body.tfa.secret,
+                tempSecret: req.body.tfa.tempSecret,
+                dataURL: req.body.tfa.dataURL,
+                tfaURL: req.body.tfa.tfaURL
+            };
+            try{
+                req.dbCon.query(`INSERT INTO user_tfa SET ?`, tfData, (error,result)=> {
+                    if(error) return reject(error);
+                    let sql = `UPDATE ${tableName} SET tfa=${result.insertId} where id = ${req.body.user}`;
+                    req.dbCon.query(sql,(error,resultupdate) => {
+                        if(error) return reject(error)
+
+                        resolve();
+                    })
+                });
+            }catch (error) {
+                reject(error)
+            }
+        });
+    }
+
+    public static _update_tfa_secret(req) {
+        return new Promise(async (resolve,reject) => {
+            let sql = `UPDATE user_tfa SET secret=${req.dbCon.escape(req.body.tempSecret)} WHERE tempSecret=${req.dbCon.escape(req.body.tempSecret)}`;
+            req.dbCon.query(sql,(error,result) => {
+                if(error) reject(error);
+                resolve();
+            })
+        })
+    }
+
+    public static _get_tfa(dbCon,user) {
+        return new Promise((resolve,reject) => {
+            var sql = `SELECT user_tfa.* FROM user_tfa
+            INNER JOIN ${tableName}
+            ON user_tfa.id = ${tableName}.tfa
+            WHERE ${tableName}.id=${user}`
+
+            dbCon.query(sql,(error,rows) => {
+                if(error) return reject(error);
+                resolve(rows)
+            })
+        })
+    }
+
+    public static _delete_tfa(req) {
+        return new Promise(async (resolve,reject) => {
+            let sql = `SELECT tfa FROM ${tableName} WHERE id=${req.session.user_id}`;
+            
+            req.dbCon.query(sql,(error,resultselect) => {
+                if(error) return reject(error)
+                
+                let sql = `UPDATE ${tableName} SET tfa=NULL where id = ${req.session.user_id}`;
+                
+                req.dbCon.query(sql,(error,resultupdate) => {
+                    if(error) reject(error);
+
+                    sql = `DELETE FROM user_tfa WHERE id = ${resultselect[0].tfa}`;
+
+                    req.dbCon.query(sql,(error,resultdelete) => {
+                        if(error) reject(error);
+
+                        resolve();
+                    })
+                })
+            })
+        });
+    }
 
     public static changeLoggedUserPass(req) {
         return new Promise(async (resolve, reject) => {

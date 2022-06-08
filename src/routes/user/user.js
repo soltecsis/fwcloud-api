@@ -28,7 +28,9 @@ import { Customer } from '../../models/user/Customer';
 import { User } from '../../models/user/User';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { PgpHelper } from '../../utils/pgp';
-import { logger } from '../../fonaments/abstract-application';
+import { app, logger } from '../../fonaments/abstract-application';
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 const fwcError = require('../../utils/error_table');
 
 const config = require('../../config/config');
@@ -102,10 +104,25 @@ router.post('/login',async (req, res) => {
 				private: pgp.privateKey
 			};
 
-			// Store the fwcloud-ui session public key.
-			req.session.uiPublicKey = req.body.publicKey;
+			if(!req.session.tfa){
+				res.status(200).json({"user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey});
+			} else {
+				if(!req.headers['x-tfa']) {
+					throw fwcError.BAD_LOGIN;
+				} else {
 
-			res.status(200).json({"user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey});
+					let isVerified = speakeasy.totp.verify({
+						secret: req.session.tfa,
+						encoding: 'base32',
+						token: req.headers['x-tfa']
+					});
+					if(isVerified) {
+						res.status(200).json({"user":req.session.user_id,"role":data[0].role,"publicKey":pgp.publicKey,"tfa":req.session.tfa});
+					} else {
+						throw fwcError.BAD_LOGIN;
+					}
+				}
+			}
 		} else {
 			req.session.destroy(err => {} );
 			throw fwcError.BAD_LOGIN;
@@ -116,6 +133,60 @@ router.post('/login',async (req, res) => {
 	}
 });
 
+
+router.post('/tfa/setup',(req,res) => {
+	const secret = speakeasy.generateSecret({
+		length: 10,
+		name: req.body.username,
+		issuer: 'SOLTECSIS',
+	});
+	var url = speakeasy.otpauthURL({
+        secret: secret.base32,
+        label: req.body.username,
+        issuer: 'SOLTECSIS',
+        encoding: 'base32'
+    });
+	QRCode.toDataURL(url,(err,dataURL) => {
+		req.body.tfa = {
+			secret: '',
+			tempSecret: secret.base32,
+			dataURL,
+			tfaURL: secret.otpauth_url
+		}
+		User._update_tfa(req)
+		res.status(200).json({"user":req.body.user,"customer":req.body.customer,"username":req.username,"tfa":req.body.tfa});
+	});
+});
+
+router.post('/tfa/verify', (req,res) => {
+	try{
+		let isVerified = speakeasy.totp.verify({
+			secret: req.body.tempSecret,
+			encoding: 'base32',
+			token: req.body.authCode
+		});
+		
+		if (isVerified) {
+			User._update_tfa_secret(req);
+			res.status(200).json({"secret":req.body.tempSecret})
+		} else {
+			throw fwcError;
+		}
+	}catch(error) {
+		logger().error(`Auth Code error ${error.message}`);
+		res.status(401).json(error);
+	}
+});
+
+router.get('/tfa/setup',async (req,res) => {
+	const data = await User._get_tfa(req.dbCon,req.session.user_id);
+	res.status(200).json(data);
+})
+
+router.delete('/tfa/setup',async (req,res) => {
+	await User._delete_tfa(req);
+	res.status(204).end();
+});
 
 /**
  * @api {POST} /logout Log out the API

@@ -38,6 +38,7 @@ schema.validate = req => {
 					customer: sharedSch.id,
 					username: sharedSch.username,
 					password: sharedSch.password,
+					authCode: sharedSch.authCode,
 					publicKey: Joi.string()
 				});
 			}
@@ -72,7 +73,15 @@ schema.validate = req => {
 			else if (req.url === '/user/changepass')
 				schema = Joi.object().keys({ password: sharedSch.password });
 			else return reject(fwcError.BAD_API_CALL);
-		} else return reject(fwcError.BAD_API_CALL);
+		} else if(req.url === '/user/tfa/verify') {
+			if(req.method == 'POST') {
+				schema = Joi.object().keys({authCode: sharedSch.authCode, tempSecret: sharedSch.tempSecret, dataURL: sharedSch.dataURL, tfaURL:sharedSch.tfaURL,secret: sharedSch.secret})
+			}
+		} else if (req.url === '/user/tfa/setup') {
+			if(req.method === 'POST') {
+				schema = Joi.object().keys({user: sharedSch.id, customer: sharedSch.id, username: sharedSch.username})
+			}
+		}else return reject(fwcError.BAD_API_CALL);
 
 		try {
 			await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
