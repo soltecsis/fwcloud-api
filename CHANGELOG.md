@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Download and show policy script routes.
+- Allow continents and countries in services tree to filter by IP.
 
 ### Changed
 - New call created returns the openvpn nodes with additional information such as the address.
