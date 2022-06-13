@@ -22,10 +22,12 @@
 
 import db from '../../database/database-manager';
 import Model from '../Model';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, ManyToOne, JoinColumn, OneToOne, getRepository } from 'typeorm';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { Ca } from '../vpn/pki/Ca';
 import { Customer } from './Customer';
+import { Tfa } from './Tfa';
+import { resolve } from 'path';
 
 const fwcError = require('../../utils/error_table');
 
@@ -95,6 +97,9 @@ export class User extends Model {
         name: 'customer'
     })
     customer: Customer;
+
+    @OneToOne(()=>Tfa,(tfa)=>tfa.user)
+    tfa :Tfa;
 
     public getTableName(): string {
         return tableName;
@@ -244,70 +249,42 @@ export class User extends Model {
                 secret: req.body.tfa.secret,
                 tempSecret: req.body.tfa.tempSecret,
                 dataURL: req.body.tfa.dataURL,
-                tfaURL: req.body.tfa.tfaURL
+                tfaURL: req.body.tfa.tfaURL,
+                userId: req.body.user
             };
             try{
-                req.dbCon.query(`INSERT INTO user_tfa SET ?`, tfData, (error,result)=> {
-                    if(error) return reject(error);
-                    let sql = `UPDATE ${tableName} SET tfa=${result.insertId} where id = ${req.body.user}`;
-                    req.dbCon.query(sql,(error,resultupdate) => {
-                        if(error) return reject(error)
-
-                        resolve();
-                    })
-                });
+                await getRepository(Tfa).insert(tfData);
+                return resolve();
             }catch (error) {
                 reject(error)
             }
         });
     }
 
-    public static _update_tfa_secret(req) {
-        return new Promise(async (resolve,reject) => {
-            let sql = `UPDATE user_tfa SET secret=${req.dbCon.escape(req.body.tempSecret)} WHERE tempSecret=${req.dbCon.escape(req.body.tempSecret)}`;
-            req.dbCon.query(sql,(error,result) => {
-                if(error) reject(error);
-                resolve();
-            })
-        })
+    public static async _update_tfa_secret(req) {
+        await   getRepository(Tfa)
+                .createQueryBuilder('tfa').update()
+                .set({secret:req.body.tempSecret})
+                .where("tempSecret = :tempSecret", {tempSecret:req.body.tempSecret})
+        return resolve();
     }
 
-    public static _get_tfa(dbCon,user) {
-        return new Promise((resolve,reject) => {
-            var sql = `SELECT user_tfa.* FROM user_tfa
-            INNER JOIN ${tableName}
-            ON user_tfa.id = ${tableName}.tfa
-            WHERE ${tableName}.id=${user}`
-
-            dbCon.query(sql,(error,rows) => {
-                if(error) return reject(error);
-                resolve(rows)
-            })
-        })
+    public static async _get_tfa(user) {
+        return await   getRepository(Tfa)
+                .createQueryBuilder('tfa')
+                .select()
+                .where("tfa.userId = :id",{id:user})
+                .getOne()
     }
 
-    public static _delete_tfa(req) {
-        return new Promise(async (resolve,reject) => {
-            let sql = `SELECT tfa FROM ${tableName} WHERE id=${req.session.user_id}`;
-            
-            req.dbCon.query(sql,(error,resultselect) => {
-                if(error) return reject(error)
-                
-                let sql = `UPDATE ${tableName} SET tfa=NULL where id = ${req.session.user_id}`;
-                
-                req.dbCon.query(sql,(error,resultupdate) => {
-                    if(error) reject(error);
-
-                    sql = `DELETE FROM user_tfa WHERE id = ${resultselect[0].tfa}`;
-
-                    req.dbCon.query(sql,(error,resultdelete) => {
-                        if(error) reject(error);
-
-                        resolve();
-                    })
-                })
-            })
-        });
+    public static async _delete_tfa(req) {
+        await   getRepository(Tfa)
+                .createQueryBuilder('tfa')
+                .delete()
+                .from('tfa')
+                .where("user = :id", {id:req.session.user_id})
+                .execute()
+        resolve();
     }
 
     public static changeLoggedUserPass(req) {

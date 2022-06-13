@@ -179,7 +179,9 @@ router.post('/tfa/verify', (req,res) => {
 });
 
 router.get('/tfa/setup',async (req,res) => {
-	const data = await User._get_tfa(req.dbCon,req.session.user_id);
+	console.log(req.session.user_id);
+	const data = await User._get_tfa(req.session.user_id);
+	console.log("data",data)
 	res.status(200).json(data);
 })
 
