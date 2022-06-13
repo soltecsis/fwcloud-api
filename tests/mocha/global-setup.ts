@@ -57,8 +57,9 @@ export class TestSuite {
         if (this.app) {
             const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
 
+            await dbService.resetMigrations();
             await dbService.runMigrations();
-            await dbService.removeData();
+            //await dbService.removeData();
             await dbService.feedDefaultData();
         }
     }
