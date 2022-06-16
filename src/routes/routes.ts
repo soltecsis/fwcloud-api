@@ -41,6 +41,7 @@ import { RoutingGroupController } from "../controllers/routing/routing-group/rou
 import { RouteGroupController } from "../controllers/routing/route-group/route-group.controller";
 import { FirewallController } from "../controllers/firewalls/firewall.controller";
 import { PolicyRuleController } from "../controllers/policy-rule/policy-rule.controller";
+import { TfaController } from "../controllers/auth/tfa.controller";
 
 export class Routes extends RouteCollection {
 
@@ -210,6 +211,14 @@ export class Routes extends RouteCollection {
             router.prefix('/ping', (router: RouterParser) => {
                 router.put('/', PingController, 'ping').name('ping.pong');
             });
+        });
+        router.prefix('/profile/tfa',(router: RouterParser) => {
+            router.post('/verify',TfaController,'verify').name('profile.tfa.verify');
+            router.prefix('/setup',(router:RouterParser) => {
+                router.get('/',TfaController,'getSetup').name('profile.tfa.setup.get');
+                router.post('/',TfaController,'setup').name('profile.tfa.setup');
+                router.delete('/',TfaController,'deleteSetup').name('profile.tfa.setup.delete')
+            })
         });
     }
 }

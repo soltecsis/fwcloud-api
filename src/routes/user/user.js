@@ -133,63 +133,6 @@ router.post('/login',async (req, res) => {
 	}
 });
 
-
-router.post('/tfa/setup',(req,res) => {
-	const secret = speakeasy.generateSecret({
-		length: 10,
-		name: req.body.username,
-		issuer: 'SOLTECSIS',
-	});
-	var url = speakeasy.otpauthURL({
-        secret: secret.base32,
-        label: req.body.username,
-        issuer: 'SOLTECSIS',
-        encoding: 'base32'
-    });
-	QRCode.toDataURL(url,(err,dataURL) => {
-		req.body.tfa = {
-			secret: '',
-			tempSecret: secret.base32,
-			dataURL,
-			tfaURL: secret.otpauth_url
-		}
-		User._update_tfa(req)
-		res.status(200).json({"user":req.body.user,"customer":req.body.customer,"username":req.username,"tfa":req.body.tfa});
-	});
-});
-
-router.post('/tfa/verify', (req,res) => {
-	try{
-		let isVerified = speakeasy.totp.verify({
-			secret: req.body.tempSecret,
-			encoding: 'base32',
-			token: req.body.authCode
-		});
-		
-		if (isVerified) {
-			User._update_tfa_secret(req);
-			res.status(200).json({"secret":req.body.tempSecret})
-		} else {
-			throw fwcError;
-		}
-	}catch(error) {
-		logger().error(`Auth Code error ${error.message}`);
-		res.status(401).json(error);
-	}
-});
-
-router.get('/tfa/setup',async (req,res) => {
-	console.log(req.session.user_id);
-	const data = await User._get_tfa(req.session.user_id);
-	console.log("data",data)
-	res.status(200).json(data);
-})
-
-router.delete('/tfa/setup',async (req,res) => {
-	await User._delete_tfa(req);
-	res.status(204).end();
-});
-
 /**
  * @api {POST} /logout Log out the API
  * @apiName LogoutUser
