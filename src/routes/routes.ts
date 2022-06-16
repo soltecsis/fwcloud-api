@@ -43,6 +43,7 @@ import { FirewallController } from "../controllers/firewalls/firewall.controller
 import { PolicyRuleController } from "../controllers/policy-rule/policy-rule.controller";
 import { TfaController } from "../controllers/auth/tfa.controller";
 import { CaController } from "../controllers/ca/ca.controller";
+import { CrtController } from "../controllers/crt/crt.controller";
 
 export class Routes extends RouteCollection {
 
