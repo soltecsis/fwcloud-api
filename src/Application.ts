@@ -69,6 +69,8 @@ import { isMainThread } from "worker_threads";
 import { BackupService } from "./backups/backup.service";
 import { PolicyRuleServiceProvider } from "./policy-rule/policy-rule.provider";
 import { AuthServiceProvider } from "./models/user/auth.provider";
+import { CaServiceProvider } from "./ca/ca.provider";
+import { CrtServiceProvider } from "./crt/crt.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -143,6 +145,8 @@ export class Application extends HTTPApplication {
             OpenVPNStatusHistoryServiceProvider,
             PolicyRuleServiceProvider,
             AuthServiceProvider
+            CaServiceProvider,
+            CrtServiceProvider
         ]
     }
 

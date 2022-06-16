@@ -42,6 +42,7 @@ import { RouteGroupController } from "../controllers/routing/route-group/route-g
 import { FirewallController } from "../controllers/firewalls/firewall.controller";
 import { PolicyRuleController } from "../controllers/policy-rule/policy-rule.controller";
 import { TfaController } from "../controllers/auth/tfa.controller";
+import { CaController } from "../controllers/ca/ca.controller";
 
 export class Routes extends RouteCollection {
 
@@ -88,7 +89,16 @@ export class Routes extends RouteCollection {
 
                 router.prefix('/:fwcloud(\\d+)', (router: RouterParser) => {
                     router.put('/', FwCloudController, 'update').name('fwclouds.update');
-
+                    router.prefix('/cas', (router: RouterParser) => {
+                        router.prefix('/:ca(\\d+)', (router: RouterParser) => {
+                            router.put('/', CaController, 'update').name('fwclouds.cas.update');
+                            router.prefix('/crts', (router: RouterParser) => {
+                                router.prefix('/:crt(\\d+)', (router: RouterParser) => {
+                                    router.put('/', CrtController, 'update').name('fwclouds.cas.crts.update');
+                                })
+                            })
+                        })  
+                    });
                     router.prefix('/firewalls', (router: RouterParser) => {
                         router.post('/communication/ping', FirewallController, 'pingCommunication').name('fwclouds.firewalls.communication.ping');
                         router.prefix('/:firewall(\\d+)', (router:RouterParser) => {
