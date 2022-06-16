@@ -43,7 +43,7 @@ export class InputValidation extends Middleware {
         const item1 = req.url.split('/')[1];
         const item1_valid_list = ['user', 'customer', 'fwcloud', 'firewall', 'cluster', 'policy', 'interface', 'ipobj', 'tree', 'vpn'];
 
-        const item1_new_route_system = ['backups', 'version', 'fwclouds', 'updates', 'iptables-save', 'ping'];
+        const item1_new_route_system = ['backups', 'version', 'fwclouds', 'updates', 'iptables-save', 'ping', 'profile'];
 
         // Verify that item1 is in the valid list.
         if (!item1_valid_list.includes(item1) && !item1_new_route_system.includes(item1.replace(/\?.*/, ''))) {
