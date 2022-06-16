@@ -144,7 +144,7 @@ export class Application extends HTTPApplication {
             OpenVPNPrefixServiceProvider,
             OpenVPNStatusHistoryServiceProvider,
             PolicyRuleServiceProvider,
-            AuthServiceProvider
+            AuthServiceProvider,
             CaServiceProvider,
             CrtServiceProvider
         ]
