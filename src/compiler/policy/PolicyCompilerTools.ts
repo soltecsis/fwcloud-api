@@ -23,7 +23,7 @@
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { AvailablePolicyCompilers } from './PolicyCompiler';
 import { SpecialPolicyRules, PolicyRuleOptMask } from '../../models/policy/PolicyRule';
-import { FireWallOptMask } from '../../models/firewall/Firewall';
+import { FireWallOptMask } from '../../models/firewall/Firewall';
 
 const ip = require('ip');
 const fwcError = require('../../utils/error_table');
@@ -287,10 +287,12 @@ export abstract class PolicyCompilerTools {
     for (let i = 0; i < sd.length; i++) {
       if (sd[i].type === 9) // DNS
         cmpPos.items.push(`${opt} ${sd[i].name}`);
+      else if (sd[i].type === 24) // Country
+        cmpPos.items.push(`-m geoip ${dir==='SRC' ? '--src-cc' : '--dst-cc'} ${sd[i].name}`);
       else if (ipv === sd[i].ip_version) { // Only add this type of IP objects if they have the same IP version than the compiled rule.
         if (sd[i].type === 5) // Address
           cmpPos.items.push(`${opt} ${sd[i].address}`);
-        else if (sd[i].type === 7) { // Network
+        else if (sd[i].type === 7) { // Network
           // We have two formats for the netmask (for example, 255.255.255.0 or /24).
           // IPTables support both formats, but NFTables only the CIDR format, for this reason we use only CIDR format.
           if (sd[i].netmask[0] === '/')

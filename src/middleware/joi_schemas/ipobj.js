@@ -40,7 +40,7 @@ schema.validate = req => {
 
 		var schema = Joi.object().keys({ fwcloud: sharedSch.id });
 
-		var valid_types = [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21];
+		var valid_types = [1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 23, 24];
 
 		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/ipobj')) {
 			schema = schema.append({
@@ -129,6 +129,8 @@ schema.validate = req => {
 				case 8: // HOST
 				case 20: // GROUP
 				case 21: // SERVICE GROUP
+				case 23: // CONTINENT
+				case 24: // COUNTRY
 					break;
 			}
 
