@@ -39,13 +39,6 @@ sharedSchema.mark_id = Joi.number().integer().min(0);
 sharedSchema.username = Joi.string().alphanum().min(3).max(32);
 sharedSchema.password = Joi.string().regex(/^[ -~\x80-\xFE]{6,64}$/);
 
-//F2A
-sharedSchema.authCode = Joi.string().alphanum().min(1).max(6).allow('').allow(null).optional();
-sharedSchema.tempSecret = Joi.string().alphanum().allow('').allow(null).optional();
-sharedSchema.secret = Joi.string().alphanum().allow('').allow(null).optional();
-sharedSchema.dataURL = Joi.string().allow('').allow(null).optional();
-sharedSchema.tfaURL = Joi.string().allow('').allow(null).optional();
-
 sharedSchema.days = Joi.number().integer().min(1).max(36500);
 sharedSchema.cn = Joi.string().regex(/^[a-zA-Z0-9\-_\.]{1,64}$/);
 
