@@ -75,6 +75,7 @@ import { OpenVPNStatusHistory } from "../models/vpn/openvpn/status/openvpn-statu
 import { Ca } from "../models/vpn/pki/Ca";
 import { CaPrefix } from "../models/vpn/pki/CaPrefix";
 import { Crt } from "../models/vpn/pki/Crt";
+import { Tfa } from "../models/user/Tfa";
 
 export interface DatabaseConfig {
     host: string,
@@ -314,7 +315,8 @@ export class DatabaseService extends Service {
                 OpenVPNStatusHistory,
                 Ca,
                 CaPrefix,
-                Crt
+                Crt,
+                Tfa
             ]
         }
     }
