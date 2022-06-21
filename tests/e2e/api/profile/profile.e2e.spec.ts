@@ -64,7 +64,6 @@ describe(describeName('FwCloud 2 Factor Authentication E2E Test'),()=>{
                 .set('Cookie',[attachSession(loggedUserSessionId)])
                 .expect(200)
                 .then(response => {
-                    console.log(response.body.data.tfa)
                     expect(response.body.data.tfa).to.be.undefined;
                 });
         });
