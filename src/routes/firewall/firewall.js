@@ -158,7 +158,8 @@ router.post('/', async(req, res) => {
 		fwmaster: req.body.fwmaster,
 		install_port: req.body.install_port,
 		by_user: req.session.user_id,
-		options: req.body.options
+		options: req.body.options,
+		plugins: req.body.plugins
 	};
 
 	try {
@@ -262,7 +263,8 @@ router.put('/', async (req, res) => {
 		fwmaster: req.body.fwmaster,
 		install_port: req.body.install_port,
 		by_user: req.session.user_id, //working user
-		options: req.body.options
+		options: req.body.options,
+		plugins: req.body.plugins
 	};
 
 	try {
