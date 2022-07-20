@@ -203,6 +203,28 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
     }
 
+    async installPlugin(name: string,enabled: boolean) {
+        try {
+            const pathUrl: string = this.url + '/api/v1/plugin'
+            let params
+
+            const config: AxiosRequestConfig = Object.assign({}, this.config);
+            config.headers["Content-Type"] = "application/json";
+            
+            if(enabled) {
+                params = {name: name, "action": "enable"};
+            } else {
+                params = {name: name, "action": "disable"};
+            }
+
+            const requestConfig: AxiosRequestConfig = Object.assign({},this.config);
+            
+            await axios.post(pathUrl,params,requestConfig);
+        }catch(error) {
+            return this.handleRequestException(error);
+        }
+    }
+
     async getRealtimeStatus(statusFilepath: string): Promise<string> {
         try {
             const urlPath: string = this.url + '/api/v1/openvpn/get/status/rt';

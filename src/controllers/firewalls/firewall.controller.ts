@@ -169,4 +169,23 @@ export class FirewallController extends Controller {
             throw error;
         }
     }
+    @Validate()
+    async installPlugin(req: Request): Promise<ResponseBuilder> {
+        try{
+            const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
+
+            let communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpassword});
+            
+            await communication.installPlugin(req.body.name,req.body.enable);
+            
+            return ResponseBuilder.buildResponse().status(200).body({
+                status: 'OK'
+            })
+        } catch (error) {
+            if (error.message === 'Method not implemented') {
+                return ResponseBuilder.buildResponse().status(501);
+            }
+            throw error;
+        }
+    }
 }

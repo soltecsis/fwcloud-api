@@ -40,6 +40,8 @@ export abstract class Communication<ConnectionData> {
     abstract getFirewallIptablesSave(): Promise<string[]>;
     abstract ping(): Promise<void>;
 
+    abstract installPlugin(name: string,enabled: boolean);
+
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
         if (errorHasCode(error)) {
             if ((error).code === "ECONNREFUSED") {

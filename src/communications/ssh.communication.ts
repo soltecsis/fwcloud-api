@@ -179,4 +179,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         throw new Error("Method not implemented.");
     }
 
+    installPlugin(name: string,enabled: boolean) {
+        throw new Error("Method not implemented.");
+    }
 }
