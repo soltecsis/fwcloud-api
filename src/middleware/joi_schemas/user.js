@@ -38,6 +38,7 @@ schema.validate = req => {
 					customer: sharedSch.id,
 					username: sharedSch.username,
 					password: sharedSch.password,
+					authCode: sharedSch.authCode,
 					publicKey: Joi.string()
 				});
 			}
@@ -72,7 +73,7 @@ schema.validate = req => {
 			else if (req.url === '/user/changepass')
 				schema = Joi.object().keys({ password: sharedSch.password });
 			else return reject(fwcError.BAD_API_CALL);
-		} else return reject(fwcError.BAD_API_CALL);
+		}else return reject(fwcError.BAD_API_CALL);
 
 		try {
 			await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
