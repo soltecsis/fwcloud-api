@@ -176,11 +176,11 @@ export class FirewallController extends Controller {
 
             let communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpassword});
             
-            await communication.installPlugin(req.body.name,req.body.enable);
+            let data = await communication.installPlugin(req.body.name,req.body.enable);
             
-            return ResponseBuilder.buildResponse().status(200).body({
-                status: 'OK'
-            })
+            return ResponseBuilder.buildResponse().status(200).body(
+                data
+            )
         } catch (error) {
             if (error.message === 'Method not implemented') {
                 return ResponseBuilder.buildResponse().status(501);

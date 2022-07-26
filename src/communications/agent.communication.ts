@@ -216,10 +216,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             } else {
                 params = {name: name, "action": "disable"};
             }
-
+    
             const requestConfig: AxiosRequestConfig = Object.assign({},this.config);
-            
-            await axios.post(pathUrl,params,requestConfig);
+
+            let response = await axios.post(pathUrl,params,requestConfig);
+
+            return response.data.split("\n").filter(item => item !== '')
         }catch(error) {
             return this.handleRequestException(error);
         }
