@@ -172,9 +172,13 @@ export class FirewallController extends Controller {
     @Validate()
     async installPlugin(req: Request): Promise<ResponseBuilder> {
         try{
-            const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
-
-            let communication = await firewall.getCommunication({sshuser: req.body.sshuser, sshpassword: req.body.sshpassword});
+            const pgp = new PgpHelper(req.session.pgp);       
+            const communication = new AgentCommunication({
+                protocol: req.body.install_protocol,
+                host: req.body.address,
+                port: req.body.install_port,
+                apikey: await pgp.decrypt(req.body.install_apikey)
+            });
             
             let data = await communication.installPlugin(req.body.name,req.body.enable);
             
