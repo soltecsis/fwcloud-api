@@ -180,7 +180,7 @@ export class FirewallController extends Controller {
                 apikey: await pgp.decrypt(req.body.install_apikey)
             });
             
-            let data = await communication.installPlugin(req.body.name,req.body.enable);
+            const data = await communication.installPlugin(req.body.name,req.body.enable);
             
             return ResponseBuilder.buildResponse().status(200).body(
                 data
