@@ -40,7 +40,7 @@ export abstract class Communication<ConnectionData> {
     abstract getFirewallIptablesSave(): Promise<string[]>;
     abstract ping(): Promise<void>;
 
-    abstract installPlugin(name: string,enabled: boolean);
+    abstract installPlugin(name: string,enabled: boolean): Promise<string>;
 
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
         if (errorHasCode(error)) {

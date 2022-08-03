@@ -203,7 +203,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
     }
 
-    async installPlugin(name: string,enabled: boolean) {
+    async installPlugin(name: string,enabled: boolean): Promise<string> {
         try {
             const pathUrl: string = this.url + '/api/v1/plugin'
             let params
@@ -223,7 +223,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
             return response.data.split("\n").filter(item => item !== '')
         }catch(error) {
-            return this.handleRequestException(error);
+            this.handleRequestException(error);
         }
     }
 
