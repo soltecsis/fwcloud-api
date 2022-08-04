@@ -174,13 +174,13 @@ export class FirewallController extends Controller {
         try{
             const pgp = new PgpHelper(req.session.pgp);       
             const communication = new AgentCommunication({
-                protocol: req.body.install_protocol,
-                host: req.body.address,
-                port: req.body.install_port,
-                apikey: await pgp.decrypt(req.body.install_apikey)
+                protocol: req.body.protocol,
+                host: req.body.host,
+                port: req.body.port,
+                apikey: await pgp.decrypt(req.body.apikey)
             });
             
-            const data = await communication.installPlugin(req.body.name,req.body.enable);
+            const data = await communication.installPlugin(req.body.plugin,req.body.enable);
             
             return ResponseBuilder.buildResponse().status(200).body(
                 data
