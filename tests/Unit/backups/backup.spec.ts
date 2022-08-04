@@ -38,7 +38,7 @@ import * as crypto from 'crypto';
 let app: Application;
 let service: BackupService;
 
-describe(describeName('Backup Unit tests'), () => {
+describe.only(describeName('Backup Unit tests'), () => {
 
     before(async () => {
         app = testSuite.app;
@@ -342,7 +342,7 @@ describe(describeName('Backup Unit tests'), () => {
 
             testSuite.app.config.set('db.mysqldump.protocol', 'socket');
             
-            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump --column-statistics=0 -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} > "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} > "${backup.path}/db.sql"`);
             expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} < "${tmpPath}/db.sql"`);
             testSuite.app.config.set('db.mysqldump.protocol', 'tcp');
         });
@@ -353,7 +353,7 @@ describe(describeName('Backup Unit tests'), () => {
             const tmpPath = path.join(app.config.get('tmp.directory'), path.basename(backup.path));
 
             process.env.NODE_ENV = 'test';
-            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump --protocol=TCP --column-statistics=0 -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} > "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump --protocol=TCP -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} > "${backup.path}/db.sql"`);
             expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql --protocol=TCP -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} < "${tmpPath}/db.sql"`);
         });
     });

@@ -255,7 +255,9 @@ export class Backup implements Responsable {
         if (this._exists) {
             await progress.procedure('Restoring backup', (task: Task) => {
                 task.sequence((task: Task) => {
-                    task.addTask(() => {return this.unzipDbSql(); }, 'Decompress db.sql file');
+                    if(fs.existsSync(path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`))){
+                        task.addTask(() => {return this.unzipDbSql(); }, 'Decompress db.sql file');
+                    }
                     task.parallel((task: Task) => {
                         task.addTask(() => { return this.importDatabase(); }, 'Database restore');
                         task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restore');
@@ -329,9 +331,9 @@ export class Backup implements Responsable {
     protected zipDbSql(): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try{
-                await Zip.zipFile(path.join(this._backupPath, Backup.DUMP_FILENAME), path.join(this._backupPath));
+                await Zip.zip(path.join(this._backupPath, Backup.DUMP_FILENAME));
                 fs.unlinkSync(path.join(this._backupPath, Backup.DUMP_FILENAME));
-                return resolve();
+                resolve();
             }catch(err){
                 reject(err)
             }
@@ -341,7 +343,7 @@ export class Backup implements Responsable {
     /**
      * Decompress the db.sql file
      */
-    protected async unzipDbSql():Promise<void> {
+    protected unzipDbSql():Promise<void> {
         return new Promise(async (resolve, reject)=>{
             try {
                 if(fs.existsSync(path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`))){
@@ -351,7 +353,7 @@ export class Backup implements Responsable {
                     
                     const unzipPath = path.join(config.get('tmp.directory'), path.basename(this._backupPath))
                     await Zip.unzip(dir, unzipPath)
-            }   
+                }   
                 
                 resolve()
             }catch(err){
@@ -458,13 +460,12 @@ export class Backup implements Responsable {
         process.env.MYSQL_PWD = shellescape([dbConfig.pass]).substring(0,128);
 
         const dir = cmd==='mysqldump' ? '>' : '<';
-        const statistics = cmd==='mysqldump' ?'--column-statistics=0 ' : ''
         // This is necessary for mysqldump/mysql commands to access the docker containers of the test environment.
         if (app().config.get('db.mysqldump.protocol') === 'tcp') cmd += ' --protocol=TCP';
         // If we don't specify the communications protocol and we are running the mysqldump/mysql commands in localhost,
         // they will use by default the socket file.
         // That is fine, because using the socket file will improve performance.
-        cmd += ` ${statistics}-h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} ${dir} "${dumpFile}"`;
+        cmd += ` -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} ${dir} "${dumpFile}"`;
 
         return cmd;
     }
