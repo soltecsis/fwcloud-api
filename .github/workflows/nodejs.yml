@@ -17,6 +17,15 @@ jobs:
           MYSQL_USER: "fwcdbusr"
           MYSQL_PASSWORD: "fwcdbusr"
           MYSQL_DATABASE: "fwcloud"
+      mysql8:
+        image: mysql:8.0
+        ports:
+          - 8890:3306
+        env:
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+          MYSQL_USER: "fwcdbusr"
+          MYSQL_PASSWORD: "fwcdbusr"
+          MYSQL_DATABASE: "fwcloud"
       mariadb:
         image: mariadb:10.1
         ports:
@@ -30,10 +39,12 @@ jobs:
     strategy:
       matrix:
         node-version: ['12', '14', '16']
-        database: [mysql, mariadb]
+        database: [mysql, mysql8, mariadb]
         include:
           - database: mysql
             port: 8888
+          - database: mysql8
+            port: 8890
           - database: mariadb
             port: 8889
 
