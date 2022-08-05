@@ -59,19 +59,14 @@ export class Zip {
     }
 
     public static zip(workPath: string, destinationPath: string = null, extension = null): Promise<void> {
-        if (destinationPath === null) {
-            destinationPath = workPath + '.zip';
-        }
+
+        destinationPath = destinationPath ?? `${workPath}.zip`;
+
         return new Promise<void>((resolve, reject) => {
-            if (fs.lstatSync(workPath).isDirectory && !fs.existsSync(workPath)) {
-                return reject(new Error(`Directory does not exist for being zipped: ${workPath}`))
-            }else{
-                fs.open(workPath ,'r', function (err) {
-                    if(err) {
-                        return reject(new Error(`File does not exist for being zipped: ${workPath}`))
-                    }
-                });
+            if (!fs.existsSync(workPath)) {
+                return reject(new Error(`Work path does not exist for being zipped: ${workPath}`))
             }
+
             const output = fs.createWriteStream(destinationPath);
             const archive = archiver('zip', { zlib: { level: 9 } });
 
@@ -95,12 +90,10 @@ export class Zip {
 
             // pipe archive data to the file
             archive.pipe(output);
-            if (fs.lstatSync(workPath).isFile()) {
-                const fileName = path.basename(workPath)   
-                archive.append(fs.createReadStream(workPath), { name: fileName });
-            }else{
-                archive.directory(workPath, false);
-            }
+
+            fs.lstatSync(workPath).isFile()
+                ? archive.file(workPath, { name: path.basename(workPath) })
+                : archive.directory(workPath, false);
             
             archive.finalize();
         });
