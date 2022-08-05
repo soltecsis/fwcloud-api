@@ -43,6 +43,7 @@ import { Zip } from "../utils/zip";
 import * as child_process from "child_process";
 import { OpenVPNRepository } from "../models/vpn/openvpn/openvpn-repository";
 import { Firewall } from "../models/firewall/Firewall";
+import { resolve } from "path";
 
 export interface BackupMetadata {
     name: string,
@@ -262,6 +263,9 @@ export class Backup implements Responsable {
                         task.addTask(() => { return this.importDatabase(); }, 'Database restore');
                         task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restore');
                     });
+                    task.addTask(() => {
+                        return FSHelper.rmDirectory(this.getTemporalyUnzipPath());
+                    }, 'Remove temporaly files');
                     task.addTask(async (_) => { return this.runMigrations(); }, 'Database migration');
                 })
                 
@@ -347,12 +351,8 @@ export class Backup implements Responsable {
         return new Promise(async (resolve, reject)=>{
             try {
                 if(fs.existsSync(path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`))){
-
-                    const config = app().config;
                     const dir = path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`);
-                    
-                    const unzipPath = path.join(config.get('tmp.directory'), path.basename(this._backupPath))
-                    await Zip.unzip(dir, unzipPath)
+                    await Zip.unzip(dir, this.getTemporalyUnzipPath())
                 }   
                 
                 resolve()
@@ -360,6 +360,10 @@ export class Backup implements Responsable {
                 reject(err)
             }
         })
+    }
+
+    protected getTemporalyUnzipPath(): string {
+        return path.join(app().config.get('tmp.directory'), path.basename(this._backupPath))
     }
 
     /**

@@ -34,6 +34,7 @@ import moment from "moment";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import sinon from "sinon";
 import * as crypto from 'crypto';
+import { Zip } from "../../../src/utils/zip";
 
 let app: Application;
 let service: BackupService;
@@ -180,19 +181,7 @@ describe.only(describeName('Backup Unit tests'), () => {
             await expect(t()).to.be.rejectedWith('Command mysql not found or it is not possible to execute it');
         });
 
-        it('should unzip dump data file', async () => {
-            await databaseService.emptyDatabase();
-
-            backup = await backup.restore();
-            
-            expect(FSHelper.directoryExistsSync(backup.path)).to.be.true;
-
-            expect(FSHelper.directoryExistsSync(path.join(app.config.get('tmp.directory'), path.basename(backup.path)))).to.be.true;
-
-            expect(FSHelper.fileExistsSync(path.join(app.config.get('tmp.directory'), path.basename(backup.path), Backup.DUMP_FILENAME))).to.be.true;
-        })
-
-        it('should import the database', async () => {
+        it('should import the database (with sql zip file)', async () => {
             await databaseService.emptyDatabase();
 
             backup = await backup.restore();
@@ -200,8 +189,30 @@ describe.only(describeName('Backup Unit tests'), () => {
             const queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
 
             expect(await queryRunner.hasTable('ca')).to.be.true;
-            
+
             await queryRunner.release();
+        });
+
+        it('should import the database (without sql zip file)', async () => {
+            await databaseService.emptyDatabase();
+
+            //Simulate a backup without zip file
+            await Zip.unzip(path.join(backup.path, `${Backup.DUMP_FILENAME}.zip`), path.join(backup.path));
+            fs.unlinkSync(path.join(backup.path, `${Backup.DUMP_FILENAME}.zip`));
+
+            backup = await backup.restore();
+
+            const queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
+
+            expect(await queryRunner.hasTable('ca')).to.be.true;
+
+            await queryRunner.release();
+        });
+
+        it('should remove temporary uncompressed sql file', async () => {
+            backup = await backup.restore();
+
+            expect(FSHelper.directoryExistsSync(path.join(app.config.get('tmp.directory'), path.basename(backup.path)))).to.be.false;
         });
 
         it('should import pki directories if it exists in the backup', async () => {
