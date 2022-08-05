@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - New call created returns the openvpn nodes with additional information such as the address.
+- Backup sql is compressed (zip) in order to save space.
 
 ### Fixed
 - Backup related tasks are not scheduled twice.
