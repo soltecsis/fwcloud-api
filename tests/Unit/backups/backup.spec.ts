@@ -39,7 +39,7 @@ import { Zip } from "../../../src/utils/zip";
 let app: Application;
 let service: BackupService;
 
-describe.only(describeName('Backup Unit tests'), () => {
+describe(describeName('Backup Unit tests'), () => {
 
     before(async () => {
         app = testSuite.app;
