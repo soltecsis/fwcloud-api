@@ -71,6 +71,7 @@ import { PolicyRuleServiceProvider } from "./policy-rule/policy-rule.provider";
 import { AuthServiceProvider } from "./models/user/auth.provider";
 import { CaServiceProvider } from "./ca/ca.provider";
 import { CrtServiceProvider } from "./crt/crt.provider";
+import { OpenVPNService } from "./models/vpn/openvpn/openvpn.service";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -114,6 +115,9 @@ export class Application extends HTTPApplication {
 
             //Starting scheduled tasks from the backup service
             (await this.getService<BackupService>(BackupService.name)).startScheduledTasks();
+
+            //Starting scheduled task from the openvpn service
+            (await this.getService<OpenVPNService>(OpenVPNService.name)).startScheduledTasks();
         }
 
         return this;
