@@ -13,7 +13,7 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import path from "path";
 import { Zip } from "../../../utils/zip";
 
-type OpenVPNConfig {
+type OpenVPNConfig = {
     history: {
         data_dir: string,
         archive_schedule: string,
