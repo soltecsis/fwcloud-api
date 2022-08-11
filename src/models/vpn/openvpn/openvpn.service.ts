@@ -171,23 +171,17 @@ export class OpenVPNService extends Service {
                 }
 
                 const filesToRemove: string[] = files.filter(fileName => {
-                    const dateString: string = fileName.split("-")[1] ?? null;
+                    //Filter only fileNames openvpn_status_history-xxxxxx.sql.zip.
+                    //Ignore otherwise
+                    return new RegExp(/openvpn_status_history-[0-9]{8}\.sql\.zip/).test(fileName);
+                }).filter(fileName => {
+                    //Filter only fileName which date is before limit date time for expiration
+                    const date: Date = this.getDateFromArchiveFilename(fileName);
+                        
+                    const limit: Date = new Date();
+                    limit.setDate(limit.getDate() - this._config.history.retention_days);
 
-                    if (dateString) {
-                        const date: Date = new Date();
-                        date.setFullYear(
-                            parseInt(dateString.substring(0, 4)),
-                            parseInt(dateString.substring(4, 6)) - 1,
-                            parseInt(dateString.substring(6, 8))
-                        );
-
-                        const limit: Date = new Date();
-                        limit.setDate(limit.getDate() - this._config.history.retention_days);
-
-                        return date < limit;
-                    }
-
-                    return false;
+                    return date < limit;
                 });
 
                 filesToRemove.forEach(fileName => {
@@ -198,5 +192,26 @@ export class OpenVPNService extends Service {
 
             })
         });
+    }
+
+    /**
+     * Returns a Date instance when the archive file was created.
+     * 
+     * Warning! filename must follow openvpn_status_history-xxxxxxxx.sql.zip convention
+     * 
+     * @param filename 
+     * @returns 
+     */
+    protected getDateFromArchiveFilename(filename: string): Date {
+        const dateString: string = filename.split("-")[1];
+        const date: Date = new Date();
+
+        date.setFullYear(
+            parseInt(dateString.substring(0, 4)),
+            parseInt(dateString.substring(4, 6)) - 1,
+            parseInt(dateString.substring(6, 8))
+        );
+
+        return date;
     }
 }
