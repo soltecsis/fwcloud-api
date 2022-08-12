@@ -14,7 +14,7 @@ import path from "path";
 import { Zip } from "../../../utils/zip";
 import ObjectHelpers from "../../../utils/object-helpers";
 
-type OpenVPNConfig = {
+export type OpenVPNConfig = {
     history: {
         data_dir: string,
         archive_schedule: string,
@@ -24,7 +24,7 @@ type OpenVPNConfig = {
     }
 }
 
-type OpenVPNUpdateableConfig = {
+export type OpenVPNUpdateableConfig = {
     history: {
         archive_days: number;
         retention_days: number;
@@ -89,6 +89,15 @@ export class OpenVPNService extends Service {
 
         const installerGenerator: InstallerGenerator = new InstallerGenerator("lib/nsis", name, configData, outputPath)
         return installerGenerator.generate();
+    }
+
+    public getCustomizedConfig(): OpenVPNUpdateableConfig {
+        return {
+            history: {
+                archive_days: this._config.history.archive_days,
+                retention_days: this._config.history.retention_days
+            }
+        };
     }
 
     /**
