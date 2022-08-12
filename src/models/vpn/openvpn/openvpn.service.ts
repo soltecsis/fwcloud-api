@@ -12,6 +12,7 @@ import * as fs from "fs-extra";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import path from "path";
 import { Zip } from "../../../utils/zip";
+import ObjectHelpers from "../../../utils/object-helpers";
 
 type OpenVPNConfig = {
     history: {
@@ -20,6 +21,13 @@ type OpenVPNConfig = {
         archive_days: number,
         retention_schedule: string,
         retention_days: number
+    }
+}
+
+type OpenVPNUpdateableConfig = {
+    history: {
+        archive_days: number;
+        retention_days: number;
     }
 }
 
@@ -33,7 +41,7 @@ export class OpenVPNService extends Service {
 
 
     public async build(): Promise<OpenVPNService> {
-        this._config = this._app.config.get('openvpn');
+        this._config = this.loadCustomizedConfig(this._app.config.get('openvpn'));
         this._cronService = await this._app.getService<CronService>(CronService.name);
 
         let archiveDirectory: string = this._config.history.data_dir;
@@ -191,6 +199,57 @@ export class OpenVPNService extends Service {
                 return resolve(filesToRemove.length);
 
             })
+        });
+    }
+
+    /**
+     * Updates cutomizable parameters and reloads the config
+     * 
+     * @param custom_config 
+     * @returns 
+     */
+    public async updateArchiveConfig(custom_config: OpenVPNUpdateableConfig): Promise<OpenVPNUpdateableConfig> {
+        custom_config = await this.writeCustomizedConfig(custom_config);
+        this._config = await this.loadCustomizedConfig(this._config);
+        
+        return custom_config;
+    }
+
+    /**
+     * Load custom config and merge it over the base configuration
+     * 
+     * @param base_config 
+     * @returns 
+     */
+    protected loadCustomizedConfig(base_config: OpenVPNConfig): OpenVPNConfig {
+        let config: OpenVPNConfig = base_config;
+                
+        const openvpnConfigFile: string = path.join(base_config.history.data_dir, 'config.json');
+
+        if (fs.existsSync(openvpnConfigFile)) {
+            const backupConfig = JSON.parse(fs.readFileSync(openvpnConfigFile, 'utf8'));
+            config = ObjectHelpers.deepMerge<OpenVPNConfig>(config, backupConfig);
+        }
+
+        return config;
+    }
+
+    /**
+     * Write custom params into the custom configuration file
+     * @param custom_config 
+     * @returns 
+     */
+    protected async writeCustomizedConfig(custom_config: OpenVPNUpdateableConfig): Promise<OpenVPNUpdateableConfig> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!fs.existsSync(this._config.history.data_dir)) {
+                    await fs.mkdirp(this._config.history.data_dir);
+                }
+
+                const openvpnConfigFile = path.join(this._config.history.data_dir, 'config.json');
+                await fs.writeFile(openvpnConfigFile, JSON.stringify(custom_config), 'utf8');
+                return resolve(custom_config);
+            } catch (error) { reject(error) }
         });
     }
 
