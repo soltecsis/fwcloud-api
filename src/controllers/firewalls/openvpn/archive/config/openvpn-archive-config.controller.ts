@@ -13,7 +13,7 @@ export class OpenVPNArchiveConfigController extends Controller {
     }
 
     /**
-     * Returns the backup config
+     * Returns the openvpn archive config
      * 
      * @param request 
      * @param response 
@@ -29,7 +29,7 @@ export class OpenVPNArchiveConfigController extends Controller {
     }
 
     /**
-     * Updates the backup config
+     * Updates the openvpn archive config
      * 
      * @param request 
      * @param response 

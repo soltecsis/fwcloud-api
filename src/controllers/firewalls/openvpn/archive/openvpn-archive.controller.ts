@@ -13,7 +13,7 @@ export class OpenVPNArchiveController extends Controller {
     }
 
     /**
-     * Starts a histroy archive
+     * Starts a history archive
      * 
      * @param request 
      * @param response 
