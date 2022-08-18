@@ -39,10 +39,11 @@ import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Task } from "../fonaments/http/progress/task";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 import * as crypto from 'crypto';
-
+import { Zip } from "../utils/zip";
 import * as child_process from "child_process";
 import { OpenVPNRepository } from "../models/vpn/openvpn/openvpn-repository";
 import { Firewall } from "../models/firewall/Firewall";
+import { resolve } from "path";
 
 export interface BackupMetadata {
     name: string,
@@ -225,6 +226,7 @@ export class Backup implements Responsable {
                     task.addTask(() => { return this.exportDatabase(); }, 'Database backup');
                     task.addTask(() => { return this.exportDataDirectories(); }, 'Data directories backup');
                 });
+                task.addTask(() => { return this.zipDbSql(); }, 'Compress db.sql file');
             }, 'Backup created');
         } catch(err) {
             // If the backup task has fault for some reason, (for example, mysqldump command not found)
@@ -234,7 +236,7 @@ export class Backup implements Responsable {
 
             throw(err);
         }
-
+        
         return await this.load(this._backupPath);
     }
 
@@ -254,10 +256,16 @@ export class Backup implements Responsable {
         if (this._exists) {
             await progress.procedure('Restoring backup', (task: Task) => {
                 task.sequence((task: Task) => {
+                    if(fs.existsSync(path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`))){
+                        task.addTask(() => {return this.unzipDbSql(); }, 'Decompress db.sql file');
+                    }
                     task.parallel((task: Task) => {
                         task.addTask(() => { return this.importDatabase(); }, 'Database restore');
                         task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restore');
                     });
+                    task.addTask(() => {
+                        return FSHelper.rmDirectory(this.getTemporalyUnzipPath());
+                    }, 'Remove temporaly files');
                     task.addTask(async (_) => { return this.runMigrations(); }, 'Database migration');
                 })
                 
@@ -313,12 +321,49 @@ export class Backup implements Responsable {
 
         return new Promise((resolve, reject) => { 
             //console.time("mysqldump");
-            child_process.exec(this.buildCmd('mysqldump',databaseService),(error,stdout,stderr) => {
+            child_process.exec(this.buildCmd('mysqldump', databaseService),(error,stdout,stderr) => {
                 //console.timeEnd("mysqldump");
                 if (error) return reject(error);
                 resolve();     
             });
         });
+    }
+
+    /**
+     * Compress the db.sql file
+     */
+    protected zipDbSql(): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            try{
+                await Zip.zip(path.join(this._backupPath, Backup.DUMP_FILENAME));
+                fs.unlinkSync(path.join(this._backupPath, Backup.DUMP_FILENAME));
+                resolve();
+            }catch(err){
+                reject(err)
+            }
+        })
+    }
+
+    /**
+     * Decompress the db.sql file
+     */
+    protected unzipDbSql():Promise<void> {
+        return new Promise(async (resolve, reject)=>{
+            try {
+                if(fs.existsSync(path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`))){
+                    const dir = path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`);
+                    await Zip.unzip(dir, this.getTemporalyUnzipPath())
+                }   
+                
+                resolve()
+            }catch(err){
+                reject(err)
+            }
+        })
+    }
+
+    protected getTemporalyUnzipPath(): string {
+        return path.join(app().config.get('tmp.directory'), path.basename(this._backupPath))
     }
 
     /**
@@ -334,7 +379,7 @@ export class Backup implements Responsable {
                     return reject(new RestoreBackupException('Database can not be wiped'));
     
                 //console.time("db import");
-                child_process.execSync(this.buildCmd('mysql',databaseService));
+                child_process.execSync(this.buildCmd('mysql', databaseService));
                 //console.timeEnd("db import");
 
                 //Change compilation status from firewalls
@@ -405,17 +450,22 @@ export class Backup implements Responsable {
      * Builds mysqldump/mysql command
      */
     buildCmd(cmd: 'mysqldump' | 'mysql', databaseService: DatabaseService): string {
+        const config = app().config
         const dbConfig: DatabaseConfig = databaseService.config;
-        const dumpFile = path.join(this._backupPath, Backup.DUMP_FILENAME);
+        let dumpFile:string = path.join(this._backupPath, Backup.DUMP_FILENAME);
 
+        if( cmd === 'mysql') {
+            fs.existsSync(path.join(this._backupPath, Backup.DUMP_FILENAME)) ? dumpFile =  path.join(this._backupPath, Backup.DUMP_FILENAME)
+        : dumpFile = path.join(config.get('tmp.directory'), path.basename(this._backupPath), Backup.DUMP_FILENAME);
+         
+        }
+        
         const shellescape = require('shell-escape');
         process.env.MYSQL_PWD = shellescape([dbConfig.pass]).substring(0,128);
 
         const dir = cmd==='mysqldump' ? '>' : '<';
-
         // This is necessary for mysqldump/mysql commands to access the docker containers of the test environment.
         if (app().config.get('db.mysqldump.protocol') === 'tcp') cmd += ' --protocol=TCP';
-
         // If we don't specify the communications protocol and we are running the mysqldump/mysql commands in localhost,
         // they will use by default the socket file.
         // That is fine, because using the socket file will improve performance.

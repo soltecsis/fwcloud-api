@@ -63,15 +63,33 @@ async function iterate(application: Application): Promise<void> {
     }
 }
 
+async function waitUntilNextIteration(ms: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+
+        if (ms <= 0) {
+            return resolve();
+        }
+
+        setTimeout(() => {
+            return resolve();
+        }, ms);
+    })
+}
+
 async function work(): Promise<void> {
     const application = await Application.run();
     const interval: number = application.config.get('openvpn.agent.history.interval');
 
     application.logger().info(`Openvpn history worker started (collection interval:  ${interval} minutes).`)
-    await iterate(application);
-    setInterval(async () => {
+
+    while(true) {
+        const t1: number = Date.now();
+
         await iterate(application);
-    }, interval * 60 * 1000);
+
+        const msUntilConsumeInterval: number = (interval * 60 * 1000) - (Date.now() - t1);
+        await waitUntilNextIteration(msUntilConsumeInterval);
+    }
 }
 
 work().then(() => {}).catch(error => {
