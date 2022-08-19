@@ -4,6 +4,7 @@ import { Controller } from "../../../../fonaments/http/controller";
 import { ResponseBuilder } from "../../../../fonaments/http/response-builder";
 import { OpenVPNService, OpenVPNUpdateableConfig } from "../../../../models/vpn/openvpn/openvpn.service";
 import { OpenVPNArchiveControllerUpdateDto } from "./config/dtos/openvpn-archive-config-update.dto";
+import { Request } from "express";
 
 export class OpenVPNArchiveController extends Controller {
     protected _openvpnService: OpenVPNService;
