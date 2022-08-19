@@ -169,4 +169,27 @@ export class FirewallController extends Controller {
             throw error;
         }
     }
+    @Validate()
+    async installPlugin(req: Request): Promise<ResponseBuilder> {
+        try{
+            const pgp = new PgpHelper(req.session.pgp);       
+            const communication = new AgentCommunication({
+                protocol: req.body.protocol,
+                host: req.body.host,
+                port: req.body.port,
+                apikey: await pgp.decrypt(req.body.apikey)
+            });
+            
+            const data = await communication.installPlugin(req.body.plugin,req.body.enable);
+            
+            return ResponseBuilder.buildResponse().status(200).body(
+                data
+            )
+        } catch (error) {
+            if (error.message === 'Method not implemented') {
+                return ResponseBuilder.buildResponse().status(501);
+            }
+            throw error;
+        }
+    }
 }
