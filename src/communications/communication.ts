@@ -1,6 +1,5 @@
 import { EventEmitter } from "events";
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
-import { InternalServerException } from "../fonaments/exceptions/internal-server-exception";
 import { ProgressErrorPayload } from "../sockets/messages/socket-message";
 
 export type CCDHash = {
@@ -41,6 +40,8 @@ export abstract class Communication<ConnectionData> {
     abstract ping(): Promise<void>;
 
     abstract installPlugin(name: string,enabled: boolean): Promise<string>;
+    
+    abstract createWebSocket(): string;
 
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
         if (errorHasCode(error)) {

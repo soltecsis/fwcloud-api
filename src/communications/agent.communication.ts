@@ -7,8 +7,8 @@ import FormData from 'form-data';
 import * as path from "path";
 import * as https from 'https';
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
-import { InternalServerException } from "../fonaments/exceptions/internal-server-exception";
 import { app } from "../fonaments/abstract-application";
+import WebSocket from 'ws';
 
 type AgentCommunicationData = {
     protocol: 'https' | 'http',
@@ -19,6 +19,7 @@ type AgentCommunicationData = {
 
 export class AgentCommunication extends Communication<AgentCommunicationData> {
     protected readonly url: string;
+    protected readonly ws_url: string;
     protected readonly headers: Record<string, unknown>;
     protected readonly config: AxiosRequestConfig;
 
@@ -30,6 +31,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
 
         this.url = `${this.connectionData.protocol}://${this.connectionData.host}:${this.connectionData.port}`
+        this.ws_url = this.url.replace('http://','ws://').replace('https://','wss://');
         this.config = {
             timeout: app().config.get('openvpn.agent.timeout'),
             headers: {
@@ -205,8 +207,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
     async installPlugin(name: string,enabled: boolean): Promise<string> {
         try {
-            const pathUrl: string = this.url + '/api/v1/plugin'
-            let params
+            const ws_id = this.createWebSocket();
+            console.log(`WebSocket id: ${ws_id}`);
+
+            const pathUrl: string = this.url + '/api/v1/plugin';
+            let params;
 
             const config: AxiosRequestConfig = Object.assign({}, this.config);
             config.headers["Content-Type"] = "application/json";
@@ -223,6 +228,40 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
             return response.data.split("\n").filter(item => item !== '')
         }catch(error) {
+            this.handleRequestException(error);
+        }
+    }
+
+    createWebSocket(): string {
+        try {
+            const pathUrl: string = this.ws_url + '/api/v1/ws';
+            const ws = new WebSocket(pathUrl, {
+                headers: {
+                  ['X-API-Key']: this.connectionData.apikey,
+                },
+                rejectUnauthorized: false
+            });
+            let waiting_for_websocket_id = true;
+
+            ws.on('message', (data) => {
+                if (waiting_for_websocket_id) {
+                    console.log('WebSocket id: %s', data);
+                } else {
+                    console.log('Data: %s', data);
+                }
+            });
+
+            ws.on('close', () => {
+                ws.close();
+            });
+
+            ws.on('error', (err) => {
+                console.log(`WebSocket error: ${err}`);
+                ws.close();
+            });
+
+            return "TEST";
+        }  catch(error) {
             this.handleRequestException(error);
         }
     }
