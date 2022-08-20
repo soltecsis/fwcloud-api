@@ -205,24 +205,23 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
     }
 
-    async installPlugin(name: string,enabled: boolean): Promise<string> {
+    async installPlugin(name: string, enabled: boolean, channel?: EventEmitter): Promise<string> {
         try {
-            const ws_id = this.createWebSocket();
-            console.log(`WebSocket id: ${ws_id}`);
-
             const pathUrl: string = this.url + '/api/v1/plugin';
-            let params;
 
             const config: AxiosRequestConfig = Object.assign({}, this.config);
             config.headers["Content-Type"] = "application/json";
             
-            if(enabled) {
-                params = {name: name, "action": "enable"};
-            } else {
-                params = {name: name, "action": "disable"};
-            }
-    
+            let params = { 
+                name: name, 
+                "action": enabled ? 'enable' : 'disable',
+                ws_id: await this.createWebSocket(new EventEmitter()) 
+            };
+
             const requestConfig: AxiosRequestConfig = Object.assign({},this.config);
+
+            // Disable timeout and manage it from the WebSocket events.
+            requestConfig.timeout = 0;
 
             let response = await axios.post(pathUrl,params,requestConfig);
 
@@ -232,8 +231,8 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
     }
 
-    createWebSocket(): string {
-        try {
+    createWebSocket(channel?: EventEmitter): Promise<string> {
+        return new Promise((resolve, reject) => {
             const pathUrl: string = this.ws_url + '/api/v1/ws';
             const ws = new WebSocket(pathUrl, {
                 headers: {
@@ -243,27 +242,48 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             });
             let waiting_for_websocket_id = true;
 
+
+            let timer = setTimeout(() => {
+                // TIMEOUT ERROR
+                ws.close();
+                super.handleRequestException(Error('Agent communication timeout'));
+                console.log('Agent communication timeout');
+
+            }, app().config.get('openvpn.agent.timeout'));
+
+
             ws.on('message', (data) => {
+                // Restart timer on each WebSocket message.
+                // If we receive a message means that the process is active, then
+                // reset the timer. This way, if the process takes quit time, we
+                // will allow it to complete.
+                timer.refresh();
+
                 if (waiting_for_websocket_id) {
+                    waiting_for_websocket_id = false;
                     console.log('WebSocket id: %s', data);
+                    resolve(`${data}`);
                 } else {
                     console.log('Data: %s', data);
+                    if (channel) {
+                        channel.emit('message', new ProgressInfoPayload(`${data}\n`));
+                    }
                 }
             });
 
             ws.on('close', () => {
+                clearTimeout(timer);
                 ws.close();
+                resolve("");
             });
 
             ws.on('error', (err) => {
+                clearTimeout(timer);
                 console.log(`WebSocket error: ${err}`);
                 ws.close();
+                reject(err);
             });
-
-            return "TEST";
-        }  catch(error) {
-            this.handleRequestException(error);
-        }
+        });
     }
 
     async getRealtimeStatus(statusFilepath: string): Promise<string> {

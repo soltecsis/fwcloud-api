@@ -41,7 +41,7 @@ export abstract class Communication<ConnectionData> {
 
     abstract installPlugin(name: string,enabled: boolean): Promise<string>;
     
-    abstract createWebSocket(): string;
+    abstract createWebSocket(): Promise<string>;
 
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
         if (errorHasCode(error)) {

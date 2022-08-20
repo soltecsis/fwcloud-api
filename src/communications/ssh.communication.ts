@@ -183,7 +183,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         throw new Error("Method not implemented.");
     }
 
-    createWebSocket(): string {
+    createWebSocket(): Promise<string> {
         throw new Error("Method not implemented.");
     }
 }
