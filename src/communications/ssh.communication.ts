@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { FireWallOptMask } from "../models/firewall/Firewall";
-import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressWarningPayload } from "../sockets/messages/socket-message";
+import { ProgressInfoPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
 import sshTools from "../utils/ssh";
 import { CCDHash, Communication, OpenVPNHistoryRecord } from "./communication";
 var config = require('../config/config');
@@ -180,6 +180,10 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     }
 
     installPlugin(name: string,enabled: boolean): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
+
+    createWebSocket(): Promise<string> {
         throw new Error("Method not implemented.");
     }
 }
