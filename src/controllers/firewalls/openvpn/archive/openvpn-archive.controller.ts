@@ -1,9 +1,8 @@
 import { Validate } from "../../../../decorators/validate.decorator";
-import { app } from "../../../../fonaments/abstract-application";
+import { app, logger } from "../../../../fonaments/abstract-application";
 import { Controller } from "../../../../fonaments/http/controller";
 import { ResponseBuilder } from "../../../../fonaments/http/response-builder";
-import { OpenVPNService, OpenVPNUpdateableConfig } from "../../../../models/vpn/openvpn/openvpn.service";
-import { OpenVPNArchiveControllerUpdateDto } from "./config/dtos/openvpn-archive-config-update.dto";
+import { OpenVPNService } from "../../../../models/vpn/openvpn/openvpn.service";
 import { Request } from "express";
 
 export class OpenVPNArchiveController extends Controller {
@@ -21,10 +20,15 @@ export class OpenVPNArchiveController extends Controller {
      */
     @Validate()
     public async store(request: Request): Promise<ResponseBuilder> {
-        const rowsArchived: number = await this._openvpnService.archiveHistory();
+        try{
+            const rowsArchived: number = await this._openvpnService.archiveHistory();
  
         return ResponseBuilder.buildResponse().status(201).body({
            rows: rowsArchived
         });
+        }catch(err){
+            throw err
+        }
+        
     }
 }
