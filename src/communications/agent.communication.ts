@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { CCDHash, Communication, OpenVPNHistoryRecord } from "./communication";
 import axios, { AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
-import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressSSHCmdPayload } from "../sockets/messages/socket-message";
+import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressPayload, ProgressSSHCmdPayload } from "../sockets/messages/socket-message";
 import * as fs from 'fs';
 import FormData from 'form-data';
 import * as path from "path";
@@ -260,11 +260,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 timer.refresh();
 
                 if (waiting_for_websocket_id) {
-                    waiting_for_websocket_id = false;
                     //console.log('WebSocket id: %s', data);
+                    waiting_for_websocket_id = false;
                     resolve(`${data}`);
                 } else {
-                    console.log('Data: %s', data);
+                    //console.log('Data: %s', data);
                     if (channel) {
                         channel.emit('message', new ProgressInfoPayload(`${data}\n`));
                     }
@@ -272,6 +272,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             });
 
             ws.on('close', () => {
+                channel.emit('message', new ProgressPayload('end', false, "Plugin action finished"));
                 clearTimeout(timer);
                 ws.close();
                 resolve("");
