@@ -218,7 +218,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             let params = { 
                 name: name, 
                 "action": enabled ? 'enable' : 'disable',
-                ws_id: await this.createWebSocket(new EventEmitter()) 
+                ws_id: await this.createWebSocket(channel) 
             };
 
             const requestConfig: AxiosRequestConfig = Object.assign({},this.config);

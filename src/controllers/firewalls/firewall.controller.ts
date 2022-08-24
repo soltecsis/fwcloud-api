@@ -169,9 +169,11 @@ export class FirewallController extends Controller {
             throw error;
         }
     }
+
     @Validate()
     async installPlugin(req: Request): Promise<ResponseBuilder> {
         try{
+            const channel = await Channel.fromRequest(req);
             const pgp = new PgpHelper(req.session.pgp);       
             const communication = new AgentCommunication({
                 protocol: req.body.protocol,
@@ -180,7 +182,7 @@ export class FirewallController extends Controller {
                 apikey: await pgp.decrypt(req.body.apikey)
             });
             
-            const data = await communication.installPlugin(req.body.plugin,req.body.enable);
+            const data = await communication.installPlugin(req.body.plugin,req.body.enable,channel);
             
             return ResponseBuilder.buildResponse().status(200).body(
                 data
