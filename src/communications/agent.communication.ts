@@ -266,7 +266,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 } else {
                     //console.log('Data: %s', data);
                     if (channel) {
-                        channel.emit('message', new ProgressInfoPayload(`${data}\n`));
+                        channel.emit('message', new ProgressPayload('ssh_cmd_output', false, `${data}`));
                     }
                 }
             });
