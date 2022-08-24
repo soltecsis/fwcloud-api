@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] -
 
 ### Added
+- Allow option OpenVPNArchiver to store records of openvpn status history. Also added CRON tasks to schedule the process.
 - 2FA Support
 - Allow option 'apply to' for routes and routing policy.
 - Download and show policy script routes.
