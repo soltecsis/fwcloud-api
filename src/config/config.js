@@ -486,7 +486,7 @@ const config = convict({
       archive_days: {
         doc: 'Date range for archive an entry.',
         format: Number,
-        default: 93
+        default: 180
       },
       retention_days: {
         doc: 'Days for archive files retention policy.',
