@@ -23,7 +23,7 @@
 import { IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
 import { FirewallInstallCommunication, FirewallInstallProtocol } from "../../../models/firewall/Firewall";
 
-export class PingDto {
+export class InfoDto {
     @IsEnum(FirewallInstallCommunication)
     communication: FirewallInstallCommunication;
 
