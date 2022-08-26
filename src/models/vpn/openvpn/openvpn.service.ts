@@ -1,4 +1,4 @@
-import { ProgressInfoPayload, ProgressPayload, ProgressSuccessPayload, ProgressErrorPayload } from './../../../sockets/messages/socket-message';
+import { ProgressInfoPayload, ProgressPayload, ProgressNoticePayload } from './../../../sockets/messages/socket-message';
 import { Service } from "../../../fonaments/services/service";
 import { OpenVPN } from "./OpenVPN";
 import db from "../../../database/database-manager";
@@ -15,7 +15,6 @@ import path from "path";
 import { Zip } from "../../../utils/zip";
 import ObjectHelpers from "../../../utils/object-helpers";
 import {Mutex} from 'async-mutex';
-import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
 import { Channel } from "../../../sockets/channels/channel";
 
 const mutex = new Mutex();
@@ -122,20 +121,20 @@ export class OpenVPNService extends Service {
         }
 
         if(mutex.isLocked()) {
-            if(channel)channel.emit('message', new ProgressErrorPayload('There is another OpenVPN history archiver running. Please, try again'))
-            throw new Error('There is another OpenVPN history archiver running. Please, try again')
+            if(channel)channel.emit('message', new ProgressPayload('error', false, 'There is another OpenVPN history archiver running'));
+            throw new Error('There is another OpenVPN history archiver running')
         }
         return await mutex.runExclusive(()=> {
             return new Promise<number>( async (resolve, reject) => {   
                 if(channel){
                     channel.emit('message', new ProgressInfoPayload('Starting OpenVPN history archiver'))
-                    channel.emit('message', new ProgressInfoPayload('Checking expired history'))
+                    channel.emit('message', new ProgressNoticePayload('Checking expired history'))
                 }
                 const expirationInSeconds: number = this._config.history.archive_days * 24 * 60 * 60;
                 // If there isn't any row expired, then do nothing
                 if ((await getExpiredStatusHistoryQuery(expirationInSeconds).limit(1).getCount()) === 0) {
                     if(channel){
-                        channel.emit('message', new ProgressInfoPayload('Nothing to archive'))
+                        channel.emit('message', new ProgressNoticePayload('Nothing to archive'))
                         channel.emit('message', new ProgressPayload('end', false, ''));
                     }
                     return resolve(0);
@@ -149,7 +148,7 @@ export class OpenVPNService extends Service {
     
                 // If there is already a zipped file, then unzip it in order to write down new registers there
                 if (await fs.pathExists(`${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`)) {
-                    if(channel)channel.emit('message', new ProgressInfoPayload('Decompressing existing zip file'))
+                    if(channel)channel.emit('message', new ProgressNoticePayload('Decompressing existing zip file'))
                     await Zip.unzip(`${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`, path.join(this._config.history.data_dir, yearDir, monthSubDir));
                     await fs.remove(`${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`);
                 }else{
@@ -163,30 +162,31 @@ export class OpenVPNService extends Service {
                     const expirationDate: Date = new Date(Date.now() - (expirationInSeconds * 1000));
                     channel.emit(
                         'message', 
-                        new ProgressInfoPayload(`Archiving registers older than ${(expirationDate.getFullYear()).toString()}-${("0" + (expirationDate.getMonth() + 1)).slice(-2)}-${expirationDate.getDate()}`)
+                        new ProgressNoticePayload(`Archiving registers older than ${(expirationDate.getFullYear()).toString()}-${("0" + (expirationDate.getMonth() + 1)).slice(-2)}-${expirationDate.getDate()}`)
                     )
                 }
                 const totalExpiredHistoryRows = await getExpiredStatusHistoryQuery(expirationInSeconds).getCount()
-                if(channel)channel.emit('message', new ProgressInfoPayload(`Registers to be archived: ${totalExpiredHistoryRows}`))
+                if(channel)channel.emit('message', new ProgressNoticePayload(`Registers to be archived: ${totalExpiredHistoryRows}`))
                 while(true) {
                     const history: OpenVPNStatusHistory[] = await getExpiredStatusHistoryQuery(expirationInSeconds)
                         .limit(2000)
                         .getMany();
                     if (history.length <= 0) {
-                        if(channel)channel.emit('message', new ProgressInfoPayload('Compressing archive file'))
+                        if(channel)channel.emit('message', new ProgressNoticePayload('Compressing archive file'))
                         //When all expired registers have been processed, then zip the sql file
                         // and remove it
                         await Zip.zip(path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName));
                         await fs.remove(path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName));
                         if(channel){
-                            channel.emit('message', new ProgressSuccessPayload('Process completed'))
                             channel.emit('message', new ProgressPayload('end', false, ''))
                         }
                         return resolve(count);
                     }
     
                     count = count + history.length;
-    
+
+                    if(channel)channel.emit('message', new ProgressNoticePayload(`Progress: ${count} of ${totalExpiredHistoryRows} registers`))
+
                     const table: string = getMetadataArgsStorage().tables.filter(item => item.target === OpenVPNStatusHistory)[0].name ?? OpenVPNStatusHistory.name;
                     const columns: ColumnMetadataArgs[] = getMetadataArgsStorage().columns.filter(item => item.target === OpenVPNStatusHistory);
                     const insertColumnDef: string = columns.map(item => `\`${item.options.name ?? item.propertyName}\``).join(',');
@@ -205,7 +205,6 @@ export class OpenVPNService extends Service {
                             }
                         });
                     })
-                    if(channel)channel.emit('message', new ProgressInfoPayload(`Archive ${count} of ${totalExpiredHistoryRows}`))
                     await promise.catch(err => reject(err));
                 }  
             });
