@@ -7,8 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] -
 
 ### Added
-- Use of the ws NPM module for for realtime output in plugins enabling/disabling procedure by means of WebSocket communication with FWCloud-Agent.
-- New API call for plugins management.
+- API call for gather FWC-Agent information.
+- Use of the 'ws' NPM module for for realtime output in plugins enabling/disabling procedure by means of WebSocket communication with FWCloud-Agent.
+- API call for plugins management.
 - 2FA Support.
 - Allow option 'apply to' for routes and routing policy.
 - Download and show policy script routes.

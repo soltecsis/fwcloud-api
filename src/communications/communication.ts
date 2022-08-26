@@ -16,6 +16,10 @@ export type OpenVPNHistoryRecord = {
     connectedAtTimestampInSeconds: number;
 }
 
+export type FwcAgentInfo = {
+    fwcAgentVersion: string
+}
+
 type ErrorWithCode = {
     code: string,
 } & Error;
@@ -38,6 +42,7 @@ export abstract class Communication<ConnectionData> {
     abstract getFirewallInterfaces(): Promise<string>;
     abstract getFirewallIptablesSave(): Promise<string[]>;
     abstract ping(): Promise<void>;
+    abstract info(): Promise<FwcAgentInfo>;
 
     abstract installPlugin(name: string,enabled: boolean): Promise<string>;
     
