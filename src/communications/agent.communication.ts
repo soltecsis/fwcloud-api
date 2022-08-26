@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { CCDHash, Communication, OpenVPNHistoryRecord } from "./communication";
+import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord } from "./communication";
 import axios, { AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressPayload, ProgressSSHCmdPayload } from "../sockets/messages/socket-message";
 import * as fs from 'fs';
@@ -205,6 +205,25 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             return;
         } catch(error) {
             return this.handleRequestException(error);
+        }
+    }
+
+    async info(): Promise<FwcAgentInfo> {
+        try {
+            const pathUrl: string = this.url + '/api/v1/info';
+
+            const response: AxiosResponse<string> = await axios.get(pathUrl, this.config);
+
+            if (response.status === 200) {
+                return response.data.split("\n").filter(item => item !== '').slice(1).map(item => ({
+                    fwcAgentVersion: item.split(',')[0]
+                }))[0];
+            }
+
+            throw new Error("Unexpected FWCloud-Agent info response");
+
+        } catch(error) {
+            this.handleRequestException(error);
         }
     }
 

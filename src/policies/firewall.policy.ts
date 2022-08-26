@@ -55,6 +55,18 @@ export class FirewallPolicy extends Policy {
         return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
 
+    static async info(fwcloud: FwCloud, user: User): Promise<Authorization> {
+        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+
+        if (user.role === 1) {
+            return Authorization.grant();
+        }
+
+        const match = user.fwClouds.filter(item => { return item.id === fwcloud.id});
+
+        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    }
+
     static async install(firewall: Firewall, user: User): Promise<Authorization> {
         user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
         
