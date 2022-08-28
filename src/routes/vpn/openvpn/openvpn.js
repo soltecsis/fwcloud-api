@@ -485,14 +485,14 @@ router.put('/ccdsync', async(req, res, next) => {
 		const toBeInstalled = [].concat(compare.onlyLocal, compare.unsynced);
 		if (toBeInstalled.length > 0) {
 
-			const toBeInstalledOpeVPNs = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+			const toBeInstalledOpenVPNs = await getRepository(OpenVPN).createQueryBuilder('openvpn')
 				.innerJoinAndSelect('openvpn.crt', 'crt')
 				.where('openvpn.parentId = :openvpn', {openvpn: openvpn.id})
 				.andWhere('crt.cn IN (:...names)', {names: toBeInstalled})
 				.getMany();
 
-			while(toBeInstalledOpeVPNs.length > 0) {
-				const clients = toBeInstalledOpeVPNs.splice(0, 10);
+			while(toBeInstalledOpenVPNs.length > 0) {
+				const clients = toBeInstalledOpenVPNs.splice(0, 10);
 				const options = []
 				for(let client of clients) {
 					let cfgDump = await OpenVPN.dumpCfg(db.getQuery(), req.body.fwcloud, client.id);
@@ -564,7 +564,7 @@ router.put('/status/get', async(req, res, next) => {
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw fwcError.VPN_NOT_SER;
 
-		// Obtain the status log file option of the OpeVPN server configuration.
+		// Obtain the status log file option of the OpenVPN server configuration.
 		const openvpn_opt = await OpenVPN.getOptData(req.dbCon,req.body.openvpn,'status');
 		if (!openvpn_opt) throw fwcError.VPN_NOT_FOUND_STATUS;
 		const status_file_path = openvpn_opt.arg;

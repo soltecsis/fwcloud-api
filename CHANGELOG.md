@@ -8,21 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Allow option OpenVPNArchiver to store records of openvpn status history. Also added CRON tasks to schedule the process.
-- 2FA Support
+- API call for gather FWC-Agent information.
+- Use of the 'ws' NPM module for for realtime output in plugins enabling/disabling procedure by means of WebSocket communication with FWCloud-Agent.
+- API call for plugins management.
+- 2FA Support.
 - Allow option 'apply to' for routes and routing policy.
 - Download and show policy script routes.
-- Allow continents and countries in services tree to filter by IP.
+- Allow the use of continents and countries in objects tree to filter by IPs of a full continent or country.
 
 ### Changed
 - New call created returns the openvpn nodes with additional information such as the address.
 - Backup sql is compressed (zip) in order to save space.
-- Changed worker iteration in order to avoid iteration overlaps
+- Changed OpenVPN status history worker iteration in order to avoid iteration overlaps.
 
 ### Fixed
 - Backup related tasks are not scheduled twice.
 - Backup retention policy task is scheduled.
 - Fixed tree repair process.
 - Updated easy-rsa package from 3.0.6 to 3.1.0.
+- Syntax error in some OpenVPN logs.
 
 
 ## [1.5.1] - 2022-04-28

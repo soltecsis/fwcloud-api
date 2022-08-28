@@ -38,7 +38,8 @@ import { RoutingCompiler } from "../../compiler/routing/RoutingCompiler";
 import { FirewallControllerCompileRoutingRuleQueryDto } from "./dtos/compile-routing-rules.dto";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { PingDto } from "./dtos/ping.dto";
-import { Communication } from "../../communications/communication";
+import { InfoDto } from "./dtos/info.dto";
+import { Communication, FwcAgentInfo } from "../../communications/communication";
 import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { PgpHelper } from "../../utils/pgp";
@@ -166,6 +167,71 @@ export class FirewallController extends Controller {
                 return ResponseBuilder.buildResponse().status(501);
             }
 
+            throw error;
+        }
+    }
+
+    @Validate(InfoDto)
+    async infoCommunication(request: Request): Promise<ResponseBuilder> {
+        const input: InfoDto = request.body;
+
+        (await FirewallPolicy.info(this._fwCloud, request.session.user)).authorize();
+
+        const pgp = new PgpHelper(request.session.pgp);
+
+        try {
+            let communication: Communication<unknown>;
+
+            if (input.communication === FirewallInstallCommunication.SSH) {
+                communication = new SSHCommunication({
+                    host: input.host,
+                    port: input.port,
+                    username: await pgp.decrypt(input.username),
+                    password: await pgp.decrypt(input.password),
+                    options: null
+                })
+            } else {
+                communication = new AgentCommunication({
+                    host: input.host,
+                    port: input.port,
+                    protocol: input.protocol,
+                    apikey: await pgp.decrypt(input.apikey)
+                })
+            }
+
+            let info: FwcAgentInfo = await communication.info();
+
+            return ResponseBuilder.buildResponse().status(200).body(info)
+        } catch(error) {
+            if (error.message === 'Method not implemented') {
+                return ResponseBuilder.buildResponse().status(501);
+            }
+
+            throw error;
+        }
+    }
+
+    @Validate()
+    async installPlugin(req: Request): Promise<ResponseBuilder> {
+        try{
+            const channel = await Channel.fromRequest(req);
+            const pgp = new PgpHelper(req.session.pgp);       
+            const communication = new AgentCommunication({
+                protocol: req.body.protocol,
+                host: req.body.host,
+                port: req.body.port,
+                apikey: await pgp.decrypt(req.body.apikey)
+            });
+            
+            const data = await communication.installPlugin(req.body.plugin,req.body.enable,channel);
+            
+            return ResponseBuilder.buildResponse().status(200).body(
+                data
+            )
+        } catch (error) {
+            if (error.message === 'Method not implemented') {
+                return ResponseBuilder.buildResponse().status(501);
+            }
             throw error;
         }
     }

@@ -616,7 +616,8 @@ export class Firewall extends Model {
 					install_port=${firewallData.install_port},
 					install_apikey="${firewallData.install_apikey}",
 					by_user=${iduser},
-					options=${firewallData.options}
+					options=${firewallData.options},
+					plugins=${firewallData.plugins}
 					WHERE id=${firewallData.id}`;
 					dbCon.query(sql, (error, result) => {
 						if (error) return reject(error);

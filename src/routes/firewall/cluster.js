@@ -180,7 +180,8 @@ router.post('/', async (req, res) => {
 	var clusterData = {
 		name: JsonData.clusterData.name,
 		comment: JsonData.clusterData.comment,
-		fwcloud: req.body.fwcloud
+		fwcloud: req.body.fwcloud,
+		plugins: JsonData.clusterData.plugins
 	};
 
 	// Check that the tree node in which we will create a new node for the cluster is a valid node for it.
@@ -199,6 +200,7 @@ router.post('/', async (req, res) => {
 			firewallData.by_user = req.session.user_id;
 			firewallData.status = 3;
 			firewallData.options = JsonData.clusterData.options;
+			firewallData.plugins = JsonData.clusterData.plugins;
 
 			firewallData = await Firewall.checkBodyFirewall(firewallData, true);
 
@@ -416,7 +418,8 @@ router.put('/', async (req, res) => {
 		name: JsonData.clusterData.name,
 		comment: JsonData.clusterData.comment,
 		fwcloud: req.body.fwcloud,
-		options: JsonData.clusterData.options
+		options: JsonData.clusterData.options,
+		plugins: JsonData.clusterData.plugins
 	};
 
 	try {
