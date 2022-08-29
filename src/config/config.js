@@ -456,7 +456,7 @@ const config = convict({
       timeout: {
         doc: 'Socket timeout in milliseconds. This will set the timeout after the socket is connected.',
         format: Number,
-        default: 30000
+        default: 90000
       },
       history: {
         interval: {
