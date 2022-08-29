@@ -243,7 +243,7 @@ export class OpenVPNService extends Service {
                     limit.setDate(limit.getDate() - this._config.history.retention_days);
                     return date < limit;
                 });
-                filesToRemove.forEach(fileName => fs.unlink(path.join(fileName.path, fileName.file)));
+                filesToRemove.forEach(fileName => fs.unlinkSync(path.join(fileName.path, fileName.file)));
 
                 return resolve(filesToRemove.length);
             }catch(err) {
