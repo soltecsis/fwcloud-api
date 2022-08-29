@@ -43,6 +43,7 @@ import { Communication, FwcAgentInfo } from "../../communications/communication"
 import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { PgpHelper } from "../../utils/pgp";
+import { PluginDto } from './dtos/plugin.dto';
 
 export class FirewallController extends Controller {
     
@@ -211,8 +212,11 @@ export class FirewallController extends Controller {
         }
     }
 
-    @Validate()
+    @Validate(PluginDto)
     async installPlugin(req: Request): Promise<ResponseBuilder> {
+        console.log('entro')
+        console.log(req.body)
+        console.log(req.body.plugin, req.body.enable)
         try{
             const channel = await Channel.fromRequest(req);
             const pgp = new PgpHelper(req.session.pgp);       
