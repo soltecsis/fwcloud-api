@@ -124,7 +124,7 @@ export class OpenVPNService extends Service {
             if(channel)channel.emit('message', new ProgressPayload('error', false, 'There is another OpenVPN history archiver running'));
             throw new Error('There is another OpenVPN history archiver running')
         }
-        return await mutex.runExclusive(()=> {
+        return await mutex.runExclusive( async () => {
             return new Promise<number>( async (resolve, reject) => {   
                 if(channel){
                     channel.emit('message', new ProgressInfoPayload('Starting OpenVPN history archiver'))
