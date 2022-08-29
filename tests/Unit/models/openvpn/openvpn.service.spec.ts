@@ -117,28 +117,25 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
 
     describe('removeExpiredFiles()', () => {
         let clock;
-        const date = new Date();
-        const futureDate = date.setFullYear(date.getFullYear() + 4);
-        
-            beforeEach(async () => {
-                //Mock the clock timer to test because the method removeExxpiredFiles checks the birthTime of the files
-                clock = sinon.useFakeTimers({
-                    now: new Date(futureDate),
-                    shouldAdvanceTime: true,
-                    toFake: ["Date"],
-                });
-            })
+        before(async () => { 
+            const date = new Date();
+            const futureDate = date.setFullYear(date.getFullYear() + 4);
+            //Mock the clock timer to test because the method removeExpiredFiles() checks the birthTime of the files
+            clock = sinon.useFakeTimers({
+                now: new Date(futureDate),
+                shouldAdvanceTime: true,
+                toFake: ["Date"],
+            });
+        })
 
-            afterEach(async () => {
-                clock.restore();
-            })
+        after(async () => {
+            clock.restore();
+        })   
         
         it('should be deleted files with date of creation greater than retention_days config', async () => {
-
-            await openVPNService.removeExpiredFiles()
-            
+            const res = await openVPNService.removeExpiredFiles()
             expect(fs.existsSync(filePath)).to.be.false;
-            
+            expect(res).to.be.equal(1)            
         })
     }); 
 
