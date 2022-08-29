@@ -32,6 +32,32 @@ export default class ObjectHelpers {
         return result;
     }
 
+    public static deepMerge<T extends Record<string, unknown> = Record<string, unknown>>(target: T, ...sources: Partial<T>[]): T {
+        function isObject(item) {
+            return (item && typeof item === 'object' && !Array.isArray(item));
+        }
+        
+        if (!sources.length) {
+            return target;
+        }
+        const source: Partial<T> = sources.shift();
+
+        if (isObject(target) && isObject(source)) {
+            for (const key in source) {
+                if (isObject(source[key])) {
+                    if (!target[key]) {
+                        Object.assign(target, { [key]: {} });
+                    }
+                    this.deepMerge(target[key] as Record<string, unknown>, source[key] as Record<string, unknown>);
+                } else {
+                    Object.assign(target, { [key]: source[key] });
+                }
+            }
+        }
+
+        return this.deepMerge(target, ...sources);
+    }
+
     public static contains(inner: object, container: object): boolean {
         if (typeof inner != typeof container)
             return false;
