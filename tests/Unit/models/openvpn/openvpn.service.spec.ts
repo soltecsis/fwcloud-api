@@ -46,9 +46,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
             }
         ];
 
-        await openVPNStatusHistoryService.create(fwcProduct.openvpnServer.id, data)
-
-        await openVPNService.archiveHistory()
+        await openVPNStatusHistoryService.create(fwcProduct.openvpnServer.id, data);
 
         const date = new Date() 
         yearDir = (date.getFullYear()).toString();
@@ -64,6 +62,10 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
 
 
     describe('archiveHistory()', () =>{
+
+        beforeEach(async() => {
+            await openVPNService.archiveHistory();
+        })
 
         it('should create a backup directory', async () => {
 
@@ -116,6 +118,11 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
     });
 
     describe('removeExpiredFiles()', () => {
+        
+        beforeEach(async() => {
+            await openVPNService.archiveHistory();
+        })
+
         let clock;
         before(async () => { 
             const date = new Date();
@@ -133,9 +140,9 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
         })   
         
         it('should be deleted files with date of creation greater than retention_days config', async () => {
-            const res = await openVPNService.removeExpiredFiles()
+            const res = await openVPNService.removeExpiredFiles();
             expect(fs.existsSync(filePath)).to.be.false;
-            expect(res).to.be.equal(1)            
+            expect(res).to.be.equal(1);        
         })
     }); 
 
