@@ -214,9 +214,6 @@ export class FirewallController extends Controller {
 
     @Validate(PluginDto)
     async installPlugin(req: Request): Promise<ResponseBuilder> {
-        console.log('entro')
-        console.log(req.body)
-        console.log(req.body.plugin, req.body.enable)
         try{
             const channel = await Channel.fromRequest(req);
             const pgp = new PgpHelper(req.session.pgp);       
