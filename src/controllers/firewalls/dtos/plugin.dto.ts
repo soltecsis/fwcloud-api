@@ -1,19 +1,32 @@
-import { PluginsFlags } from './../../../models/firewall/Firewall';
-import { IsBoolean, IsEnum, IsNumber, IsString } from "class-validator"
+import { FirewallInstallCommunication, PluginsFlags } from './../../../models/firewall/Firewall';
+import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString } from "class-validator"
 import { FirewallInstallProtocol } from "../../../models/firewall/Firewall";
 
 export class PluginDto {
+    @IsEnum(FirewallInstallCommunication)
+    communication: FirewallInstallCommunication;
+
     @IsString()
     host: string;
 
     @IsNumber()
     port: number;
 
-    @IsEnum(FirewallInstallProtocol)
-    protocol: FirewallInstallProtocol;
-    
+    @IsOptional()
     @IsString()
-    apikey: string;
+    username?: string;
+
+    @IsOptional()
+    @IsString()
+    password?: string;
+
+    @IsOptional()
+    @IsEnum(FirewallInstallProtocol)
+    protocol?: FirewallInstallProtocol;
+
+    @IsOptional()
+    @IsString()
+    apikey?: string;
 
     @IsEnum(PluginsFlags)
     plugin: PluginsFlags 
