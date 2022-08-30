@@ -67,6 +67,14 @@ export enum FirewallInstallProtocol {
 	HTTP = 'http'
 }
 
+export enum PluginsFlags {
+	openvpn = 'openvpn',
+    geoip = 'geoip',
+    crowdsec = 'crowdsec',
+    ntopng = 'ntopng',
+    suricata = 'suricata'
+}
+
 // Special rules codes.
 export enum FireWallOptMask {
 	STATEFUL   			= 0x0001, 
