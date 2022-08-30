@@ -151,6 +151,7 @@ export abstract class AbstractApplication {
       FSHelper.mkdirSync(this._config.get('session').files_path);
       FSHelper.mkdirSync(this._config.get('backup').data_dir);
       FSHelper.mkdirSync(this._config.get('snapshot').data_dir);
+      FSHelper.mkdirSync(this._config.get('openvpn.history').data_dir);
       
       if (FSHelper.directoryExistsSync(this._config.get('tmp').directory)) {
         FSHelper.rmDirectorySync(this._config.get('tmp').directory);

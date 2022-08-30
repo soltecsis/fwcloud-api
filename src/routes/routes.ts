@@ -1,3 +1,5 @@
+import { OpenVPNArchiveConfigController } from './../controllers/firewalls/openvpn/archive/config/openvpn-archive-config.controller';
+import { OpenVPNArchiveController } from './../controllers/firewalls/openvpn/archive/openvpn-archive.controller';
 /*!
     Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
@@ -48,7 +50,7 @@ import { CrtController } from "../controllers/crt/crt.controller";
 export class Routes extends RouteCollection {
 
     public routes(router: RouterParser): void {
-
+    
         router.gates([isLoggedIn], (router) => {
 
             //Admin routes
@@ -70,6 +72,14 @@ export class Routes extends RouteCollection {
                         router.put('/', BackupConfigController, 'update').name('backups.config.update');
                     });
                 });
+
+                router.prefix('/openvpnarchives', (router: RouterParser) => {
+                    router.post('/', OpenVPNArchiveController, 'store').name('openvpnarchives.store')
+                    router.prefix('/config', (router: RouterParser) => {
+                        router.get('/', OpenVPNArchiveConfigController, 'show').name('openvpnarchives.config.show')
+                        router.put('/', OpenVPNArchiveConfigController, 'update').name('openvpnarchives.config.update')
+                    })
+                })
 
                 //Version
                 router.get('/version', VersionController, 'show').name('versions.show');

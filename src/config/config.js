@@ -456,7 +456,7 @@ const config = convict({
       timeout: {
         doc: 'Socket timeout in milliseconds. This will set the timeout after the socket is connected.',
         format: Number,
-        default: 30000
+        default: 90000
       },
       history: {
         interval: {
@@ -465,6 +465,34 @@ const config = convict({
           default: 5
         }
       }
+    },
+    history: {
+      data_dir: {
+        doc: 'Directory for store history archives.',
+        format: String,
+        default: './OPENVPN/HISTORY',
+        env: 'HISTORY_DATA_DIR'
+      },
+      archive_schedule: {
+        doc: 'Default archive cron task schedule',
+        format: String,
+        default: '0 30 2 * * *'
+      },
+      retention_schedule: {
+        doc: 'Default remove archive files cron task schedule',
+        format: String,
+        default: '0 30 2 * * *'
+      },
+      archive_days: {
+        doc: 'Date range for archive an entry.',
+        format: Number,
+        default: 180
+      },
+      retention_days: {
+        doc: 'Days for archive files retention policy.',
+        format: Number,
+        default: 720
+      },
     }
   },
 

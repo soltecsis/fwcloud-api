@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API call for gather FWC-Agent information.
 - Use of the 'ws' NPM module for for realtime output in plugins enabling/disabling procedure by means of WebSocket communication with FWCloud-Agent.
 - API call for plugins management.
+- Allow option OpenVPNArchiver to store records of openvpn status history. Also added CRON tasks to schedule the process.
 - 2FA Support.
 - Allow option 'apply to' for routes and routing policy.
 - Download and show policy script routes.
