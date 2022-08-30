@@ -1,3 +1,25 @@
+/*!
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { FSHelper } from './../../../../src/utils/fs-helper';
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import { OpenVPNService } from "../../../../src/models/vpn/openvpn/openvpn.service";
@@ -48,6 +70,8 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
 
         await openVPNStatusHistoryService.create(fwcProduct.openvpnServer.id, data);
 
+        await openVPNService.archiveHistory();
+
         const date = new Date() 
         yearDir = (date.getFullYear()).toString();
         monthSubDir = (("0" + (date.getMonth() + 1)).slice(-2));
@@ -63,22 +87,19 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
 
     describe('archiveHistory()', () =>{
 
-        beforeEach(async() => {
-            await openVPNService.archiveHistory();
-        })
-
-        it('should create a backup directory', async () => {
+        it('should create a backup directory', async() => {
 
             const directory = path.join(`${path.join(app.config.get('openvpn.history').data_dir, yearDir, monthSubDir)}` ) 
 
             expect(FSHelper.directoryExistsSync(directory)).to.be.true;
         });
         
-        it('should be created a zip file with data records file less than archive_days config', async() => {
-            
+        it('should be created a zip file with data records file less than archive_days config', async() => { 
+
             expect(fs.existsSync(filePath)).to.be.true;
         })
-        it('should remove a unzipped data records file', async () => {
+
+        it('should remove a unzipped data records file', () => {
             
             expect(fs.existsSync(path.join(app.config.get('openvpn.history').data_dir, yearDir, monthSubDir, fileName))).to.be.false;
         });
@@ -108,6 +129,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
             await openVPNStatusHistoryService.create(fwcProduct.openvpnServer.id, newData)
             
             await openVPNService.archiveHistory();
+
             const results = await openVPNStatusHistoryService.history(fwcProduct.openvpnServer.id, {
                 name: newData[0].name
             });
@@ -119,10 +141,6 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
 
     describe('removeExpiredFiles()', () => {
         
-        beforeEach(async() => {
-            await openVPNService.archiveHistory();
-        })
-
         let clock;
         before(async () => { 
             const date = new Date();
@@ -140,6 +158,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
         })   
         
         it('should be deleted files with date of creation greater than retention_days config', async () => {
+
             const res = await openVPNService.removeExpiredFiles();
             expect(fs.existsSync(filePath)).to.be.false;
             expect(res).to.be.equal(1);        
