@@ -39,8 +39,6 @@ import ObjectHelpers from "../../../utils/object-helpers";
 import { Mutex, tryAcquire, E_ALREADY_LOCKED } from 'async-mutex';
 import { Channel } from "../../../sockets/channels/channel";
 
-const mutex = new Mutex();
-
 export type OpenVPNConfig = {
     history: {
         data_dir: string,
@@ -66,6 +64,8 @@ export class OpenVPNService extends Service {
     protected _scheduledHistoryArchiveJob: CronJob;
     protected _scheduledRetentionJob: CronJob;
 
+    protected _archiveMutex = new Mutex()
+
 
     public async build(): Promise<OpenVPNService> {
         this._config = this.loadCustomizedConfig(this._app.config.get('openvpn'));
@@ -83,7 +83,7 @@ export class OpenVPNService extends Service {
     public startScheduledTasks(): void {
         this._scheduledHistoryArchiveJob = this._cronService.addJob(this._config.history.archive_schedule, async () => {
 
-            await mutex.waitForUnlock();
+            await this._archiveMutex.waitForUnlock();
 
             try {
                 logger().info("Starting OpenVPNHistory archive job.");
@@ -142,7 +142,7 @@ export class OpenVPNService extends Service {
                 .where('history.timestampInSeconds <= :timestamp', {timestamp: (Date.now() - expirationInSeconds * 1000) / 1000});
         }
         try{
-            return await tryAcquire(mutex).runExclusive(() => {
+            return await tryAcquire(this._archiveMutex).runExclusive(() => {
                 return new Promise<number>( async (resolve, reject) => {   
                     if(channel){
                         channel.emit('message', new ProgressInfoPayload('Starting OpenVPN history archiver'))
@@ -230,7 +230,7 @@ export class OpenVPNService extends Service {
         }catch(e){
             if(e === E_ALREADY_LOCKED) {
                 if(channel)channel.emit('message', new ProgressPayload('error', false, 'There is another OpenVPN history archiver running'));
-                throw new Error('There is another OpenVPN history archiver run(ning')
+                throw new Error('There is another OpenVPN history archiver runnning')
             }
         }
     }
