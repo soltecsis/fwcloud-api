@@ -217,6 +217,8 @@ router.post('/', async (req, res) => {
 				loData = await Interface.createLoInterface(req.dbCon, req.body.fwcloud, idfirewall);
 				// Create the default policy rules.							
 				await PolicyRule.insertDefaultPolicy(idfirewall, loData.ifId, firewallData.options);
+				// Create special rules.
+				await PolicyRule.checkSpecialRules(req.dbCon, idfirewall, firewallData.options);
 				// Create the directory used for store firewall data.
 				await utilsModel.createFirewallDataDir(req.body.fwcloud, idfirewall);
 			}
