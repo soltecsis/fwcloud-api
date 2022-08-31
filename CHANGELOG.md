@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed OpenVPN status history worker iteration in order to avoid iteration overlaps.
 
 ### Fixed
+- Special rules not created for new firewall/clusters.
 - Backup related tasks are not scheduled twice.
 - Backup retention policy task is scheduled.
 - Fixed tree repair process.
@@ -115,7 +116,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hundreds of new software tests for IPTables compiler.
 
 ### Fixed
-- Special rules not created for new firewall/clusters.
 - Error in interfaces discover feature in CentOS 7.
 - Set `MYSQL_PWD` environment variable for database password (mysqldump and mysql commands) instead of using it in command line.
 - In iptables-save import process lines like this `-A CHAIN.NAME -j RETURN`.
