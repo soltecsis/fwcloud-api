@@ -35,6 +35,7 @@ import { EventEmitter } from "typeorm/platform/PlatformTools";
 import { logger } from "../fonaments/abstract-application";
 import * as uuid from "uuid";
 import { Zip } from "../utils/zip";
+import { Mutex } from "async-mutex";
 
 export interface BackupUpdateableConfig {
     schedule: string,
@@ -51,8 +52,13 @@ export class BackupService extends Service {
     protected _scheduledBackupCreationJob: CronJob;
     protected _scheduledBackupRetentionJob: CronJob;
 
+    protected _backupMutex =  new Mutex();
+
     public get config(): any {
         return this._config;
+    }
+    public get mutex(): Mutex {
+        return this._backupMutex;
     }
 
     public async build(): Promise<BackupService> {
@@ -70,6 +76,9 @@ export class BackupService extends Service {
 
     public startScheduledTasks(): void {
         this._scheduledBackupCreationJob = this._cronService.addJob(this._config.schedule, async () => {
+            
+            await this._backupMutex.waitForUnlock();
+
             try {
                 logger().info("Starting BACKUP job.");
                 const backup = new Backup();

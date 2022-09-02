@@ -70,10 +70,12 @@ export class BackupController extends Controller {
     @Validate(BackupControllerStoreDto)
     public async store(request: Request): Promise<ResponseBuilder> {
         const channel: Channel = await Channel.fromRequest(request);
-
-        const backup: Backup = await this._backupService.create(request.inputs.get('comment'), channel);
-
-        return ResponseBuilder.buildResponse().status(201).body(backup);
+        try{
+            const backup: Backup = await this._backupService.create(request.inputs.get('comment'), channel);
+            return ResponseBuilder.buildResponse().status(201).body(backup);
+        }catch(err){
+            throw err;
+        }
     }
 
     /**
