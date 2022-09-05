@@ -122,9 +122,19 @@ export class OpenVPNService extends Service {
     }
 
     public getCustomizedConfig(): OpenVPNUpdateableConfig {
+        
+        const openvpnConfigFile: string = path.join(this._app.config.get('openvpn').history.data_dir, 'config.json');
+        if (!fs.existsSync(openvpnConfigFile)) {
+            return {
+                history: {
+                    archive_days: this._app.config.get('openvpn').history.archive_days,
+                    retention_days: this._app.config.get('openvpn').history.retention_days
+                }
+            };
+        }
         return {
             history: {
-                archive_days: this._config.history.archive_days,
+                archive_days: this._config.history.archive_days, 
                 retention_days: this._config.history.retention_days
             }
         };
@@ -231,11 +241,12 @@ export class OpenVPNService extends Service {
                     }  
                 });
             })
-        }catch(e){
-            if(e === E_ALREADY_LOCKED) {
+        }catch(err){
+            if(err === E_ALREADY_LOCKED) {
                 eventEmitter.emit('message', new ProgressPayload('error', false, 'There is another OpenVPN history archiver running'));
                 throw new Error('There is another OpenVPN history archiver runnning')
             }
+            throw (err)
         }
     }
 

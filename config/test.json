@@ -28,7 +28,7 @@
     },
     "openvpn": {
         "history": {
-            "data_dir": "tests/playground/OPENVPN/HISTORY"
+            "data_dir": "tests/playground/DATA/archive/openvpn/history"
         }
     },
     "log": {

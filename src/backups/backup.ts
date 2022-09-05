@@ -427,11 +427,12 @@ export class Backup implements Responsable {
     protected async exportDataDirectories(): Promise<void> {
         const config = app().config;
 
-        let item_list: Array<string> = ['pki', 'policy', 'snapshot'];
+        let item_list: Array<string> = ['openvpn.history', 'pki', 'policy', 'snapshot'];
 
         for (let item of item_list) {
-            const dst_dir = path.join(this._backupPath, Backup.DATA_DIRNAME, item);
+            let dst_dir = path.join(this._backupPath, Backup.DATA_DIRNAME, item);
             if (await FSHelper.directoryExists(config.get(item).data_dir)) {
+                if(item === 'openvpn.history') dst_dir = path.join(this._backupPath, Backup.DATA_DIRNAME, 'archive');
                 await fse.mkdirp(dst_dir);
                 await fse.copy(config.get(item).data_dir, dst_dir);
             }
@@ -444,11 +445,12 @@ export class Backup implements Responsable {
     protected async importDataDirectories(): Promise<void> {
         const config = app().config;
 
-        let item_list: Array<string> = ['pki', 'policy', 'snapshot'];
+        let item_list: Array<string> = ['archive', 'pki', 'policy', 'snapshot'];
 
 
         for (let item of item_list) {
             const src_dir: string = path.join(this._backupPath, Backup.DATA_DIRNAME, item);
+            if(item === 'archive') item = 'openvpn.history'
             const dst_dir: string = config.get(item).data_dir;
 
             fse.removeSync(dst_dir);

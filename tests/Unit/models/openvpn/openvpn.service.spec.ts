@@ -22,7 +22,7 @@
 
 import { FSHelper } from './../../../../src/utils/fs-helper';
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { OpenVPNService } from "../../../../src/models/vpn/openvpn/openvpn.service";
+import { OpenVPNService, OpenVPNUpdateableConfig } from "../../../../src/models/vpn/openvpn/openvpn.service";
 import * as fs from "fs";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 import path from "path";
@@ -84,8 +84,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
         expect(await app.getService<OpenVPNService>(OpenVPNService.name)).to.be.instanceOf(OpenVPNService);
     });
 
-
-    describe('archiveHistory()', () =>{
+    describe('archiveHistory()', () => {
 
         it('should create a backup directory', async() => {
 
@@ -167,7 +166,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
 
     describe('updateArchiveConfig()', () => {
 
-        it('custom config should be stored in json file', async () => {
+        it('should be stored custom config in json file', async () => {
             const jsonPath = path.join(app.config.get('openvpn.history').data_dir, 'config.json');
             let custom_config = {history:{archive_days: 20, retention_days: 40}};
             await openVPNService.updateArchiveConfig(custom_config);
@@ -175,7 +174,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
             expect(fs.existsSync(jsonPath)).to.be.true;
         })
 
-        it('base config should be overwritten by a custom config', async () => {
+        it('should be overwritten base config by a custom config', async () => {
             let custom_config = {history:{archive_days: 20, retention_days: 40}};
             await openVPNService.updateArchiveConfig(custom_config);
             const config = await openVPNService.getCustomizedConfig();
@@ -184,4 +183,40 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
 
         });
     });
+
+    describe('getCustomizedConfig()', () => {
+
+        let custom_config : OpenVPNUpdateableConfig;
+        
+        beforeEach(async () => {
+            custom_config = {
+                history:{
+                    archive_days: 20, 
+                    retention_days: 40
+                }
+            }
+            await openVPNService.updateArchiveConfig(custom_config)
+        })
+
+        it('should be returned custom_config if config.json exists', async() =>{
+
+            expect((await openVPNService.getCustomizedConfig())).to.be.deep.equals(custom_config);
+
+        });
+
+        it('should be returned base_config if config.json does not exist', async() =>{
+
+            fs.unlinkSync(path.join(app.config.get('openvpn.history').data_dir, 'config.json'))
+            
+            expect ((await openVPNService.getCustomizedConfig())).to.be.deep.equals(
+                {
+                    history: 
+                    {
+                        archive_days: app.config.get('openvpn.history').archive_days, 
+                        retention_days: app.config.get('openvpn.history').retention_days
+                    }
+                });
+
+            });
+    })
 });
