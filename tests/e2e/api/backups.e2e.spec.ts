@@ -174,7 +174,7 @@ describe(describeName('Backup E2E tests'), () => {
                     comment: 'test comment'
                 })
                 .set('Cookie', [attachSession(adminUserSessionId)])
-                .expect(200)
+                .expect(500)
                 .catch(err => done(err))
             });
         });
