@@ -164,6 +164,19 @@ describe(describeName('Backup E2E tests'), () => {
 
                 expect((await (await (app.getService<BackupService>(BackupService.name))).getAll()).length).equal(existingBackups.length + 1);
             });
+
+            it('should throw an exception if process is locked', (done) => {
+
+                backupService.create().then(() => done())
+                request(app.express)
+                .post(_URL().getURL('backups.store'))
+                .send({
+                    comment: 'test comment'
+                })
+                .set('Cookie', [attachSession(adminUserSessionId)])
+                .expect(200)
+                .catch(err => done(err))
+            });
         });
 
         describe('BackupController@restore', async() => {
