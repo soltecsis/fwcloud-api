@@ -34,7 +34,6 @@ import { _URL } from "../../../src/fonaments/http/router/router.service";
 import Sinon = require("sinon");
 import * as path from "path";
 import { Zip } from "../../../src/utils/zip";
-import { Mutex } from "async-mutex";
 
 let app: Application;
 let backupService: BackupService;
@@ -42,7 +41,6 @@ let loggedUser: User;
 let loggedUserSessionId: string;
 let adminUser: User;
 let adminUserSessionId: string;
-let mutex: Mutex;
 
 
 describe(describeName('Backup E2E tests'), () => {
@@ -56,10 +54,6 @@ describe(describeName('Backup E2E tests'), () => {
 
         adminUser = await createUser({role: 1});
         adminUserSessionId = generateSession(adminUser);
-
-        mutex = backupService.mutex;
-
-        await mutex.waitForUnlock()
 
     });
 
@@ -171,17 +165,17 @@ describe(describeName('Backup E2E tests'), () => {
                 expect((await (await (app.getService<BackupService>(BackupService.name))).getAll()).length).equal(existingBackups.length + 1);
             });
 
-            it('should throw an exception if process is locked', async () => {
+            it('should throw an exception if process is locked', (done) => {
 
-                backupService.create()
-                await request(app.express)
+                backupService.create().then(() => done())
+                request(app.express)
                 .post(_URL().getURL('backups.store'))
                 .send({
                     comment: 'test comment'
                 })
                 .set('Cookie', [attachSession(adminUserSessionId)])
-                .expect(500)
-                
+                .expect(200)
+                .catch(err => done(err))
             });
         });
 
