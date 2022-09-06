@@ -269,7 +269,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 ws.close();
                 this.cancel_token.cancel('FWCloud-Agent communication timeout');
                 //console.log('FWCloud-Agent communication timeout');
-            }, app().config.get('openvpn.agent.timeout'));
+            }, app().config.get('openvpn.agent.plugins_timeout'));
 
             ws.on('message', (data) => {
                 // Restart timer on each WebSocket message.
