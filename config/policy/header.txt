@@ -75,7 +75,8 @@ reset_iptables_v4() {
 }
 
 reset_iptables_v6() {
-  cat /proc/net/ip6_tables_names | while read table; do
+  IPv6_TABLES="filter nat mangle"
+  for table in $IPv6_TABLES; do
     $IP6TABLES -t $table -L -n | while read c chain rest; do
         if test "X$c" = "XChain" ; then
           $IP6TABLES -t $table -F $chain
