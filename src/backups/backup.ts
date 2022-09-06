@@ -60,10 +60,10 @@ export const backupDigestContent: string = 'FWCloud';
 
 const routesMap: Map<string, string> = new Map<string,string>(
     [
-        ['./DATA/archive/openvpn/history', 'archive/openvpn/history'],
-        ['./DATA/pki', 'pki'],
-        ['./DATA/policy', 'policy'],
-        ['./DATA/snapshot', 'snapshot']
+        ['openvpn.history', 'archive/openvpn/history'],
+        ['pki', 'pki'],
+        ['policy', 'policy'],
+        ['snapshot', 'snapshot']
     ]
 );
 export class Backup implements Responsable {
@@ -438,9 +438,9 @@ export class Backup implements Responsable {
         
         for (let item of item_list) {
             let dst_dir = path.join(this._backupPath, Backup.DATA_DIRNAME, item[1]);
-            if (await FSHelper.directoryExists(item[0])) {
+            if (await FSHelper.directoryExists(app().config.get(item[0]).data_dir)) {
                 await fse.mkdirp(dst_dir);
-                await fse.copy(item[0], dst_dir);
+                await fse.copy(app().config.get(item[0]).data_dir, dst_dir);
             }
         }
     }
@@ -454,7 +454,7 @@ export class Backup implements Responsable {
 
         for (let item of item_list) {
             const src_dir: string = path.join(this._backupPath, Backup.DATA_DIRNAME, item[1]);
-            const dst_dir: string = item[0];
+            const dst_dir: string = app().config.get(item[0]).data_dir;
 
             fse.removeSync(dst_dir);
 

@@ -111,7 +111,7 @@ describe(describeName('Backup Unit tests'), () => {
             FSHelper.mkdirSync(path.join(app.config.get('openvpn.history').data_dir, 'test'));
             backup = await backup.create(service.config.data_dir);
 
-            expect(FSHelper.directoryExistsSync(path.join(backup.path, Backup.DATA_DIRNAME, 'archive', 'test'))).to.be.true
+            expect(FSHelper.directoryExistsSync(path.join(backup.path, Backup.DATA_DIRNAME, 'archive/openvpn/history', 'test'))).to.be.true
         });
 
         it('should copy pki data files if exists', async () => {
