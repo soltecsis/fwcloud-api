@@ -458,6 +458,11 @@ const config = convict({
         format: Number,
         default: 90000
       },
+      plugins_timeout: {
+        doc: 'Socket timeout in milliseconds for the FWCloud-Agent plugins API call. This will set the timeout after the socket is connected.',
+        format: Number,
+        default: 300000
+      },
       history: {
         interval: {
           doc: 'Interval, in minutes, to retrieve history data from the agent',

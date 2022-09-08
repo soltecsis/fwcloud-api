@@ -67,6 +67,24 @@ describe(describeName('Backup Unit tests'), () => {
             await expect(t()).to.be.rejectedWith('Command mysqldump not found or it is not possible to execute it');
         });
 
+        it('should throw error exception if mutex is locked', (done) => {
+            let backup: Backup = new Backup();
+            let backup2: Backup = new Backup();
+            
+            const t = () => {
+                backup2.create(service.config.data_dir).then(() => done());
+                return backup.create(service.config.data_dir); 
+
+            }
+            t().catch(err => {
+                try{ 
+                    expect(err.message).to.be.equals('There is another Backup runnning')
+                }catch(err){
+                    done(err);
+                }  
+            });
+        });
+
         it('should create a backup directory', async () => {
             let backup: Backup = new Backup();
             await backup.create(service.config.data_dir);
