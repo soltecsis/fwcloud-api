@@ -105,6 +105,15 @@ describe(describeName('Backup Unit tests'), () => {
             expect(fs.existsSync(path.join(backup.path, Backup.DUMP_FILENAME))).to.be.false;
         });
 
+        it('should copy archive data file if exists', async () => {
+            let backup: Backup = new Backup();
+
+            FSHelper.mkdirSync(path.join(app.config.get('openvpn.history').data_dir, 'test'));
+            backup = await backup.create(service.config.data_dir);
+
+            expect(FSHelper.directoryExistsSync(path.join(backup.path, Backup.DATA_DIRNAME, 'archive/openvpn/history', 'test'))).to.be.true
+        });
+
         it('should copy pki data files if exists', async () => {
             let backup: Backup = new Backup();
 
@@ -231,6 +240,17 @@ describe(describeName('Backup Unit tests'), () => {
             backup = await backup.restore();
 
             expect(FSHelper.directoryExistsSync(path.join(app.config.get('tmp.directory'), path.basename(backup.path)))).to.be.false;
+        });
+
+        it('should import archive directories if it exists in the backup', async () => {
+            let backup: Backup = new Backup();
+
+            FSHelper.mkdirSync(path.join(app.config.get('openvpn.history').data_dir, 'test'));
+            backup = await backup.create(service.config.data_dir);
+
+            backup = await backup.restore();
+
+            expect(FSHelper.directoryExistsSync(path.join(app.config.get('openvpn.history').data_dir, 'test'))).to.be.true
         });
 
         it('should import pki directories if it exists in the backup', async () => {

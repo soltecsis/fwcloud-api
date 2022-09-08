@@ -58,6 +58,14 @@ export interface BackupMetadata {
 
 export const backupDigestContent: string = 'FWCloud';
 
+const routesMap: Map<string, string> = new Map<string,string>(
+    [
+        ['openvpn.history', 'archive/openvpn/history'],
+        ['pki', 'pki'],
+        ['policy', 'policy'],
+        ['snapshot', 'snapshot']
+    ]
+);
 export class Backup implements Responsable {
     static DUMP_FILENAME: string = 'db.sql';
     static METADATA_FILENAME: string = 'backup.json';
@@ -425,15 +433,14 @@ export class Backup implements Responsable {
      * Copy DATA directories from the backup
      */
     protected async exportDataDirectories(): Promise<void> {
-        const config = app().config;
 
-        let item_list: Array<string> = ['pki', 'policy', 'snapshot'];
-
+        let item_list: Map<string, string> = routesMap;
+        
         for (let item of item_list) {
-            const dst_dir = path.join(this._backupPath, Backup.DATA_DIRNAME, item);
-            if (await FSHelper.directoryExists(config.get(item).data_dir)) {
+            let dst_dir = path.join(this._backupPath, Backup.DATA_DIRNAME, item[1]);
+            if (await FSHelper.directoryExists(app().config.get(item[0]).data_dir)) {
                 await fse.mkdirp(dst_dir);
-                await fse.copy(config.get(item).data_dir, dst_dir);
+                await fse.copy(app().config.get(item[0]).data_dir, dst_dir);
             }
         }
     }
@@ -442,14 +449,12 @@ export class Backup implements Responsable {
      * Copy DATA directories into the backup
      */
     protected async importDataDirectories(): Promise<void> {
-        const config = app().config;
 
-        let item_list: Array<string> = ['pki', 'policy', 'snapshot'];
-
+        let item_list: Map<string, string> = routesMap;
 
         for (let item of item_list) {
-            const src_dir: string = path.join(this._backupPath, Backup.DATA_DIRNAME, item);
-            const dst_dir: string = config.get(item).data_dir;
+            const src_dir: string = path.join(this._backupPath, Backup.DATA_DIRNAME, item[1]);
+            const dst_dir: string = app().config.get(item[0]).data_dir;
 
             fse.removeSync(dst_dir);
 

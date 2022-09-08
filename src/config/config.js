@@ -475,7 +475,7 @@ const config = convict({
       data_dir: {
         doc: 'Directory for store history archives.',
         format: String,
-        default: './OPENVPN/HISTORY',
+        default: './DATA/archive/openvpn/history',
         env: 'HISTORY_DATA_DIR'
       },
       archive_schedule: {
