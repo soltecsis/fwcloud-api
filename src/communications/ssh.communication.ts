@@ -148,7 +148,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         try {
             eventEmitter.emit('message', new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`));
             const commandResult: string = (await sshTools.runCommand(this.connectionData,
-                `echo "file,sha256"; find ${dir} -maxdepth 1 -type f -exec sh -c "basename -z {}; echo -n ','; grep -v '^#' {} | sha256sum" \\; | awk '{print $1}'`
+                `mkdir -p ${dir}; echo "file,sha256"; find ${dir} -maxdepth 1 -type f -exec sh -c "basename -z {}; echo -n ','; grep -v '^#' {} | sha256sum" \\; | awk '{print $1}'`
             ));
 
             return commandResult.split("\n").filter(item => item !== '').slice(1).map(item => ({
