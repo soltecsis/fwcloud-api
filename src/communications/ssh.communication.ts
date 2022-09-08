@@ -158,11 +158,8 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
             return commandResult
                 .split("\n")
-                .filter(item => item !== '')
-                // The first item is an empty line ('') but for some reason is not filtered by the previous filter.
-                // The second line contains the headers "file,sha256" which should be ignored.
-                // For that reason, slice(2) is called
-                .slice(2) 
+                .filter(item => item !== '' && item !== '\r')
+                .slice(1) // Remove "file,sha256" line
                 .map(item => ({
                     filename: item.split(',')[0].replace("\x00", ""),
                     hash: item.split(',')[1].replace("\r", "")
