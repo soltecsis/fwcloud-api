@@ -103,10 +103,12 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async uninstallOpenVPNConfigs(dir: string, files: string[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
         try {
-            eventEmitter.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/[${files.join(", ")}]' from: (${this.connectionData.host})\n`));
+            
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
 
             for(let file of files) {
+                eventEmitter.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`));
+                
                 await sshTools.runCommand(this.connectionData, `${sudo} rm -f "${dir}/${file}"`);
             }
             
@@ -146,15 +148,25 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async ccdHashList(dir: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<CCDHash[]> {
         try {
+            const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+
             eventEmitter.emit('message', new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`));
+            
             const commandResult: string = (await sshTools.runCommand(this.connectionData,
-                `mkdir -p ${dir}; echo "file,sha256"; find ${dir} -maxdepth 1 -type f -exec sh -c "basename -z {}; echo -n ','; grep -v '^#' {} | sha256sum" \\; | awk '{print $1}'`
+                `${sudo} mkdir -p ${dir}; echo "file,sha256"; find ${dir} -maxdepth 1 -type f -exec sh -c "basename -z {}; echo -n ','; grep -v '^#' {} | sha256sum" \\; | awk '{print $1}'`
             ));
 
-            return commandResult.split("\n").filter(item => item !== '').slice(1).map(item => ({
-                filename: item.split(',')[0].replace("\x00", ""),
-                hash: item.split(',')[1].replace("\r", "")
-            }));
+            return commandResult
+                .split("\n")
+                .filter(item => item !== '')
+                // The first item is an empty line ('') but for some reason is not filtered by the previous filter.
+                // The second line contains the headers "file,sha256" which should be ignored.
+                // For that reason, slice(2) is called
+                .slice(2) 
+                .map(item => ({
+                    filename: item.split(',')[0].replace("\x00", ""),
+                    hash: item.split(',')[1].replace("\r", "")
+                }));
         } catch(error) {
             this.handleRequestException(error, eventEmitter);
         }

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix sync ccd operation when destination directory does not exist
+- Fixed error handler when a ccd file is removed using the agent
 - Special rules not created for new firewall/clusters.
 - Backup related tasks are not scheduled twice.
 - Backup retention policy task is scheduled.

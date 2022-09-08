@@ -132,7 +132,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 files: files
             }
 
-            axios.delete(pathUrl, config);
+            await axios.delete(pathUrl, config);
 
         } catch(error) {
             this.handleRequestException(error, eventEmitter);
