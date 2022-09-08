@@ -6,9 +6,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] -
 
-### Fixed
-- Fix sync ccd operation when destination directory does not exist
-
 ### Added
 - API call for gather FWC-Agent information.
 - Use of the 'ws' NPM module for for realtime output in plugins enabling/disabling procedure by means of WebSocket communication with FWCloud-Agent.
@@ -25,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed OpenVPN status history worker iteration in order to avoid iteration overlaps.
 
 ### Fixed
+- Fix sync ccd operation when destination directory does not exist
 - Special rules not created for new firewall/clusters.
 - Backup related tasks are not scheduled twice.
 - Backup retention policy task is scheduled.
