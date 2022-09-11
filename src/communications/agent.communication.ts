@@ -227,7 +227,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
     }
 
-    async installPlugin(name: string, enabled: boolean, channel?: EventEmitter): Promise<string> {
+    async installPlugin(name: string, enabled: boolean, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         try {
             const pathUrl: string = this.url + '/api/v1/plugin';
 
@@ -237,7 +237,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             let params = { 
                 name: name, 
                 "action": enabled ? 'enable' : 'disable',
-                ws_id: await this.createWebSocket(channel) 
+                ws_id: await this.createWebSocket(eventEmitter)
             };
 
             const requestConfig: AxiosRequestConfig = Object.assign({},this.config);
@@ -245,15 +245,19 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             // Disable timeout and manage it from the WebSocket events.
             requestConfig.timeout = 0;
 
-            let response = await axios.post(pathUrl,params,requestConfig);
+            axios.post(pathUrl,params,requestConfig).then((_) => {
+                eventEmitter.emit('message', new ProgressPayload('end', false, "Plugin action finished"));
+            }).catch((err) => {
+                eventEmitter.emit('message', new ProgressPayload('error', false, "Plugin action failed: " + err.message));
+            });
 
-            return response.data.split("\n").filter(item => item !== '')
+            return "";
         }catch(error) {
             this.handleRequestException(error);
         }
     }
 
-    createWebSocket(channel?: EventEmitter): Promise<string> {
+    protected createWebSocket(eventEmitter: EventEmitter): Promise<string> {
         return new Promise((resolve, reject) => {
             const pathUrl: string = this.ws_url + '/api/v1/ws';
             const ws = new WebSocket(pathUrl, {
@@ -284,14 +288,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                     resolve(`${data}`);
                 } else {
                     //console.log('Data: %s', data);
-                    if (channel) {
-                        channel.emit('message', new ProgressPayload('ssh_cmd_output', false, `${data}`));
-                    }
+                    eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, `${data}`));
                 }
             });
 
             ws.on('close', () => {
-                channel.emit('message', new ProgressPayload('end', false, "Plugin action finished"));
                 clearTimeout(timer);
                 ws.close();
                 resolve("");
