@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow the use of continents and countries in objects tree to filter by IPs of a full continent or country.
 
 ### Changed
+- In the API call for policy load script, allow the use of a websocket with FWCloud-Agent for realtime output display in FWCloud-UI.
 - New call created returns the openvpn nodes with additional information such as the address.
 - Backup sql is compressed (zip) in order to save space.
 - Changed OpenVPN status history worker iteration in order to avoid iteration overlaps.
