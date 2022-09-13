@@ -57,12 +57,15 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             form.append('dst_dir', './tmp');
             form.append('perms', 700);
             form.append('upload', fs.createReadStream(scriptPath));
+            form.append('ws_id', await this.createWebSocket(eventEmitter));
 
-            eventEmitter.emit('message', new ProgressNoticePayload(`Uploading firewall script (${this.connectionData.host})`));
-            eventEmitter.emit('message', new ProgressNoticePayload("Installing firewall script."));
-            eventEmitter.emit('message', new ProgressNoticePayload("Loading firewall policy."));
+            eventEmitter.emit('message', new ProgressNoticePayload(`Uploading firewall policy (${this.connectionData.host})`));
 
             const config: AxiosRequestConfig = Object.assign({}, this.config);
+
+            // Disable timeout and manage it from the WebSocket events.
+            config.timeout = 0;
+
             config.headers = Object.assign({}, form.getHeaders(), config.headers);
 
             const response: AxiosResponse<string> = await axios.post(pathUrl, form, config);
