@@ -287,8 +287,12 @@ export abstract class PolicyCompilerTools {
     for (let i = 0; i < sd.length; i++) {
       if (sd[i].type === 9) // DNS
         cmpPos.items.push(`${opt} ${sd[i].name}`);
-      else if (sd[i].type === 24) // Country
-        cmpPos.items.push(`-m geoip ${dir==='SRC' ? '--src-cc' : '--dst-cc'} ${sd[i].name}`);
+      else if (sd[i].type === 24) { // Country 
+        if (this._compiler === "IPTables")
+          cmpPos.items.push(`-m geoip ${dir==='SRC' ? '--src-cc' : '--dst-cc'} ${sd[i].name}`);
+        else
+          throw("Country objects not supported yet for NFTables compiler");
+      }
       else if (ipv === sd[i].ip_version) { // Only add this type of IP objects if they have the same IP version than the compiled rule.
         if (sd[i].type === 5) // Address
           cmpPos.items.push(`${opt} ${sd[i].address}`);

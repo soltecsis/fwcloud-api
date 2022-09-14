@@ -17,11 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow the use of continents and countries in objects tree to filter by IPs of a full continent or country.
 
 ### Changed
+- In the API call for policy load script, allow the use of a websocket with FWCloud-Agent for realtime output display in FWCloud-UI.
 - New call created returns the openvpn nodes with additional information such as the address.
 - Backup sql is compressed (zip) in order to save space.
 - Changed OpenVPN status history worker iteration in order to avoid iteration overlaps.
 
 ### Fixed
+- Fix sync ccd operation when destination directory does not exist
+- Fixed error handler when a ccd file is removed using the agent
+- Special rules not created for new firewall/clusters.
 - Backup related tasks are not scheduled twice.
 - Backup retention policy task is scheduled.
 - Fixed tree repair process.

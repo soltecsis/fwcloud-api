@@ -502,13 +502,6 @@ router.put('/ccdsync', async(req, res, next) => {
 					});
 				}
 				await communication.installOpenVPNClientConfigs(client_config_dir, options, channel);
-				for(let client of clients) {
-					// Update the status flag for the OpenVPN configuration.
-					// In a cluster update only if this is the last cluster node.
-					if (!cluster || req.body.firewall===lastClusterNodeId)  {
-						await OpenVPN.updateOpenvpnStatus(req.dbCon,client.id,"&~1");
-					}
-				}
 			}
 		}
 
@@ -517,6 +510,15 @@ router.put('/ccdsync', async(req, res, next) => {
 		if (toBeUnInstalled.length > 0) {
 			await communication.uninstallOpenVPNConfigs(client_config_dir, toBeUnInstalled, channel);
 		}
+
+		for(let client of clients) {
+			// Update the status flag for the OpenVPN configuration.
+			// In a cluster update only if this is the last cluster node.
+			if (!cluster || req.body.firewall===lastClusterNodeId)  {
+				await OpenVPN.updateOpenvpnStatus(req.dbCon,client.id,"&~1");
+			}
+		}
+		
 
 		channel.emit('message', new ProgressPayload('end', false, 'Sync OpenVPN CCD'));
 

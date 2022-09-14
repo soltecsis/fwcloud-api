@@ -458,6 +458,11 @@ const config = convict({
         format: Number,
         default: 90000
       },
+      plugins_timeout: {
+        doc: 'Socket timeout in milliseconds for the FWCloud-Agent plugins API call. This will set the timeout after the socket is connected.',
+        format: Number,
+        default: 300000
+      },
       history: {
         interval: {
           doc: 'Interval, in minutes, to retrieve history data from the agent',
@@ -470,7 +475,7 @@ const config = convict({
       data_dir: {
         doc: 'Directory for store history archives.',
         format: String,
-        default: './OPENVPN/HISTORY',
+        default: './DATA/archive/openvpn/history',
         env: 'HISTORY_DATA_DIR'
       },
       archive_schedule: {

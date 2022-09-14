@@ -1,3 +1,25 @@
+/*!
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { OpenVPNService } from '../../../src/models/vpn/openvpn/openvpn.service';
 import { expect, describeName, testSuite } from "../../mocha/global-setup";
 import { User } from '../../../src/models/user/User';
@@ -98,7 +120,7 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
                     .post(_URL().getURL('openvpnarchives.store'))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(201)
-                    .then(async response => {
+                    .then(response => {
                         expect(response.body.data).to.be.deep.equal({"rows":2});
                     })
             });
