@@ -24,6 +24,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     protected readonly config: AxiosRequestConfig;
     protected readonly cancel_token: CancelTokenSource;
 
+    protected WSisClosed: boolean = false;
+    protected eventEmitterWSClose: EventEmitter = new EventEmitter();
+
     constructor(connectionData: AgentCommunicationData) {
         super(connectionData);
 
@@ -249,7 +252,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             requestConfig.timeout = 0;
 
             axios.post(pathUrl,params,requestConfig).then((_) => {
-                eventEmitter.emit('message', new ProgressPayload('end', false, "Plugin action finished"));
+                const endMessage: ProgressPayload = new ProgressPayload('end', false, "Plugin action finished")
+
+                this.WSisClosed 
+                    ? eventEmitter.emit('message', endMessage)
+                    : this.eventEmitterWSClose.on('close', ()=> eventEmitter.emit('message', endMessage))
+
             }).catch((err) => {
                 eventEmitter.emit('message', new ProgressPayload('error', false, "Plugin action failed: " + err.message));
             });
@@ -296,6 +304,8 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             });
 
             ws.on('close', () => {
+                this.eventEmitterWSClose.emit('close')
+                this.WSisClosed = true
                 clearTimeout(timer);
                 ws.close();
                 resolve("");
