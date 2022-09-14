@@ -249,7 +249,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             requestConfig.timeout = 0;
 
             axios.post(pathUrl,params,requestConfig).then((_) => {
-                eventEmitter.emit('message', new ProgressPayload('end', false, "Plugin action finished"));
+                setTimeout(()=>{eventEmitter.emit('message', new ProgressPayload('end', false, "Plugin action finished"));},1000)
             }).catch((err) => {
                 eventEmitter.emit('message', new ProgressPayload('error', false, "Plugin action failed: " + err.message));
             });
