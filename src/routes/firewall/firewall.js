@@ -158,7 +158,8 @@ router.post('/', async(req, res) => {
 		fwmaster: req.body.fwmaster,
 		install_port: req.body.install_port,
 		by_user: req.session.user_id,
-		options: req.body.options
+		options: req.body.options,
+		plugins: req.body.plugins
 	};
 
 	try {
@@ -180,7 +181,10 @@ router.post('/', async(req, res) => {
 		if ((firewallData.cluster > 0 && firewallData.fwmaster === 1) || firewallData.cluster === null) {
 			// Create the loop backup interface.
 			loData = await Interface.createLoInterface(req.dbCon, req.body.fwcloud, newFirewallId);
+			// Create the default policy rules.	
 			await PolicyRule.insertDefaultPolicy(newFirewallId, loData.ifId, req.body.options);
+			// Create special rules.
+			await PolicyRule.checkSpecialRules(req.dbCon, newFirewallId, req.body.options);
 		}
 
 		if (!firewallData.cluster) // Create firewall tree.
@@ -262,7 +266,8 @@ router.put('/', async (req, res) => {
 		fwmaster: req.body.fwmaster,
 		install_port: req.body.install_port,
 		by_user: req.session.user_id, //working user
-		options: req.body.options
+		options: req.body.options,
+		plugins: req.body.plugins
 	};
 
 	try {

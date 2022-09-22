@@ -1,5 +1,5 @@
 /*!
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -38,6 +38,8 @@ describe('Routing rule compiler', () => {
   let rtn: number; // Routing table number.
 
   let cs: string;
+  let cs_start: string;
+  let cs_end: string;
   const head = '$IP rule add from';
   let tail: string;
 
@@ -48,6 +50,8 @@ describe('Routing rule compiler', () => {
     gw = fwc.ipobjs.get('gateway').address;
     rtn = fwc.routingTable.number;
     tail = `table ${rtn}\n`;
+    cs_start = `if [ "$HOSTNAME" = "${fwc.firewall.name}" ]; then\n`;
+    cs_end = '\nfi\n'
 
     routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
     const rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id);            
@@ -96,6 +100,62 @@ describe('Routing rule compiler', () => {
   });
 
 
+  describe('Compilation of routing rule with objects and with firewall apply to', () => {
+    before(() => { cs = compilation[3].cs });
+
+    it('should include address data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('address').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include network data', () => {
+      const net = ip.subnet(fwc.ipobjs.get('networkNoCIDR').address, fwc.ipobjs.get('networkNoCIDR').netmask);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('networkNoCIDR').address}/${net.subnetMaskLength} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include address range data', () => {
+      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
+      for(let current=firstLong; current<=lastLong; current++)
+        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include host data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('host-eth2-addr1').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('host-eth3-addr1').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('host-eth3-addr2').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include OpenVPN data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include OpenVPN prefix data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli2-addr').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include firewall mark data', () => {
+      expect(cs).to.deep.include(`$IP rule add fwmark ${fwc.mark.code} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+  });
+
+
   describe('Compilation of routing rule with objects group', () => {
     before(() => { cs = compilation[1].cs });
 
@@ -130,6 +190,55 @@ describe('Routing rule compiler', () => {
       expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`);
     });
   });
+
+
+  describe('Compilation of routing rule with objects group and firewall apply to', () => {
+    before(() => { cs = compilation[4].cs });
+
+    it('should include address data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('address').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include network data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include address range data', () => {
+      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
+      for(let current=firstLong; current<=lastLong; current++)
+        expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include host data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('host-eth2-addr1').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('host-eth3-addr1').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('host-eth3-addr2').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include OpenVPN data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include OpenVPN prefix data', () => {
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli2-addr').address} ${tail}`);
+      expect(cs).to.deep.include(`${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`);
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+  });
+
 
   describe('Compile only some routing rules', () => {
     it('should compile only routing rule 2', async () => {

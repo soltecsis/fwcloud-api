@@ -1,3 +1,4 @@
+import { Firewall } from './../../firewall/Firewall';
 /*!
     Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
@@ -58,6 +59,17 @@ export class RoutingRule extends Model {
 
     @Column()
     style: string;
+
+    @Column({
+        name: 'fw_apply_to'
+    })
+    firewallApplyToId: number;
+
+    @ManyToOne(type => Firewall, firewall => firewall.routingRules)
+    @JoinColumn({
+        name: 'fw_apply_to'
+    })
+    firewallApplyTo: Firewall;
 
     @Column({
         name: 'group'

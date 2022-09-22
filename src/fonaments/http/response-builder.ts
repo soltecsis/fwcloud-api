@@ -30,6 +30,9 @@ import { HttpCodeResponse } from "./http-code-response";
 import ObjectHelpers from "../../utils/object-helpers";
 import { FwCloudError } from "../exceptions/error";
 import { classToPlain } from "class-transformer";
+import * as stream from "stream"
+
+type Attachment = FileAttached | ContentAttached
 
 interface ResponseBody {
     status: number,
@@ -47,8 +50,21 @@ interface FileAttached {
     filename?: string;
 }
 
+interface ContentAttached {
+    content: string;
+    filename?: string;
+}
+
 interface DataPayload {
     data: object | Array<object>
+}
+
+function isFileAttached(value: Attachment): value is FileAttached {
+    return Object.prototype.hasOwnProperty.call(value, "path");
+}
+
+function isContentAttached(value: Attachment): value is ContentAttached {
+    return ObjectHelpers.prototype.hasOwnProperty.call(value, "content")
 }
 
 export interface ErrorPayload {
@@ -65,7 +81,7 @@ export class ResponseBuilder {
     protected _payload: object;
     protected _error: HttpException;
     
-    protected _fileAttached: FileAttached;
+    protected _attachment: Attachment;
     
     private constructor() {
         this._app = app();
@@ -94,17 +110,24 @@ export class ResponseBuilder {
         return this;
     }
 
-    public download(path: string, filename?: string, cb?: (err: Error) => void): ResponseBuilder {
-        this._fileAttached = {
+    public download(path: string, filename?: string, cb?: (err: Error) => void): ResponseBuilder {   
+        this._attachment = {
             path: path,
             filename: filename
-        };
+        }
+        return this;
+    }
 
+    public downloadContent(content: string, filename?: string): ResponseBuilder {
+        this._attachment = {
+            content,
+            filename
+        }
         return this;
     }
 
     public hasFileAttached(): boolean {
-        return this._fileAttached ? true: false;
+        return this._attachment ? true: false;
     }
 
     public error(error: Error): ResponseBuilder {
@@ -142,8 +165,21 @@ export class ResponseBuilder {
     }
 
     public send(): Response {
-        if (this.hasFileAttached()) {
-            this._response.download(this._fileAttached.path, this._fileAttached.filename);
+        if (this.hasFileAttached() && isFileAttached(this._attachment)) {
+            this._response.download(this._attachment.path, this._attachment.filename);
+            return this._response;
+        }
+        if (this.hasFileAttached() && isContentAttached(this._attachment)) {
+            var fileContents = Buffer.from(this._attachment.content)
+
+            var redStream = new stream.PassThrough();
+            redStream.end(fileContents);
+
+            this._response.set('Content-disposition', 'attachment; filename=' + this._attachment.filename ?? 'file.text');
+            this._response.set('Content-Type', 'text/plain');
+
+            redStream.pipe(this._response);
+
             return this._response;
         }
 

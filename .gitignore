@@ -28,6 +28,7 @@ sessions/
 .env
 config/tls/
 BACKUP/
+OPENVPN/
 .pid
 nohup.out
 

@@ -1,6 +1,7 @@
-import { getRepository } from "typeorm";
+import { getRepository, SimpleConsoleLogger } from "typeorm";
 import db from "../../../../src/database/database-manager";
 import { ValidationException } from "../../../../src/fonaments/exceptions/validation-exception";
+import { Cluster } from "../../../../src/models/firewall/Cluster";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { Interface } from "../../../../src/models/interface/Interface";
@@ -29,6 +30,7 @@ describe(RoutingRuleService.name, () => {
     let table: RoutingTable;
     let rule: RoutingRule;
     let mark: Mark;
+    let ctr: Cluster
 
     beforeEach(async () => {
         await testSuite.resetDatabaseData();
@@ -37,7 +39,18 @@ describe(RoutingRuleService.name, () => {
         service = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
 
         fwCloud = fwcProduct.fwcloud;
+
+        ctr = await getRepository(Cluster).save(getRepository(Cluster).create({
+            name: StringHelper.randomize(10),
+            fwCloudId: fwCloud.id
+        }))
+
         firewall = fwcProduct.firewall;
+        firewall.clusterId = ctr.id;
+        firewall.fwmaster = 1;
+
+        await getRepository(Firewall).save(firewall)
+
         table = fwcProduct.routingTable;
         
         mark = fwcProduct.mark;
@@ -53,14 +66,17 @@ describe(RoutingRuleService.name, () => {
                 order: 2
             }]
         });
+        
     });
 
     describe('create', () => {
 
         it('should reset firewall compiled flag', async () => {
+            
             await getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
+            
             await firewall.reload();
 
             await service.create({
@@ -130,8 +146,65 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 // Notice rules have been created in the factory
-                expect(rule.rule_order).to.eq(9);
+                expect(rule.rule_order).to.eq(11);
             });
+        });
+
+        describe('FirewallApplyToId', () =>{
+            it('should attach firewallApplyToId', async () =>{
+                
+                rule = await service.create({
+                    routingTableId: table.id,
+                    firewallApplyToId: firewall.id, 
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
+                });
+
+                rule = await getRepository(RoutingRule).findOne(rule.id, {relations: ['firewallApplyTo']})
+                
+                expect(rule.firewallApplyTo.id).to.eq(firewall.id)
+            })
+            it('should firewallApplyToId set null to default when does not have any firewall', async () =>{
+                
+                rule = await service.create({
+                    routingTableId: table.id, 
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
+                });
+
+                rule = await getRepository(RoutingRule).findOne(rule.id, {relations: ['firewallApplyTo']})
+
+                expect(rule.firewallApplyToId).to.eq(null)
+            })
+            it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
+                
+                let fw1: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+                    name: StringHelper.randomize(10),
+                    fwCloudId: fwCloud.id,   
+                }));
+
+                rule = await service.create({
+                    routingTableId: table.id,
+                    firewallApplyToId: firewall.id,
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
+                })
+ 
+                await expect(service.create({
+                    routingTableId: table.id,
+                    firewallApplyToId: fw1.id, 
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
+                })).to.rejectedWith(ValidationException);
+            })
         });
 
         describe('IpObjs', () => {
@@ -157,7 +230,7 @@ describe(RoutingRuleService.name, () => {
             });
 
 
-            it('should attach ipbojs', async () => {
+            it('should attach ipobjs', async () => {
                 rule = await service.create({
                     routingTableId: table.id,
                     ipObjIds: [
@@ -177,7 +250,7 @@ describe(RoutingRuleService.name, () => {
                         fwCloudId: null
                     }
                 });
-
+                
                 rule = await service.create({
                     routingTableId: table.id,
                     ipObjIds: standards.map((item, index) => ({
@@ -185,7 +258,7 @@ describe(RoutingRuleService.name, () => {
                         order: index + 1
                     }))
                 });
-
+                
                 rule = await getRepository(RoutingRule).findOne(rule.id, { relations: ['routingRuleToIPObjs']});
 
                 expect(rule.routingRuleToIPObjs).to.have.length(standards.length);
@@ -473,6 +546,70 @@ describe(RoutingRuleService.name, () => {
             })).rejectedWith(ValidationException);
         });
 
+        describe('FirewallApplyToId', () =>{
+            it('should attach firewallApplyToId', async () =>{
+
+                await service.update(rule.id, {
+                    firewallApplyToId: firewall.id, 
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
+                });
+
+                expect((await getRepository(RoutingRule).findOne(rule.id, {relations: ['firewallApplyTo']})).firewallApplyTo.id).to.eq(firewall.id)
+            })
+
+            it('should remove firewallApplyToId when remove a firewall attached', async () =>{
+
+                await service.update(rule.id, {
+                    firewallApplyToId: firewall.id, 
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
+                });
+                
+                await service.update(rule.id, {
+                    firewallApplyToId: null,
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
+                });
+
+                expect((await getRepository(RoutingRule).findOne(rule.id, {relations: ['firewallApplyTo']})).firewallApplyToId).to.eq(null)
+            })
+
+            it('should firewallApplyToId null default when does not have any firewall', async () =>{
+                
+                await service.update(rule.id, {   
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
+                });
+
+                expect((await getRepository(RoutingRule).findOne(rule.id, {relations: ['firewallApplyTo']})).firewallApplyToId).to.eq(null)
+            })
+
+            it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
+
+                let fw1: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+                    name: StringHelper.randomize(10),
+                    fwCloudId: fwCloud.id,
+                    
+                }));
+
+                await expect(service.update(rule.id, {
+                    firewallApplyToId: fw1.id, 
+                    markIds: [{
+                        id: mark.id,
+                        order: 1
+                    }]
+                })).to.rejectedWith(ValidationException);
+            })
+        });
 
         describe('IpObjs', () => {
             let ipobj1: IPObj;

@@ -1,5 +1,5 @@
 /*!
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -65,7 +65,7 @@ interface IUpdateRoutingTable {
     number?: number;
 }
 
-export interface RouteData<T extends ItemForGrid | RouteItemForCompiler> extends Route {
+export interface RouteData<T extends ItemForGrid | RouteItemForCompiler> extends Route {
     items: (T & { _order: number })[];
 }
     
@@ -200,7 +200,7 @@ export class RoutingTableService extends Service {
      * @param routes 
      * @returns 
      */
-     public async getRoutingTableData<T extends ItemForGrid | RouteItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, routingTable: number, routes?: number[]): Promise<RouteData<T>[]> {
+     public async getRoutingTableData<T extends ItemForGrid | RouteItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, routingTable: number, routes?: number[]): Promise<RouteData<T>[]> {
         const routesData: RouteData<T>[] = await this._routeRepository.getRoutingTableRoutes(fwcloud, firewall, routingTable, routes) as RouteData<T>[];
          
         // Init the map for access the objects array for each route.

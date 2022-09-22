@@ -22,10 +22,12 @@
 
 import db from '../../database/database-manager';
 import Model from '../Model';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, ManyToOne, JoinColumn, OneToOne, getRepository } from 'typeorm';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { Ca } from '../vpn/pki/Ca';
 import { Customer } from './Customer';
+import { Tfa } from './Tfa';
+import { resolve } from 'path';
 
 const fwcError = require('../../utils/error_table');
 
@@ -95,6 +97,9 @@ export class User extends Model {
         name: 'customer'
     })
     customer: Customer;
+
+    @OneToOne(()=>Tfa,(tfa)=>tfa.user)
+    tfa :Tfa;
 
     public getTableName(): string {
         return tableName;
@@ -237,6 +242,7 @@ export class User extends Model {
             });
         });
     }
+    
 
     public static changeLoggedUserPass(req) {
         return new Promise(async (resolve, reject) => {

@@ -66,6 +66,12 @@ import { ClusterServiceProvider } from "./models/firewall/cluster.provider";
 import { OpenVPNPrefixServiceProvider } from "./models/vpn/openvpn/openvpn-prefix.provider";
 import { OpenVPNStatusHistoryServiceProvider } from "./models/vpn/openvpn/status/openvpn-status-history.provider";
 import { isMainThread } from "worker_threads";
+import { BackupService } from "./backups/backup.service";
+import { PolicyRuleServiceProvider } from "./policy-rule/policy-rule.provider";
+import { AuthServiceProvider } from "./models/user/auth.provider";
+import { CaServiceProvider } from "./ca/ca.provider";
+import { CrtServiceProvider } from "./crt/crt.provider";
+import { OpenVPNService } from "./models/vpn/openvpn/openvpn.service";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -106,6 +112,12 @@ export class Application extends HTTPApplication {
 
             process.on('SIGINT', this.signalHandler);
             process.on('SIGTERM', this.signalHandler);
+
+            //Starting scheduled tasks from the backup service
+            (await this.getService<BackupService>(BackupService.name)).startScheduledTasks();
+
+            //Starting scheduled task from the openvpn service
+            (await this.getService<OpenVPNService>(OpenVPNService.name)).startScheduledTasks();
         }
 
         return this;
@@ -134,7 +146,11 @@ export class Application extends HTTPApplication {
             RoutingGroupServiceProvider,
             RouteGroupServiceProvider,
             OpenVPNPrefixServiceProvider,
-            OpenVPNStatusHistoryServiceProvider
+            OpenVPNStatusHistoryServiceProvider,
+            PolicyRuleServiceProvider,
+            AuthServiceProvider,
+            CaServiceProvider,
+            CrtServiceProvider
         ]
     }
 

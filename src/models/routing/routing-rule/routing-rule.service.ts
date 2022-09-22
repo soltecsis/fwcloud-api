@@ -1,5 +1,5 @@
 /*!
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -27,6 +27,7 @@ import { ValidationException } from "../../../fonaments/exceptions/validation-ex
 import { Service } from "../../../fonaments/services/service";
 import { ErrorBag } from "../../../fonaments/validation/validator";
 import { Offset } from "../../../offset";
+import { Cluster } from "../../firewall/Cluster";
 import { Firewall } from "../../firewall/Firewall";
 import { FirewallService } from "../../firewall/firewall.service";
 import { Interface } from "../../interface/Interface";
@@ -56,6 +57,7 @@ export interface ICreateRoutingRule {
     active?: boolean;
     comment?: string;
     style?: string;
+    firewallApplyToId?: number;
     ipObjIds?: {id: number, order: number}[];
     ipObjGroupIds?: {id: number, order: number}[];
     openVPNIds?: {id: number, order: number}[];
@@ -71,6 +73,7 @@ interface IUpdateRoutingRule {
     comment?: string;
     rule_order?: number;
     style?: string;
+    firewallApplyToId?: number;
     ipObjIds?: {id: number, order: number}[];
     ipObjGroupIds?: {id: number, order: number}[];
     openVPNIds?: {id: number, order: number}[];
@@ -83,7 +86,7 @@ interface IBulkUpdateRoutingRule {
     active?: boolean;
 }
 
-export interface RoutingRulesData<T extends ItemForGrid | RoutingRuleItemForCompiler> extends RoutingRule {
+export interface RoutingRulesData<T extends ItemForGrid | RoutingRuleItemForCompiler> extends RoutingRule {
     items: (T & { _order: number })[];
 }
 
@@ -161,6 +164,7 @@ export class RoutingRuleService extends Service {
                 ipObjGroupIds: data.ipObjGroupIds,
                 openVPNIds: data.openVPNIds,
                 openVPNPrefixIds: data.openVPNPrefixIds,
+                firewallApplyToId: data.firewallApplyToId,
                 markIds: data.markIds
             })
         } catch(e) {
@@ -251,7 +255,10 @@ export class RoutingRuleService extends Service {
                 order: item.order
             } as RoutingRuleToOpenVPNPrefix));
         }
-
+        
+        await this.validateFirewallApplyToId(firewall, data);
+        rule.firewallApplyToId = data.firewallApplyToId;
+    
         if(data.markIds) {
             await this.validateMarks(firewall, data);
 
@@ -680,6 +687,28 @@ export class RoutingRuleService extends Service {
         if (Object.keys(errors).length > 0) {
             throw new ValidationException('The given data was invalid', errors);
         }
+    }
+
+    protected async validateFirewallApplyToId(firewall: Firewall, data: IUpdateRoutingRule): Promise<void>{
+        const errors: ErrorBag = {}
+
+        if(!data.firewallApplyToId){
+            return;
+        } 
+
+        const firewallApplyToId: Firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+        .where("firewall.id = :id", { id: data.firewallApplyToId })
+        .getOne()
+
+       if(firewallApplyToId.clusterId !== firewall.clusterId){
+            errors[`firewallApplyToId`] = ['This firewall does not belong to cluster']
+        } 
+
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
+
+
     }
 
     protected async validateMarks(firewall: Firewall, data: IUpdateRoutingRule): Promise<void> {

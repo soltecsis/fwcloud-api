@@ -52,6 +52,8 @@ import { IPObjGroup } from "../ipobj/IPObjGroup";
 import { Communication } from "../../communications/communication";
 import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
+import { Route } from '../routing/route/route.model';
+import { RoutingRule } from './../routing/routing-rule/routing-rule.model';
 
 const tableName: string = 'firewall';
 
@@ -63,6 +65,14 @@ export enum FirewallInstallCommunication {
 export enum FirewallInstallProtocol {
 	HTTPS = 'https',
 	HTTP = 'http'
+}
+
+export enum PluginsFlags {
+	openvpn = 'openvpn',
+    geoip = 'geoip',
+    crowdsec = 'crowdsec',
+    ntopng = 'ntopng',
+    suricata = 'suricata'
 }
 
 // Special rules codes.
@@ -184,7 +194,13 @@ export class Firewall extends Model {
 
 	@OneToMany(type => RouteGroup, model => model.firewall)
 	routeGroups: RouteGroup[]
-	
+
+	@OneToMany(type => RoutingRule, routingRule => routingRule.firewallApplyTo)
+	routingRules: RoutingRule[]
+
+	@OneToMany(type => Route, route => route.firewallApplyTo)
+	routes: Route[]
+
 	public getTableName(): string {
 		return tableName;
 	}
@@ -608,7 +624,8 @@ export class Firewall extends Model {
 					install_port=${firewallData.install_port},
 					install_apikey="${firewallData.install_apikey}",
 					by_user=${iduser},
-					options=${firewallData.options}
+					options=${firewallData.options},
+					plugins=${firewallData.plugins}
 					WHERE id=${firewallData.id}`;
 					dbCon.query(sql, (error, result) => {
 						if (error) return reject(error);

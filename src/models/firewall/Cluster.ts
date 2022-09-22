@@ -157,7 +157,7 @@ export class Cluster extends Model {
     //Update cluster
     public static updateCluster(dbCon, fwcloud, clusterData) {
         return new Promise((resolve, reject) => {
-            let sql = `UPDATE ${tableName} SET name=${dbCon.escape(clusterData.name)}, comment=${dbCon.escape(clusterData.comment)}
+            let sql = `UPDATE ${tableName} SET name=${dbCon.escape(clusterData.name)}, comment=${dbCon.escape(clusterData.comment)}, plugins=${dbCon.escape(clusterData.plugins)}
                 WHERE id=${clusterData.id} AND fwcloud=${fwcloud}`;
             dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);

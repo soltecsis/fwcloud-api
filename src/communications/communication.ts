@@ -1,6 +1,5 @@
 import { EventEmitter } from "events";
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
-import { InternalServerException } from "../fonaments/exceptions/internal-server-exception";
 import { ProgressErrorPayload } from "../sockets/messages/socket-message";
 
 export type CCDHash = {
@@ -15,6 +14,10 @@ export type OpenVPNHistoryRecord = {
     bytesReceived: number;
     bytesSent: number;
     connectedAtTimestampInSeconds: number;
+}
+
+export type FwcAgentInfo = {
+    fwcAgentVersion: string
 }
 
 type ErrorWithCode = {
@@ -39,6 +42,9 @@ export abstract class Communication<ConnectionData> {
     abstract getFirewallInterfaces(): Promise<string>;
     abstract getFirewallIptablesSave(): Promise<string[]>;
     abstract ping(): Promise<void>;
+    abstract info(): Promise<FwcAgentInfo>;
+
+    abstract installPlugin(name: string,enabled: boolean): Promise<string>;
 
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
         if (errorHasCode(error)) {

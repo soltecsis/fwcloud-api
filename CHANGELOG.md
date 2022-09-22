@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] -
+
+### Added
+- Mutex for avoir race conditions in backup tasks.
+- API call for gather FWC-Agent information.
+- Use of the 'ws' NPM module for for realtime output in plugins enabling/disabling procedure by means of WebSocket communication with FWCloud-Agent.
+- API call for plugins management.
+- Allow option OpenVPNArchiver to store records of openvpn status history. Also added CRON tasks to schedule the process.
+- 2FA Support.
+- Allow option 'apply to' for routes and routing policy.
+- Download and show policy script.
+- Allow the use of continents and countries in objects tree to filter by IPs of a full continent or country.
+
+### Changed
+- In the API call for policy load script, allow the use of a websocket with FWCloud-Agent for realtime output display in FWCloud-UI.
+- New call created returns the openvpn nodes with additional information such as the address.
+- Backup sql is compressed (zip) in order to save space.
+- Changed OpenVPN status history worker iteration in order to avoid iteration overlaps.
+
+### Fixed
+- Out of memory error in OpenVPN history data collector task.
+- Ip6tables script logic error results in repeated rules.
+- Avoid session expiration in long lasting plugins actions.
+- Fix sync ccd operation when destination directory does not exist
+- Fixed error handler when a ccd file is removed using the agent
+- Special rules not created for new firewall/clusters.
+- Backup related tasks are not scheduled twice.
+- Backup retention policy task is scheduled.
+- Fixed tree repair process.
+- Updated easy-rsa package from 3.0.6 to 3.1.0.
+- Syntax error in some OpenVPN logs.
+
+
 ## [1.5.1] - 2022-04-28
 ### Fixed
 - Bug in new release deployment procedure.

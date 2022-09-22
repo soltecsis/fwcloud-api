@@ -1,5 +1,5 @@
 /*!
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -261,6 +261,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         let query = this.createQueryBuilder("rule")
             .innerJoinAndSelect("rule.routingTable","table")
             .leftJoinAndSelect("rule.routingGroup", "group")
+            .leftJoinAndSelect("rule.firewallApplyTo", "cluster_node")
             .innerJoin("table.firewall", "firewall")
             .innerJoin("firewall.fwCloud", "fwcloud")
             .where("firewall.id = :firewall", {firewall: firewall})

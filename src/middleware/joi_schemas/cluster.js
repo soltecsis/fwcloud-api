@@ -66,7 +66,8 @@ schema.validate = req => {
 			var schemaClusterData = Joi.object().keys({
 				name: sharedSch.name,
 				comment: sharedSch.comment,
-				options: sharedSch.u16bits
+				options: sharedSch.u16bits,
+				plugins: sharedSch.u16bits
 			});
 
 			schema = Joi.object().keys({ fwcloud: sharedSch.id });

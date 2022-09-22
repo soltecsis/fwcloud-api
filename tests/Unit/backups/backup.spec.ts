@@ -34,6 +34,7 @@ import moment from "moment";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import sinon from "sinon";
 import * as crypto from 'crypto';
+import { Zip } from "../../../src/utils/zip";
 
 let app: Application;
 let service: BackupService;
@@ -66,6 +67,24 @@ describe(describeName('Backup Unit tests'), () => {
             await expect(t()).to.be.rejectedWith('Command mysqldump not found or it is not possible to execute it');
         });
 
+        it('should throw error exception if mutex is locked', (done) => {
+            let backup: Backup = new Backup();
+            let backup2: Backup = new Backup();
+            
+            const t = () => {
+                backup2.create(service.config.data_dir).then(() => done());
+                return backup.create(service.config.data_dir); 
+
+            }
+            t().catch(err => {
+                try{ 
+                    expect(err.message).to.be.equals('There is another Backup runnning')
+                }catch(err){
+                    done(err);
+                }  
+            });
+        });
+
         it('should create a backup directory', async () => {
             let backup: Backup = new Backup();
             await backup.create(service.config.data_dir);
@@ -74,10 +93,25 @@ describe(describeName('Backup Unit tests'), () => {
             expect(fs.existsSync(backup.path)).to.be.true;
         });
 
-        it('should create a dump data file', async () => {
+        it('should create a compressed dump data file', async () => {
             let backup: Backup = new Backup();
             backup = await backup.create(service.config.data_dir);
-            expect(fs.existsSync(path.join(backup.path, Backup.DUMP_FILENAME))).to.be.true;
+            expect(fs.existsSync(path.join(backup.path, `${Backup.DUMP_FILENAME}.zip`))).to.be.true;
+        });
+
+        it('should remove a dump data file', async () => {
+            let backup: Backup = new Backup();
+            backup = await backup.create(service.config.data_dir);
+            expect(fs.existsSync(path.join(backup.path, Backup.DUMP_FILENAME))).to.be.false;
+        });
+
+        it('should copy archive data file if exists', async () => {
+            let backup: Backup = new Backup();
+
+            FSHelper.mkdirSync(path.join(app.config.get('openvpn.history').data_dir, 'test'));
+            backup = await backup.create(service.config.data_dir);
+
+            expect(FSHelper.directoryExistsSync(path.join(backup.path, Backup.DATA_DIRNAME, 'archive/openvpn/history', 'test'))).to.be.true
         });
 
         it('should copy pki data files if exists', async () => {
@@ -174,7 +208,7 @@ describe(describeName('Backup Unit tests'), () => {
             await expect(t()).to.be.rejectedWith('Command mysql not found or it is not possible to execute it');
         });
 
-        it('should import the database', async () => {
+        it('should import the database (with sql zip file)', async () => {
             await databaseService.emptyDatabase();
 
             backup = await backup.restore();
@@ -182,8 +216,41 @@ describe(describeName('Backup Unit tests'), () => {
             const queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
 
             expect(await queryRunner.hasTable('ca')).to.be.true;
-            
+
             await queryRunner.release();
+        });
+
+        it('should import the database (without sql zip file)', async () => {
+            await databaseService.emptyDatabase();
+
+            //Simulate a backup without zip file
+            await Zip.unzip(path.join(backup.path, `${Backup.DUMP_FILENAME}.zip`), path.join(backup.path));
+            fs.unlinkSync(path.join(backup.path, `${Backup.DUMP_FILENAME}.zip`));
+
+            backup = await backup.restore();
+
+            const queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
+
+            expect(await queryRunner.hasTable('ca')).to.be.true;
+
+            await queryRunner.release();
+        });
+
+        it('should remove temporary uncompressed sql file', async () => {
+            backup = await backup.restore();
+
+            expect(FSHelper.directoryExistsSync(path.join(app.config.get('tmp.directory'), path.basename(backup.path)))).to.be.false;
+        });
+
+        it('should import archive directories if it exists in the backup', async () => {
+            let backup: Backup = new Backup();
+
+            FSHelper.mkdirSync(path.join(app.config.get('openvpn.history').data_dir, 'test'));
+            backup = await backup.create(service.config.data_dir);
+
+            backup = await backup.restore();
+
+            expect(FSHelper.directoryExistsSync(path.join(app.config.get('openvpn.history').data_dir, 'test'))).to.be.true
         });
 
         it('should import pki directories if it exists in the backup', async () => {
@@ -320,20 +387,23 @@ describe(describeName('Backup Unit tests'), () => {
         it('should build the correct mysldump/mysql command', async () => {
             let backup: Backup = new Backup();
             await backup.create(service.config.data_dir);
+            const tmpPath = path.join(app.config.get('tmp.directory'), path.basename(backup.path));
 
             testSuite.app.config.set('db.mysqldump.protocol', 'socket');
+            
             expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} > "${backup.path}/db.sql"`);
-            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} < "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} < "${tmpPath}/db.sql"`);
             testSuite.app.config.set('db.mysqldump.protocol', 'tcp');
         });
 
         it('should include --protocol=TCP in test environment', async () => {
             let backup: Backup = new Backup();
             await backup.create(service.config.data_dir);
+            const tmpPath = path.join(app.config.get('tmp.directory'), path.basename(backup.path));
 
             process.env.NODE_ENV = 'test';
             expect(backup.buildCmd('mysqldump',databaseService)).to.be.deep.eq(`mysqldump --protocol=TCP -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} > "${backup.path}/db.sql"`);
-            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql --protocol=TCP -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} < "${backup.path}/db.sql"`);
+            expect(backup.buildCmd('mysql',databaseService)).to.be.deep.eq(`mysql --protocol=TCP -h "${dbConfig.host}" -P ${dbConfig.port} -u ${dbConfig.user} ${dbConfig.name} < "${tmpPath}/db.sql"`);
         });
     });
 });

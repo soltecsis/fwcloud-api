@@ -28,7 +28,9 @@ import { Customer } from '../../models/user/Customer';
 import { User } from '../../models/user/User';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { PgpHelper } from '../../utils/pgp';
-import { logger } from '../../fonaments/abstract-application';
+import { app, logger } from '../../fonaments/abstract-application';
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 const fwcError = require('../../utils/error_table');
 
 const config = require('../../config/config');
@@ -101,21 +103,38 @@ router.post('/login',async (req, res) => {
 				public: pgp.publicKey,
 				private: pgp.privateKey
 			};
-
+			
 			// Store the fwcloud-ui session public key.
-			req.session.uiPublicKey = req.body.publicKey;
+                        req.session.uiPublicKey = req.body.publicKey;
 
-			res.status(200).json({"user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey});
+			if(!req.session.tfa){
+				res.status(200).json({"user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey});
+			} else {
+				if(!req.headers['x-tfa']) {
+					throw fwcError.BAD_LOGIN;
+				} else {
+
+					let isVerified = speakeasy.totp.verify({
+						secret: req.session.tfa,
+						encoding: 'base32',
+						token: req.headers['x-tfa']
+					});
+					if(isVerified) {
+						res.status(200).json({"user":req.session.user_id,"role":data[0].role,"publicKey":pgp.publicKey,"tfa":req.session.tfa});
+					} else {
+						throw fwcError.BAD_LOGIN;
+					}
+				}
+			}
 		} else {
 			req.session.destroy(err => {} );
 			throw fwcError.BAD_LOGIN;
 		}
 	} catch(error) {
-		logger().error('Error loggin in a user: ' + JSON.stringify(error));
+		logger().error(`Login error${error.message ? `: ${error.message}`: '.'}`);
 		res.status(401).json(error);
 	}
 });
-
 
 /**
  * @api {POST} /logout Log out the API

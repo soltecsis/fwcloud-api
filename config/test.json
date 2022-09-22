@@ -26,6 +26,11 @@
     "backup": {
         "data_dir": "tests/playground/BACKUPS"
     },
+    "openvpn": {
+        "history": {
+            "data_dir": "tests/playground/DATA/archive/openvpn/history"
+        }
+    },
     "log": {
         "directory": "tests/playground/logs"
     },

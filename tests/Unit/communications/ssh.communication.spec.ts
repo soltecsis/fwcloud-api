@@ -23,7 +23,7 @@ describe(SSHCommunication.name, () => {
         
         beforeEach(() => {
             stub = sinon.stub(sshTools, "runCommand");
-            stub.returns(Promise.resolve("file,sha256\ncrt1,hash1\ncrt2,hash2"))
+            stub.returns(Promise.resolve("\r\nfile,sha256\ncrt1,hash1\ncrt2,hash2"))
         });
 
         it('should parse CSV content', async () => {

@@ -1,5 +1,5 @@
 /*!
-    Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2022 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -206,6 +206,7 @@ export class RouteRepository extends Repository<Route> {
             .innerJoinAndSelect("route.gateway","gateway")
             .leftJoinAndSelect("route.interface","interface")
             .leftJoinAndSelect("route.routeGroup", "group")
+            .leftJoinAndSelect("route.firewallApplyTo", "cluster_node")
             .innerJoinAndSelect("route.routingTable", "table")
             .innerJoin("table.firewall", "firewall")
             .innerJoin("firewall.fwCloud", "fwcloud")

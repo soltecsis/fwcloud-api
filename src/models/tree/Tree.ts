@@ -23,10 +23,13 @@
 
 import db from '../../database/database-manager';
 import Model from "../Model";
-import { PrimaryGeneratedColumn, Column, Entity, In, Not, Like, Between, IsNull } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, In, Not, Like, Between, IsNull, getRepository, SelectQueryBuilder } from 'typeorm';
 import Query from '../../database/Query';
 import { logger } from '../../fonaments/abstract-application';
 import { FwCloud } from '../fwcloud/FwCloud';
+import { OpenVPN } from '../vpn/openvpn/OpenVPN';
+import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
+import { IPObj } from '../ipobj/IPObj';
 const fwcError = require('../../utils/error_table');
 var asyncMod = require('async');
 var _Tree = require('easy-tree');
@@ -43,6 +46,10 @@ export type TreeNode = {
     obj_type: number;
     fwcloud: number;
     children: TreeNode[]
+}
+
+export type OpenVPNNode = TreeNode & {
+    address: string
 }
 
 export type TreeType = 'FIREWALLS' | 'OBJECTS' | 'SERVICES' | 'CA'; 
@@ -226,6 +233,11 @@ export class Tree extends Model {
                         nodes = await this.nodesUnderNodes(dbCon,nodes,orderBy);
 
                         for(let i=0; i<nodes.length; i++) {
+                            
+                            // Include data for OpenVpn Nodes Server
+                            if(nodes[i].node_type == 'OSR' || nodes[i].node_type == 'OCL'){
+                                nodes[i] = await this.addSearchInfoOpenVPN(nodes[i])
+                            }
                             // Add the new nodes children arrays to the map.
                             nodes[i].children = [];
                             childrenArrayMap.set(nodes[i].id, nodes[i].children);
@@ -240,7 +252,7 @@ export class Tree extends Model {
                         await Promise.all(rootNode.children.map(node => this.oderNodeBy(node,['FD','FDI'],'text')));
                     else if (treeType==='SERVICES' || treeType==='OBJECTS') // Include data for advanced search.
                         await this.addSearchInfo(dbCon, childrenArrayMap, treeType);
-
+                    
                     resolve(rootNode);
                 } catch (error) { reject(error) }
             });
@@ -295,6 +307,23 @@ export class Tree extends Model {
         });
     }
 
+    private static async addSearchInfoOpenVPN(node:OpenVPNNode): Promise<OpenVPNNode> {
+    
+        const qb: SelectQueryBuilder<IPObj> = getRepository(IPObj).createQueryBuilder('ipobj')
+            .innerJoin(OpenVPNOption, 'option', 'option.ipObj = ipobj.id')
+            .where('fwcloud = :fwcloud', {fwcloud: node.fwcloud})
+            .andWhere('option.openVPNId = :id', {id: node.id_obj});
+
+        if (node.node_type !== 'OSR') {
+            qb.andWhere('option.name = :name', {name: 'ifconfig-push'})
+        }
+
+        const result: IPObj = await qb.getOne();
+
+        node.address = result.address ?? '';
+        
+        return node;
+    }
 
     // Put STD folders first.
     public static stdFoldersFirst(root_node) {
@@ -540,6 +569,44 @@ export class Tree extends Model {
                 id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Groups, 'STD', null, null);
                 await this.createStdGroupsTree(dbCon, id, 'OIG', 20);
 
+				// COUNTRIES
+				ids.COUNTRIES = await this.newNode(dbCon, fwCloudId, "COUNTRIES", null, "COF", null, null);
+
+				// COUNTRIES / AS
+				id = await this.newNode( dbCon, fwCloudId, "AS", ids.COUNTRIES, "CON", 6, 23
+				);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
+
+				// COUNTRIES / EU
+				id = await this.newNode( dbCon, fwCloudId, "EU", ids.COUNTRIES, "CON", 7, 23
+				);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
+
+				// CONTRIES / AF
+				id = await this.newNode( dbCon, fwCloudId, "AF", ids.COUNTRIES, "CON", 8, 23
+				);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
+
+				// COUNTRIES / OC
+				id = await this.newNode( dbCon, fwCloudId, "OC", ids.COUNTRIES, "CON", 9, 23
+				);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
+
+				// COUNTRIES / NA
+				id = await this.newNode( dbCon, fwCloudId, "NA", ids.COUNTRIES, "CON", 10, 23
+				);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
+
+				// COUNTRIES / AN
+				id = await this.newNode( dbCon, fwCloudId, "AN", ids.COUNTRIES, "CON", 11, 23
+				);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
+
+				// COUNTRIES / SA
+				id = await this.newNode( dbCon, fwCloudId, "SA", ids.COUNTRIES, "CON", 12, 23
+				);
+				await this.createStdObjectsTree(dbCon, id, "COD", 24);
+
                 resolve(ids);
             } catch (error) { return reject(error) }
         });
@@ -608,7 +675,11 @@ export class Tree extends Model {
     // Create tree with standard objects.
     public static createStdObjectsTree(dbCon, node_id, node_type, ipobj_type) {
         return new Promise((resolve, reject) => {
-            let sql = 'SELECT id,name FROM ipobj WHERE fwcloud is null and type=' + ipobj_type;
+            let sql: string
+            (ipobj_type === 24 && node_type === "COD") ? 
+            sql = `SELECT i.id, i.name FROM ipobj i JOIN ipobj__ipobjg ii ON i.id=ii.ipobj JOIN ipobj_g ig ON ii.ipobj_g=ig.id WHERE ig.id=(SELECT fwt.id_obj FROM fwc_tree fwt WHERE fwt.id=${node_id})` 
+            : 
+            sql = 'SELECT id,name FROM ipobj WHERE fwcloud is null and type=' + ipobj_type;
             dbCon.query(sql, async (error, result) => {
                 if (error) return reject(error);
 

@@ -1,3 +1,5 @@
+import { OpenVPNArchiveConfigController } from './../controllers/firewalls/openvpn/archive/config/openvpn-archive-config.controller';
+import { OpenVPNArchiveController } from './../controllers/firewalls/openvpn/archive/openvpn-archive.controller';
 /*!
     Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
@@ -40,11 +42,15 @@ import { RoutingRuleController } from "../controllers/routing/routing-rule/routi
 import { RoutingGroupController } from "../controllers/routing/routing-group/routing-group.controller";
 import { RouteGroupController } from "../controllers/routing/route-group/route-group.controller";
 import { FirewallController } from "../controllers/firewalls/firewall.controller";
+import { PolicyRuleController } from "../controllers/policy-rule/policy-rule.controller";
+import { TfaController } from "../controllers/auth/tfa.controller";
+import { CaController } from "../controllers/ca/ca.controller";
+import { CrtController } from "../controllers/crt/crt.controller";
 
 export class Routes extends RouteCollection {
 
     public routes(router: RouterParser): void {
-
+    
         router.gates([isLoggedIn], (router) => {
 
             //Admin routes
@@ -67,6 +73,14 @@ export class Routes extends RouteCollection {
                     });
                 });
 
+                router.prefix('/openvpnarchives', (router: RouterParser) => {
+                    router.post('/', OpenVPNArchiveController, 'store').name('openvpnarchives.store')
+                    router.prefix('/config', (router: RouterParser) => {
+                        router.get('/', OpenVPNArchiveConfigController, 'show').name('openvpnarchives.config.show')
+                        router.put('/', OpenVPNArchiveConfigController, 'update').name('openvpnarchives.config.update')
+                    })
+                })
+
                 //Version
                 router.get('/version', VersionController, 'show').name('versions.show');
 
@@ -86,10 +100,26 @@ export class Routes extends RouteCollection {
 
                 router.prefix('/:fwcloud(\\d+)', (router: RouterParser) => {
                     router.put('/', FwCloudController, 'update').name('fwclouds.update');
-
+                    router.prefix('/cas', (router: RouterParser) => {
+                        router.prefix('/:ca(\\d+)', (router: RouterParser) => {
+                            router.put('/', CaController, 'update').name('fwclouds.cas.update');
+                            router.prefix('/crts', (router: RouterParser) => {
+                                router.prefix('/:crt(\\d+)', (router: RouterParser) => {
+                                    router.put('/', CrtController, 'update').name('fwclouds.cas.crts.update');
+                                })
+                            })
+                        })  
+                    });
                     router.prefix('/firewalls', (router: RouterParser) => {
                         router.post('/communication/ping', FirewallController, 'pingCommunication').name('fwclouds.firewalls.communication.ping');
+                        router.post('/communication/info', FirewallController, 'infoCommunication').name('fwclouds.firewalls.communication.info');
+                        router.post('/plugin',FirewallController,'installPlugin').name('fwcloud.firewalls.communication.installPlugin')
                         router.prefix('/:firewall(\\d+)', (router:RouterParser) => {
+
+                            router.prefix('/policyRules', (router: RouterParser) => {
+                                router.get('/read', PolicyRuleController, 'read').name('fwclouds.firewalls.policyRules.read');
+                                router.post('/download', PolicyRuleController, 'download').name('fwclouds.firewalls.policyRules.download');
+                            })
 
                             router.prefix('/openvpns', (router: RouterParser) => {
                                 router.prefix('/:openvpn(\\d+)', (router: RouterParser) => {
@@ -204,6 +234,14 @@ export class Routes extends RouteCollection {
             router.prefix('/ping', (router: RouterParser) => {
                 router.put('/', PingController, 'ping').name('ping.pong');
             });
+        });
+        router.prefix('/profile/tfa',(router: RouterParser) => {
+            router.post('/verify',TfaController,'verify').name('profile.tfa.verify');
+            router.prefix('/setup',(router:RouterParser) => {
+                router.get('/',TfaController,'getSetup').name('profile.tfa.setup.get');
+                router.post('/',TfaController,'setup').name('profile.tfa.setup');
+                router.delete('/',TfaController,'deleteSetup').name('profile.tfa.setup.delete')
+            })
         });
     }
 }

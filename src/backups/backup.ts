@@ -39,10 +39,13 @@ import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { Task } from "../fonaments/http/progress/task";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 import * as crypto from 'crypto';
-
+import { Zip } from "../utils/zip";
 import * as child_process from "child_process";
 import { OpenVPNRepository } from "../models/vpn/openvpn/openvpn-repository";
 import { Firewall } from "../models/firewall/Firewall";
+import { ProgressPayload } from '../sockets/messages/socket-message';
+import { E_ALREADY_LOCKED, Mutex, tryAcquire } from "async-mutex";
+import { BackupService } from './backup.service';
 
 export interface BackupMetadata {
     name: string,
@@ -55,6 +58,14 @@ export interface BackupMetadata {
 
 export const backupDigestContent: string = 'FWCloud';
 
+const routesMap: Map<string, string> = new Map<string,string>(
+    [
+        ['openvpn.history', 'archive/openvpn/history'],
+        ['pki', 'pki'],
+        ['policy', 'policy'],
+        ['snapshot', 'snapshot']
+    ]
+);
 export class Backup implements Responsable {
     static DUMP_FILENAME: string = 'db.sql';
     static METADATA_FILENAME: string = 'backup.json';
@@ -199,43 +210,56 @@ export class Backup implements Responsable {
      * @param backupDirectory Backup path
      */
     public async create(backupDirectory: string, eventEmitter = new EventEmitter()): Promise<Backup> {
-        // If it is not possible to run the mysqldump command, then it is not possible to run the backup procedure.
-        if (! await this.existsCmd('mysqldump')) {
-            const err = new Error('Command mysqldump not found or it is not possible to execute it');
-            logger().error(err.message);
-            throw err;
+        const mutex = await this.getMutex();
+        try{
+            return await tryAcquire(mutex).runExclusive(async () => {
+                // If it is not possible to run the mysqldump command, then it is not possible to run the backup procedure.
+                if (! await this.existsCmd('mysqldump')) {
+                    const err = new Error('Command mysqldump not found or it is not possible to execute it');
+                    logger().error(err.message);
+                    throw err
+                }
+    
+                const progress = new Progress(eventEmitter);
+                this._date = moment();
+                this._id = moment().valueOf();
+                this._version = app<Application>().version.tag;
+                this._name = this._date.format('YYYY-MM-DD HH:mm:ss');
+                this._backupPath = path.join(backupDirectory, this.timestamp.toString());
+                this._hash = crypto.createHmac('sha256', app().config.get('crypt.secret'))
+                    .update(backupDigestContent)
+                    .digest('hex');
+                    
+                this.createDirectorySync();
+                this.exportMetadataFileSync();
+    
+                try {
+                    await progress.procedure('Creating backup', (task: Task) => {
+                        task.parallel((task: Task) => {
+                            task.addTask(() => { return this.exportDatabase(); }, 'Database backup');
+                            task.addTask(() => { return this.exportDataDirectories(); }, 'Data directories backup');
+                        });
+                        task.addTask(() => { return this.zipDbSql(); }, 'Compress db.sql file');
+                    }, 'Backup created');
+                } catch(err) {
+                    // If the backup task has fault for some reason, (for example, mysqldump command not found)
+                    // then destroy it for avoid having an incomplete backup.
+                    this._exists = true;
+                    await this.destroy();
+                    throw (err)
+                }
+    
+                return await this.load(this._backupPath);
+            })
+        }catch(err){
+            if(err === E_ALREADY_LOCKED){
+                eventEmitter.emit('message', new ProgressPayload('error', false, 'There is another Backup running'));
+                throw new Error('There is another Backup runnning')
+            }
+            throw (err);
         }
-
-        const progress = new Progress(eventEmitter);
-        this._date = moment();
-        this._id = moment().valueOf();
-        this._version = app<Application>().version.tag;
-        this._name = this._date.format('YYYY-MM-DD HH:mm:ss');
-        this._backupPath = path.join(backupDirectory, this.timestamp.toString());
-        this._hash = crypto.createHmac('sha256', app().config.get('crypt.secret'))
-            .update(backupDigestContent)
-            .digest('hex');
-            
-        this.createDirectorySync();
-        this.exportMetadataFileSync();
-
-        try {
-            await progress.procedure('Creating backup', (task: Task) => {
-                task.parallel((task: Task) => {
-                    task.addTask(() => { return this.exportDatabase(); }, 'Database backup');
-                    task.addTask(() => { return this.exportDataDirectories(); }, 'Data directories backup');
-                });
-            }, 'Backup created');
-        } catch(err) {
-            // If the backup task has fault for some reason, (for example, mysqldump command not found)
-            // then destroy it for avoid having an incomplete backup.
-            this._exists = true;
-            await this.destroy();
-
-            throw(err);
-        }
-
-        return await this.load(this._backupPath);
+        
+        
     }
 
     /**
@@ -254,10 +278,16 @@ export class Backup implements Responsable {
         if (this._exists) {
             await progress.procedure('Restoring backup', (task: Task) => {
                 task.sequence((task: Task) => {
+                    if(fs.existsSync(path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`))){
+                        task.addTask(() => {return this.unzipDbSql(); }, 'Decompress db.sql file');
+                    }
                     task.parallel((task: Task) => {
                         task.addTask(() => { return this.importDatabase(); }, 'Database restore');
                         task.addTask(() => { return this.importDataDirectories(); }, 'Data directories restore');
                     });
+                    task.addTask(() => {
+                        return FSHelper.rmDirectory(this.getTemporalyUnzipPath());
+                    }, 'Remove temporaly files');
                     task.addTask(async (_) => { return this.runMigrations(); }, 'Database migration');
                 })
                 
@@ -313,12 +343,49 @@ export class Backup implements Responsable {
 
         return new Promise((resolve, reject) => { 
             //console.time("mysqldump");
-            child_process.exec(this.buildCmd('mysqldump',databaseService),(error,stdout,stderr) => {
+            child_process.exec(this.buildCmd('mysqldump', databaseService),(error,stdout,stderr) => {
                 //console.timeEnd("mysqldump");
                 if (error) return reject(error);
                 resolve();     
             });
         });
+    }
+
+    /**
+     * Compress the db.sql file
+     */
+    protected zipDbSql(): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            try{
+                await Zip.zip(path.join(this._backupPath, Backup.DUMP_FILENAME));
+                fs.unlinkSync(path.join(this._backupPath, Backup.DUMP_FILENAME));
+                resolve();
+            }catch(err){
+                reject(err)
+            }
+        })
+    }
+
+    /**
+     * Decompress the db.sql file
+     */
+    protected unzipDbSql():Promise<void> {
+        return new Promise(async (resolve, reject)=>{
+            try {
+                if(fs.existsSync(path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`))){
+                    const dir = path.join(this._backupPath, `${Backup.DUMP_FILENAME}.zip`);
+                    await Zip.unzip(dir, this.getTemporalyUnzipPath())
+                }   
+                
+                resolve()
+            }catch(err){
+                reject(err)
+            }
+        })
+    }
+
+    protected getTemporalyUnzipPath(): string {
+        return path.join(app().config.get('tmp.directory'), path.basename(this._backupPath))
     }
 
     /**
@@ -334,7 +401,7 @@ export class Backup implements Responsable {
                     return reject(new RestoreBackupException('Database can not be wiped'));
     
                 //console.time("db import");
-                child_process.execSync(this.buildCmd('mysql',databaseService));
+                child_process.execSync(this.buildCmd('mysql', databaseService));
                 //console.timeEnd("db import");
 
                 //Change compilation status from firewalls
@@ -366,15 +433,14 @@ export class Backup implements Responsable {
      * Copy DATA directories from the backup
      */
     protected async exportDataDirectories(): Promise<void> {
-        const config = app().config;
 
-        let item_list: Array<string> = ['pki', 'policy', 'snapshot'];
-
+        let item_list: Map<string, string> = routesMap;
+        
         for (let item of item_list) {
-            const dst_dir = path.join(this._backupPath, Backup.DATA_DIRNAME, item);
-            if (await FSHelper.directoryExists(config.get(item).data_dir)) {
+            let dst_dir = path.join(this._backupPath, Backup.DATA_DIRNAME, item[1]);
+            if (await FSHelper.directoryExists(app().config.get(item[0]).data_dir)) {
                 await fse.mkdirp(dst_dir);
-                await fse.copy(config.get(item).data_dir, dst_dir);
+                await fse.copy(app().config.get(item[0]).data_dir, dst_dir);
             }
         }
     }
@@ -383,14 +449,12 @@ export class Backup implements Responsable {
      * Copy DATA directories into the backup
      */
     protected async importDataDirectories(): Promise<void> {
-        const config = app().config;
 
-        let item_list: Array<string> = ['pki', 'policy', 'snapshot'];
-
+        let item_list: Map<string, string> = routesMap;
 
         for (let item of item_list) {
-            const src_dir: string = path.join(this._backupPath, Backup.DATA_DIRNAME, item);
-            const dst_dir: string = config.get(item).data_dir;
+            const src_dir: string = path.join(this._backupPath, Backup.DATA_DIRNAME, item[1]);
+            const dst_dir: string = app().config.get(item[0]).data_dir;
 
             fse.removeSync(dst_dir);
 
@@ -405,17 +469,22 @@ export class Backup implements Responsable {
      * Builds mysqldump/mysql command
      */
     buildCmd(cmd: 'mysqldump' | 'mysql', databaseService: DatabaseService): string {
+        const config = app().config
         const dbConfig: DatabaseConfig = databaseService.config;
-        const dumpFile = path.join(this._backupPath, Backup.DUMP_FILENAME);
+        let dumpFile:string = path.join(this._backupPath, Backup.DUMP_FILENAME);
 
+        if( cmd === 'mysql') {
+            fs.existsSync(path.join(this._backupPath, Backup.DUMP_FILENAME)) ? dumpFile =  path.join(this._backupPath, Backup.DUMP_FILENAME)
+        : dumpFile = path.join(config.get('tmp.directory'), path.basename(this._backupPath), Backup.DUMP_FILENAME);
+         
+        }
+        
         const shellescape = require('shell-escape');
         process.env.MYSQL_PWD = shellescape([dbConfig.pass]).substring(0,128);
 
         const dir = cmd==='mysqldump' ? '>' : '<';
-
         // This is necessary for mysqldump/mysql commands to access the docker containers of the test environment.
         if (app().config.get('db.mysqldump.protocol') === 'tcp') cmd += ' --protocol=TCP';
-
         // If we don't specify the communications protocol and we are running the mysqldump/mysql commands in localhost,
         // they will use by default the socket file.
         // That is fine, because using the socket file will improve performance.
@@ -433,5 +502,9 @@ export class Backup implements Responsable {
                 resolve(error ? false : true)
             });
         });
+    }
+    protected async getMutex(): Promise<Mutex> {
+        const backupService: BackupService = await app().getService<BackupService>(BackupService.name);
+        return backupService.mutex;
     }
 }

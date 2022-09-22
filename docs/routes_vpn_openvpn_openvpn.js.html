@@ -423,7 +423,7 @@ router.put('/status/get', async(req, res) => {
 		if (crt.type !== 2) // This action only can be done in server OpenVPN configurations.
 			throw (new Error('This is not an OpenVPN server configuration'));
 
-		// Obtain the status log file option of the OpeVPN server configuration.
+		// Obtain the status log file option of the OpenVPN server configuration.
 		const openvpn_opt = await openvpnModel.getOptData(req.dbCon,req.body.openvpn,'status');
 		if (!openvpn_opt) throw(new Error(`OpenVPN 'status' option not found`));
 		const status_file_path = openvpn_opt.arg;
