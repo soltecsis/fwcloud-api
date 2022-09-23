@@ -191,9 +191,17 @@ router.post('/', async (req, res) => {
 	}
 
 	try {
+		let clusters = await Cluster.getClusterCloud(req)
+		if(clusters.length >= app().config.get('limits').clusters && app().config.get('limits').clusters>0) {
+			throw fwcError.LIMIT_CLUSTERS
+		}
 		const clusterId = await Cluster.insertCluster(clusterData);
 		let loData = {};
-
+		
+		if(fwnodes.length >= app().config.get('limits').nodes && app().config.get('limits').nodes > 0) {
+			throw fwcError.LIMIT_NODES
+		}
+		
 		for (let firewallData of fwnodes) {
 			firewallData.cluster = clusterId;
 			firewallData.fwcloud = req.body.fwcloud;

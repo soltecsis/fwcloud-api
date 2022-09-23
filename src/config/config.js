@@ -24,6 +24,7 @@ const fs = require('fs');
 process.env.NODE_ENV !== 'test' ? require('dotenv').config() : true;
 const path = require('path');
 var convict = require('convict');
+const { number } = require('yargs');
 convict.addFormat(require('convict-format-with-moment').duration);
 
 // Define a schema
@@ -531,6 +532,33 @@ const config = convict({
       default: 300000,
       env: 'SOCKET_IO_PING_TIMEOUT'
     },
+  },
+
+  limits: {
+    fwclouds: {
+      doc: 'Limit number of fwclouds that a user can create at most.',
+      format: Number,
+      env: 'LIMIT_FWCLOUD',
+      default: 4
+    },
+    firewalls: {
+      doc: 'Limit number of firewalls that a user can create at most.',
+      format: Number,
+      env: 'LIMIT_FIREWALLS',
+      default: 5
+    },
+    clusters: {
+      doc: 'Limit number of clusters that a user can create at most.',
+      format: Number,
+      env: 'LIMIT_CLUSTERS',
+      default: 5
+    },
+    nodes: {
+      doc: 'Limit number of nodes within a cluster that a user can create at most.',
+      format: Number,
+      env: 'LIMIT_NODES',
+      default: 5
+    }
   }
   
 });

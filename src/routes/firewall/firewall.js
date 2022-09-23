@@ -82,6 +82,7 @@ import { PgpHelper } from '../../utils/pgp';
 import { FirewallService } from '../../models/firewall/firewall.service';
 import { RoutingTableService } from '../../models/routing/routing-table/routing-table.service';
 import { getRepository } from 'typeorm';
+import { Cluster } from '../../models/firewall/Cluster';
 
 var utilsModel = require("../../utils/utils.js");
 const restrictedCheck = require('../../middleware/restricted');
@@ -163,6 +164,23 @@ router.post('/', async(req, res) => {
 	};
 
 	try {
+		if(!req.body.cluster) {
+			let firewalls = await Firewall.getFirewallCloud(req)
+			firewalls = firewalls.filter(item => item.cluster==null)
+
+			if(firewalls.length >= app().config.get('limits').firewalls && app().config.get('limits').firewalls>0) {
+				throw fwcError.LIMIT_FIREWALLS
+			}
+		} else {
+			let nodes = await Firewall.getFirewallCloud(req)
+			let cluster = await Cluster.getCluster(req)
+			nodes = nodes.filter(item => item.cluster !=null && item.cluster == cluster.id)
+			if(nodes.length >= app().config.get('limits').nodes && app().config.get('limits').nodes > 0) {
+				throw fwcError.LIMIT_NODES
+			}
+		}
+		
+
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
 		if (!req.body.cluster && req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD') 
 			throw fwcError.BAD_TREE_NODE_TYPE;
