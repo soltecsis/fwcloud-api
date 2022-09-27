@@ -24,7 +24,6 @@ const fs = require('fs');
 process.env.NODE_ENV !== 'test' ? require('dotenv').config() : true;
 const path = require('path');
 var convict = require('convict');
-const { number } = require('yargs');
 convict.addFormat(require('convict-format-with-moment').duration);
 
 // Define a schema

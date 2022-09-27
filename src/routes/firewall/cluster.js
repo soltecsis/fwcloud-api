@@ -193,7 +193,7 @@ router.post('/', async (req, res) => {
 	try {
 		let clusters = await Cluster.getClusterCloud(req)
 		if(clusters.length >= app().config.get('limits').clusters && app().config.get('limits').clusters>0) {
-			throw (fwcError.LIMIT_CLUSTERS)
+			throw fwcError.LIMIT_CLUSTERS
 		}
 		if(fwnodes.length > app().config.get('limits').nodes && app().config.get('limits').nodes > 0) {
 			throw fwcError.LIMIT_NODES

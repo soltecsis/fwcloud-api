@@ -37,8 +37,6 @@ import { Mark } from "../ipobj/Mark";
 import { FSHelper } from "../../utils/fs-helper";
 import { IPObjGroup } from "../ipobj/IPObjGroup";
 
-const fwcError = require('../../utils/error_table');
-
 const tableName: string = 'fwcloud';
 
 @Entity(tableName)
