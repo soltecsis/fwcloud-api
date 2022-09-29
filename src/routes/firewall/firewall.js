@@ -638,6 +638,14 @@ router.put('/cluster/get', (req, res) => {
  */
 router.put('/clone', async (req, res) => {
 	try {
+		if(!req.body.cluster) {
+			let firewalls = await Firewall.getFirewallCloud(req)
+			firewalls = firewalls.filter(item => item.cluster==null)
+
+			if(firewalls.length >= app().config.get('limits').firewalls && app().config.get('limits').firewalls>0) {
+				throw fwcError.LIMIT_FIREWALLS
+			}
+		}
 		// Check that the tree node in which we will create a new node for the firewall is a valid node for it.
 		if (req.tree_node.node_type!=='FDF' && req.tree_node.node_type!=='FD')
 			throw fwcError.BAD_TREE_NODE_TYPE;
