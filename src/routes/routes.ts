@@ -113,6 +113,7 @@ export class Routes extends RouteCollection {
                     router.prefix('/firewalls', (router: RouterParser) => {
                         router.post('/communication/ping', FirewallController, 'pingCommunication').name('fwclouds.firewalls.communication.ping');
                         router.post('/communication/info', FirewallController, 'infoCommunication').name('fwclouds.firewalls.communication.info');
+                        router.put('/communication/config', FirewallController, 'configCommunication').name('fwclouds.firewalls.communication.getConfigValue')
                         router.post('/plugin',FirewallController,'installPlugin').name('fwcloud.firewalls.communication.installPlugin')
                         router.prefix('/:firewall(\\d+)', (router:RouterParser) => {
 

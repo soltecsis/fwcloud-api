@@ -46,6 +46,8 @@ export abstract class Communication<ConnectionData> {
 
     abstract installPlugin(name: string,enabled: boolean): Promise<string>;
 
+    abstract getConfigValue(): Promise <boolean>;
+
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
         if (errorHasCode(error)) {
             if ((error).code === "ECONNREFUSED") {
