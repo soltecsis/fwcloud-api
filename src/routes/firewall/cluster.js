@@ -457,6 +457,10 @@ router.put('/fwtocluster', async(req, res) => {
 	var clusterId;
 
 	try {
+		let clusters = await Cluster.getClusterCloud(req)
+		if(clusters.length >= app().config.get('limits').clusters && app().config.get('limits').clusters>0) {
+			throw fwcError.LIMIT_CLUSTERS
+		}
 		firewallData = await Firewall.getFirewall(req);
 		clusterData = {
 			name: "Cluster " + firewallData.name,
@@ -498,53 +502,63 @@ router.put('/fwtocluster', async(req, res) => {
 });
 
 /* New FIREWALL FROM CLUSTER */
-router.put('/clustertofw', (req, res) => {
+router.put('/clustertofw', async (req, res) => {
 	var iduser = req.session.user_id;
 	var fwcloud = req.body.fwcloud;
 	var idCluster = req.body.cluster;
+	try {
+		let firewalls = await Firewall.getFirewallCloud(req)
+		firewalls = firewalls.filter(item => item.cluster==null)
 
-	Firewall.getFirewallClusterMaster(iduser, idCluster, (error, firewallDataArry) => {
-		//Get Data
-		if (firewallDataArry && firewallDataArry.length > 0) {
-			var firewallData = firewallDataArry[0];
-
-			//////////////////////////////////
-			//UPDATE CLUSTER NODE STRUCTURE
-			Tree.updateFwc_Tree_convert_cluster_firewall(fwcloud, req.body.node_id, idCluster, firewallData.id, (error, dataTree) => {
-				logger().debug("DATATREE: ", dataTree);
-				if (error) {
-					logger().error('Error creating firewall from cluster: ' + JSON.stringify(error));
-					return res.status(400).json(error);
-				}
-				else if (dataTree && dataTree.result) {
-
-					//UPDATE CLUSTERS FIREWALL
-					//-------------------------------------------
-					firewallData.cluster = null;
-					firewallData.fwcloud = fwcloud;
-					firewallData.by_user = iduser;
-					//logger().debug("firewallData: ", firewallData);
-					Firewall.updateFirewallCluster(firewallData)
-						.then(() => {
-							Firewall.removeFirewallClusterSlaves(idCluster, fwcloud, (error, dataFC) => {
-								Cluster.deleteClusterSimple(idCluster, iduser, fwcloud, (error, data) => {
-									PolicyRule.cleanApplyTo(firewallData.id, (error, data) => {});
+		if(firewalls.length >= app().config.get('limits').firewalls && app().config.get('limits').firewalls>0) {
+			throw fwcError.LIMIT_FIREWALLS
+		}
+		Firewall.getFirewallClusterMaster(iduser, idCluster, (error, firewallDataArry) => {
+			//Get Data
+			if (firewallDataArry && firewallDataArry.length > 0) {
+				var firewallData = firewallDataArry[0];
+	
+				//////////////////////////////////
+				//UPDATE CLUSTER NODE STRUCTURE
+				Tree.updateFwc_Tree_convert_cluster_firewall(fwcloud, req.body.node_id, idCluster, firewallData.id, (error, dataTree) => {
+					logger().debug("DATATREE: ", dataTree);
+					if (error) {
+						logger().error('Error creating firewall from cluster: ' + JSON.stringify(error));
+						return res.status(400).json(error);
+					}
+					else if (dataTree && dataTree.result) {
+	
+						//UPDATE CLUSTERS FIREWALL
+						//-------------------------------------------
+						firewallData.cluster = null;
+						firewallData.fwcloud = fwcloud;
+						firewallData.by_user = iduser;
+						//logger().debug("firewallData: ", firewallData);
+						Firewall.updateFirewallCluster(firewallData)
+							.then(() => {
+								Firewall.removeFirewallClusterSlaves(idCluster, fwcloud, (error, dataFC) => {
+									Cluster.deleteClusterSimple(idCluster, iduser, fwcloud, (error, data) => {
+										PolicyRule.cleanApplyTo(firewallData.id, (error, data) => {});
+									});
 								});
 							});
-						});
-					var resp = { "result": true, "insertId": firewallData.id };
-					res.status(200).json(resp);
-				} else {
-					logger().error('Error creating firewall from cluster: ' + JSON.stringify(error));
-					res.status(400).json(fwcError.NOT_FOUND);
-				}
-			});
-
-		} else {
-			logger().error('Error creating firewall from cluster: ' + JSON.stringify(fwcError.NOT_FOUND));
-			res.status(400).json(fwcError.NOT_FOUND);
-		}
-	});
+						var resp = { "result": true, "insertId": firewallData.id };
+						res.status(200).json(resp);
+					} else {
+						logger().error('Error creating firewall from cluster: ' + JSON.stringify(error));
+						res.status(400).json(fwcError.NOT_FOUND);
+					}
+				});
+	
+			} else {
+				logger().error('Error creating firewall from cluster: ' + JSON.stringify(fwcError.NOT_FOUND));
+				res.status(400).json(fwcError.NOT_FOUND);
+			}
+		});
+	} catch (error) {
+		logger().error('Error converting the cluster: ' + JSON.stringify(error))
+		res.status(400).json(error)
+	}
 });
 
 /* CLONE CLUSTER */
