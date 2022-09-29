@@ -35,4 +35,58 @@ describe(SSHCommunication.name, () => {
             ])
         })
     })
+
+    let app: Application;
+
+    
+    describe('CommunicationController@SSH',() => {
+        beforeEach(()=>{
+            app.config.set('session.ssh_enable',false);
+        });
+
+        it.skip('Install Firewall Policy', async () => {
+            loggedUser.fwClouds = [fwCloud];
+            await getRepository(User).save(loggedUser);
+
+            return await request(app.express)
+                .post(`policy/install?channel_id=${channel_id}`)
+                .send({
+                    fwcloud: fwCloud.id,
+                    firewall: firewall.id,
+                    sshuser: firewall.install_user,
+                    sshpass: firewall.install_pass,
+                    communication: 'ssh'
+                })
+                .set('Cookie', [attachSession(loggedUserSessionId)])
+                .then(res => {console.log(res.body)})
+        });
+        it('Install OpenVPN Server Configs');
+        it('Install OpenVPN Client Configs');
+        it('Unistall OpenVPN Configs');
+        
+        it('Autodiscover Interfaces',async ()=>{
+            loggedUser.fwClouds = [fwCloud];
+            await getRepository(User).save(loggedUser);
+
+            return await request(app.express)
+                .put('/interface/autodiscover')
+                .send({
+                    fwcloud: fwCloud.id,
+                    ip: '1.1.1.1',
+                    port: 1234,
+                    communication: 'ssh',
+                    sshuser: firewall.install_user,
+                    sshpass: firewall.install_pass
+                })
+                .set('Cookie',[attachSession(loggedUserSessionId)])
+                .expect(400,{"fwcErr": 9000, "msg":"Communication by means of SSH is forbidden in the API"})
+        });
+
+        it('Import IP Tables',async () => {
+
+        });
+        it('Export IP Tables');
+        it('CCD Hash List');
+        it('Get Real Time Status');
+    })
 });
