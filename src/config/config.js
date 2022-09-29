@@ -537,7 +537,7 @@ const config = convict({
     fwclouds: {
       doc: 'Limit number of fwclouds that a user can create at most.',
       format: Number,
-      env: 'LIMIT_FWCLOUD',
+      env: 'LIMIT_FWCLOUDS',
       default: 0
     },
     firewalls: {
