@@ -548,78 +548,90 @@ router.put('/clustertofw', (req, res) => {
 });
 
 /* CLONE CLUSTER */
-router.put('/clone', (req, res) => {
-	var iduser = req.session.user_id;
-	var fwcloud = req.body.fwcloud;
-	var idCluster = req.body.cluster;
-	var idNewFirewall, oldFirewall, fwNewMaster;
+router.put('/clone', async (req, res) => {
+	try {
+		let clusters = await Cluster.getClusterCloud(req)
+		if(clusters.length >= app().config.get('limits').clusters && app().config.get('limits').clusters>0) {
+			throw fwcError.LIMIT_CLUSTERS
+		}
+		if(fwnodes.length > app().config.get('limits').nodes && app().config.get('limits').nodes > 0) {
+			throw fwcError.LIMIT_NODES
+		}
+		var iduser = req.session.user_id;
+		var fwcloud = req.body.fwcloud;
+		var idCluster = req.body.cluster;
+		var idNewFirewall, oldFirewall, fwNewMaster;
 
-	//Save firewall data into objet    
-	var clusterData = {
-		name: req.body.name,
-		comment: req.body.comment,
-		fwcloud: fwcloud //working cloud              
-	};
+		//Save firewall data into objet    
+		var clusterData = {
+			name: req.body.name,
+			comment: req.body.comment,
+			fwcloud: fwcloud //working cloud              
+		};
 
-	// Check that the tree node in which we will create a new node for the cluster is a valid node for it.
-	if (req.tree_node.node_type !== 'FDF' && req.tree_node.node_type !== 'FD') {
-		logger().error('Error cloning cluster: ' + JSON.stringify(fwcError.BAD_TREE_NODE_TYPE));
-		return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
-	}
-
-	Firewall.getFirewallCluster(iduser, idCluster, async(error, firewallDataArry) => {
-		if (error) {
-			logger().error('Error getting firewall cluster: ' + JSON.stringify(fwcError.BAD_TREE_NODE_TYPE));
-			return res.status(400).json(error);
+		// Check that the tree node in which we will create a new node for the cluster is a valid node for it.
+		if (req.tree_node.node_type !== 'FDF' && req.tree_node.node_type !== 'FD') {
+			logger().error('Error cloning cluster: ' + JSON.stringify(fwcError.BAD_TREE_NODE_TYPE));
+			return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
 		}
 
-		//Get Data
-		if (firewallDataArry && firewallDataArry.length > 0) {
-			try {
-				var newClusterId = await Cluster.insertCluster(clusterData);
-
-				// Clone cluster nodes.
-				for (let firewallData of firewallDataArry) {
-					firewallData.cluster = newClusterId;
-					firewallData.fwcloud = fwcloud;
-					firewallData.by_user = iduser;
-
-					//CLONE FWMASTER
-					let data = await Firewall.cloneFirewall(iduser, firewallData);
-
-					idNewFirewall = data.insertId;
-					oldFirewall = firewallData.id;
-					// This function will update the cluster id of the new firewall.
-					firewallData.id = idNewFirewall;
-					await Firewall.updateFirewallCluster(firewallData);
-
-					// If we are cloning the master firewall, then clone interfaces, policy, etc.
-					if (firewallData.fwmaster) {
-						fwNewMaster = idNewFirewall;
-						await Firewall.updateFWMaster(iduser, fwcloud, newClusterId, idNewFirewall, 1);
-						//CLONE INTERFACES
-						let dataI = await Interface.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
-						await PolicyRule.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
-						await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
-						const firewallService = await app().getService(FirewallService.name);
-						await firewallService.clone(oldFirewall, fwNewMaster, dataI);
-					}
-				}
-
-				//INSERT FIREWALL NODE STRUCTURE
-				await Tree.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newClusterId);
-
-				// Update aaply_to fields of rules in the master firewall for point to nodes in the cloned cluster.
-				await PolicyRule.updateApplyToRules(newClusterId, fwNewMaster);
-
-				// If we arrive here all has gone fine.
-				res.status(200).json({ "insertId": newClusterId });
-			} catch (error) {
-				logger().error('Error creating cluster: ' + JSON.stringify(error));
-				res.status(400).json(error);
+		Firewall.getFirewallCluster(iduser, idCluster, async(error, firewallDataArry) => {
+			if (error) {
+				logger().error('Error getting firewall cluster: ' + JSON.stringify(fwcError.BAD_TREE_NODE_TYPE));
+				return res.status(400).json(error);
 			}
-		}
-	});
+
+			//Get Data
+			if (firewallDataArry && firewallDataArry.length > 0) {
+				try {
+					var newClusterId = await Cluster.insertCluster(clusterData);
+
+					// Clone cluster nodes.
+					for (let firewallData of firewallDataArry) {
+						firewallData.cluster = newClusterId;
+						firewallData.fwcloud = fwcloud;
+						firewallData.by_user = iduser;
+
+						//CLONE FWMASTER
+						let data = await Firewall.cloneFirewall(iduser, firewallData);
+
+						idNewFirewall = data.insertId;
+						oldFirewall = firewallData.id;
+						// This function will update the cluster id of the new firewall.
+						firewallData.id = idNewFirewall;
+						await Firewall.updateFirewallCluster(firewallData);
+
+						// If we are cloning the master firewall, then clone interfaces, policy, etc.
+						if (firewallData.fwmaster) {
+							fwNewMaster = idNewFirewall;
+							await Firewall.updateFWMaster(iduser, fwcloud, newClusterId, idNewFirewall, 1);
+							//CLONE INTERFACES
+							let dataI = await Interface.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
+							await PolicyRule.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
+							await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
+							const firewallService = await app().getService(FirewallService.name);
+							await firewallService.clone(oldFirewall, fwNewMaster, dataI);
+						}
+					}
+
+					//INSERT FIREWALL NODE STRUCTURE
+					await Tree.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newClusterId);
+
+					// Update aaply_to fields of rules in the master firewall for point to nodes in the cloned cluster.
+					await PolicyRule.updateApplyToRules(newClusterId, fwNewMaster);
+
+					// If we arrive here all has gone fine.
+					res.status(200).json({ "insertId": newClusterId });
+				} catch (error) {
+					logger().error('Error creating cluster: ' + JSON.stringify(error));
+					res.status(400).json(error);
+				}
+			}
+		});
+	} catch (error) {
+		logger().error('Error cloning the cluster: ' + JSON.stringify(error))
+		res.status(400).json(error)
+	}
 });
 
 
