@@ -74,7 +74,7 @@ router.put('/firewalls/get', async (req, res) => {
 	try {
 		//console.time('FW');
 		let tree = await Tree.dumpTree(req.dbCon, 'FIREWALLS', req.body.fwcloud);
-		console.log(tree);
+
 		//console.timeEnd('FW');
 
 		// If routing nodes don't exist, create them.
