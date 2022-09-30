@@ -1,12 +1,15 @@
 import axios from 'axios';
 import sinon from "sinon";
 import { CCDHash } from "../../../src/communications/communication";
-import { expect } from "../../mocha/global-setup";
+import { expect, testSuite } from "../../mocha/global-setup";
 import { SSHCommunication } from "../../../src/communications/ssh.communication";
 import sshTools from "../../../src/utils/ssh";
+import { Application } from "../../../src/Application";
+import errorTable from '../../../src/utils/error_table';
 
-describe(SSHCommunication.name, () => {
+describe.only(SSHCommunication.name, () => {
     let ssh: SSHCommunication;
+    let app: Application;
 
     beforeEach(async() => {
         ssh = new SSHCommunication({
@@ -36,57 +39,78 @@ describe(SSHCommunication.name, () => {
         })
     })
 
-    let app: Application;
-
-    
-    describe('CommunicationController@SSH',() => {
+    describe.only('Disabled from configuration',()=>{
         beforeEach(()=>{
+            app = testSuite.app;
             app.config.set('session.ssh_enable',false);
         });
 
-        it.skip('Install Firewall Policy', async () => {
-            loggedUser.fwClouds = [fwCloud];
-            await getRepository(User).save(loggedUser);
-
-            return await request(app.express)
-                .post(`policy/install?channel_id=${channel_id}`)
-                .send({
-                    fwcloud: fwCloud.id,
-                    firewall: firewall.id,
-                    sshuser: firewall.install_user,
-                    sshpass: firewall.install_pass,
-                    communication: 'ssh'
-                })
-                .set('Cookie', [attachSession(loggedUserSessionId)])
-                .then(res => {console.log(res.body)})
+        it('install a firewall policy and communication is disabled, it should throw an error', async () => {
+            await ssh.installFirewallPolicy("").catch(
+                error => {
+                    expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                }
+            )
         });
-        it('Install OpenVPN Server Configs');
-        it('Install OpenVPN Client Configs');
-        it('Unistall OpenVPN Configs');
+
+        it('install OpenVPN server configs and communication is disabled, it should throw an error',async () => {
+            await ssh.installOpenVPNServerConfigs("",[]).catch(
+                error => {
+                    expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                }
+            )
+        });
+
+        it('install OpenVPN client configs and communication is disabled, it should throw an error',async () => {
+            await ssh.installOpenVPNClientConfigs("",[]).catch(
+                error => {
+                    expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                }
+            )
+        });
+
+        it('unistall OpenVPN configs and communication is disabled, it should throw an error',async () => {
+            await ssh.uninstallOpenVPNConfigs("",[])
+            .then(res => {
+                expect(res).not.to.be.undefined;
+            })
+            .catch(
+                error => {
+                    expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                }
+            )
+        });
         
-        it('Autodiscover Interfaces',async ()=>{
-            loggedUser.fwClouds = [fwCloud];
-            await getRepository(User).save(loggedUser);
-
-            return await request(app.express)
-                .put('/interface/autodiscover')
-                .send({
-                    fwcloud: fwCloud.id,
-                    ip: '1.1.1.1',
-                    port: 1234,
-                    communication: 'ssh',
-                    sshuser: firewall.install_user,
-                    sshpass: firewall.install_pass
-                })
-                .set('Cookie',[attachSession(loggedUserSessionId)])
-                .expect(400,{"fwcErr": 9000, "msg":"Communication by means of SSH is forbidden in the API"})
+        it('get firewalls interfaces and communication is disabled, it should throw an error',async ()=>{
+            await ssh.getFirewallInterfaces().catch(
+                error => {
+                    expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                }
+            )
         });
 
-        it('Import IP Tables',async () => {
-
+        it('get firewalls IP tables and communication is disabled, it should throw an error',async () => {
+            await ssh.getFirewallIptablesSave().catch(
+                error => {
+                    expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                }
+            )
         });
-        it('Export IP Tables');
-        it('CCD Hash List');
-        it('Get Real Time Status');
+
+        it('get CCD hash list and communication is disabled, it should throw an error', async () => {
+            await ssh.ccdHashList("").catch(
+                error => {
+                    expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE)
+                }
+            )
+        });
+
+        it('get real time status and communication is disabled, it should throw an error', async () => {
+            await ssh.getRealtimeStatus("").catch(
+                error => {
+                    expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                }
+            )
+        });
     })
 });
