@@ -7,7 +7,7 @@ import sshTools from "../../../src/utils/ssh";
 import { Application } from "../../../src/Application";
 import errorTable from '../../../src/utils/error_table';
 
-describe.only(SSHCommunication.name, () => {
+describe(SSHCommunication.name, () => {
     let ssh: SSHCommunication;
     let app: Application;
 
@@ -39,7 +39,7 @@ describe.only(SSHCommunication.name, () => {
         })
     })
 
-    describe.only('Disabled from configuration',()=>{
+    describe('Disabled from configuration',()=>{
         beforeEach(()=>{
             app = testSuite.app;
             app.config.set('session.ssh_enable',false);
