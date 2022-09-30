@@ -43,6 +43,9 @@ export class FwCloudController extends Controller {
     @Validate(FwCloudControllerStoreDto)
     public async store(request: Request): Promise<ResponseBuilder> {
         let errorLimit:boolean = false;
+        
+        (await FwCloudPolicy.store(request.session.user)).authorize();
+
         await FwCloud.getFwclouds(request.dbCon, request.session.user_id).then((result: FwCloud[]) => {
             errorLimit = (this._app.config.get('limits').fwclouds > 0 && result.length >= this._app.config.get('limits').fwclouds)
         });
@@ -50,8 +53,6 @@ export class FwCloudController extends Controller {
         if(errorLimit) {
             return ResponseBuilder.buildResponse().status(403).body(fwcError.LIMIT_FWCLOUDS)
         } else {
-            (await FwCloudPolicy.store(request.session.user)).authorize();
-
             const fwCloud: FwCloud = await this._fwCloudService.store({
                 name: request.body.name,
                 image: request.body.image,
