@@ -204,7 +204,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 						comment: ''
 					})
 					.set('Cookie',[attachSession(adminUserSessionId)])
-					.expect(403, {data:{"fwcErr": 8000, "msg": "The maximum of available FwClouds has been reached"},response:"Forbidden",status:403})
+					.expect(403, {data:{"fwcErr": 8000, "msg": "The maximum of available FWClouds has been reached"},response:"Forbidden",status:403})
 			})
 
 			it('the limit is less than the number of fwclouds',async ()=>{
@@ -226,7 +226,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 						comment: ''
 					})
 					.set('Cookie',[attachSession(adminUserSessionId)])
-					.expect(403, {data:{"fwcErr": 8000, "msg": "The maximum of available FwClouds has been reached"},response:"Forbidden",status:403})
+					.expect(403, {data:{"fwcErr": 8000, "msg": "The maximum of available FWClouds has been reached"},response:"Forbidden",status:403})
 			})
 		})
 	});

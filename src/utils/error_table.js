@@ -79,7 +79,7 @@ var errorTable = {
   "ACC_IPTABLES_MARK":    {"fwcErr": 7009, "msg": "IPTables mark access not allowed"},
 
   //Limit
-  "LIMIT_FWCLOUDS":       {"fwcErr": 8000, "msg": "The maximum of available FwClouds has been reached"},
+  "LIMIT_FWCLOUDS":       {"fwcErr": 8000, "msg": "The maximum of available FWClouds has been reached"},
   "LIMIT_FIREWALLS":      {"fwcErr": 8001, "msg": "The maximum of available Firewalls has been reached"},
   "LIMIT_CLUSTERS":       {"fwcErr": 8002, "msg": "The maximum of available Clusters has been reached"},
   "LIMIT_NODES":          {"fwcErr": 8003, "msg": "The maximum of available Nodes in Cluster has been reached"},
