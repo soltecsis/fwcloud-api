@@ -554,9 +554,6 @@ router.put('/clone', async (req, res) => {
 		if(clusters.length >= app().config.get('limits').clusters && app().config.get('limits').clusters>0) {
 			throw fwcError.LIMIT_CLUSTERS
 		}
-		if(fwnodes.length > app().config.get('limits').nodes && app().config.get('limits').nodes > 0) {
-			throw fwcError.LIMIT_NODES
-		}
 		var iduser = req.session.user_id;
 		var fwcloud = req.body.fwcloud;
 		var idCluster = req.body.cluster;
