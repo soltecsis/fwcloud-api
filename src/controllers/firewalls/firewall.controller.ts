@@ -237,38 +237,4 @@ export class FirewallController extends Controller {
             throw error;
         }
     }
-
-    @Validate()
-    async configCommunication(request: Request): Promise<ResponseBuilder> {
-        const input = request.body;
-
-        (await FirewallPolicy.ping(this._fwCloud,request.session.user)).authorize();
-        //Hay que tener cuidado de como se obtienen los datos y demas pero bueno ya estaria
-        try {
-            let communication: Communication<unknown>;
-            if (input.install_communication === FirewallInstallCommunication.SSH) {
-                communication = new SSHCommunication({
-                    host: StringHelper.randomize(10),
-                    port: 1234,
-                    username: StringHelper.randomize(10),
-                    password: StringHelper.randomize(10),
-                    options: null
-                })
-            } else {
-                communication = new AgentCommunication({
-                    host: StringHelper.randomize(10),
-                    port: 1234,
-                    protocol: 'http',
-                    apikey: StringHelper.randomize(10)
-                })
-            }
-
-            const content: boolean = await communication.getConfigValue();
-
-            return ResponseBuilder.buildResponse().status(200).body(content);
-        }catch (error) {
-            throw error;
-        }
-        
-    }
 }

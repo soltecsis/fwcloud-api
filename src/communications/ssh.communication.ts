@@ -221,8 +221,4 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     installPlugin(name: string,enabled: boolean): Promise<string> {
         throw new Error("Method not implemented.");
     }
-
-    getConfigValue(): Promise <boolean> {
-        return app().config.get('session.ssh_enable');
-    }
 }

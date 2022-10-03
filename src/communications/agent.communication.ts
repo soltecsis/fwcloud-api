@@ -409,8 +409,4 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
         return super.handleRequestException(error, eventEmitter);
     }
-
-    getConfigValue(): Promise <boolean> {
-        return new Promise((resolve,reject)=> resolve(true));
-    }
 }
