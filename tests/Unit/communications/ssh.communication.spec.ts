@@ -42,7 +42,7 @@ describe(SSHCommunication.name, () => {
     describe('Disabled from configuration',()=>{
         beforeEach(()=>{
             app = testSuite.app;
-            app.config.set('session.ssh_enable',false);
+            app.config.set('firewall_communication.ssh_enable',false);
         });
 
         it('install a firewall policy and communication is disabled, it should throw an error', async () => {

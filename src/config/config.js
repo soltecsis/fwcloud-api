@@ -172,12 +172,6 @@ const config = convict({
 			at the API calls generated in his we browser (for example, using the web developer tools) 
 			he is able to see passwords in plain text in the body of the API requests. */    
       default: 2048
-    },
-    ssh_enable: {
-      doc: 'Flag to be able to communicate via ssh',
-      format: Boolean,
-      env: 'SESSION_SSH_COMMUNICATION',
-      default: true
     }
 	},
 
@@ -537,8 +531,15 @@ const config = convict({
       default: 300000,
       env: 'SOCKET_IO_PING_TIMEOUT'
     },
+  },
+  firewall_communication:{
+    ssh_enable: {
+      doc: 'SSH communication flag',
+      format: Boolean,
+      env: 'SSH_COMMUNICATION_ENABLED',
+      default: true
+    }
   }
-  
 });
 
 

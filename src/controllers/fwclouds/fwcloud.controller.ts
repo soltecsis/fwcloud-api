@@ -84,7 +84,7 @@ export class FwCloudController extends Controller {
     public async getConfig(): Promise<ResponseBuilder> {
         let availablecommunications: string[] = ['agent'];
 
-        if(this._app.config.get('session').ssh_enable) {
+        if(this._app.config.get('firewall_communication').ssh_enable) {
             availablecommunications = ['agent', 'ssh']
         }
 

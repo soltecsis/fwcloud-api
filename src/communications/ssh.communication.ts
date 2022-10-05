@@ -23,7 +23,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async installFirewallPolicy(scriptPath: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         try {
-            if(!app().config.get('session.ssh_enable')) {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
                 throw fwcError.SSH_COMMUNICATION_DISABLE
             }
             eventEmitter.emit('message', new ProgressNoticePayload(`Uploading firewall script (${this.connectionData.host})`));
@@ -53,7 +53,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async installOpenVPNServerConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<void> {
         try {
-            if(!app().config.get('session.ssh_enable')) {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
                 throw fwcError.SSH_COMMUNICATION_DISABLE;
             }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
@@ -84,7 +84,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async installOpenVPNClientConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
         try {
-            if(!app().config.get('session.ssh_enable')) {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
                 throw fwcError.SSH_COMMUNICATION_DISABLE;
             }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
@@ -115,7 +115,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async uninstallOpenVPNConfigs(dir: string, files: string[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
         try {
-            if(!app().config.get('session.ssh_enable')) {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
                 throw fwcError.SSH_COMMUNICATION_DISABLE;
             }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
@@ -134,7 +134,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async getFirewallInterfaces(): Promise<string> {
         try {
-            if(!app().config.get('session.ssh_enable')) {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
                 throw fwcError.SSH_COMMUNICATION_DISABLE;
             }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
@@ -150,7 +150,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async getFirewallIptablesSave(): Promise<string[]> {
         try {
-            if(!app().config.get('session.ssh_enable')) {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
                 throw fwcError.SSH_COMMUNICATION_DISABLE;
             }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
@@ -168,7 +168,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async ccdHashList(dir: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<CCDHash[]> {
         try {
-            if(!app().config.get('session.ssh_enable')) {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
                 throw fwcError.SSH_COMMUNICATION_DISABLE;
             }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
@@ -194,7 +194,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async getRealtimeStatus(statusFilepath: string): Promise<string> {
         try {
-            if(!app().config.get('session.ssh_enable')) {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
                 throw fwcError.SSH_COMMUNICATION_DISABLE;
             }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
