@@ -532,7 +532,6 @@ const config = convict({
       env: 'SOCKET_IO_PING_TIMEOUT'
     },
   },
-
   limits: {
     fwclouds: {
       doc: 'Limit number of fwclouds that a user can create at most.',
@@ -557,9 +556,15 @@ const config = convict({
       format: Number,
       env: 'LIMIT_NODES',
       default: 0
+  },
+  firewall_communication:{
+    ssh_enable: {
+      doc: 'SSH communication flag',
+      format: Boolean,
+      env: 'SSH_COMMUNICATION_ENABLED',
+      default: true
     }
   }
-  
 });
 
 
