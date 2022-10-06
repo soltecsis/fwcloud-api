@@ -531,15 +531,8 @@ const config = convict({
       default: 300000,
       env: 'SOCKET_IO_PING_TIMEOUT'
     },
-  },
-  firewall_communication:{
-    ssh_enable: {
-      doc: 'SSH communication flag',
-      format: Boolean,
-      env: 'SSH_COMMUNICATION_ENABLED',
-      default: true
-    }
   }
+  
 });
 
 
