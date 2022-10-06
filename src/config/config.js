@@ -556,6 +556,7 @@ const config = convict({
       format: Number,
       env: 'LIMIT_NODES',
       default: 0
+    }
   },
   firewall_communication:{
     ssh_enable: {
