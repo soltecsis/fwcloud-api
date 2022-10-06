@@ -16,6 +16,8 @@ import { RoutingTable } from "../../../src/models/routing/routing-table/routing-
 import { RoutingRule } from "../../../src/models/routing/routing-rule/routing-rule.model";
 import { RoutingRuleService } from "../../../src/models/routing/routing-rule/routing-rule.service";
 import { Mark } from "../../../src/models/ipobj/Mark";
+import { Tree, TreeNode } from "../../../src/models/tree/Tree";
+import db from "../../../src/database/database-manager";
 
 describe(describeName('Firewall E2E Tests'), () => {
     let app: Application;
@@ -254,6 +256,238 @@ describe(describeName('Firewall E2E Tests'), () => {
                 expect(response.body.data).to.have.length(2);
             })
         });
+    })
+
+    describe('FirewallController@limits',()=>{
+        let tree: TreeNode;
+        beforeEach(async ()=> {
+            const response = await request(app.express)
+                .post(_URL().getURL('fwclouds.store'))
+                .send({
+                    name: StringHelper.randomize(10),
+                    image: '',
+                    comment: ''
+                })
+                .set('Cookie',[attachSession(adminUserSessionId)]);
+            
+                
+            fwCloud = response.body.data
+            tree = await Tree.dumpTree(db.getQuery(), 'FIREWALLS', fwCloud.id);
+        }) 
+
+        it('the limit is greater than the number of firewalls',async ()=>{
+            let numberFirewalls: number;
+
+            await request(app.express)
+                .post('/firewall')
+                .send(
+                    {
+                        name: StringHelper.randomize(10),
+                        fwcloud: fwCloud.id,
+                        install_communication: 'agent',
+                        install_protocol: 'http',
+                        install_apikey: null,
+                        install_port:33033,
+                        save_user_pass: 0,
+                        fwmaster: 0,
+                        options: 3,
+                        plugins: 0,
+                        node_id: tree.id
+                    }
+                )
+                .set('Cookie',[attachSession(adminUserSessionId)])
+            await request(app.express)
+                .post('/firewall')
+                .send(
+                    {
+                        name: StringHelper.randomize(10),
+                        fwcloud: fwCloud.id,
+                        install_communication: 'agent',
+                        install_protocol: 'http',
+                        install_apikey: null,
+                        install_port:33033,
+                        save_user_pass: 0,
+                        fwmaster: 0,
+                        options: 3,
+                        plugins: 0,
+                        node_id: tree.id
+                    }
+                )
+                .set('Cookie',[attachSession(adminUserSessionId)])
+
+            await request(app.express)
+                .put('/firewall/cloud/get')
+                .send({fwcloud: fwCloud.id})
+                .set('Cookie',[attachSession(adminUserSessionId)])
+                .then(response => {
+                    numberFirewalls = response.body.length? response.body.length : 0; 
+                })
+
+            app.config.set('limits.firewalls',numberFirewalls + 1)
+
+            return await request(app.express)
+                .post('/firewall')
+                .send(
+                    {
+                        name: StringHelper.randomize(10),
+                        fwcloud: fwCloud.id,
+                        install_communication: 'agent',
+                        install_protocol: 'http',
+                        install_apikey: null,
+                        install_port:33033,
+                        save_user_pass: 0,
+                        fwmaster: 0,
+                        options: 3,
+                        plugins: 0,
+                        node_id: tree.id
+                    }
+                )
+                .set('Cookie',[attachSession(adminUserSessionId)])
+                .expect(200)
+        })
+
+        it('the limit is equals than the number of firewalls',async ()=>{
+            let numberFirewalls: number;
+            
+            await request(app.express)
+                .post('/firewall')
+                .send(
+                    {
+                        name: StringHelper.randomize(10),
+                        fwcloud: fwCloud.id,
+                        install_communication: 'agent',
+                        install_protocol: 'http',
+                        install_apikey: null,
+                        install_port:33033,
+                        save_user_pass: 0,
+                        fwmaster: 0,
+                        options: 3,
+                        plugins: 0,
+                        node_id: tree.id
+                    }
+                )
+                .set('Cookie',[attachSession(adminUserSessionId)])
+            await request(app.express)
+                .post('/firewall')
+                .send(
+                    {
+                        name: StringHelper.randomize(10),
+                        fwcloud: fwCloud.id,
+                        install_communication: 'agent',
+                        install_protocol: 'http',
+                        install_apikey: null,
+                        install_port:33033,
+                        save_user_pass: 0,
+                        fwmaster: 0,
+                        options: 3,
+                        plugins: 0,
+                        node_id: tree.id
+                    }
+                )
+                .set('Cookie',[attachSession(adminUserSessionId)])
+            
+            await request(app.express)
+                .put('/firewall/cloud/get')
+                .send({fwcloud: fwCloud.id})
+                .set('Cookie',[attachSession(adminUserSessionId)])
+                .then(response => {
+                    numberFirewalls = response.body.length? response.body.length : 0; 
+                })
+
+            app.config.set('limits.firewalls',numberFirewalls)
+
+            return await request(app.express)
+                .post('/firewall')
+                .send(
+                    {
+                        name: StringHelper.randomize(10),
+                        fwcloud: fwCloud.id,
+                        install_communication: 'agent',
+                        install_protocol: 'http',
+                        install_apikey: null,
+                        install_port:33033,
+                        save_user_pass: 0,
+                        fwmaster: 0,
+                        options: 3,
+                        plugins: 0,
+                        node_id: tree.id
+                    }
+                )
+                .set('Cookie',[attachSession(adminUserSessionId)])
+                .expect(400, {"fwcErr": 8001, "msg": "The maximum of available Firewalls has been reached"})
+
+        })
+
+        it('the limit is less than the number of firewalls',async ()=>{
+            let numberFirewalls: number;
+            
+            await request(app.express)
+                .post('/firewall')
+                .send(
+                    {
+                        name: StringHelper.randomize(10),
+                        fwcloud: fwCloud.id,
+                        install_communication: 'agent',
+                        install_protocol: 'http',
+                        install_apikey: null,
+                        install_port:33033,
+                        save_user_pass: 0,
+                        fwmaster: 0,
+                        options: 3,
+                        plugins: 0,
+                        node_id: tree.id
+                    }
+                )
+                .set('Cookie',[attachSession(adminUserSessionId)])
+            await request(app.express)
+                .post('/firewall')
+                .send(
+                    {
+                        name: StringHelper.randomize(10),
+                        fwcloud: fwCloud.id,
+                        install_communication: 'agent',
+                        install_protocol: 'http',
+                        install_apikey: null,
+                        install_port:33033,
+                        save_user_pass: 0,
+                        fwmaster: 0,
+                        options: 3,
+                        plugins: 0,
+                        node_id: tree.id
+                    }
+                )
+                .set('Cookie',[attachSession(adminUserSessionId)])
+
+            await request(app.express)
+                .put('/firewall/cloud/get')
+                .send({fwcloud: fwCloud.id})
+                .set('Cookie',[attachSession(adminUserSessionId)])
+                .then(response => {
+                    numberFirewalls = response.body.length? response.body.length : 0; 
+                })
+            app.config.set('limits.firewalls',numberFirewalls - 1)
+
+            return await request(app.express)
+                .post('/firewall')
+                .send(
+                    {
+                        name: StringHelper.randomize(10),
+                        fwcloud: fwCloud.id,
+                        install_communication: 'agent',
+                        install_protocol: 'http',
+                        install_apikey: null,
+                        install_port:33033,
+                        save_user_pass: 0,
+                        fwmaster: 0,
+                        options: 3,
+                        plugins: 0,
+                        node_id: tree.id
+                    }
+                )
+                .set('Cookie',[attachSession(adminUserSessionId)])
+                .expect(400, {"fwcErr": 8001, "msg": "The maximum of available Firewalls has been reached"})
+
+        })
     })
 
 })

@@ -31,6 +31,8 @@ import { FwCloudPolicy } from "../../policies/fwcloud.policy";
 import { FwCloudControllerStoreDto } from "./dtos/store.dto";
 import { FwCloudControllerUpdateDto } from "./dtos/update.dto";
 
+const fwcError = require('../../utils/error_table');
+
 export class FwCloudController extends Controller {
     protected _fwCloudService: FwCloudService;
 
@@ -40,16 +42,25 @@ export class FwCloudController extends Controller {
 
     @Validate(FwCloudControllerStoreDto)
     public async store(request: Request): Promise<ResponseBuilder> {
+        let errorLimit:boolean = false;
         
         (await FwCloudPolicy.store(request.session.user)).authorize();
 
-        const fwCloud: FwCloud = await this._fwCloudService.store({
-            name: request.body.name,
-            image: request.body.image,
-            comment: request.body.comment
+        await FwCloud.getFwclouds(request.dbCon, request.session.user_id).then((result: FwCloud[]) => {
+            errorLimit = (this._app.config.get('limits').fwclouds > 0 && result.length >= this._app.config.get('limits').fwclouds)
         });
 
-        return ResponseBuilder.buildResponse().status(201).body(fwCloud);
+        if(errorLimit) {
+            return ResponseBuilder.buildResponse().status(403).body(fwcError.LIMIT_FWCLOUDS)
+        } else {
+            const fwCloud: FwCloud = await this._fwCloudService.store({
+                name: request.body.name,
+                image: request.body.image,
+                comment: request.body.comment
+            });
+
+            return ResponseBuilder.buildResponse().status(201).body(fwCloud);
+        }
     }
 
     @Validate(FwCloudControllerUpdateDto)
