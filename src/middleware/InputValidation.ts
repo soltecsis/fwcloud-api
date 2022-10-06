@@ -41,7 +41,7 @@ export class InputValidation extends Middleware {
         }
 
         const item1 = req.url.split('/')[1];
-        const item1_valid_list = ['user', 'customer', 'fwcloud', 'firewall', 'cluster', 'policy', 'interface', 'ipobj', 'tree', 'vpn', 'config'];
+        const item1_valid_list = ['user', 'customer', 'fwcloud', 'firewall', 'cluster', 'policy', 'interface', 'ipobj', 'tree', 'vpn'];
 
         const item1_new_route_system = ['backups', 'version', 'fwclouds', 'updates', 'iptables-save', 'ping', 'profile', 'openvpnarchives'];
 
@@ -64,8 +64,7 @@ export class InputValidation extends Middleware {
             (req.method === 'GET' && req.url === '/ipobj/types') ||
             (req.method === 'GET' && req.url === '/ipobj/positions/policy') ||
             (req.method === 'GET' && req.url === '/policy/types') ||
-            (req.method === 'GET' && req.url === '/stream') ||
-            (req.method === 'GET' && req.url === '/config'))
+            (req.method === 'GET' && req.url === '/stream'))
             return next();
 
         try {

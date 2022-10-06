@@ -77,8 +77,6 @@ var errorTable = {
   "ACC_CRT_PREFIX":       {"fwcErr": 7007, "msg": "CRT prefix access not allowed"},
   "ACC_POLICY_RULE":      {"fwcErr": 7008, "msg": "Policy rule access not allowed"},
   "ACC_IPTABLES_MARK":    {"fwcErr": 7009, "msg": "IPTables mark access not allowed"},
-
-  "SSH_COMMUNICATION_DISABLE": {"fwcErr": 9000, "msg": "Communication by means of SSH is forbidden in the API"}
 };
 
 errorTable.other = msg => {
