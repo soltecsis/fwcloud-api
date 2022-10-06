@@ -42,73 +42,79 @@ describe(SSHCommunication.name, () => {
     describe('Disabled from configuration',()=>{
         beforeEach(()=>{
             app = testSuite.app;
-            app.config.set('firewall_communication.ssh_enable',false);
+            app.config.set('firewall_communication.ssh_enable', false);
         });
 
-        it('install a firewall policy and communication is disabled, it should throw an error', async () => {
-            await ssh.installFirewallPolicy("").catch(
+        it('install a firewall policy and communication is disabled, it should throw an error', (done) => {
+            ssh.installFirewallPolicy("").catch(
                 error => {
                     expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                    done();
                 }
             )
         });
 
-        it('install OpenVPN server configs and communication is disabled, it should throw an error',async () => {
-            await ssh.installOpenVPNServerConfigs("",[]).catch(
+        it('install OpenVPN server configs and communication is disabled, it should throw an error', (done) => {
+            ssh.installOpenVPNServerConfigs("",[]).catch(
                 error => {
                     expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                    done();
                 }
             )
         });
 
-        it('install OpenVPN client configs and communication is disabled, it should throw an error',async () => {
-            await ssh.installOpenVPNClientConfigs("",[]).catch(
+        it('install OpenVPN client configs and communication is disabled, it should throw an error', (done) => {
+            ssh.installOpenVPNClientConfigs("",[]).catch(
                 error => {
                     expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                    done();
                 }
             )
         });
 
-        it('unistall OpenVPN configs and communication is disabled, it should throw an error',async () => {
-            await ssh.uninstallOpenVPNConfigs("",[])
-            .then(res => {
-                expect(res).not.to.be.undefined;
-            })
+        it('unistall OpenVPN configs and communication is disabled, it should throw an error', (done) => {
+            
+            ssh.uninstallOpenVPNConfigs("",[])
             .catch(
                 error => {
                     expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                    done();
                 }
             )
         });
         
-        it('get firewalls interfaces and communication is disabled, it should throw an error',async ()=>{
-            await ssh.getFirewallInterfaces().catch(
+        it('get firewalls interfaces and communication is disabled, it should throw an error', (done)=>{
+            ssh.getFirewallInterfaces().catch(
                 error => {
                     expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                    done();
                 }
             )
         });
 
-        it('get firewalls IP tables and communication is disabled, it should throw an error',async () => {
-            await ssh.getFirewallIptablesSave().catch(
+        it('get firewalls IP tables and communication is disabled, it should throw an error', (done) => {
+            ssh.getFirewallIptablesSave().catch(
                 error => {
                     expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                    done();
                 }
             )
         });
 
-        it('get CCD hash list and communication is disabled, it should throw an error', async () => {
-            await ssh.ccdHashList("").catch(
+        it('get CCD hash list and communication is disabled, it should throw an error', (done) => {
+            ssh.ccdHashList("").catch(
                 error => {
                     expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE)
+                    done();
                 }
             )
         });
 
-        it('get real time status and communication is disabled, it should throw an error', async () => {
-            await ssh.getRealtimeStatus("").catch(
+        it('get real time status and communication is disabled, it should throw an error', (done) => {
+            ssh.getRealtimeStatus("").catch(
                 error => {
                     expect(error).equal(errorTable.SSH_COMMUNICATION_DISABLE);
+                    done();
                 }
             )
         });
