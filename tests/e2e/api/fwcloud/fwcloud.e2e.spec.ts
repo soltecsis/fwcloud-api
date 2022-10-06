@@ -161,5 +161,73 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 					.expect(400,{fwcErr: 7000, msg: "FWCloud access not allowed"});
 			});
 		});
+
+		describe('FwCloudManagement@limit',()=>{
+			it('the limit is greater than the number of fwclouds', async () => {
+				let numberFwclouds: number;
+				await request(app.express)
+					.get('/fwcloud/all/get')
+					.set('Cookie', [attachSession(adminUserSessionId)])
+					.then(response => {
+						numberFwclouds = response.body.length
+					});
+				
+				app.config.set('limits.fwclouds', numberFwclouds + 1);
+
+				return await request(app.express)
+					.post(_URL().getURL('fwclouds.store'))
+					.send({
+						name: StringHelper.randomize(10),
+						image: '',
+						comment: ''
+					})
+					.set('Cookie',[attachSession(adminUserSessionId)])
+					.expect(201)
+			})
+
+			it('the limit is equals than the number of fwclouds',async ()=>{
+				let numberFwclouds: number;
+				await request(app.express)
+					.get('/fwcloud/all/get')
+					.set('Cookie', [attachSession(adminUserSessionId)])
+					.then(response => { 
+						numberFwclouds = response.body.length
+					});
+				
+				app.config.set('limits.fwclouds', numberFwclouds);
+
+				return await request(app.express)
+					.post((_URL().getURL('fwclouds.store')))
+					.send({
+						name: StringHelper.randomize(10),
+						image: '',
+						comment: ''
+					})
+					.set('Cookie',[attachSession(adminUserSessionId)])
+					.expect(403, {data:{"fwcErr": 8000, "msg": "The maximum of available FWClouds has been reached"},response:"Forbidden",status:403})
+			})
+
+			it('the limit is less than the number of fwclouds',async ()=>{
+				let numberFwclouds: number;
+				await request(app.express)
+					.get('/fwcloud/all/get')
+					.set('Cookie', [attachSession(adminUserSessionId)])
+					.then(response => { 
+						numberFwclouds = response.body.length
+					});
+				
+				app.config.set('limits.fwclouds', numberFwclouds - 1);
+
+				return await request(app.express)
+					.post((_URL().getURL('fwclouds.store')))
+					.send({
+						name: StringHelper.randomize(10),
+						image: '',
+						comment: ''
+					})
+					.set('Cookie',[attachSession(adminUserSessionId)])
+					.expect(403, {data:{"fwcErr": 8000, "msg": "The maximum of available FWClouds has been reached"},response:"Forbidden",status:403})
+			})
+		})
 	});
 });
