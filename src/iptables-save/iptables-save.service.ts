@@ -129,7 +129,12 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
 
     try {
       request.body.data = await communication.getFirewallIptablesSave();
-    } catch(err) { throw new HttpException(`${err.message} `,401); }
+    } catch(err) {
+      if(err.fwcErr == 9000) {
+        throw new HttpException(err.msg,400);
+      }
+      throw new HttpException(`${err.message} `,401);
+    }
 		
     await this.import(request);
     return this.stats;
@@ -159,7 +164,12 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
 
       result = await communication.getFirewallIptablesSave();
 
-    } catch(err) { throw new HttpException(`${err.message} `,401); }
+    } catch(err) { 
+      if(err.fwcErr == 9000) {
+        throw new HttpException(err.msg,400);
+      }
+      throw new HttpException(`${err.message} `,401);
+    }
    
     return result;
   }

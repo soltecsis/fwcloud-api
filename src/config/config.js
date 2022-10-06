@@ -566,7 +566,6 @@ const config = convict({
       default: true
     }
   }
-  
 });
 
 

@@ -21,11 +21,14 @@
 */
 
 import { EventEmitter } from "events";
+import { app } from "../fonaments/abstract-application";
+import { FwCloudError } from "../fonaments/exceptions/error";
 import { FireWallOptMask } from "../models/firewall/Firewall";
 import { ProgressInfoPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
 import sshTools from "../utils/ssh";
 import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord } from "./communication";
 var config = require('../config/config');
+const fwcError = require('../utils/error_table');
 
 type SSHConnectionData = {
     host: string;
@@ -42,6 +45,9 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async installFirewallPolicy(scriptPath: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         try {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
+                throw fwcError.SSH_COMMUNICATION_DISABLE
+            }
             eventEmitter.emit('message', new ProgressNoticePayload(`Uploading firewall script (${this.connectionData.host})`));
             await sshTools.uploadFile(this.connectionData, scriptPath, config.get('policy').script_name);
 
@@ -69,6 +75,9 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async installOpenVPNServerConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<void> {
         try {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
+                throw fwcError.SSH_COMMUNICATION_DISABLE;
+            }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
 
             const existsDir = await sshTools.runCommand(this.connectionData, `if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
@@ -97,6 +106,9 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async installOpenVPNClientConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
         try {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
+                throw fwcError.SSH_COMMUNICATION_DISABLE;
+            }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
 
             const existsDir = await sshTools.runCommand(this.connectionData, `if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`);
@@ -125,7 +137,9 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async uninstallOpenVPNConfigs(dir: string, files: string[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
         try {
-            
+            if(!app().config.get('firewall_communication.ssh_enable')) {
+                throw fwcError.SSH_COMMUNICATION_DISABLE;
+            }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
 
             for(let file of files) {
@@ -142,6 +156,9 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async getFirewallInterfaces(): Promise<string> {
         try {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
+                throw fwcError.SSH_COMMUNICATION_DISABLE;
+            }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
             const data: any = await sshTools.runCommand(this.connectionData, `${sudo} ip a`);
 
@@ -155,6 +172,9 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async getFirewallIptablesSave(): Promise<string[]> {
         try {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
+                throw fwcError.SSH_COMMUNICATION_DISABLE;
+            }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
             const data: string = await sshTools.runCommand(this.connectionData, `${sudo} iptables-save`);
             let iptablesSaveOutput: string[] = data.split('\r\n');
@@ -170,6 +190,9 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async ccdHashList(dir: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<CCDHash[]> {
         try {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
+                throw fwcError.SSH_COMMUNICATION_DISABLE;
+            }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
 
             eventEmitter.emit('message', new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`));
@@ -193,6 +216,9 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
     async getRealtimeStatus(statusFilepath: string): Promise<string> {
         try {
+            if(!app().config.get('firewall_communication.ssh_enable')) {
+                throw fwcError.SSH_COMMUNICATION_DISABLE;
+            }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
             let data = await sshTools.runCommand(this.connectionData, `${sudo} cat "${statusFilepath}"`);
             // Remove the first line ()
