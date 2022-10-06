@@ -20,6 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+
 import { Controller } from "../../fonaments/http/controller";
 import { Firewall, FirewallInstallCommunication } from "../../models/firewall/Firewall";
 import { getRepository } from "typeorm";
@@ -44,6 +45,7 @@ import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { PgpHelper } from "../../utils/pgp";
 import { PluginDto } from './dtos/plugin.dto';
+import StringHelper from "../../utils/string.helper";
 
 export class FirewallController extends Controller {
     

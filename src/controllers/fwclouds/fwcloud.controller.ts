@@ -20,6 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+
 import { Controller } from "../../fonaments/http/controller";
 import { Request } from "express";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
@@ -89,5 +90,16 @@ export class FwCloudController extends Controller {
         let colors: colorUsage[] = await this._fwCloudService.colors(fwCloud);
 
         return ResponseBuilder.buildResponse().status(200).body(colors);
+    }
+
+    @Validate()
+    public async getConfig(): Promise<ResponseBuilder> {
+        let availablecommunications: string[] = ['agent'];
+
+        if(this._app.config.get('firewall_communication').ssh_enable) {
+            availablecommunications = ['agent', 'ssh']
+        }
+
+        return ResponseBuilder.buildResponse().status(200).body({availablecommunications});
     }
 }

@@ -20,6 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+
 import { Middleware } from "../fonaments/http/middleware/Middleware";
 import fwcError from '../utils/error_table';
 import { User } from '../models/user/User';
@@ -31,7 +32,7 @@ import { timeStamp } from "console";
 export class Authorization extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction) {
         // Exclude the login route.
-        if (req.method === 'POST' && req.path === '/user/login') {
+        if (req.method === 'POST' && req.path === '/user/login' || req.method === 'GET' && req.path === '/config') {
             return next();
         }
 
