@@ -243,5 +243,9 @@ export class Routes extends RouteCollection {
                 router.delete('/',TfaController,'deleteSetup').name('profile.tfa.setup.delete')
             })
         });
+
+        router.prefix('/config',(router: RouterParser) => {
+            router.get('/',FwCloudController,'getConfig').name('config.get')
+        })
     }
 }
