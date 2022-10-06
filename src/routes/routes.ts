@@ -1,5 +1,3 @@
-import { OpenVPNArchiveConfigController } from './../controllers/firewalls/openvpn/archive/config/openvpn-archive-config.controller';
-import { OpenVPNArchiveController } from './../controllers/firewalls/openvpn/archive/openvpn-archive.controller';
 /*!
     Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
@@ -22,6 +20,8 @@ import { OpenVPNArchiveController } from './../controllers/firewalls/openvpn/arc
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { OpenVPNArchiveConfigController } from './../controllers/firewalls/openvpn/archive/config/openvpn-archive-config.controller';
+import { OpenVPNArchiveController } from './../controllers/firewalls/openvpn/archive/openvpn-archive.controller';
 import { RouteCollection } from "../fonaments/http/router/route-collection";
 import { BackupController } from "../controllers/backups/backup.controller";
 import { BackupConfigController } from "../controllers/backups/backup-config/backup-config.controller";

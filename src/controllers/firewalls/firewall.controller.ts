@@ -20,6 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+
 import { Controller } from "../../fonaments/http/controller";
 import { Firewall, FirewallInstallCommunication } from "../../models/firewall/Firewall";
 import { getRepository } from "typeorm";
