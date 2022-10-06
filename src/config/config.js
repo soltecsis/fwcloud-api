@@ -531,6 +531,40 @@ const config = convict({
       default: 300000,
       env: 'SOCKET_IO_PING_TIMEOUT'
     },
+  },
+  limits: {
+    fwclouds: {
+      doc: 'Limit number of fwclouds that a user can create at most.',
+      format: Number,
+      env: 'LIMIT_FWCLOUDS',
+      default: 0
+    },
+    firewalls: {
+      doc: 'Limit number of firewalls that a user can create at most.',
+      format: Number,
+      env: 'LIMIT_FIREWALLS',
+      default: 0
+    },
+    clusters: {
+      doc: 'Limit number of clusters that a user can create at most.',
+      format: Number,
+      env: 'LIMIT_CLUSTERS',
+      default: 0
+    },
+    nodes: {
+      doc: 'Limit number of nodes within a cluster that a user can create at most.',
+      format: Number,
+      env: 'LIMIT_NODES',
+      default: 0
+    }
+  },
+  firewall_communication:{
+    ssh_enable: {
+      doc: 'SSH communication flag',
+      format: Boolean,
+      env: 'SSH_COMMUNICATION_ENABLED',
+      default: true
+    }
   }
   
 });

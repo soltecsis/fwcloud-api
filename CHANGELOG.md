@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2022-10-06
+### Added
+- Configuration that allows disabling communication with firewalls by means of SSH protocol.
+- Configuration options for limit the amount of FWClouds that can be created and, into each fwcloud, the amount of firewalls, clusters and nodes within a cluster.
+
+
 ## [1.6.0] - 2022-09-22
 ### Added
 - Mutex for avoir race conditions in backup tasks.

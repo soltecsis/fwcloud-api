@@ -34,6 +34,8 @@ import moment from "moment";
 import { Channel } from "../../../sockets/channels/channel";
 import { FwCloudExportControllerImportDto } from "./dtos/import.dto";
 
+const fwcError = require('../../../utils/error_table');
+
 export class FwCloudExportController extends Controller {
     protected _fwCloudExportService: FwCloudExportService;
 
@@ -56,13 +58,22 @@ export class FwCloudExportController extends Controller {
 
     @Validate(FwCloudExportControllerImportDto)
     public async import(request: Request): Promise<ResponseBuilder> {
-
+        let errorLimit:boolean = false;
+        
         (await FwCloudExportPolicy.import(request.session.user)).authorize();
+        
+        await FwCloud.getFwclouds(request.dbCon, request.session.user_id).then((result: FwCloud[]) => {
+            errorLimit = (this._app.config.get('limits').fwclouds > 0 && result.length >= this._app.config.get('limits').fwclouds)
+        });
 
-        const channel: Channel = await Channel.fromRequest(request);
+        if(errorLimit) {
+            return ResponseBuilder.buildResponse().status(403).body(fwcError.LIMIT_FWCLOUDS)
+        } else {
+            const channel: Channel = await Channel.fromRequest(request);
 
-        const fwCloud: FwCloud = await this._fwCloudExportService.import((<FileInfo>request.inputs.get('file')).filepath, request.session.user, channel);
+            const fwCloud: FwCloud = await this._fwCloudExportService.import((<FileInfo>request.inputs.get('file')).filepath, request.session.user, channel);
 
-        return ResponseBuilder.buildResponse().status(201).body(fwCloud);
+            return ResponseBuilder.buildResponse().status(201).body(fwCloud);
+        }
     }
 }

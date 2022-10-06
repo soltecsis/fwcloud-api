@@ -77,6 +77,14 @@ var errorTable = {
   "ACC_CRT_PREFIX":       {"fwcErr": 7007, "msg": "CRT prefix access not allowed"},
   "ACC_POLICY_RULE":      {"fwcErr": 7008, "msg": "Policy rule access not allowed"},
   "ACC_IPTABLES_MARK":    {"fwcErr": 7009, "msg": "IPTables mark access not allowed"},
+  
+  //Limit
+  "LIMIT_FWCLOUDS":       {"fwcErr": 8000, "msg": "The maximum of available FWClouds has been reached"},
+  "LIMIT_FIREWALLS":      {"fwcErr": 8001, "msg": "The maximum of available Firewalls has been reached"},
+  "LIMIT_CLUSTERS":       {"fwcErr": 8002, "msg": "The maximum of available Clusters has been reached"},
+  "LIMIT_NODES":          {"fwcErr": 8003, "msg": "The maximum of available Nodes in Cluster has been reached"},
+
+  "SSH_COMMUNICATION_DISABLE": {"fwcErr": 9000, "msg": "Communication by means of SSH is forbidden in the API"}
 };
 
 errorTable.other = msg => {
