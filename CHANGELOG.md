@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] -
 ### Added
 - Configuration for limit the amount of fwclouds that we can create and, into each fwcloud, the amount of firewalls, clusters and nodes within a cluster.
+- Configuration that allows disabling ssh communication for security reasons.
 
 ## [1.6.0] - 2022-09-22
 ### Added
