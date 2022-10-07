@@ -116,7 +116,7 @@
     "chai-json-schema": "^1.5.1",
     "cookie": "0.4.0",
     "cookie-signature": "1.1.0",
-    "mocha": "^9.1.3",
+    "mocha": "^9.2.2",
     "sinon": "9.0.0",
     "supertest": "4.0.2",
     "tree-kill": "1.2.2"
