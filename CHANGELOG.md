@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 
+### Changed
+- Only run GitHub actions on pull requests over the `devel` branch and on `push` over the `main` branch.
+- Avoid running GitHub actions in the repository forks.
+- Changed the default repository branch to `devel` in order to avoid the generation of pull requests over the `main` branch by mistake. 
+
+
 ## [1.6.2] - 2022-10-06
 ### Fix
 - Commit revert problem in `main` branch.
