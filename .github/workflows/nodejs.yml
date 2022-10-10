@@ -1,9 +1,16 @@
 name: FWCloud-API CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - devel
 
 jobs:
   test:
+    if: github.repository_owner == 'soltecsis'
     name: 'FWCloud-API Test'
     runs-on: ubuntu-latest
 

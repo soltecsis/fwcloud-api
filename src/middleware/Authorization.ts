@@ -32,7 +32,7 @@ import { timeStamp } from "console";
 export class Authorization extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction) {
         // Exclude the login route.
-        if (req.method === 'POST' && req.path === '/user/login' || req.method === 'GET' && req.path === '/config') {
+        if (req.method === 'POST' && req.path === '/user/login') {
             return next();
         }
 
