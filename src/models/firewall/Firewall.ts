@@ -75,7 +75,11 @@ export enum PluginsFlags {
     suricata = 'suricata',
 		keepalived = 'keepalived',
 		zeek = 'zeek',
-		elk = 'elk'
+		elasticsearch = 'elasticsearch',
+		filebeat = 'filebeat',
+		websafetyproxy = 'websafetyproxy',
+		kibana = 'kibana',
+		logstash = 'logstash'
 }
 
 // Special rules codes.
