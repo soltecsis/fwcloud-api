@@ -72,7 +72,10 @@ export enum PluginsFlags {
     geoip = 'geoip',
     crowdsec = 'crowdsec',
     ntopng = 'ntopng',
-    suricata = 'suricata'
+    suricata = 'suricata',
+		keepalived = 'keepalived',
+		zeek = 'zeek',
+		elk = 'elk'
 }
 
 // Special rules codes.
