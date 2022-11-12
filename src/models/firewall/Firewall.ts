@@ -69,17 +69,18 @@ export enum FirewallInstallProtocol {
 
 export enum PluginsFlags {
 	openvpn = 'openvpn',
-    geoip = 'geoip',
-    crowdsec = 'crowdsec',
-    ntopng = 'ntopng',
-    suricata = 'suricata',
-		keepalived = 'keepalived',
-		zeek = 'zeek',
-		elasticsearch = 'elasticsearch',
-		filebeat = 'filebeat',
-		websafetyproxy = 'websafetyproxy',
-		kibana = 'kibana',
-		logstash = 'logstash'
+	geoip = 'geoip',
+	crowdsec = 'crowdsec',
+	ntopng = 'ntopng',
+	suricata = 'suricata',
+	keepalived = 'keepalived',
+	zeek = 'zeek',
+	elasticsearch = 'elasticsearch',
+	filebeat = 'filebeat',
+	websafety = 'websafety',
+	kibana = 'kibana',
+	logstash = 'logstash',
+	dnssafety = 'dnssafety'
 }
 
 // Special rules codes.
