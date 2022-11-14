@@ -6,6 +6,8 @@ export class addMoreStandardServices1668113712698 implements MigrationInterface 
         { id: 20095, name: "kibana", port: 5601, comment: "Kibana" },
         { id: 20096, name: "ntopng", port: 3000, comment: "NtopNG" },
         { id: 20097, name: "influxdb", port: 8086, comment: "InfluxDB" },
+        { id: 20098, name: "websafety-ui", port: 8095, comment: "Web Safety Proxy user interface" },
+        { id: 20099, name: "dnssafety-ui", port: 8096, comment: "DNS Safety user interface" },
     ];
 
     private async getTreeNodes(queryRunner: QueryRunner): Promise<any> {
