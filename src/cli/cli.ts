@@ -32,6 +32,7 @@ import { KeysGenerateCommand } from "./commands/keys-generate.command";
 import { Argument, Command, Option } from "./command";
 import { BackupCreateCommand } from './commands/backup-create.command';
 import { BackupRestoreCommand } from './commands/backup-restore.command';
+import { StandardServicesAddCommand } from './commands/standard-services-add.command';
 
 const commands: typeof Command[] = [
     MigrationResetCommand,
@@ -42,7 +43,8 @@ const commands: typeof Command[] = [
     RouteListCommand,
     KeysGenerateCommand,
     BackupCreateCommand,
-    BackupRestoreCommand
+    BackupRestoreCommand,
+    StandardServicesAddCommand
 ];
 
 class CLI {
