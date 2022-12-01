@@ -82,6 +82,7 @@ export class OpenVPNStatusHistoryService extends Service {
         const lastEntry: OpenVPNStatusHistory | undefined = await getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
             .where('history.openVPNServerId = :openvpn', {openvpn: serverOpenVPN.id})
             .orderBy('history.timestampInSeconds', 'DESC')
+            .limit(1)
             .getOne()
         
         let lastTimestampedBatch: OpenVPNStatusHistory[] = [];
