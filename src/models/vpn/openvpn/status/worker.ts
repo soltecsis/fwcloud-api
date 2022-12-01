@@ -12,11 +12,12 @@ async function iterate(application: Application): Promise<void> {
     try {
         const service: OpenVPNStatusHistoryService = await application.getService(OpenVPNStatusHistoryService.name);
 
+        // List of all OpenVPN servers with which we have to communicate.
         const openvpns: OpenVPN[] = await getRepository(OpenVPN).createQueryBuilder('openvpn')
             .innerJoin('openvpn.crt', 'crt')
             .innerJoinAndSelect('openvpn.firewall', 'firewall')
             .where('openvpn.parentId IS NULL')
-            .andWhere('crt.type =  2')
+            .andWhere('crt.type = 2')
             .andWhere('firewall.install_communication = :communication', {
                 communication: FirewallInstallCommunication.Agent
             }).getMany();
@@ -80,14 +81,16 @@ async function work(): Promise<void> {
     const application = await Application.run();
     const interval: number = application.config.get('openvpn.agent.history.interval');
 
-    application.logger().info(`Openvpn history worker started (collection interval:  ${interval} minutes).`)
+    application.logger().info(`Openvpn history worker started (collection interval: ${interval} minutes).`)
 
     while(true) {
         const t1: number = Date.now();
 
+        application.logger().debug(`Openvpn history worker: iterating at timestamp ${t1}`)
         await iterate(application);
 
         const msUntilConsumeInterval: number = (interval * 60 * 1000) - (Date.now() - t1);
+        application.logger().debug(`Openvpn history worker: pause of ${msUntilConsumeInterval}ms`)
         await waitUntilNextIteration(msUntilConsumeInterval);
     }
 }
