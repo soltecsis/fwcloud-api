@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2022-12-01
+### Added
+- Database migration for apply some new indexes to the `openvpn_status_history` table.
+- Debug logs for the worker that collects and processes OpenVPN history data.
+
+### Fixed
+- Out of memory error for OpenVPN history data worker (issue #569).
+
+
 ## [1.7.0] - 2022-11-18
 ### Added
 - fwcli command `standard:services:add` for add new standard services.
