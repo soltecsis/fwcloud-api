@@ -816,6 +816,10 @@ export class IptablesSaveToFWCloud extends Service {
     if (parseInt(srcPorts[1])<parseInt(srcPorts[0]) || parseInt(dstPorts[1])<parseInt(dstPorts[0]))
       throw new Error('End port must be equal or greater than start port');
 
+    // If all ports are 0 do nothing.
+    if (parseInt(srcPorts[0]) === 0 && parseInt(srcPorts[1]) === 0 && parseInt(dstPorts[0]) === 0 && parseInt(dstPorts[1]) === 0)
+      return;
+
     // Search to find out if it already exists.
     let portId: any = await IPObj.searchPort(this.req.dbCon,this.req.body.fwcloud,this.ipProtocol,srcPorts,dstPorts,tcpFlags,tcpFlagsSet);
 
