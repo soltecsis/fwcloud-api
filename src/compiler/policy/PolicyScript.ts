@@ -1,5 +1,5 @@
 /*
-	Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
 	https://soltecsis.com
 	info@soltecsis.com
 
@@ -133,6 +133,7 @@ export class PolicyScript {
 					/* Generate the policy script. */
 					this.policyCompiler = await Firewall.getFirewallCompiler(this.fwcloud, this.firewall);
 					this.stream.write(fs.readFileSync(config.get('policy').header_file, 'utf8'));
+					this.stream.write(`\nPOLICY_COMPILER="${this.policyCompiler}"\n\n`);
 					await this.greetingMessage();
 					await this.dumpFirewallOptions();
 
