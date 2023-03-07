@@ -62,13 +62,15 @@ updateTlsCertificate() {
   rm openssl.cnf
   rm "fwcloud-${1}.csr"
 
+  chown fwcloud:fwcloud "fwcloud-${1}.key" "fwcloud-${1}.crt"
+
   echo "DONE"
   echo
 }
 ################################################################
 
-if [ "`whoami`" != "fwcloud" ]; then
-  echo "ERROR: The $0 script must be run as fwcloud user."
+if [ "`whoami`" != "root" ]; then
+  echo "ERROR: The $0 script must be run as root user."
   echo
   exit 1
 fi
@@ -90,9 +92,9 @@ cd "$TLS_DIR"
 updateTlsCertificate "$1"
 
 echo 
-echo "Remember to restart service in order to use the new generated certificate."
-echo "As root or sudo user execute:"
-echo "systemctl restart fwcloud-${1}"
+echo "Restarting fwcloud-${1} service ..."
+systemctl restart fwcloud-${1}
+echo "DONE"
 echo
 
 exit 0
