@@ -11,7 +11,8 @@
 ##                                         ##
 #############################################
 
-TLS_DIR="./config/tls"
+TLSDIR="../config/tls"
+BASEDIR=$(dirname "$0")
 
 ################################################################
 passGen() {
@@ -81,13 +82,15 @@ if [ "$1" != "api" -a "$1" != "websrv" "$1" != "updater" ]; then
   exit 1
 fi
 
-if [ !-d "$TLS_DIR" ]; then
-  echo "ERROR: TLS directory $TLS_DIR doesn't exists."
+cd "$BASEDIR"
+
+if [ !-d "$TLSDIR" ]; then
+  echo "ERROR: TLS directory $TLSDIR doesn't exists."
   echo
   exit 1
 fi
 
-cd "$TLS_DIR"
+cd "$TLSDIR"
 
 updateTlsCertificate "$1"
 
