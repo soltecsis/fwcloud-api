@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 
 ### Added
 - Task in package.json file for TLS certificates update.
-- Script for TLS certificates update.
+- Script for TLS certificate update.
 - Changes in the compiled policy script for detect if the `iptables` or `nft` commands exists depending of the policy compiler. For example, if the selected policy compiler is `IPTables` and the `iptables` command doesn't exists in the destination firewall then stop the policy load script and notify the error.
 
 
