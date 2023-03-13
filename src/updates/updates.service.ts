@@ -82,6 +82,13 @@ export class UpdateService extends Service {
       const promise = spawn('npm', ['run','start:bg'], { cwd: installDir, detached: true, stdio: 'ignore' });
       promise.childProcess.unref();
       await promise;
+
+      // Await a few seconds to make sure that fwcloud-updater service is available again.
+      // This is necessary for avoid errors that can arise if we update FWCloud-Updater with other modules at the same
+      // time. For example, if we update FWCloud-Updater first and then FWCloud-Websrv, if we don't wait, we will try to
+      // communicate with FWCloud-Updater for make the FWCloud-Websrv update before the fwcloud-updater service 
+      // is available.
+      await new Promise(resolve => setTimeout(resolve, 5000));
     }
     catch(err) {
       logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
