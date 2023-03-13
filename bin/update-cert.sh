@@ -76,7 +76,7 @@ if [ "`whoami`" != "root" ]; then
   exit 1
 fi
 
-if [ "$1" != "api" -a "$1" != "websrv" "$1" != "updater" ]; then
+if [ "$1" != "api" -a "$1" != "websrv" -a "$1" != "updater" ]; then
   echo "ERROR: Bad input parameter."
   echo
   exit 1
@@ -84,7 +84,7 @@ fi
 
 cd "$BASEDIR"
 
-if [ !-d "$TLSDIR" ]; then
+if [ ! -d "$TLSDIR" ]; then
   echo "ERROR: TLS directory $TLSDIR doesn't exists."
   echo
   exit 1
@@ -94,7 +94,6 @@ cd "$TLSDIR"
 
 updateTlsCertificate "$1"
 
-echo 
 echo "Restarting fwcloud-${1} service ..."
 systemctl restart fwcloud-${1}
 echo "DONE"
