@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2023-03-13
+### Added
+- Task in package.json file for TLS certificates update.
+- Script for TLS certificate update.
+- Changes in the compiled policy script for detect if the `iptables` or `nft` commands exists depending of the policy compiler. For example, if the selected policy compiler is `IPTables` and the `iptables` command doesn't exists in the destination firewall then stop the policy load script and notify the error.
+
+### Changed
+- If PID file exists, stop before start.
+
 
 ## [1.7.2] - 2023-01-30
 ### Fixed
