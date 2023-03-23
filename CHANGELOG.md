@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2] - 2023-03-23
+### Added
+- ISC DHCP plugin.
+- ISC Bind9 plugin.
+
+
 ## [1.8.1] - 2023-03-13
 ### Fixed
 - Avoid update errors that can arise if we update FWCloud-Updater together with other modules at the same time. For example, if we update FWCloud-Updater first and next FWCloud-Websrv, if we don't wait, we will try to communicate with FWCloud-Updater for make the FWCloud-Websrv update before the fwcloud-updater service is available.
