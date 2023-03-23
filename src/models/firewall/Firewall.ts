@@ -80,7 +80,9 @@ export enum PluginsFlags {
 	websafety = 'websafety',
 	kibana = 'kibana',
 	logstash = 'logstash',
-	dnssafety = 'dnssafety'
+	dnssafety = 'dnssafety',
+	isc_bind9 = 'isc-bind9',
+	isc_dhcp = 'isc-dhcp'
 }
 
 // Special rules codes.
