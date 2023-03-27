@@ -5,8 +5,8 @@ export class addRelationCountriesIpobjType_policyPosition1653374901932 implement
     public async up(queryRunner: QueryRunner): Promise<void> { 
         const policyPositionIds = await queryRunner.query(`SELECT id FROM policy_position WHERE name='Source' OR name='Destination'`)
         for (let index = 0; index < policyPositionIds.length; index++) {
-            await queryRunner.query(`INSERT INTO ipobj_type__policy_position VALUES(?,?)`, [23, policyPositionIds[index].id])
-            await queryRunner.query(`INSERT INTO ipobj_type__policy_position VALUES(?,?)`, [24, policyPositionIds[index].id])
+            await queryRunner.query(`INSERT IGNORE INTO ipobj_type__policy_position VALUES(?,?)`, [23, policyPositionIds[index].id])
+            await queryRunner.query(`INSERT IGNORE INTO ipobj_type__policy_position VALUES(?,?)`, [24, policyPositionIds[index].id])
         }   
     }
 
