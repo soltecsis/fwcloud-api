@@ -3,6 +3,7 @@ name: DEB and RMP packages
 on:
   push:
     branches:
+      #- main
       - iss711_deb_rpm_packages
 
 env:
@@ -21,7 +22,8 @@ jobs:
           node-version: 16
 
       - name: Download FWCloud-API
-        run: wget -c -O fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/main.zip
+        #run: wget -c -O fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/main.zip
+        run: wget -c -O fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/iss711_deb_rpm_packages.zip
 
       - name: Build FWCloud-API
         run: |
