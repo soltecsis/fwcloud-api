@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 
+### Added
+- Automatically generated packages by means of GitHub Actions for `deb` and `rpm` based Linux distributions.
+- `After=mariadb.service mysql.service` to the `fwcloud-api.service` systemd file to make sure that the database engine is started before the `fwcloud-api` service.
+
+
 ## [1.8.4] - 2023-03-27
 ### Added
 - Relation with countries and continents in `ipobj_type__policy_position` table.
