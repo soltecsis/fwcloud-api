@@ -29,7 +29,8 @@ jobs:
         run: |
           unzip fwcloud-api.zip && rm -f fwcloud-api.zip
           mkdir fwcloud
-          mv fwcloud-api-main fwcloud/api
+          # mv fwcloud-api-main fwcloud/api
+          mv fwcloud-api-iss711_deb_rpm_packages fwcloud/api
           cd fwcloud/api
           npm install && npm run build
           rm -rf .github .gitignore .DS_Store .vscode tests
