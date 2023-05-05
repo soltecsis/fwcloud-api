@@ -23,7 +23,7 @@ jobs:
 
       - name: Download FWCloud-API
         #run: wget -c -O fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/main.zip
-        run: wget -c -O fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/iss711_deb_rpm_packages.zip
+        run: wget -c -O fwcloud-api.zip https://github.com/cmunyoz/fwcloud-api/archive/refs/heads/iss711_deb_rpm_packages.zip
 
       - name: Build FWCloud-API
         run: |
