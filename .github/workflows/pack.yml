@@ -51,7 +51,8 @@ jobs:
     name: Package
     strategy:
       matrix:
-        pkg: [deb, rpm]
+        # pkg: [deb, rpm]
+        pkg: [deb]
     steps:
       - uses: actions/checkout@v3
 
@@ -75,13 +76,12 @@ jobs:
         with:
           fpm_args: './fwcloud/=/opt/fwcloud/'
           fpm_opts: |
-            --debug 
             -C /github/workspace
             -p fwcloud-api-${{ steps.package-version.outputs.current-version}}-any.${{ matrix.pkg }}
             --architecture all
             --name fwcloud-api
             --license agpl3
-            --version ${{ steps.package-version.outputs.current-version}}
+            --version ${{ steps.package-version.outputs.current-version }}
             --description "FWCloud API."
             --url "https://fwcloud.net"
             --maintainer "Carles Munyoz <cmunyoz@soltecsis.com>"
