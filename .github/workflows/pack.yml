@@ -2,8 +2,9 @@ name: DEB and RMP packages
 
 on:
   push:
+    #tags:
+    #  - "v*.*.*"  
     branches:
-      #- main
       - iss711_deb_rpm_packages
 
 env:
@@ -34,6 +35,8 @@ jobs:
           cd fwcloud/api
           npm install && npm run build
           rm -rf .github .gitignore .DS_Store .vscode tests
+          rm "./node_modules/figlet/importable-fonts/Patorjk's Cheese.js" 
+          rm "./node_modules/figlet/fonts/Patorjk's Cheese.flf"
           mv .env.example .env
 
       - name: Create ${{ env.TGZ }} file
@@ -75,13 +78,12 @@ jobs:
         with:
           fpm_args: './fwcloud/=/opt/fwcloud/'
           fpm_opts: |
-            --debug 
             -C /github/workspace
-            -p fwcloud-api-${{ steps.package-version.outputs.current-version}}-any.${{ matrix.pkg }}
+            -p fwcloud-api-${{ steps.package-version.outputs.current-version }}-any.${{ matrix.pkg }}
             --architecture all
             --name fwcloud-api
             --license agpl3
-            --version ${{ steps.package-version.outputs.current-version}}
+            --version ${{ steps.package-version.outputs.current-version }}
             --description "FWCloud API."
             --url "https://fwcloud.net"
             --maintainer "Carles Munyoz <cmunyoz@soltecsis.com>"
