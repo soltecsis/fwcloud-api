@@ -60,11 +60,10 @@ runSql "create user '${DBUSER}'@'${DBHOST}' ${IDENTIFIED_BY} '${DBPASS}'"
 runSql "grant all privileges on ${DBNAME}.* to '${DBUSER}'@'${DBHOST}'"
 runSql "flush privileges"
 
-# Create .env file with default vaules.
-ENVF="/opt/fwcloud/api/.env2"
+# Create .env file with default values.
+ENVF="/opt/fwcloud/api/.env"
 cd ..
-if [ ! -f "$ENVF" ]; then
-  echo "NODE_ENV=prod
+echo "NODE_ENV=prod
 
 APISRV_IP=0.0.0.0
 
@@ -80,7 +79,6 @@ TYPEORM_PORT=
 TYPEORM_DATABASE=$DBNAME
 TYPEORM_USERNAME=$DBUSER
 TYPEORM_PASSWORD=$DBPASS" > "$ENVF"
-fi
 
 # Make sure that all files are owned by the fwcloud user and group.
 cd /opt/fwcloud
