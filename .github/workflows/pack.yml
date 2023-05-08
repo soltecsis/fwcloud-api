@@ -35,10 +35,13 @@ jobs:
           cd fwcloud/api
           npm install && npm run build
           rm -rf .github .gitignore .DS_Store .vscode tests
-          rm "./node_modules/figlet/importable-fonts/Patorjk's Cheese.js" 
-          rm "./node_modules/figlet/fonts/Patorjk's Cheese.flf"
           mv .env.example .env
 
+          # It is necessary to remove the next two files. 
+          # If not, the rpm package generation procedure raises errors.
+          rm "./node_modules/figlet/importable-fonts/Patorjk's Cheese.js" 
+          rm "./node_modules/figlet/fonts/Patorjk's Cheese.flf"
+          
       - name: Create ${{ env.TGZ }} file
         run: tar zcpf ${{ env.TGZ }} fwcloud
 
