@@ -1,6 +1,6 @@
 [Unit]
 Description=fwcloud-api
-After=mariadb.service mysql.service
+After=mariadb-server.service mysql-server.service
 
 [Service]
 ExecStart=/usr/bin/npm start

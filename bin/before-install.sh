@@ -29,6 +29,21 @@ if [ -z "$NPM" ]; then
   exit 1
 fi
 
+# Check database access.
+MYSQL_CMD="`which mysql` -u root"
+OUT=`echo "show databases" | $MYSQL_CMD 2>&1`
+if [ "$?" != 0 ]; then # We have had an error accesing the database server.
+  # Analyze the error.
+  if echo "$OUT" | grep -q "Access denied"; then
+    MSG="Access to database engine denied"
+  else
+    MSG="Connecting with database engine"
+  fi
+  echo
+  echo "ERROR: $MSG."
+  echo
+  exit 1
+fi
 
 # Create the fwcloud user and group.
 groupadd fwcloud 2>/dev/null

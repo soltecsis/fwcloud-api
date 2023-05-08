@@ -25,4 +25,6 @@ if [ -d "$RDIR" ]; then
   fi
 fi
 
+runSql "drop database fwcloud"
+
 exit 0

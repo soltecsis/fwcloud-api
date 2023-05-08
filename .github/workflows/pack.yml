@@ -90,7 +90,7 @@ jobs:
             --after-upgrade fwcloud/api/bin/after-upgrade.sh
             --after-remove fwcloud/api/bin/after-remove.sh
             --depends openssl
-            --depends mariadb
+            --depends mariadb-server
             --deb-changelog fwcloud/api/CHANGELOG.md
             --deb-systemd fwcloud/api/config/sys/fwcloud-api.service
             --rpm-changelog fwcloud/api/CHANGELOG.md
