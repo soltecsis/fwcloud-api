@@ -81,11 +81,11 @@ TYPEORM_USERNAME=$DBUSER
 TYPEORM_PASSWORD=$DBPASS" > "$ENVF"
 
 # Generate keys and run migrations. 
-cd api
-node fwcli keys:generate 
-node fwcli migration:run 
-node fwcli migration:data
-node fwcli standard:services:add
+cd /opt/fwcloud/api
+node fwcli keys:generate >/dev/null
+node fwcli migration:run >/dev/null
+node fwcli migration:data >/dev/null
+node fwcli standard:services:add >/dev/null
 
 # Make sure that all files are owned by the fwcloud user and group.
 cd /opt/fwcloud

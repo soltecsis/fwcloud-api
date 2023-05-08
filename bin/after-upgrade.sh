@@ -12,8 +12,8 @@
 #############################################
 
 cd /opt/fwcloud/api
-node fwcli migration:data
-node fwcli standard:services:add
+node fwcli migration:data >/dev/null
+node fwcli standard:services:add >/dev/null
 
 # Make sure that all files are owned by the fwcloud user and group.
 cd /opt/fwcloud
