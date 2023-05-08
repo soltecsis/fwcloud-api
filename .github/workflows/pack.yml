@@ -51,8 +51,7 @@ jobs:
     name: Package
     strategy:
       matrix:
-        # pkg: [deb, rpm]
-        pkg: [deb]
+        pkg: [deb, rpm]
     steps:
       - uses: actions/checkout@v3
 
@@ -108,8 +107,7 @@ jobs:
     name: Packages to Packagecloud
     strategy:
       matrix:
-        # pkg: [[deb, any/any], [rpm, rpm_any/rpm_any]]
-        pkg: [[deb, any/any]]
+        pkg: [[deb, any/any], [rpm, rpm_any/rpm_any]]
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
