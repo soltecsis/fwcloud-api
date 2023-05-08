@@ -44,7 +44,7 @@ passGen 16
 DBPASS="$PASSGEN"
 MYSQL_CMD="`which mysql` -u root"
 runSql "create database $DBNAME CHARACTER SET utf8 COLLATE utf8_general_ci"
-runSql "create user '${DBUSER}'@'${DBHOST}' ${IDENTIFIED_BY} '${DBPASS}'"
+runSql "create user '${DBUSER}'@'${DBHOST}' identified by '${DBPASS}'"
 runSql "grant all privileges on ${DBNAME}.* to '${DBUSER}'@'${DBHOST}'"
 runSql "flush privileges"
 
