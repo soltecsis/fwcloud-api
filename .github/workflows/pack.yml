@@ -77,7 +77,7 @@ jobs:
           fpm_args: './fwcloud/=/opt/fwcloud/'
           fpm_opts: |
             -C /github/workspace
-            -p fwcloud-api-${{ steps.package-version.outputs.current-version}}-any.${{ matrix.pkg }}
+            -p fwcloud-api-${{ steps.package-version.outputs.current-version }}-any.${{ matrix.pkg }}
             --architecture all
             --name fwcloud-api
             --license agpl3
@@ -109,7 +109,8 @@ jobs:
     name: Packages to Packagecloud
     strategy:
       matrix:
-        pkg: [[deb, any/any], [rpm, rpm_any/rpm_any]]
+        # pkg: [[deb, any/any], [rpm, rpm_any/rpm_any]]
+        pkg: [[deb, any/any]]
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
