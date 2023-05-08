@@ -43,7 +43,11 @@ fi
 
 # If /opt/fwcloud dir is empty, remove it and remove fwcloud user and group.
 if [ -d "$RDIR" ]; then
+  if [ -d "${RDIR}/api" ]; then
+    runSql "drop database fwcloud"
+
     rm -rf "${RDIR}/api"
+  fi
 
   if [ ! "$(ls -A $RDIR)" ]; then # Root directory is empty.
     rmdir "$RDIR"
@@ -52,7 +56,5 @@ if [ -d "$RDIR" ]; then
     groupdel fwcloud 2>/dev/null
   fi
 fi
-
-runSql "drop database fwcloud"
 
 exit 0
