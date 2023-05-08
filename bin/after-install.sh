@@ -36,20 +36,32 @@ cd /opt/fwcloud/api/bin
 mkdir ../config/tls
 ./update-cert.sh api >/dev/null
 
+MYSQL_CMD="`which mysql` -u root"
+
+# Support for MySQL 8.
+IDENTIFIED_BY="identified by"
+if [ "$DBENGINE" = "MySQL" ]; then
+  IS_MARIADB=`echo "show variables like 'version'" | ${MYSQL_CMD} -N | grep -i mariadb`
+  # Get MySQL major version number.
+  MYSQL_VERSION_MAJOR_NUMBER=`echo "show variables like 'version'" | ${MYSQL_CMD} -N | awk '{print $2}' | awk -F"." '{print $1}'`
+  if [ -z "$IS_MARIADB" -a $MYSQL_VERSION_MAJOR_NUMBER -ge 8 ]; then
+    IDENTIFIED_BY="identified with mysql_native_password by"
+  fi 
+fi
+
 # Create the fwcloud database and access user.
 DBHOST="localhost"
 DBNAME="fwcloud"
 DBUSER="fwcdbusr"
 passGen 16
 DBPASS="$PASSGEN"
-MYSQL_CMD="`which mysql` -u root"
 runSql "create database $DBNAME CHARACTER SET utf8 COLLATE utf8_general_ci"
-runSql "create user '${DBUSER}'@'${DBHOST}' identified by '${DBPASS}'"
+runSql "create user '${DBUSER}'@'${DBHOST}' ${IDENTIFIED_BY} '${DBPASS}'"
 runSql "grant all privileges on ${DBNAME}.* to '${DBUSER}'@'${DBHOST}'"
 runSql "flush privileges"
 
 # Create .env file with default vaules.
-ENVF="/opt/fwcloud/api/.env"
+ENVF="/opt/fwcloud/api/.env2"
 cd ..
 if [ ! -f "$ENVF" ]; then
   echo "NODE_ENV=prod

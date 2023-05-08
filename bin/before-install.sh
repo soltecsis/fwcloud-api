@@ -37,7 +37,7 @@ if [ "$?" != 0 ]; then # We have had an error accesing the database server.
   if echo "$OUT" | grep -q "Access denied"; then
     MSG="Access to database engine denied"
   else
-    MSG="Connecting with database engine"
+    MSG="Connecting with database engine. MySQL or MariaDB servers must be installed"
   fi
   echo
   echo "ERROR: $MSG."
