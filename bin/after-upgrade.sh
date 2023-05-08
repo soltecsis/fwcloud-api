@@ -11,6 +11,10 @@
 ##                                         ##
 #############################################
 
+cd /opt/fwcloud/api
+node fwcli migration:data
+node fwcli standard:services:add
+
 # Make sure that all files are owned by the fwcloud user and group.
 cd /opt/fwcloud
 chown -R fwcloud:fwcloud api && chmod 750 api

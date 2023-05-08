@@ -80,15 +80,16 @@ TYPEORM_DATABASE=$DBNAME
 TYPEORM_USERNAME=$DBUSER
 TYPEORM_PASSWORD=$DBPASS" > "$ENVF"
 
-# Make sure that all files are owned by the fwcloud user and group.
-cd /opt/fwcloud
-chown -R fwcloud:fwcloud api && chmod 750 api
-
 # Generate keys and run migrations. 
 cd api
 node fwcli keys:generate 
 node fwcli migration:run 
 node fwcli migration:data
+node fwcli standard:services:add
+
+# Make sure that all files are owned by the fwcloud user and group.
+cd /opt/fwcloud
+chown -R fwcloud:fwcloud api && chmod 750 api
 
 # Enable and start FWCloud-API service.
 systemctl enable fwcloud-api
