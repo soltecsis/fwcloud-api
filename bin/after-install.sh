@@ -91,6 +91,14 @@ node fwcli standard:services:add >/dev/null
 cd /opt/fwcloud
 chown -R fwcloud:fwcloud api && chmod 750 api
 
+# This is necessary because with FPM we don't have yet an --rpm-systemd option like the --deb-systemd option.
+SRVFILE="/lib/systemd/system/fwcloud-api.service"
+if [ ! -f "$SRVFILE" ]; then
+  cp /opt/fwcloud/api/config/sys/fwcloud-api.service $SRVFILE
+  chown root:root $SRVFILE
+  chmod 644 $SRVFILE
+fi
+
 # Enable and start FWCloud-API service.
 systemctl enable fwcloud-api
 systemctl start fwcloud-api

@@ -57,4 +57,10 @@ if [ -d "$RDIR" ]; then
   fi
 fi
 
+# This is necessary because with FPM we don't have yet an --rpm-systemd option like the --deb-systemd option.
+SRVFILE="/lib/systemd/system/fwcloud-api.service"
+if [ -f "$SRVFILE" ]; then
+  rm -f $SRVFILE
+fi
+
 exit 0
