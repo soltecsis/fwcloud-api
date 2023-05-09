@@ -99,6 +99,7 @@ jobs:
             --deb-changelog fwcloud/api/CHANGELOG.md
             --deb-systemd fwcloud/api/config/sys/fwcloud-api.service
             --rpm-changelog fwcloud/api/CHANGELOG.md
+            --rpm-init fwcloud/api/config/sys/fwcloud-api.service
             -t ${{ matrix.pkg }}
             -s dir
 
