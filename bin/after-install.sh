@@ -65,10 +65,8 @@ ENVF="/opt/fwcloud/api/.env"
 cd ..
 echo "NODE_ENV=prod
 
-APISRV_IP=0.0.0.0
-
 CORS_ENABLED=false
-CORS_WHITELIST=
+
 SESSION_SECRET=
 CRYPT_SECRET=
 
@@ -97,6 +95,15 @@ if [ ! -f "$SRVFILE" ]; then
   cp /opt/fwcloud/api/config/sys/fwcloud-api.service $SRVFILE
   chown root:root $SRVFILE
   chmod 644 $SRVFILE
+fi
+
+# Some Linux distributions have SELinux enabled.
+if [[ $(getenforce) == "Enforcing" ]]; then
+  # If SELinux is enabled, then load the semodule necessary for start the FWCloud-API service.
+  cd /opt/fwcloud/api/config/sys/SELinux
+  checkmodule -M -m -o fwcloud-api.mod fwcloud-api.te
+  semodule_package -o fwcloud-api.pp -m fwcloud-api.mod
+  semodule -i fwcloud-api.pp
 fi
 
 # Enable and start FWCloud-API service.
