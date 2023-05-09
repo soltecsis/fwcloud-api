@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 
 ### Added
 - Automatically generated packages by means of GitHub Actions for `deb` and `rpm` based Linux distributions.
-- `After=mariadb-server.service mysql-servewr.service` to the `fwcloud-api.service` systemd file to make sure that the database engine is started before the `fwcloud-api` service.
+- `After=mariadb-server.service mysql-server.service` to the `fwcloud-api.service` systemd file to make sure that the database engine is started before the `fwcloud-api` service.
 
 
 ## [1.8.4] - 2023-03-27
