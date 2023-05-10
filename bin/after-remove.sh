@@ -64,8 +64,10 @@ if [ -f "$SRVFILE" ]; then
 fi
 
 # Some Linux distributions have SELinux enabled.
-if [[ $(getenforce) == "Enforcing" ]]; then
-  semodule -r fwcloud-api
+if command -v getenforce >/dev/null 2>&1; then
+  if [ $(getenforce) == "Enforcing" ]; then
+    semodule -r fwcloud-api
+  fi
 fi
 
 exit 0
