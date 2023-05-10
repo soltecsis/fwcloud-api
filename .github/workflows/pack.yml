@@ -2,8 +2,8 @@ name: DEB and RMP packages
 
 on:
   push:
-    #tags:
-    #  - "v*.*.*"  
+    tags:
+      - "v*.*.*"  
     branches:
       - iss711_deb_rpm_packages
 
