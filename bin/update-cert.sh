@@ -94,9 +94,11 @@ cd "$TLSDIR"
 
 updateTlsCertificate "$1"
 
-echo "Restarting fwcloud-${1} service ..."
-systemctl restart fwcloud-${1}
-echo "DONE"
-echo
+if [ -f "/lib/systemd/system/fwcloud-${1}.service" ]; then
+  echo "Restarting fwcloud-${1} service ..."
+  systemctl restart fwcloud-${1}
+  echo "DONE"
+  echo
+fi
 
 exit 0
