@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - "v*.*.*"  
-    branches:
-      - iss711_deb_rpm_packages
 
 env:
   TGZ: "fwcloud.tar.gz"
