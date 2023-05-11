@@ -1,0 +1,135 @@
+name: DEB and RMP packages 
+
+on:
+  push:
+    tags:
+      - "v*.*.*"  
+
+env:
+  TGZ: "fwcloud.tar.gz"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Download FWCloud-API
+        #run: wget -c -O fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/main.zip
+        run: wget -c -O fwcloud-api.zip https://github.com/cmunyoz/fwcloud-api/archive/refs/heads/iss711_deb_rpm_packages.zip
+
+      - name: Build FWCloud-API
+        run: |
+          unzip fwcloud-api.zip && rm -f fwcloud-api.zip
+          mkdir fwcloud
+          # mv fwcloud-api-main fwcloud/api
+          mv fwcloud-api-iss711_deb_rpm_packages fwcloud/api
+          cd fwcloud/api
+          npm install && npm run build
+          rm -rf .github .gitignore .DS_Store .vscode tests
+          mv .env.example .env
+
+          # It is necessary to remove the next two files. 
+          # If not, the rpm package generation procedure raises errors.
+          rm "./node_modules/figlet/importable-fonts/Patorjk's Cheese.js" 
+          rm "./node_modules/figlet/fonts/Patorjk's Cheese.flf"
+          
+      - name: Create ${{ env.TGZ }} file
+        run: tar zcpf ${{ env.TGZ }} fwcloud
+
+      - name: Upload ${{ env.TGZ }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: tgz
+          path: ${{ env.TGZ }}
+
+  deb-rpm-packages:
+    needs: [build]
+    runs-on: ubuntu-latest
+    name: Package
+    strategy:
+      matrix:
+        pkg: [deb, rpm]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get fwcloud-api version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+
+      - name: Download ${{ env.TGZ }}
+        uses: actions/download-artifact@v3
+        with:
+          name: tgz
+
+      - name: Extract content of ${{ env.TGZ }} file
+        run: tar zxpf ${{ env.TGZ }}
+
+      - name: List directory content
+        run: ls -lha ./fwcloud/
+
+      - name: Generate ${{ matrix.pkg }} package
+        uses: bpicode/github-action-fpm@master
+        with:
+          fpm_args: './fwcloud/=/opt/fwcloud/'
+          fpm_opts: |
+            -C /github/workspace
+            -p fwcloud-api-${{ steps.package-version.outputs.current-version }}-any.${{ matrix.pkg }}
+            --architecture all
+            --name fwcloud-api
+            --license agpl3
+            --version ${{ steps.package-version.outputs.current-version }}
+            --description "FWCloud API."
+            --url "https://fwcloud.net"
+            --maintainer "Carles Munyoz <cmunyoz@soltecsis.com>"
+            --before-install fwcloud/api/bin/before-install.sh
+            --after-install fwcloud/api/bin/after-install.sh
+            --after-upgrade fwcloud/api/bin/after-upgrade.sh
+            --after-remove fwcloud/api/bin/after-remove.sh
+            --depends openssl
+            --conflicts firewalld
+            --deb-changelog fwcloud/api/CHANGELOG.md
+            --deb-systemd fwcloud/api/config/sys/fwcloud-api.service
+            --rpm-changelog fwcloud/api/CHANGELOG.md
+            -t ${{ matrix.pkg }}
+            -s dir
+
+      - name: Upload ${{ matrix.pkg }} package
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.pkg }}-package
+          path: ./*.${{ matrix.pkg }}
+
+  to-packagecloud:
+    needs: [deb-rpm-packages]
+    runs-on: ubuntu-latest
+    name: Packages to Packagecloud
+    strategy:
+      matrix:
+        pkg: [[deb, any/any], [rpm, rpm_any/rpm_any]]
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - name: Download ${{ matrix.pkg[0] }} package
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.pkg[0] }}-package
+
+      - name: List packages
+        run: ls -lha *.${{ matrix.pkg[0] }}
+
+      - name: ${{ matrix.pkg[0] }}
+        uses: danielmundi/upload-packagecloud@v1
+        with:
+          PACKAGE-NAME: ./*.${{ matrix.pkg[0] }}
+          PACKAGECLOUD-USERNAME: ${{ secrets.PACKAGECLOUD_USERNAME }}
+          PACKAGECLOUD-REPO: FWCloud
+          PACKAGECLOUD-DISTRIB: ${{ matrix.pkg[1] }}
+          PACKAGECLOUD-TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
