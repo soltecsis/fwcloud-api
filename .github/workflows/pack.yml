@@ -3,7 +3,9 @@ name: DEB and RMP packages
 on:
   push:
     tags:
-      - "v*.*.*"  
+      - "v*.*.*"
+    branches:
+      - iss711_deb_rpm_packages
 
 env:
   TGZ: "fwcloud.tar.gz"
@@ -94,6 +96,7 @@ jobs:
             --after-remove fwcloud/api/bin/after-remove.sh
             --depends openssl
             --conflicts firewalld
+            --config-files fwcloud/api/.env
             --deb-changelog fwcloud/api/CHANGELOG.md
             --deb-systemd fwcloud/api/config/sys/fwcloud-api.service
             --rpm-changelog fwcloud/api/CHANGELOG.md
