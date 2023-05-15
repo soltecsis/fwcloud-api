@@ -35,7 +35,6 @@ jobs:
           cd fwcloud/api
           npm install && npm run build
           rm -rf .github .gitignore .DS_Store .vscode tests
-          mv .env.example .env
 
           # It is necessary to remove the next two files. 
           # If not, the rpm package generation procedure raises errors.
@@ -96,7 +95,6 @@ jobs:
             --after-remove fwcloud/api/bin/after-remove.sh
             --depends openssl
             --conflicts firewalld
-            --config-files fwcloud/api/.env
             --deb-changelog fwcloud/api/CHANGELOG.md
             --deb-systemd fwcloud/api/config/sys/fwcloud-api.service
             --rpm-changelog fwcloud/api/CHANGELOG.md
