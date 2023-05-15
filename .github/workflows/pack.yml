@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - "v*.*.*"
-    branches:
-      - iss711_deb_rpm_packages
 
 env:
   TGZ: "fwcloud.tar.gz"
@@ -23,15 +21,13 @@ jobs:
           node-version: 16
 
       - name: Download FWCloud-API
-        #run: wget -c -O fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/main.zip
-        run: wget -c -O fwcloud-api.zip https://github.com/cmunyoz/fwcloud-api/archive/refs/heads/iss711_deb_rpm_packages.zip
+        run: wget -c -O fwcloud-api.zip https://github.com/soltecsis/fwcloud-api/archive/refs/heads/main.zip
 
       - name: Build FWCloud-API
         run: |
           unzip fwcloud-api.zip && rm -f fwcloud-api.zip
           mkdir fwcloud
-          # mv fwcloud-api-main fwcloud/api
-          mv fwcloud-api-iss711_deb_rpm_packages fwcloud/api
+          mv fwcloud-api-main fwcloud/api
           cd fwcloud/api
           npm install && npm run build
           rm -rf .github .gitignore .DS_Store .vscode tests
