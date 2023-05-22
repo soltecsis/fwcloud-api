@@ -257,9 +257,9 @@ Section -MainProgram
 	File /r /x *.nsi /x ${INSTALLER_NAME} ".\\"
 
 	${If} ${AtLeastWin10}
-		Rename $InstDir\OpenVPN-versions\openvpn-install-2.4.9-I601-Win10.exe $InstDir\opengui-fwcloud.exe
+		Rename $InstDir\OpenVPN-versions\OpenVPN-2.6.4-I001-amd64.msi $InstDir\opengui-fwcloud.exe
 	${ElseIf} ${AtLeastWin7}
-		Rename $InstDir\OpenVPN-versions\openvpn-install-2.4.9-I601-Win7.exe $InstDir\opengui-fwcloud.exe
+		Rename $InstDir\OpenVPN-versions\OpenVPN-2.6.4-I001-x86.msi $InstDir\opengui-fwcloud.exe
 	${Else}
 		MessageBox MB_OK|MB_ICONEXCLAMATION $(Msg_Unsupported)
 		abort
