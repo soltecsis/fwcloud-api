@@ -256,13 +256,10 @@ Section -MainProgram
         FileClose $0
 	File /r /x *.nsi /x ${INSTALLER_NAME} ".\\"
 
-	${If} ${AtLeastWin10}
+	${If} ${IsWin64}
 		Rename $InstDir\OpenVPN-versions\OpenVPN-2.6.4-I001-amd64.msi $InstDir\opengui-fwcloud.exe
-	${ElseIf} ${AtLeastWin7}
-		Rename $InstDir\OpenVPN-versions\OpenVPN-2.6.4-I001-x86.msi $InstDir\opengui-fwcloud.exe
 	${Else}
-		MessageBox MB_OK|MB_ICONEXCLAMATION $(Msg_Unsupported)
-		abort
+		Rename $InstDir\OpenVPN-versions\OpenVPN-2.6.4-I001-x86.msi $InstDir\opengui-fwcloud.exe
 	${EndIf}
 
 	${If} $OpenVPN_Upgrade_Needed == "1"
