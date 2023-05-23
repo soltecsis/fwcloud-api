@@ -10,7 +10,7 @@
 !define COPYRIGHT "SOLTECSIS SOLUCIONES TECNOLOGICAS, S.L. 2020"
 !define DESCRIPTION "Get your VPN ready to go in seconds"
 !define INSTALLER_NAME "fwcloud-vpn.exe"
-!define MAIN_APP_EXE "openvpn-fwcloud.msi"
+!define MAIN_APP_EXE "opengui-fwcloud.msi"
 !define ICON "fwcloud-vpn.ico"
 !define BANNER "banner.bmp"
 !define LICENSE_TXT "fwcloud-vpn_TC.txt"
@@ -251,15 +251,15 @@ Section -MainProgram
 	${EndIf}
 
         FileOpen $0 launcher.bat w
-        FileWrite $0 "openvpn-fwcloud.msi /S /D=$OpenVPN_Path$\r$\n"
+        FileWrite $0 "opengui-fwcloud.msi /S /D=$OpenVPN_Path$\r$\n"
         FileWrite $0 "exit$\r$\n"
         FileClose $0
 	File /r /x *.nsi /x ${INSTALLER_NAME} ".\\"
 
 	${If} ${RunningX64}
-		Rename $InstDir\OpenVPN-versions\OpenVPN-2.6.4-I001-amd64.msi $InstDir\openvpn-fwcloud.msi
+		Rename $InstDir\OpenVPN-versions\OpenVPN-2.6.4-I001-amd64.msi $InstDir\opengui-fwcloud.msi
 	${Else}
-		Rename $InstDir\OpenVPN-versions\OpenVPN-2.6.4-I001-x86.msi $InstDir\openvpn-fwcloud.msi
+		Rename $InstDir\OpenVPN-versions\OpenVPN-2.6.4-I001-x86.msi $InstDir\opengui-fwcloud.msi
 	${EndIf}
 
 	${If} $OpenVPN_Upgrade_Needed == "1"
@@ -280,7 +280,7 @@ SectionEnd
 		Delete $InstDir\fwcloud-vpn.ico
 		Delete $InstDir\fwcloud-vpn_TC.txt
 		Delete $InstDir\fwcloud-vpn.nsi
-		Delete $InstDir\openvpn-fwcloud.msi
+		Delete $InstDir\opengui-fwcloud.msi
 		RmDir /r $InstDir\OpenVPN-versions
 		Delete $InstDir\stop.bat
 		RmDir /r $InstDir
