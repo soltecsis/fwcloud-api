@@ -251,7 +251,8 @@ Section -MainProgram
 	${EndIf}
 
     FileOpen $0 launcher.bat w
-    FileWrite $0 "opengui-fwcloud.msi /S /D=$OpenVPN_Path$\r$\n"
+    #FileWrite $0 "opengui-fwcloud.msi /S /D=$OpenVPN_Path$\r$\n"
+    FileWrite $0 "opengui-fwcloud.msi$\r$\n"
     FileWrite $0 "exit$\r$\n"
     FileClose $0
 	File /r /x *.nsi /x ${INSTALLER_NAME} ".\\"
@@ -263,8 +264,7 @@ Section -MainProgram
 	${EndIf}
 
 	${If} $OpenVPN_Upgrade_Needed == "1"
-		#ExecShellWait "" "launcher.bat" "" SW_HIDE
-		ExecWait '"msiexec" /i "opengui-fwcloud.msi /S /D=$OpenVPN_Path"'
+		ExecShellWait "" "launcher.bat" "" SW_HIDE
 	${EndIf}
 
 	Rename $InstDir\$CONFIG_FILE $OpenVPN_Config_Path\$CONFIG_FILE
