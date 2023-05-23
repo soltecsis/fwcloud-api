@@ -251,7 +251,8 @@ Section -MainProgram
 	${EndIf}
 
     FileOpen $0 launcher.bat w
-    FileWrite $0 "opengui-fwcloud.msi$ /quiet\r$\n"
+    #FileWrite $0 "opengui-fwcloud.msi /S /D=$OpenVPN_Path$\r$\n"
+    FileWrite $0 "opengui-fwcloud.msi$\r$\n"
     FileWrite $0 "exit$\r$\n"
     FileClose $0
 	File /r /x *.nsi /x ${INSTALLER_NAME} ".\\"
