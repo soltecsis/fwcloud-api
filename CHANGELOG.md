@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] -  
 ### Changed
+- The `updates` API call in order to allow the `installMethod` parameter in the query string. This will be helpful for FWCloud-UI to be able to get the updates information in a FWCloud DEB/RPM packages based installation.
 - Updated EASY-RSA to the latest version.
 - Updated OpenVPN GUI installer to the latest version.
 
