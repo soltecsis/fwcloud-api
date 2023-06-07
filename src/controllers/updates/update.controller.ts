@@ -21,11 +21,18 @@
 */
 
 import { Controller } from "../../fonaments/http/controller";
-import { UpdateService } from "../../updates/updates.service";
+import { UpdateService, Versions, Apps } from "../../updates/updates.service";
 import { Validate } from "../../decorators/validate.decorator";
 import { Request } from "express";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { app } from "../../fonaments/abstract-application";
+
+interface UpdatesInfo {
+    websrv: Versions;
+    ui: Versions;
+    api: Versions;
+    updater: Versions;
+}
 
 export class UpdateController extends Controller {
     protected _updateUpdaterService: UpdateService;
@@ -39,6 +46,18 @@ export class UpdateController extends Controller {
         const data = await this._updateUpdaterService.proxyUpdate(request);
 
         return data ? ResponseBuilder.buildResponse().status(200).body(data) : ResponseBuilder.buildResponse().status(200);
+    }
+
+    @Validate()
+    public async pkgInstallUpdatesData(request: Request): Promise<ResponseBuilder> {
+        const updatesInfo: UpdatesInfo = {
+            websrv: null,
+            ui: await this._updateUpdaterService.compareVersions(Apps.UI),
+            api: await this._updateUpdaterService.compareVersions(Apps.API),
+            updater: null
+          }
+
+        return updatesInfo ? ResponseBuilder.buildResponse().status(200).body(updatesInfo) : ResponseBuilder.buildResponse().status(200);
     }
 
     @Validate()

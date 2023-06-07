@@ -87,6 +87,7 @@ export class Routes extends RouteCollection {
                 //Update requests
                 router.prefix('/updates', (router: RouterParser) => {
                     router.get('/', UpdateController, 'proxy').name('updates.show');
+                    router.get('/type/pkg', UpdateController, 'pkgInstallUpdatesData').name('updates.show-pkg-install');
                     router.put('/websrv', UpdateController, 'proxy').name('updates.fwcloud-websrv');
                     router.put('/ui', UpdateController, 'proxy').name('updates.fwcloud-updater');
                     router.put('/api', UpdateController, 'proxy').name('updates.fwcloud-api');
