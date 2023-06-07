@@ -10,13 +10,13 @@
 !define COPYRIGHT "SOLTECSIS SOLUCIONES TECNOLOGICAS, S.L. 2020"
 !define DESCRIPTION "Get your VPN ready to go in seconds"
 !define INSTALLER_NAME "fwcloud-vpn.exe"
-!define MAIN_APP_EXE "opengui-fwcloud.exe"
+!define MAIN_APP_EXE "opengui-fwcloud.msi"
 !define ICON "fwcloud-vpn.ico"
 !define BANNER "banner.bmp"
 !define LICENSE_TXT "fwcloud-vpn_TC.txt"
 ;!define CONFIG_FILE "fwcloud-vpn.ovpn" -- Now we use a command line parameter for this
 
-!define OpenVPN_VERSION "2.4.9" ; This is the version of openvpn.exe we include within the installer
+!define OpenVPN_VERSION "2.6.4" ; This is the version of openvpn.exe we include within the installer
 
 !define INSTALL_DIR "$PROGRAMFILES64\${APP_NAME}"
 !define INSTALL_TYPE "SetShellVarContext all"
@@ -250,19 +250,17 @@ Section -MainProgram
 		${EndIf}
 	${EndIf}
 
-        FileOpen $0 launcher.bat w
-        FileWrite $0 "opengui-fwcloud.exe /S /D=$OpenVPN_Path$\r$\n"
-        FileWrite $0 "exit$\r$\n"
-        FileClose $0
+    FileOpen $0 launcher.bat w
+    #FileWrite $0 "opengui-fwcloud.msi /S /D=$OpenVPN_Path$\r$\n"
+    FileWrite $0 "opengui-fwcloud.msi$\r$\n"
+    FileWrite $0 "exit$\r$\n"
+    FileClose $0
 	File /r /x *.nsi /x ${INSTALLER_NAME} ".\\"
 
-	${If} ${AtLeastWin10}
-		Rename $InstDir\OpenVPN-versions\openvpn-install-2.4.9-I601-Win10.exe $InstDir\opengui-fwcloud.exe
-	${ElseIf} ${AtLeastWin7}
-		Rename $InstDir\OpenVPN-versions\openvpn-install-2.4.9-I601-Win7.exe $InstDir\opengui-fwcloud.exe
+	${If} ${RunningX64}
+		Rename $InstDir\OpenVPN-versions\OpenVPN-2.6.4-I001-amd64.msi $InstDir\opengui-fwcloud.msi
 	${Else}
-		MessageBox MB_OK|MB_ICONEXCLAMATION $(Msg_Unsupported)
-		abort
+		Rename $InstDir\OpenVPN-versions\OpenVPN-2.6.4-I001-x86.msi $InstDir\opengui-fwcloud.msi
 	${EndIf}
 
 	${If} $OpenVPN_Upgrade_Needed == "1"
@@ -283,7 +281,7 @@ SectionEnd
 		Delete $InstDir\fwcloud-vpn.ico
 		Delete $InstDir\fwcloud-vpn_TC.txt
 		Delete $InstDir\fwcloud-vpn.nsi
-		Delete $InstDir\opengui-fwcloud.exe
+		Delete $InstDir\opengui-fwcloud.msi
 		RmDir /r $InstDir\OpenVPN-versions
 		Delete $InstDir\stop.bat
 		RmDir /r $InstDir
