@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] -  
+## [1.9.2] - 2023-06-07
+### Added
+- `GET updates/type/pkg` API call. It will be used by FWCloud-UI to get the updates information in a FWCloud DEB/RPM packages based installation.
+
 ### Changed
-- The `updates` API call in order to allow the `installMethod` parameter in the query string. This will be helpful for FWCloud-UI to be able to get the updates information in a FWCloud DEB/RPM packages based installation.
 - Updated EASY-RSA to the latest version.
 - Updated OpenVPN GUI installer to the latest version.
 
