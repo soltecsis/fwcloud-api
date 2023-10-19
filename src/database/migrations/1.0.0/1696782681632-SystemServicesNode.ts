@@ -25,7 +25,7 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
 
         for (const node of nodes) {
             await queryRunner.query(
-                "INSERT INTO `fwc_tree` (`parent_id`, `name`, `node_type`,`node_order`) VALUES (?, 'System', 'SYS',1)",
+                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`) VALUES (?, 'System', 'SYS',1)",
                 [node.id]
             );
         }
@@ -36,17 +36,17 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
 
         for (const system of systems) {
             await queryRunner.query(
-                "INSERT INTO `fwc_tree` (`parent_id`, `name`, `node_type`,`node_order`) VALUES (?, 'DHCP', 'S01',2)",
+                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`) VALUES (?, 'DHCP', 'S01',2)",
                 [system.id]
             );
 
             await queryRunner.query(
-                "INSERT INTO `fwc_tree` (`parent_id`, `name`, `node_type`,`node_order`) VALUES (?, 'Keepalived', 'S02',2)",
+                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`) VALUES (?, 'Keepalived', 'S02',2)",
                 [system.id]
             );
 
             await queryRunner.query(
-                "INSERT INTO `fwc_tree` (`parent_id`, `name`, `node_type`,`node_order`) VALUES (?, 'HAProxy', 'S03',2)",
+                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`) VALUES (?, 'HAProxy', 'S03',2)",
                 [system.id]
             );
         }
@@ -54,11 +54,11 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(
-            "DELETE t1 FROM `fwc_tree` t1 JOIN `fwc_tree` t2 ON t1.`parent_id` = t2.`id` WHERE t2.`name` = 'System' AND t1.`name` IN ('DHCP', 'Keepalived', 'HAProxy')"
+            "DELETE t1 FROM `fwc_tree` t1 JOIN `fwc_tree` t2 ON t1.`id_parent` = t2.`id` WHERE t2.`name` = 'System' AND t1.`name` IN ('DHCP', 'Keepalived', 'HAProxy')"
         );
 
         await queryRunner.query(
-            "DELETE t1 FROM `fwc_tree` t1 JOIN `fwc_tree` t2 ON t1.`parent_id` = t2.`id` WHERE t2.`node_type` = 'FW' AND t1.`name` = 'System'"
+            "DELETE t1 FROM `fwc_tree` t1 JOIN `fwc_tree` t2 ON t1.`id_parent` = t2.`id` WHERE t2.`node_type` = 'FW' AND t1.`name` = 'System'"
         );
 
         await queryRunner.query(
