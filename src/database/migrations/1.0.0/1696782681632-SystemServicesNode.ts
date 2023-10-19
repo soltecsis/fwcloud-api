@@ -8,25 +8,25 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
         );
 
         await queryRunner.query(
-            "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'SYS', NULL, 'DHCP')"
+            "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'S01', NULL, 'DHCP')"
         );
 
         await queryRunner.query(
-            "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'SYS', NULL, 'Keepalived')"
+            "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'S02', NULL, 'Keepalived')"
         );
 
         await queryRunner.query(
-            "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'SYS', NULL, 'HAProxy')"
+            "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'S03', NULL, 'HAProxy')"
         );
 
-        const firewalls = await queryRunner.query(
-            "SELECT `id` FROM `fwc_tree` WHERE `node_type` = 'firewall'"
+        const nodes = await queryRunner.query(
+            "SELECT `id` FROM `fwc_tree` WHERE `node_type` IN ('FW', 'CL')"
         );
 
-        for (const firewall of firewalls) {
+        for (const node of nodes) {
             await queryRunner.query(
-                "INSERT INTO `fwc_tree` (`parent_id`, `name`, `node_type`) VALUES (?, 'System', 'SYS')",
-                [firewall.id]
+                "INSERT INTO `fwc_tree` (`parent_id`, `name`, `node_type`,`node_order`) VALUES (?, 'System', 'SYS',1)",
+                [node.id]
             );
         }
 
@@ -35,51 +35,34 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
         );
 
         for (const system of systems) {
-            // Inserta nodo DHCP
             await queryRunner.query(
-                "INSERT INTO `fwc_tree` (`parent_id`, `name`, `node_type`) VALUES (?, 'DHCP', 'SYS_CHILD')",
+                "INSERT INTO `fwc_tree` (`parent_id`, `name`, `node_type`,`node_order`) VALUES (?, 'DHCP', 'S01',2)",
                 [system.id]
             );
 
-            // Inserta nodo Keepalived
             await queryRunner.query(
-                "INSERT INTO `fwc_tree` (`parent_id`, `name`, `node_type`) VALUES (?, 'Keepalived', 'SYS_CHILD')",
+                "INSERT INTO `fwc_tree` (`parent_id`, `name`, `node_type`,`node_order`) VALUES (?, 'Keepalived', 'S02',2)",
                 [system.id]
             );
 
-            // Inserta nodo HAProxy
             await queryRunner.query(
-                "INSERT INTO `fwc_tree` (`parent_id`, `name`, `node_type`) VALUES (?, 'HAProxy', 'SYS_CHILD')",
+                "INSERT INTO `fwc_tree` (`parent_id`, `name`, `node_type`,`node_order`) VALUES (?, 'HAProxy', 'S03',2)",
                 [system.id]
             );
         }
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        // Elimina los nodos hijos de 'System'
         await queryRunner.query(
             "DELETE t1 FROM `fwc_tree` t1 JOIN `fwc_tree` t2 ON t1.`parent_id` = t2.`id` WHERE t2.`name` = 'System' AND t1.`name` IN ('DHCP', 'Keepalived', 'HAProxy')"
         );
 
-        // Elimina los nodos 'System' que son hijos de nodos con tipo 'firewall'
         await queryRunner.query(
-            "DELETE t1 FROM `fwc_tree` t1 JOIN `fwc_tree` t2 ON t1.`parent_id` = t2.`id` WHERE t2.`node_type` = 'firewall' AND t1.`name` = 'System'"
+            "DELETE t1 FROM `fwc_tree` t1 JOIN `fwc_tree` t2 ON t1.`parent_id` = t2.`id` WHERE t2.`node_type` = 'FW' AND t1.`name` = 'System'"
         );
 
         await queryRunner.query(
-            "DELETE FROM `fwc_tree_node_types` WHERE `node_type` = 'SYS' AND `name` = 'System'"
-        );
-
-        await queryRunner.query(
-            "DELETE FROM `fwc_tree_node_types` WHERE `node_type` = 'SYS' AND `name` = 'DHCP'"
-        );
-
-        await queryRunner.query(
-            "DELETE FROM `fwc_tree_node_types` WHERE `node_type` = 'SYS' AND `name` = 'Keepalived'"
-        );
-
-        await queryRunner.query(
-            "DELETE FROM `fwc_tree_node_types` WHERE `node_type` = 'SYS' AND `name` = 'HAProxy'"
+            "DELETE FROM `fwc_tree_node_types` WHERE `node_type` IN ('SYS', 'S01', 'S02', 'S03') AND `name` IN ('System', 'DHCP', 'Keepalived', 'HAProxy')"
         );
     }
 }
