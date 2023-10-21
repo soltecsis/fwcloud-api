@@ -54,11 +54,11 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(
-            "DELETE t1 FROM `fwc_tree` t1 JOIN `fwc_tree` t2 ON t1.`id_parent` = t2.`id` WHERE t2.`name` = 'System' AND t1.`name` IN ('DHCP', 'Keepalived', 'HAProxy')"
+            "DELETE t1 FROM `fwc_tree` t1 JOIN `fwc_tree` t2 ON t1.`id_parent` = t2.`id` WHERE t2.`node_type` = 'SYS' AND t1.`node_type` IN ('S01', 'S02', 'S03')"
         );
 
         await queryRunner.query(
-            "DELETE t1 FROM `fwc_tree` t1 JOIN `fwc_tree` t2 ON t1.`id_parent` = t2.`id` WHERE t2.`node_type` = 'FW' AND t1.`name` = 'System'"
+            "DELETE t1 FROM `fwc_tree` t1 JOIN `fwc_tree` t2 ON t1.`id_parent` = t2.`id` WHERE t2.`node_type` = 'FW' AND t1.`node_type` = 'SYS'"
         );
 
         await queryRunner.query(
