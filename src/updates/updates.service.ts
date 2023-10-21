@@ -26,13 +26,27 @@ import { Request } from "express";
 import * as fs from 'fs';
 import axios, { AxiosRequestConfig, Method } from "axios";
 import * as https from 'https';
+import cmp from 'semver-compare';
 const spawn = require('child-process-promise').spawn;
+
+export interface Versions {
+  current: string;
+  last: string;
+  needsUpdate: boolean;
+}
+
+export enum Apps {
+  WEBSRV = 'websrv',
+  UI = 'ui',
+  API = 'api',
+  UPDATER = 'updater'
+}
 
 export class UpdateService extends Service {
   public async proxyUpdate(request: Request): Promise<any> {
     const updaterURL = this._app.config.get('updater').url;
 
-    /* ATENTION: Only forward the cookie header to fwcloud-updater. 
+    /* ATENTION+: Only forward the cookie header to fwcloud-updater. 
     If all headers are forwarded with:
       headers: req.headers
     then the update request like PUT /updates/ui doesn't go.
@@ -59,6 +73,49 @@ export class UpdateService extends Service {
     }
   }
 
+
+  public async compareVersions(app: Apps): Promise<Versions | null> {
+    let localJson: any = {};
+    let remoteJson: any = {};
+
+    const localPath = `${this._app.config.get(app).installDir}/package.json`;
+    try {
+      fs.accessSync(localPath, fs.constants.R_OK);
+      localJson = JSON.parse(fs.readFileSync(localPath, 'utf8'));
+    } catch(err) {
+      logger().error(`Accessing file '${localPath}' :`,err);
+      return null;      
+    }
+
+    let remoteURL = '';
+    try {
+      remoteURL = `${this._app.config.get(app).versionURL}/main/package.json`;
+      remoteJson = await axios.get(remoteURL);
+    } catch (err) { 
+      logger().error(`Accessing url '${remoteURL}':`,err);
+      return null;
+    }
+
+    if (!localJson || !localJson.version) {
+      logger().error(`No local version found updating fwcloud-${app}`);      
+      return null;
+    }
+
+    if (!remoteJson || !remoteJson.data || !remoteJson.data.version) {
+      logger().error(`No remote version found updating fwcloud-${app}`);      
+      return null;
+    }
+
+    const versions: Versions = {
+      current: localJson.version,
+      last: remoteJson.data.version,
+      needsUpdate: cmp(remoteJson.data.version,localJson.version) === 1 ? true : false
+    }
+
+    return versions;    
+  }
+
+  
   public async runUpdate(): Promise<void> {
     const installDir = this._app.config.get('updater').installDir;
 
@@ -82,6 +139,13 @@ export class UpdateService extends Service {
       const promise = spawn('npm', ['run','start:bg'], { cwd: installDir, detached: true, stdio: 'ignore' });
       promise.childProcess.unref();
       await promise;
+
+      // Await a few seconds to make sure that fwcloud-updater service is available again.
+      // This is necessary for avoid errors that can arise if we update FWCloud-Updater with other modules at the same
+      // time. For example, if we update FWCloud-Updater first and then FWCloud-Websrv, if we don't wait, we will try to
+      // communicate with FWCloud-Updater for make the FWCloud-Websrv update before the fwcloud-updater service 
+      // is available.
+      await new Promise(resolve => setTimeout(resolve, 5000));
     }
     catch(err) {
       logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);

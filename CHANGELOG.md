@@ -8,6 +8,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Migrations are added to create the System nodes and their children DHCP, Keepalived, and HAProxy.
 
+## [1.9.2] - 2023-06-07
+### Added
+- `GET updates/type/pkg` API call. It will be used by FWCloud-UI to get the updates information in a FWCloud DEB/RPM packages based installation.
+
+### Changed
+- Updated EASY-RSA to the latest version.
+- Updated OpenVPN GUI installer to the latest version.
+
+
+## [1.9.1] - 2023-05-15 
+### Fixed
+- Bug in GitHub Actions procedure for automatically generate packages for `deb` and `rpm` based Linux distributions.
+
+
+## [1.9.0] - 2023-05-11 
+### Added
+- Automatically generated packages by means of GitHub Actions for `deb` and `rpm` based Linux distributions.
+- `After=mariadb-server.service mysql-server.service` to the `fwcloud-api.service` systemd file to make sure that the database engine is started before the `fwcloud-api` service.
+
+
+## [1.8.4] - 2023-03-27
+### Added
+- Relation with countries and continents in `ipobj_type__policy_position` table.
+
+### Fixed
+- Bug in database migration: 1653374901932-add_relation_countries_ipobj_type__policy_position
+
+
+## [1.8.2] - 2023-03-23
+### Added
+- ISC DHCP plugin.
+- ISC Bind9 plugin.
+
+
+## [1.8.1] - 2023-03-13
+### Fixed
+- Avoid update errors that can arise if we update FWCloud-Updater together with other modules at the same time. For example, if we update FWCloud-Updater first and next FWCloud-Websrv, if we don't wait, we will try to communicate with FWCloud-Updater for make the FWCloud-Websrv update before the fwcloud-updater service is available.
+
+
+## [1.8.0] - 2023-03-13
+### Added
+- Task in package.json file for TLS certificates update.
+- Script for TLS certificate update.
+- Changes in the compiled policy script for detect if the `iptables` or `nft` commands exists depending of the policy compiler. For example, if the selected policy compiler is `IPTables` and the `iptables` command doesn't exists in the destination firewall then stop the policy load script and notify the error.
+
+### Changed
+- If PID file exists, stop before start.
+
+
+## [1.7.2] - 2023-01-30
+### Fixed
+- Several vulnerabilities reported by the command `npm audit`. 
+- Bug in `iptables-save` import procedure when `-p tcp` and `-m tcp` are used at the same time in combination with the `multiport` IPTables module. This bug created TCP port 0 service in affected policy rules. Reported by Jeremy Mueller.
+
+
+## [1.7.1] - 2022-12-01
+### Added
+- Database migration for create some new indexes to the `openvpn_status_history` table.
+- Debug logs for the worker that collects and processes OpenVPN history data.
+
+### Fixed
+- Out of memory error for OpenVPN history data worker (issue #569).
+
+
+## [1.7.0] - 2022-11-18
+### Added
+- fwcli command `standard:services:add` for add new standard services.
+- Keepalived plugin.
+- Suricata plugin.
+- Zeek plugin.
+- Elasticsearch plugin.
+- Kibana plugin.
+- Logstash plugin.
+- Filebeat plugin.
+- Web Safety Proxy plugin.
+- DNS Safety plugin.
+- CrowdSec plugin.
+- NtopNG plugin.
+
+
 ## [1.6.3] - 2022-10-10
 ### Changed
 - Authentication required for the `config` API call.
