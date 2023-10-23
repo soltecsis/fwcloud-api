@@ -45,10 +45,9 @@ import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { PgpHelper } from "../../utils/pgp";
 import { PluginDto } from './dtos/plugin.dto';
-import StringHelper from "../../utils/string.helper";
 
 export class FirewallController extends Controller {
-    
+
     protected firewallService: FirewallService;
     protected routingRuleService: RoutingRuleService;
     protected _fwCloud: FwCloud;
@@ -163,9 +162,9 @@ export class FirewallController extends Controller {
             await communication.ping();
 
             return ResponseBuilder.buildResponse().status(200).body({
-                status: 'OK'
+                status: 'OK',
             })
-        } catch(error) {
+        } catch (error) {
             if (error.message === 'Method not implemented') {
                 return ResponseBuilder.buildResponse().status(501);
             }
@@ -205,7 +204,7 @@ export class FirewallController extends Controller {
             let info: FwcAgentInfo = await communication.info();
 
             return ResponseBuilder.buildResponse().status(200).body(info)
-        } catch(error) {
+        } catch (error) {
             if (error.message === 'Method not implemented') {
                 return ResponseBuilder.buildResponse().status(501);
             }
@@ -216,18 +215,18 @@ export class FirewallController extends Controller {
 
     @Validate(PluginDto)
     async installPlugin(req: Request): Promise<ResponseBuilder> {
-        try{
+        try {
             const channel = await Channel.fromRequest(req);
-            const pgp = new PgpHelper(req.session.pgp);       
+            const pgp = new PgpHelper(req.session.pgp);
             const communication = new AgentCommunication({
                 protocol: req.body.protocol,
                 host: req.body.host,
                 port: req.body.port,
                 apikey: await pgp.decrypt(req.body.apikey)
             });
-            
-            const data = await communication.installPlugin(req.body.plugin,req.body.enable,channel);
-            
+
+            const data = await communication.installPlugin(req.body.plugin, req.body.enable, channel);
+
             return ResponseBuilder.buildResponse().status(200).body(
                 data
             )

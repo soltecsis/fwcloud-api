@@ -239,7 +239,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     info(): Promise<FwcAgentInfo> {
         throw new Error("Method not implemented.");
     }
-
+    
     installPlugin(name: string,enabled: boolean): Promise<string> {
         throw new Error("Method not implemented.");
     }

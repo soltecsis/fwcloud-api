@@ -40,6 +40,7 @@ type AgentCommunicationData = {
 }
 
 export class AgentCommunication extends Communication<AgentCommunicationData> {
+ 
     protected readonly url: string;
     protected readonly ws_url: string;
     protected readonly headers: Record<string, unknown>;
@@ -240,12 +241,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         try {
             const pathUrl: string = this.url + '/api/v1/info';
 
-            const response: AxiosResponse<string> = await axios.get(pathUrl, this.config);
-
+            const response: AxiosResponse<FwcAgentInfo> = await axios.get(pathUrl, this.config);
+        
             if (response.status === 200) {
-                return response.data.split("\n").filter(item => item !== '').slice(1).map(item => ({
-                    fwcAgentVersion: item.split(',')[0]
-                }))[0];
+                return response.data
             }
 
             throw new Error("Unexpected FWCloud-Agent info response");
@@ -254,7 +253,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             this.handleRequestException(error);
         }
     }
-
+    
     async installPlugin(name: string, enabled: boolean, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         try {
             const pathUrl: string = this.url + '/api/v1/plugin';
