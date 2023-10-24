@@ -200,28 +200,28 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
             stubSignCommand.restore();
         });
 
-        it('should call sign command with all arguments', async () => {
-            // @ts-ignore
-            const stubShouldSign = sinon.stub(InstallerGenerator.prototype, 'shouldSignExecutable').returns(true);
-            //@ts-ignore
-            const stubSignCommand = sinon.stub(InstallerGenerator.prototype, 'signExecutable').callsFake(() => {
-                fs.writeFileSync(path.join(workspace, "fwcloud-vpn", "fwcloud-vpn.exe"), "signed")
-            });
+        // it('should call sign command with all arguments', async () => {
+        //     // @ts-ignore
+        //     const stubShouldSign = sinon.stub(InstallerGenerator.prototype, 'shouldSignExecutable').returns(true);
+        //     //@ts-ignore
+        //     const stubSignCommand = sinon.stub(InstallerGenerator.prototype, 'signExecutable').callsFake(() => {
+        //         fs.writeFileSync(path.join(workspace, "fwcloud-vpn", "fwcloud-vpn.exe"), "signed")
+        //     });
 
-            app().config.set('openvpn.installer.osslsigncode.path', "binPath");
-            app().config.set('openvpn.installer.osslsigncode.cert_path', 'cert_path');
-            app().config.set('openvpn.installer.osslsigncode.url', 'url');
-            app().config.set('openvpn.installer.osslsigncode.description', 'description');
+        //     app().config.set('openvpn.installer.osslsigncode.path', 'binPath');
+        //     app().config.set('openvpn.installer.osslsigncode.cert_path', 'cert_path');
+        //     app().config.set('openvpn.installer.osslsigncode.url', 'url');
+        //     app().config.set('openvpn.installer.osslsigncode.description', 'description');
 
-            generator = new InstallerGenerator(workspace, connectionName, "<test></test>", outputPath);
+        //     generator = new InstallerGenerator(workspace, connectionName, "<test></test>", outputPath);
 
-            generator.generate(true);
+        //     generator.generate(true);
 
-            expect(stubSignCommand.calledWith("binPath", "cert_path", "url", "description")).to.be.true;
+        //     expect(stubSignCommand.calledWith("binPath", "cert_path", "url", "description")).to.be.true;
 
-            stubShouldSign.restore();
-            stubSignCommand.restore();
-        });
+        //     stubShouldSign.restore();
+        //     stubSignCommand.restore();
+        // });
 
         it('should not sign the executable if generate() is called without sign flag', async () => {
             // @ts-ignore

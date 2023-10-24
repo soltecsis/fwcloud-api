@@ -11,16 +11,17 @@
 ##                                         ##
 #############################################
 
-LSMOD=`which lsmod`
-MODPROBE=`which modprobe`
-IPTABLES=`which iptables`
-IP6TABLES=`which ip6tables`
-NFT=`which nft`
-IP=`which ip`
-SYSTEMCTL=`which systemctl`
+LSMOD=`which lsmod 2>/dev/null`
+MODPROBE=`which modprobe 2>/dev/null`
+IPTABLES=`which iptables 2>/dev/null`
+IP6TABLES=`which ip6tables 2>/dev/null`
+NFT=`which nft 2>/dev/null`
+IP=`which ip 2>/dev/null`
+SYSTEMCTL=`which systemctl 2>/dev/null`
+SYSCTL=`which sysctl 2>/dev/null`
+
 SYSTEMD_FILE="/etc/systemd/system/fwcloud.service"
 SYSTEMD_FILE_ROUTING="/etc/systemd/system/fwcloud-routing.service"
-SYSCTL=`which sysctl`
 
 if [ -z "$HOSTNAME" ]; then
   HOSTNAME=`hostname`
@@ -32,10 +33,11 @@ log() {
 }
 
 check_cmds() {
-  test -z "$LSMOD" && echo "Command 'lsmod' not found!" && exit 1
-  test -z "$MODPROBE" && echo "Command 'modprobe' not found!" && exit 1
-  test -z "$IPTABLES" && echo "Command 'iptables' not found!" && exit 1
-  test -z "$IP" && echo "Command 'ip' not found!" && exit 1
+  test -z "$LSMOD" && echo "ERROR: Command 'lsmod' not found." && exit 1
+  test -z "$MODPROBE" && echo "ERROR: Command 'modprobe' not found." && exit 1
+  test -z "$IP" && echo "ERROR: Command 'ip' not found." && exit 1
+  test "$POLICY_COMPILER" = "IPTables" -a -z "$IPTABLES" && echo "ERROR: Policy compiler is $POLICY_COMPILER, but command 'iptables' not found." && exit 1
+  test "$POLICY_COMPILER" = "NFTables" -a -z "$NFT" && echo "ERROR: Policy compiler is $POLICY_COMPILER, but command 'nft' not found." && exit 1
 }
 
 iptables_default_filter_policy() { 

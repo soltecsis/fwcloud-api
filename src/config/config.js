@@ -509,11 +509,65 @@ const config = convict({
       default: '/opt/fwcloud/updater',
       env: 'FWC_UPDATER_INSTALL_DIR'
     },
+    versionURL: {
+      doc: 'fwcloud-updater version URL',
+      format: String,
+      default: 'https://raw.githubusercontent.com/soltecsis/fwcloud-updater',
+      env: 'FWC_UPDATER_VERSION_URL'
+    },
     url: {
       doc: 'fwcloud-updater URL.',
       format: String,
       default: 'https://localhost:3132',
       env: 'FWC_UPDATER_URL'
+    },
+  },
+
+  // fwcloud-ui
+  ui: {
+    installDir: {
+      doc: 'fwcloud-ui install directory',
+      format: String,
+      default: '/opt/fwcloud/ui',
+      env: 'FWC_UI_INSTALL_DIR'
+    },
+    versionURL: {
+      doc: 'fwcloud-ui version URL',
+      format: String,
+      default: 'https://raw.githubusercontent.com/soltecsis/fwcloud-ui',
+      env: 'FWC_UI_VERSION_URL'
+    },
+  },
+  
+  // fwcloud-api
+  api: {
+    installDir: {
+      doc: 'fwcloud-api install directory',
+      format: String,
+      default: '/opt/fwcloud/api',
+      env: 'FWC_API_INSTALL_DIR'
+    },
+    versionURL: {
+      doc: 'fwcloud-api version URL',
+      format: String,
+      default: 'https://raw.githubusercontent.com/soltecsis/fwcloud-api',
+      env: 'FWC_API_VERSION_URL'
+    },
+  },
+
+  // fwcloud-websrv
+  websrv: {
+    installDir: {
+      doc: 'fwcloud-websrv install directory',
+      format: String,
+      default: '/opt/fwcloud/websrv',
+      env: 'FWC_WEBSRV_INSTALL_DIR'
+    },
+    versionURL: {
+      doc: 'fwcloud-websrv version URL',
+      format: String,
+      default: 'https://raw.githubusercontent.com/soltecsis/fwcloud-websrv',
+      env: 'FWC_WEBSRV_VERSION_URL'
     },
   },
 

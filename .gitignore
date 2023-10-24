@@ -43,4 +43,4 @@ tests/.tmp
 lib/nsis-3.05/fwcloud-vpn/*.exe
 lib/nsis-3.05/fwcloud-vpn/*.ovpn
 
-.DS_Store
+**/.DS_Store
