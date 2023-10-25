@@ -25,8 +25,8 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
 
         for (const node of nodes) {
             await queryRunner.query(
-                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'System', 'SYS',1,?,?)",
-                [node.id,node.id,node.fwcloud]
+                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'System', 'SYS',0,?,?)",
+                [node.id,node.id_obj,node.fwcloud]
             );
         }
 
@@ -36,18 +36,18 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
 
         for (const system of systems) {
             await queryRunner.query(
-                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'DHCP', 'S01',2,?,?)",
-                [system.id,system.id,system.fwcloud]
+                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'DHCP', 'S01',0,?,?)",
+                [system.id,system.id_obj,system.fwcloud]
             );
 
             await queryRunner.query(
-                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'Keepalived', 'S02',2,?,?)",
-                [system.id,system.id,system.fwcloud]
+                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'Keepalived', 'S02',0,?,?)",
+                [system.id,system.id_obj,system.fwcloud]
             );
 
             await queryRunner.query(
-                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'HAProxy', 'S03',2,?,?)",
-                [system.id,system.id,system.fwcloud]
+                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'HAProxy', 'S03',0,?,?)",
+                [system.id,system.id_obj,system.fwcloud]
             );
         }
     }
