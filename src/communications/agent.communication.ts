@@ -21,7 +21,7 @@
 */
 
 import { EventEmitter } from "events";
-import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord } from "./communication";
+import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord, SystemCtlInfo } from "./communication";
 import axios, { AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressPayload, ProgressSSHCmdPayload } from "../sockets/messages/socket-message";
 import * as fs from 'fs';

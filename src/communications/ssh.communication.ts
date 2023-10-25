@@ -26,7 +26,7 @@ import { FwCloudError } from "../fonaments/exceptions/error";
 import { FireWallOptMask } from "../models/firewall/Firewall";
 import { ProgressInfoPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
 import sshTools from "../utils/ssh";
-import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord } from "./communication";
+import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord, SystemCtlInfo } from "./communication";
 var config = require('../config/config');
 const fwcError = require('../utils/error_table');
 
@@ -237,6 +237,9 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     }
 
     info(): Promise<FwcAgentInfo> {
+        throw new Error("Method not implemented.");
+    }
+    systemctlManagement(): Promise<SystemCtlInfo> {
         throw new Error("Method not implemented.");
     }
     

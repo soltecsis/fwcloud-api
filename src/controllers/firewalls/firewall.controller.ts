@@ -45,6 +45,8 @@ import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { PgpHelper } from "../../utils/pgp";
 import { PluginDto } from './dtos/plugin.dto';
+import { SystemCtlDto } from "./dtos/systemctl.dto";
+import { System } from "typescript";
 
 export class FirewallController extends Controller {
 
@@ -55,13 +57,13 @@ export class FirewallController extends Controller {
     public async make(request: Request): Promise<void> {
         //Get the fwcloud from the URL which contains the firewall
         this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
-            .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)})
+            .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
             .getOneOrFail();
 
         this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
         this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
     }
-    
+
     @Validate(FirewallControllerCompileDto)
     public async compile(request: Request): Promise<ResponseBuilder> {
         /**
@@ -213,6 +215,23 @@ export class FirewallController extends Controller {
         }
     }
 
+
+    @Validate(SystemCtlDto)
+    async systemctlCommunication(req: Request): Promise<ResponseBuilder> {     
+        (await FirewallPolicy.info(this._fwCloud, req.session.user)).authorize();
+        
+        const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+        .where(`firewall.id = :id`, {id: req.body.firewall}).andWhere('firewall.fwcloud = :fwcloud', { fwcloud: req.body.fwcloud })
+        .getOneOrFail();
+
+        let communication = await firewall.getCommunication();
+        
+        
+        return ResponseBuilder.buildResponse().status(200).body(communication)
+       
+        }
+
+        
     @Validate(PluginDto)
     async installPlugin(req: Request): Promise<ResponseBuilder> {
         try {
