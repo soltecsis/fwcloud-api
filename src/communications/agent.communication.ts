@@ -31,6 +31,8 @@ import * as https from 'https';
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { app } from "../fonaments/abstract-application";
 import WebSocket from 'ws';
+import { System } from "typescript";
+import { command } from "yargs";
 
 type AgentCommunicationData = {
     protocol: 'https' | 'http',
@@ -240,9 +242,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     async info(): Promise<FwcAgentInfo> {
         try {
             const pathUrl: string = this.url + '/api/v1/info';
-
+            
             const response: AxiosResponse<FwcAgentInfo> = await axios.get(pathUrl, this.config);
-        
+            
             if (response.status === 200) {
                 return response.data
             }
@@ -395,6 +397,28 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             this.handleRequestException(error);
         }
     }
+    async systemctlManagement(command: string,service: string): Promise<SystemCtlInfo> {
+        try {
+            const pathUrl: string = this.url + '/api/v1/systemctl';
+            
+            const systemCtlInfo: SystemCtlInfo = {
+                action: command,
+                service: service
+            };
+            
+            const response: AxiosResponse<SystemCtlInfo> = await axios.post(pathUrl, systemCtlInfo, this.config);
+        
+            /*if (response.status === 200) {
+                //console.log("DATA", response.data)
+                return response.data
+                }
+            throw new Error("Unexpected FWCloud-Agent info response");*/
+            return systemCtlInfo;
+        } catch(error) {
+            this.handleRequestException(error);
+        }
+    }
+
 
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
         if (axios.isAxiosError(error)) {
@@ -430,4 +454,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
         return super.handleRequestException(error, eventEmitter);
     }
+
+
 }

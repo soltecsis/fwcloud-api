@@ -48,6 +48,21 @@ import { PluginDto } from './dtos/plugin.dto';
 import { SystemCtlDto } from "./dtos/systemctl.dto";
 import { System } from "typescript";
 
+export enum serviceOptions {
+    openvpn = 'openvpn',
+    dhcp = 'dhcp',
+    keepalived = 'keepalived',
+    HAProxy = 'HAProxy'
+  }
+  
+  export enum actionOptions {
+    status = 'status',
+    start = 'start',
+    stop = 'stop',
+    restart = 'restart',
+    reload = 'reload'
+  }
+
 export class FirewallController extends Controller {
 
     protected firewallService: FirewallService;
@@ -175,17 +190,17 @@ export class FirewallController extends Controller {
         }
     }
 
+    
     @Validate(InfoDto)
     async infoCommunication(request: Request): Promise<ResponseBuilder> {
         const input: InfoDto = request.body;
-
         (await FirewallPolicy.info(this._fwCloud, request.session.user)).authorize();
 
         const pgp = new PgpHelper(request.session.pgp);
 
         try {
             let communication: Communication<unknown>;
-
+            
             if (input.communication === FirewallInstallCommunication.SSH) {
                 communication = new SSHCommunication({
                     host: input.host,
@@ -201,9 +216,10 @@ export class FirewallController extends Controller {
                     protocol: input.protocol,
                     apikey: await pgp.decrypt(input.apikey)
                 })
+             
             }
-
             let info: FwcAgentInfo = await communication.info();
+        
 
             return ResponseBuilder.buildResponse().status(200).body(info)
         } catch (error) {
@@ -215,23 +231,45 @@ export class FirewallController extends Controller {
         }
     }
 
-
+   
     @Validate(SystemCtlDto)
     async systemctlCommunication(req: Request): Promise<ResponseBuilder> {     
         (await FirewallPolicy.info(this._fwCloud, req.session.user)).authorize();
         
+        const service: serviceOptions = req.body.service;
+        const action: actionOptions  = req.body.action;
+
         const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
         .where(`firewall.id = :id`, {id: req.body.firewall}).andWhere('firewall.fwcloud = :fwcloud', { fwcloud: req.body.fwcloud })
         .getOneOrFail();
 
         let communication = await firewall.getCommunication();
+        //console.log("COMMUNICATION",communication)
+        communication.systemctlManagement(req.body.action, req.body.service);
         
-        
+        // Realizar las acciones según el comando
+    /*switch (command) {
+        case commandOptions.status:
+            // Lógica para el comando "status"
+            // Realizar la llamada a systemctl y manejar la respuesta del AGENT
+            // Guardar la respuesta en communication.statusResponse o similar
+            break;
+        case commandOptions.start:
+        case commandOptions.stop:
+        case commandOptions.restart:
+        case commandOptions.reload:
+            // Lógica para los comandos "start", "stop", "restart" y "reload"
+            // Realizar la llamada a systemctl y manejar la respuesta del AGENT
+            // Guardar la respuesta en communication.statusResponse o similar
+            break;
+        default:
+            throw new Error("Invalid command specified");
+    }*/
         return ResponseBuilder.buildResponse().status(200).body(communication)
-       
+    
         }
 
-        
+     
     @Validate(PluginDto)
     async installPlugin(req: Request): Promise<ResponseBuilder> {
         try {
@@ -245,7 +283,7 @@ export class FirewallController extends Controller {
             });
 
             const data = await communication.installPlugin(req.body.plugin, req.body.enable, channel);
-
+            
             return ResponseBuilder.buildResponse().status(200).body(
                 data
             )
