@@ -47,7 +47,7 @@ export type FwcAgentInfo = {
 }
 
 export type SystemCtlInfo =  {
-    action: string;
+    command: string;
     service: string;
 }
 

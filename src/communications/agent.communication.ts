@@ -402,18 +402,16 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             const pathUrl: string = this.url + '/api/v1/systemctl';
             
             const systemCtlInfo: SystemCtlInfo = {
-                action: command,
+                command: command,
                 service: service
             };
-            
             const response: AxiosResponse<SystemCtlInfo> = await axios.post(pathUrl, systemCtlInfo, this.config);
         
-            /*if (response.status === 200) {
-                //console.log("DATA", response.data)
+            if (response.status === 200) {
+                //console.log("DATA", response.data.command)
                 return response.data
-                }
-            throw new Error("Unexpected FWCloud-Agent info response");*/
-            return systemCtlInfo;
+            }
+            throw new Error("Unexpected FWCloud-Agent info response");
         } catch(error) {
             this.handleRequestException(error);
         }

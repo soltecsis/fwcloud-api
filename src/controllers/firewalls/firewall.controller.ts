@@ -55,12 +55,14 @@ export enum serviceOptions {
     HAProxy = 'HAProxy'
   }
   
-  export enum actionOptions {
+  export enum commandOptions {
     status = 'status',
     start = 'start',
     stop = 'stop',
     restart = 'restart',
-    reload = 'reload'
+    reload = 'reload',
+    enable = 'enable',
+    disable = 'disable'
   }
 
 export class FirewallController extends Controller {
@@ -237,15 +239,15 @@ export class FirewallController extends Controller {
         (await FirewallPolicy.info(this._fwCloud, req.session.user)).authorize();
         
         const service: serviceOptions = req.body.service;
-        const action: actionOptions  = req.body.action;
+        const command: commandOptions  = req.body.command;
 
         const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
         .where(`firewall.id = :id`, {id: req.body.firewall}).andWhere('firewall.fwcloud = :fwcloud', { fwcloud: req.body.fwcloud })
         .getOneOrFail();
 
         let communication = await firewall.getCommunication();
-        //console.log("COMMUNICATION",communication)
-        communication.systemctlManagement(req.body.action, req.body.service);
+        let response = await communication.systemctlManagement(command, service);
+        
         
         // Realizar las acciones según el comando
     /*switch (command) {
@@ -265,7 +267,7 @@ export class FirewallController extends Controller {
         default:
             throw new Error("Invalid command specified");
     }*/
-        return ResponseBuilder.buildResponse().status(200).body(communication)
+        return ResponseBuilder.buildResponse().status(200).body(response)
     
         }
 
