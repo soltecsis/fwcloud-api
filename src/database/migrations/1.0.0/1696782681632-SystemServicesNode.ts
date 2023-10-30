@@ -19,7 +19,7 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
             "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'S03', NULL, 'HAProxy')"
         );
 
-        const nodes = await queryRunner.query(
+        let nodes = await queryRunner.query(
             "SELECT `id`,`fwcloud` FROM `fwc_tree` WHERE `node_type` IN ('FW', 'CL')"
         );
 
@@ -30,24 +30,24 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
             );
         }
 
-        const systems = await queryRunner.query(
+        nodes = await queryRunner.query(
             "SELECT `id`,`fwcloud`  FROM `fwc_tree` WHERE `node_type` = 'SYS'"
         );
 
-        for (const system of systems) {
+        for (const node of nodes) {
             await queryRunner.query(
                 "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'DHCP', 'S01',0,?,?)",
-                [system.id,system.id_obj,system.fwcloud]
+                [node.id,node.id_obj,node.fwcloud]
             );
 
             await queryRunner.query(
                 "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'Keepalived', 'S02',0,?,?)",
-                [system.id,system.id_obj,system.fwcloud]
+                [node.id,node.id_obj,node.fwcloud]
             );
 
             await queryRunner.query(
                 "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'HAProxy', 'S03',0,?,?)",
-                [system.id,system.id_obj,system.fwcloud]
+                [node.id,node.id_obj,node.fwcloud]
             );
         }
     }
