@@ -397,7 +397,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             this.handleRequestException(error);
         }
     }
-    async systemctlManagement(command: string,service: string): Promise<SystemCtlInfo> {
+    async systemctlManagement(command: string,service: string): Promise<string> {
         try {
             const pathUrl: string = this.url + '/api/v1/systemctl';
             
@@ -405,8 +405,8 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 command: command,
                 service: service
             };
-            const response: AxiosResponse<SystemCtlInfo> = await axios.post(pathUrl, systemCtlInfo, this.config);
-        
+            
+            const response: AxiosResponse<string> = await axios.post(pathUrl, systemCtlInfo, this.config);
             if (response.status === 200) {
                 //console.log("DATA", response.data.command)
                 return response.data

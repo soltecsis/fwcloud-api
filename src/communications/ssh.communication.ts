@@ -26,7 +26,7 @@ import { FwCloudError } from "../fonaments/exceptions/error";
 import { FireWallOptMask } from "../models/firewall/Firewall";
 import { ProgressInfoPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
 import sshTools from "../utils/ssh";
-import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord, SystemCtlInfo } from "./communication";
+import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord } from "./communication";
 var config = require('../config/config');
 const fwcError = require('../utils/error_table');
 
@@ -239,10 +239,23 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     info(): Promise<FwcAgentInfo> {
         throw new Error("Method not implemented.");
     }
-    systemctlManagement(command: string,service:string): Promise<SystemCtlInfo> {
-        throw new Error("Method not implemented.");
+
+    async systemctlManagement(command: string, service: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
+        try {
+            if (!app().config.get('firewall_communication.ssh_enable')) {
+                throw fwcError.SSH_COMMUNICATION_DISABLE;
+            }
+            const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+            
+            const response = await sshTools.runCommand(this.connectionData, `${sudo} systemctl ${command} ${service}`);
+            //console.log("response", response)
+            return response;
+        } catch (error) {
+            this.handleRequestException(error, eventEmitter);
+            return ''; 
+        }
     }
-    
+
     installPlugin(name: string,enabled: boolean): Promise<string> {
         throw new Error("Method not implemented.");
     }

@@ -244,31 +244,13 @@ export class FirewallController extends Controller {
         const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
         .where(`firewall.id = :id`, {id: req.body.firewall}).andWhere('firewall.fwcloud = :fwcloud', { fwcloud: req.body.fwcloud })
         .getOneOrFail();
-
+        
         let communication = await firewall.getCommunication();
+        
         let response = await communication.systemctlManagement(command, service);
-        
-        
-        // Realizar las acciones según el comando
-    /*switch (command) {
-        case commandOptions.status:
-            // Lógica para el comando "status"
-            // Realizar la llamada a systemctl y manejar la respuesta del AGENT
-            // Guardar la respuesta en communication.statusResponse o similar
-            break;
-        case commandOptions.start:
-        case commandOptions.stop:
-        case commandOptions.restart:
-        case commandOptions.reload:
-            // Lógica para los comandos "start", "stop", "restart" y "reload"
-            // Realizar la llamada a systemctl y manejar la respuesta del AGENT
-            // Guardar la respuesta en communication.statusResponse o similar
-            break;
-        default:
-            throw new Error("Invalid command specified");
-    }*/
+        //console.log("response", response)
         return ResponseBuilder.buildResponse().status(200).body(response)
-    
+        
         }
 
      
