@@ -898,6 +898,19 @@ export class Tree extends Model {
         });
     };
 
+    //Generate the system nodes.
+    public static systemTree(connection: any,fwcloud:number,firewall:number,node: number): Promise<void> {
+        return new Promise(async (resolve,reject) => {
+            try {
+                const idSystem = await this.newNode(connection,fwcloud,'System',node,'SYS',firewall,null);
+                await this.newNode(connection,fwcloud,'DHCP',idSystem,'S01',firewall,null);
+                await this.newNode(connection,fwcloud,'Keepalived',idSystem,'S02',firewall,null);
+                await this.newNode(connection,fwcloud,'HAProxy',idSystem,'S03',firewall,null);
+                resolve();
+            } catch(error) { return reject(error) }
+        });
+    }
+
     //Generate the routing nodes.
     public static makeSureRoutingTreeExists(connection: any, fwcloud: number, children: any): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
@@ -971,6 +984,8 @@ export class Tree extends Model {
                         await this.openvpnServerTree(connection, fwcloud, firewallId, id2);
 
                         await this.routingTree(connection, fwcloud, firewallId, id1);
+
+                        await this.systemTree(connection, fwcloud, firewallId, id1)
                     } catch (error) { return reject(error) }
                     resolve();
                 });
@@ -1037,6 +1052,8 @@ export class Tree extends Model {
                         await this.openvpnServerTree(connection, fwcloud, clusters[0].fwmaster_id, id2);
 
                         await this.routingTree(connection, fwcloud, clusters[0].fwmaster_id, id1);
+
+                        await this.systemTree(connection, fwcloud, clusters[0].fwmaster_id, id1);
                         
                         id2 = await this.newNode(connection, fwcloud, 'NODES', id1, 'FCF', clusters[0].fwmaster_id, null);
 
