@@ -906,6 +906,7 @@ export class Tree extends Model {
                 await this.newNode(connection,fwcloud,'DHCP',idSystem,'S01',firewall,null);
                 await this.newNode(connection,fwcloud,'Keepalived',idSystem,'S02',firewall,null);
                 await this.newNode(connection,fwcloud,'HAProxy',idSystem,'S03',firewall,null);
+                resolve();
             } catch(error) { return reject(error) }
         });
     }
