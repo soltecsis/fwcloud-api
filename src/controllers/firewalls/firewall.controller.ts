@@ -45,7 +45,7 @@ import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { PgpHelper } from "../../utils/pgp";
 import { PluginDto } from './dtos/plugin.dto';
-import { SystemCtlDto } from "./dtos/systemctl.dto";
+//import { SystemCtlDto } from "./dtos/systemctl.dto";
 import { System } from "typescript";
 
 export enum serviceOptions {
