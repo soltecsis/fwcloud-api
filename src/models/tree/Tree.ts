@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -53,6 +53,9 @@ export type OpenVPNNode = TreeNode & {
 }
 
 export type TreeType = 'FIREWALLS' | 'OBJECTS' | 'SERVICES' | 'CA'; 
+
+type ChildrenArrayMap = Map<number, TreeNode[]>;
+type sortType = 'TEXT' | 'NODE_TYPE';
 
 export class Tree extends Model {
 
@@ -176,20 +179,36 @@ export class Tree extends Model {
     };
 
 
-    private static oderNodeBy(node: TreeNode, nodeType: string[], orderBy: string): Promise<void> {
+    private static sortChildBy(dbCon: any, sortType: sortType, fwcloud: number, nodeType: string[], childrenArrayMap: ChildrenArrayMap, customOrder?: string[]): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            if (nodeType.includes(node.node_type)) {                
-                node.children.sort((a: TreeNode, b: TreeNode) => {
-                    if (a[orderBy] < b[orderBy]) return -1;
-                    if (a[orderBy] > b[orderBy]) return 1;
-                    return 0;
-                });
-            }
+            const sql = `select id from fwc_tree where fwcloud=${fwcloud} and node_type in (${nodeType.map(value => `'${value}'`).join(', ')})`;
 
-            // Recursively apply the ordering to all nodes in the tree.
-            await Promise.all(node.children.map(node => this.oderNodeBy(node,nodeType,orderBy)));
+            dbCon.query(sql, async (error, nodes) => {
+                if (error) return reject(error);
 
-            resolve();
+                switch(sortType) {
+                    case 'TEXT':
+                        for(let i=0; i<nodes.length; i++) {
+                            childrenArrayMap.get(nodes[i].id).sort((a: TreeNode, b: TreeNode) => {
+                                if (a.text.toLowerCase() < b.text.toLowerCase()) return -1;
+                                if (a.text.toLowerCase() > b.text.toLowerCase()) return 1;
+                                return 0;
+                            });
+                        }
+                        break;
+
+                    case 'NODE_TYPE':
+                        for(let i=0; i<nodes.length; i++) {
+                            childrenArrayMap.get(nodes[i].id).sort((a: TreeNode, b: TreeNode) => {
+                                return customOrder.indexOf(a.node_type) - customOrder.indexOf(b.node_type);
+                            });
+                        }
+                        break;
+                    }
+
+
+                resolve();
+            });
         });
     }
 
@@ -220,7 +239,8 @@ export class Tree extends Model {
                     const rootNode: TreeNode = nodes[0];
                     rootNode.children = []; 
                     
-                    const childrenArrayMap: Map<number, TreeNode[]> = new Map<number, TreeNode[]>();
+                    // Map each fwc_tree node id with its TreeNode children array.
+                    const childrenArrayMap: ChildrenArrayMap = new Map<number, TreeNode[]>();
                     childrenArrayMap.set(rootNode.id, rootNode.children);
 
                     let orderBy: string;
@@ -233,25 +253,30 @@ export class Tree extends Model {
                         nodes = await this.nodesUnderNodes(dbCon,nodes,orderBy);
 
                         for(let i=0; i<nodes.length; i++) {
-                            
                             // Include data for OpenVpn Nodes Server
                             if(nodes[i].node_type == 'OSR' || nodes[i].node_type == 'OCL'){
                                 nodes[i] = await this.addSearchInfoOpenVPN(nodes[i])
                             }
-                            // Add the new nodes children arrays to the map.
+                            
+                            // Add the current node children array to the map.
                             nodes[i].children = [];
                             childrenArrayMap.set(nodes[i].id, nodes[i].children);
 
-                            // Add the new nodes to the children arrays of its parent node.
+                            // Add the current node to the children array of its parent node.
                             const parentChildren: TreeNode[] = childrenArrayMap.get(nodes[i].pid);
                             parentChildren.push(nodes[i]);
                         }
                     }   
                     
-                    if (treeType==='FIREWALLS') // Sort nodes into FD type nodes (folders) by name.
-                        await Promise.all(rootNode.children.map(node => this.oderNodeBy(node,['FD','FDI'],'text')));
-                    else if (treeType==='SERVICES' || treeType==='OBJECTS') // Include data for advanced search.
+                    if (treeType==='FIREWALLS') {
+                        // Sort nodes into FD (folders) and FDI (Interfaces) nodes type by name in the text field.
+                        await this.sortChildBy(dbCon, 'TEXT', fwcloud, ['FD','FDI'], childrenArrayMap);
+                        // Sort nodes into FL (firewalls) and CL (clusters) nodes type by custom order.
+                        await this.sortChildBy(dbCon, 'NODE_TYPE', fwcloud, ['FW','CL'], childrenArrayMap, ['FP', 'FP6', 'FDI', 'FCF', 'OPN', 'ROU', 'SYS']);
+                    } else if (treeType==='SERVICES' || treeType==='OBJECTS') { 
+                        // Include data for advanced search.
                         await this.addSearchInfo(dbCon, childrenArrayMap, treeType);
+                    }
                     
                     resolve(rootNode);
                 } catch (error) { reject(error) }
@@ -259,7 +284,7 @@ export class Tree extends Model {
         });
     }
 
-    private static addSearchInfo(dbCon: any, childrenArrayMap: Map<number, TreeNode[]>, treeType: TreeType): Promise<void> {
+    private static addSearchInfo(dbCon: any, childrenArrayMap: ChildrenArrayMap, treeType: TreeType): Promise<void> {
         return new Promise((resolve, reject) => {
             let fields = '';
             let nodeTypes: string[];
@@ -308,7 +333,6 @@ export class Tree extends Model {
     }
 
     private static async addSearchInfoOpenVPN(node:OpenVPNNode): Promise<OpenVPNNode> {
-    
         const qb: SelectQueryBuilder<IPObj> = getRepository(IPObj).createQueryBuilder('ipobj')
             .innerJoin(OpenVPNOption, 'option', 'option.ipObj = ipobj.id')
             .where('fwcloud = :fwcloud', {fwcloud: node.fwcloud})
@@ -911,41 +935,41 @@ export class Tree extends Model {
         });
     }
 
-    //Generate the routing nodes.
-    public static makeSureRoutingTreeExists(connection: any, fwcloud: number, children: any): Promise<boolean> {
-        return new Promise(async (resolve, reject) => {
-            if (!children) return resolve(false);
+    // //Generate the routing nodes.
+    // public static makeSureRoutingTreeExists(connection: any, fwcloud: number, children: any): Promise<boolean> {
+    //     return new Promise(async (resolve, reject) => {
+    //         if (!children) return resolve(false);
 
-            let treeReload = false;
-            for (let i=0; i<children.length; i++) {
-                if (children[i].node_type === 'FW' || children[i].node_type === 'CL') {
-                    // Search for the routing node.
-                    const grandchild = children[i].children;
-                    let found = false;
-                    for (let j=grandchild.length-1; j!=0; j--) {
-                        if (grandchild[j].node_type === 'ROU') {
-                            found = true;
-                            break;
-                        }
-                    }
+    //         let treeReload = false;
+    //         for (let i=0; i<children.length; i++) {
+    //             if (children[i].node_type === 'FW' || children[i].node_type === 'CL') {
+    //                 // Search for the routing node.
+    //                 const grandchild = children[i].children;
+    //                 let found = false;
+    //                 for (let j=grandchild.length-1; j!=0; j--) {
+    //                     if (grandchild[j].node_type === 'ROU') {
+    //                         found = true;
+    //                         break;
+    //                     }
+    //                 }
 
-                    if (!found) {
-                        // create the routing nodes.
-                        let firewallId = 0;
-                        for (let j=0; j < grandchild.length; j++) {
-                            if (grandchild[j].node_type === 'FDI') 
-                                firewallId = grandchild[j].id_obj;
-                        }
-                        await this.routingTree(connection, fwcloud, firewallId, children[i].id);
-                        treeReload = true;
-                    }
-                } else if (children[i].node_type === 'FD') // Recursive call for firewall folders.
-                    treeReload = await this.makeSureRoutingTreeExists(connection, fwcloud, children[i].children);
-            }
+    //                 if (!found) {
+    //                     // create the routing nodes.
+    //                     let firewallId = 0;
+    //                     for (let j=0; j < grandchild.length; j++) {
+    //                         if (grandchild[j].node_type === 'FDI') 
+    //                             firewallId = grandchild[j].id_obj;
+    //                     }
+    //                     await this.routingTree(connection, fwcloud, firewallId, children[i].id);
+    //                     treeReload = true;
+    //                 }
+    //             } else if (children[i].node_type === 'FD') // Recursive call for firewall folders.
+    //                 treeReload = await this.makeSureRoutingTreeExists(connection, fwcloud, children[i].children);
+    //         }
 
-            resolve(treeReload);
-        });
-    };
+    //         resolve(treeReload);
+    //     });
+    // };
 
     //Add new TREE FIREWALL for a New Firewall
     public static insertFwc_Tree_New_firewall(fwcloud, nodeId, firewallId) {
