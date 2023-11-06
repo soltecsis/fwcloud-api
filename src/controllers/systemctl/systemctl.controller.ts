@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Validate, ValidateQuery  } from "../../decorators/validate.decorator";
+import { Validate } from "../../decorators/validate.decorator";
 import { getRepository } from "typeorm";
 import { Controller } from "../../fonaments/http/controller";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
@@ -55,7 +55,6 @@ async systemctlCommunication(req: Request) {
     const service: serviceOptions = req.body.service;
     const command: commandOptions  = req.body.command;
     
-    console.log("llega")
    const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
     .where(`firewall.id = :id`, {id: req.body.firewall}).andWhere('firewall.fwcloud = :fwcloud', { fwcloud: req.body.fwcloud })
     .getOne();

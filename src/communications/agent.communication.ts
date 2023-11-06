@@ -405,10 +405,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 command: command,
                 service: service
             };
-            
             const response: AxiosResponse<string> = await axios.post(pathUrl, systemCtlInfo, this.config);
             if (response.status === 200) {
-                //console.log("DATA", response.data.command)
+               // console.log("DATA", response.data)
                 return response.data
             }
             throw new Error("Unexpected FWCloud-Agent info response");

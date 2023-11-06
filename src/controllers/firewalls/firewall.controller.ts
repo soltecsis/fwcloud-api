@@ -45,25 +45,7 @@ import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { PgpHelper } from "../../utils/pgp";
 import { PluginDto } from './dtos/plugin.dto';
-//import { SystemCtlDto } from "./dtos/systemctl.dto";
-import { System } from "typescript";
 
-export enum serviceOptions {
-    openvpn = 'openvpn',
-    dhcp = 'dhcp',
-    keepalived = 'keepalived',
-    HAProxy = 'HAProxy'
-  }
-  
-  export enum commandOptions {
-    status = 'status',
-    start = 'start',
-    stop = 'stop',
-    restart = 'restart',
-    reload = 'reload',
-    enable = 'enable',
-    disable = 'disable'
-  }
 
 export class FirewallController extends Controller {
 
@@ -232,28 +214,7 @@ export class FirewallController extends Controller {
             throw error;
         }
     }
-
-   
-    @Validate(SystemCtlDto)
-    async systemctlCommunication(req: Request): Promise<ResponseBuilder> {     
-        (await FirewallPolicy.info(this._fwCloud, req.session.user)).authorize();
-        
-        const service: serviceOptions = req.body.service;
-        const command: commandOptions  = req.body.command;
-
-        const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
-        .where(`firewall.id = :id`, {id: req.body.firewall}).andWhere('firewall.fwcloud = :fwcloud', { fwcloud: req.body.fwcloud })
-        .getOneOrFail();
-        
-        let communication = await firewall.getCommunication();
-        
-        let response = await communication.systemctlManagement(command, service);
-        //console.log("response", response)
-        return ResponseBuilder.buildResponse().status(200).body(response)
-        
-        }
-
-     
+    
     @Validate(PluginDto)
     async installPlugin(req: Request): Promise<ResponseBuilder> {
         try {
