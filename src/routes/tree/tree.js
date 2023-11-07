@@ -74,12 +74,7 @@ router.put('/firewalls/get', async (req, res) => {
 	try {
 		//console.time('FW');
 		let tree = await Tree.dumpTree(req.dbCon, 'FIREWALLS', req.body.fwcloud);
-
 		//console.timeEnd('FW');
-
-		// If routing nodes don't exist, create them.
-		if (await Tree.makeSureRoutingTreeExists(req.dbCon, req.body.fwcloud, tree.children))
-			tree = await Tree.dumpTree(req.dbCon, 'FIREWALLS', req.body.fwcloud);
 
 		await Firewall.getFirewallStatusNotZero(req.body.fwcloud,tree);
 		await OpenVPN.getOpenvpnStatusNotZero(req,tree);
