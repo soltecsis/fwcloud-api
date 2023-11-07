@@ -248,7 +248,6 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
             
             const response = await sshTools.runCommand(this.connectionData, `${sudo} systemctl ${command} ${service}`);
-            //console.log("response", response)
             return response;
         } catch (error) {
             this.handleRequestException(error, eventEmitter);

@@ -31,8 +31,6 @@ import * as https from 'https';
 import { HttpException } from "../fonaments/exceptions/http/http-exception";
 import { app } from "../fonaments/abstract-application";
 import WebSocket from 'ws';
-import { System } from "typescript";
-import { command } from "yargs";
 
 type AgentCommunicationData = {
     protocol: 'https' | 'http',
@@ -407,7 +405,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             };
             const response: AxiosResponse<string> = await axios.post(pathUrl, systemCtlInfo, this.config);
             if (response.status === 200) {
-               // console.log("DATA", response.data)
                 return response.data
             }
             throw new Error("Unexpected FWCloud-Agent info response");

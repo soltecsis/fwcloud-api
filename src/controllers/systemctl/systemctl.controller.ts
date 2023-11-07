@@ -30,35 +30,35 @@ import { Request } from "express";
 import { SystemctlPolicy } from "../../policies/systemctl.policy";
 
 export enum serviceOptions {
-    openvpn = 'openvpn',
-    dhcp = 'dhcp',
-    keepalived = 'keepalived',
-    HAProxy = 'HAProxy'
-  }
-  
-  export enum commandOptions {
-    status = 'status',
-    start = 'start',
-    stop = 'stop',
-    restart = 'restart',
-    reload = 'reload',
-    enable = 'enable',
-    disable = 'disable'
-  }
-  export class SystemCtlController extends Controller {
+  openvpn = 'openvpn',
+  dhcp = 'dhcp',
+  keepalived = 'keepalived',
+  HAProxy = 'HAProxy'
+}
 
-    @Validate(SystemCtlDto)  
-async systemctlCommunication(req: Request) {     
-   (await SystemctlPolicy.communicate( req.session.user,req.body.fwCloud,req.body.firewall)).authorize();
-   const service: serviceOptions = req.body.service;
-    const command: commandOptions  = req.body.command;
-    
-   const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
-    .where(`firewall.id = :id`, {id: req.body.firewall}).andWhere('firewall.fwcloud = :fwcloud', { fwcloud: req.body.fwcloud })
-    .getOne();
-    
+export enum commandOptions {
+  status = 'status',
+  start = 'start',
+  stop = 'stop',
+  restart = 'restart',
+  reload = 'reload',
+  enable = 'enable',
+  disable = 'disable'
+}
+export class SystemCtlController extends Controller {
+
+  @Validate(SystemCtlDto)
+  async systemctlCommunication(req: Request) {
+    (await SystemctlPolicy.communicate(req.session.user, req.body.fwCloud, req.body.firewall)).authorize();
+    const service: serviceOptions = req.body.service;
+    const command: commandOptions = req.body.command;
+
+    const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+      .where(`firewall.id = :id`, { id: req.body.firewall }).andWhere('firewall.fwcloud = :fwcloud', { fwcloud: req.body.fwcloud })
+      .getOne();
+
     let communication = await firewall.getCommunication();
-    
+
     let response = await communication.systemctlManagement(command, service);
     return ResponseBuilder.buildResponse().status(200).body(response)
   }

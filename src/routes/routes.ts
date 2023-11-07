@@ -118,7 +118,6 @@ export class Routes extends RouteCollection {
                         router.post('/communication/info', FirewallController, 'infoCommunication').name('fwclouds.firewalls.communication.info');
                         router.post('/plugin',FirewallController,'installPlugin').name('fwclouds.firewalls.communication.installPlugin');
                         router.prefix('/:firewall(\\d+)', (router:RouterParser) => {
-                            router.post('/systemctl', FirewallController,'systemctlCommunication').name('fwclouds.firewalls.communication.systemctlCommunication')
 
                             router.prefix('/policyRules', (router: RouterParser) => {
                                 router.get('/read', PolicyRuleController, 'read').name('fwclouds.firewalls.policyRules.read');
