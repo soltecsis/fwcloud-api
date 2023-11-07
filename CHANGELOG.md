@@ -16,8 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Optimize and reduce the time for the firewalls and clusters tree creation.
 
-
-
 ## [1.9.2] - 2023-06-07
 ### Added
 - `GET updates/type/pkg` API call. It will be used by FWCloud-UI to get the updates information in a FWCloud DEB/RPM packages based installation.
