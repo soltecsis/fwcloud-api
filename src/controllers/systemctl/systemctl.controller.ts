@@ -27,8 +27,7 @@ import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { Firewall } from "../../models/firewall/Firewall";
 import { SystemCtlDto } from "./dtos/systemctl.dto";
 import { Request } from "express";
-import { FirewallPolicy } from "../../policies/firewall.policy";
-import { FwCloud } from "../../models/fwcloud/FwCloud";
+import { SystemctlPolicy } from "../../policies/systemctl.policy";
 
 export enum serviceOptions {
     openvpn = 'openvpn',
@@ -48,11 +47,10 @@ export enum serviceOptions {
   }
   export class SystemCtlController extends Controller {
 
-
     @Validate(SystemCtlDto)  
 async systemctlCommunication(req: Request) {     
-   // (await FirewallPolicy.info(this._fwCloud, req.session.user)).authorize();
-    const service: serviceOptions = req.body.service;
+   (await SystemctlPolicy.communicate( req.session.user,req.body.fwCloud,req.body.firewall)).authorize();
+   const service: serviceOptions = req.body.service;
     const command: commandOptions  = req.body.command;
     
    const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
@@ -62,7 +60,6 @@ async systemctlCommunication(req: Request) {
     let communication = await firewall.getCommunication();
     
     let response = await communication.systemctlManagement(command, service);
-    //console.log("response", response)
     return ResponseBuilder.buildResponse().status(200).body(response)
-        }
+  }
 }
