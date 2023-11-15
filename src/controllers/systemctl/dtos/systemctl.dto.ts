@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {  IsInt, IsString, Matches, Min } from "class-validator";
+import {  IsInt, IsOptional, IsString, Matches, Min } from "class-validator";
 
 export class SystemCtlDto {
     @IsInt()
@@ -41,6 +41,7 @@ export class SystemCtlDto {
 
     @IsInt()
     @Min(1)
+    @IsOptional()
     cluster: number;
     
 }
