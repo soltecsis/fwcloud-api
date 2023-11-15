@@ -38,5 +38,9 @@ export class SystemCtlDto {
     @IsString()
     @Matches(/^(openvpn|openvpn@[a-zA-Z0-9\\-_]+|isc-dhcp-server|keepalived|haproxy)$/, { message: 'Invalid service' })
     service: string;
+
+    @IsInt()
+    @Min(1)
+    cluster: number;
     
 }
