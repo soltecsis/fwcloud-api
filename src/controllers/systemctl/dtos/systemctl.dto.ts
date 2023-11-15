@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {  IsInt, IsOptional, IsString, Matches, Min } from "class-validator";
+import {  IsInt, IsString, Matches, Min } from "class-validator";
 
 export class SystemCtlDto {
     @IsInt()
@@ -38,10 +38,4 @@ export class SystemCtlDto {
     @IsString()
     @Matches(/^(openvpn|openvpn@[a-zA-Z0-9\\-_]+|isc-dhcp-server|keepalived|haproxy)$/, { message: 'Invalid service' })
     service: string;
-
-    @IsInt()
-    @Min(1)
-    @IsOptional()
-    cluster: number;
-    
 }
