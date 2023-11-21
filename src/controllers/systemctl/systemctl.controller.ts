@@ -20,14 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Validate } from "../../decorators/validate.decorator";
-import { getRepository } from "typeorm";
-import { Controller } from "../../fonaments/http/controller";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { Firewall } from "../../models/firewall/Firewall";
-import { SystemCtlDto } from "./dtos/systemctl.dto";
-import { Request } from "express";
-import { SystemctlPolicy } from "../../policies/systemctl.policy";
+import {Validate} from "../../decorators/validate.decorator";
+import {getRepository} from "typeorm";
+import {Controller} from "../../fonaments/http/controller";
+import {ResponseBuilder} from "../../fonaments/http/response-builder";
+import {Firewall, FirewallInstallCommunication} from "../../models/firewall/Firewall";
+import {SystemCtlDto} from "./dtos/systemctl.dto";
+import {Request} from "express";
+import {SystemctlPolicy} from "../../policies/systemctl.policy";
+import {SSHCommunication} from "../../communications/ssh.communication";
+import {IPObj} from "../../models/ipobj/IPObj";
+import {PgpHelper} from "../../utils/pgp";
+import {Communication} from "../../communications/communication";
 
 export class SystemCtlController extends Controller {
 
@@ -35,9 +39,21 @@ export class SystemCtlController extends Controller {
   async systemctlCommunication(req: Request) {
     (await SystemctlPolicy.communicate(req.session.user, req.body.fwCloud, req.body.firewall)).authorize();
     const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
-      .where(`firewall.id = :id`, { id: req.body.firewall }).andWhere('firewall.fwcloud = :fwcloud', { fwcloud: req.body.fwcloud })
-      .getOne();
-    let communication = await firewall.getCommunication();
+        .where(`firewall.id = :id`, {id: req.body.firewall}).andWhere('firewall.fwcloud = :fwcloud', {fwcloud: req.body.fwcloud})
+        .getOne();
+    let communication: Communication<unknown>;
+    if (firewall.install_communication === FirewallInstallCommunication.SSH) {
+      const pgp: PgpHelper = new PgpHelper(req.session.pgp);
+      communication = new SSHCommunication({
+        host: (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
+        port: firewall.install_port,
+        username: Object.prototype.hasOwnProperty.call(req.body, "sshuser") ? await pgp.decrypt(req.body.sshuser) : await pgp.decrypt(firewall.install_user),
+        password: Object.prototype.hasOwnProperty.call(req.body, "sshpass") ? await pgp.decrypt(req.body.sshpass) : await pgp.decrypt(firewall.install_pass),
+        options: null
+      })
+    } else {
+      communication = await firewall.getCommunication();
+    }
 
     let response = await communication.systemctlManagement(req.body.command, req.body.service);
     return ResponseBuilder.buildResponse().status(200).body(response)
