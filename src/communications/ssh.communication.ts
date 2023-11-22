@@ -246,13 +246,14 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
                 throw fwcError.SSH_COMMUNICATION_DISABLE;
             }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
-            let response;
-            if(command == "status") {
+            
+            let response: string;
+            if (command == "status") {
                 response = await sshTools.runCommand(this.connectionData, `${sudo} systemctl --no-pager ${command} ${service}`);
             } else {
                 response = await sshTools.runCommand(this.connectionData, `${sudo} systemctl ${command} ${service}`);
             }
-            
+
             return response;
         } catch (error) {
             this.handleRequestException(error, eventEmitter);
