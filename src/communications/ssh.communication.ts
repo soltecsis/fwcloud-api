@@ -247,12 +247,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
             }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
             
-            let response: string;
-            if (command == "status") {
-                response = await sshTools.runCommand(this.connectionData, `${sudo} systemctl --no-pager ${command} ${service}`);
-            } else {
-                response = await sshTools.runCommand(this.connectionData, `${sudo} systemctl ${command} ${service}`);
-            }
+            const response = await sshTools.runCommand(this.connectionData, `${sudo} systemctl ${command === "status" ? "--no-pager" : ''} ${command} ${service}`);
 
             return response;
         } catch (error) {
