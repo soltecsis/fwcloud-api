@@ -46,6 +46,11 @@ export type FwcAgentInfo = {
     kernel_version:string,
 }
 
+export type SystemCtlInfo =  {
+    command: string;
+    service: string;
+}
+
 type ErrorWithCode = {
     code: string,
 } & Error;
@@ -69,6 +74,7 @@ export abstract class Communication<ConnectionData> {
     abstract getFirewallIptablesSave(): Promise<string[]>;
     abstract ping(): Promise<void>;
     abstract info(): Promise<FwcAgentInfo>;
+    abstract systemctlManagement(command: string,service:string) : Promise<string>
     abstract installPlugin(name: string,enabled: boolean): Promise<string>;
 
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {

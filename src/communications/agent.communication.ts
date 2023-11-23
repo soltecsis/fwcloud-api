@@ -21,7 +21,7 @@
 */
 
 import { EventEmitter } from "events";
-import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord } from "./communication";
+import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord, SystemCtlInfo } from "./communication";
 import axios, { AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressPayload, ProgressSSHCmdPayload } from "../sockets/messages/socket-message";
 import * as fs from 'fs';
@@ -240,9 +240,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     async info(): Promise<FwcAgentInfo> {
         try {
             const pathUrl: string = this.url + '/api/v1/info';
-
+            
             const response: AxiosResponse<FwcAgentInfo> = await axios.get(pathUrl, this.config);
-        
+            
             if (response.status === 200) {
                 return response.data
             }
@@ -395,6 +395,24 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             this.handleRequestException(error);
         }
     }
+    async systemctlManagement(command: string,service: string): Promise<string> {
+        try {
+            const pathUrl: string = this.url + '/api/v1/systemctl';
+            
+            const systemCtlInfo: SystemCtlInfo = {
+                command: command,
+                service: service
+            };
+            const response: AxiosResponse<string> = await axios.post(pathUrl, systemCtlInfo, this.config);
+            if (response.status === 200) {
+                return response.data
+            }
+            throw new Error("Unexpected FWCloud-Agent info response");
+        } catch(error) {
+            this.handleRequestException(error);
+        }
+    }
+
 
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
         if (axios.isAxiosError(error)) {
@@ -430,4 +448,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
         return super.handleRequestException(error, eventEmitter);
     }
+
+
 }

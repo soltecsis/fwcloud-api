@@ -46,6 +46,7 @@ import { AgentCommunication } from "../../communications/agent.communication";
 import { PgpHelper } from "../../utils/pgp";
 import { PluginDto } from './dtos/plugin.dto';
 
+
 export class FirewallController extends Controller {
 
     protected firewallService: FirewallService;
@@ -55,13 +56,13 @@ export class FirewallController extends Controller {
     public async make(request: Request): Promise<void> {
         //Get the fwcloud from the URL which contains the firewall
         this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
-            .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)})
+            .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
             .getOneOrFail();
 
         this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
         this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
     }
-    
+
     @Validate(FirewallControllerCompileDto)
     public async compile(request: Request): Promise<ResponseBuilder> {
         /**
@@ -173,17 +174,17 @@ export class FirewallController extends Controller {
         }
     }
 
+    
     @Validate(InfoDto)
     async infoCommunication(request: Request): Promise<ResponseBuilder> {
         const input: InfoDto = request.body;
-
         (await FirewallPolicy.info(this._fwCloud, request.session.user)).authorize();
 
         const pgp = new PgpHelper(request.session.pgp);
 
         try {
             let communication: Communication<unknown>;
-
+            
             if (input.communication === FirewallInstallCommunication.SSH) {
                 communication = new SSHCommunication({
                     host: input.host,
@@ -199,9 +200,10 @@ export class FirewallController extends Controller {
                     protocol: input.protocol,
                     apikey: await pgp.decrypt(input.apikey)
                 })
+             
             }
-
             let info: FwcAgentInfo = await communication.info();
+        
 
             return ResponseBuilder.buildResponse().status(200).body(info)
         } catch (error) {
@@ -212,7 +214,7 @@ export class FirewallController extends Controller {
             throw error;
         }
     }
-
+    
     @Validate(PluginDto)
     async installPlugin(req: Request): Promise<ResponseBuilder> {
         try {
@@ -226,7 +228,7 @@ export class FirewallController extends Controller {
             });
 
             const data = await communication.installPlugin(req.body.plugin, req.body.enable, channel);
-
+            
             return ResponseBuilder.buildResponse().status(200).body(
                 data
             )

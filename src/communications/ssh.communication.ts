@@ -239,7 +239,23 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     info(): Promise<FwcAgentInfo> {
         throw new Error("Method not implemented.");
     }
-    
+
+    async systemctlManagement(command: string, service: string, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
+        try {
+            if (!app().config.get('firewall_communication.ssh_enable')) {
+                throw fwcError.SSH_COMMUNICATION_DISABLE;
+            }
+            const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
+            
+            const response = await sshTools.runCommand(this.connectionData, `${sudo} systemctl ${command === "status" ? "--no-pager" : ''} ${command} ${service}`);
+
+            return response;
+        } catch (error) {
+            this.handleRequestException(error, eventEmitter);
+            return ''; 
+        }
+    }
+
     installPlugin(name: string,enabled: boolean): Promise<string> {
         throw new Error("Method not implemented.");
     }
