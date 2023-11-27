@@ -46,7 +46,7 @@ import { PolicyRuleController } from "../controllers/policy-rule/policy-rule.con
 import { TfaController } from "../controllers/auth/tfa.controller";
 import { CaController } from "../controllers/ca/ca.controller";
 import { CrtController } from "../controllers/crt/crt.controller";
-import { SystemCtlController } from '../controllers/systemctl/systemctl.controller';
+import DhcpController from '../controllers/system/dhcp/dhcp.controller';
 
 export class Routes extends RouteCollection {
 
@@ -95,7 +95,6 @@ export class Routes extends RouteCollection {
                     router.put('/updater', UpdateController, 'update').name('updates.fwcloud-updater');
                 });
             });
-            router.post('/systemctl', SystemCtlController,'systemctlCommunication').name('systemctl.communication')
 
             router.prefix('/fwclouds', (router: RouterParser) => {
                 router.post('/', FwCloudController, 'store').name('fwclouds.store');
@@ -116,7 +115,7 @@ export class Routes extends RouteCollection {
                     router.prefix('/firewalls', (router: RouterParser) => {
                         router.post('/communication/ping', FirewallController, 'pingCommunication').name('fwclouds.firewalls.communication.ping');
                         router.post('/communication/info', FirewallController, 'infoCommunication').name('fwclouds.firewalls.communication.info');
-                        router.post('/plugin',FirewallController,'installPlugin').name('fwclouds.firewalls.communication.installPlugin');
+                        router.post('/plugin',FirewallController,'installPlugin').name('fwcloud.firewalls.communication.installPlugin')
                         router.prefix('/:firewall(\\d+)', (router:RouterParser) => {
 
                             router.prefix('/policyRules', (router: RouterParser) => {
@@ -159,6 +158,32 @@ export class Routes extends RouteCollection {
                                             router.put('/', RouteController, 'update').name('fwclouds.firewalls.routing.tables.routes.update');
                                             router.delete('/', RouteController, 'remove').name('fwclouds.firewalls.routing.tables.routes.delete');
                                         });
+                                    });
+                                });
+                            });
+
+                            //system/dhcpGroups {index,store}
+                            //system/dhcpGroups/:dhcpGroup/dhcp {show,store,update,remove,move,copy}
+                            router.prefix('/system', (router: RouterParser) => {
+                                router.prefix('/dhcpGroups', (router: RouterParser) => {
+                                    router.get('/', DhcpGroupController, 'index').name('fwclouds.firewalls.system.dhcp.index');
+                                    router.post('/', DhcpGroupController, 'create').name('fwclouds.firewalls.system.dhcp.store');
+                                    router.prefix(':dhcpGroup(\\d+)', (router: RouterParser) => {
+                                        router.get('/', DhcpGroupController, 'show').name('fwclouds.firewalls.system.dhcp.show');
+                                        router.put('/', DhcpGroupController, 'update').name('fwclouds.firewalls.system.dhcp.update');
+                                        router.delete('/', DhcpGroupController, 'remove').name('fwclouds.firewalls.system.dhcp.delete');
+                                    });
+                                });
+
+                                router.prefix('/dhcps', (router: RouterParser) => {
+                                    router.get('/', DhcpController, 'index').name('fwclouds.firewalls.system.dhcp.index');
+                                    router.post('/', DhcpController, 'create').name('fwclouds.firewalls.system.dhcp.store');
+                                    router.post('/copy', DhcpController, 'copy').name('fwclouds.firewalls.system.dhcp.copy');
+                                    router.post('/move', DhcpController, 'move').name('fwclouds.firewalls.system.dhcp.move');
+                                    router.prefix('/:dhcp(\\d+)', (router: RouterParser) => {
+                                        router.get('/', DhcpController, 'show').name('fwclouds.firewalls.system.dhcp.show');
+                                        router.put('/', DhcpController, 'update').name('fwclouds.firewalls.system.dhcp.update');
+                                        router.delete('/', DhcpController, 'remove').name('fwclouds.firewalls.system.dhcp.delete');
                                     });
                                 });
                             });
