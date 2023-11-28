@@ -76,6 +76,8 @@ import { Ca } from "../models/vpn/pki/Ca";
 import { CaPrefix } from "../models/vpn/pki/CaPrefix";
 import { Crt } from "../models/vpn/pki/Crt";
 import { Tfa } from "../models/user/Tfa";
+import { DHCPRule } from "../models/system/dhcp/dhcp_r/dhcp_r.model";
+import { DHCPGroup } from "../models/system/dhcp/dhcp_g/dhcp_g.model";
 
 export interface DatabaseConfig {
     host: string,
@@ -316,7 +318,9 @@ export class DatabaseService extends Service {
                 Ca,
                 CaPrefix,
                 Crt,
-                Tfa
+                Tfa,
+                DHCPRule,
+                DHCPGroup
             ]
         }
     }

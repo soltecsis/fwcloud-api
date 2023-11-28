@@ -47,6 +47,7 @@ import { TfaController } from "../controllers/auth/tfa.controller";
 import { CaController } from "../controllers/ca/ca.controller";
 import { CrtController } from "../controllers/crt/crt.controller";
 import DhcpController from '../controllers/system/dhcp/dhcp.controller';
+import { DhcpGroupController } from '../controllers/system/dhcp-group/dhcp-group.controller';
 
 export class Routes extends RouteCollection {
 
@@ -162,8 +163,6 @@ export class Routes extends RouteCollection {
                                 });
                             });
 
-                            //system/dhcpGroups {index,store}
-                            //system/dhcpGroups/:dhcpGroup/dhcp {show,store,update,remove,move,copy}
                             router.prefix('/system', (router: RouterParser) => {
                                 router.prefix('/dhcpGroups', (router: RouterParser) => {
                                     router.get('/', DhcpGroupController, 'index').name('fwclouds.firewalls.system.dhcp.index');
