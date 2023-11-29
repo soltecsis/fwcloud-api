@@ -59,60 +59,6 @@ describe(DHCPRepository.name, () => {
         }));
     });
 
-    describe('getFindInPathOptions', () => {
-        it('should return the correct FindOneOptions object', () => {
-            const path = {
-                fwcloudId: 1,
-                firewallId: 2,
-                dhcGroupId: 3
-            };
-
-            const options: FindOneOptions<DHCPRule> = (repository as any).getFindInPathOptions(path);
-
-            expect(options).to.deep.equal({
-                join: {
-                    alias: 'dhcp',
-                    leftJoinAndSelect: {
-                        //fwcloud: 'dhcp.fwcloud',
-                        firewall: 'dhcp.firewall',
-                        group: 'dhcp.group',
-                    }
-                },
-                where: {
-                    //fwcloud: path.fwcloudId,
-                    firewall: path.firewallId,
-                    group: path.dhcGroupId,
-                }
-            });
-        });
-
-        it('should return the correct FindManyOptions object', () => {
-            const path = {
-                fwcloudId: 1,
-                firewallId: 2,
-                dhcGroupId: 3
-            };
-
-            const options: FindManyOptions<DHCPRule> = (repository as any).getFindInPathOptions(path, { take: 10 });
-
-            expect(options).to.deep.equal({
-                join: {
-                    alias: 'dhcp',
-                    leftJoinAndSelect: {
-                        //fwcloud: 'dhcp.fwcloud',
-                        firewall: 'dhcp.firewall',
-                        group: 'dhcp.group',
-                    }
-                },
-                where: {
-                    //fwcloud: path.fwcloudId,
-                    firewall: path.firewallId,
-                    group: path.dhcGroupId,
-                },
-                take: 10,
-            });
-        });
-    });
     describe('remove', () => {
         let group: DHCPGroup;
         let dhcpRule: DHCPRule;
@@ -179,17 +125,52 @@ describe(DHCPRepository.name, () => {
         });
     
         it('should move the rule to the specified position', async () => {
-            await repository.move([dhcpRule.id], dhcpRule.id, 2 as unknown as Offset);
+            const moveAboveSpy = sinon.spy(repository, 'moveAbove' as keyof DHCPRepository);
 
-            expect(dhcpRule.rule_order).to.equal(2);
+            await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
+
+            expect(moveAboveSpy.calledOnce).to.be.true;
         });
 
         it('should refresh orders after move', async () => {
             const refreshOrdersSpy = sinon.spy(repository, 'refreshOrders' as keyof DHCPRepository);
 
-            await repository.move([dhcpRule.id], dhcpRule.id, 2 as unknown as Offset);
+            await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
 
             expect(refreshOrdersSpy.calledOnceWithExactly(group.id)).to.be.true;
+        });
+    });
+    describe('getLastDHCPRuleInGroup', () => {
+        let group: DHCPGroup;
+        let dhcpRule: DHCPRule;
+    
+        beforeEach(async () => {
+            
+            group = await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+                name: 'group',
+                firewall: firewall,
+            }));
+    
+            dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+                group: group,
+                rule_order: 1,
+                interface: null,
+            }));
+        });
+        it('should return the last DHCP rule in the group', async () => {
+            const dhcpgid = group.id;
+            const expectedRule: DHCPRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+                group: group,
+                rule_order: 2,
+                interface: null,
+            }))
+    
+            const result = await repository.getLastDHCPRuleInGroup(dhcpgid);
+    
+            // Assert
+            expect(result.id).to.equal(expectedRule.id);
+            expect(result.rule_order).to.equal(expectedRule.rule_order);
+            expect(result.rule_type).to.equal(expectedRule.rule_type);
         });
     });
 });

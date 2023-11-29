@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { EntityRepository, FindManyOptions, FindOneOptions, In, RemoveOptions, Repository } from "typeorm";
+import { EntityRepository, FindManyOptions, FindOneOptions, In, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
 import { Offset } from "../../../../offset";
 import { DHCPRule } from "./dhcp_r.model";
 
@@ -69,11 +69,11 @@ export class DHCPRepository extends Repository<DHCPRule> {
     /**
      * Moves the DHCP rules with the specified IDs to a new position relative to the DHCP rule with the given ID.
      * @param ids - An array of DHCP rule IDs to be moved.
-     * @param dhcpgId - The ID of the DHCP rule to which the selected rules will be moved.
+     * @param dhcpDestId - The ID of the DHCP rule to which the selected rules will be moved.
      * @param offset - The offset indicating whether the selected rules should be moved above or below the destination DHCP rule.
      * @returns A promise that resolves to an array of DHCPR objects representing the updated DHCP rules.
      */
-    async move(ids: number[], dhcpgId: number, offset: Offset): Promise<DHCPRule[]> {
+    async move(ids: number[], dhcpDestId: number, offset: Offset): Promise<DHCPRule[]> {
         const dhcp_rs: DHCPRule[] = await this.find({
             where: {
                 id: In(ids),
@@ -83,21 +83,20 @@ export class DHCPRepository extends Repository<DHCPRule> {
             },
             relations: ['group','group.firewall'],
         });
-
+        
         let affectedDHCPs: DHCPRule[] = await this.findManyInPath({
             fwcloudId: dhcp_rs[0].group.firewall.fwCloudId,
             firewallId: dhcp_rs[0].group.firewall.id,
             dhcGroupId: dhcp_rs[0].group.id,
         });
 
-        console.log("affectedDHCPs",affectedDHCPs)
-
         const destDHCP: DHCPRule = await this.findOneOrFail({
             where: {
-                id: dhcpgId,
+                id: dhcpDestId,
             },
+            relations: ['group'],
         });
-        
+
         if(offset === Offset.Above) {
             affectedDHCPs = await this.moveAbove(dhcp_rs, affectedDHCPs, destDHCP);
         } else {
@@ -130,7 +129,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
             if(movingIds.includes(dhcp_r.id)) {
                 const offset: number = movingIds.indexOf(dhcp_r.id);
                 dhcp_r.rule_order = destPosition + offset;
-                dhcp_r.group.id = destDHCP.group.id;
+                dhcp_r.group ? dhcp_r.group.id = destDHCP.group.id : dhcp_r.group = destDHCP.group;
             } else {
                 if(forward && dhcp_r.rule_order >= destDHCP.rule_order) {
                     dhcp_r.rule_order+= dhcp_rs.length;
@@ -160,7 +159,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
             if(movingIds.includes(dhcp_r.id)) {
                 const offset: number = movingIds.indexOf(dhcp_r.id);
                 dhcp_r.rule_order = destPosition + offset + 1;
-                dhcp_r.group.id = destDHCP.group.id;
+                dhcp_r.group ? dhcp_r.group.id = destDHCP.group.id : dhcp_r.group = destDHCP.group;
             } else {
                 if(forward && dhcp_r.rule_order > destDHCP.rule_order) {
                     dhcp_r.rule_order += dhcp_rs.length;
@@ -212,17 +211,26 @@ export class DHCPRepository extends Repository<DHCPRule> {
         return Object.assign({
             join: {
                 alias: 'dhcp',
-                leftJoinAndSelect: {
-                    //fwcloud: 'dhcp.fwcloud',
-                    firewall: 'dhcp.firewall',
+                innerJoin: {
                     group: 'dhcp.group',
+                    firewall: 'group.firewall',
+                    fwcloud: 'firewall.fwCloud',
                 }
             },
-            where: {
-                //fwcloud: path.fwcloudId,
-                firewall: path.firewallId,
-                group: path.dhcGroupId,
-            }
+            where: (qb: SelectQueryBuilder<DHCPRule>) => {
+                if(path.firewallId) {
+                    qb.andWhere('firewall.id = :firewallId', {firewallId: path.firewallId});
+                }
+                if(path.fwcloudId) {
+                    qb.andWhere('fwcloud.id = :fwcloudId', {fwcloudId: path.fwcloudId});
+                }
+                if(path.dhcGroupId) {
+                    qb.andWhere('group.id = :dhcGroupId', {dhcGroupId: path.dhcGroupId});
+                }
+                if(path.id) {
+                    qb.andWhere('dhcp.id = :id', {id: path.id});
+                }
+            },
         },options)
     }
 
