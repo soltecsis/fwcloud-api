@@ -46,8 +46,8 @@ import { PolicyRuleController } from "../controllers/policy-rule/policy-rule.con
 import { TfaController } from "../controllers/auth/tfa.controller";
 import { CaController } from "../controllers/ca/ca.controller";
 import { CrtController } from "../controllers/crt/crt.controller";
-import DhcpController from '../controllers/system/dhcp/dhcp.controller';
 import { DhcpGroupController } from '../controllers/system/dhcp-group/dhcp-group.controller';
+import { DhcpController } from '../controllers/system/dhcp/dhcp.controller';
 
 export class Routes extends RouteCollection {
 
