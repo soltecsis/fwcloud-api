@@ -174,7 +174,8 @@ export class Routes extends RouteCollection {
                                     });
                                 });
 
-                                router.prefix('/dhcps', (router: RouterParser) => {
+                                router.prefix('/dhcpRules', (router: RouterParser) => {
+                                    //TODO: Add grid
                                     router.get('/', DhcpController, 'index').name('fwclouds.firewalls.system.dhcp.index');
                                     router.post('/', DhcpController, 'create').name('fwclouds.firewalls.system.dhcp.store');
                                     router.post('/copy', DhcpController, 'copy').name('fwclouds.firewalls.system.dhcp.copy');
