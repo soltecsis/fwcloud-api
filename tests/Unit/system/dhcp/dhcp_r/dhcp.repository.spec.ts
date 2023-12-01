@@ -20,17 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { FindManyOptions, FindOneOptions, getCustomRepository } from "typeorm";
-import { DHCPRule } from "../../../../src/models/system/dhcp/dhcp_r/dhcp_r.model";
-import { DHCPRepository } from "../../../../src/models/system/dhcp/dhcp_r/dhcp.repository";
-import { DHCPGroup } from "../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model";
-import { IPObj } from "../../../../src/models/ipobj/IPObj";
+import { DHCPRule } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.model";
+import { DHCPRepository } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp.repository";
+import { DHCPGroup } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model";
+import { IPObj } from "../../../../../src/models/ipobj/IPObj";
 import { getRepository } from "typeorm";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { testSuite, expect } from "../../../mocha/global-setup";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import StringHelper from "../../../../src/utils/string.helper";
+import { Firewall } from "../../../../../src/models/firewall/Firewall";
+import { testSuite, expect } from "../../../../mocha/global-setup";
+import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
+import StringHelper from "../../../../../src/utils/string.helper";
 import sinon from "sinon";
-import { Offset } from "../../../../src/offset";
+import { Offset } from "../../../../../src/offset";
 
 describe(DHCPRepository.name, () => {
     let repository: DHCPRepository;
@@ -152,6 +152,7 @@ describe(DHCPRepository.name, () => {
             }));
     
             dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+                id: 1,
                 group: group,
                 rule_order: 1,
                 interface: null,

@@ -89,7 +89,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
             firewallId: dhcp_rs[0].group.firewall.id,
             dhcGroupId: dhcp_rs[0].group.id,
         });
-
+        
         const destDHCP: DHCPRule = await this.findOneOrFail({
             where: {
                 id: dhcpDestId,

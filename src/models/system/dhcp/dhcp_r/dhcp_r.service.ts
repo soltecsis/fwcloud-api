@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { FindOneOptions, In, getRepository } from "typeorm";
+import { FindOneOptions, In, SelectQueryBuilder, getCustomRepository, getRepository } from "typeorm";
 import { DHCPRule } from "./dhcp_r.model";
 import { DHCPRepository } from "./dhcp.repository";
 import { IPObj } from "../../../ipobj/IPObj";
@@ -27,6 +27,8 @@ import { DHCPGroup } from "../dhcp_g/dhcp_g.model";
 import { Interface } from "../../../interface/Interface";
 import { Offset } from "../../../../offset";
 import { Firewall } from "../../../firewall/Firewall";
+import { Application } from "../../../../Application";
+import { Service } from "../../../../fonaments/services/service";
 
 
 interface IFindManyDHCPRulePath {
@@ -50,6 +52,7 @@ export interface ICreateDHCPRule {
     max_lease?: number;
     cfg_text?: string;
     comment?: string;
+    rule_order?: number;
 }
 
 export interface IUpdateDHCPRule {
@@ -62,13 +65,15 @@ export interface IUpdateDHCPRule {
     max_lease?: number;
     cfg_text?: string;
     comment?: string;
+    rule_order?: number;
 }
 
-export class DHCPRuleService {
+export class DHCPRuleService extends Service {
     private _repository: DHCPRepository;
 
-    constructor() {
-        this._repository = getRepository(DHCPRule) as DHCPRepository;
+    constructor(app: Application) {
+        super(app)
+        this._repository = getCustomRepository(DHCPRepository);
     }
 
     async store(data: ICreateDHCPRule): Promise<DHCPRule> {
@@ -79,7 +84,6 @@ export class DHCPRuleService {
             cfg_text: data.cfg_text,
             comment: data.comment,
         };
-
 
         if (data.groupId) {
             dhcpRuleData.group = await getRepository(DHCPGroup).findOneOrFail(data.groupId) as DHCPGroup;
@@ -99,6 +103,7 @@ export class DHCPRuleService {
 
         const lastDHCPRule = await this._repository.getLastDHCPRuleInGroup(data.groupId);
         const dhcp_order: number = lastDHCPRule?.rule_order ? lastDHCPRule.rule_order + 1 : 1;
+        dhcpRuleData.rule_order = dhcp_order;
 
         let persistedDHCPRule: DHCPRule = await this._repository.save(dhcpRuleData);
 
@@ -114,15 +119,13 @@ export class DHCPRuleService {
         });
         const lastRule: DHCPRule = await this._repository.getLastDHCPRuleInGroup(dhcp_rs[0].group.id);
         dhcp_rs.map((item,index) => {
-            item.id = null;
             item.rule_order = lastRule.rule_order + index + 1;
         });
-
-        const persisted: DHCPRule[] = await this._repository.save(dhcp_rs);
+        
+        await this._repository.save(dhcp_rs);
 
         //TODO: Mark firewall as uncompiled
-
-        return this.move(persisted.map(item => item.id),destRule,position);
+        return this.move(dhcp_rs.map(item => item.id),destRule,position);
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
@@ -140,6 +143,7 @@ export class DHCPRuleService {
             sytle: data.style,
             max_lease: data.max_lease,
             cfg_text: data.cfg_text,
+            rule_order: data.rule_order,
         }))
 
         const firewall: Firewall = (await this._repository.findOne(dhcpRule.id,{relations: ['group','group.firewall']})).group.firewall;
@@ -191,13 +195,26 @@ export class DHCPRuleService {
         return Object.assign({
             join: {
                 alias: 'dhcp',
-                leftJoinAndSelect: {
+                innerJoin: {
                     group: 'dhcp.group',
+                    firewall: 'group.firewall',
+                    fwcloud: 'firewall.fwCloud',
                 }
             },
-            where: {
-                group: path.dhcpgId,
-            }
+            where: (qb: SelectQueryBuilder<DHCPRule>) => {
+                if(path.firewallId) {
+                    qb.andWhere('firewall.id = :firewallId', {firewallId: path.firewallId});
+                }
+                if(path.fwcloudId) {
+                    qb.andWhere('fwcloud.id = :fwcloudId', {fwcloudId: path.fwcloudId});
+                }
+                if(path.dhcpgId) {
+                    qb.andWhere('group.id = :dhcGroupId', {dhcGroupId: path.dhcpgId});
+                }
+                if(path.id) {
+                    qb.andWhere('dhcp.id = :id', {id: path.id});
+                }
+            },
         },options);
     }
 }

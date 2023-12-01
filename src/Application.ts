@@ -72,6 +72,7 @@ import { AuthServiceProvider } from "./models/user/auth.provider";
 import { CaServiceProvider } from "./ca/ca.provider";
 import { CrtServiceProvider } from "./crt/crt.provider";
 import { OpenVPNService } from "./models/vpn/openvpn/openvpn.service";
+import { DHCPRuleServiceProvider } from "./models/system/dhcp/dhcp_r/dhcp_r.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -145,6 +146,7 @@ export class Application extends HTTPApplication {
             RoutingRuleServiceProvider,
             RoutingGroupServiceProvider,
             RouteGroupServiceProvider,
+            DHCPRuleServiceProvider,
             OpenVPNPrefixServiceProvider,
             OpenVPNStatusHistoryServiceProvider,
             PolicyRuleServiceProvider,
