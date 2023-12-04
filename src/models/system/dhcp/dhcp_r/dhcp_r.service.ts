@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { FindOneOptions, In, SelectQueryBuilder, getCustomRepository, getRepository } from "typeorm";
+import { FindOneOptions, In, Repository, SelectQueryBuilder, getCustomRepository, getRepository } from "typeorm";
 import { DHCPRule } from "./dhcp_r.model";
 import { DHCPRepository } from "./dhcp.repository";
 import { IPObj } from "../../../ipobj/IPObj";
@@ -29,6 +29,10 @@ import { Offset } from "../../../../offset";
 import { Firewall } from "../../../firewall/Firewall";
 import { Application } from "../../../../Application";
 import { Service } from "../../../../fonaments/services/service";
+import { AvailableDestinations, ItemForGrid } from "../../../routing/shared";
+import { IPObjRepository } from "../../../ipobj/IPObj.repository";
+import { IPObjGroup } from "../../../ipobj/IPObjGroup";
+import { DHCPUtils } from "../../shared";
 
 
 interface IFindManyDHCPRulePath {
@@ -68,8 +72,18 @@ export interface IUpdateDHCPRule {
     rule_order?: number;
 }
 
+//TODO: Need to add the data type DHCPRuleItemForCompile
+export interface DHCPRulesData<T extends ItemForGrid> extends DHCPRule{
+    items: (T & {_order: number})[];
+}
+
 export class DHCPRuleService extends Service {
     private _repository: DHCPRepository;
+    private _dhcpGroupRepository: Repository<DHCPGroup>;
+    private _ipobjRepository: IPObjRepository;
+    private _dhcpRangeRepository: IPObjRepository;
+    private _routerRepository: IPObjRepository;
+    private _interfaceRepository: Repository<Interface>;
 
     constructor(app: Application) {
         super(app)
@@ -216,5 +230,33 @@ export class DHCPRuleService extends Service {
                 }
             },
         },options);
+    }
+
+    //TODO: Need to add the data type DHCPRuleItemForCompile
+    public async getDHCPRulesData<T extends ItemForGrid>(dst: AvailableDestinations, fwcloud: number, firewall: number, rules?: number[]): Promise<DHCPRulesData<T>[]> {
+        const rulesData: DHCPRulesData<T>[] = await this._repository.getDHCPRules(fwcloud, firewall, rules) as DHCPRulesData<T>[];
+
+        const ItemsArrayMap = new Map<number, T[]>();
+        for (const rule of rulesData) {
+            ItemsArrayMap.set(rule.id, rule.items);
+        }
+
+        const sqls = (dst === 'grid') ? await this.getDHCPRulesGridSql(fwcloud, firewall, rules) : null;
+
+        await Promise.all(sqls.map(sql => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)));
+
+        return rulesData.map(rule => {
+            rule.items = rule.items.sort((a, b) => a._order - b._order);
+            return rule;
+        });
+    }
+
+    private getDHCPRulesGridSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {
+        return [
+            this._ipobjRepository.getIpobjsInDhcp_ForGrid('rule', fwcloud, firewall),
+            this._dhcpRangeRepository.getDhcpRangesInDhcp_ForGrid('rule', fwcloud, firewall),
+            this._routerRepository.getRoutersInDhcp_ForGrid('rule', fwcloud, firewall),
+            //TODO: Mark Respository getMarksInDhcp_ForGrid
+        ];
     }
 }

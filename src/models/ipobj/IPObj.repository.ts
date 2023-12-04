@@ -279,5 +279,144 @@ export class IPObjRepository extends Repository<IPObj> {
     }
 
     return query;
-  }    
+  }
+  
+  getIpobjsInDhcp_ForGrid(entity: ValidEntities, fwcloud: number,firewall: number, dhcpRule?: number): SelectQueryBuilder<IPObj> {
+    let query = this.createQueryBuilder("ipobj")
+      .select("ipobj.id","id")
+      .addSelect("ipobj.name","name")
+      .addSelect("ipobj.type","type")
+      .addSelect("host.id","host_id")
+      .addSelect("host.name","host_name")
+      .addSelect("int_firewall.id","firewall_id")
+      .addSelect("int_firewall.name","firewall_name")
+      .addSelect("int_cluster.id","cluster_id")
+      .addSelect("int_cluster.name","cluster_name")
+      .addSelect(`${entity}.id`,"entityId");
+
+    if(entity === 'route') {
+      query
+        .innerJoin('ipobj.routeToIPObjs', 'routeToIPObjs')
+        .addSelect('routeToIPObjs.order', '_order')
+        .innerJoin('routeToIPObjs.route', entity)
+    } else {
+      query
+        .innerJoin('ipobj.routingRuleToIPObjs', 'routingRuleToIPObjs')
+        .addSelect('routingRuleToIPObjs.order', '_order')
+        .innerJoin('routingRuleToIPObjs.routingRule', entity);
+    }
+
+    query
+      .innerJoin(`${entity}.dhcpRule`, "dhcp")
+      .innerJoin("dhcp.group", "group")
+      .innerJoin("group.firewall", "firewall")
+      .innerJoin("firewall.fwCloud", "fwcloud")
+      .leftJoin('ipobj.interface', 'int')
+      .leftJoin('int.hosts', 'InterfaceIPObj')
+      .leftJoin('InterfaceIPObj.hostIPObj', 'host')
+      .leftJoin('int.firewall', 'int_firewall')
+      .leftJoin("int_firewall.cluster", "int_cluster")
+      .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
+      .andWhere("firewall.id = :firewall", {firewall: firewall});
+
+    if (dhcpRule) {
+      query
+        .andWhere("dhcp.id = :dhcpRule", {dhcpRule});
+    }
+
+    return query;
+  }
+
+  getDhcpRangesInDhcp_ForGrid(entity: ValidEntities,fwcloud: number,firewall,dhcpRule?: number): SelectQueryBuilder<IPObj> {
+    let query = this.createQueryBuilder("ipobj")
+      .select("ipobj.id","id")
+      .addSelect("ipobj.range_start","range_start").addSelect("ipobj.range_end","range_end")
+      .addSelect("ipobj.name","name")
+      .addSelect("ipobj.type","type")
+      .addSelect("host.id","host_id")
+      .addSelect("host.name","host_name")
+      .addSelect("int_firewall.id","firewall_id")
+      .addSelect("int_firewall.name","firewall_name")
+      .addSelect("int_cluster.id","cluster_id")
+      .addSelect("int_cluster.name","cluster_name")
+      .addSelect(`${entity}.id`,"entityId");
+
+    if(entity === 'route') {
+      query
+        .innerJoin('ipobj.routeToIPObjs', 'routeToIPObjs')
+        .addSelect('routeToIPObjs.order', '_order')
+        .innerJoin('routeToIPObjs.route', entity)
+    } else {
+      query
+        .innerJoin('ipobj.routingRuleToIPObjs', 'routingRuleToIPObjs')
+        .addSelect('routingRuleToIPObjs.order', '_order')
+        .innerJoin('routingRuleToIPObjs.routingRule', entity);
+    }
+
+    query
+      .innerJoin(`${entity}.dhcpRule`, "dhcp")
+      .innerJoin("dhcp.group", "group")
+      .innerJoin("group.firewall", "firewall")
+      .innerJoin("firewall.fwCloud", "fwcloud")
+      .leftJoin('ipobj.interface', 'int')
+      .leftJoin('int.hosts', 'InterfaceIPObj')
+      .leftJoin('InterfaceIPObj.hostIPObj', 'host')
+      .leftJoin('int.firewall', 'int_firewall')
+      .leftJoin("int_firewall.cluster", "int_cluster")
+      .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
+      .andWhere("firewall.id = :firewall", {firewall: firewall});
+
+    if (dhcpRule) {
+      query
+        .andWhere("dhcp.id = :dhcpRule", {dhcpRule});
+    }
+
+    return query;
+  }
+
+  getRoutersInDhcp_ForGrid(entity: ValidEntities, fwcloud: number,firewall: number, dhcpRule?: number): SelectQueryBuilder<IPObj> {
+    let query = this.createQueryBuilder("ipobj")
+      .select("ipobj.id","id")
+      .addSelect("ipobj.name","name")
+      .addSelect("ipobj.type","type")
+      .addSelect("host.id","host_id")
+      .addSelect("host.name","host_name")
+      .addSelect("int_firewall.id","firewall_id")
+      .addSelect("int_firewall.name","firewall_name")
+      .addSelect("int_cluster.id","cluster_id")
+      .addSelect("int_cluster.name","cluster_name")
+      .addSelect(`${entity}.id`,"entityId");
+
+    if(entity === 'route') {
+      query
+        .innerJoin('ipobj.routeToIPObjs', 'routeToIPObjs')
+        .addSelect('routeToIPObjs.order', '_order')
+        .innerJoin('routeToIPObjs.route', entity)
+    } else {
+      query
+        .innerJoin('ipobj.routingRuleToIPObjs', 'routingRuleToIPObjs')
+        .addSelect('routingRuleToIPObjs.order', '_order')
+        .innerJoin('routingRuleToIPObjs.routingRule', entity);
+    }
+
+    query
+      .innerJoin(`${entity}.dhcpRule`, "dhcp")
+      .innerJoin("dhcp.group", "group")
+      .innerJoin("group.firewall", "firewall")
+      .innerJoin("firewall.fwCloud", "fwcloud")
+      .leftJoin('ipobj.interface', 'int')
+      .leftJoin('int.hosts', 'InterfaceIPObj')
+      .leftJoin('InterfaceIPObj.hostIPObj', 'host')
+      .leftJoin('int.firewall', 'int_firewall')
+      .leftJoin("int_firewall.cluster", "int_cluster")
+      .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
+      .andWhere("firewall.id = :firewall", {firewall: firewall});
+
+    if (dhcpRule) {
+      query
+        .andWhere("dhcp.id = :dhcpRule", {dhcpRule});
+    }
+
+    return query;
+  }
 }

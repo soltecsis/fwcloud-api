@@ -274,4 +274,18 @@ export class DHCPRepository extends Repository<DHCPRule> {
         }))[0];
     }
 
+    async getDHCPRules(fwcloud: number, firewall: number, rules?: number[]): Promise<DHCPRule[]> {
+        const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder('dhcp_r')
+            .leftJoinAndSelect('dhcp_r.group', 'group')
+            .innerJoin('group.firewall', 'firewall')
+            .innerJoin('firewall.fwCloud', 'fwCloud')
+            .where('firewall.id = :firewallId', { firewallId: firewall })
+            .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud });
+
+        if (rules) {
+            query.andWhere('dhcp_r.id IN (:...rule)', { rules });
+        }
+
+        return query.orderBy('dhcp_r.rule_order', 'ASC').getMany();
+    }
 }

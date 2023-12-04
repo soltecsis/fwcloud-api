@@ -72,6 +72,21 @@ export class DhcpController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(dhcpG);
   }
 
+  @Validate()
+  /**
+   * Retrieves the grid data for DHCP.
+   * 
+   * @param req - The request object.
+   * @returns A Promise that resolves to a ResponseBuilder object.
+   */
+  public async grid(req: Request): Promise<ResponseBuilder> {
+    (await DhcpPolicy.index(this._dhcpgroup, req.session.user)).authorize();
+
+    const grid: DHCPRule[] = await this._dhcpRuleService.getDHCPRulesData('grid', this._firewall.fwCloud.id, this._firewall.id);
+
+    return ResponseBuilder.buildResponse().status(200).body(grid);
+  }
+
   /**
    * Stores a DHCP rule.
    * 
