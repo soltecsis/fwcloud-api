@@ -24,6 +24,7 @@ import { Service } from "../../../../fonaments/services/service";
 import { DHCPRule } from "../dhcp_r/dhcp_r.model";
 import { DHCPGroup } from "./dhcp_g.model";
 import { Firewall } from "../../../firewall/Firewall";
+import { Application } from "../../../../Application";
 
 interface IFindManyDHCPGPath {
     fwcloudId?: number;
@@ -39,18 +40,23 @@ interface ICreateDHCGroup {
     name: string;
     comment?: string;
     style?: string;
-    rules: Partial<DHCPRule>[];
+    rules?: Partial<DHCPRule>[];
 }
 
 interface IUpdateDHCPGroup {
     name: string;
     comment?: string;
     style?: string;
-    rules: Partial<DHCPRule>[];
+    rules?: Partial<DHCPRule>[];
 }
 
 export class DHCPGroupService extends Service {
     protected _repository: Repository<DHCPGroup>;
+
+    constructor(app: Application) {
+        super(app);
+        this._repository = getRepository(DHCPGroup);
+    }
 
     findManyInPath(path: IFindManyDHCPGPath): Promise<DHCPGroup[]> {
         return this._repository.find(this.getFindInPathOptions(path));
@@ -96,9 +102,14 @@ export class DHCPGroupService extends Service {
 
     async remove(path: IFindOneDHCPGPath): Promise<DHCPGroup> {
         const group: DHCPGroup = await this.findOneInPath(path);
-        getRepository(DHCPRule).update(group.rules.map(rule => rule.id), {
-            group: null
-        });
+        if(!group) {
+            throw new Error('DHCPGroup not found');
+        }
+        if(group.rules)  {
+            getRepository(DHCPRule).update(group.rules.map(rule => rule.id), {
+                group: null
+            });
+        }
         await this._repository.remove(group);
         return group;
     }
