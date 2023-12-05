@@ -55,7 +55,7 @@ export class RoutingRuleController extends Controller {
 
     public async make(request: Request): Promise<void> {
         this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
-        
+
         if (request.params.routingRule) {
             this._routingRule = await getRepository(RoutingRule).findOneOrFail(parseInt(request.params.routingRule));
         }

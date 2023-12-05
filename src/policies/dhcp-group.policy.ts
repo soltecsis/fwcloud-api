@@ -42,11 +42,7 @@ export class DHCPGroupPolicy extends Policy {
         return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
 
-    protected static async getGroup(id: number): Promise<DHCPGroup> {
-        return getRepository(DHCPGroup).findOne(id, {relations: ['firewall', 'firewall.fwCloud']});
-    }
-
     protected static async getUser(id: number): Promise<User> {
-        return getRepository(User).findOneOrFail(id, {relations: ['fwClouds']});;
+        return getRepository(User).findOneOrFail(id, {relations: ['fwClouds']});
     }
 }

@@ -55,18 +55,6 @@ export class DHCPRepository extends Repository<DHCPRule> {
     }
 
     /**
-     * Finds a DHCP record in the specified path or throws an error if not found.
-     * 
-     * @param path - The path to search for the DHCP record.
-     * @param options - Additional options for the query.
-     * @returns A promise that resolves to the found DHCP record.
-     * @throws An error if the DHCP record is not found.
-     */
-    findOneInPathOrFail(path: IFindOneDHCPRPath, options?:FindManyOptions<DHCPRule>): Promise<DHCPRule> {
-        return this.findOneOrFail(this.getFindInPathOptions(path,options));
-    }
-
-    /**
      * Moves the DHCP rules with the specified IDs to a new position relative to the DHCP rule with the given ID.
      * @param ids - An array of DHCP rule IDs to be moved.
      * @param dhcpDestId - The ID of the DHCP rule to which the selected rules will be moved.
@@ -189,12 +177,12 @@ export class DHCPRepository extends Repository<DHCPRule> {
         if (result && !Array.isArray(result)) {
             const dhcpRule = result as DHCPRule;
             if (dhcpRule.group) {
-                this.refreshOrders(dhcpRule.group.id);
+                await this.refreshOrders(dhcpRule.group.id);
             }
         } else if (result && Array.isArray(result) && result.length > 0) {
             const dhcpRule = result[0] as DHCPRule;
             if (dhcpRule.group) {
-                this.refreshOrders(dhcpRule.group.id);
+                await this.refreshOrders(dhcpRule.group.id);
             }
         }
         return result;
@@ -207,7 +195,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
      * @param options - The additional options for the find operation.
      * @returns The options for finding DHCP records.
      */
-    protected getFindInPathOptions(path: Partial<IFindOneDHCPRPath>,options: FindManyOptions<DHCPRule> | FindManyOptions<DHCPRule> = {}): FindOneOptions<DHCPRule> | FindManyOptions<DHCPRule> {
+    protected getFindInPathOptions(path: Partial<IFindOneDHCPRPath>,options: FindOneOptions<DHCPRule> | FindManyOptions<DHCPRule> = {}): FindOneOptions<DHCPRule> | FindManyOptions<DHCPRule> {
         return Object.assign({
             join: {
                 alias: 'dhcp',

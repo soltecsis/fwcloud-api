@@ -7,8 +7,7 @@ import { testSuite } from "../../../../mocha/global-setup";
 import sinon from "sinon";
 import { expect } from "chai";
 import { DHCPGroup } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model";
-import { group } from "console";
-import { DHCPRule } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.model";
+import {IFindOneRoutingRulePath} from "../../../../../src/models/routing/routing-rule/routing-rule.repository";
 
 describe(DHCPGroupService.name,() => {
     let service: DHCPGroupService;
@@ -176,7 +175,7 @@ describe(DHCPGroupService.name,() => {
     });
     describe('remove', () => {
         let group: DHCPGroup;
-        let iFindOneDHCPGPath;
+        let iFindOneDHCPGPath: IFindOneRoutingRulePath;
         
         beforeEach(async () => {
             group = await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
@@ -210,7 +209,7 @@ describe(DHCPGroupService.name,() => {
 
         it('should handle errors during rules update', async () => {
             sinon.stub(service, 'findOneInPath').resolves(group);
-            const removeStub = sinon.stub(service['_repository'], 'remove').rejects(new Error('Failed to remove DHCPGroup'));
+            sinon.stub(service['_repository'], 'remove').rejects(new Error('Failed to remove DHCPGroup'));
 
             await expect(service.remove(iFindOneDHCPGPath)).to.be.rejectedWith('Failed to remove DHCPGroup');
 
@@ -219,7 +218,7 @@ describe(DHCPGroupService.name,() => {
 
         it('should handle errors during the group removal', async () => {
             sinon.stub(service, 'findOneInPath').rejects(new Error('Failed to find DHCPGroup'));
-            const removeStub = sinon.stub(service['_repository'], 'remove').resolves(group);
+            sinon.stub(service['_repository'], 'remove').resolves(group);
 
             await expect(service.remove(iFindOneDHCPGPath)).to.be.rejectedWith('Failed to find DHCPGroup');
 

@@ -28,7 +28,7 @@ import { ResponseBuilder } from '../../../fonaments/http/response-builder';
 import { DHCPGroup } from '../../../models/system/dhcp/dhcp_g/dhcp_g.model';
 import { Firewall } from '../../../models/firewall/Firewall';
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import {getRepository, SelectQueryBuilder} from 'typeorm';
+import { getRepository, SelectQueryBuilder } from 'typeorm';
 import { DHCPRuleService, ICreateDHCPRule, IUpdateDHCPRule } from '../../../models/system/dhcp/dhcp_r/dhcp_r.service';
 import { DHCPRuleCreateDto } from './dto/create.dto';
 import { Offset } from '../../../offset';

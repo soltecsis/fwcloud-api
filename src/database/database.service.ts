@@ -21,7 +21,7 @@
 */
 
 import { Service } from "../fonaments/services/service";
-import { Connection, QueryRunner, Migration, getConnectionManager, ConnectionOptions, MigrationExecutor, Tree } from "typeorm";
+import { Connection, QueryRunner, Migration, getConnectionManager, ConnectionOptions, MigrationExecutor } from "typeorm";
 import * as path from "path";
 import * as fs from "fs";
 import moment from "moment";
@@ -63,9 +63,7 @@ import { RoutingRuleToOpenVPN } from "../models/routing/routing-rule/routing-rul
 import { RoutingRule } from "../models/routing/routing-rule/routing-rule.model";
 import { RoutingRuleToInterface } from "../models/routing/routing-rule-to-interface/routing-rule-to-interface.model";
 import { RoutingTable } from "../models/routing/routing-table/routing-table.model";
-import { Folder } from "../models/tree/Folder";
 import { FwcTree } from "../models/tree/fwc-tree.model";
-import { Repair } from "../models/tree/Repair";
 import { Customer } from "../models/user/Customer";
 import { User } from "../models/user/User";
 import { OpenVPNOption } from "../models/vpn/openvpn/openvpn-option.model";
@@ -125,7 +123,7 @@ export class DatabaseService extends Service {
 
     public async getConnection(options: Partial<ConnectionOptions>): Promise<Connection> {
         const connectionOptions: ConnectionOptions = <ConnectionOptions>ObjectHelpers.merge(this.getDefaultConnectionConfiguration(), options);
-        let connection: Connection = null;
+        let connection: Connection;
 
         connection = getConnectionManager().has(options.name) ? getConnectionManager().get(options.name) : getConnectionManager().create(connectionOptions);
         

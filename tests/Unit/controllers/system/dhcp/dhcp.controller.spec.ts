@@ -54,6 +54,7 @@ describe(DhcpController.name,() => {
     afterEach(() => {
         sinon.restore();
     });
+    
     describe('make', () => {
         it('should fetch DHCPRule and DHCPGroup when dhcp param is present', async () => {
             const requestMock = {
@@ -81,6 +82,7 @@ describe(DhcpController.name,() => {
             firewallStub.restore();
             fwCloudStub.restore();
         });
+        
         it('should not fetch DHCPRule and DHCPGroup when dhcp param is not present', async () => {
             const requestMock = {
                 params: {
@@ -106,6 +108,7 @@ describe(DhcpController.name,() => {
             firewallStub.restore();
             fwCloudStub.restore();
         });
+        
         it('should handle errors when entities are not found', async () => {
             const requestMock = {
                 params: {
@@ -121,6 +124,7 @@ describe(DhcpController.name,() => {
 
             dhcpruleStub.restore();
         });
+        
         it('should fetch Firewall and FwCloud', async () => {
             const requestMock = {
                 params: {

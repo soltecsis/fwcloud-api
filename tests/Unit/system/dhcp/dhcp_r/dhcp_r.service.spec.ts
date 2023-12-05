@@ -1,8 +1,7 @@
 import { expect } from "chai";
-import { DeepPartial, Repository, getRepository } from "typeorm";
+import { getRepository } from "typeorm";
 import { DHCPGroup } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model";
-import { IPObj } from "../../../../../src/models/ipobj/IPObj";
-import { DHCPRuleService, ICreateDHCPRule } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service";
+import { DHCPRuleService } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service";
 import sinon from "sinon";
 import { DHCPRule } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.model";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
@@ -11,11 +10,13 @@ import StringHelper from "../../../../../src/utils/string.helper";
 import { testSuite } from "../../../../mocha/global-setup";
 import { Interface } from "../../../../../src/models/interface/Interface";
 import { Offset } from "../../../../../src/offset";
+import {beforeEach} from "mocha";
 
 describe(DHCPRuleService.name, () => {
     let service: DHCPRuleService;
     let fwCloud: FwCloud;
     let firewall: Firewall;
+    let dhcpRule: DHCPRule;
 
     beforeEach(async () => {
         await testSuite.resetDatabaseData();
@@ -29,6 +30,16 @@ describe(DHCPRuleService.name, () => {
         firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
+        }));
+
+        dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            id: 1,
+            group: await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+                name: 'group',
+                firewall: firewall,
+            })),
+            rule_order: 1,
+            interface: null,
         }));
     });
 
@@ -139,7 +150,7 @@ describe(DHCPRuleService.name, () => {
                 interfaceId: 1
             };
 
-            const existingDHCPRule = await getRepository(DHCPRule).create(getRepository(DHCPRule).create({
+            const existingDHCPRule: DHCPRule = getRepository(DHCPRule).create(getRepository(DHCPRule).create({
                 group: group,
                 rule_order: 1,
                 interface: null,
@@ -154,21 +165,24 @@ describe(DHCPRuleService.name, () => {
         });
     });
     describe('copy',()=>{
+        let getLastDHCPRuleInGroupStub: sinon.SinonStub;
+        let copyStub: sinon.SinonStub;
+        let moveStub: sinon.SinonStub;
+
+        beforeEach(() => {
+            getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup').resolves(dhcpRule);
+            copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule);
+            moveStub = sinon.stub(service, 'move');
+        });
+
+        beforeEach(() => {
+            getLastDHCPRuleInGroupStub.restore();
+            copyStub.restore();
+            moveStub.restore();
+        });
+
         it('should copy a DHCPRule successfully', async () => {
-            const dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
-                id: 1,
-                group: await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
-                    name: 'group',
-                    firewall: firewall,
-                })),
-                rule_order: 1,
-                interface: null,
-            }));
-
-            const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup').resolves(dhcpRule);
-            const copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule);
-
-            const result = await service.copy([dhcpRule.id], dhcpRule.id, Offset.Above);
+            const result: DHCPRule[] = await service.copy([dhcpRule.id], dhcpRule.id, Offset.Above);
 
             expect(getLastDHCPRuleInGroupStub.calledOnce).to.be.true;
             expect(copyStub.called).to.be.true;
@@ -177,100 +191,34 @@ describe(DHCPRuleService.name, () => {
             expect(result[0].rule_type).equal(dhcpRule.rule_type);
             expect(result[0].max_lease).equal(dhcpRule.max_lease);
             expect(result[0].active).equal(dhcpRule.active);
-
-            getLastDHCPRuleInGroupStub.restore();
-            copyStub.restore();
         });
-        it('should handle errors when no rules found to copy', async () => {
-            const dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
-                id: 1,
-                group: await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
-                    name: 'group',
-                    firewall: firewall,
-                })),
-                rule_order: 1,
-                interface: null,
-            }));
 
-            const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup').resolves(null);
-            const copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule);
+        it('should handle errors when no rules found to copy', async () => {
+            getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup').resolves(null);
 
             await expect(service.copy([dhcpRule.id], dhcpRule.id, Offset.Above)).to.be.rejectedWith(Error);
 
             expect(getLastDHCPRuleInGroupStub.calledOnce).to.be.true;
             expect(copyStub.called).to.be.false;
-
-            getLastDHCPRuleInGroupStub.restore();
-            copyStub.restore();
         });
+
         it('should correctly handle different positions', async () => {
-            const dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
-                id: 1,
-                group: await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
-                    name: 'group',
-                    firewall: firewall,
-                })),
-                rule_order: 1,
-                interface: null,
-            }));
-            
-            const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup').resolves(dhcpRule);
-            const copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule);
-            const moveStub = sinon.stub(service, 'move');
-
-            await service.copy([dhcpRule.id], dhcpRule.id, Offset.Above);
+            await service.copy([dhcpRule.id], dhcpRule.id, Offset.Below);
             
             expect(moveStub.calledOnceWith([dhcpRule.id], dhcpRule.rule_order, Offset.Above)).to.be.true;
-
-            moveStub.restore();
-            getLastDHCPRuleInGroupStub.restore();
-            copyStub.restore();
         });
+
         it('should correctly modify rule_order for each copied rule', async () => {
-            const dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
-                id: 1,
-                group: await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
-                    name: 'group',
-                    firewall: firewall,
-                })),
-                rule_order: 1,
-                interface: null,
-            }));
-
-            const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup').resolves(dhcpRule);
-            const copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule);
-            const moveStub = sinon.stub(service, 'move');
-
             await service.copy([dhcpRule.id], dhcpRule.id, Offset.Above);
 
             expect(moveStub.calledOnceWith([dhcpRule.id], dhcpRule.rule_order, Offset.Above)).to.be.true;
-
-            moveStub.restore();
-            getLastDHCPRuleInGroupStub.restore();
-            copyStub.restore();  
         });
-        it('should call move method with correct parameters after copying', async () => {
-            const dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
-                id: 1,
-                group: await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
-                    name: 'group',
-                    firewall: firewall,
-                })),
-                rule_order: 1,
-                interface: null,
-            }));
 
-            const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup').resolves(dhcpRule);
-            const copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule);
-            const moveStub = sinon.stub(service, 'move');
+        it('should call move method with correct parameters after copying', async () => {
 
             await service.copy([dhcpRule.id], dhcpRule.id, Offset.Above);
 
             expect(moveStub.calledOnceWith([dhcpRule.id], dhcpRule.rule_order, Offset.Above)).to.be.true;
-
-            moveStub.restore();
-            getLastDHCPRuleInGroupStub.restore();
-            copyStub.restore();  
         });
     });
     describe('move', () => {
@@ -289,6 +237,7 @@ describe(DHCPRuleService.name, () => {
 
             moveStub.restore();
         });
+
         it('should handle errors correctly', async () => {
             const ids = [1, 2, 3];
             const destRule = 4;
@@ -300,6 +249,7 @@ describe(DHCPRuleService.name, () => {
 
             moveStub.restore();
         });
+
         it('should handle different input parameters correctly', async () => {
             const ids = [1, 2, 3];
             const destRule = 4;
@@ -313,6 +263,7 @@ describe(DHCPRuleService.name, () => {
 
             moveStub.restore();
         });
+
         it('should move rules according to the specified offset', async () => {
             const ids = [1, 2, 3];
             const destRule = 4;
@@ -348,6 +299,7 @@ describe(DHCPRuleService.name, () => {
 
             updateStub.restore();
         });
+
         it('should handle errors when the DHCPRule to update is not found', async () => {
             const updateStub = sinon.stub(service, 'update').rejects(new Error('DHCPRule not found'));
 
@@ -355,6 +307,7 @@ describe(DHCPRuleService.name, () => {
 
             updateStub.restore();
         });
+
         it('should update related entities correctly', async () => {
             const dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
                 id: 1,
@@ -379,6 +332,7 @@ describe(DHCPRuleService.name, () => {
 
             updateStub.restore();
         });
+
         it('should handle errors when related entities are not found', async () => {
             const updateStub = sinon.stub(service, 'update').rejects(new Error('Related entities not found'));
 

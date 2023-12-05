@@ -19,14 +19,13 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { FindOneOptions, In, Repository, SelectQueryBuilder, getCustomRepository, getRepository } from "typeorm";
+import { FindOneOptions, In, SelectQueryBuilder, getCustomRepository, getRepository } from "typeorm";
 import { DHCPRule } from "./dhcp_r.model";
 import { DHCPRepository } from "./dhcp.repository";
 import { IPObj } from "../../../ipobj/IPObj";
 import { DHCPGroup } from "../dhcp_g/dhcp_g.model";
 import { Interface } from "../../../interface/Interface";
 import { Offset } from "../../../../offset";
-import { Firewall } from "../../../firewall/Firewall";
 import { Application } from "../../../../Application";
 import { Service } from "../../../../fonaments/services/service";
 import { AvailableDestinations, ItemForGrid } from "../../../routing/shared";
@@ -117,12 +116,9 @@ export class DHCPRuleService extends Service {
         }
 
         const lastDHCPRule = await this._repository.getLastDHCPRuleInGroup(data.groupId);
-        const dhcp_order: number = lastDHCPRule?.rule_order ? lastDHCPRule.rule_order + 1 : 1;
-        dhcpRuleData.rule_order = dhcp_order;
+        dhcpRuleData.rule_order = lastDHCPRule?.rule_order ? lastDHCPRule.rule_order + 1 : 1;
 
-        let persistedDHCPRule: DHCPRule = await this._repository.save(dhcpRuleData);
-
-        return persistedDHCPRule;
+        return await this._repository.save(dhcpRuleData);
     }
 
     async copy(ids: number[],destRule: number, position: Offset): Promise<DHCPRule[]> {
@@ -144,11 +140,9 @@ export class DHCPRuleService extends Service {
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
-        const rules: DHCPRule[] = await this._repository.move(ids,destRule,offset);
-
         //TODO: Mark firewall as uncompiled
 
-        return rules;
+        return await this._repository.move(ids, destRule, offset);
     }
 
     async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
@@ -160,8 +154,6 @@ export class DHCPRuleService extends Service {
             cfg_text: data.cfg_text,
             rule_order: data.rule_order,
         }))
-
-        const firewall: Firewall = (await this._repository.findOne(dhcpRule.id,{relations: ['group','group.firewall']})).group.firewall;
 
         if(data.groupId){
             dhcpRule.group = await getRepository(DHCPGroup).findOneOrFail(data.groupId) as DHCPGroup;
@@ -242,7 +234,7 @@ export class DHCPRuleService extends Service {
             ItemsArrayMap.set(rule.id, rule.items);
         }
 
-        const sqls = (dst === 'grid') ? await this.getDHCPRulesGridSql(fwcloud, firewall, rules) : null;
+        const sqls = (dst === 'grid') ? this.getDHCPRulesGridSql(fwcloud, firewall, rules) : null;
 
         await Promise.all(sqls.map(sql => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)));
 
