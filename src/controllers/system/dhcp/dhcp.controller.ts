@@ -68,7 +68,6 @@ export class DhcpController extends Controller {
     const dhcpG: DHCPRule[] = await this._dhcpRuleService.findManyInPath({
         fwcloudId: this._fwCloud.id,
         firewallId: this._firewall.id,
-        dhcpgId: this._dhcpgroup.id,
     });
 
     return ResponseBuilder.buildResponse().status(200).body(dhcpG);

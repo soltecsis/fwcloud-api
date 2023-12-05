@@ -37,7 +37,6 @@ import { DHCPUtils } from "../../shared";
 interface IFindManyDHCPRulePath {
     fwcloudId?: number;
     firewallId?: number;
-    dhcpgId?: number;
 }
 
 interface IFindOneDHCPRulePath extends IFindManyDHCPRulePath {
@@ -214,9 +213,6 @@ export class DHCPRuleService extends Service {
                 }
                 if(path.fwcloudId) {
                     qb.andWhere('fwcloud.id = :fwcloudId', {fwcloudId: path.fwcloudId});
-                }
-                if(path.dhcpgId) {
-                    qb.andWhere('group.id = :dhcGroupId', {dhcGroupId: path.dhcpgId});
                 }
                 if(path.id) {
                     qb.andWhere('dhcp.id = :id', {id: path.id});
