@@ -79,15 +79,16 @@ export interface DHCPRulesData<T extends ItemForGrid> extends DHCPRule{
 
 export class DHCPRuleService extends Service {
     private _repository: DHCPRepository;
-    private _dhcpGroupRepository: Repository<DHCPGroup>;
     private _ipobjRepository: IPObjRepository;
     private _dhcpRangeRepository: IPObjRepository;
     private _routerRepository: IPObjRepository;
-    private _interfaceRepository: Repository<Interface>;
 
     constructor(app: Application) {
         super(app)
         this._repository = getCustomRepository(DHCPRepository);
+        this._ipobjRepository = getCustomRepository(IPObjRepository);
+        this._dhcpRangeRepository = getCustomRepository(IPObjRepository);
+        this._routerRepository = getCustomRepository(IPObjRepository);
     }
 
     async store(data: ICreateDHCPRule): Promise<DHCPRule> {
@@ -253,9 +254,9 @@ export class DHCPRuleService extends Service {
 
     private getDHCPRulesGridSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {
         return [
-            this._ipobjRepository.getIpobjsInDhcp_ForGrid('rule', fwcloud, firewall),
-            this._dhcpRangeRepository.getDhcpRangesInDhcp_ForGrid('rule', fwcloud, firewall),
-            this._routerRepository.getRoutersInDhcp_ForGrid('rule', fwcloud, firewall),
+            this._ipobjRepository.getIpobjsInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
+            this._dhcpRangeRepository.getDhcpRangesInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
+            this._routerRepository.getRoutersInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
             //TODO: Mark Respository getMarksInDhcp_ForGrid
         ];
     }

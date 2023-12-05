@@ -3,17 +3,20 @@ import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { User } from "../models/user/User";
 import { DHCPGroup } from "../models/system/dhcp/dhcp_g/dhcp_g.model";
 import { DHCPRule } from "../models/system/dhcp/dhcp_r/dhcp_r.model";
+import {Firewall} from "../models/firewall/Firewall";
 
 export class DhcpPolicy extends Policy {
-    static async index(dhcp: DHCPGroup, user: User): Promise<Authorization> {
-        user = await this.getUser(user.id);
+    static async index(firewall: Firewall, user: User): Promise<Authorization> {
+        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+        firewall = await getRepository(Firewall).findOneOrFail(firewall.id, {relations: ['fwCloud']});
+
         if (user.role === 1) {
             return Authorization.grant();
         }
 
-        const dhcpR = await this.getDhcpR(dhcp.id);
+        const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === firewall.fwCloudId});
 
-        return this.checkAuthorization(user, dhcpR.group.firewall.fwCloud.id);
+        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
 
     static async show(dhcp: DHCPRule, user: User): Promise<Authorization> {

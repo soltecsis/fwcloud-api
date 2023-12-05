@@ -86,7 +86,7 @@ export class DHCPGroupService extends Service {
     async create(data: ICreateDHCGroup): Promise<DHCPGroup> {
         const groupData: Partial<DHCPGroup> = {
             name: data.name,
-            firewall: getRepository(Firewall).findOne(data.firewallId) as unknown as Firewall,
+            firewall: await getRepository(Firewall).findOne(data.firewallId) as unknown as Firewall,
             style: data.style,
         };
 
@@ -106,7 +106,7 @@ export class DHCPGroupService extends Service {
             throw new Error('DHCPGroup not found');
         }
         if(group.rules)  {
-            getRepository(DHCPRule).update(group.rules.map(rule => rule.id), {
+            await getRepository(DHCPRule).update(group.rules.map(rule => rule.id), {
                 group: null
             });
         }
