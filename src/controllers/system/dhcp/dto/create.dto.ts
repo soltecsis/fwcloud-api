@@ -27,7 +27,8 @@ export class DHCPRuleCreateDto {
     active: boolean;
 
     @IsNumber()
-    groupId: number;
+    @IsOptional()
+    groupId?: number;
 
     @IsString()
     @IsOptional()
