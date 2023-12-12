@@ -45,7 +45,7 @@ interface IFindOneDHCPRulePath extends IFindManyDHCPRulePath {
 
 export interface ICreateDHCPRule {
     active?: boolean;
-    groupId: number;
+    groupId?: number;
     style?: string;
     networkId?: number;
     rangeId?: number;
