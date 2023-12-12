@@ -47,6 +47,8 @@ export class DhcpController extends Controller {
 
       if(req.params.dhcp) {
         this._dhcprule = await getRepository(DHCPRule).findOneOrFail(req.params.dhcp);
+      }
+      if(req.params.dhcpgroup) {
         this._dhcpgroup = await getRepository(DHCPGroup).findOneOrFail(this._dhcprule.group.id);
       }
       this._firewall = await getRepository(Firewall).findOneOrFail(req.params.firewall);
@@ -91,8 +93,8 @@ export class DhcpController extends Controller {
   @Validate(DHCPRuleCreateDto)
   public async create(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.create(this._dhcpgroup, req.session.user)).authorize();
-
-    const data: ICreateDHCPRule = Object.assign(req.inputs.all<DHCPRuleCreateDto>(),{group: this._dhcpgroup.id});
+    
+    const data: ICreateDHCPRule = Object.assign(req.inputs.all<DHCPRuleCreateDto>(),this._dhcpgroup ? {group: this._dhcpgroup.id} : null);
     const dhcpRule = await this._dhcpRuleService.store(data);
 
     return ResponseBuilder.buildResponse().status(201).body(dhcpRule);
