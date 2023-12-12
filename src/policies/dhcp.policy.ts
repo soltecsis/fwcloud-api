@@ -30,15 +30,17 @@ export class DhcpPolicy extends Policy {
         return this.checkAuthorization(user, dhcp.group.firewall.fwCloud.id);
     }
 
-    static async create(dhcp: DHCPGroup, user: User): Promise<Authorization> {
-        user = await this.getUser(user.id);
+    static async create(firewall: Firewall, user: User): Promise<Authorization> {
+        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+        firewall = await getRepository(Firewall).findOneOrFail(firewall.id, {relations: ['fwCloud']});
+        
         if (user.role === 1) {
             return Authorization.grant();
         }
 
-        dhcp = await this.getDhcpG(dhcp.id);
+        const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === firewall.fwCloudId});
 
-        return this.checkAuthorization(user, dhcp.firewall.fwCloud.id);
+        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
 
     static async copy(dhcp: DHCPRule, user: User): Promise<Authorization> {

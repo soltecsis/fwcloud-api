@@ -235,7 +235,9 @@ export class DHCPRuleService extends Service {
         await Promise.all(sqls.map(sql => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)));
 
         return rulesData.map(rule => {
-            rule.items = rule.items.sort((a, b) => a._order - b._order);
+            if(rule.items) {
+                rule.items = rule.items.sort((a, b) => a._order - b._order);
+            }
             return rule;
         });
     }

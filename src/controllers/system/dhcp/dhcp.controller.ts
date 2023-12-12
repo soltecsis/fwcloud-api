@@ -92,7 +92,8 @@ export class DhcpController extends Controller {
 
   @Validate(DHCPRuleCreateDto)
   public async create(req: Request): Promise<ResponseBuilder> {
-    (await DhcpPolicy.create(this._dhcpgroup, req.session.user)).authorize();
+    console.log('create',this._firewall);
+    (await DhcpPolicy.create(this._firewall, req.session.user)).authorize();
     
     const data: ICreateDHCPRule = Object.assign(req.inputs.all<DHCPRuleCreateDto>(),this._dhcpgroup ? {group: this._dhcpgroup.id} : null);
     const dhcpRule = await this._dhcpRuleService.store(data);

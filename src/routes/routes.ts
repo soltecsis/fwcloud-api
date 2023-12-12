@@ -165,12 +165,12 @@ export class Routes extends RouteCollection {
 
                             router.prefix('/system', (router: RouterParser) => {
                                 router.prefix('/dhcpGroups', (router: RouterParser) => {
-                                    router.get('/', DhcpGroupController, 'index').name('fwclouds.firewalls.system.dhcp.index');
-                                    router.post('/', DhcpGroupController, 'create').name('fwclouds.firewalls.system.dhcp.store');
+                                    router.get('/', DhcpGroupController, 'index').name('fwclouds.firewalls.system.dhcp.groups.index');
+                                    router.post('/', DhcpGroupController, 'create').name('fwclouds.firewalls.system.dhcp.groups.store');
                                     router.prefix(':dhcpGroup(\\d+)', (router: RouterParser) => {
-                                        router.get('/', DhcpGroupController, 'show').name('fwclouds.firewalls.system.dhcp.show');
-                                        router.put('/', DhcpGroupController, 'update').name('fwclouds.firewalls.system.dhcp.update');
-                                        router.delete('/', DhcpGroupController, 'remove').name('fwclouds.firewalls.system.dhcp.delete');
+                                        router.get('/', DhcpGroupController, 'show').name('fwclouds.firewalls.system.dhcp.groups.show');
+                                        router.put('/', DhcpGroupController, 'update').name('fwclouds.firewalls.system.dhcp.groups.update');
+                                        router.delete('/', DhcpGroupController, 'remove').name('fwclouds.firewalls.system.dhcp.groups.delete');
                                     });
                                 });
 
