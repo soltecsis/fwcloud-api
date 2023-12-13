@@ -201,7 +201,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
                 alias: 'dhcp',
                 innerJoin: {
                     group: 'dhcp.group',
-                    firewall: 'group.firewall',
+                    firewall: 'dhcp.firewall',
                     fwcloud: 'firewall.fwCloud',
                 }
             },
@@ -265,7 +265,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
     async getDHCPRules(fwcloud: number, firewall: number, rules?: number[]): Promise<DHCPRule[]> {
         const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder('dhcp_r')
             .leftJoinAndSelect('dhcp_r.group', 'group')
-            .innerJoin('group.firewall', 'firewall')
+            .innerJoin('dhcp_r.firewall', 'firewall')
             .innerJoin('firewall.fwCloud', 'fwCloud')
             .where('firewall.id = :firewallId', { firewallId: firewall })
             .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud });

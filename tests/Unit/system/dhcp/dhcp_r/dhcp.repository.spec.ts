@@ -64,6 +64,7 @@ describe(DHCPRepository.name, () => {
 
         dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
             group: group,
+            firewall: firewall,
             rule_order: 1,
             interface: null,
         }));
@@ -80,6 +81,7 @@ describe(DHCPRepository.name, () => {
         it('should remove multiple DHCPRule entities', async () => {
             const dhcpRule2 = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
                 group: group,
+                firewall: firewall,
                 rule_order: 2,
                 interface: null,
             }));
@@ -123,6 +125,7 @@ describe(DHCPRepository.name, () => {
             const dhcpgid = group.id;
             const expectedRule: DHCPRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
                 group: group,
+                firewall: firewall,
                 rule_order: 2,
                 interface: null,
             }));

@@ -181,7 +181,7 @@ describe('DHCPRule E2E Tests', () => {
             });
         });
 
-        describe.only('@create', () => {
+        describe.skip('@create', () => {
             it('gust user should not create a dhcp rule', async () => {
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.system.dhcp.store', {

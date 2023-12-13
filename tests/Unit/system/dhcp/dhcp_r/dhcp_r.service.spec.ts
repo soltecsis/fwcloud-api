@@ -38,6 +38,7 @@ describe(DHCPRuleService.name, () => {
                 name: 'group',
                 firewall: firewall,
             })),
+            firewall: firewall,
             rule_order: 1,
             interface: null,
         }));
@@ -144,6 +145,7 @@ describe(DHCPRuleService.name, () => {
                 cfg_text: 'sample cfg text',
                 comment: 'sample comment',
                 groupId: 1,
+                firewall: firewall.id,
                 networkId: 1,
                 rangeId: 1,
                 routerId: 1,

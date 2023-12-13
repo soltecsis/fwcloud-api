@@ -32,6 +32,7 @@ import { AvailableDestinations, ItemForGrid } from "../../../routing/shared";
 import { IPObjRepository } from "../../../ipobj/IPObj.repository";
 import { IPObjGroup } from "../../../ipobj/IPObjGroup";
 import { DHCPUtils } from "../../shared";
+import { Firewall } from "../../../firewall/Firewall";
 
 
 interface IFindManyDHCPRulePath {
@@ -47,6 +48,7 @@ export interface ICreateDHCPRule {
     active?: boolean;
     groupId?: number;
     style?: string;
+    firewall?: number;
     networkId?: number;
     rangeId?: number;
     routerId?: number;
@@ -113,6 +115,9 @@ export class DHCPRuleService extends Service {
         if(data.interfaceId){
             dhcpRuleData.interface = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
         }
+        if(data.firewall){
+            dhcpRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewall) as Firewall;
+        }
 
         const lastDHCPRule = await this._repository.getLastDHCPRuleInGroup(data.groupId);
         dhcpRuleData.rule_order = lastDHCPRule?.rule_order ? lastDHCPRule.rule_order + 1 : 1;
@@ -152,7 +157,7 @@ export class DHCPRuleService extends Service {
             max_lease: data.max_lease,
             cfg_text: data.cfg_text,
             rule_order: data.rule_order,
-        }))
+        },{id}))
 
         if(data.groupId){
             dhcpRule.group = await getRepository(DHCPGroup).findOneOrFail(data.groupId) as DHCPGroup;
@@ -168,6 +173,9 @@ export class DHCPRuleService extends Service {
         }
         if(data.interfaceId){
             dhcpRule.interface = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
+        }
+        if(data.firewall){
+            dhcpRule.firewall = await getRepository(Firewall).findOneOrFail(data.firewall) as Firewall;
         }
 
         dhcpRule = await this._repository.save(dhcpRule);
@@ -203,7 +211,7 @@ export class DHCPRuleService extends Service {
                 alias: 'dhcp',
                 innerJoin: {
                     group: 'dhcp.group',
-                    firewall: 'group.firewall',
+                    firewall: 'dhcp.firewall',
                     fwcloud: 'firewall.fwCloud',
                 }
             },

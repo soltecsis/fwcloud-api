@@ -24,6 +24,7 @@ import { IPObj } from "../../../ipobj/IPObj";
 import { Interface } from "../../../interface/Interface";
 import { DHCPGroup } from "../dhcp_g/dhcp_g.model";
 import Model from "../../../Model";
+import { Firewall } from "../../../firewall/Firewall";
 
 const tableName: string = 'dhcp_r';
 
@@ -63,6 +64,10 @@ export class DHCPRule extends Model{
     @ManyToOne(() => Interface)
     @JoinColumn({ name: 'interface' })
     interface: Interface;
+
+    @ManyToOne(() => Firewall)
+    @JoinColumn({ name: 'firewall' })
+    firewall: Firewall;
 
     @Column({ type: 'int', unsigned: true, default: 86400 })
     max_lease: number;
