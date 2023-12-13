@@ -30,6 +30,10 @@ export class DHCPRuleCreateDto {
     @IsOptional()
     groupId?: number;
 
+    @IsNumber()
+    @IsOptional()
+    firewallId?: number;
+
     @IsString()
     @IsOptional()
     style: string;

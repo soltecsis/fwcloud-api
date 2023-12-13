@@ -48,7 +48,7 @@ export interface ICreateDHCPRule {
     active?: boolean;
     groupId?: number;
     style?: string;
-    firewall?: number;
+    firewallId?: number;
     networkId?: number;
     rangeId?: number;
     routerId?: number;
@@ -73,8 +73,8 @@ export interface IUpdateDHCPRule {
 }
 
 //TODO: Need to add the data type DHCPRuleItemForCompile
-export interface DHCPRulesData<T extends ItemForGrid> extends DHCPRule{
-    items: (T & {_order: number})[];
+export interface DHCPRulesData<T extends ItemForGrid> extends DHCPRule {
+    items: (T & { _order: number })[];
 }
 
 export class DHCPRuleService extends Service {
@@ -106,17 +106,17 @@ export class DHCPRuleService extends Service {
         if (data.networkId) {
             dhcpRuleData.network = await getRepository(IPObj).findOneOrFail(data.networkId) as IPObj;
         }
-        if(data.rangeId){
+        if (data.rangeId) {
             dhcpRuleData.range = await getRepository(IPObj).findOneOrFail(data.rangeId) as IPObj;
         }
-        if(data.routerId){
+        if (data.routerId) {
             dhcpRuleData.router = await getRepository(IPObj).findOneOrFail(data.routerId) as IPObj;
         }
-        if(data.interfaceId){
+        if (data.interfaceId) {
             dhcpRuleData.interface = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
         }
-        if(data.firewall){
-            dhcpRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewall) as Firewall;
+        if (data.firewallId) {
+            dhcpRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
         }
 
         const lastDHCPRule = await this._repository.getLastDHCPRuleInGroup(data.groupId);
@@ -125,7 +125,7 @@ export class DHCPRuleService extends Service {
         return await this._repository.save(dhcpRuleData);
     }
 
-    async copy(ids: number[],destRule: number, position: Offset): Promise<DHCPRule[]> {
+    async copy(ids: number[], destRule: number, position: Offset): Promise<DHCPRule[]> {
         const dhcp_rs: DHCPRule[] = await this._repository.find({
             where: {
                 id: In(ids),
@@ -133,14 +133,14 @@ export class DHCPRuleService extends Service {
             relations: ['group', 'group.firewall', 'group.firewall.fwCloud'],
         });
         const lastRule: DHCPRule = await this._repository.getLastDHCPRuleInGroup(dhcp_rs[0].group.id);
-        dhcp_rs.map((item,index) => {
+        dhcp_rs.map((item, index) => {
             item.rule_order = lastRule.rule_order + index + 1;
         });
-        
+
         await this._repository.save(dhcp_rs);
 
         //TODO: Mark firewall as uncompiled
-        return this.move(dhcp_rs.map(item => item.id),destRule,position);
+        return this.move(dhcp_rs.map(item => item.id), destRule, position);
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
@@ -157,25 +157,25 @@ export class DHCPRuleService extends Service {
             max_lease: data.max_lease,
             cfg_text: data.cfg_text,
             rule_order: data.rule_order,
-        },{id}))
+        }, { id }))
 
-        if(data.groupId){
+        if (data.groupId) {
             dhcpRule.group = await getRepository(DHCPGroup).findOneOrFail(data.groupId) as DHCPGroup;
         }
-        if(data.networkId){
+        if (data.networkId) {
             dhcpRule.network = await getRepository(IPObj).findOneOrFail(data.networkId) as IPObj;
         }
-        if(data.rangeId){
+        if (data.rangeId) {
             dhcpRule.range = await getRepository(IPObj).findOneOrFail(data.rangeId) as IPObj;
         }
-        if(data.routerId){
+        if (data.routerId) {
             dhcpRule.router = await getRepository(IPObj).findOneOrFail(data.routerId) as IPObj;
         }
-        if(data.interfaceId){
+        if (data.interfaceId) {
             dhcpRule.interface = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
         }
-        if(data.firewall){
-            dhcpRule.firewall = await getRepository(Firewall).findOneOrFail(data.firewall) as Firewall;
+        if (data.firewallId) {
+            dhcpRule.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
         }
 
         dhcpRule = await this._repository.save(dhcpRule);
@@ -197,15 +197,15 @@ export class DHCPRuleService extends Service {
         return dhcpRule;
     }
 
-    findOneInPath(path: IFindOneDHCPRulePath,options?: FindOneOptions<DHCPRule>): Promise<DHCPRule | undefined> {
-        return this._repository.findOneOrFail(this.getFindInPathOptions(path,options));
+    findOneInPath(path: IFindOneDHCPRulePath, options?: FindOneOptions<DHCPRule>): Promise<DHCPRule | undefined> {
+        return this._repository.findOneOrFail(this.getFindInPathOptions(path, options));
     }
 
-    findManyInPath(path: IFindManyDHCPRulePath,options?: FindOneOptions<DHCPRule>): Promise<DHCPRule[]> {
-        return this._repository.find(this.getFindInPathOptions(path,options));
+    findManyInPath(path: IFindManyDHCPRulePath, options?: FindOneOptions<DHCPRule>): Promise<DHCPRule[]> {
+        return this._repository.find(this.getFindInPathOptions(path, options));
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneDHCPRulePath>,options: FindOneOptions<DHCPRule> = {}): FindOneOptions<DHCPRule> {
+    protected getFindInPathOptions(path: Partial<IFindOneDHCPRulePath>, options: FindOneOptions<DHCPRule> = {}): FindOneOptions<DHCPRule> {
         return Object.assign({
             join: {
                 alias: 'dhcp',
@@ -216,17 +216,17 @@ export class DHCPRuleService extends Service {
                 }
             },
             where: (qb: SelectQueryBuilder<DHCPRule>) => {
-                if(path.firewallId) {
-                    qb.andWhere('firewall.id = :firewallId', {firewallId: path.firewallId});
+                if (path.firewallId) {
+                    qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
                 }
-                if(path.fwcloudId) {
-                    qb.andWhere('fwcloud.id = :fwcloudId', {fwcloudId: path.fwcloudId});
+                if (path.fwcloudId) {
+                    qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
                 }
-                if(path.id) {
-                    qb.andWhere('dhcp.id = :id', {id: path.id});
+                if (path.id) {
+                    qb.andWhere('dhcp.id = :id', { id: path.id });
                 }
             },
-        },options);
+        }, options);
     }
 
     //TODO: Need to add the data type DHCPRuleItemForCompile
@@ -243,7 +243,7 @@ export class DHCPRuleService extends Service {
         await Promise.all(sqls.map(sql => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)));
 
         return rulesData.map(rule => {
-            if(rule.items) {
+            if (rule.items) {
                 rule.items = rule.items.sort((a, b) => a._order - b._order);
             }
             return rule;

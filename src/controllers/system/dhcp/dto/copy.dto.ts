@@ -31,6 +31,6 @@ export class DHCPRuleCopyDto {
     offset: Offset;
 
     @IsArray()
-    @IsNumber({}, {each: true})
+    @IsNumber({}, { each: true })
     rules_ids: number[];
 }

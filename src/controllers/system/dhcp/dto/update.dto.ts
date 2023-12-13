@@ -29,6 +29,9 @@ export class DHCPRuleUpdateDto {
     @IsNumber()
     groupId?: number;
 
+    @IsNumber()
+    firewallId?: number;
+
     @IsString()
     @IsOptional()
     style?: string;

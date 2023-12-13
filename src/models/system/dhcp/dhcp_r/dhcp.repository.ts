@@ -40,8 +40,8 @@ export class DHCPRepository extends Repository<DHCPRule> {
      * @param options - Additional options for the search.
      * @returns A promise that resolves to an array of DHCP records.
      */
-    async findManyInPath(path: IFindManyDHCPRPath, options?:FindManyOptions<DHCPRule>): Promise<DHCPRule[]> {
-        return this.find(this.getFindInPathOptions(path,options));
+    async findManyInPath(path: IFindManyDHCPRPath, options?: FindManyOptions<DHCPRule>): Promise<DHCPRule[]> {
+        return this.find(this.getFindInPathOptions(path, options));
     }
 
     /**
@@ -50,8 +50,8 @@ export class DHCPRepository extends Repository<DHCPRule> {
      * @param options - The options to apply to the query.
      * @returns A promise that resolves to the found DHCP record.
      */
-    findOneInPath(path: IFindOneDHCPRPath, options?:FindManyOptions<DHCPRule>): Promise<DHCPRule> {
-        return this.findOne(this.getFindInPathOptions(path,options));
+    findOneInPath(path: IFindOneDHCPRPath, options?: FindManyOptions<DHCPRule>): Promise<DHCPRule> {
+        return this.findOne(this.getFindInPathOptions(path, options));
     }
 
     /**
@@ -69,15 +69,15 @@ export class DHCPRepository extends Repository<DHCPRule> {
             order: {
                 'rule_order': 'ASC',
             },
-            relations: ['group','group.firewall'],
+            relations: ['group', 'firewall'],
         });
-        
+
         let affectedDHCPs: DHCPRule[] = await this.findManyInPath({
-            fwcloudId: dhcp_rs[0].group.firewall.fwCloudId,
-            firewallId: dhcp_rs[0].group.firewall.id,
+            fwcloudId: dhcp_rs[0].firewall.fwCloudId,
+            firewallId: dhcp_rs[0].firewall.id,
             dhcGroupId: dhcp_rs[0].group.id,
         });
-        
+
         const destDHCP: DHCPRule = await this.findOneOrFail({
             where: {
                 id: dhcpDestId,
@@ -85,7 +85,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
             relations: ['group'],
         });
 
-        if(offset === Offset.Above) {
+        if (offset === Offset.Above) {
             affectedDHCPs = await this.moveAbove(dhcp_rs, affectedDHCPs, destDHCP);
         } else {
             affectedDHCPs = await this.moveBelow(dhcp_rs, affectedDHCPs, destDHCP);
@@ -95,7 +95,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
 
         await this.refreshOrders(dhcp_rs[0].group.id);
 
-        return await this.find({where: {id: In(ids)}});
+        return await this.find({ where: { id: In(ids) } });
     }
 
     /**
@@ -114,13 +114,13 @@ export class DHCPRepository extends Repository<DHCPRule> {
         const forward: boolean = currentPosition < destDHCP.rule_order;
 
         affectedDHCPs.forEach((dhcp_r: DHCPRule) => {
-            if(movingIds.includes(dhcp_r.id)) {
+            if (movingIds.includes(dhcp_r.id)) {
                 const offset: number = movingIds.indexOf(dhcp_r.id);
                 dhcp_r.rule_order = destPosition + offset;
                 dhcp_r.group ? dhcp_r.group.id = destDHCP.group.id : dhcp_r.group = destDHCP.group;
             } else {
-                if(forward && dhcp_r.rule_order >= destDHCP.rule_order) {
-                    dhcp_r.rule_order+= dhcp_rs.length;
+                if (forward && dhcp_r.rule_order >= destDHCP.rule_order) {
+                    dhcp_r.rule_order += dhcp_rs.length;
                 }
             }
         });
@@ -144,16 +144,16 @@ export class DHCPRepository extends Repository<DHCPRule> {
         const forward: boolean = currentPosition < destDHCP.rule_order;
 
         affectedDHCPs.forEach((dhcp_r: DHCPRule) => {
-            if(movingIds.includes(dhcp_r.id)) {
+            if (movingIds.includes(dhcp_r.id)) {
                 const offset: number = movingIds.indexOf(dhcp_r.id);
                 dhcp_r.rule_order = destPosition + offset + 1;
                 dhcp_r.group ? dhcp_r.group.id = destDHCP.group.id : dhcp_r.group = destDHCP.group;
             } else {
-                if(forward && dhcp_r.rule_order > destDHCP.rule_order) {
+                if (forward && dhcp_r.rule_order > destDHCP.rule_order) {
                     dhcp_r.rule_order += dhcp_rs.length;
                 }
 
-                if(!forward && dhcp_r.rule_order > destDHCP.rule_order && dhcp_r.rule_order < dhcp_rs[0].rule_order) {
+                if (!forward && dhcp_r.rule_order > destDHCP.rule_order && dhcp_r.rule_order < dhcp_rs[0].rule_order) {
                     dhcp_r.rule_order += dhcp_rs.length;
                 }
             }
@@ -162,8 +162,8 @@ export class DHCPRepository extends Repository<DHCPRule> {
         return affectedDHCPs;
     }
 
-    async remove(entities: DHCPRule[], options?:RemoveOptions): Promise<DHCPRule[]>;
-    async remove(entity: DHCPRule, options?:RemoveOptions): Promise<DHCPRule>;
+    async remove(entities: DHCPRule[], options?: RemoveOptions): Promise<DHCPRule[]>;
+    async remove(entity: DHCPRule, options?: RemoveOptions): Promise<DHCPRule>;
     /**
      * Removes one or more DHCP entities from the repository.
      * 
@@ -173,7 +173,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
      */
     async remove(entityOrEntities: DHCPRule | DHCPRule[], options?: RemoveOptions): Promise<DHCPRule | DHCPRule[]> {
         const result = await super.remove(entityOrEntities as DHCPRule[], options);
-        
+
         if (result && !Array.isArray(result)) {
             const dhcpRule = result as DHCPRule;
             if (dhcpRule.group) {
@@ -195,7 +195,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
      * @param options - The additional options for the find operation.
      * @returns The options for finding DHCP records.
      */
-    protected getFindInPathOptions(path: Partial<IFindOneDHCPRPath>,options: FindOneOptions<DHCPRule> | FindManyOptions<DHCPRule> = {}): FindOneOptions<DHCPRule> | FindManyOptions<DHCPRule> {
+    protected getFindInPathOptions(path: Partial<IFindOneDHCPRPath>, options: FindOneOptions<DHCPRule> | FindManyOptions<DHCPRule> = {}): FindOneOptions<DHCPRule> | FindManyOptions<DHCPRule> {
         return Object.assign({
             join: {
                 alias: 'dhcp',
@@ -206,20 +206,20 @@ export class DHCPRepository extends Repository<DHCPRule> {
                 }
             },
             where: (qb: SelectQueryBuilder<DHCPRule>) => {
-                if(path.firewallId) {
-                    qb.andWhere('firewall.id = :firewallId', {firewallId: path.firewallId});
+                if (path.firewallId) {
+                    qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
                 }
-                if(path.fwcloudId) {
-                    qb.andWhere('fwcloud.id = :fwcloudId', {fwcloudId: path.fwcloudId});
+                if (path.fwcloudId) {
+                    qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
                 }
-                if(path.dhcGroupId) {
-                    qb.andWhere('group.id = :dhcGroupId', {dhcGroupId: path.dhcGroupId});
+                if (path.dhcGroupId) {
+                    qb.andWhere('group.id = :dhcGroupId', { dhcGroupId: path.dhcGroupId });
                 }
-                if(path.id) {
-                    qb.andWhere('dhcp.id = :id', {id: path.id});
+                if (path.id) {
+                    qb.andWhere('dhcp.id = :id', { id: path.id });
                 }
             },
-        },options)
+        }, options)
     }
 
     /**

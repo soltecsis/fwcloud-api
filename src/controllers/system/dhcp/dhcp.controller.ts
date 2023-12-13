@@ -36,26 +36,26 @@ import { DHCPRuleCopyDto } from './dto/copy.dto';
 import { DHCPRuleUpdateDto } from './dto/update.dto';
 
 export class DhcpController extends Controller {
-    protected _dhcpRuleService: DHCPRuleService;
-    protected _dhcprule: DHCPRule;
-    protected _dhcpgroup: DHCPGroup;
-    protected _firewall: Firewall;
-    protected _fwCloud: FwCloud;
+  protected _dhcpRuleService: DHCPRuleService;
+  protected _dhcprule: DHCPRule;
+  protected _dhcpgroup: DHCPGroup;
+  protected _firewall: Firewall;
+  protected _fwCloud: FwCloud;
 
-    public async make(req: Request): Promise<void> {
-      this._dhcpRuleService = await this._app.getService<DHCPRuleService>(DHCPRuleService.name);
+  public async make(req: Request): Promise<void> {
+    this._dhcpRuleService = await this._app.getService<DHCPRuleService>(DHCPRuleService.name);
 
-      if(req.params.dhcp) {
-        this._dhcprule = await getRepository(DHCPRule).findOneOrFail(req.params.dhcp);
-      }
-      if(req.params.dhcpgroup) {
-        this._dhcpgroup = await getRepository(DHCPGroup).findOneOrFail(this._dhcprule.group.id);
-      }
-      this._firewall = await getRepository(Firewall).findOneOrFail(req.params.firewall);
-      this._fwCloud = await getRepository(FwCloud).findOneOrFail(req.params.fwcloud);
+    if (req.params.dhcp) {
+      this._dhcprule = await getRepository(DHCPRule).findOneOrFail(req.params.dhcp);
     }
-    
-  
+    if (req.params.dhcpgroup) {
+      this._dhcpgroup = await getRepository(DHCPGroup).findOneOrFail(this._dhcprule.group.id);
+    }
+    this._firewall = await getRepository(Firewall).findOneOrFail(req.params.firewall);
+    this._fwCloud = await getRepository(FwCloud).findOneOrFail(req.params.fwcloud);
+  }
+
+
   @Validate()
   /**
    * Retrieves a list of DHCP configurations.
@@ -68,8 +68,8 @@ export class DhcpController extends Controller {
     (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
 
     const dhcpG: DHCPRule[] = await this._dhcpRuleService.findManyInPath({
-        fwcloudId: this._fwCloud.id,
-        firewallId: this._firewall.id,
+      fwcloudId: this._fwCloud.id,
+      firewallId: this._firewall.id,
     });
 
     return ResponseBuilder.buildResponse().status(200).body(dhcpG);
@@ -93,8 +93,8 @@ export class DhcpController extends Controller {
   @Validate(DHCPRuleCreateDto)
   public async create(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.create(this._firewall, req.session.user)).authorize();
-    
-    const data: ICreateDHCPRule = Object.assign(req.inputs.all<DHCPRuleCreateDto>(),this._dhcpgroup ? {group: this._dhcpgroup.id} : null);
+
+    const data: ICreateDHCPRule = Object.assign(req.inputs.all<DHCPRuleCreateDto>(), this._dhcpgroup ? { group: this._dhcpgroup.id } : null);
     const dhcpRule = await this._dhcpRuleService.store(data);
 
     return ResponseBuilder.buildResponse().status(201).body(dhcpRule);
@@ -103,15 +103,14 @@ export class DhcpController extends Controller {
   @Validate(DHCPRuleCopyDto)
   public async copy(req: Request): Promise<ResponseBuilder> {
     const rules: DHCPRule[] = [];
-    const ids: number[] = req.inputs.get('dhcp_ids');
-
+    const ids: number[] = req.inputs.get('rules_ids');
     for (const id of ids) {
       const rule = await getRepository(DHCPRule).findOneOrFail(id);
       (await DhcpPolicy.copy(rule, req.session.user)).authorize();
       rules.push(rule);
     }
 
-    const created: DHCPRule[] = await this._dhcpRuleService.copy(rules.map(item => item.id),req.inputs.get('to'),req.inputs.get<Offset>('offset'));
+    const created: DHCPRule[] = await this._dhcpRuleService.copy(rules.map(item => item.id), req.inputs.get('to'), req.inputs.get<Offset>('offset'));
     return ResponseBuilder.buildResponse().status(201).body(created);
   }
 
@@ -119,7 +118,7 @@ export class DhcpController extends Controller {
   public async update(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.update(this._dhcprule, req.session.user)).authorize();
 
-    const result: DHCPRule = await this._dhcpRuleService.update(this._dhcprule.id,req.inputs.all<IUpdateDHCPRule>());
+    const result: DHCPRule = await this._dhcpRuleService.update(this._dhcprule.id, req.inputs.all<IUpdateDHCPRule>());
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
@@ -145,33 +144,32 @@ export class DhcpController extends Controller {
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   public async show(req: Request): Promise<ResponseBuilder> {
-      (await DhcpPolicy.show(this._dhcprule, req.session.user)).authorize();
+    (await DhcpPolicy.show(this._dhcprule, req.session.user)).authorize();
 
-      return ResponseBuilder.buildResponse().status(200).body(this._dhcprule);
+    return ResponseBuilder.buildResponse().status(200).body(this._dhcprule);
   }
 
   @Validate(DHCPRuleCopyDto)
   public async move(req: Request): Promise<ResponseBuilder> {
-    (await DhcpPolicy.move(this._dhcprule, req.session.user)).authorize();
+    (await DhcpPolicy.move(this._firewall, req.session.user)).authorize();
 
     const rules: DHCPRule[] = await getRepository(DHCPRule).find({
       join: {
         alias: 'dhcp_r',
         innerJoin: {
           group: 'dhcp_r.group',
-          firewall: 'group.firewall',
-          fwCloud: 'firewall.fwCloud',
+          firewall: 'dhcp_r.firewall',
+          fwcloud: 'firewall.fwCloud',
         },
       },
       where: (qb: SelectQueryBuilder<DHCPRule>): void => {
-        qb.whereInIds(req.inputs.get('dhcp_ids'))
-          .andWhere('group.id = :groupId', { groupId: this._dhcprule.group.id })
+        qb.whereInIds(req.inputs.get('rules_ids'))
           .andWhere('firewall.id = :firewallId', { firewallId: this._firewall.id })
-          .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: this._fwCloud.id });
+          .andWhere('firewall.fwCloudId = :fwCloudId', { fwCloudId: this._fwCloud.id });
       }
     });
-
-    const result: DHCPRule[] = await this._dhcpRuleService.move(rules.map(item => item.id),req.inputs.get('to'),req.inputs.get<Offset>('offset'));
+    
+    const result: DHCPRule[] = await this._dhcpRuleService.move(rules.map(item => item.id), req.inputs.get('to'), req.inputs.get<Offset>('offset'));
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }

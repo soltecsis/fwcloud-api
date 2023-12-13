@@ -10,7 +10,7 @@ import StringHelper from "../../../../../src/utils/string.helper";
 import { testSuite } from "../../../../mocha/global-setup";
 import { Interface } from "../../../../../src/models/interface/Interface";
 import { Offset } from "../../../../../src/offset";
-import {beforeEach} from "mocha";
+import { beforeEach } from "mocha";
 
 describe(DHCPRuleService.name, () => {
     let service: DHCPRuleService;
@@ -22,7 +22,7 @@ describe(DHCPRuleService.name, () => {
         await testSuite.resetDatabaseData();
 
         service = await testSuite.app.getService<DHCPRuleService>(DHCPRuleService.name);
-        
+
         fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
@@ -51,7 +51,7 @@ describe(DHCPRuleService.name, () => {
     describe('store', () => {
         let group: DHCPGroup;
         beforeEach(async () => {
-            
+
             group = await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
                 name: 'group',
                 firewall: firewall,
@@ -86,7 +86,7 @@ describe(DHCPRuleService.name, () => {
             const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup');
             getLastDHCPRuleInGroupStub.returns(null);
             const saveStub = sinon.stub(service['_repository'], 'save').resolves(expectedDHCPRule);
-            
+
             const result = await service.store(data);
 
             expect(getLastDHCPRuleInGroupStub.calledOnce).to.be.true;
@@ -145,7 +145,7 @@ describe(DHCPRuleService.name, () => {
                 cfg_text: 'sample cfg text',
                 comment: 'sample comment',
                 groupId: 1,
-                firewall: firewall.id,
+                firewallId: firewall.id,
                 networkId: 1,
                 rangeId: 1,
                 routerId: 1,
@@ -166,7 +166,7 @@ describe(DHCPRuleService.name, () => {
             getLastDHCPRuleInGroupStub.restore();
         });
     });
-    describe('copy',()=>{
+    describe('copy', () => {
         let getLastDHCPRuleInGroupStub: sinon.SinonStub;
         let copyStub: sinon.SinonStub;
         let moveStub: sinon.SinonStub;
@@ -332,7 +332,7 @@ describe(DHCPRuleService.name, () => {
                 firewall: firewall,
             })));
 
-            const result = await service.update(dhcpRule.id, { groupId: group2.id});
+            const result = await service.update(dhcpRule.id, { groupId: group2.id });
 
             expect(updateStub.calledOnceWith(dhcpRule.id, { groupId: group2.id })).to.be.true;
             expect(result).to.deep.equal(dhcpRule);
@@ -343,10 +343,12 @@ describe(DHCPRuleService.name, () => {
         it('should handle errors when related entities are not found', async () => {
             const updateStub = sinon.stub(service, 'update').rejects(new Error('Related entities not found'));
 
-            await expect(service.update(1, { groupId: (await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
-                name: 'group2',
-                firewall: firewall,
-            }))).id})).to.be.rejectedWith(Error, 'Related entities not found');
+            await expect(service.update(1, {
+                groupId: (await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+                    name: 'group2',
+                    firewall: firewall,
+                }))).id
+            })).to.be.rejectedWith(Error, 'Related entities not found');
 
             updateStub.restore();
         });
@@ -372,14 +374,14 @@ describe(DHCPRuleService.name, () => {
             expect(removeStub.calledOnceWithExactly(dhcpRule)).to.be.true;
             expect(result).to.equal(dhcpRule);
         });
-    
+
         it('should throw an error if the DHCP rule does not exist', async () => {
             const path = {
                 id: 1,
             };
-    
+
             sinon.stub(service, 'findOneInPath').resolves(null);
-    
+
             await expect(service.remove(path)).to.be.rejectedWith(Error);
         });
     });
