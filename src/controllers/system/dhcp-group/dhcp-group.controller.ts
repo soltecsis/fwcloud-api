@@ -30,6 +30,7 @@ import { DHCPGroupPolicy } from "../../../policies/dhcp-group.policy";
 import { Validate } from "../../../decorators/validate.decorator";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { DHCPGroupControllerCreateDto } from "./dto/create.dto";
+import { DHCPGroupUpdateDto } from "./dto/update.dto";
 
 export class DhcpGroupController extends Controller {
   protected _dhcpGroupService: DHCPGroupService;
@@ -41,21 +42,12 @@ export class DhcpGroupController extends Controller {
   public async make(request: Request): Promise<void> {
     this._dhcpGroupService = await this._app.getService<DHCPGroupService>(DHCPGroupService.name);
 
-    if (request.params.dhcpGroup) {
-      this._dhcpGroup = await getRepository(DHCPGroup).findOneOrFail(parseInt(request.params.dhcpGroup));
+    if (request.params.dhcpgroup) {
+      this._dhcpGroup = await this._dhcpGroupService.findOneInPath({ id: parseInt(request.params.dhcpgroup) });
     }
 
-    //Get the firewall from the URL which contains the dhcp group 
-    const firewallQueryBuilder = getRepository(Firewall).createQueryBuilder('firewall').where('firewall.id = :id', { id: parseInt(request.params.firewall) });
-    if (request.params.dhcpGroup) {
-      firewallQueryBuilder.innerJoin('firewall.dhcpGroups', 'group', 'group.id = :groupId', { groupId: parseInt(request.params.dhcpGroup) })
-    }
-    this._firewall = await firewallQueryBuilder.getOneOrFail();
-
-    //Get the fwcloud from the URL which contains the firewall
-    this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
-      .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', { firewallId: this._firewall.id })
-      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) }).getOneOrFail();
+    this._firewall = await getRepository(Firewall).findOneOrFail(request.params.firewall);
+    this._fwCloud = await getRepository(FwCloud).findOneOrFail(request.params.fwcloud);
   }
 
   @Validate()
@@ -78,7 +70,7 @@ export class DhcpGroupController extends Controller {
       firewallId: this._firewall.id,
       name: req.body.name,
       style: req.body.style,
-      rules: req.inputs.get<number[]>('rules').map((id) => ({ id })),
+      rules: req.inputs.get<number[]>('rules')?.map((id) => ({ id })),
     });
 
     return ResponseBuilder.buildResponse().status(201).body(group);
@@ -91,7 +83,7 @@ export class DhcpGroupController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(this._dhcpGroup);
   }
 
-  @Validate(DHCPGroupControllerCreateDto)
+  @Validate(DHCPGroupUpdateDto)
   async update(req: Request): Promise<ResponseBuilder> {
     (await DHCPGroupPolicy.update(this._dhcpGroup, req.session.user)).authorize();
 
@@ -105,7 +97,7 @@ export class DhcpGroupController extends Controller {
     (await DHCPGroupPolicy.remove(this._dhcpGroup, req.session.user)).authorize();
 
     await this._dhcpGroupService.remove({
-      id: parseInt(req.params.dhcpGroup),
+      id: this._dhcpGroup.id,
       firewallId: this._firewall.id,
       fwcloudId: this._fwCloud.id,
     });

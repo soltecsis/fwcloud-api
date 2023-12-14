@@ -90,6 +90,7 @@ export class DhcpController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(grid);
   }
 
+  //TODO: Offset is necessary we can create a rule in other position
   @Validate(DHCPRuleCreateDto)
   public async create(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.create(this._firewall, req.session.user)).authorize();
@@ -168,7 +169,7 @@ export class DhcpController extends Controller {
           .andWhere('firewall.fwCloudId = :fwCloudId', { fwCloudId: this._fwCloud.id });
       }
     });
-    
+
     const result: DHCPRule[] = await this._dhcpRuleService.move(rules.map(item => item.id), req.inputs.get('to'), req.inputs.get<Offset>('offset'));
 
     return ResponseBuilder.buildResponse().status(200).body(result);

@@ -29,7 +29,7 @@ import { Firewall } from "../../../firewall/Firewall";
 const tableName: string = 'dhcp_r';
 
 @Entity(tableName)
-export class DHCPRule extends Model{
+export class DHCPRule extends Model {
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -64,6 +64,12 @@ export class DHCPRule extends Model{
     @ManyToOne(() => Interface)
     @JoinColumn({ name: 'interface' })
     interface: Interface;
+
+    /*@ManyToOne(type => Firewall, firewall => firewall.dhcpRules)
+    @JoinColumn({
+        name: 'fw_apply_to'
+    })
+    firewallApplyTo: Firewall;*/
 
     @ManyToOne(() => Firewall)
     @JoinColumn({ name: 'firewall' })

@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { FindManyOptions, FindOneOptions, Repository, getRepository } from "typeorm";
+import { FindManyOptions, FindOneOptions, Repository, SelectQueryBuilder, getRepository } from "typeorm";
 import { Service } from "../../../../fonaments/services/service";
 import { DHCPRule } from "../dhcp_r/dhcp_r.model";
 import { DHCPGroup } from "./dhcp_g.model";
@@ -66,20 +66,27 @@ export class DHCPGroupService extends Service {
         return this._repository.findOne(this.getFindInPathOptions(path, options));
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneDHCPGPath>,options: FindOneOptions<DHCPGroup> | FindManyOptions<DHCPGroup> = {}): FindOneOptions<DHCPGroup> | FindManyOptions<DHCPGroup> {
+    protected getFindInPathOptions(path: Partial<IFindOneDHCPGPath>, options: FindOneOptions<DHCPGroup> | FindManyOptions<DHCPGroup> = {}): FindOneOptions<DHCPGroup> | FindManyOptions<DHCPGroup> {
         return Object.assign({
             join: {
                 alias: 'group',
                 innerJoin: {
-                    fwcloud: 'group.fwcloud',
-                    firewall: 'firewall.firewall',
+                    firewall: 'group.firewall',
+                    fwcloud: 'firewall.fwCloud',
                 }
             },
-            where: {
-                fwcloud: path.fwcloudId,
-                firewall: path.firewallId,
+            where: (qb: SelectQueryBuilder<DHCPGroup>) => {
+                if (path.firewallId) {
+                    qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
+                }
+                if (path.fwcloudId) {
+                    qb.andWhere('firewall.fwCloudId = :fwcloudId', { fwcloudId: path.fwcloudId });
+                }
+                if (path.id) {
+                    qb.andWhere('group.id = :id', { id: path.id });
+                }
             }
-        },options)
+        }, options)
     }
 
 
@@ -93,19 +100,20 @@ export class DHCPGroupService extends Service {
         const group: DHCPGroup = await this._repository.save(groupData);
         return this._repository.findOne(group.id);
     }
-    
+
     async update(id: number, data: IUpdateDHCPGroup): Promise<DHCPGroup> {
-        let group: DHCPGroup = await this._repository.preload(Object.assign(data, {id}));
+        let group: DHCPGroup = await this._repository.preload(Object.assign(data, { id }));
+
         group = await this._repository.save(group);
         return this._repository.findOne(group.id);
     }
 
     async remove(path: IFindOneDHCPGPath): Promise<DHCPGroup> {
         const group: DHCPGroup = await this.findOneInPath(path);
-        if(!group) {
+        if (!group) {
             throw new Error('DHCPGroup not found');
         }
-        if(group.rules)  {
+        if (group.rules && group.rules.length > 0) {
             await getRepository(DHCPRule).update(group.rules.map(rule => rule.id), {
                 group: null
             });

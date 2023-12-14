@@ -29,7 +29,12 @@ export class DHCPGroupControllerCreateDto {
     @IsOptional()
     comment: string;
 
-    @IsNumber({}, {each: true})
-    @ArrayMinSize(1)
+    @IsString()
+    @IsOptional()
+    style: string;
+
+    @IsOptional()
+    @IsNumber({}, { each: true })
+    @ArrayMinSize(0)
     rules: number[]
 }
