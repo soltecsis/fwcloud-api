@@ -19,7 +19,8 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { IsBoolean, IsOptional, IsNumber, IsString } from "class-validator";
+import { IsBoolean, IsOptional, IsNumber, IsString, IsPositive, IsEnum } from "class-validator";
+import { Offset } from "../../../../offset";
 
 export class DHCPRuleCreateDto {
     @IsBoolean()
@@ -65,4 +66,13 @@ export class DHCPRuleCreateDto {
     @IsString()
     @IsOptional()
     comment?: string;
+
+    @IsNumber()
+    @IsPositive()
+    @IsOptional()
+    to?: number;
+
+    @IsEnum(Offset)
+    @IsOptional()
+    offset?: Offset;
 }

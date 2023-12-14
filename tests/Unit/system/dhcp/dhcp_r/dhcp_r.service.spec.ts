@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { getRepository } from "typeorm";
 import { DHCPGroup } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model";
-import { DHCPRuleService } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service";
+import { DHCPRuleService, ICreateDHCPRule } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service";
 import sinon from "sinon";
 import { DHCPRule } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.model";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
@@ -164,6 +164,49 @@ describe(DHCPRuleService.name, () => {
             expect(result).to.have.property('rule_order', 6);
 
             getLastDHCPRuleInGroupStub.restore();
+        });
+
+        it('should move the stored DHCPRule to a new position', async () => {
+            const data = {
+                active: true,
+                style: 'default',
+                max_lease: 3600,
+                cfg_text: 'sample cfg text',
+                comment: 'sample comment',
+                groupId: 1,
+                networkId: 1,
+                rangeId: 1,
+                routerId: 1,
+                interfaceId: 1,
+                to: 3,
+                offset: 'above'
+            };
+
+            const expectedDHCPRule: DHCPRule = getRepository(DHCPRule).create({
+                group: {} as DHCPGroup,
+                rule_order: 1,
+                interface: {} as Interface,
+            });
+
+            const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup');
+            getLastDHCPRuleInGroupStub.returns(null);
+
+            const saveStub = sinon.stub(service['_repository'], 'save');
+            saveStub.resolves(expectedDHCPRule);
+
+            const moveStub = sinon.stub(service, 'move');
+            moveStub.resolves([expectedDHCPRule]);
+
+            const result = await service.store(data as ICreateDHCPRule);
+
+            expect(getLastDHCPRuleInGroupStub.calledOnce).to.be.true;
+            expect(saveStub.calledOnce).to.be.true;
+            expect(moveStub.calledOnceWith([expectedDHCPRule.id], data.to, data.offset as Offset)).to.be.true; // Cast 'data.offset' to 'Offset'
+            expect(result).to.deep.equal(expectedDHCPRule);
+
+            getLastDHCPRuleInGroupStub.restore();
+            saveStub.restore();
+            moveStub.restore();
         });
     });
     describe('copy', () => {

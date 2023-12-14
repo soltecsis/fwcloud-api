@@ -57,6 +57,8 @@ export interface ICreateDHCPRule {
     cfg_text?: string;
     comment?: string;
     rule_order?: number;
+    to?: number;
+    offset?: Offset;
 }
 
 export interface IUpdateDHCPRule {
@@ -122,7 +124,13 @@ export class DHCPRuleService extends Service {
         const lastDHCPRule = await this._repository.getLastDHCPRuleInGroup(data.groupId);
         dhcpRuleData.rule_order = lastDHCPRule?.rule_order ? lastDHCPRule.rule_order + 1 : 1;
 
-        return await this._repository.save(dhcpRuleData);
+        const persisted = await this._repository.save(dhcpRuleData);
+
+        if(Object.prototype.hasOwnProperty.call(data,'to') && Object.prototype.hasOwnProperty.call(data,'offset')) {
+            return (await this.move([persisted.id], data.to, data.offset))[0]
+        }
+
+        return persisted;
     }
 
     async copy(ids: number[], destRule: number, position: Offset): Promise<DHCPRule[]> {
