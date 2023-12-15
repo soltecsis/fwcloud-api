@@ -1,3 +1,24 @@
+/*!
+    Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
 import { expect } from "chai";
 import { getRepository } from "typeorm";
 import { DHCPGroup } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model";
@@ -426,6 +447,58 @@ describe(DHCPRuleService.name, () => {
             sinon.stub(service, 'findOneInPath').resolves(null);
 
             await expect(service.remove(path)).to.be.rejectedWith(Error);
+        });
+    });
+
+    describe('bulkUpdate', () => {
+        it('should update the DHCP rules successfully', async () => {
+            const ids = [1, 2, 3];
+            const data = { rule_order: 2 };
+
+            const bulkUpdateStub = sinon.stub(service, 'bulkUpdate').resolves([dhcpRule]);
+
+            const result = await service.bulkUpdate(ids, data);
+
+            expect(bulkUpdateStub.calledOnceWith(ids, data)).to.be.true;
+            expect(result).to.deep.equal([dhcpRule]);
+
+            bulkUpdateStub.restore();
+        });
+
+        it('should handle errors when updating the DHCP rules', async () => {
+            const ids = [1, 2, 3];
+            const data = { rule_order: 2 };
+
+            const bulkUpdateStub = sinon.stub(service, 'bulkUpdate').rejects(new Error('Bulk update error'));
+
+            await expect(service.bulkUpdate(ids, data)).to.be.rejectedWith(Error, 'Bulk update error');
+
+            bulkUpdateStub.restore();
+        });
+    });
+
+    describe('bulkRemove', () => {
+        it('should remove the DHCP rules successfully', async () => {
+            const ids = [1, 2, 3];
+
+            const bulkRemoveStub = sinon.stub(service, 'bulkRemove').resolves([dhcpRule]);
+
+            const result = await service.bulkRemove(ids);
+
+            expect(bulkRemoveStub.calledOnceWith(ids)).to.be.true;
+            expect(result).to.deep.equal([dhcpRule]);
+
+            bulkRemoveStub.restore();
+        });
+
+        it('should handle errors when removing the DHCP rules', async () => {
+            const ids = [1, 2, 3];
+
+            const bulkRemoveStub = sinon.stub(service, 'bulkRemove').rejects(new Error('Bulk remove error'));
+
+            await expect(service.bulkRemove(ids)).to.be.rejectedWith(Error, 'Bulk remove error');
+
+            bulkRemoveStub.restore();
         });
     });
 });

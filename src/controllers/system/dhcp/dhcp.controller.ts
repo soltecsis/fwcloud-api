@@ -36,7 +36,7 @@ import { DHCPRuleCopyDto } from './dto/copy.dto';
 import { DHCPRuleUpdateDto } from './dto/update.dto';
 import { DhcpRuleBulkUpdateDto } from './dto/bulk-update.dto';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
-import { DhcpRuleBulkRemoveDto } from './dto/bul-remove.dto';
+import { DhcpRuleBulkRemoveDto } from './dto/bulk-remove.dto';
 
 export class DhcpController extends Controller {
   protected _dhcpRuleService: DHCPRuleService;

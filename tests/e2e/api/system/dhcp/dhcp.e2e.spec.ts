@@ -36,6 +36,7 @@ import { getCustomRepository, getRepository } from "typeorm";
 import { DHCPRuleCopyDto } from "../../../../../src/controllers/system/dhcp/dto/copy.dto";
 import { DHCPRepository } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp.repository";
 import { Offset } from "../../../../../src/offset";
+import { DhcpRuleBulkUpdateDto } from "../../../../../src/controllers/system/dhcp/dto/bulk-update.dto";
 
 describe('DHCPRule E2E Tests', () => {
     let app: Application;
@@ -720,6 +721,198 @@ describe('DHCPRule E2E Tests', () => {
                 expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule2.id)).rule_order).to.equal(2);
                 expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule3.id)).rule_order).to.equal(3);
                 expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule4.id)).rule_order).to.equal(4);
+            });
+        });
+
+        describe('@bulkUpdate', () => {
+            let rule1: DHCPRule;
+            let rule2: DHCPRule;
+            let data: DhcpRuleBulkUpdateDto = {
+                active: false,
+                style: 'style',
+            };
+
+            beforeEach(async () => {
+                rule1 = await DHCPRuleServiceInstance.store({
+                    active: true,
+                    groupId: group.id,
+                    firewallId: firewall.id,
+                    max_lease: 1,
+                    cfg_text: "cfg_text",
+                    comment: "comment",
+                    rule_order: 1,
+                });
+                rule2 = await DHCPRuleServiceInstance.store({
+                    active: true,
+                    groupId: group.id,
+                    firewallId: firewall.id,
+                    max_lease: 2,
+                    cfg_text: "cfg_text",
+                    comment: "comment",
+                    rule_order: 2,
+                });
+            });
+
+            it('guest user should not bulk update a dhcp rule', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.bulkUpdate', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .query({
+                        rules: [rule1.id, rule2.id],
+                    })
+                    .send(data)
+                    .expect(401);
+            });
+
+            it('regular user which does not belong to the fwcloud should not bulk update a dhcp rule', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.bulkUpdate', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        rules: [rule1.id, rule2.id],
+                    })
+                    .send(data)
+                    .expect(401);
+            })
+
+            it('regular user which belongs to the fwcloud should bulk update a dhcp rule', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.bulkUpdate', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        rules: [rule1.id, rule2.id],
+                    })
+                    .send(data)
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect((await getRepository(DHCPRule).findOneOrFail(rule1.id)).active).to.equal(false);
+                expect((await getRepository(DHCPRule).findOneOrFail(rule2.id)).active).to.equal(false);
+            });
+
+            it('admin user should bulk update a dhcp rule', async () => {
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.bulkUpdate', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .query({
+                        rules: [rule1.id, rule2.id],
+                    })
+                    .send(data)
+                    .expect(200)
+                    .then((response) => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect((await getRepository(DHCPRule).findOneOrFail(rule1.id)).active).to.equal(false);
+                expect((await getRepository(DHCPRule).findOneOrFail(rule2.id)).active).to.equal(false);
+            });
+        });
+
+        describe('@bulkRemove', () => {
+            let rule1: DHCPRule;
+            let rule2: DHCPRule;
+
+            beforeEach(async () => {
+                rule1 = await DHCPRuleServiceInstance.store({
+                    active: true,
+                    groupId: group.id,
+                    firewallId: firewall.id,
+                    max_lease: 1,
+                    cfg_text: "cfg_text",
+                    comment: "comment",
+                    rule_order: 1,
+                });
+                rule2 = await DHCPRuleServiceInstance.store({
+                    active: true,
+                    groupId: group.id,
+                    firewallId: firewall.id,
+                    max_lease: 2,
+                    cfg_text: "cfg_text",
+                    comment: "comment",
+                    rule_order: 2,
+                });
+            });
+
+            it('guest user should not bulk remove a dhcp rule', async () => {
+                return await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .query({
+                        rules: [rule1.id, rule2.id],
+                    })
+                    .expect(401);
+            });
+
+            it('regular user which does not belong to the fwcloud should not bulk remove a dhcp rule', async () => {
+                return await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        rules: [rule1.id, rule2.id],
+                    })
+                    .expect(401);
+            })
+
+            it('regular user which belongs to the fwcloud should bulk remove a dhcp rule', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .query({
+                        rules: [rule1.id, rule2.id],
+                    })
+                    .expect(200)
+                    .then(response => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect(await getRepository(DHCPRule).findOne(rule1.id)).to.be.undefined;
+                expect(await getRepository(DHCPRule).findOne(rule2.id)).to.be.undefined;
+            });
+
+            it('admin user should bulk remove a dhcp rule', async () => {
+                await request(app.express)
+                    .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.bulkRemove', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .query({
+                        rules: [rule1.id, rule2.id],
+                    })
+                    .expect(200)
+                    .then((response) => {
+                        expect(response.body.data).to.have.length(2);
+                    });
+
+                expect(await getRepository(DHCPRule).findOne(rule1.id)).to.be.undefined;
+                expect(await getRepository(DHCPRule).findOne(rule2.id)).to.be.undefined;
             });
         });
     });
