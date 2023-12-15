@@ -126,7 +126,7 @@ export class DHCPRuleService extends Service {
 
         const persisted = await this._repository.save(dhcpRuleData);
 
-        if(Object.prototype.hasOwnProperty.call(data,'to') && Object.prototype.hasOwnProperty.call(data,'offset')) {
+        if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'offset')) {
             return (await this.move([persisted.id], data.to, data.offset))[0]
         }
 
@@ -256,6 +256,42 @@ export class DHCPRuleService extends Service {
             }
             return rule;
         });
+    }
+
+    public async bulkUpdate(ids: number[], data: IUpdateDHCPRule): Promise<DHCPRule[]> {
+        await this._repository.update({
+            id: In(ids),
+        }, data);
+
+        //TODO: Mark firewall as uncompiled
+        /*const firewallIds: number[] = (await this._repository.find({
+            where: {
+                id: In(ids),
+            },
+            join: {
+                alias: 'dhcp_r',
+            }
+        })).map(item => item.firewall.id);*/
+
+        return this._repository.find({
+            where: {
+                id: In(ids),
+            }
+        });
+    }
+
+    public async bulkRemove(ids: number[]): Promise<DHCPRule[]> {
+        const rules: DHCPRule[] = await this._repository.find({
+            where: {
+                id: In(ids),
+            },
+        });
+
+        for (let rule of rules) {
+            await this.remove({ id: rule.id });
+        }
+
+        return rules;
     }
 
     private getDHCPRulesGridSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {

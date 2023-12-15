@@ -180,6 +180,8 @@ export class Routes extends RouteCollection {
                                     router.post('/', DhcpController, 'create').name('fwclouds.firewalls.system.dhcp.store');
                                     router.post('/copy', DhcpController, 'copy').name('fwclouds.firewalls.system.dhcp.copy');
                                     router.post('/move', DhcpController, 'move').name('fwclouds.firewalls.system.dhcp.move');
+                                    router.put('/bulkUpdate', DhcpController, 'bulkUpdate').name('fwclouds.firewalls.system.dhcp.bulkUpdate');
+                                    router.delete('/bulkRemove', DhcpController, 'bulkRemove').name('fwclouds.firewalls.system.dhcp.bulkRemove');
                                     router.prefix('/:dhcp(\\d+)', (router: RouterParser) => {
                                         router.get('/', DhcpController, 'show').name('fwclouds.firewalls.system.dhcp.show');
                                         router.put('/', DhcpController, 'update').name('fwclouds.firewalls.system.dhcp.update');

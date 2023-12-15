@@ -21,7 +21,7 @@
 */
 import { Request } from 'express';
 import { Controller } from '../../../fonaments/http/controller';
-import { Validate } from "../../../decorators/validate.decorator";
+import { Validate, ValidateQuery } from "../../../decorators/validate.decorator";
 import { DhcpPolicy } from '../../../policies/dhcp.policy';
 import { DHCPRule } from '../../../models/system/dhcp/dhcp_r/dhcp_r.model';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
@@ -34,6 +34,9 @@ import { DHCPRuleCreateDto } from './dto/create.dto';
 import { Offset } from '../../../offset';
 import { DHCPRuleCopyDto } from './dto/copy.dto';
 import { DHCPRuleUpdateDto } from './dto/update.dto';
+import { DhcpRuleBulkUpdateDto } from './dto/bulk-update.dto';
+import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
+import { DhcpRuleBulkRemoveDto } from './dto/bul-remove.dto';
 
 export class DhcpController extends Controller {
   protected _dhcpRuleService: DHCPRuleService;
@@ -171,6 +174,61 @@ export class DhcpController extends Controller {
     });
 
     const result: DHCPRule[] = await this._dhcpRuleService.move(rules.map(item => item.id), req.inputs.get('to'), req.inputs.get<Offset>('offset'));
+
+    return ResponseBuilder.buildResponse().status(200).body(result);
+  }
+
+  @Validate(DhcpRuleBulkUpdateDto)
+  public async bulkUpdate(req: Request): Promise<ResponseBuilder> {
+    const rules: DHCPRule[] = [];
+
+    const ids: string[] = req.query.rules as string[] || [];
+
+    for (let id of ids) {
+      const rule: DHCPRule = await this._dhcpRuleService.findOneInPath({
+        fwcloudId: this._fwCloud.id,
+        firewallId: this._firewall.id,
+        id: parseInt(id),
+      });
+
+      (await DhcpPolicy.update(rule, req.session.user)).authorize();
+
+      rules.push(rule);
+    }
+
+    if (!rules.length) {
+      throw new HttpException(`No rules found`, 400);
+    }
+
+    const result: DHCPRule[] = await this._dhcpRuleService.bulkUpdate(rules.map(item => item.id), req.inputs.all<IUpdateDHCPRule>());
+
+    return ResponseBuilder.buildResponse().status(200).body(result);
+  }
+
+  @Validate()
+  @ValidateQuery(DhcpRuleBulkRemoveDto)
+  public async bulkRemove(req: Request): Promise<ResponseBuilder> {
+    const rules: DHCPRule[] = [];
+
+    const ids: number[] = req.query.rules as unknown as number[] || [];
+
+    for (let id of ids) {
+      const rule: DHCPRule = await this._dhcpRuleService.findOneInPath({
+        fwcloudId: this._fwCloud.id,
+        firewallId: this._firewall.id,
+        id,
+      });
+
+      (await DhcpPolicy.delete(rule, req.session.user)).authorize();
+
+      rules.push(rule);
+    }
+
+    if (!rules.length) {
+      throw new HttpException(`No rules found to be removed`, 400);
+    }
+
+    const result: DHCPRule[] = await this._dhcpRuleService.bulkRemove(rules.map(item => item.id));
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
