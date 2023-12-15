@@ -27,9 +27,11 @@ export class DHCPRuleUpdateDto {
     active?: boolean;
 
     @IsNumber()
+    @IsOptional()
     groupId?: number;
 
     @IsNumber()
+    @IsOptional()
     firewallId?: number;
 
     @IsString()
