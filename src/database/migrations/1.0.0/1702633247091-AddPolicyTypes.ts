@@ -35,10 +35,10 @@ export class AddPolicyTypes1702633247091 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE policy_type MODIFY type VARCHAR(2)`);
-
         await queryRunner.query(`
             DELETE FROM policy_type WHERE id IN (100, 101, 102)
         `);
+
+        await queryRunner.query(`ALTER TABLE policy_type MODIFY type VARCHAR(2)`);
     }
 }
