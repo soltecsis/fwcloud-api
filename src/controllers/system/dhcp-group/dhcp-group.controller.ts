@@ -75,9 +75,10 @@ export class DhcpGroupController extends Controller {
       style: req.body.style,
       rules: req.inputs.get<number[]>('rules')?.map((id) => ({ id })),
     });
-    
-    await this._dhcpDHCPRuleService.bulkUpdate(req.inputs.get<number[]>('rules')?.map((id) => id), { group: group.id });
-    
+
+    if (req.inputs.get<number[]>('rules')) {
+      await this._dhcpDHCPRuleService.bulkUpdate(req.inputs.get<number[]>('rules')?.map((id) => id), { group: group.id });
+    }
 
     return ResponseBuilder.buildResponse().status(201).body(group);
   }
