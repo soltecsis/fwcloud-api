@@ -72,6 +72,7 @@ export interface IUpdateDHCPRule {
     cfg_text?: string;
     comment?: string;
     rule_order?: number;
+    group?: number;
 }
 
 //TODO: Need to add the data type DHCPRuleItemForCompile
@@ -261,7 +262,7 @@ export class DHCPRuleService extends Service {
     public async bulkUpdate(ids: number[], data: IUpdateDHCPRule): Promise<DHCPRule[]> {
         await this._repository.update({
             id: In(ids),
-        }, data);
+        }, { ...data, group: { id: data.group } });
 
         //TODO: Mark firewall as uncompiled
         /*const firewallIds: number[] = (await this._repository.find({

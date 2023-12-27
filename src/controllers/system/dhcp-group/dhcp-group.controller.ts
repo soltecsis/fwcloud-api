@@ -31,9 +31,11 @@ import { Validate } from "../../../decorators/validate.decorator";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { DHCPGroupControllerCreateDto } from "./dto/create.dto";
 import { DHCPGroupUpdateDto } from "./dto/update.dto";
+import { DHCPRuleService } from "../../../models/system/dhcp/dhcp_r/dhcp_r.service";
 
 export class DhcpGroupController extends Controller {
   protected _dhcpGroupService: DHCPGroupService;
+  protected _dhcpDHCPRuleService: DHCPRuleService;
 
   protected _firewall: Firewall;
   protected _fwCloud: FwCloud;
@@ -41,6 +43,7 @@ export class DhcpGroupController extends Controller {
 
   public async make(request: Request): Promise<void> {
     this._dhcpGroupService = await this._app.getService<DHCPGroupService>(DHCPGroupService.name);
+    this._dhcpDHCPRuleService = await this._app.getService<DHCPRuleService>(DHCPRuleService.name);
 
     if (request.params.dhcpgroup) {
       this._dhcpGroup = await this._dhcpGroupService.findOneInPath({ id: parseInt(request.params.dhcpgroup) });
@@ -72,6 +75,9 @@ export class DhcpGroupController extends Controller {
       style: req.body.style,
       rules: req.inputs.get<number[]>('rules')?.map((id) => ({ id })),
     });
+    
+    await this._dhcpDHCPRuleService.bulkUpdate(req.inputs.get<number[]>('rules')?.map((id) => id), { group: group.id });
+    
 
     return ResponseBuilder.buildResponse().status(201).body(group);
   }
