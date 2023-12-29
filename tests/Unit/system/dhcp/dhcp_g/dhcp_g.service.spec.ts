@@ -114,20 +114,34 @@ describe(DHCPGroupService.name, () => {
                 style: 'default',
             };
 
-            const preloadStub = sinon.stub(service['_repository'], 'preload').resolves(group);
             const saveStub = sinon.stub(service['_repository'], 'save').resolves(group);
             const findOneStub2 = sinon.stub(service['_repository'], 'findOne').resolves(group);
 
             const result = await service.update(id, data);
 
-            expect(preloadStub.calledOnce).to.be.true;
             expect(saveStub.calledOnce).to.be.true;
             expect(findOneStub2.calledOnce).to.be.true;
             expect(result).to.deep.equal(await getRepository(DHCPGroup).findOne(id));
 
-            preloadStub.restore();
             saveStub.restore();
             findOneStub2.restore();
+        });
+
+        it('should throw an error if DHCPGroup is not found', async () => {
+            const id = 1;
+            const data = {
+                name: 'updated group',
+                firewallId: 2,
+                style: 'default',
+            };
+
+            const findOneStub = sinon.stub(service['_repository'], 'findOne').resolves(undefined);
+
+            await expect(service.update(id, data)).to.be.rejectedWith('DHCPGroup not found');
+
+            expect(findOneStub.calledOnce).to.be.true;
+
+            findOneStub.restore();
         });
 
         it('should handle errors during the update process', async () => {
@@ -138,39 +152,16 @@ describe(DHCPGroupService.name, () => {
                 style: 'default',
             };
 
-            const preloadStub = sinon.stub(service['_repository'], 'preload').resolves(group);
+            const findOneStub = sinon.stub(service['_repository'], 'findOne').resolves(group);
             const saveStub = sinon.stub(service['_repository'], 'save').rejects(new Error('Failed to update DHCPGroup'));
 
             await expect(service.update(id, data)).to.be.rejectedWith('Failed to update DHCPGroup');
 
-            expect(preloadStub.calledOnce).to.be.true;
+            expect(findOneStub.calledOnce).to.be.true;
             expect(saveStub.calledOnce).to.be.true;
 
-            preloadStub.restore();
+            findOneStub.restore();
             saveStub.restore();
-        });
-
-        it('should handle errors during the retrieval of the updated group', async () => {
-            const id = 1;
-            const data = {
-                name: 'updated group',
-                firewallId: 2,
-                style: 'default',
-            };
-
-            const preloadStub = sinon.stub(service['_repository'], 'preload').resolves(group);
-            const saveStub = sinon.stub(service['_repository'], 'save').resolves(group);
-            const findOneStub2 = sinon.stub(service['_repository'], 'findOne').rejects(new Error('Failed to retrieve updated DHCPGroup'));
-
-            await expect(service.update(id, data)).to.be.rejectedWith('Failed to retrieve updated DHCPGroup');
-
-            expect(preloadStub.calledOnce).to.be.true;
-            expect(saveStub.calledOnce).to.be.true;
-            expect(findOneStub2.calledOnce).to.be.true;
-
-            preloadStub.restore();
-            saveStub.restore();
-            findOneStub2.restore();
         });
     });
     describe('remove', () => {
