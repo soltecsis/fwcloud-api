@@ -159,39 +159,34 @@ export class DHCPRuleService extends Service {
     }
 
     async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
-        let dhcpRule: DHCPRule = await this._repository.preload(Object.assign({
-            active: data.active,
-            comment: data.comment,
-            sytle: data.style,
-            max_lease: data.max_lease,
-            cfg_text: data.cfg_text,
-            rule_order: data.rule_order,
-        }, { id }))
+        const dhcpRule: DHCPRule | undefined = await this._repository.findOne(id);
 
-        if (data.groupId) {
-            dhcpRule.group = await getRepository(DHCPGroup).findOneOrFail(data.groupId) as DHCPGroup;
-        }
-        if (data.networkId) {
-            dhcpRule.network = await getRepository(IPObj).findOneOrFail(data.networkId) as IPObj;
-        }
-        if (data.rangeId) {
-            dhcpRule.range = await getRepository(IPObj).findOneOrFail(data.rangeId) as IPObj;
-        }
-        if (data.routerId) {
-            dhcpRule.router = await getRepository(IPObj).findOneOrFail(data.routerId) as IPObj;
-        }
-        if (data.interfaceId) {
-            dhcpRule.interface = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
-        }
-        if (data.firewallId) {
-            dhcpRule.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
+        if (!dhcpRule) {
+            throw new Error('DHCPRule not found');
         }
 
-        dhcpRule = await this._repository.save(dhcpRule);
+        Object.assign(dhcpRule, {
+            active: data.active !== undefined ? data.active : dhcpRule.active,
+            comment: data.comment !== undefined ? data.comment : dhcpRule.comment,
+            style: data.style !== undefined ? data.style : dhcpRule.style,
+            max_lease: data.max_lease !== undefined ? data.max_lease : dhcpRule.max_lease,
+            cfg_text: data.cfg_text !== undefined ? data.cfg_text : dhcpRule.cfg_text,
+            rule_order: data.rule_order !== undefined ? data.rule_order : dhcpRule.rule_order
+        });
 
-        //await this.reorderTo(dhcpRule.id);
+        const fieldsToUpdate = ['groupId', 'networkId', 'rangeId', 'routerId', 'interfaceId', 'firewallId'];
 
-        //TODO: Mark firewall as uncompiled
+        for (const field of fieldsToUpdate) {
+            if (data[field]) {
+                dhcpRule[field.slice(0, -2)] = await getRepository(field === 'firewallId' ? Firewall : IPObj).findOneOrFail(data[field]) as Firewall | IPObj;
+            }
+        }
+
+        await this._repository.save(dhcpRule);
+
+        // await this.reorderTo(dhcpRule.id);
+
+        // TODO: Marcar el firewall como no compilado
 
         return dhcpRule;
     }

@@ -102,10 +102,16 @@ export class DHCPGroupService extends Service {
     }
 
     async update(id: number, data: IUpdateDHCPGroup): Promise<DHCPGroup> {
-        let group: DHCPGroup = await this._repository.preload(Object.assign(data, { id }));
+        let group: DHCPGroup | undefined = await this._repository.findOne(id);
 
-        group = await this._repository.save(group);
-        return this._repository.findOne(group.id);
+        if (!group) {
+            throw new Error('DHCPGroup not found');
+        }
+
+        Object.assign(group, data);
+        await this._repository.save(group);
+
+        return group;
     }
 
     async remove(path: IFindOneDHCPGPath): Promise<DHCPGroup> {
