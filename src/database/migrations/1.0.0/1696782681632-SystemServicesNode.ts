@@ -1,14 +1,20 @@
-import {MigrationInterface, QueryRunner, Table} from "typeorm";
+import { MigrationInterface, QueryRunner, Table } from "typeorm";
 
 export class SystemServicesNode1696782681632 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE fwc_tree_node_types MODIFY node_type VARCHAR(5)`);
+
         await queryRunner.query(
             "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'SYS', NULL, 'System')"
         );
 
         await queryRunner.query(
             "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'S01', NULL, 'DHCP')"
+        );
+
+        await queryRunner.query(
+            "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'S01_1', NULL, 'DHCP Fixed IP')"
         );
 
         await queryRunner.query(
@@ -36,7 +42,7 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
         for (const node of nodes) {
             await queryRunner.query(
                 "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'System', 'SYS',0,?,?)",
-                [node.id,node.id_obj,node.fwcloud]
+                [node.id, node.id_obj, node.fwcloud]
             );
         }
 
@@ -55,24 +61,29 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
         for (const node of nodes) {
             await queryRunner.query(
                 "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'DHCP', 'S01',0,?,?)",
-                [node.id,node.id_obj,node.fwcloud]
+                [node.id, node.id_obj, node.fwcloud]
+            );
+
+            await queryRunner.query(
+                "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'DHCP Fixed IP', 'S01_1',0,?,?)",
+                [node.id, node.id_obj, node.fwcloud]
             );
 
             await queryRunner.query(
                 "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'Keepalived', 'S02',0,?,?)",
-                [node.id,node.id_obj,node.fwcloud]
+                [node.id, node.id_obj, node.fwcloud]
             );
 
             await queryRunner.query(
                 "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'HAProxy', 'S03',0,?,?)",
-                [node.id,node.id_obj,node.fwcloud]
+                [node.id, node.id_obj, node.fwcloud]
             );
         }
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(
-            "DELETE FROM `fwc_tree` WHERE `node_type` IN ('S01', 'S02', 'S03')"
+            "DELETE FROM `fwc_tree` WHERE `node_type` IN ('S01', 'S02', 'S03', 'S01_1')"
         );
 
         await queryRunner.query(
@@ -80,7 +91,9 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
         );
 
         await queryRunner.query(
-            "DELETE FROM `fwc_tree_node_types` WHERE `node_type` IN ('SYS', 'S01', 'S02', 'S03')"
+            "DELETE FROM `fwc_tree_node_types` WHERE `node_type` IN ('SYS', 'S01', 'S02', 'S03', 'S01_1')"
         );
+
+        await queryRunner.query(`ALTER TABLE fwc_tree_node_types MODIFY node_type VARCHAR(3)`);
     }
 }
