@@ -12,15 +12,15 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
         );
 
         await queryRunner.query(
-            "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'S04', NULL, 'Fixed IPs')"
-        );
-
-        await queryRunner.query(
             "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'S02', NULL, 'Keepalived')"
         );
 
         await queryRunner.query(
             "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'S03', NULL, 'HAProxy')"
+        );
+
+        await queryRunner.query(
+            "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'S04', NULL, 'Fixed IPs')"
         );
 
         let nodes = await queryRunner.query(
@@ -95,7 +95,7 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(
-            "DELETE FROM `fwc_tree` WHERE `node_type` IN ('S04')"
+            "DELETE FROM `fwc_tree` WHERE `node_type` = 'S04'"
         );
         await queryRunner.query(
             "DELETE FROM `fwc_tree` WHERE `node_type` IN ('S01', 'S02', 'S03')"
