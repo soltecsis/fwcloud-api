@@ -69,7 +69,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
             order: {
                 'rule_order': 'ASC',
             },
-            relations: ['group', 'firewall'],
+            relations: ['firewall'],
         });
 
         let affectedDHCPs: DHCPRule[] = await this.findManyInPath({

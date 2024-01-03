@@ -107,7 +107,7 @@ export class DhcpController extends Controller {
   @Validate(DHCPRuleCopyDto)
   public async copy(req: Request): Promise<ResponseBuilder> {
     const rules: DHCPRule[] = [];
-    const ids: number[] = req.inputs.get('rules_ids');
+    const ids: number[] = req.inputs.get('rules');
     for (const id of ids) {
       const rule = await getRepository(DHCPRule).findOneOrFail(id);
       (await DhcpPolicy.copy(rule, req.session.user)).authorize();

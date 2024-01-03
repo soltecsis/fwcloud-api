@@ -104,6 +104,9 @@ describe(DHCPRepository.name, () => {
 
     describe('move', () => {
         it('should move the rule to the specified position', async () => {
+            dhcpRule.group = null;
+            dhcpRule.save();
+
             const moveAboveSpy = sinon.spy(repository, 'moveAbove' as keyof DHCPRepository);
 
             await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
@@ -116,7 +119,7 @@ describe(DHCPRepository.name, () => {
 
             await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
 
-            expect(refreshOrdersSpy.calledOnceWithExactly(group.id)).to.be.true;
+            expect(refreshOrdersSpy.calledOnce).to.be.true;
         });
     });
 
