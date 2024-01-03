@@ -315,7 +315,7 @@ describe('DHCPRule E2E Tests', () => {
                     rule_order: 2,
                 });
                 data = {
-                    rules_ids: [DHCPRule1.id, DHCPRule2.id],
+                    rules: [DHCPRule1.id, DHCPRule2.id],
                     to: (await getCustomRepository(DHCPRepository).getLastDHCPRuleInGroup(group.id)).id,
                     offset: Offset.Below,
                 } as DHCPRuleCopyDto;
@@ -655,7 +655,7 @@ describe('DHCPRule E2E Tests', () => {
                     rule_order: 4,
                 });
                 data = {
-                    rules_ids: [dhcpRule1.id, dhcpRule2.id],
+                    rules: [dhcpRule1.id, dhcpRule2.id],
                     to: dhcpRule3.id,
                     offset: Offset.Above,
                 } as DHCPRuleCopyDto;

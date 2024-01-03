@@ -75,14 +75,14 @@ export class DHCPRepository extends Repository<DHCPRule> {
         let affectedDHCPs: DHCPRule[] = await this.findManyInPath({
             fwcloudId: dhcp_rs[0].firewall.fwCloudId,
             firewallId: dhcp_rs[0].firewall.id,
-            dhcGroupId: dhcp_rs[0].group.id,
+            dhcGroupId: dhcp_rs[0].group?.id,
         });
 
         const destDHCP: DHCPRule = await this.findOneOrFail({
             where: {
                 id: dhcpDestId,
             },
-            relations: ['group'],
+            relations: ['group', 'firewall'],
         });
 
         if (offset === Offset.Above) {
@@ -93,7 +93,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
 
         await this.save(affectedDHCPs);
 
-        await this.refreshOrders(dhcp_rs[0].group.id);
+        await this.refreshOrders(dhcp_rs[0].group?.id);
 
         return await this.find({ where: { id: In(ids) } });
     }
@@ -120,6 +120,10 @@ export class DHCPRepository extends Repository<DHCPRule> {
                 dhcp_r.group ? dhcp_r.group.id = destDHCP.group.id : dhcp_r.group = destDHCP.group;
             } else {
                 if (forward && dhcp_r.rule_order >= destDHCP.rule_order) {
+                    dhcp_r.rule_order += dhcp_rs.length;
+                }
+
+                if (!forward && dhcp_r.rule_order >= destDHCP.rule_order && dhcp_r.rule_order < dhcp_rs[0].rule_order) {
                     dhcp_r.rule_order += dhcp_rs.length;
                 }
             }
@@ -200,7 +204,6 @@ export class DHCPRepository extends Repository<DHCPRule> {
             join: {
                 alias: 'dhcp',
                 innerJoin: {
-                    group: 'dhcp.group',
                     firewall: 'dhcp.firewall',
                     fwcloud: 'firewall.fwCloud',
                 }

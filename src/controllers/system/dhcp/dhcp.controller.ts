@@ -159,17 +159,16 @@ export class DhcpController extends Controller {
 
     const rules: DHCPRule[] = await getRepository(DHCPRule).find({
       join: {
-        alias: 'dhcp_r',
+        alias: 'rule',
         innerJoin: {
-          group: 'dhcp_r.group',
-          firewall: 'dhcp_r.firewall',
-          fwcloud: 'firewall.fwCloud',
-        },
+          firewall: 'rule.firewall',
+          fwcloud: 'firewall.fwCloud'
+        }
       },
-      where: (qb: SelectQueryBuilder<DHCPRule>): void => {
-        qb.whereInIds(req.inputs.get('rules_ids'))
-          .andWhere('firewall.id = :firewallId', { firewallId: this._firewall.id })
-          .andWhere('firewall.fwCloudId = :fwCloudId', { fwCloudId: this._fwCloud.id });
+      where: (qb: SelectQueryBuilder<DHCPRule>) => {
+        qb.whereInIds(req.inputs.get('rules'))
+          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
       }
     });
 

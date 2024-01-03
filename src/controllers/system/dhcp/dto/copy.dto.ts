@@ -32,5 +32,5 @@ export class DHCPRuleCopyDto {
 
     @IsArray()
     @IsNumber({}, { each: true })
-    rules_ids: number[];
+    rules: number[];
 }

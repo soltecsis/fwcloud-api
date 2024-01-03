@@ -193,7 +193,6 @@ export class RoutingRuleController extends Controller {
                     .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
             }
         });
-
         const result: RoutingRule[] = await this.routingRuleService.move(rules.map(item => item.id), request.inputs.get('to'), request.inputs.get<Offset>('offset'));
 
         return ResponseBuilder.buildResponse().status(200).body(result);
