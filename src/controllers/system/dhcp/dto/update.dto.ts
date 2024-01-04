@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { IsBoolean, IsOptional, IsNumber, IsString } from "class-validator";
+import { IsBoolean, IsOptional, IsNumber, IsString, Max, Min } from "class-validator";
 
 export class DHCPRuleUpdateDto {
     @IsBoolean()
@@ -48,14 +48,8 @@ export class DHCPRuleUpdateDto {
 
     @IsNumber()
     @IsOptional()
-    routerId?: number;
-
-    @IsNumber()
-    @IsOptional()
-    interfaceId?: number;
-
-    @IsNumber()
-    @IsOptional()
+    @Min(0)
+    @Max(999999)
     max_lease?: number;
 
     @IsString()
