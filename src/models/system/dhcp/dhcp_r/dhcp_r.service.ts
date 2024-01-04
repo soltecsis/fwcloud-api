@@ -214,7 +214,6 @@ export class DHCPRuleService extends Service {
             join: {
                 alias: 'dhcp',
                 innerJoin: {
-                    group: 'dhcp.group',
                     firewall: 'dhcp.firewall',
                     fwcloud: 'firewall.fwCloud',
                 }
