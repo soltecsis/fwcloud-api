@@ -240,13 +240,11 @@ describe(DHCPRuleService.name, () => {
                 name: 'group',
                 firewall: firewall,
             }));
-            getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup').resolves(dhcpRule);
             copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule);
             moveStub = sinon.stub(service, 'move').resolves([dhcpRule]);
         });
 
         afterEach(() => {
-            getLastDHCPRuleInGroupStub.restore();
             copyStub.restore();
             moveStub.restore();
         });
@@ -254,23 +252,12 @@ describe(DHCPRuleService.name, () => {
         it('should copy a DHCPRule successfully', async () => {
             const result: DHCPRule[] = await service.copy([dhcpRule.id], dhcpRule.id, Offset.Above);
 
-            expect(getLastDHCPRuleInGroupStub.calledOnce).to.be.true;
             expect(copyStub.called).to.be.true;
             expect(result[0].id).equal(dhcpRule.id);
             expect(result[0].rule_order).equal(dhcpRule.rule_order);
             expect(result[0].rule_type).equal(dhcpRule.rule_type);
             expect(result[0].max_lease).equal(dhcpRule.max_lease);
             expect(result[0].active).equal(dhcpRule.active);
-        });
-
-        it('should handle errors when no rules found to copy', async () => {
-            getLastDHCPRuleInGroupStub.restore();
-            getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup').resolves(null);
-
-            await expect(service.copy([dhcpRule.id], dhcpRule.id, Offset.Above)).to.be.rejectedWith(Error);
-
-            expect(getLastDHCPRuleInGroupStub.calledOnce).to.be.true;
-            expect(copyStub.called).to.be.false;
         });
 
         it('should correctly handle different positions', async () => {

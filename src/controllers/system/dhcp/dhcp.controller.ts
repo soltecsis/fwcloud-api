@@ -111,10 +111,9 @@ export class DhcpController extends Controller {
     for (const id of ids) {
       const rule = await getRepository(DHCPRule).findOneOrFail(id);
       (await DhcpPolicy.copy(rule, req.session.user)).authorize();
-      rules.push(rule);
     }
 
-    const created: DHCPRule[] = await this._dhcpRuleService.copy(rules.map(item => item.id), req.inputs.get('to'), req.inputs.get<Offset>('offset'));
+    const created: DHCPRule[] = await this._dhcpRuleService.copy(ids, req.inputs.get('to'), req.inputs.get<Offset>('offset'));
     return ResponseBuilder.buildResponse().status(201).body(created);
   }
 
