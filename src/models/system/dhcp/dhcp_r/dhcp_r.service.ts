@@ -28,10 +28,9 @@ import { Interface } from "../../../interface/Interface";
 import { Offset } from "../../../../offset";
 import { Application } from "../../../../Application";
 import { Service } from "../../../../fonaments/services/service";
-import { AvailableDestinations, ItemForGrid } from "../../../routing/shared";
 import { IPObjRepository } from "../../../ipobj/IPObj.repository";
 import { IPObjGroup } from "../../../ipobj/IPObjGroup";
-import { DHCPUtils } from "../../shared";
+import { AvailableDestinations, DHCPUtils, ItemForGrid } from "../../shared";
 import { Firewall } from "../../../firewall/Firewall";
 
 

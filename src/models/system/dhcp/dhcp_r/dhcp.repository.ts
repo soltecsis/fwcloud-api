@@ -268,6 +268,10 @@ export class DHCPRepository extends Repository<DHCPRule> {
     async getDHCPRules(fwcloud: number, firewall: number, rules?: number[]): Promise<DHCPRule[]> {
         const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder('dhcp_r')
             .leftJoinAndSelect('dhcp_r.group', 'group')
+            .leftJoinAndSelect('dhcp_r.network', 'network')
+            .leftJoinAndSelect('dhcp_r.range', 'range')
+            .leftJoinAndSelect('dhcp_r.router', 'router')
+            .leftJoinAndSelect('dhcp_r.interface', 'interface')
             .innerJoin('dhcp_r.firewall', 'firewall')
             .innerJoin('firewall.fwCloud', 'fwCloud')
             .where('firewall.id = :firewallId', { firewallId: firewall })
