@@ -29,7 +29,7 @@ import { DHCPGroup } from '../../../models/system/dhcp/dhcp_g/dhcp_g.model';
 import { Firewall } from '../../../models/firewall/Firewall';
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { getRepository, SelectQueryBuilder } from 'typeorm';
-import { DHCPRuleService, ICreateDHCPRule, IUpdateDHCPRule } from '../../../models/system/dhcp/dhcp_r/dhcp_r.service';
+import { DHCPRuleService, DHCPRulesData, ICreateDHCPRule, IUpdateDHCPRule } from '../../../models/system/dhcp/dhcp_r/dhcp_r.service';
 import { DHCPRuleCreateDto } from './dto/create.dto';
 import { Offset } from '../../../offset';
 import { DHCPRuleCopyDto } from './dto/copy.dto';
@@ -37,6 +37,8 @@ import { DHCPRuleUpdateDto } from './dto/update.dto';
 import { DhcpRuleBulkUpdateDto } from './dto/bulk-update.dto';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { DhcpRuleBulkRemoveDto } from './dto/bulk-remove.dto';
+import { AvailableDestinations, DHCPRuleItemForCompiler } from '../../../models/system/shared';
+
 
 export class DhcpController extends Controller {
   protected _dhcpRuleService: DHCPRuleService;
@@ -70,10 +72,7 @@ export class DhcpController extends Controller {
   public async index(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
 
-    const dhcpG: DHCPRule[] = await this._dhcpRuleService.findManyInPath({
-      fwcloudId: this._fwCloud.id,
-      firewallId: this._firewall.id,
-    });
+    const dhcpG: DHCPRule[] = await this._dhcpRuleService.getDHCPRulesData('compiler', this._fwCloud.id, this._firewall.id);
 
     return ResponseBuilder.buildResponse().status(200).body(dhcpG);
   }
@@ -86,9 +85,15 @@ export class DhcpController extends Controller {
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   public async grid(req: Request): Promise<ResponseBuilder> {
+    if(![1,2].includes(parseInt(req.params.set))){
+      return ResponseBuilder.buildResponse().status(400).body({message: 'Invalid set parameter'});
+    }
+
     (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
 
-    const grid: DHCPRule[] = await this._dhcpRuleService.getDHCPRulesData('grid', this._fwCloud.id, this._firewall.id);
+    const dst: AvailableDestinations = parseInt(req.params.set) === 1 ? 'regular_grid' : 'fixed_grid';
+
+    const grid: DHCPRule[] = await this._dhcpRuleService.getDHCPRulesData(dst, this._fwCloud.id, this._firewall.id);
 
     return ResponseBuilder.buildResponse().status(200).body(grid);
   }

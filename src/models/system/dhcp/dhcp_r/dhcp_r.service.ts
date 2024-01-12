@@ -30,7 +30,7 @@ import { Application } from "../../../../Application";
 import { Service } from "../../../../fonaments/services/service";
 import { IPObjRepository } from "../../../ipobj/IPObj.repository";
 import { IPObjGroup } from "../../../ipobj/IPObjGroup";
-import { AvailableDestinations, DHCPUtils, ItemForGrid } from "../../shared";
+import { AvailableDestinations, DHCPRuleItemForCompiler, DHCPUtils, ItemForGrid } from "../../shared";
 import { Firewall } from "../../../firewall/Firewall";
 
 
@@ -75,7 +75,7 @@ export interface IUpdateDHCPRule {
 }
 
 //TODO: Need to add the data type DHCPRuleItemForCompile
-export interface DHCPRulesData<T extends ItemForGrid> extends DHCPRule {
+export interface DHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler> extends DHCPRule {
     items: (T & { _order: number })[];
 }
 
@@ -232,17 +232,32 @@ export class DHCPRuleService extends Service {
     }
 
     //TODO: Need to add the data type DHCPRuleItemForCompile
-    public async getDHCPRulesData<T extends ItemForGrid>(dst: AvailableDestinations, fwcloud: number, firewall: number, rules?: number[]): Promise<DHCPRulesData<T>[]> {
-        const rulesData: DHCPRulesData<T>[] = await this._repository.getDHCPRules(fwcloud, firewall, rules) as DHCPRulesData<T>[];
+    public async getDHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, rules?: number[]): Promise<DHCPRulesData<T>[]> {
+        let rulesData: DHCPRulesData<T>[];
+        switch (dst) {
+            case 'regular_grid':
+                rulesData = await this._repository.getDHCPRegularRules(fwcloud, firewall, rules) as DHCPRulesData<T>[];
+                break;
+            case 'fixed_grid':
+                rulesData = await this._repository.getDHCPFixedRules(fwcloud, firewall, rules) as DHCPRulesData<T>[];
+                break;
+            case 'compiler':
+                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules) as DHCPRulesData<T>[];
+                break;
+        }
+
+        await this._repository.getDHCPRules(fwcloud, firewall, rules) as DHCPRulesData<T>[];
 
         const ItemsArrayMap = new Map<number, T[]>();
         for (const rule of rulesData) {
             ItemsArrayMap.set(rule.id, rule.items);
         }
 
-        const sqls = (dst === 'grid') ? this.getDHCPRulesGridSql(fwcloud, firewall, rules) : null;
+        const sqls = (dst === 'compiler') ?
+            this.buildDHCPRulesCompilerSql(fwcloud, firewall, rules) : 
+            this.getDHCPRulesGridSql(fwcloud, firewall, rules);
 
-        await Promise.all(sqls.map(sql => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)));
+        const result = await Promise.all(sqls.map(sql => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)));
 
         return rulesData.map(rule => {
             if (rule.items) {
@@ -293,7 +308,14 @@ export class DHCPRuleService extends Service {
             this._ipobjRepository.getIpobjsInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
             this._dhcpRangeRepository.getDhcpRangesInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
             this._routerRepository.getRoutersInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
-            //TODO: Mark Respository getMarksInDhcp_ForGrid
+        ];
+    }
+
+    private buildDHCPRulesCompilerSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {
+        return [
+            this._ipobjRepository.getIpobjsInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
+            this._dhcpRangeRepository.getDhcpRangesInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
+            this._routerRepository.getRoutersInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
         ];
     }
 }
