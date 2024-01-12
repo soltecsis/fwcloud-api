@@ -236,17 +236,15 @@ export class DHCPRuleService extends Service {
         let rulesData: DHCPRulesData<T>[];
         switch (dst) {
             case 'regular_grid':
-                rulesData = await this._repository.getDHCPRegularRules(fwcloud, firewall, rules) as DHCPRulesData<T>[];
+                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [1]) as DHCPRulesData<T>[];
                 break;
             case 'fixed_grid':
-                rulesData = await this._repository.getDHCPFixedRules(fwcloud, firewall, rules) as DHCPRulesData<T>[];
+                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [2]) as DHCPRulesData<T>[];
                 break;
             case 'compiler':
                 rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules) as DHCPRulesData<T>[];
                 break;
         }
-
-        await this._repository.getDHCPRules(fwcloud, firewall, rules) as DHCPRulesData<T>[];
 
         const ItemsArrayMap = new Map<number, T[]>();
         for (const rule of rulesData) {

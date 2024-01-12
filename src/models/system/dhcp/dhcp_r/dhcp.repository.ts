@@ -265,7 +265,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
         }))[0];
     }
 
-    async getDHCPRules(fwcloud: number, firewall: number, rules?: number[]): Promise<DHCPRule[]> {
+    async getDHCPRules(fwcloud: number, firewall: number, rules?: number[],rule_types?: number[]): Promise<DHCPRule[]> {
         const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder('dhcp_r')
             .leftJoinAndSelect('dhcp_r.group', 'group')
             .leftJoinAndSelect('dhcp_r.network', 'network')
@@ -276,50 +276,11 @@ export class DHCPRepository extends Repository<DHCPRule> {
             .innerJoin('firewall.fwCloud', 'fwCloud')
             .where('firewall.id = :firewallId', { firewallId: firewall })
             .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud });
-
-        if (rules) {
+        if(rule_types){
             query
-                .andWhere('dhcp_r.id IN (:...rule)')
-                .setParameter('rule', rules);
+                .andWhere('dhcp_r.rule_type IN (:...rule_types)')
+                .setParameter('rule_types', rule_types);
         }
-
-        return query.orderBy('dhcp_r.rule_order', 'ASC').getMany();
-    }
-
-    async getDHCPRegularRules(fwcloud: number, firewall: number, rules?: number[]): Promise<DHCPRule[]> {
-        const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder('dhcp_r')
-            .leftJoinAndSelect('dhcp_r.group', 'group')
-            .leftJoinAndSelect('dhcp_r.network', 'network')
-            .leftJoinAndSelect('dhcp_r.range', 'range')
-            .leftJoinAndSelect('dhcp_r.router', 'router')
-            .leftJoinAndSelect('dhcp_r.interface', 'interface')
-            .innerJoin('dhcp_r.firewall', 'firewall')
-            .innerJoin('firewall.fwCloud', 'fwCloud')
-            .where('firewall.id = :firewallId', { firewallId: firewall })
-            .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud })
-            .andWhere('dhcp_r.interface IS NULL');
-
-        if (rules) {
-            query
-                .andWhere('dhcp_r.id IN (:...rule)')
-                .setParameter('rule', rules);
-        }
-
-        return query.orderBy('dhcp_r.rule_order', 'ASC').getMany();
-    }
-    async getDHCPFixedRules(fwcloud: number, firewall: number, rules?: number[]): Promise<DHCPRule[]> {
-        const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder('dhcp_r')
-            .leftJoinAndSelect('dhcp_r.group', 'group')
-            .leftJoinAndSelect('dhcp_r.network', 'network')
-            .leftJoinAndSelect('dhcp_r.range', 'range')
-            .leftJoinAndSelect('dhcp_r.router', 'router')
-            .leftJoinAndSelect('dhcp_r.interface', 'interface')
-            .innerJoin('dhcp_r.firewall', 'firewall')
-            .innerJoin('firewall.fwCloud', 'fwCloud')
-            .where('firewall.id = :firewallId', { firewallId: firewall })
-            .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud })
-            .andWhere('dhcp_r.interface IS NOT NULL');
-
         if (rules) {
             query
                 .andWhere('dhcp_r.id IN (:...rule)')
