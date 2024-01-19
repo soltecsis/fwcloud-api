@@ -21,7 +21,7 @@
 */
 import { FindOneOptions, In, SelectQueryBuilder, getCustomRepository, getRepository } from "typeorm";
 import { KeepalivedRule } from "./keepalived_r.model";
-import { KeepalivedRepository } from "../keepalived.repository";
+import { KeepalivedRepository } from "./keepalived.repository";
 import { IPObj } from "../../../ipobj/IPObj";
 import { KeepalivedGroup } from "../keepalived_g/keepalived_g.model";
 import { Interface } from "../../../interface/Interface";
@@ -97,10 +97,9 @@ export class KeepalivedRuleService extends Service {
         if (data.groupId) {
             keepalivedRuleData.group = await getRepository(KeepalivedGroup).findOneOrFail(data.groupId) as KeepalivedGroup;
         }
-        //TODO: REVISAR
-     /*   if (data.interfaceId) {
+        if (data.interfaceId) {
             keepalivedRuleData.interface = await getRepository(IPObj).findOneOrFail(data.interfaceId) as IPObj;
-        }*/
+        }
         if (data.virtualIpId) {
             keepalivedRuleData.virtualIp = await getRepository(IPObj).findOneOrFail(data.virtualIpId) as IPObj;
         }

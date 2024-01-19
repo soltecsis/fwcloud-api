@@ -67,6 +67,10 @@ export class DHCPRuleCreateDto {
     @IsOptional()
     cfg_text?: string;
 
+    @IsNumber()
+    @IsOptional()
+    special?: number;
+
     @IsString()
     @IsOptional()
     comment?: string;

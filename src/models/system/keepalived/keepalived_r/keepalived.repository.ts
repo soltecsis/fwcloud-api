@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { EntityRepository, FindManyOptions, FindOneOptions, In, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
-import { Offset } from "../../../offset";
-import { KeepalivedRule } from "./keepalived_r/keepalived_r.model";
+import { Offset } from "../../../../offset";
+import { KeepalivedRule } from "./keepalived_r.model";
 
 interface IFindManyKeepalivedRPath {
     fwcloudId?: number;
@@ -267,11 +267,10 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
 
     async getKeepalivedRules(fwcloud: number, firewall: number, rules?: number[],rule_types?: number[]): Promise<KeepalivedRule[]> {
         const query: SelectQueryBuilder<KeepalivedRule> = this.createQueryBuilder('keepalived_r')
-            .leftJoinAndSelect('keepalived_r.group', 'group')
-            .leftJoinAndSelect('keepalived_r.network', 'network')
-            .leftJoinAndSelect('keepalived_r.range', 'range')
-            .leftJoinAndSelect('keepalived_r.router', 'router')
-            .leftJoinAndSelect('keepalived_r.interface', 'interface')
+        .leftJoinAndSelect('keepalived_r.group', 'group')
+        .leftJoinAndSelect('keepalived_r.interface', 'interface')
+            .leftJoinAndSelect('keepalived_r.virtualIp', 'virtualIp')
+            .leftJoinAndSelect('keepalived_r.masterNode', 'masterNode')
             .innerJoin('keepalived_r.firewall', 'firewall')
             .innerJoin('firewall.fwCloud', 'fwCloud')
             .where('firewall.id = :firewallId', { firewallId: firewall })

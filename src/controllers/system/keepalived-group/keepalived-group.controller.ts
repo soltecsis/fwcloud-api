@@ -35,7 +35,7 @@ import { KeepalivedRuleService } from "../../../models/system/keepalived/keepali
 
 export class KeepalivedGroupController extends Controller {
   protected _keepalivedGroupService: KeepalivedGroupService;
-  protected _keepalivedkeepalivedRuleService: KeepalivedRuleService;
+  protected _keepalivedRuleService: KeepalivedRuleService;
 
   protected _firewall: Firewall;
   protected _fwCloud: FwCloud;
@@ -43,7 +43,7 @@ export class KeepalivedGroupController extends Controller {
 
   public async make(request: Request): Promise<void> {
     this._keepalivedGroupService = await this._app.getService<KeepalivedGroupService>(KeepalivedGroupService.name);
-    this._keepalivedkeepalivedRuleService = await this._app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
+    this._keepalivedRuleService = await this._app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
 
     if (request.params.keepalivedgroup) {
       this._keepalivedGroup = await this._keepalivedGroupService.findOneInPath({ id: parseInt(request.params.keepalivedgroup) });
@@ -77,7 +77,7 @@ export class KeepalivedGroupController extends Controller {
     });
 
     if (req.inputs.get<number[]>('rules')) {
-      await this._keepalivedkeepalivedRuleService.bulkUpdate(req.inputs.get<number[]>('rules')?.map((id) => id), { group: group.id });
+      await this._keepalivedRuleService.bulkUpdate(req.inputs.get<number[]>('rules')?.map((id) => id), { group: group.id });
     }
 
     return ResponseBuilder.buildResponse().status(201).body(group);

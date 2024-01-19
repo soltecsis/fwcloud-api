@@ -91,7 +91,7 @@ export class KeepalivedController extends Controller {
 
     (await KeepalivedPolicy.index(this._firewall, req.session.user)).authorize();
 //TODO: MODIFICAR destinations
-    const dst: AvailableDestinations = parseInt(req.params.set) === 1 ? 'regular_grid' : 'fixed_grid';
+    const dst: AvailableDestinations = 'keepalived_grid';
 
     const grid: KeepalivedRule[] = await this._keepalivedRuleService.getKeepalivedRulesData(dst, this._fwCloud.id, this._firewall.id);
 

@@ -21,7 +21,6 @@
 */
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
 import { IPObj } from "../../../ipobj/IPObj";
-import { Interface } from "../../../interface/Interface";
 import { KeepalivedGroup } from "../keepalived_g/keepalived_g.model";
 import Model from "../../../Model";
 import { Firewall } from "../../../firewall/Firewall";
@@ -49,23 +48,17 @@ export class KeepalivedRule extends Model {
     @Column({ type: 'varchar', length: 50 })
     style: string;
 
-    @ManyToOne(() => Interface)
+    @ManyToOne(() => IPObj)
     @JoinColumn({ name: 'interface' })
-    interface: Interface;
+    interface: IPObj; //INTERFACE ES UNA IP DE UN FIREWALL O CLUSTER
 
     @ManyToOne(() => IPObj)
-    @JoinColumn({ name: 'network' })
+    @JoinColumn({ name: 'virtualIp' })
     virtualIp: IPObj;
 
     @ManyToOne(() => IPObj)
-    @JoinColumn({ name: 'range' })
+    @JoinColumn({ name: 'masterNode' })
     masterNode: IPObj;
-
-    /*@ManyToOne(type => Firewall, firewall => firewall.keepalivedRules)
-    @JoinColumn({
-        name: 'fw_apply_to'
-    })
-    firewallApplyTo: Firewall;*/
 
     @ManyToOne(() => Firewall)
     @JoinColumn({ name: 'firewall' })

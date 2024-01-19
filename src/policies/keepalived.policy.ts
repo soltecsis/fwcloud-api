@@ -1,8 +1,6 @@
 import { getRepository } from "typeorm";
 import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { User } from "../models/user/User";
-//TODO: ELIMINAR GROUP si no se utiliza
-import { KeepalivedGroup } from "../models/system/keepalived/keepalived_g/keepalived_g.model";
 import { KeepalivedRule } from "../models/system/keepalived/keepalived_r/keepalived_r.model";
 import { Firewall } from "../models/firewall/Firewall";
 

@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { IsBoolean, IsOptional, IsNumber, IsString, Max, Min } from "class-validator";
+import { IsBoolean, IsOptional, IsNumber, IsString } from "class-validator";
 
 export class KeepalivedRuleUpdateDto {
     @IsBoolean()
@@ -37,18 +37,18 @@ export class KeepalivedRuleUpdateDto {
     @IsString()
     @IsOptional()
     style?: string;
-//TODO: REVISAR TYPES
-    @IsNumber()
-    @IsOptional()
-    inteface?: number;
 
     @IsNumber()
     @IsOptional()
-    virtualIp?: number;
+    intefaceId?: number;
 
     @IsNumber()
     @IsOptional()
-    masterNode?: number;
+    virtualIpId?: number;
+
+    @IsNumber()
+    @IsOptional()
+    masterNodeId?: number;
 
     @IsString()
     @IsOptional()
