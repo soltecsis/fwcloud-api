@@ -47,6 +47,7 @@ export interface ICreateDHCPRule {
     active?: boolean;
     groupId?: number;
     style?: string;
+    rule_type?: number;
     firewallId?: number;
     networkId?: number;
     rangeId?: number;
@@ -100,6 +101,7 @@ export class DHCPRuleService extends Service {
             max_lease: data.max_lease,
             cfg_text: data.cfg_text,
             comment: data.comment,
+            rule_type: data.rule_type,
         };
 
         if (data.groupId) {
@@ -237,7 +239,7 @@ export class DHCPRuleService extends Service {
         switch (dst) {
             case 'regular_grid':
                 // It passes the value 1 and 3 because it corresponds to the type of regular rules and hook script.
-                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [1,3]) as DHCPRulesData<T>[];
+                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [1, 3]) as DHCPRulesData<T>[];
                 break;
             case 'fixed_grid':
                 // It passes the value 2 because it corresponds to the type of fixed ip rules.
@@ -254,7 +256,7 @@ export class DHCPRuleService extends Service {
         }
 
         const sqls = (dst === 'compiler') ?
-            this.buildDHCPRulesCompilerSql(fwcloud, firewall, rules) : 
+            this.buildDHCPRulesCompilerSql(fwcloud, firewall, rules) :
             this.getDHCPRulesGridSql(fwcloud, firewall, rules);
 
         const result = await Promise.all(sqls.map(sql => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)));
