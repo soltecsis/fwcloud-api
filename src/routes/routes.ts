@@ -48,6 +48,8 @@ import { CaController } from "../controllers/ca/ca.controller";
 import { CrtController } from "../controllers/crt/crt.controller";
 import { DhcpGroupController } from '../controllers/system/dhcp-group/dhcp-group.controller';
 import { DhcpController } from '../controllers/system/dhcp/dhcp.controller';
+import { HAProxyGroupController } from '../controllers/system/haproxy-group/haproxy-group.controller';
+import { HaproxyController } from '../controllers/system/haproxy/haproxy.controller';
 
 export class Routes extends RouteCollection {
 
@@ -194,6 +196,35 @@ export class Routes extends RouteCollection {
                                         router.put('/', DhcpController, 'update').name('fwclouds.firewalls.system.dhcp.rules.update');
                                         router.get('/compile', DhcpController, 'compile').name('fwclouds.firewalls.system.dhcp.rules.compile');
                                         router.delete('/', DhcpController, 'remove').name('fwclouds.firewalls.system.dhcp.rules.delete');
+                                    });
+                                });
+
+                                router.prefix('haproxyGroups', (router: RouterParser) => {
+                                    router.get('/',HAProxyGroupController, 'index').name('fwclouds.firewalls.system.haproxy.groups.index');
+                                    router.post('/', HAProxyGroupController, 'create').name('fwclouds.firewalls.system.haproxy.groups.store');
+                                    router.prefix('/:haproxygroup(\\d+)', (router: RouterParser) => {
+                                        router.get('/', HAProxyGroupController, 'show').name('fwclouds.firewalls.system.haproxy.groups.show');
+                                        router.put('/', HAProxyGroupController, 'update').name('fwclouds.firewalls.system.haproxy.groups.update');
+                                        router.delete('/', HAProxyGroupController, 'remove').name('fwclouds.firewalls.system.haproxy.groups.delete');
+                                    });
+                                });
+
+                                router.prefix('/haproxyRules', (router: RouterParser) => {
+                                    router.get('/grid', HaproxyController, 'grid').name('fwclouds.firewalls.system.haproxy.grid');
+                                    router.get('/', HaproxyController, 'index').name('fwclouds.firewalls.system.haproxy.index');
+                                    router.post('/', HaproxyController, 'create').name('fwclouds.firewalls.system.haproxy.store');
+                                    router.post('/copy', HaproxyController, 'copy').name('fwclouds.firewalls.system.haproxy.copy');
+                                    router.put('/move', HaproxyController, 'move').name('fwclouds.firewalls.system.haproxy.move');
+                                    router.put('/moveFrom', HaproxyController, 'moveFrom').name('fwclouds.firewalls.system.haproxy.moveFrom');
+                                    router.put('/bulkUpdate', HaproxyController, 'bulkUpdate').name('fwclouds.firewalls.system.haproxy.bulkUpdate');
+                                    router.get('/compile', FirewallController, 'compileHAProxyRules').name('fwclouds.firewalls.system.haproxy.compile');
+                                    router.put('/install', HaproxyController, 'install').name('fwclouds.firewalls.system.haproxy.install');
+                                    router.delete('/bulkRemove', HaproxyController, 'bulkRemove').name('fwclouds.firewalls.system.haproxy.bulkRemove');
+                                    router.prefix('/:haproxy(\\d+)', (router: RouterParser) => {
+                                        router.get('/', HaproxyController, 'show').name('fwclouds.firewalls.system.haproxy.rules.show');
+                                        router.put('/', HaproxyController, 'update').name('fwclouds.firewalls.system.haproxy.rules.update');
+                                        router.get('/compile', HaproxyController, 'compile').name('fwclouds.firewalls.system.haproxy.rules.compile');
+                                        router.delete('/', HaproxyController, 'remove').name('fwclouds.firewalls.system.haproxy.rules.delete');
                                     });
                                 });
                             });
