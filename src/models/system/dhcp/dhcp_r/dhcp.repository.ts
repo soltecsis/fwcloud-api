@@ -26,7 +26,7 @@ import { DHCPRule } from "./dhcp_r.model";
 interface IFindManyDHCPRPath {
     fwcloudId?: number;
     firewallId?: number;
-    dhcGroupId?: number;
+    dhcpGroupId?: number;
 }
 interface IFindOneDHCPRPath extends IFindManyDHCPRPath {
     id: number;
@@ -75,7 +75,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
         let affectedDHCPs: DHCPRule[] = await this.findManyInPath({
             fwcloudId: dhcp_rs[0].firewall.fwCloudId,
             firewallId: dhcp_rs[0].firewall.id,
-            dhcGroupId: dhcp_rs[0].group?.id,
+            dhcpGroupId: dhcp_rs[0].group?.id,
         });
 
         const destDHCP: DHCPRule = await this.findOneOrFail({
@@ -215,8 +215,8 @@ export class DHCPRepository extends Repository<DHCPRule> {
                 if (path.fwcloudId) {
                     qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
                 }
-                if (path.dhcGroupId) {
-                    qb.andWhere('group.id = :dhcGroupId', { dhcGroupId: path.dhcGroupId });
+                if (path.dhcpGroupId) {
+                    qb.andWhere('group.id = :dhcpGroupId', { dhcpGroupId: path.dhcpGroupId });
                 }
                 if (path.id) {
                     qb.andWhere('dhcp.id = :id', { id: path.id });

@@ -236,9 +236,11 @@ export class DHCPRuleService extends Service {
         let rulesData: DHCPRulesData<T>[];
         switch (dst) {
             case 'regular_grid':
-                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [1]) as DHCPRulesData<T>[];
+                // It passes the value 1 and 3 because it corresponds to the type of regular rules and hook script.
+                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [1,3]) as DHCPRulesData<T>[];
                 break;
             case 'fixed_grid':
+                // It passes the value 2 because it corresponds to the type of fixed ip rules.
                 rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [2]) as DHCPRulesData<T>[];
                 break;
             case 'compiler':
