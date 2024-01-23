@@ -48,6 +48,14 @@ export class DHCPRuleUpdateDto {
 
     @IsNumber()
     @IsOptional()
+    routerId?: number;
+
+    @IsNumber()
+    @IsOptional()
+    interfaceId?: number;
+
+    @IsNumber()
+    @IsOptional()
     @Min(0)
     @Max(999999)
     max_lease?: number;
