@@ -39,7 +39,7 @@ export class DHCPRuleCreateDto {
     @IsOptional()
     style: string;
 
-    @IsIn([1, 2])
+    @IsIn([1, 2, 3])
     @IsOptional()
     rule_type?: number;
 
