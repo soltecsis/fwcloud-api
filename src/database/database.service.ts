@@ -76,6 +76,7 @@ import { Crt } from "../models/vpn/pki/Crt";
 import { Tfa } from "../models/user/Tfa";
 import { DHCPRule } from "../models/system/dhcp/dhcp_r/dhcp_r.model";
 import { DHCPGroup } from "../models/system/dhcp/dhcp_g/dhcp_g.model";
+import { DHCPRuleToIPObj } from "../models/system/dhcp/dhcp_r/dhcp_r-to-ipobj.model";
 
 export interface DatabaseConfig {
     host: string,
@@ -318,7 +319,8 @@ export class DatabaseService extends Service {
                 Crt,
                 Tfa,
                 DHCPRule,
-                DHCPGroup
+                DHCPGroup,
+                DHCPRuleToIPObj
             ]
         }
     }

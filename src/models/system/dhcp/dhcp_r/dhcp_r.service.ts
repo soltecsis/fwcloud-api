@@ -32,8 +32,9 @@ import { IPObjRepository } from "../../../ipobj/IPObj.repository";
 import { IPObjGroup } from "../../../ipobj/IPObjGroup";
 import { AvailableDestinations, DHCPRuleItemForCompiler, DHCPUtils, ItemForGrid } from "../../shared";
 import { Firewall } from "../../../firewall/Firewall";
-
-
+import { DHCPRuleToIPObj } from "./dhcp_r-to-ipobj.model";
+import { ErrorBag } from "../../../../fonaments/validation/validator";
+import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
 interface IFindManyDHCPRulePath {
     fwcloudId?: number;
     firewallId?: number;
@@ -47,6 +48,7 @@ export interface ICreateDHCPRule {
     active?: boolean;
     groupId?: number;
     style?: string;
+    ipObjIds?: {id: number, order: number}[];
     firewallId?: number;
     networkId?: number;
     rangeId?: number;
@@ -63,6 +65,7 @@ export interface ICreateDHCPRule {
 export interface IUpdateDHCPRule {
     active?: boolean;
     style?: string;
+    ipObjIds?: {id: number, order: number}[];
     networkId?: number;
     rangeId?: number;
     routerId?: number;
@@ -158,8 +161,7 @@ export class DHCPRuleService extends Service {
     }
 
     async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
-        const dhcpRule: DHCPRule | undefined = await this._repository.findOne(id);
-
+        let dhcpRule: DHCPRule | undefined = await this._repository.findOne(id, { relations: ['firewall'] });
         if (!dhcpRule) {
             throw new Error('DHCPRule not found');
         }
@@ -173,16 +175,25 @@ export class DHCPRuleService extends Service {
             rule_order: data.rule_order !== undefined ? data.rule_order : dhcpRule.rule_order
         });
 
-        const fieldsToUpdate = ['groupId', 'networkId', 'rangeId', 'routerId', 'interfaceId', 'firewallId'];
+        if (data.ipObjIds) {
+            await this.validateUpdateIpObjIds(dhcpRule.firewall, data);
+            dhcpRule.dhcpRuleToIPObjs = data.ipObjIds.map(item => ({
+                dhcpRuleId: dhcpRule.id,
+                ipObjId: item.id,
+                order: item.order
+            } as DHCPRuleToIPObj));
+        } else {
+            const fieldsToUpdate = ['groupId', 'networkId', 'rangeId', 'routerId', 'interfaceId', 'firewallId'];
 
-        for (const field of fieldsToUpdate) {
-            if (data[field]) {
-                dhcpRule[field.slice(0, -2)] = await getRepository(field === 'firewallId' ? Firewall : IPObj).findOneOrFail(data[field]) as Firewall | IPObj;
+            for (const field of fieldsToUpdate) {
+                if (data[field]) {
+                    dhcpRule[field.slice(0, -2)] = await getRepository(field === 'firewallId' ? Firewall : IPObj).findOneOrFail(data[field]) as Firewall | IPObj;
+                }
             }
         }
 
-        await this._repository.save(dhcpRule);
-
+        dhcpRule = await this._repository.save(dhcpRule);
+        
         // await this.reorderTo(dhcpRule.id);
 
         // TODO: Marcar el firewall como no compilado
@@ -248,16 +259,18 @@ export class DHCPRuleService extends Service {
                 break;
         }
 
-        const ItemsArrayMap = new Map<number, T[]>();
-        for (const rule of rulesData) {
-            ItemsArrayMap.set(rule.id, rule.items);
-        }
+        let ItemsArrayMap = new Map<number, T[]>();
+        for(let i = 0; i < rulesData.length; i++) {
+            rulesData[i].items = [];
 
+            ItemsArrayMap.set(rulesData[i].id, rulesData[i].items);
+        }
+        
         const sqls = (dst === 'compiler') ?
-            this.buildDHCPRulesCompilerSql(fwcloud, firewall, rules) : 
+            this.buildDHCPRulesCompilerSql(fwcloud, firewall, rules) :
             this.getDHCPRulesGridSql(fwcloud, firewall, rules);
 
-        const result = await Promise.all(sqls.map(sql => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)));
+        await Promise.all(sqls.map(sql => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)));
 
         return rulesData.map(rule => {
             if (rule.items) {
@@ -305,17 +318,41 @@ export class DHCPRuleService extends Service {
 
     private getDHCPRulesGridSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {
         return [
-            this._ipobjRepository.getIpobjsInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
-            this._dhcpRangeRepository.getDhcpRangesInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
-            this._routerRepository.getRoutersInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
+            this._ipobjRepository.getIpobjsInDhcp_ForGrid('rule', fwcloud, firewall),
         ];
     }
 
     private buildDHCPRulesCompilerSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {
         return [
-            this._ipobjRepository.getIpobjsInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
-            this._dhcpRangeRepository.getDhcpRangesInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
-            this._routerRepository.getRoutersInDhcp_ForGrid('dhcp_r', fwcloud, firewall),
+            this._ipobjRepository.getIpobjsInDhcp_ForGrid('rule', fwcloud, firewall),
         ];
+    }
+
+    protected async validateUpdateIpObjIds(firewall: Firewall, data: IUpdateDHCPRule): Promise<void> {
+        const errors: ErrorBag = {};
+
+        if(!data.ipObjIds || data.ipObjIds.length === 0) {
+            return;
+        }
+
+        const ipObjs: IPObj[] = await getRepository(IPObj).find({
+            where: {
+                id: In(data.ipObjIds.map(item => item.id)),
+                ipObjTypeId: 9, // DNS
+            },
+            relations: ['fwCloud']
+        });
+
+        for (let i = 0; i < ipObjs.length; i++) {
+            const ipObj: IPObj = ipObjs[i];
+            
+            if (ipObj.fwCloudId && ipObj.fwCloudId !== firewall.fwCloudId) {
+                errors[`ipObjIds.${i}`] = ['ipObj id must exist']
+            }
+        }
+
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
     }
 }

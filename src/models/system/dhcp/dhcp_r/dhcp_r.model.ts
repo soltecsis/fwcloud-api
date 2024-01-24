@@ -19,12 +19,13 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { IPObj } from "../../../ipobj/IPObj";
 import { Interface } from "../../../interface/Interface";
 import { DHCPGroup } from "../dhcp_g/dhcp_g.model";
 import Model from "../../../Model";
 import { Firewall } from "../../../firewall/Firewall";
+import { DHCPRuleToIPObj } from "./dhcp_r-to-ipobj.model";
 
 const tableName: string = 'dhcp_r';
 
@@ -65,11 +66,10 @@ export class DHCPRule extends Model {
     @JoinColumn({ name: 'interface' })
     interface: Interface;
 
-    /*@ManyToOne(type => Firewall, firewall => firewall.dhcpRules)
-    @JoinColumn({
-        name: 'fw_apply_to'
+    @OneToMany(() => DHCPRuleToIPObj, model => model.dhcpRule, {
+        cascade: true
     })
-    firewallApplyTo: Firewall;*/
+    dhcpRuleToIPObjs: DHCPRuleToIPObj[];
 
     @ManyToOne(() => Firewall)
     @JoinColumn({ name: 'firewall' })

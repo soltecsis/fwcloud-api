@@ -37,6 +37,7 @@ import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
 import { IdManager } from '../../fwcloud-exporter/database-importer/terraformer/mapper/id-manager';
 import { RouteToIPObj } from '../routing/route/route-to-ipobj.model';
 import { RoutingRuleToIPObj } from '../routing/routing-rule/routing-rule-to-ipobj.model';
+import { DHCPRuleToIPObj } from '../system/dhcp/dhcp_r/dhcp_r-to-ipobj.model';
 const ip = require('ip');
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
@@ -165,6 +166,11 @@ export class IPObj extends Model {
         cascade: true,
     })
     routingRuleToIPObjs: RoutingRuleToIPObj[];
+
+    @OneToMany(() => DHCPRuleToIPObj, model => model.ipObj,{
+        cascade: true,
+    })
+    dhcpRuleToIPObjs: DHCPRuleToIPObj[];
 
     @OneToMany(() => RouteToIPObj, model => model.ipObj, {
         cascade: true,
