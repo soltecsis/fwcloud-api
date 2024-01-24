@@ -35,6 +35,7 @@ import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface/rou
 import { RouteToIPObj } from "../routing/route/route-to-ipobj.model";
 import { RoutingRuleToIPObj } from "../routing/routing-rule/routing-rule-to-ipobj.model";
 import { Tree } from '../../models/tree/Tree';
+import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -415,40 +416,47 @@ export class Interface extends Model {
 						search.restrictions.InterfaceInFirewall = await this.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
 						search.restrictions.InterfaceInHost = await InterfaceIPObj.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
 						search.restrictions.LastInterfaceWithAddrInHostInRule = await IPObj.searchLastInterfaceWithAddrInHostInRule(id, fwcloud);
-						
+
 						search.restrictions.InterfaceInRoute = await getRepository(Route).createQueryBuilder('route')
 							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
 							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-							.innerJoinAndSelect('route.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoinAndSelect('route.interface', 'interface', 'interface.id = :interface', { interface: id })
 							.innerJoinAndSelect('route.routingTable', 'table')
 							.innerJoin('table.firewall', 'firewall')
 							.leftJoin('firewall.cluster', 'cluster')
-							.where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+							.where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
 							.getRawMany();
 
 						search.restrictions.IpobjInterfaceInRoute = await getRepository(RouteToIPObj).createQueryBuilder('routeToIPObj')
 							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
 							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
 							.innerJoin('routeToIPObj.ipObj', 'ipobj')
-							.innerJoin('ipobj.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoin('ipobj.interface', 'interface', 'interface.id = :interface', { interface: id })
 							.innerJoinAndSelect('routeToIPObj.route', 'route')
 							.innerJoinAndSelect('route.routingTable', 'table')
 							.innerJoin('table.firewall', 'firewall')
 							.leftJoin('firewall.cluster', 'cluster')
-							.where('firewall.fwCloudId = :fwcloud', {fwcloud})  
+							.where('firewall.fwCloudId = :fwcloud', { fwcloud })
 							.getRawMany()
 
 						search.restrictions.IpobjInterfaceInRoutingRule = await getRepository(RoutingRuleToIPObj).createQueryBuilder('routingRuleToIPObj')
 							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
 							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
 							.innerJoin('routingRuleToIPObj.ipObj', 'ipobj')
-							.innerJoin('ipobj.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoin('ipobj.interface', 'interface', 'interface.id = :interface', { interface: id })
 							.innerJoinAndSelect('routingRuleToIPObj.routingRule', 'rule')
 							.innerJoin('rule.routingTable', 'table')
 							.innerJoin('table.firewall', 'firewall')
 							.leftJoin('firewall.cluster', 'cluster')
-							.where('firewall.fwCloudId = :fwcloud', {fwcloud})  
+							.where('firewall.fwCloudId = :fwcloud', { fwcloud })
 							.getRawMany()
+
+						search.restrictions.InterfaceInDhcpRule = await getRepository(DHCPRule).createQueryBuilder('dhcpRule')
+							.addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
+							.leftJoin('dhcpRule.interface', 'interface', 'interface.id = :interface', { interface: id })
+							.innerJoin('dhcpRule.firewall', 'firewall')
+							.where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
+							.getMany();
 
 						for (let key in search.restrictions) {
 							if (search.restrictions[key].length > 0) {
@@ -456,6 +464,7 @@ export class Interface extends Model {
 								break;
 							}
 						}
+
 						resolve(search);
 					} catch (error) { reject(error) }
 				} else resolve(search);

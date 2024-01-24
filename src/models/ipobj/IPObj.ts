@@ -34,10 +34,11 @@ import { IPObjType } from './IPObjType';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { Route } from '../routing/route/route.model';
 import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
-import { IdManager } from '../../fwcloud-exporter/database-importer/terraformer/mapper/id-manager';
 import { RouteToIPObj } from '../routing/route/route-to-ipobj.model';
 import { RoutingRuleToIPObj } from '../routing/routing-rule/routing-rule-to-ipobj.model';
 import { DHCPRuleToIPObj } from '../system/dhcp/dhcp_r/dhcp_r-to-ipobj.model';
+import { DHCPRule } from '../system/dhcp/dhcp_r/dhcp_r.model';
+
 const ip = require('ip');
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
@@ -971,6 +972,8 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInRoutingRule = await this.searchIpobjInRoutingRule(id, fwcloud);
                 search.restrictions.IpobjInGroupInRoutingRule = await this.searchIpobjInGroupInRoutingRule(id, fwcloud);
 
+                search.restrictions.IpobjInDhcpRule = await this.searchIpobjInDhpRule(id, fwcloud);
+
                 if (type === 8) { // HOST
                     search.restrictions.InterfaceHostInRule = await PolicyRuleToIPObj.searchInterfaceHostInRule(dbCon, fwcloud, id);
                     search.restrictions.AddrHostInRule = await PolicyRuleToIPObj.searchAddrHostInRule(dbCon, fwcloud, id);
@@ -995,6 +998,7 @@ export class IPObj extends Model {
                         break;
                     }
                 }
+
                 resolve(search);
             } catch (error) { reject(error) }
         });
@@ -1039,6 +1043,23 @@ export class IPObj extends Model {
             .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
             .getRawMany();
     };
+
+    public static async searchIpobjInDhpRule(ipobj: number, fwcloud: number): Promise<any> {
+        return await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
+            .addSelect('network.id', 'network_id').addSelect('network.name', 'network_name')
+            .addSelect('ipObj.id', 'ipObj_id').addSelect('ipObj.name', 'ipObj_name')
+            .addSelect('dhcp_rule.range', 'dhcp_range')
+            .addSelect('dhcp_rule.router', 'dhcp_router')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .leftJoin('dhcp_rule.network', 'network', 'network.id = :ipobj', { ipobj: ipobj })
+            .leftJoin('dhcp_rule.range', 'range', 'range.id = :ipobj')
+            .leftJoin('dhcp_rule.router', 'router', 'router.id = :ipobj')
+            .leftJoin('dhcp_rule.dhcpRuleToIPObjs', 'dhcpRuleToIPObjs', 'dhcpRuleToIPObjs.ipObj = :ipobj')
+            .leftJoin('dhcpRuleToIPObjs.ipObj', 'ipObj')
+            .innerJoin('dhcp_rule.firewall', 'firewall')
+            .where(`firewall.fwCloudId = :fwcloud AND (network.id IS NOT NULL OR range.id IS NOT NULL OR router.id IS NOT NULL OR ipObj.id IS NOT NULL)`, { fwcloud: fwcloud })
+            .getRawMany();
+    }
 
     public static async searchIpobjInGroupInRoute(ipobj: number, fwcloud: number): Promise<any> {
         return await getRepository(Route).createQueryBuilder('route')
