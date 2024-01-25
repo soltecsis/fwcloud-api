@@ -185,11 +185,13 @@ export class Routes extends RouteCollection {
                                     router.post('/copy', DhcpController, 'copy').name('fwclouds.firewalls.system.dhcp.copy');
                                     router.put('/move', DhcpController, 'move').name('fwclouds.firewalls.system.dhcp.move');
                                     router.put('/bulkUpdate', DhcpController, 'bulkUpdate').name('fwclouds.firewalls.system.dhcp.bulkUpdate');
+                                    router.get('/compile', FirewallController, 'compileDHCPRules').name('fwclouds.firewalls.system.dhcp.compile');
                                     router.delete('/bulkRemove', DhcpController, 'bulkRemove').name('fwclouds.firewalls.system.dhcp.bulkRemove');
                                     router.prefix('/:dhcp(\\d+)', (router: RouterParser) => {
-                                        router.get('/', DhcpController, 'show').name('fwclouds.firewalls.system.dhcp.show');
-                                        router.put('/', DhcpController, 'update').name('fwclouds.firewalls.system.dhcp.update');
-                                        router.delete('/', DhcpController, 'remove').name('fwclouds.firewalls.system.dhcp.delete');
+                                        router.get('/', DhcpController, 'show').name('fwclouds.firewalls.system.dhcp.rules.show');
+                                        router.put('/', DhcpController, 'update').name('fwclouds.firewalls.system.dhcp.rules.update');
+                                        router.get('/compile', DhcpController, 'compile').name('fwclouds.firewalls.system.dhcp.rules.compile');
+                                        router.delete('/', DhcpController, 'remove').name('fwclouds.firewalls.system.dhcp.rules.delete');
                                     });
                                 });
                             });

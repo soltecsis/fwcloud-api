@@ -45,12 +45,16 @@ import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { PgpHelper } from "../../utils/pgp";
 import { PluginDto } from './dtos/plugin.dto';
+import { DHCPRuleService, DHCPRulesData } from "../../models/system/dhcp/dhcp_r/dhcp_r.service";
+import { DHCPRuleItemForCompiler } from "../../models/system/shared";
+import { DHCPCompiler } from "../../compiler/system/dhcp/DHCPCompiler";
 
 
 export class FirewallController extends Controller {
 
     protected firewallService: FirewallService;
     protected routingRuleService: RoutingRuleService;
+    protected dhcpRuleService: DHCPRuleService;
     protected _fwCloud: FwCloud;
 
     public async make(request: Request): Promise<void> {
@@ -61,6 +65,7 @@ export class FirewallController extends Controller {
 
         this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
         this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
+        this.dhcpRuleService = await this._app.getService<DHCPRuleService>(DHCPRuleService.name);
     }
 
     @Validate(FirewallControllerCompileDto)
@@ -128,6 +133,28 @@ export class FirewallController extends Controller {
             request.query.rules ? (request.query.rules as string[]).map(item => parseInt(item)) : undefined
         );
         const compilation = new RoutingCompiler().compile('Rule', rules);
+
+        return ResponseBuilder.buildResponse().status(200).body(compilation)
+    }
+
+    @Validate()
+    @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
+    async compileDHCPRules(req: Request): Promise<ResponseBuilder> {
+        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+            id: parseInt(req.params.firewall),
+            fwCloudId: parseInt(req.params.fwcloud)
+        });
+
+        (await FirewallPolicy.compile(firewall, req.session.user)).authorize();
+
+        let rules: DHCPRulesData<DHCPRuleItemForCompiler>[] = await this.dhcpRuleService.getDHCPRulesData(
+            'compiler',
+            firewall.fwCloudId,
+            firewall.id,
+            req.query.rules ? (req.query.rules as string[]).map(item => parseInt(item)) : undefined
+        );
+
+        const compilation = new DHCPCompiler().compile(rules);
 
         return ResponseBuilder.buildResponse().status(200).body(compilation)
     }

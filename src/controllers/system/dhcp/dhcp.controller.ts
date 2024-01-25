@@ -38,6 +38,7 @@ import { DhcpRuleBulkUpdateDto } from './dto/bulk-update.dto';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { DhcpRuleBulkRemoveDto } from './dto/bulk-remove.dto';
 import { AvailableDestinations, DHCPRuleItemForCompiler } from '../../../models/system/shared';
+import { DHCPCompiler } from '../../../compiler/system/dhcp/DHCPCompiler';
 
 
 export class DhcpController extends Controller {
@@ -178,6 +179,17 @@ export class DhcpController extends Controller {
     const result: DHCPRule[] = await this._dhcpRuleService.move(rules.map(item => item.id), req.inputs.get('to'), req.inputs.get<Offset>('offset'));
 
     return ResponseBuilder.buildResponse().status(200).body(result);
+  }
+
+  @Validate()
+  public async compile(req: Request): Promise<ResponseBuilder> {
+    (await DhcpPolicy.show(this._dhcprule, req.session.user)).authorize();
+
+    const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] = await this._dhcpRuleService.getDHCPRulesData('compiler', this._fwCloud.id, this._firewall.id, [this._dhcprule.id]);
+
+    const compilation = new DHCPCompiler().compile(rules);
+
+    return ResponseBuilder.buildResponse().status(200).body(null);
   }
 
   @Validate(DhcpRuleBulkUpdateDto)
