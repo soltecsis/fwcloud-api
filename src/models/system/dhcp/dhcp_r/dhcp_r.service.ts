@@ -193,7 +193,15 @@ export class DHCPRuleService extends Service {
 
             for (const field of fieldsToUpdate) {
                 if (data[field]) {
-                    dhcpRule[field.slice(0, -2)] = await getRepository(field === 'firewallId' ? Firewall : IPObj).findOneOrFail(data[field]) as Firewall | IPObj;
+                    if(field === 'interfaceId') {
+                        let interfaceData = await getRepository(Interface).findOneOrFail(data[field]) as Interface;
+                        if (interfaceData.mac === '' || !interfaceData.mac) {
+                            throw new Error('Interface mac is not defined');
+                        }
+                        dhcpRule[field.slice(0, -2)] = interfaceData;
+                    }else {
+                        dhcpRule[field.slice(0, -2)] = await getRepository(field === 'firewallId' ? Firewall : IPObj).findOneOrFail(data[field]) as Firewall | IPObj;
+                    }
                 }
             }
         }
