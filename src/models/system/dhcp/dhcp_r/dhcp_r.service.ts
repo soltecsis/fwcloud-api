@@ -120,7 +120,11 @@ export class DHCPRuleService extends Service {
             dhcpRuleData.router = await getRepository(IPObj).findOneOrFail(data.routerId) as IPObj;
         }
         if (data.interfaceId) {
-            dhcpRuleData.interface = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
+            let interfaceData = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
+            if(!interfaceData.mac || interfaceData.mac === '') {
+                throw new Error('Interface mac is not defined');
+            }
+            dhcpRuleData.interface = interfaceData;
         }
         if (data.firewallId) {
             dhcpRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
