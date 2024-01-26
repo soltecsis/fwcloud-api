@@ -209,9 +209,12 @@ export class DHCPRuleService extends Service {
 
     async remove(path: IFindOneDHCPRulePath): Promise<DHCPRule> {
         const dhcpRule: DHCPRule = await this.findOneInPath(path);
+        
+        dhcpRule.dhcpRuleToIPObjs = [];
+
+        await this._repository.save(dhcpRule);
 
         await this._repository.remove(dhcpRule);
-
         //TODO: Mark firewall as uncompiled
 
         return dhcpRule;
