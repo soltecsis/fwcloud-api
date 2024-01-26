@@ -48,7 +48,7 @@ export interface ICreateDHCPRule {
     active?: boolean;
     groupId?: number;
     style?: string;
-    ipObjIds?: {id: number, order: number}[];
+    ipObjIds?: { id: number, order: number }[];
     rule_type?: number;
     firewallId?: number;
     networkId?: number;
@@ -66,7 +66,7 @@ export interface ICreateDHCPRule {
 export interface IUpdateDHCPRule {
     active?: boolean;
     style?: string;
-    ipObjIds?: {id: number, order: number}[];
+    ipObjIds?: { id: number, order: number }[];
     networkId?: number;
     rangeId?: number;
     routerId?: number;
@@ -121,7 +121,7 @@ export class DHCPRuleService extends Service {
         }
         if (data.interfaceId) {
             let interfaceData = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
-            if(!interfaceData.mac || interfaceData.mac === '') {
+            if (!interfaceData.mac || interfaceData.mac === '') {
                 throw new Error('Interface mac is not defined');
             }
             dhcpRuleData.interface = interfaceData;
@@ -132,7 +132,6 @@ export class DHCPRuleService extends Service {
 
         const lastDHCPRule = await this._repository.getLastDHCPRuleInGroup(data.groupId);
         dhcpRuleData.rule_order = lastDHCPRule?.rule_order ? lastDHCPRule.rule_order + 1 : 1;
-
         const persisted = await this._repository.save(dhcpRuleData);
 
         if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'offset')) {
@@ -147,7 +146,7 @@ export class DHCPRuleService extends Service {
             where: {
                 id: In(ids),
             },
-            relations: ['group', 'firewall', 'firewall.fwCloud'],
+            relations: ['group', 'firewall', 'firewall.fwCloud', 'network', 'range', 'router', 'interface', 'dhcpRuleToIPObjs'],
         });
 
         const savedCopies: DHCPRule[] = await Promise.all(
@@ -193,13 +192,13 @@ export class DHCPRuleService extends Service {
 
             for (const field of fieldsToUpdate) {
                 if (data[field]) {
-                    if(field === 'interfaceId') {
+                    if (field === 'interfaceId') {
                         let interfaceData = await getRepository(Interface).findOneOrFail(data[field]) as Interface;
                         if (interfaceData.mac === '' || !interfaceData.mac) {
                             throw new Error('Interface mac is not defined');
                         }
                         dhcpRule[field.slice(0, -2)] = interfaceData;
-                    }else {
+                    } else {
                         dhcpRule[field.slice(0, -2)] = await getRepository(field === 'firewallId' ? Firewall : IPObj).findOneOrFail(data[field]) as Firewall | IPObj;
                     }
                 }
@@ -207,7 +206,7 @@ export class DHCPRuleService extends Service {
         }
 
         dhcpRule = await this._repository.save(dhcpRule);
-        
+
         // await this.reorderTo(dhcpRule.id);
 
         // TODO: Marcar el firewall como no compilado
@@ -217,7 +216,7 @@ export class DHCPRuleService extends Service {
 
     async remove(path: IFindOneDHCPRulePath): Promise<DHCPRule> {
         const dhcpRule: DHCPRule = await this.findOneInPath(path);
-        
+
         dhcpRule.dhcpRuleToIPObjs = [];
 
         await this._repository.save(dhcpRule);
@@ -277,12 +276,12 @@ export class DHCPRuleService extends Service {
         }
 
         let ItemsArrayMap = new Map<number, T[]>();
-        for(let i = 0; i < rulesData.length; i++) {
+        for (let i = 0; i < rulesData.length; i++) {
             rulesData[i].items = [];
 
             ItemsArrayMap.set(rulesData[i].id, rulesData[i].items);
         }
-        
+
         const sqls = (dst === 'compiler') ?
             this.buildDHCPRulesCompilerSql(fwcloud, firewall, rules) :
             this.getDHCPRulesGridSql(fwcloud, firewall, rules);
@@ -348,7 +347,7 @@ export class DHCPRuleService extends Service {
     protected async validateUpdateIpObjIds(firewall: Firewall, data: IUpdateDHCPRule): Promise<void> {
         const errors: ErrorBag = {};
 
-        if(!data.ipObjIds || data.ipObjIds.length === 0) {
+        if (!data.ipObjIds || data.ipObjIds.length === 0) {
             return;
         }
 
@@ -362,7 +361,7 @@ export class DHCPRuleService extends Service {
 
         for (let i = 0; i < ipObjs.length; i++) {
             const ipObj: IPObj = ipObjs[i];
-            
+
             if (ipObj.fwCloudId && ipObj.fwCloudId !== firewall.fwCloudId) {
                 errors[`ipObjIds.${i}`] = ['ipObj id must exist']
             }
