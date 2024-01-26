@@ -38,14 +38,16 @@ export class DHCPCompiler {
 
         switch (ruleData.rule_type) {
             case 1:
-                cs += `# ${ruleData.comment}\n`;
-                cs += `subnet ${ruleData.network.address} netmask ${ruleData.network.netmask} {\n`;
-                cs += `\toption subnet-mask ${ruleData.network.netmask};\n`;
+                if (ruleData.comment) {
+                    cs += `# ${ruleData.comment}\n`;
+                }
+                cs += `subnet ${ruleData.network.address} netmask ${this.convertToNetmask(ruleData.network.netmask)} {\n`;
+                cs += `\toption subnet-mask ${this.convertToNetmask(ruleData.network.netmask)};\n`;
                 cs += `\toption routers ${ruleData.router.address};\n`;
-                cs += `\toption broadcast-address ${ip.subnet(ruleData.network.address, ruleData.network.netmask).broadcastAddress};\n`;
-                if(ruleData.items && ruleData.items.length > 0) {
+                cs += `\toption broadcast-address ${ip.subnet(ruleData.network.address, this.convertToNetmask(ruleData.network.netmask)).broadcastAddress};\n`;
+                if (ruleData.items && ruleData.items.length > 0) {
                     cs += `\toption domain-name-servers `;
-                    for(let i = 0; i < ruleData.items.length-1; i++) {
+                    for (let i = 0; i < ruleData.items.length - 1; i++) {
                         cs += `${ruleData.items[i].address}, `;
                     }
                     cs += `${ruleData.items[ruleData.items.length].address};\n`;
@@ -78,7 +80,7 @@ export class DHCPCompiler {
         if (!data) {
             return result;
         }
-        
+
         for (let i = 0; i < data.length; i++) {
             if (eventEmitter) {
                 eventEmitter.emit('progress', new ProgressNoticePayload(`Compiling DHCP rule ${i} (ID: ${data[i].id})${!(data[i].active) ? ' [DISABLED]' : ''}`));
@@ -93,5 +95,13 @@ export class DHCPCompiler {
         }
 
         return result;
+    }
+
+    private convertToNetmask(mask: string) {
+        if (mask.includes('.')) {
+            return mask;
+        } else if (mask.includes('/')) {
+            return ip.fromPrefixLen(parseInt(mask.split('/')[1], 10));
+        }
     }
 };
