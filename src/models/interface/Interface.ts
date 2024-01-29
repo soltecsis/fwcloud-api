@@ -583,27 +583,57 @@ export class Interface extends Model {
 
 	//Update interface from user
 	public static updateInterface(interfaceData, callback) {
-		db.get((error, connection) => {
-			if (error)
+		db.get(async (error, connection) => {
+			if (error) {
 				callback(error, null);
-			var sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(interfaceData.name) + ',' +
-				'labelName = ' + connection.escape(interfaceData.labelName) + ', ' +
-				'type = ' + connection.escape(interfaceData.type) + ', ' +
-				'comment = ' + connection.escape(interfaceData.comment) + ', ' +
-				'mac = ' + connection.escape(interfaceData.mac) + ' ' +
-				' WHERE id = ' + interfaceData.id;
-			logger().debug(sql);
-			connection.query(sql, async (error, result) => {
-				if (error) {
-					callback(error, null);
-				} else {
-					if (result.affectedRows > 0) {
-						callback(null, { "result": true });
+				return;
+			}
+
+			const checkDhcpReferences = async () => {
+				return new Promise((resolve, reject) => {
+					const dhcpCheckSql = 'SELECT COUNT(*) as count FROM dhcp_r WHERE interface = ?';
+					connection.query(dhcpCheckSql, [interfaceData.id], (error, result) => {
+						if (error) {
+							reject(error);
+						} else {
+							resolve(result[0].count);
+						}
+					});
+				});
+			};
+
+			await checkDhcpReferences()
+				.then((count: number) => {
+					if (count > 0 && (interfaceData.mac === null || interfaceData.mac === '' || interfaceData.mac === undefined)) {
+						const errorMessage = 'The interface cannot be updated. There are references in dhcp_r.';
+						callback(new Error(errorMessage), null);
 					} else {
-						callback(null, { "result": false });
+						const sql = `
+							UPDATE ${tableName}
+							SET name = ${connection.escape(interfaceData.name)},
+								labelName = ${connection.escape(interfaceData.labelName)},
+								type = ${connection.escape(interfaceData.type)},
+								comment = ${connection.escape(interfaceData.comment)}
+							WHERE id = ${interfaceData.id}`;
+
+						logger().debug(sql);
+
+						connection.query(sql, (error, result) => {
+							if (error) {
+								callback(error, null);
+							} else {
+								if (result.affectedRows > 0) {
+									callback(null, { result: true });
+								} else {
+									callback(null, { result: false });
+								}
+							}
+						});
 					}
-				}
-			});
+				})
+				.catch((error) => {
+					callback(error, null);
+				});
 		});
 	};
 

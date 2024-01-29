@@ -99,7 +99,6 @@ export class DhcpController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(grid);
   }
 
-  //TODO: Offset is necessary we can create a rule in other position
   @Validate(DHCPRuleCreateDto)
   public async create(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.create(this._firewall, req.session.user)).authorize();
