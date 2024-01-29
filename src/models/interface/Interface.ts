@@ -606,7 +606,7 @@ export class Interface extends Model {
 				.then((count: number) => {
 					if (count > 0 && (interfaceData.mac === null || interfaceData.mac === '' || interfaceData.mac === undefined)) {
 						const errorMessage = 'The interface cannot be updated. There are references in dhcp_r.';
-						callback(new Error(errorMessage), null);
+						callback({"data":errorMessage}, null);
 					} else {
 						const sql = `
 							UPDATE ${tableName}
