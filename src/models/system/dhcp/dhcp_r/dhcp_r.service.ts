@@ -130,6 +130,14 @@ export class DHCPRuleService extends Service {
             dhcpRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
         }
 
+        if (
+            dhcpRuleData.network.ip_version !== dhcpRuleData.range.ip_version ||
+            dhcpRuleData.network.ip_version !== dhcpRuleData.router.ip_version ||
+            dhcpRuleData.range.ip_version !== dhcpRuleData.router.ip_version
+        ) {
+            throw new Error('IP version mismatch');
+        }
+
         const lastDHCPRule = await this._repository.getLastDHCPRuleInGroup(data.groupId);
         dhcpRuleData.rule_order = lastDHCPRule?.rule_order ? lastDHCPRule.rule_order + 1 : 1;
         const persisted = await this._repository.save(dhcpRuleData);
@@ -155,18 +163,39 @@ export class DHCPRuleService extends Service {
                 return await this._repository.save({ ...copy });
             })
         );
-        //TODO: Mark firewall as uncompiled
+
+        const firewalls: Firewall[] = await getRepository(Firewall).find({
+            where: {
+                id: In(savedCopies.map(item => item.firewall.id)),
+            },
+        });
+
+        await this._firewallService.markAsUncompiled(firewalls.map(item => item.id));
+
         return this.move(savedCopies.map(item => item.id), destRule, position);
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
-        //TODO: Mark firewall as uncompiled
+        const dhcp_rs: DHCPRule[] = await this._repository.move(ids, destRule, offset);
+        const firewallIds: number[] = (await this._repository.find({
+            where: {
+                id: In(ids),
+            },
+            join: {
+                alias: 'dhcp',
+                innerJoinAndSelect: {
+                    firewall: 'dhcp.firewall',
+                }
+            }
+        }).then(items => items.map(item => item.firewall.id)));
 
-        return await this._repository.move(ids, destRule, offset);
+        await this._firewallService.markAsUncompiled(firewallIds);
+
+        return dhcp_rs;
     }
 
     async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
-        let dhcpRule: DHCPRule | undefined = await this._repository.findOne(id, { relations: ['firewall'] });
+        let dhcpRule: DHCPRule | undefined = await this._repository.findOne(id, { relations: ['firewall', 'network', 'range', 'router'] });
         if (!dhcpRule) {
             throw new Error('DHCPRule not found');
         }
@@ -205,9 +234,15 @@ export class DHCPRuleService extends Service {
             }
         }
 
-        dhcpRule = await this._repository.save(dhcpRule);
+        if (
+            dhcpRule.network.ip_version !== dhcpRule.range.ip_version ||
+            dhcpRule.network.ip_version !== dhcpRule.router.ip_version ||
+            dhcpRule.range.ip_version !== dhcpRule.router.ip_version
+        ) {
+            throw new Error('IP version mismatch');
+        }
 
-        // await this.reorderTo(dhcpRule.id);
+        dhcpRule = await this._repository.save(dhcpRule);
 
         // TODO: Marcar el firewall como no compilado
 
