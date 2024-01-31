@@ -2,7 +2,6 @@ import { SelectQueryBuilder } from "typeorm";
 import { IPObj } from "../ipobj/IPObj";
 import { IPObjGroup } from "../ipobj/IPObjGroup";
 
-//TODO: Everything related to compilation is missing
 export type AvailableDestinations = 'regular_grid' | 'fixed_grid' | 'compiler';
 
 export type ItemForGrid = {

@@ -35,6 +35,7 @@ import { Firewall } from "../../../firewall/Firewall";
 import { DHCPRuleToIPObj } from "./dhcp_r-to-ipobj.model";
 import { ErrorBag } from "../../../../fonaments/validation/validator";
 import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
+import { FirewallService } from "../../../firewall/firewall.service";
 interface IFindManyDHCPRulePath {
     fwcloudId?: number;
     firewallId?: number;
@@ -78,7 +79,6 @@ export interface IUpdateDHCPRule {
     group?: number;
 }
 
-//TODO: Need to add the data type DHCPRuleItemForCompile
 export interface DHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler> extends DHCPRule {
     items: (T & { _order: number })[];
 }
@@ -86,15 +86,18 @@ export interface DHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler> 
 export class DHCPRuleService extends Service {
     private _repository: DHCPRepository;
     private _ipobjRepository: IPObjRepository;
-    private _dhcpRangeRepository: IPObjRepository;
-    private _routerRepository: IPObjRepository;
+    private _firewallService: FirewallService;
 
     constructor(app: Application) {
         super(app)
         this._repository = getCustomRepository(DHCPRepository);
         this._ipobjRepository = getCustomRepository(IPObjRepository);
-        this._dhcpRangeRepository = getCustomRepository(IPObjRepository);
-        this._routerRepository = getCustomRepository(IPObjRepository);
+    }
+
+    public async build(): Promise<Service> {
+        this._firewallService = await this._app.getService(FirewallService.name);
+
+        return this;
     }
 
     async store(data: ICreateDHCPRule): Promise<DHCPRule> {
@@ -131,9 +134,10 @@ export class DHCPRuleService extends Service {
         }
 
         if (
-            dhcpRuleData.network.ip_version !== dhcpRuleData.range.ip_version ||
-            dhcpRuleData.network.ip_version !== dhcpRuleData.router.ip_version ||
-            dhcpRuleData.range.ip_version !== dhcpRuleData.router.ip_version
+            dhcpRuleData.rule_type === 1 &&
+            dhcpRuleData.network?.ip_version !== dhcpRuleData.range?.ip_version ||
+            dhcpRuleData.network?.ip_version !== dhcpRuleData.router?.ip_version ||
+            dhcpRuleData.range?.ip_version !== dhcpRuleData.router?.ip_version
         ) {
             throw new Error('IP version mismatch');
         }
@@ -244,7 +248,7 @@ export class DHCPRuleService extends Service {
 
         dhcpRule = await this._repository.save(dhcpRule);
 
-        // TODO: Marcar el firewall como no compilado
+        await this._firewallService.markAsUncompiled(dhcpRule.firewall.id);
 
         return dhcpRule;
     }
@@ -257,7 +261,8 @@ export class DHCPRuleService extends Service {
         await this._repository.save(dhcpRule);
 
         await this._repository.remove(dhcpRule);
-        //TODO: Mark firewall as uncompiled
+
+        await this._firewallService.markAsUncompiled(dhcpRule.firewall.id);
 
         return dhcpRule;
     }
@@ -274,7 +279,7 @@ export class DHCPRuleService extends Service {
         return Object.assign({
             join: {
                 alias: 'dhcp',
-                innerJoin: {
+                innerJoinAndSelect: {
                     firewall: 'dhcp.firewall',
                     fwcloud: 'firewall.fwCloud',
                 }
@@ -293,7 +298,6 @@ export class DHCPRuleService extends Service {
         }, options);
     }
 
-    //TODO: Need to add the data type DHCPRuleItemForCompile
     public async getDHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, rules?: number[]): Promise<DHCPRulesData<T>[]> {
         let rulesData: DHCPRulesData<T>[];
         switch (dst) {
@@ -336,15 +340,19 @@ export class DHCPRuleService extends Service {
             id: In(ids),
         }, { ...data, group: { id: data.group } });
 
-        //TODO: Mark firewall as uncompiled
-        /*const firewallIds: number[] = (await this._repository.find({
+        const firewallIds: number[] = (await this._repository.find({
             where: {
                 id: In(ids),
             },
             join: {
-                alias: 'dhcp_r',
+                alias: 'dhcp',
+                innerJoinAndSelect: {
+                    firewall: 'dhcp.firewall',
+                }
             }
-        })).map(item => item.firewall.id);*/
+        }).then(items => items.map(item => item.firewall.id)));
+
+        await this._firewallService.markAsUncompiled(firewallIds);
 
         return this._repository.find({
             where: {
