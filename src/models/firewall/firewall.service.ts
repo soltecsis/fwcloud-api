@@ -30,6 +30,7 @@ import { RoutingRuleToOpenVPN } from "../routing/routing-rule/routing-rule-to-op
 import { RoutingRuleToOpenVPNPrefix } from "../routing/routing-rule/routing-rule-to-openvpn-prefix.model";
 import { RoutingRuleToMark } from "../routing/routing-rule/routing-rule-to-mark.model";
 import { RoutingRuleService } from "../routing/routing-rule/routing-rule.service";
+import { DHCPRuleService } from "../system/dhcp/dhcp_r/dhcp_r.service";
 const fwcError = require('../../utils/error_table');
 var utilsModel = require("../../utils/utils.js");
 
@@ -161,16 +162,19 @@ export class FirewallService extends Service {
     public async remove(firewallId: number, fwcloudId: number, userId: number): Promise<void> {
         const routingTableService: RoutingTableService = await app().getService(RoutingTableService.name);
         const routingRuleService: RoutingRuleService = await app().getService(RoutingRuleService.name);
+        const dhcpRuleService: DHCPRuleService = await app().getService(DHCPRuleService.name);
 
-        const firewallEntity = await getRepository(Firewall).findOneOrFail(firewallId, { relations: ['routingTables', 'routingTables.routingRules']});
-        for(let table of firewallEntity.routingTables) {
-            await routingRuleService.bulkRemove(table.routingRules.map(item => item.id)); 
+        const firewallEntity = await getRepository(Firewall).findOneOrFail(firewallId, { relations: ['routingTables', 'routingTables.routingRules', 'dhcpRules'] });
+        for (let table of firewallEntity.routingTables) {
+            await routingRuleService.bulkRemove(table.routingRules.map(item => item.id));
             await routingTableService.remove({
                 fwCloudId: firewallEntity.fwCloudId,
                 firewallId: firewallEntity.id,
                 id: table.id
             });
         }
+
+        await dhcpRuleService.bulkRemove(firewallEntity.dhcpRules.map(item => item.id));
 
         await Firewall.deleteFirewall(userId, fwcloudId, firewallId);
     }
