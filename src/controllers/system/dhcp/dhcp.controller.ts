@@ -39,7 +39,8 @@ import { HttpException } from '../../../fonaments/exceptions/http/http-exception
 import { DhcpRuleBulkRemoveDto } from './dto/bulk-remove.dto';
 import { AvailableDestinations, DHCPRuleItemForCompiler } from '../../../models/system/shared';
 import { DHCPCompiler } from '../../../compiler/system/dhcp/DHCPCompiler';
-
+import { Channel } from '../../../sockets/channels/channel';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
 
 export class DhcpController extends Controller {
   protected _dhcpRuleService: DHCPRuleService;
@@ -86,8 +87,8 @@ export class DhcpController extends Controller {
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   public async grid(req: Request): Promise<ResponseBuilder> {
-    if(![1,2].includes(parseInt(req.params.set))){
-      return ResponseBuilder.buildResponse().status(400).body({message: 'Invalid set parameter'});
+    if (![1, 2].includes(parseInt(req.params.set))) {
+      return ResponseBuilder.buildResponse().status(400).body({ message: 'Invalid set parameter' });
     }
 
     (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
@@ -187,6 +188,25 @@ export class DhcpController extends Controller {
     const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] = await this._dhcpRuleService.getDHCPRulesData('compiler', this._fwCloud.id, this._firewall.id, [this._dhcprule.id]);
 
     const compilation = new DHCPCompiler().compile(rules);
+
+    return ResponseBuilder.buildResponse().status(200).body(null);
+  }
+
+  @Validate()
+  public async install(req: Request): Promise<ResponseBuilder> {
+    const channel = await Channel.fromRequest(req);
+
+    const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] = await this._dhcpRuleService.getDHCPRulesData('compiler', this._fwCloud.id, this._firewall.id, [this._dhcprule.id]);
+    const content = (new DHCPCompiler().compile(rules, channel)).map(item => item.cs).join('\n');
+
+    const firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
+    const communication = await firewall.getCommunication();
+
+    channel.emit('message', new ProgressPayload('start', false, `Installing DHCP`));
+
+    await communication.installDHCPConfigs('/etc/dhcp/', [{ name: 'dhcp.config', content: content }], channel);
+
+    channel.emit('message', new ProgressPayload('end', false, `Installing DHCP`));
 
     return ResponseBuilder.buildResponse().status(200).body(null);
   }

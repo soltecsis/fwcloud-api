@@ -449,5 +449,24 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         return super.handleRequestException(error, eventEmitter);
     }
 
+    async installDHCPConfigs(dir: string, configs: { name: string; content: string; }[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
+        try {
+            const pathUrl: string = this.url + '/api/v1/daemons/config/upload';
+            const form = new FormData();
+            form.append('dst_dir', dir);
+            form.append('perms', 644);
 
+            configs.forEach(config => {
+                form.append('data', config.content, config.name);
+                eventEmitter.emit('message', new ProgressInfoPayload(`Uploading configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
+            });
+
+            const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
+            requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+
+            axios.post(pathUrl, form, requestConfig);
+        }catch (error) {
+            this.handleRequestException(error, eventEmitter)
+        }
+    }
 }
