@@ -40,23 +40,18 @@ import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/r
 import { RoutingRulesData, RoutingRuleService } from '../../models/routing/routing-rule/routing-rule.service';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import * as path from 'path';
-import { mkdirp, mkdirpSync } from 'fs-extra';
-import { DHCPCompiled, DHCPCompiler } from '../system/dhcp/DHCPCompiler';
-import { DHCPRulesData, DHCPRuleService } from '../../models/system/dhcp/dhcp_r/dhcp_r.service';
-import { DHCPRuleItemForCompiler } from '../../models/system/shared';
+import { mkdirpSync } from 'fs-extra';
 
 var config = require('../../config/config');
 
 export class PolicyScript {
 	private routingCompiler: RoutingCompiler;
-	private dhcpCompiler: DHCPCompiler;
 	private policyCompiler: AvailablePolicyCompilers;
 	private path: string;
 	private stream: any;
 
 	constructor(private dbCon: any, private fwcloud: number, private firewall: number, private channel: EventEmitter = new EventEmitter()) {
 		this.routingCompiler = new RoutingCompiler;
-		this.dhcpCompiler = new DHCPCompiler;
 		this.buildPath();
 	}
 
@@ -248,8 +243,6 @@ export class PolicyScript {
 
 					await this.dumpRouting();
 
-					await this.dumpDhcpRules();
-
 					// Footer file.
 					this.stream.write(fs.readFileSync(config.get('policy').footer_file, 'utf8'));
 
@@ -270,35 +263,6 @@ export class PolicyScript {
 				} catch (error) { reject(error) }
 			}).on('error', error => { return reject(error) });
 		});
-	}
-
-	private async dumpDhcpRules() {
-		let dhcpRuleService = await app().getService<DHCPRuleService>(DHCPRuleService.name);
-		let rules: DHCPRulesData<DHCPRuleItemForCompiler>[];
-		let dhcpRulesCompiled: DHCPCompiled[];
-		rules = await dhcpRuleService.getDHCPRulesData<DHCPRuleItemForCompiler>('compiler', this.fwcloud, this.firewall);
-		if (rules.length > 0) {
-			let cs = '';
-
-			this.stream.write("\n\necho\n");
-			this.stream.write("echo \"*****************\"\n");
-			this.stream.write("echo \"* DHCP RULES *\"\n");
-			this.stream.write("echo \"*****************\"\n");
-			this.channel.emit('message', new ProgressNoticePayload(""));
-			this.channel.emit('message', new ProgressNoticePayload(""));
-			this.channel.emit('message', new ProgressNoticePayload("DHCP RULES:", true));
-			for (let j = 0; j < rules.length; j++) {
-				cs += `\necho \"DHCP rule ${j + 1} (ID: ${rules[j].id})${!(rules[j].active) ? ' [DISABLED]' : ''}\"\n`;
-				dhcpRulesCompiled = this.dhcpCompiler.compile([rules[j]], this.channel);
-				for (let i = 0; i < dhcpRulesCompiled.length; i++) {
-					if (dhcpRulesCompiled[i].active) {
-						cs += dhcpRulesCompiled[i].cs;
-					}
-				}
-
-			}
-			this.stream.write(cs);
-		}
 	}
 
 	private dumpNFTablesStd(): Promise<void> {

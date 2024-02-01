@@ -60,7 +60,9 @@ export class DHCPCompiler {
                 cs += `}\n`;
                 break;
             case 2:
-                cs += `# ${ruleData.comment}\n`;
+                if (ruleData.comment) {
+                    cs += `# ${ruleData.comment}\n`;
+                }
                 cs += `host ${ruleData.interface.name} {\n`;
                 cs += `\thardware ethernet ${ruleData.interface.mac};\n`;
                 cs += `\tfixed-address ${ruleData.router.address};\n`;

@@ -134,10 +134,10 @@ export class DHCPRuleService extends Service {
         }
 
         if (
-            dhcpRuleData.rule_type === 1 &&
-            dhcpRuleData.network?.ip_version !== dhcpRuleData.range?.ip_version ||
-            dhcpRuleData.network?.ip_version !== dhcpRuleData.router?.ip_version ||
-            dhcpRuleData.range?.ip_version !== dhcpRuleData.router?.ip_version
+            dhcpRuleData.rule_type === 1 && (
+                dhcpRuleData.network?.ip_version !== dhcpRuleData.range?.ip_version ||
+                dhcpRuleData.network?.ip_version !== dhcpRuleData.router?.ip_version ||
+                dhcpRuleData.range?.ip_version !== dhcpRuleData.router?.ip_version)
         ) {
             throw new Error('IP version mismatch');
         }
@@ -239,9 +239,10 @@ export class DHCPRuleService extends Service {
         }
 
         if (
-            dhcpRule.network.ip_version !== dhcpRule.range.ip_version ||
-            dhcpRule.network.ip_version !== dhcpRule.router.ip_version ||
-            dhcpRule.range.ip_version !== dhcpRule.router.ip_version
+            dhcpRule.rule_type === 1 && (
+                dhcpRule.network?.ip_version !== dhcpRule.range?.ip_version ||
+                dhcpRule.network?.ip_version !== dhcpRule.router?.ip_version ||
+                dhcpRule.range?.ip_version !== dhcpRule.router?.ip_version)
         ) {
             throw new Error('IP version mismatch');
         }
@@ -310,7 +311,7 @@ export class DHCPRuleService extends Service {
                 rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [2]) as DHCPRulesData<T>[];
                 break;
             case 'compiler':
-                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules) as DHCPRulesData<T>[];
+                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [1,2,3]) as DHCPRulesData<T>[];
                 break;
         }
 
