@@ -77,7 +77,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
             firewallId: dhcp_rs[0].firewall.id,
             dhcpGroupId: dhcp_rs[0].group?.id,
         });
-        
+
         const destDHCP: DHCPRule | undefined = await this.findOneOrFail({
             where: {
                 id: dhcpDestId,
@@ -265,22 +265,29 @@ export class DHCPRepository extends Repository<DHCPRule> {
         }))[0];
     }
 
-    async getDHCPRules(fwcloud: number, firewall: number, rules?: number[],rule_types?: number[]): Promise<DHCPRule[]> {
+    async getDHCPRules(fwcloud: number, firewall: number, rules?: number[], rule_types?: number[]): Promise<DHCPRule[]> {
         const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder('dhcp_r')
             .leftJoinAndSelect('dhcp_r.group', 'group')
             .leftJoinAndSelect('dhcp_r.network', 'network')
             .leftJoinAndSelect('dhcp_r.range', 'range')
             .leftJoinAndSelect('dhcp_r.router', 'router')
+            .leftJoinAndSelect('router.interface', 'routerInterface')
+            .leftJoinAndSelect('routerInterface.firewall', 'routerFirewall')
+            .leftJoinAndSelect('routerFirewall.cluster', 'routerCluster')
             .leftJoinAndSelect('dhcp_r.interface', 'interface')
+            .leftJoinAndSelect('interface.hosts', 'hosts')
+            .leftJoinAndSelect('hosts.hostIPObj', 'hostIPObj')
             .innerJoinAndSelect('dhcp_r.firewall', 'firewall')
             .innerJoinAndSelect('firewall.fwCloud', 'fwCloud')
             .where('firewall.id = :firewallId', { firewallId: firewall })
             .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud });
-        if(rule_types){
+
+        if (rule_types) {
             query
                 .andWhere('dhcp_r.rule_type IN (:...rule_types)')
                 .setParameter('rule_types', rule_types);
         }
+
         if (rules) {
             query
                 .andWhere('dhcp_r.id IN (:...rule)')
