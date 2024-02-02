@@ -50,19 +50,19 @@ export class DHCPRule extends Model {
     @Column({ type: 'varchar', length: 50 })
     style: string;
 
-    @ManyToOne(() => IPObj)
+    @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'network' })
     network: IPObj;
 
-    @ManyToOne(() => IPObj)
+    @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'range' })
     range: IPObj;
 
-    @ManyToOne(() => IPObj)
+    @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'router' })
     router: IPObj;
 
-    @ManyToOne(() => Interface)
+    @ManyToOne(() => Interface, { eager: true })
     @JoinColumn({ name: 'interface' })
     interface: Interface;
 
