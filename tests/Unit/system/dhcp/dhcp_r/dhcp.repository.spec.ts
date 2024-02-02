@@ -100,6 +100,38 @@ describe(DHCPRepository.name, () => {
 
             expect(refreshOrdersSpy.calledOnceWithExactly(group.id)).to.be.true;
         });
+
+        it('should refresh orders for each group after removing multiple DHCPRules', async () => {
+            const group2 = await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+                name: 'group2',
+                firewall: firewall,
+            }));
+
+            const dhcpRule2 = getRepository(DHCPRule).create({
+                group: group2,
+                rule_order: 1,
+                firewall: firewall,
+            });
+
+            await repository.save([dhcpRule, dhcpRule2]);
+
+            const refreshOrdersSpy = sinon.spy(repository, 'refreshOrders' as keyof DHCPRepository);
+
+            await repository.remove([dhcpRule, dhcpRule2]);
+
+            expect(refreshOrdersSpy.called).to.be.true;
+        });
+
+        it('should not refresh orders after removing DHCPRule without group', async () => {
+            dhcpRule.group = null;
+            dhcpRule.save();
+
+            const refreshOrdersSpy = sinon.spy(repository, 'refreshOrders' as keyof DHCPRepository);
+
+            await repository.remove(dhcpRule);
+
+            expect(refreshOrdersSpy.called).to.be.false;
+        });
     });
 
     describe('move', () => {
@@ -114,12 +146,39 @@ describe(DHCPRepository.name, () => {
             expect(moveAboveSpy.calledOnce).to.be.true;
         });
 
+        it('should move the rule below the specified position', async () => {
+            dhcpRule.group = null;
+            dhcpRule.save();
+
+            const moveBelowSpy = sinon.spy(repository, 'moveBelow' as keyof DHCPRepository);
+
+            await repository.move([dhcpRule.id], dhcpRule.id, Offset.Below);
+
+            expect(moveBelowSpy.calledOnce).to.be.true;
+        });
+
+        it('should update affected rules after move', async () => {
+            const updateAffectedRulesSpy = sinon.spy(repository, 'save' as keyof DHCPRepository);
+
+            await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
+
+            expect(updateAffectedRulesSpy.called).to.be.true;
+        });
+
         it('should refresh orders after move', async () => {
             const refreshOrdersSpy = sinon.spy(repository, 'refreshOrders' as keyof DHCPRepository);
 
             await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
 
             expect(refreshOrdersSpy.calledOnce).to.be.true;
+        });
+
+        it('should return the updated rules after move', async () => {
+            const updatedRules = await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
+
+            expect(updatedRules).to.be.an('array');
+            expect(updatedRules).to.have.lengthOf(1);
+            expect(updatedRules[0]).to.have.property('id', dhcpRule.id);
         });
     });
 
@@ -135,10 +194,54 @@ describe(DHCPRepository.name, () => {
 
             const result = await repository.getLastDHCPRuleInGroup(dhcpgid);
 
-            // Assert
             expect(result.id).to.equal(expectedRule.id);
             expect(result.rule_order).to.equal(expectedRule.rule_order);
             expect(result.rule_type).to.equal(expectedRule.rule_type);
+        });
+    });
+
+    describe('getDHCPRules', () => {
+        it('should retrieve DHCPRules based on fwcloud and firewall IDs', async () => {
+            const fwcloudId = 1;
+            const firewallId = 1;
+
+            const result = await repository.getDHCPRules(fwcloudId, firewallId);
+
+            expect(result).to.be.an('array');
+
+            for (const rule of result) {
+                expect(rule).to.be.instanceOf(DHCPRule);
+            }
+        });
+
+        it('should filter DHCPRules based on provided rule types', async () => {
+            const fwcloudId = 1;
+            const firewallId = 1;
+            const ruleTypes = [1, 2, 3];
+
+            const result = await repository.getDHCPRules(fwcloudId, firewallId, undefined, ruleTypes);
+
+            expect(result).to.be.an('array');
+
+            for (const rule of result) {
+                expect(rule).to.be.instanceOf(DHCPRule);
+                expect(rule.rule_type).to.be.oneOf(ruleTypes);
+            }
+        });
+
+        it('should filter DHCPRules based on provided rule IDs', async () => {
+            const fwcloudId = 1;
+            const firewallId = 1;
+            const ruleIds = [1, 2, 3];
+
+            const result = await repository.getDHCPRules(fwcloudId, firewallId, ruleIds);
+
+            expect(result).to.be.an('array');
+
+            for (const rule of result) {
+                expect(rule).to.be.instanceOf(DHCPRule);
+                expect(rule.id).to.be.oneOf(ruleIds);
+            }
         });
     });
 });
