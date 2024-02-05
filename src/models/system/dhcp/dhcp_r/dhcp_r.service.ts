@@ -171,20 +171,7 @@ export class DHCPRuleService extends Service {
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
-        const dhcp_rs: DHCPRule[] = await this._repository.move(ids, destRule, offset);
-        const firewallIds: number[] = (await this._repository.find({
-            where: {
-                id: In(ids),
-            },
-            join: {
-                alias: 'dhcp',
-                innerJoinAndSelect: {
-                    firewall: 'dhcp.firewall',
-                }
-            }
-        }).then(items => items.map(item => item.firewall.id)));
-
-        return dhcp_rs;
+        return this._repository.move(ids, destRule, offset);
     }
 
     async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
