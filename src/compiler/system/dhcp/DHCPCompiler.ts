@@ -46,11 +46,10 @@ export class DHCPCompiler {
                 cs += `\toption broadcast-address ${ip.subnet(ruleData.network.address, this.convertToNetmask(ruleData.network.netmask)).broadcastAddress};\n`;
                 if (ruleData.items && ruleData.items.length > 0) {
                     cs += `\toption domain-name-servers `;
-                    for (let i = 0; i < ruleData.items.length - 1; i++) {
+                    for (let i = 0; i < (ruleData.items.length - 1); i++) {
                         cs += `${ruleData.items[i].address}, `;
                     }
-                    cs += `${ruleData.items[ruleData.items.length].address};\n`;
-                    cs += `;\n`;
+                    cs += `${ruleData.items[(ruleData.items.length - 1)].address};\n`;
                 }
                 cs += `\tpool {\n`;
                 cs += `\t\tmax-lease-time ${ruleData.max_lease};\n`;

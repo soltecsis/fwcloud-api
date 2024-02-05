@@ -283,18 +283,19 @@ export class IPObjRepository extends Repository<IPObj> {
 
   getIpobjsInDhcp_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, dhcpRule?: number): SelectQueryBuilder<IPObj> {
     let query = this.createQueryBuilder("ipobj")
-      .select("ipobj.id","id")
-      .addSelect("ipobj.name","name")
-      .addSelect("ipobj.type","type")
-      .addSelect("host.id","host_id")
-      .addSelect("host.name","host_name")
-      .addSelect("int_firewall.id","firewall_id")
-      .addSelect("int_firewall.name","firewall_name")
-      .addSelect("int_cluster.id","cluster_id")
-      .addSelect("int_cluster.name","cluster_name")
-      .addSelect(`${entity}.id`,"entityId");
+      .select("ipobj.id", "id")
+      .addSelect("ipobj.address", "address")
+      .addSelect("ipobj.name", "name")
+      .addSelect("ipobj.type", "type")
+      .addSelect("host.id", "host_id")
+      .addSelect("host.name", "host_name")
+      .addSelect("int_firewall.id", "firewall_id")
+      .addSelect("int_firewall.name", "firewall_name")
+      .addSelect("int_cluster.id", "cluster_id")
+      .addSelect("int_cluster.name", "cluster_name")
+      .addSelect(`${entity}.id`, "entityId");
 
-    if(entity === 'rule') {
+    if (entity === 'rule') {
       query
         .innerJoin('ipobj.dhcpRuleToIPObjs', 'dhcpRuleToIPObjs')
         .addSelect('dhcpRuleToIPObjs.order', '_order')
@@ -309,8 +310,8 @@ export class IPObjRepository extends Repository<IPObj> {
       .leftJoin('InterfaceIPObj.hostIPObj', 'host')
       .leftJoin('int.firewall', 'int_firewall')
       .leftJoin("int_firewall.cluster", "int_cluster")
-      .where("fwcloud.id = :fwcloud", {fwcloud: fwcloud})
-      .andWhere("firewall.id = :firewall", {firewall: firewall});
+      .where("fwcloud.id = :fwcloud", { fwcloud: fwcloud })
+      .andWhere("firewall.id = :firewall", { firewall: firewall });
 
     return query;
   }
