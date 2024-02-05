@@ -176,6 +176,7 @@ export class DHCPRuleService extends Service {
 
     async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
         let dhcpRule: DHCPRule | undefined = await this._repository.findOne(id, { relations: ['firewall', 'network', 'range', 'router'] });
+
         if (!dhcpRule) {
             throw new Error('DHCPRule not found');
         }
@@ -358,7 +359,7 @@ export class DHCPRuleService extends Service {
         ];
     }
 
-    protected async validateUpdateIpObjIds(firewall: Firewall, data: IUpdateDHCPRule): Promise<void> {
+    async validateUpdateIpObjIds(firewall: Firewall, data: IUpdateDHCPRule): Promise<void> {
         const errors: ErrorBag = {};
 
         if (!data.ipObjIds || data.ipObjIds.length === 0) {
