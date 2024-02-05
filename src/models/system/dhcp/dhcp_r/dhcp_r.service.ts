@@ -35,7 +35,7 @@ import { Firewall } from "../../../firewall/Firewall";
 import { DHCPRuleToIPObj } from "./dhcp_r-to-ipobj.model";
 import { ErrorBag } from "../../../../fonaments/validation/validator";
 import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
-import { FirewallService } from "../../../firewall/firewall.service";
+
 interface IFindManyDHCPRulePath {
     fwcloudId?: number;
     firewallId?: number;
@@ -86,18 +86,11 @@ export interface DHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler> 
 export class DHCPRuleService extends Service {
     private _repository: DHCPRepository;
     private _ipobjRepository: IPObjRepository;
-    private _firewallService: FirewallService;
 
     constructor(app: Application) {
         super(app)
         this._repository = getCustomRepository(DHCPRepository);
         this._ipobjRepository = getCustomRepository(IPObjRepository);
-    }
-
-    public async build(): Promise<Service> {
-        this._firewallService = await this._app.getService(FirewallService.name);
-
-        return this;
     }
 
     async store(data: ICreateDHCPRule): Promise<DHCPRule> {
@@ -174,8 +167,6 @@ export class DHCPRuleService extends Service {
             },
         });
 
-        await this._firewallService.markAsUncompiled(firewalls.map(item => item.id));
-
         return this.move(savedCopies.map(item => item.id), destRule, position);
     }
 
@@ -192,8 +183,6 @@ export class DHCPRuleService extends Service {
                 }
             }
         }).then(items => items.map(item => item.firewall.id)));
-
-        await this._firewallService.markAsUncompiled(firewallIds);
 
         return dhcp_rs;
     }
@@ -249,8 +238,6 @@ export class DHCPRuleService extends Service {
 
         dhcpRule = await this._repository.save(dhcpRule);
 
-        await this._firewallService.markAsUncompiled(dhcpRule.firewall.id);
-
         return dhcpRule;
     }
 
@@ -262,8 +249,6 @@ export class DHCPRuleService extends Service {
         await this._repository.save(dhcpRule);
 
         await this._repository.remove(dhcpRule);
-
-        await this._firewallService.markAsUncompiled(dhcpRule.firewall.id);
 
         return dhcpRule;
     }
@@ -352,8 +337,6 @@ export class DHCPRuleService extends Service {
                 }
             }
         }).then(items => items.map(item => item.firewall.id)));
-
-        await this._firewallService.markAsUncompiled(firewallIds);
 
         return this._repository.find({
             where: {
