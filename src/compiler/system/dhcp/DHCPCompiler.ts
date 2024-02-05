@@ -68,7 +68,7 @@ export class DHCPCompiler {
                 cs += `}\n`;
                 break;
             case 3:
-                cs = ruleData.cfg_text;
+                cs = ruleData.cfg_text ? ruleData.cfg_text : '';
                 break;
         }
 
