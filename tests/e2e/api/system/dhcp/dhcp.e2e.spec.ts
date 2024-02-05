@@ -37,6 +37,7 @@ import { DHCPRuleCopyDto } from "../../../../../src/controllers/system/dhcp/dto/
 import { DHCPRepository } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp.repository";
 import { Offset } from "../../../../../src/offset";
 import { DhcpRuleBulkUpdateDto } from "../../../../../src/controllers/system/dhcp/dto/bulk-update.dto";
+import { IPObj } from "../../../../../src/models/ipobj/IPObj";
 
 describe('DHCPRule E2E Tests', () => {
     let app: Application;
@@ -162,7 +163,8 @@ describe('DHCPRule E2E Tests', () => {
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.dhcp.grid', {
                         fwcloud: fwCloud.id,
-                        firewall: firewall.id
+                        firewall: firewall.id,
+                        set: 1,
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401);
@@ -172,7 +174,8 @@ describe('DHCPRule E2E Tests', () => {
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.dhcp.grid', {
                         fwcloud: fwCloud.id,
-                        firewall: firewall.id
+                        firewall: firewall.id,
+                        set: 1,
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401);
@@ -186,6 +189,7 @@ describe('DHCPRule E2E Tests', () => {
                     .get(_URL().getURL('fwclouds.firewalls.system.dhcp.grid', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
+                        set: 1,
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
@@ -198,7 +202,8 @@ describe('DHCPRule E2E Tests', () => {
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.dhcp.grid', {
                         fwcloud: fwCloud.id,
-                        firewall: firewall.id
+                        firewall: firewall.id,
+                        set: 1,
                     }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
@@ -391,14 +396,13 @@ describe('DHCPRule E2E Tests', () => {
 
             it('guest user should not update a dhcp rule', async () => {
                 return await request(app.express)
-                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.update', {
+                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         dhcp: dhcpRule.id,
                     }))
                     .send({
                         active: false,
-                        groupId: group.id,
                         firewallId: firewall.id,
                         max_lease: 5,
                         cfg_text: "cfg_text",
@@ -409,7 +413,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which does not belong to the fwcloud should not update a dhcp rule', async () => {
                 return await request(app.express)
-                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.update', {
+                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         dhcp: dhcpRule.id,
@@ -417,7 +421,6 @@ describe('DHCPRule E2E Tests', () => {
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .send({
                         active: false,
-                        groupId: group.id,
                         firewallId: firewall.id,
                         max_lease: 5,
                         cfg_text: "cfg_text",
@@ -431,7 +434,7 @@ describe('DHCPRule E2E Tests', () => {
                 await getRepository(User).save(loggedUser);
 
                 return await request(app.express)
-                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.update', {
+                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         dhcp: dhcpRule.id,
@@ -439,7 +442,6 @@ describe('DHCPRule E2E Tests', () => {
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .send({
                         active: false,
-                        groupId: group.id,
                         firewallId: firewall.id,
                         max_lease: 5,
                         cfg_text: "cfg_text",
@@ -453,7 +455,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('admin user should update a dhcp rule', async () => {
                 return await request(app.express)
-                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.update', {
+                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         dhcp: dhcpRule.id,
@@ -491,7 +493,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('guest user should not remove a dhcp rule', async () => {
                 return await request(app.express)
-                    .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.delete', {
+                    .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         dhcp: dhcpRule.id,
@@ -501,7 +503,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which does not belong to the fwcloud should not remove a dhcp rule', async () => {
                 return await request(app.express)
-                    .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.delete', {
+                    .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         dhcp: dhcpRule.id,
@@ -515,7 +517,7 @@ describe('DHCPRule E2E Tests', () => {
                 await getRepository(User).save(loggedUser);
 
                 return await request(app.express)
-                    .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.delete', {
+                    .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         dhcp: dhcpRule.id,
@@ -529,7 +531,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('admin user should remove a dhcp rule', async () => {
                 return await request(app.express)
-                    .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.delete', {
+                    .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         dhcp: dhcpRule.id,
@@ -559,7 +561,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('guest user should not see a dhcp rule', async () => {
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.system.dhcp.show', {
+                    .get(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         dhcp: dhcpRule.id,
@@ -569,7 +571,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which does not belong to the fwcloud should not see a dhcp rule', async () => {
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.system.dhcp.show', {
+                    .get(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         dhcp: dhcpRule.id,
@@ -583,7 +585,7 @@ describe('DHCPRule E2E Tests', () => {
                 await getRepository(User).save(loggedUser);
 
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.system.dhcp.show', {
+                    .get(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         dhcp: dhcpRule.id,
@@ -597,7 +599,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('admin user should see a dhcp rule', async () => {
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.system.dhcp.show', {
+                    .get(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         dhcp: dhcpRule.id,
@@ -720,6 +722,86 @@ describe('DHCPRule E2E Tests', () => {
                 expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule2.id)).rule_order).to.equal(4);
                 expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule3.id)).rule_order).to.equal(5);
                 expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule4.id)).rule_order).to.equal(6);
+            });
+        });
+
+        describe('@compile',() => {
+            let dhcpRule: DHCPRule;
+
+            beforeEach(async () => {
+                dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+                    id: 1,
+                    rule_order: 1,
+                    interface: null,
+                    rule_type: 1,
+                    firewall: firewall,
+                    max_lease: 5,
+                    network: await getRepository(IPObj).save(getRepository(IPObj).create({
+                        name: 'test',
+                        address: '0.0.0.0',
+                        ipObjTypeId: 0,
+                        netmask: '/24'
+                    })),
+                    range: await getRepository(IPObj).save(getRepository(IPObj).create({
+                        name: 'test',
+                        address: '0.0.0.0',
+                        ipObjTypeId: 0,
+                        range_start: '1',
+                        range_end: '2',
+                    })),
+                    router: await getRepository(IPObj).save(getRepository(IPObj).create({
+                        name: 'test',
+                        address: '0.0.0.0',
+                        ipObjTypeId: 0,
+                        netmask: '/24',
+                    })),
+                }));
+            });
+
+            it('guest user should not compile a dhcp rule', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        dhcp: dhcpRule.id,
+                    }))
+                    .expect(401);
+            });
+
+            it('regular user which does not belong to the fwcloud should not compile a dhcp rule', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        dhcp: dhcpRule.id,
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(401);
+            });
+
+            it('regular user which belongs to the fwcloud should compile a dhcp rule', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        dhcp: dhcpRule.id,
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .expect(200);
+            });
+
+            it('admin user should compile a dhcp rule', async () => {
+                return await request(app.express)
+                    .get(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.compile', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                        dhcp: dhcpRule.id,
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .expect(200);
             });
         });
 

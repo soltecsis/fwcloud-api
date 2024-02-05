@@ -28,7 +28,6 @@ import { ProgressNoticePayload } from "../../../sockets/messages/socket-message"
 export type DHCPCompiled = {
     id: number;
     active: boolean;
-    comment: string;
     cs: string;
 }
 
@@ -91,7 +90,6 @@ export class DHCPCompiler {
             result.push({
                 id: data[i].id,
                 active: data[i].active,
-                comment: data[i].comment,
                 cs: (data[i].active || data.length === 1) ? this.ruleCompile(data[i] as DHCPRulesData<DHCPRuleItemForCompiler>) : ''
             });
         }
