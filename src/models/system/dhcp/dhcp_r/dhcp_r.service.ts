@@ -161,12 +161,6 @@ export class DHCPRuleService extends Service {
             })
         );
 
-        const firewalls: Firewall[] = await getRepository(Firewall).find({
-            where: {
-                id: In(savedCopies.map(item => item.firewall.id)),
-            },
-        });
-
         return this.move(savedCopies.map(item => item.id), destRule, position);
     }
 
@@ -313,18 +307,6 @@ export class DHCPRuleService extends Service {
         await this._repository.update({
             id: In(ids),
         }, { ...data, group: { id: data.group } });
-
-        const firewallIds: number[] = (await this._repository.find({
-            where: {
-                id: In(ids),
-            },
-            join: {
-                alias: 'dhcp',
-                innerJoinAndSelect: {
-                    firewall: 'dhcp.firewall',
-                }
-            }
-        }).then(items => items.map(item => item.firewall.id)));
 
         return this._repository.find({
             where: {
