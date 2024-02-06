@@ -18,6 +18,7 @@ import { RoutingRuleService } from "../../../src/models/routing/routing-rule/rou
 import { Mark } from "../../../src/models/ipobj/Mark";
 import { Tree, TreeNode } from "../../../src/models/tree/Tree";
 import db from "../../../src/database/database-manager";
+import { DHCPRule } from "../../../src/models/system/dhcp/dhcp_r/dhcp_r.model";
 
 describe(describeName('Firewall E2E Tests'), () => {
     let app: Application;
@@ -256,7 +257,132 @@ describe(describeName('Firewall E2E Tests'), () => {
                 expect(response.body.data).to.have.length(2);
             })
         });
-    })
+    });
+
+    describe('@compileDhcpRules', () => {
+        let fwcProduct: FwCloudProduct;
+        let rule1: DHCPRule;
+        let rule2: DHCPRule;
+
+        beforeEach(async () => {
+            fwcProduct = await new FwCloudFactory().make();
+            fwCloud = fwcProduct.fwcloud;
+            firewall = fwcProduct.firewall;
+
+            rule1 = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+                rule_order: 1,
+                interface: null,
+                rule_type: 1,
+                firewall: firewall,
+                max_lease: 5,
+                network: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    name: 'test',
+                    address: '0.0.0.0',
+                    ipObjTypeId: 0,
+                    netmask: '/24'
+                })),
+                range: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    name: 'test',
+                    address: '0.0.0.0',
+                    ipObjTypeId: 0,
+                    range_start: '1',
+                    range_end: '2',
+                })),
+                router: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    name: 'test',
+                    address: '0.0.0.0',
+                    ipObjTypeId: 0,
+                    netmask: '/24',
+                })),
+            }));
+
+            rule2 = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+                rule_order: 2,
+                interface: null,
+                rule_type: 1,
+                firewall: firewall,
+                max_lease: 5,
+                network: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    name: 'test',
+                    address: '0.0.0.0',
+                    ipObjTypeId: 0,
+                    netmask: '/24'
+                })),
+                range: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    name: 'test',
+                    address: '0.0.0.0',
+                    ipObjTypeId: 0,
+                    range_start: '1',
+                    range_end: '2',
+                })),
+                router: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    name: 'test',
+                    address: '0.0.0.0',
+                    ipObjTypeId: 0,
+                    netmask: '/24',
+                })),
+            }));
+
+        });
+
+        it('guest user should not dhcp compile a firewall', async () => {
+            return await request(app.express)
+                .get(_URL().getURL('fwclouds.firewalls.system.dhcp.compile', {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id
+                }))
+                .expect(401);
+        });
+
+        it('regular user should not dhcp compile a firewall if it does not belong to the fwcloud', async () => {
+            return await request(app.express)
+                .get(_URL().getURL('fwclouds.firewalls.system.dhcp.compile', {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id
+                }))
+                .set('Cookie', [attachSession(loggedUserSessionId)])
+                .expect(401);
+        });
+
+        it('regular user should dhcp compile a firewall if it does belong to the fwcloud', async () => {
+            loggedUser.fwClouds = [fwcProduct.fwcloud];
+            await getRepository(User).save(loggedUser);
+
+            return await request(app.express)
+                .get(_URL().getURL('fwclouds.firewalls.system.dhcp.compile', {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id
+                }))
+                .set('Cookie', [attachSession(loggedUserSessionId)])
+                .expect(200);
+        });
+
+        it('admin user should dhcp compile a firewall', async () => {
+            return await request(app.express)
+                .get(_URL().getURL('fwclouds.firewalls.system.dhcp.compile', {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id
+                }))
+                .set('Cookie', [attachSession(adminUserSessionId)])
+                .expect(200);
+        });
+
+        it('should compile a list of dhcp rules', async () => {
+            return await request(app.express)
+                .get(_URL().getURL('fwclouds.firewalls.system.dhcp.compile', {
+                    fwcloud: fwCloud.id,
+                    firewall: firewall.id
+                }))
+                .query({
+                    rules: [rule1.id, rule2.id]
+                })
+                .set('Cookie', [attachSession(adminUserSessionId)])
+                .expect(200)
+                .expect(response => {
+                    expect(response.body.data).to.have.length(2);
+                })
+        });
+    });
 
     describe('FirewallController@limits',()=>{
         let tree: TreeNode;
