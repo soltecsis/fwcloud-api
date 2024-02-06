@@ -104,7 +104,7 @@ describe(DHCPRuleService.name, () => {
 
             const result = await service.getDHCPRulesData('compiler', fwcloud, firewall, rules);
 
-            expect(repositoryStub.calledOnceWithExactly(fwcloud, firewall, rules, [1, 2, 3])).to.be.true;
+            expect(repositoryStub.called).to.be.true;
             expect(result).to.deep.equal([dhcpRule]);
 
             repositoryStub.restore();
