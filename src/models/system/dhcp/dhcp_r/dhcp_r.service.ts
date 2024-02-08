@@ -278,7 +278,7 @@ export class DHCPRuleService extends Service {
                 rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [2]) as DHCPRulesData<T>[];
                 break;
             case 'compiler':
-                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [1,3,2]) as DHCPRulesData<T>[];
+                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [1,3,2],true) as DHCPRulesData<T>[];
                 break;
         }
 

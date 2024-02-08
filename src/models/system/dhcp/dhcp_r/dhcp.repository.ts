@@ -265,7 +265,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
         }))[0];
     }
 
-    async getDHCPRules(fwcloud: number, firewall: number, rules?: number[], rule_types?: number[]): Promise<DHCPRule[]> {
+    async getDHCPRules(fwcloud: number, firewall: number, rules?: number[], rule_types?: number[], forCompilation = false): Promise<DHCPRule[]> {
         const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder('dhcp_r')
             .leftJoinAndSelect('dhcp_r.group', 'group')
             .leftJoinAndSelect('dhcp_r.network', 'network')
@@ -286,6 +286,14 @@ export class DHCPRepository extends Repository<DHCPRule> {
             query
                 .andWhere('dhcp_r.rule_type IN (:...rule_types)')
                 .setParameter('rule_types', rule_types);
+
+            if (forCompilation) {
+                query
+                    .orderBy('FIELD(dhcp_r.rule_type, :...rule_types)', 'ASC')
+                    .addOrderBy('dhcp_r.rule_order', 'ASC');
+            }
+        } else {
+            query.orderBy('dhcp_r.rule_order', 'ASC');
         }
 
         if (rules) {
@@ -294,6 +302,6 @@ export class DHCPRepository extends Repository<DHCPRule> {
                 .setParameter('rule', rules);
         }
 
-        return query.orderBy('dhcp_r.rule_order', 'ASC').getMany();
+        return query.getMany();
     }
 }
