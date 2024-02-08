@@ -156,7 +156,7 @@ export class KeepAlivedService1707389184803 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.dropTable('keepalive_r');
+        await queryRunner.dropTable('keepalived_r');
         await queryRunner.dropTable('keepalived_g');
     }
 }
