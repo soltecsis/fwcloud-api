@@ -196,7 +196,7 @@ export class DhcpController extends Controller {
   public async install(req: Request): Promise<ResponseBuilder> {
     const channel = await Channel.fromRequest(req);
 
-    const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] = await this._dhcpRuleService.getDHCPRulesData('compiler', this._fwCloud.id, this._firewall.id, [this._dhcprule.id]);
+    const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] = await this._dhcpRuleService.getDHCPRulesData('compiler', this._fwCloud.id, this._firewall.id);
     const content = (new DHCPCompiler().compile(rules, channel)).map(item => item.cs).join('\n');
 
     const firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
