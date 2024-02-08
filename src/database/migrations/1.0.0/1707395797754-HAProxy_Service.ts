@@ -154,7 +154,17 @@ export class HAProxyService1707395797754 implements MigrationInterface {
                     referencedColumnNames: ['id']
                 },
                 {
+                    columnNames: ['frontend_port'],
+                    referencedTableName: 'ipobj',
+                    referencedColumnNames: ['id']
+                },
+                {
                     columnNames: ['backend_ip'],
+                    referencedTableName: 'ipobj',
+                    referencedColumnNames: ['id']
+                },
+                {
+                    columnNames: ['backend_port'],
                     referencedTableName: 'ipobj',
                     referencedColumnNames: ['id']
                 }
