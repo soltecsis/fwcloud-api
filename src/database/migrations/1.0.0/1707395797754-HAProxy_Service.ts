@@ -119,12 +119,6 @@ export class HAProxyService1707395797754 implements MigrationInterface {
                     default: null
                 },
                 {
-                    name: 'backend_ip',
-                    type: 'int',
-                    length: '11',
-                    isNullable: true
-                },
-                {
                     name: 'backend_port',
                     type: 'int',
                     length: '11',
@@ -159,22 +153,55 @@ export class HAProxyService1707395797754 implements MigrationInterface {
                     referencedColumnNames: ['id']
                 },
                 {
-                    columnNames: ['backend_ip'],
-                    referencedTableName: 'ipobj',
-                    referencedColumnNames: ['id']
-                },
-                {
                     columnNames: ['backend_port'],
                     referencedTableName: 'ipobj',
                     referencedColumnNames: ['id']
                 }
             ]
         }));
+
+        await queryRunner.createTable(new Table({
+            name: 'haproxy_r__ipobj',
+            columns: [
+                {
+                    name: 'rule',
+                    type: 'int',
+                    length: '11',
+                    isPrimary: true
+                },
+                {
+                    name: 'ipobj',
+                    type: 'int',
+                    length: '11',
+                    isPrimary: true
+                },
+                {
+                    name: 'order',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false
+                }
+            ],
+            foreignKeys: [
+                {
+                    columnNames: ['rule'],
+                    referencedTableName: 'haproxy_r',
+                    referencedColumnNames: ['id']
+                },
+                {
+                    columnNames: ['ipobj'],
+                    referencedTableName: 'ipobj',
+                    referencedColumnNames: ['id']
+                }
+            
+            ]
+        }))
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.dropTable('haproxy_r');
         await queryRunner.dropTable('haproxy_g');
+        await queryRunner.dropTable('haproxy_r__ipobj');
     }
 
 }
