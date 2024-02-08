@@ -20,19 +20,19 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { ServiceProvider } from "../../../../fonaments/services/service-provider";
-import { ServiceContainer } from "../../../../fonaments/services/service-container";
+import {ServiceBound, ServiceContainer} from "../../../../fonaments/services/service-container";
 import { DHCPRuleService } from "./dhcp_r.service";
 import { AbstractApplication } from "../../../../fonaments/abstract-application";
 
 export class DHCPRuleServiceProvider extends ServiceProvider {
 
-    public register(serviceContainer: ServiceContainer) {
-        return serviceContainer.singleton(DHCPRuleService.name, async(app): Promise<DHCPRuleService> => {
+    public register(serviceContainer: ServiceContainer): ServiceBound {
+        return serviceContainer.singleton(DHCPRuleService.name, async(app: AbstractApplication): Promise<DHCPRuleService> => {
             return DHCPRuleService.make(app);
         });
     }
 
-    public async bootstrap(app: AbstractApplication) {
+    public async bootstrap(app: AbstractApplication): Promise<void> {
         await app.getService<DHCPRuleService>(DHCPRuleService.name);
     }
 

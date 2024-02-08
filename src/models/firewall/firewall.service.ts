@@ -164,7 +164,7 @@ export class FirewallService extends Service {
         const routingRuleService: RoutingRuleService = await app().getService(RoutingRuleService.name);
         const dhcpRuleService: DHCPRuleService = await app().getService(DHCPRuleService.name);
 
-        const firewallEntity = await getRepository(Firewall).findOneOrFail(firewallId, { relations: ['routingTables', 'routingTables.routingRules', 'dhcpRules'] });
+        const firewallEntity: Firewall = await getRepository(Firewall).findOneOrFail(firewallId, { relations: ['routingTables', 'routingTables.routingRules', 'dhcpRules'] });
         for (let table of firewallEntity.routingTables) {
             await routingRuleService.bulkRemove(table.routingRules.map(item => item.id));
             await routingTableService.remove({

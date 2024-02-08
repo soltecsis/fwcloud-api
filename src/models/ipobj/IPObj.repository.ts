@@ -281,8 +281,8 @@ export class IPObjRepository extends Repository<IPObj> {
     return query;
   }
 
-  getIpobjsInDhcp_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, dhcpRule?: number): SelectQueryBuilder<IPObj> {
-    let query = this.createQueryBuilder("ipobj")
+  getIPObjsInDhcp_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number): SelectQueryBuilder<IPObj> {
+    let query: SelectQueryBuilder<IPObj> = this.createQueryBuilder("ipobj")
       .select("ipobj.id", "id")
       .addSelect("ipobj.address", "address")
       .addSelect("ipobj.name", "name")

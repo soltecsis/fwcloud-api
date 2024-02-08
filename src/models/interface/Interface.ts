@@ -34,7 +34,6 @@ import { Route } from "../routing/route/route.model";
 import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface/routing-rule-to-interface.model";
 import { RouteToIPObj } from "../routing/route/route-to-ipobj.model";
 import { RoutingRuleToIPObj } from "../routing/routing-rule/routing-rule-to-ipobj.model";
-import { Tree } from '../../models/tree/Tree';
 import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 

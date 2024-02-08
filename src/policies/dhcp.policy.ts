@@ -1,9 +1,9 @@
 import { getRepository } from "typeorm";
 import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { User } from "../models/user/User";
-import { DHCPGroup } from "../models/system/dhcp/dhcp_g/dhcp_g.model";
 import { DHCPRule } from "../models/system/dhcp/dhcp_r/dhcp_r.model";
 import { Firewall } from "../models/firewall/Firewall";
+import {FwCloud} from "../models/fwcloud/FwCloud";
 
 export class DhcpPolicy extends Policy {
     static async index(firewall: Firewall, user: User): Promise<Authorization> {
@@ -14,7 +14,7 @@ export class DhcpPolicy extends Policy {
             return Authorization.grant();
         }
 
-        const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === firewall.fwCloudId });
+        const match: FwCloud[] = user.fwClouds.filter((FwCloud: FwCloud): boolean => { return FwCloud.id === firewall.fwCloudId });
 
         return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
@@ -38,7 +38,7 @@ export class DhcpPolicy extends Policy {
             return Authorization.grant();
         }
 
-        const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === firewall.fwCloudId });
+        const match: FwCloud[] = user.fwClouds.filter((fwcloud: FwCloud): boolean => { return fwcloud.id === firewall.fwCloudId });
 
         return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
@@ -62,7 +62,7 @@ export class DhcpPolicy extends Policy {
             return Authorization.grant();
         }
 
-        const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === firewall.fwCloudId });
+        const match: FwCloud[] = user.fwClouds.filter((fwcloud: FwCloud): boolean => { return fwcloud.id === firewall.fwCloudId });
 
         return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
@@ -90,7 +90,7 @@ export class DhcpPolicy extends Policy {
     }
 
     private static async checkAuthorization(user: User, fwCloudId: number): Promise<Authorization> {
-        const match = user.fwClouds.filter((fwcloud) => fwcloud.id === fwCloudId);
+        const match: FwCloud[] = user.fwClouds.filter((fwcloud: FwCloud): boolean => fwcloud.id === fwCloudId);
 
         return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }

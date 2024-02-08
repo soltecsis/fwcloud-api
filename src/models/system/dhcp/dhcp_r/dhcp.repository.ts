@@ -45,16 +45,6 @@ export class DHCPRepository extends Repository<DHCPRule> {
     }
 
     /**
-     * Finds a DHCP record in a specific path.
-     * @param path - The path to search for the DHCP record.
-     * @param options - The options to apply to the query.
-     * @returns A promise that resolves to the found DHCP record.
-     */
-    findOneInPath(path: IFindOneDHCPRPath, options?: FindManyOptions<DHCPRule>): Promise<DHCPRule> {
-        return this.findOne(this.getFindInPathOptions(path, options));
-    }
-
-    /**
      * Moves the DHCP rules with the specified IDs to a new position relative to the DHCP rule with the given ID.
      * @param ids - An array of DHCP rule IDs to be moved.
      * @param dhcpDestId - The ID of the DHCP rule to which the selected rules will be moved.
@@ -147,7 +137,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
         const currentPosition: number = dhcp_rs[0].rule_order;
         const forward: boolean = currentPosition < destDHCP.rule_order;
 
-        affectedDHCPs.forEach((dhcp_r: DHCPRule) => {
+        affectedDHCPs.forEach((dhcp_r: DHCPRule): void => {
             if (movingIds.includes(dhcp_r.id)) {
                 const offset: number = movingIds.indexOf(dhcp_r.id);
                 dhcp_r.rule_order = destPosition + offset + 1;
@@ -176,15 +166,15 @@ export class DHCPRepository extends Repository<DHCPRule> {
      * @returns A promise that resolves to the removed DHCP entity or entities.
      */
     async remove(entityOrEntities: DHCPRule | DHCPRule[], options?: RemoveOptions): Promise<DHCPRule | DHCPRule[]> {
-        const result = await super.remove(entityOrEntities as DHCPRule[], options);
+        const result: DHCPRule[] = await super.remove(entityOrEntities as DHCPRule[], options);
 
         if (result && !Array.isArray(result)) {
-            const dhcpRule = result as DHCPRule;
+            const dhcpRule: DHCPRule = result;
             if (dhcpRule.group) {
                 await this.refreshOrders(dhcpRule.group.id);
             }
         } else if (result && Array.isArray(result) && result.length > 0) {
-            const dhcpRule = result[0] as DHCPRule;
+            const dhcpRule: DHCPRule = result[0];
             if (dhcpRule.group) {
                 await this.refreshOrders(dhcpRule.group.id);
             }
@@ -208,7 +198,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
                     fwcloud: 'firewall.fwCloud',
                 }
             },
-            where: (qb: SelectQueryBuilder<DHCPRule>) => {
+            where: (qb: SelectQueryBuilder<DHCPRule>): void => {
                 if (path.firewallId) {
                     qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
                 }
@@ -227,13 +217,13 @@ export class DHCPRepository extends Repository<DHCPRule> {
 
     /**
      * Refreshes the orders of DHCP rules based on the specified group ID.
-     * @param dhcpgid The group ID of the DHCP rules to refresh.
+     * @param DHCPGroupId The group ID of the DHCP rules to refresh.
      * @returns A Promise that resolves when the orders are successfully refreshed.
      */
-    protected async refreshOrders(dhcpgid: number): Promise<void> {
+    protected async refreshOrders(DHCPGroupId: number): Promise<void> {
         const dhcp_rs: DHCPRule[] = await this.find({
             where: {
-                group: dhcpgid,
+                group: DHCPGroupId,
             },
             order: {
                 'rule_order': 'ASC',
@@ -241,7 +231,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
         });
 
         let order: number = 1;
-        dhcp_rs.forEach((dhcp_r: DHCPRule) => {
+        dhcp_rs.forEach((dhcp_r: DHCPRule): void => {
             dhcp_r.rule_order = order++;
         });
 
@@ -250,13 +240,13 @@ export class DHCPRepository extends Repository<DHCPRule> {
 
     /**
      * Retrieves the last DHCP rule in a specified group.
-     * @param dhcpgid - The ID of the DHCP group.
+     * @param DHCPGroupId - The ID of the DHCP group.
      * @returns A Promise that resolves to the last DHCP rule in the group.
      */
-    async getLastDHCPRuleInGroup(dhcpgid: number): Promise<DHCPRule> {
+    async getLastDHCPRuleInGroup(DHCPGroupId: number): Promise<DHCPRule> {
         return (await this.find({
             where: {
-                group: dhcpgid,
+                group: DHCPGroupId,
             },
             order: {
                 'rule_order': 'DESC',
@@ -265,7 +255,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
         }))[0];
     }
 
-    async getDHCPRules(fwcloud: number, firewall: number, rules?: number[], rule_types?: number[], forCompilation = false): Promise<DHCPRule[]> {
+    async getDHCPRules(FWCloud: number, firewall: number, rules?: number[], rule_types?: number[], forCompilation: boolean = false): Promise<DHCPRule[]> {
         const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder('dhcp_r')
             .leftJoinAndSelect('dhcp_r.group', 'group')
             .leftJoinAndSelect('dhcp_r.network', 'network')
@@ -280,7 +270,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
             .innerJoinAndSelect('dhcp_r.firewall', 'firewall')
             .innerJoinAndSelect('firewall.fwCloud', 'fwCloud')
             .where('firewall.id = :firewallId', { firewallId: firewall })
-            .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud });
+            .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: FWCloud });
 
         if (rule_types) {
             query

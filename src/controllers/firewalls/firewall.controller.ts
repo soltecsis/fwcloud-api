@@ -47,7 +47,7 @@ import { PgpHelper } from "../../utils/pgp";
 import { PluginDto } from './dtos/plugin.dto';
 import { DHCPRuleService, DHCPRulesData } from "../../models/system/dhcp/dhcp_r/dhcp_r.service";
 import { DHCPRuleItemForCompiler } from "../../models/system/shared";
-import { DHCPCompiler } from "../../compiler/system/dhcp/DHCPCompiler";
+import {DHCPCompiled, DHCPCompiler} from "../../compiler/system/dhcp/DHCPCompiler";
 
 
 export class FirewallController extends Controller {
@@ -154,7 +154,7 @@ export class FirewallController extends Controller {
             req.query.rules ? (req.query.rules as string[]).map(item => parseInt(item)) : undefined
         );
 
-        const compilation = new DHCPCompiler().compile(rules);
+        const compilation: DHCPCompiled[] = new DHCPCompiler().compile(rules);
 
         return ResponseBuilder.buildResponse().status(200).body(compilation)
     }

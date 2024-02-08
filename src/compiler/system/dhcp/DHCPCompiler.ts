@@ -33,7 +33,7 @@ export type DHCPCompiled = {
 
 export class DHCPCompiler {
     public ruleCompile(ruleData: DHCPRulesData<DHCPRuleItemForCompiler>): string {
-        let cs = '';
+        let cs: string = '';
 
         switch (ruleData.rule_type) {
             case 1:
@@ -46,7 +46,7 @@ export class DHCPCompiler {
                 cs += `\toption broadcast-address ${ip.subnet(ruleData.network.address, this.convertToNetmask(ruleData.network.netmask)).broadcastAddress};\n`;
                 if (ruleData.items && ruleData.items.length > 0) {
                     cs += `\toption domain-name-servers `;
-                    for (let i = 0; i < (ruleData.items.length - 1); i++) {
+                    for (let i: number = 0; i < (ruleData.items.length - 1); i++) {
                         cs += `${ruleData.items[i].address}, `;
                     }
                     cs += `${ruleData.items[(ruleData.items.length - 1)].address};\n`;
@@ -81,7 +81,7 @@ export class DHCPCompiler {
             return result;
         }
 
-        for (let i = 0; i < data.length; i++) {
+        for (let i: number = 0; i < data.length; i++) {
             if (eventEmitter) {
                 eventEmitter.emit('progress', new ProgressNoticePayload(`Compiling DHCP rule ${i} (ID: ${data[i].id})${!(data[i].active) ? ' [DISABLED]' : ''}`));
             }
@@ -96,11 +96,11 @@ export class DHCPCompiler {
         return result;
     }
 
-    private convertToNetmask(mask: string) {
+    private convertToNetmask(mask: string): string {
         if (mask.includes('.')) {
             return mask;
         } else if (mask.includes('/')) {
             return ip.fromPrefixLen(parseInt(mask.split('/')[1], 10));
         }
     }
-};
+}

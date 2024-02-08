@@ -41,6 +41,8 @@ import { AvailableDestinations, DHCPRuleItemForCompiler } from '../../../models/
 import { DHCPCompiler } from '../../../compiler/system/dhcp/DHCPCompiler';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
+import {Communication} from "../../../communications/communication";
+import {AgentCommunication} from "../../../communications/agent.communication";
 
 export class DhcpController extends Controller {
   protected _dhcpRuleService: DHCPRuleService;
@@ -105,7 +107,7 @@ export class DhcpController extends Controller {
     (await DhcpPolicy.create(this._firewall, req.session.user)).authorize();
 
     const data: ICreateDHCPRule = Object.assign(req.inputs.all<DHCPRuleCreateDto>(), this._dhcpgroup ? { group: this._dhcpgroup.id } : null);
-    const dhcpRule = await this._dhcpRuleService.store(data);
+    const dhcpRule: DHCPRule = await this._dhcpRuleService.store(data);
 
     return ResponseBuilder.buildResponse().status(201).body(dhcpRule);
   }
@@ -114,7 +116,7 @@ export class DhcpController extends Controller {
   public async copy(req: Request): Promise<ResponseBuilder> {
     const ids: number[] = req.inputs.get('rules');
     for (const id of ids) {
-      const rule = await getRepository(DHCPRule).findOneOrFail(id);
+      const rule: DHCPRule = await getRepository(DHCPRule).findOneOrFail(id);
       (await DhcpPolicy.copy(rule, req.session.user)).authorize();
     }
 
@@ -169,7 +171,7 @@ export class DhcpController extends Controller {
           fwcloud: 'firewall.fwCloud'
         }
       },
-      where: (qb: SelectQueryBuilder<DHCPRule>) => {
+      where: (qb: SelectQueryBuilder<DHCPRule>): void => {
         qb.whereInIds(req.inputs.get('rules'))
           .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
           .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
@@ -187,20 +189,20 @@ export class DhcpController extends Controller {
 
     const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] = await this._dhcpRuleService.getDHCPRulesData('compiler', this._fwCloud.id, this._firewall.id, [this._dhcprule.id]);
 
-    const compilation = new DHCPCompiler().compile(rules);
+    new DHCPCompiler().compile(rules);
 
     return ResponseBuilder.buildResponse().status(200).body(null);
   }
 
   @Validate()
   public async install(req: Request): Promise<ResponseBuilder> {
-    const channel = await Channel.fromRequest(req);
+    const channel: Channel = await Channel.fromRequest(req);
 
     const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] = await this._dhcpRuleService.getDHCPRulesData('compiler', this._fwCloud.id, this._firewall.id);
-    const content = (new DHCPCompiler().compile(rules, channel)).map(item => item.cs).join('\n');
+    const content: string = (new DHCPCompiler().compile(rules, channel)).map(item => item.cs).join('\n');
 
-    const firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
-    const communication = await firewall.getCommunication();
+    const firewall: Firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
+    const communication: Communication<unknown> = await firewall.getCommunication();
 
     channel.emit('message', new ProgressPayload('start', false, `Installing DHCP`));
 

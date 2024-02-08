@@ -73,11 +73,11 @@ export class DhcpGroupController extends Controller {
       firewallId: this._firewall.id,
       name: req.body.name,
       style: req.body.style,
-      rules: req.inputs.get<number[]>('rules')?.map((id) => ({ id })),
+      rules: req.inputs.get<number[]>('rules')?.map((id:number): {id: number} => ({ id })),
     });
 
     if (req.inputs.get<number[]>('rules')) {
-      await this._dhcpDHCPRuleService.bulkUpdate(req.inputs.get<number[]>('rules')?.map((id) => id), { group: group.id });
+      await this._dhcpDHCPRuleService.bulkUpdate(req.inputs.get<number[]>('rules')?.map((id: number) => id), { group: group.id });
     }
 
     return ResponseBuilder.buildResponse().status(201).body(group);
@@ -94,7 +94,7 @@ export class DhcpGroupController extends Controller {
   async update(req: Request): Promise<ResponseBuilder> {
     (await DHCPGroupPolicy.update(this._dhcpGroup, req.session.user)).authorize();
 
-    const result = await this._dhcpGroupService.update(this._dhcpGroup.id, req.inputs.all());
+    const result: DHCPGroup = await this._dhcpGroupService.update(this._dhcpGroup.id, req.inputs.all());
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }

@@ -21,7 +21,7 @@
 */
 
 import { expect } from "chai";
-import { DHCPCompiler } from "../../../../../src/compiler/system/dhcp/DHCPCompiler";
+import {DHCPCompiled, DHCPCompiler} from "../../../../../src/compiler/system/dhcp/DHCPCompiler";
 import { DHCPRuleService, DHCPRulesData } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service";
 import { DHCPRuleItemForCompiler } from "../../../../../src/models/system/shared";
 import { testSuite } from "../../../../mocha/global-setup";
@@ -32,15 +32,14 @@ import { IPObj } from "../../../../../src/models/ipobj/IPObj";
 import sinon from "sinon";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 
-describe(DHCPCompiler.name, () => {
+describe(DHCPCompiler.name, (): void => {
     let fwc: FwCloudProduct;
 
     let dhcpRuleService: DHCPRuleService;
     let compiler: DHCPCompiler = new DHCPCompiler;
     let rules: DHCPRulesData<DHCPRuleItemForCompiler>[];
-    let cs: string;
 
-    beforeEach(async () => {
+    beforeEach(async (): Promise<void> => {
         await testSuite.resetDatabaseData();
 
         fwc = await (new FwCloudFactory()).make();
@@ -50,7 +49,7 @@ describe(DHCPCompiler.name, () => {
         const testData: DHCPRule[] = [];
 
         for (let i = 0; i < 10; i++) {
-            let rule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            let rule: DHCPRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
                 id: 1,
                 rule_order: 1,
                 interface: null,
@@ -89,16 +88,16 @@ describe(DHCPCompiler.name, () => {
             expect(compiler.compile([])).to.be.an('array').that.is.empty;
         });
 
-        it('should return an array with compiled data for an active rule', async () => {
+        it('should return an array with compiled data for an active rule', async (): Promise<void> => {
             expect(compiler.compile(rules)).to.be.an('array').that.is.not.empty;
         });
 
-        it('should return an array with compiled data for an inactive rule', async () => {
+        it('should return an array with compiled data for an inactive rule', async (): Promise<void> => {
             rules.forEach(element => {
                 element.active = false;
             });
 
-            const result = compiler.compile(rules);
+            const result: DHCPCompiled[] = compiler.compile(rules);
             expect(result).to.be.an('array').that.is.not.empty;
 
             result.forEach(element => {
@@ -108,15 +107,14 @@ describe(DHCPCompiler.name, () => {
         });
 
         it('should emit a progress event for each rule', async () => {
-            const eventEmitter = new EventEmitter();
+            const eventEmitter: EventEmitter = new EventEmitter();
 
-            const progressHandler = sinon.stub();
+            const progressHandler: sinon.SinonStub<any[],any> = sinon.stub();
             eventEmitter.on('progress', progressHandler);
 
             compiler.compile(rules, eventEmitter);
 
-            // Asegúrate de que el evento de progreso se emita para cada regla.
-            rules.forEach((rule, index) => {
+            rules.forEach((rule: DHCPRulesData<DHCPRuleItemForCompiler>, index: number): void => {
                 expect(progressHandler.calledWith(sinon.match({ message: `Compiling DHCP rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}` }))).to.be.true;
             });
         });

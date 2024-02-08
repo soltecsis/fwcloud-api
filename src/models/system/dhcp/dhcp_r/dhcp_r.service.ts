@@ -116,7 +116,7 @@ export class DHCPRuleService extends Service {
             dhcpRuleData.router = await getRepository(IPObj).findOneOrFail(data.routerId) as IPObj;
         }
         if (data.interfaceId) {
-            let interfaceData = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
+            let interfaceData: Interface = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
             if (!interfaceData.mac || interfaceData.mac === '') {
                 throw new Error('Interface mac is not defined');
             }
@@ -135,9 +135,9 @@ export class DHCPRuleService extends Service {
             throw new Error('IP version mismatch');
         }
 
-        const lastDHCPRule = await this._repository.getLastDHCPRuleInGroup(data.groupId);
+        const lastDHCPRule: DHCPRule = await this._repository.getLastDHCPRuleInGroup(data.groupId);
         dhcpRuleData.rule_order = lastDHCPRule?.rule_order ? lastDHCPRule.rule_order + 1 : 1;
-        const persisted = await this._repository.save(dhcpRuleData);
+        const persisted: Partial<DHCPRule> & DHCPRule = await this._repository.save(dhcpRuleData);
 
         if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'offset')) {
             return (await this.move([persisted.id], data.to, data.offset))[0]
@@ -192,7 +192,7 @@ export class DHCPRuleService extends Service {
                 order: item.order
             } as DHCPRuleToIPObj));
         } else {
-            const fieldsToUpdate = ['groupId', 'networkId', 'rangeId', 'routerId', 'interfaceId', 'firewallId'];
+            const fieldsToUpdate: string [] = ['groupId', 'networkId', 'rangeId', 'routerId', 'interfaceId', 'firewallId'];
 
             for (const field of fieldsToUpdate) {
                 if (data[field]) {
@@ -239,10 +239,6 @@ export class DHCPRuleService extends Service {
         return this._repository.findOneOrFail(this.getFindInPathOptions(path, options));
     }
 
-    findManyInPath(path: IFindManyDHCPRulePath, options?: FindOneOptions<DHCPRule>): Promise<DHCPRule[]> {
-        return this._repository.find(this.getFindInPathOptions(path, options));
-    }
-
     protected getFindInPathOptions(path: Partial<IFindOneDHCPRulePath>, options: FindOneOptions<DHCPRule> = {}): FindOneOptions<DHCPRule> {
         return Object.assign({
             join: {
@@ -252,7 +248,7 @@ export class DHCPRuleService extends Service {
                     fwcloud: 'firewall.fwCloud',
                 }
             },
-            where: (qb: SelectQueryBuilder<DHCPRule>) => {
+            where: (qb: SelectQueryBuilder<DHCPRule>): void => {
                 if (path.firewallId) {
                     qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
                 }
@@ -282,16 +278,16 @@ export class DHCPRuleService extends Service {
                 break;
         }
 
-        let ItemsArrayMap = new Map<number, T[]>();
+        let ItemsArrayMap: Map<number, T[]> = new Map<number, T[]>();
         for (let i = 0; i < rulesData.length; i++) {
             rulesData[i].items = [];
 
             ItemsArrayMap.set(rulesData[i].id, rulesData[i].items);
         }
 
-        const sqls = (dst === 'compiler') ?
-            this.buildDHCPRulesCompilerSql(fwcloud, firewall, rules) :
-            this.getDHCPRulesGridSql(fwcloud, firewall, rules);
+        const sqls: SelectQueryBuilder<IPObj | IPObjGroup>[] = (dst === 'compiler') ?
+            this.buildDHCPRulesCompilerSql(fwcloud, firewall) :
+            this.getDHCPRulesGridSql(fwcloud, firewall);
 
         await Promise.all(sqls.map(sql => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)));
 
@@ -329,15 +325,15 @@ export class DHCPRuleService extends Service {
         return rules;
     }
 
-    private getDHCPRulesGridSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {
+    private getDHCPRulesGridSql(fwcloud: number, firewall: number): SelectQueryBuilder<IPObj | IPObjGroup>[] {
         return [
-            this._ipobjRepository.getIpobjsInDhcp_ForGrid('rule', fwcloud, firewall),
+            this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall),
         ];
     }
 
-    private buildDHCPRulesCompilerSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {
+    private buildDHCPRulesCompilerSql(fwcloud: number, firewall: number): SelectQueryBuilder<IPObj | IPObjGroup>[] {
         return [
-            this._ipobjRepository.getIpobjsInDhcp_ForGrid('rule', fwcloud, firewall),
+            this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall),
         ];
     }
 

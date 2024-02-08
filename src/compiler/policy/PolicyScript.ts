@@ -27,7 +27,7 @@
  * @type /models/compile/
  */
 import { Firewall, FireWallOptMask } from '../../models/firewall/Firewall';
-import { ProgressNoticePayload, ProgressErrorPayload, ProgressPayload } from '../../sockets/messages/socket-message';
+import { ProgressNoticePayload, ProgressPayload } from '../../sockets/messages/socket-message';
 import { AvailablePolicyCompilers, PolicyCompiler } from './PolicyCompiler';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { PolicyRule } from '../../models/policy/PolicyRule';
