@@ -76,6 +76,13 @@ export class KeepAlivedService1707389184803 implements MigrationInterface {
                     isNullable: false
                 },
                 {
+                    name: 'rule_type',
+                    type: 'tinyint',
+                    length: '1',
+                    isNullable: false,
+                    default: 1
+                },
+                {
                     name: 'rule_order',
                     type: 'int',
                     length: '11',
@@ -100,6 +107,11 @@ export class KeepAlivedService1707389184803 implements MigrationInterface {
                     length: '50',
                     isNullable: true,
                     default: null,
+                },
+                {
+                    name: 'cfg_text',
+                    type: 'text',
+                    isNullable: true
                 },
                 {
                     name: 'comment',
