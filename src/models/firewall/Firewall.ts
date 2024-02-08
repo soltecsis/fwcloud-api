@@ -82,7 +82,8 @@ export enum PluginsFlags {
 	logstash = 'logstash',
 	dnssafety = 'dnssafety',
 	isc_bind9 = 'isc-bind9',
-	isc_dhcp = 'isc-dhcp'
+	isc_dhcp = 'isc-dhcp',
+	haproxy = 'haproxy'
 }
 
 // Special rules codes.

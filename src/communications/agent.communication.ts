@@ -21,7 +21,7 @@
 */
 
 import { EventEmitter } from "events";
-import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord } from "./communication";
+import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord, SystemCtlInfo } from "./communication";
 import axios, { AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
 import { ProgressErrorPayload, ProgressInfoPayload, ProgressNoticePayload, ProgressPayload, ProgressSSHCmdPayload } from "../sockets/messages/socket-message";
 import * as fs from 'fs';
@@ -40,6 +40,7 @@ type AgentCommunicationData = {
 }
 
 export class AgentCommunication extends Communication<AgentCommunicationData> {
+ 
     protected readonly url: string;
     protected readonly ws_url: string;
     protected readonly headers: Record<string, unknown>;
@@ -239,13 +240,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     async info(): Promise<FwcAgentInfo> {
         try {
             const pathUrl: string = this.url + '/api/v1/info';
-
-            const response: AxiosResponse<string> = await axios.get(pathUrl, this.config);
-
+            
+            const response: AxiosResponse<FwcAgentInfo> = await axios.get(pathUrl, this.config);
+            
             if (response.status === 200) {
-                return response.data.split("\n").filter(item => item !== '').slice(1).map(item => ({
-                    fwcAgentVersion: item.split(',')[0]
-                }))[0];
+                return response.data
             }
 
             throw new Error("Unexpected FWCloud-Agent info response");
@@ -254,7 +253,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             this.handleRequestException(error);
         }
     }
-
+    
     async installPlugin(name: string, enabled: boolean, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         try {
             const pathUrl: string = this.url + '/api/v1/plugin';
@@ -396,6 +395,24 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             this.handleRequestException(error);
         }
     }
+    async systemctlManagement(command: string,service: string): Promise<string> {
+        try {
+            const pathUrl: string = this.url + '/api/v1/systemctl';
+            
+            const systemCtlInfo: SystemCtlInfo = {
+                command: command,
+                service: service
+            };
+            const response: AxiosResponse<string> = await axios.post(pathUrl, systemCtlInfo, this.config);
+            if (response.status === 200) {
+                return response.data
+            }
+            throw new Error("Unexpected FWCloud-Agent info response");
+        } catch(error) {
+            this.handleRequestException(error);
+        }
+    }
+
 
     protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
         if (axios.isAxiosError(error)) {
@@ -431,4 +448,6 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
         return super.handleRequestException(error, eventEmitter);
     }
+
+
 }

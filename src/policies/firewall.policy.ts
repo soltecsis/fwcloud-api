@@ -67,6 +67,7 @@ export class FirewallPolicy extends Policy {
         return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
 
+
     static async install(firewall: Firewall, user: User): Promise<Authorization> {
         user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
         

@@ -7,7 +7,7 @@ import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { getRepository } from "typeorm";
 import StringHelper from "../../../src/utils/string.helper";
-import { Firewall } from "../../../src/models/firewall/Firewall";
+import { Firewall, FirewallInstallCommunication } from "../../../src/models/firewall/Firewall";
 import { IPObj } from "../../../src/models/ipobj/IPObj";
 import sinon from "sinon";
 import sshTools from '../../../src/utils/ssh';
