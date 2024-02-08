@@ -70,6 +70,12 @@ export class KeepAlivedService1707389184803 implements MigrationInterface {
                     isPrimary: true,
                 },
                 {
+                    name: 'firewall',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false
+                },
+                {
                     name: 'rule_order',
                     type: 'int',
                     length: '11',
@@ -139,6 +145,11 @@ export class KeepAlivedService1707389184803 implements MigrationInterface {
                     columnNames: ['master_node'],
                     referencedTableName: 'firewall',
                     referencedColumnNames: ['id'],
+                },
+                {
+                    columnNames: ['firewall'],
+                    referencedTableName: 'firewall',
+                    referencedColumnNames: ['id']
                 }
             ]
         }));
