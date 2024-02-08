@@ -74,6 +74,13 @@ export class HAProxyService1707395797754 implements MigrationInterface {
                     isPrimary: true
                 },
                 {
+                    name: 'rule_type',
+                    type: 'tinyint',
+                    length: '1',
+                    isNullable: false,
+                    default: 1
+                },
+                {
                     name: 'rule_order',
                     type: 'int',
                     length: '11',
@@ -126,6 +133,11 @@ export class HAProxyService1707395797754 implements MigrationInterface {
                     default: null
                 },
                 {
+                    name: 'cfg_text',
+                    type: 'text',
+                    isNullable: true
+                },
+                {
                     name: 'comment',
                     type: 'text',
                     isNullable: true
@@ -134,7 +146,7 @@ export class HAProxyService1707395797754 implements MigrationInterface {
             foreignKeys: [
                 {
                     columnNames: ['group'],
-                    referencedTableName: 'dhcp_g',
+                    referencedTableName: 'haproxy_g',
                     referencedColumnNames: ['id']
                 },
                 {
@@ -193,7 +205,6 @@ export class HAProxyService1707395797754 implements MigrationInterface {
                     referencedTableName: 'ipobj',
                     referencedColumnNames: ['id']
                 }
-            
             ]
         }))
     }
