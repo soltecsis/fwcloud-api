@@ -59,7 +59,7 @@ export class KeepAlivedService1707389184803 implements MigrationInterface {
         }));
 
         await queryRunner.createTable(new Table({
-            name: 'keepalive_r',
+            name: 'keepalived_r',
             columns: [
                 {
                     name: 'id',
