@@ -606,14 +606,15 @@ export class Interface extends Model {
 				.then((count: number) => {
 					if (count > 0 && (interfaceData.mac === null || interfaceData.mac === '' || interfaceData.mac === undefined)) {
 						const errorMessage = 'The interface cannot be updated. There are references in dhcp_r.';
-						callback({"data":errorMessage}, null);
+						callback({ "data": errorMessage }, null);
 					} else {
 						const sql = `
 							UPDATE ${tableName}
 							SET name = ${connection.escape(interfaceData.name)},
 								labelName = ${connection.escape(interfaceData.labelName)},
 								type = ${connection.escape(interfaceData.type)},
-								comment = ${connection.escape(interfaceData.comment)}
+								comment = ${connection.escape(interfaceData.comment)},
+								mac = ${connection.escape(interfaceData.mac)}
 							WHERE id = ${interfaceData.id}`;
 
 						logger().debug(sql);
