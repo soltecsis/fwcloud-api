@@ -210,9 +210,9 @@ export class HAProxyService1707395797754 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.dropTable('haproxy_r__ipobj');
         await queryRunner.dropTable('haproxy_r');
         await queryRunner.dropTable('haproxy_g');
-        await queryRunner.dropTable('haproxy_r__ipobj');
     }
 
 }
