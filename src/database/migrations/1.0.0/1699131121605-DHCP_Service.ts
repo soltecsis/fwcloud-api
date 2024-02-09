@@ -79,7 +79,7 @@ export class DHCPService1699131121605 implements MigrationInterface {
                     name: 'firewall',
                     type: 'int',
                     length: '11',
-                    isNullable: false
+                    isNullable: true
                 },
                 {
                     name: 'rule_type',
