@@ -109,16 +109,6 @@ export class KeepAlivedService1707389184803 implements MigrationInterface {
                     default: null,
                 },
                 {
-                    name: 'cfg_text',
-                    type: 'text',
-                    isNullable: true
-                },
-                {
-                    name: 'comment',
-                    type: 'text',
-                    isNullable: true,
-                },
-                {
                     name: 'interface',
                     type: 'int',
                     length: '11',
@@ -135,7 +125,17 @@ export class KeepAlivedService1707389184803 implements MigrationInterface {
                     type: 'int',
                     length: '11',
                     isNullable: true,
-                }
+                },
+                {
+                    name: 'cfg_text',
+                    type: 'text',
+                    isNullable: true
+                },
+                {
+                    name: 'comment',
+                    type: 'text',
+                    isNullable: true,
+                },
             ],
             foreignKeys: [
                 {
