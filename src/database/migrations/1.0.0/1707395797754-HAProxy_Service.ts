@@ -30,9 +30,10 @@ export class HAProxyService1707395797754 implements MigrationInterface {
                 {
                     name: 'id',
                     type: 'int',
-                    isPrimary: true,
+                    length: '11',
                     isGenerated: true,
-                    generationStrategy: 'increment'
+                    generationStrategy: 'increment',
+                    isPrimary: true,
                 },
                 {
                     name: 'name',
@@ -74,6 +75,12 @@ export class HAProxyService1707395797754 implements MigrationInterface {
                     isPrimary: true
                 },
                 {
+                    name: 'firewall',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false
+                },
+                {
                     name: 'rule_type',
                     type: 'tinyint',
                     length: '1',
@@ -105,12 +112,6 @@ export class HAProxyService1707395797754 implements MigrationInterface {
                     length: '50',
                     isNullable: true,
                     default: null
-                },
-                {
-                    name: 'firewall',
-                    type: 'int',
-                    length: '11',
-                    isNullable: false
                 },
                 {
                     name: 'frontend_ip',
@@ -179,12 +180,14 @@ export class HAProxyService1707395797754 implements MigrationInterface {
                     name: 'rule',
                     type: 'int',
                     length: '11',
+                    isNullable: false,
                     isPrimary: true
                 },
                 {
                     name: 'ipobj',
                     type: 'int',
                     length: '11',
+                    isNullable: false,
                     isPrimary: true
                 },
                 {
