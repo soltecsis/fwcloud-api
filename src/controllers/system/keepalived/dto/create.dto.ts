@@ -19,21 +19,48 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { AbstractApplication } from "../../../../fonaments/abstract-application";
-import { ServiceContainer } from "../../../../fonaments/services/service-container";
-import { ServiceProvider } from "../../../../fonaments/services/service-provider";
-import { KeepalivedGroupService } from "./keepalived_g.service";
+import { IsBoolean, IsOptional, IsNumber, IsString, IsPositive, IsEnum } from "class-validator";
+import { Offset } from "../../../../offset";
 
-export class KeepalivedGroupServiceProvider extends ServiceProvider {
+export class KeepalivedRuleCreateDto {
+    @IsBoolean()
+    @IsOptional()
+    active: boolean;
 
-    public register(serviceContainer: ServiceContainer) {
-        return serviceContainer.singleton(KeepalivedGroupService.name, async(app): Promise<KeepalivedGroupService> => {
-            return KeepalivedGroupService.make(app);
-        });
-    }
+    @IsNumber()
+    @IsOptional()
+    groupId?: number;
 
-    public async bootstrap(app: AbstractApplication) {
-        await app.getService<KeepalivedGroupService>(KeepalivedGroupService.name);
-    }
+    @IsNumber()
+    @IsOptional()
+    firewallId?: number;
+    
+    @IsString()
+    @IsOptional()
+    style: string;
 
+    @IsNumber()
+    @IsOptional()
+    interfaceId?: number;
+    
+    @IsNumber()
+    @IsOptional()
+    virtualIpId?: number;
+
+    @IsNumber()
+    @IsOptional()
+    masterNodeId?: number;
+
+    @IsString()
+    @IsOptional()
+    comment?: string;
+
+    @IsNumber()
+    @IsPositive()
+    @IsOptional()
+    to?: number;
+
+    @IsEnum(Offset)
+    @IsOptional()
+    offset?: Offset;
 }

@@ -19,21 +19,18 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { AbstractApplication } from "../../../../fonaments/abstract-application";
-import { ServiceContainer } from "../../../../fonaments/services/service-container";
-import { ServiceProvider } from "../../../../fonaments/services/service-provider";
-import { KeepalivedGroupService } from "./keepalived_g.service";
+import { IsArray, IsEnum, IsNumber, IsPositive } from "class-validator";
+import { Offset } from "../../../../offset";
 
-export class KeepalivedGroupServiceProvider extends ServiceProvider {
+export class KeepalivedRuleCopyDto {
+    @IsNumber()
+    @IsPositive()
+    to: number;
 
-    public register(serviceContainer: ServiceContainer) {
-        return serviceContainer.singleton(KeepalivedGroupService.name, async(app): Promise<KeepalivedGroupService> => {
-            return KeepalivedGroupService.make(app);
-        });
-    }
+    @IsEnum(Offset)
+    offset: Offset;
 
-    public async bootstrap(app: AbstractApplication) {
-        await app.getService<KeepalivedGroupService>(KeepalivedGroupService.name);
-    }
-
+    @IsArray()
+    @IsNumber({}, { each: true })
+    rules: number[];
 }

@@ -2,15 +2,20 @@
     Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
+
+
     This file is part of FWCloud (https://fwcloud.net).
+
     FWCloud is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
+
     FWCloud is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
@@ -19,11 +24,13 @@ import { KeepalivedRule } from "./keepalived_r.model";
 import { KeepalivedRepository } from "./keepalived.repository";
 import { IPObj } from "../../../ipobj/IPObj";
 import { KeepalivedGroup } from "../keepalived_g/keepalived_g.model";
+import { Interface } from "../../../interface/Interface";
 import { Offset } from "../../../../offset";
 import { Application } from "../../../../Application";
 import { Service } from "../../../../fonaments/services/service";
 import { IPObjRepository } from "../../../ipobj/IPObj.repository";
-import { AvailableDestinations, KeepalivedRuleItemForCompiler, KeepalivedUtils, ItemForGrid } from "../../shared";
+import { IPObjGroup } from "../../../ipobj/IPObjGroup";
+import { AvailableDestinations, KeepalivedRuleItemForCompiler, KeepalivedUtils, ItemForGrid } from "../shared";
 import { Firewall } from "../../../firewall/Firewall";
 
 
@@ -40,12 +47,10 @@ export interface ICreateKeepalivedRule {
     active?: boolean;
     groupId?: number;
     style?: string;
-    rule_type?: number;
     firewallId?: number
     interfaceId?: number;
     virtualIpId?: number;
     masterNodeId?: number;
-    cfg_text?: string;
     comment?: string;
     rule_order?: number;
     to?: number;
@@ -59,11 +64,11 @@ export interface IUpdateKeepalivedRule {
     masterNodeId?: number;
     interfaceId?: number;
     comment?: string;
-    cfg_text?: string;
     rule_order?: number;
     group?: number;
 }
 
+//TODO: Need to add the data type keepalivedRuleItemForCompile
 export interface KeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemForCompiler> extends KeepalivedRule {
     items: (T & { _order: number })[];
 }
@@ -235,6 +240,7 @@ export class KeepalivedRuleService extends Service {
     /*    const sqls = (dst === 'compiler') ?
             this.buildKeepalivedRulesCompilerSql(fwcloud, firewall, rules) : 
             this.getKeepalivedRulesGridSql(fwcloud, firewall, rules);
+
         const result = await Promise.all(sqls.map(sql => KeepalivedUtils.mapEntityData<T>(sql, ItemsArrayMap)));
 */
         return rulesData.map(rule => {
@@ -288,6 +294,7 @@ export class KeepalivedRuleService extends Service {
             this._routerRepository.getRoutersInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),
         ];
     }
+
     private buildKeepalivedRulesCompilerSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {
         return [
             this._ipobjRepository.getIpobjsInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),

@@ -72,6 +72,8 @@ import { AuthServiceProvider } from "./models/user/auth.provider";
 import { CaServiceProvider } from "./ca/ca.provider";
 import { CrtServiceProvider } from "./crt/crt.provider";
 import { OpenVPNService } from "./models/vpn/openvpn/openvpn.service";
+import { KeepalivedRuleServiceProvider } from "./models/system/keepalived/keepalived_r/keepalived_r.provider";
+import { KeepalivedGroupServiceProvider } from "./models/system/keepalived/keepalived_g/keepalived_g.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -145,6 +147,8 @@ export class Application extends HTTPApplication {
             RoutingRuleServiceProvider,
             RoutingGroupServiceProvider,
             RouteGroupServiceProvider,
+            KeepalivedRuleServiceProvider,
+            KeepalivedGroupServiceProvider,
             OpenVPNPrefixServiceProvider,
             OpenVPNStatusHistoryServiceProvider,
             PolicyRuleServiceProvider,

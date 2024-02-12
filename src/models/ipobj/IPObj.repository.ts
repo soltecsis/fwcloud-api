@@ -20,11 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, QueryBuilder, SelectQueryBuilder } from "typeorm";
-import { Repository } from "../../database/repository";
-import { IPObj } from "./IPObj";
+import {EntityRepository, SelectQueryBuilder} from "typeorm";
+import {Repository} from "../../database/repository";
+import {IPObj} from "./IPObj";
 
-export type ValidEntities = 'route' | 'rule';
+export type ValidEntities = 'route' | 'rule' | 'keepalived_r';
 
 @EntityRepository(IPObj)
 export class IPObjRepository extends Repository<IPObj> {
@@ -206,7 +206,7 @@ export class IPObjRepository extends Repository<IPObj> {
     }  
     
     return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query)
-      .andWhere("crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and vpnOpt.name='ifconfig-push'");;
+      .andWhere("crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and vpnOpt.name='ifconfig-push'");
   } 
 
   // All ipobj under OpenVPN prefixes in groups
@@ -279,5 +279,17 @@ export class IPObjRepository extends Repository<IPObj> {
     }
 
     return query;
-  }    
+  }
+  //TODO: Create query
+  createBaseQuery(entity: ValidEntities, fwcloud: number, firewall: number, dhcpRule?: number): SelectQueryBuilder<IPObj> {
+    let query = this.createQueryBuilder("ipobj")
+      .select("ipobj.id","id")
+      
+
+    return query;
+  }
+
+  getIpobjsInKeepalived_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, dhcpRule?: number): SelectQueryBuilder<IPObj> {
+    return this.createBaseQuery(entity, fwcloud, firewall, dhcpRule);
+  }
 }
