@@ -85,35 +85,40 @@ export class KeepalivedController extends Controller {
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   public async grid(req: Request): Promise<ResponseBuilder> {
-    if(![1,2].includes(parseInt(req.params.set))){
-      return ResponseBuilder.buildResponse().status(400).body({message: 'Invalid set parameter'});
-    }
-
     (await KeepalivedPolicy.index(this._firewall, req.session.user)).authorize();
-//TODO: MODIFICAR destinations
-    const dst: AvailableDestinations = 'keepalived_grid';
 
-    const grid: KeepalivedRule[] = await this._keepalivedRuleService.getKeepalivedRulesData(dst, this._fwCloud.id, this._firewall.id);
+    const grid: KeepalivedRule[] = await this._keepalivedRuleService.getKeepalivedRulesData('keepalived_grid', this._fwCloud.id, this._firewall.id);
 
     return ResponseBuilder.buildResponse().status(200).body(grid);
   }
 
-  //TODO: Offset is necessary we can create a rule in other position
   @Validate(KeepalivedRuleCreateDto)
+  /**
+   * Creates a new Keepalived rule.
+   * 
+   * @param req - The request object.
+   * @returns A Promise that resolves to a ResponseBuilder object.
+   */
   public async create(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.create(this._firewall, req.session.user)).authorize();
 
     const data: ICreateKeepalivedRule = Object.assign(req.inputs.all<KeepalivedRuleCreateDto>(), this._keepalivedgroup ? { group: this._keepalivedgroup.id } : null);
-    const keepalivedRule = await this._keepalivedRuleService.store(data);
+    const keepalivedRule: KeepalivedRule = await this._keepalivedRuleService.store(data);
 
     return ResponseBuilder.buildResponse().status(201).body(keepalivedRule);
   }
 
   @Validate(KeepalivedRuleCopyDto)
+  /**
+   * Copies the Keepalived rules specified by the given IDs.
+   * 
+   * @param req - The request object.
+   * @returns A Promise that resolves to a ResponseBuilder object.
+   */
   public async copy(req: Request): Promise<ResponseBuilder> {
     const ids: number[] = req.inputs.get('rules');
     for (const id of ids) {
-      const rule = await getRepository(KeepalivedRule).findOneOrFail(id);
+      const rule: KeepalivedRule = await getRepository(KeepalivedRule).findOneOrFail(id);
       (await KeepalivedPolicy.copy(rule, req.session.user)).authorize();
     }
 
@@ -122,6 +127,12 @@ export class KeepalivedController extends Controller {
   }
 
   @Validate(KeepalivedRuleUpdateDto)
+  /**
+   * Updates the keepalived rule.
+   * 
+   * @param req - The request object.
+   * @returns A Promise that resolves to a ResponseBuilder object.
+   */
   public async update(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.update(this._keepalivedrule, req.session.user)).authorize();
 
@@ -131,6 +142,12 @@ export class KeepalivedController extends Controller {
   }
 
   @Validate()
+  /**
+   * Removes a keepalived rule.
+   * 
+   * @param req - The request object.
+   * @returns A Promise that resolves to a ResponseBuilder object.
+   */
   public async remove(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.delete(this._keepalivedrule, req.session.user)).authorize();
 
@@ -157,6 +174,12 @@ export class KeepalivedController extends Controller {
   }
 
   @Validate(KeepalivedRuleCopyDto)
+  /**
+   * Moves the Keepalived rules to a different location.
+   * 
+   * @param req - The request object.
+   * @returns A Promise that resolves to a ResponseBuilder object.
+   */
   public async move(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.move(this._firewall, req.session.user)).authorize();
 
@@ -180,7 +203,26 @@ export class KeepalivedController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
 
+  //TODO: Compile
+  @Validate()
+  public async compile(req: Request): Promise<ResponseBuilder> {
+    return ResponseBuilder.buildResponse().status(200);
+  }
+
+  //TODO: Install
+  @Validate()
+  public async install(req: Request): Promise<ResponseBuilder> {
+    return ResponseBuilder.buildResponse().status(200);
+  }
+
   @Validate(KeepalivedRuleBulkUpdateDto)
+  /**
+   * Updates multiple Keepalived rules in bulk.
+   * 
+   * @param req - The request object.
+   * @returns A Promise that resolves to a ResponseBuilder object.
+   * @throws HttpException if no rules are found.
+   */
   public async bulkUpdate(req: Request): Promise<ResponseBuilder> {
     const rules: KeepalivedRule[] = [];
 
@@ -209,6 +251,13 @@ export class KeepalivedController extends Controller {
 
   @Validate()
   @ValidateQuery(KeepalivedRuleBulkRemoveDto)
+  /**
+   * Removes multiple Keepalived rules in bulk.
+   * 
+   * @param req - The request object.
+   * @returns A Promise that resolves to a ResponseBuilder object.
+   * @throws HttpException if no rules are found to be removed.
+   */
   public async bulkRemove(req: Request): Promise<ResponseBuilder> {
     const rules: KeepalivedRule[] = [];
 
