@@ -35,6 +35,7 @@ import { Firewall } from "../../../firewall/Firewall";
 import { DHCPRuleToIPObj } from "./dhcp_r-to-ipobj.model";
 import { ErrorBag } from "../../../../fonaments/validation/validator";
 import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
 interface IFindManyDHCPRulePath {
     fwcloudId?: number;
@@ -47,7 +48,7 @@ interface IFindOneDHCPRulePath extends IFindManyDHCPRulePath {
 
 export interface ICreateDHCPRule {
     active?: boolean;
-    groupId?: number;
+    group?: number;
     style?: string;
     ipObjIds?: { id: number, order: number }[];
     rule_type?: number;
@@ -103,8 +104,8 @@ export class DHCPRuleService extends Service {
             rule_type: data.rule_type,
         };
 
-        if (data.groupId) {
-            dhcpRuleData.group = await getRepository(DHCPGroup).findOneOrFail(data.groupId) as DHCPGroup;
+        if (data.group) {
+            dhcpRuleData.group = await getRepository(DHCPGroup).findOneOrFail(data.group) as DHCPGroup;
         }
         if (data.networkId) {
             dhcpRuleData.network = await getRepository(IPObj).findOneOrFail(data.networkId) as IPObj;
@@ -135,7 +136,7 @@ export class DHCPRuleService extends Service {
             throw new Error('IP version mismatch');
         }
 
-        const lastDHCPRule: DHCPRule = await this._repository.getLastDHCPRuleInGroup(data.groupId);
+        const lastDHCPRule: DHCPRule = await this._repository.getLastDHCPRuleInGroup(data.group);
         dhcpRuleData.rule_order = lastDHCPRule?.rule_order ? lastDHCPRule.rule_order + 1 : 1;
         const persisted: Partial<DHCPRule> & DHCPRule = await this._repository.save(dhcpRuleData);
 
@@ -169,8 +170,7 @@ export class DHCPRuleService extends Service {
     }
 
     async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
-        let dhcpRule: DHCPRule | undefined = await this._repository.findOne(id, { relations: ['firewall', 'network', 'range', 'router'] });
-
+        let dhcpRule: DHCPRule | undefined = await this._repository.findOne(id, { relations: ['group', 'firewall', 'network', 'range', 'router'] });
         if (!dhcpRule) {
             throw new Error('DHCPRule not found');
         }
@@ -184,7 +184,9 @@ export class DHCPRuleService extends Service {
             rule_order: data.rule_order !== undefined ? data.rule_order : dhcpRule.rule_order
         });
 
-        if (data.ipObjIds) {
+        if (data.group !== undefined) {
+            dhcpRule.group = data.group ? await getRepository(DHCPGroup).findOne(data.group) : null;
+        } else if (data.ipObjIds) {
             await this.validateUpdateIpObjIds(dhcpRule.firewall, data);
             dhcpRule.dhcpRuleToIPObjs = data.ipObjIds.map(item => ({
                 dhcpRuleId: dhcpRule.id,
@@ -192,7 +194,7 @@ export class DHCPRuleService extends Service {
                 order: item.order
             } as DHCPRuleToIPObj));
         } else {
-            const fieldsToUpdate: string [] = ['groupId', 'networkId', 'rangeId', 'routerId', 'interfaceId', 'firewallId'];
+            const fieldsToUpdate: string[] = ['networkId', 'rangeId', 'routerId', 'interfaceId', 'firewallId'];
 
             for (const field of fieldsToUpdate) {
                 if (data[field]) {
@@ -274,7 +276,7 @@ export class DHCPRuleService extends Service {
                 rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [2]) as DHCPRulesData<T>[];
                 break;
             case 'compiler':
-                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [1,3,2],true) as DHCPRulesData<T>[];
+                rulesData = await this._repository.getDHCPRules(fwcloud, firewall, rules, [1, 3, 2], true) as DHCPRulesData<T>[];
                 break;
         }
 
@@ -300,9 +302,15 @@ export class DHCPRuleService extends Service {
     }
 
     public async bulkUpdate(ids: number[], data: IUpdateDHCPRule): Promise<DHCPRule[]> {
-        await this._repository.update({
-            id: In(ids),
-        }, { ...data, group: { id: data.group } });
+        if (data.group) {
+            await this._repository.update({
+                id: In(ids),
+            }, { ...data, group: { id: data.group } });
+        } else {
+            await this._repository.update({
+                id: In(ids),
+            }, data as QueryDeepPartialEntity<DHCPRule>);
+        }
 
         return this._repository.find({
             where: {

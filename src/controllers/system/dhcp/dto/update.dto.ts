@@ -30,7 +30,7 @@ export class DHCPRuleUpdateDto {
 
     @IsNumber()
     @IsOptional()
-    groupId?: number;
+    group?: number;
 
     @IsNumber()
     @IsOptional()

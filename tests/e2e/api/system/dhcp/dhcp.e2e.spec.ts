@@ -85,7 +85,7 @@ describe('DHCPRule E2E Tests', () => {
             beforeEach(async () => {
                 dhcpRule = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 5,
                     cfg_text: "cfg_text",
@@ -150,7 +150,7 @@ describe('DHCPRule E2E Tests', () => {
             beforeEach(async () => {
                 dhcpRule = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 5,
                     cfg_text: "cfg_text",
@@ -303,7 +303,7 @@ describe('DHCPRule E2E Tests', () => {
             beforeEach(async () => {
                 DHCPRule1 = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 5,
                     cfg_text: "cfg_text",
@@ -312,7 +312,7 @@ describe('DHCPRule E2E Tests', () => {
                 });
                 DHCPRule2 = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 5,
                     cfg_text: "cfg_text",
@@ -385,7 +385,7 @@ describe('DHCPRule E2E Tests', () => {
             beforeEach(async () => {
                 dhcpRule = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 5,
                     cfg_text: "cfg_text",
@@ -482,7 +482,7 @@ describe('DHCPRule E2E Tests', () => {
             beforeEach(async () => {
                 dhcpRule = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 5,
                     cfg_text: "cfg_text",
@@ -550,7 +550,7 @@ describe('DHCPRule E2E Tests', () => {
             beforeEach(async () => {
                 dhcpRule = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 5,
                     cfg_text: "cfg_text",
@@ -622,7 +622,7 @@ describe('DHCPRule E2E Tests', () => {
             beforeEach(async () => {
                 dhcpRule1 = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 1,
                     cfg_text: "cfg_text",
@@ -631,7 +631,7 @@ describe('DHCPRule E2E Tests', () => {
                 });
                 dhcpRule2 = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 2,
                     cfg_text: "cfg_text",
@@ -640,7 +640,7 @@ describe('DHCPRule E2E Tests', () => {
                 });
                 dhcpRule3 = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 3,
                     cfg_text: "cfg_text",
@@ -649,7 +649,7 @@ describe('DHCPRule E2E Tests', () => {
                 });
                 dhcpRule4 = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 4,
                     cfg_text: "cfg_text",
@@ -816,7 +816,7 @@ describe('DHCPRule E2E Tests', () => {
             beforeEach(async () => {
                 rule1 = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 1,
                     cfg_text: "cfg_text",
@@ -825,7 +825,7 @@ describe('DHCPRule E2E Tests', () => {
                 });
                 rule2 = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 2,
                     cfg_text: "cfg_text",
@@ -912,7 +912,7 @@ describe('DHCPRule E2E Tests', () => {
             beforeEach(async () => {
                 rule1 = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 1,
                     cfg_text: "cfg_text",
@@ -921,7 +921,7 @@ describe('DHCPRule E2E Tests', () => {
                 });
                 rule2 = await DHCPRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     max_lease: 2,
                     cfg_text: "cfg_text",

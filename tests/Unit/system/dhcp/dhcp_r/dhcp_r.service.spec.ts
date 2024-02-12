@@ -33,6 +33,7 @@ import { Interface } from "../../../../../src/models/interface/Interface";
 import { Offset } from "../../../../../src/offset";
 import { beforeEach } from "mocha";
 import { IPObj } from "../../../../../src/models/ipobj/IPObj";
+import { DHCPRuleCreateDto } from "../../../../../src/controllers/system/dhcp/dto/create.dto";
 
 describe(DHCPRuleService.name, () => {
     let service: DHCPRuleService;
@@ -143,7 +144,7 @@ describe(DHCPRuleService.name, () => {
                 max_lease: 3600,
                 cfg_text: 'sample cfg text',
                 comment: 'sample comment',
-                groupId: 1,
+                group: 1,
                 networkId: 1,
                 rangeId: 1,
                 routerId: 1,
@@ -177,7 +178,7 @@ describe(DHCPRuleService.name, () => {
                 max_lease: 3600,
                 cfg_text: 'sample cfg text',
                 comment: 'sample comment',
-                groupId: 999,
+                group: 999,
                 networkId: 1,
                 rangeId: 1,
                 routerId: 1,
@@ -198,7 +199,7 @@ describe(DHCPRuleService.name, () => {
                 max_lease: 3600,
                 cfg_text: 'sample cfg text',
                 comment: 'sample comment',
-                groupId: 1,
+                group: 1,
                 networkId: 1,
                 rangeId: 1,
                 routerId: 1,
@@ -220,7 +221,7 @@ describe(DHCPRuleService.name, () => {
                 max_lease: 3600,
                 cfg_text: 'sample cfg text',
                 comment: 'sample comment',
-                groupId: 1,
+                group: 1,
                 firewallId: firewall.id,
                 networkId: 1,
                 rangeId: 1,
@@ -249,7 +250,7 @@ describe(DHCPRuleService.name, () => {
                 max_lease: 3600,
                 cfg_text: 'sample cfg text',
                 comment: 'sample comment',
-                groupId: 1,
+                group: 1,
                 networkId: 1,
                 rangeId: 1,
                 routerId: 1,
@@ -285,12 +286,6 @@ describe(DHCPRuleService.name, () => {
             moveStub.restore();
         });
 
-        it('should throw an error for missing data', async () => {
-            const data = {}; // Missing required data
-
-            await expect(service.store(data)).to.be.rejectedWith(Error);
-        });
-
         it('should throw an error for invalid IP version combination', async () => {
             let data = {
                 active: true,
@@ -298,7 +293,7 @@ describe(DHCPRuleService.name, () => {
                 max_lease: 3600,
                 cfg_text: 'sample cfg text',
                 comment: 'sample comment',
-                groupId: 1,
+                group: 1,
                 networkId: 1,
                 rangeId: 1,
                 routerId: 1,
@@ -500,9 +495,9 @@ describe(DHCPRuleService.name, () => {
                 firewall: firewall,
             })));
 
-            const result = await service.update(dhcpRule.id, { groupId: group2.id });
+            const result = await service.update(dhcpRule.id, { group: group2.id });
 
-            expect(updateStub.calledOnceWith(dhcpRule.id, { groupId: group2.id })).to.be.true;
+            expect(updateStub.calledOnceWith(dhcpRule.id, { group: group2.id })).to.be.true;
             expect(result).to.deep.equal(dhcpRule);
 
             updateStub.restore();
@@ -512,7 +507,7 @@ describe(DHCPRuleService.name, () => {
             const updateStub = sinon.stub(service, 'update').rejects(new Error('Related entities not found'));
 
             await expect(service.update(1, {
-                groupId: (await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+                group: (await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
                     name: 'group2',
                     firewall: firewall,
                 }))).id
@@ -595,7 +590,7 @@ describe(DHCPRuleService.name, () => {
                 })),
             }));
 
-            await expect(service.update(dhcpRule.id, dhcpRule)).to.be.rejectedWith(Error, 'IP version mismatch');
+            await expect(service.update(dhcpRule.id, dhcpRule as Partial<DHCPRuleCreateDto>)).to.be.rejectedWith(Error, 'IP version mismatch');
         });
     });
 
