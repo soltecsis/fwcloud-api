@@ -1,23 +1,23 @@
 /*
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
-    https://soltecsis.com
-    info@soltecsis.com
+	Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+	https://soltecsis.com
+	info@soltecsis.com
 
 
-    This file is part of FWCloud (https://fwcloud.net).
+	This file is part of FWCloud (https://fwcloud.net).
 
-    FWCloud is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	FWCloud is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    FWCloud is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	FWCloud is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import Model from "../Model";
@@ -54,6 +54,10 @@ import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { Route } from '../routing/route/route.model';
 import { RoutingRule } from './../routing/routing-rule/routing-rule.model';
+import { DHCPGroup } from "../system/dhcp/dhcp_g/dhcp_g.model";
+import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
+import { KeepalivedGroup } from "../system/keepalived/keepalived_g/keepalived_g.model";
+import { KeepalivedRule } from "../system/keepalived/keepalived_r/keepalived_r.model";
 
 const tableName: string = 'firewall';
 
@@ -88,14 +92,14 @@ export enum PluginsFlags {
 
 // Special rules codes.
 export enum FireWallOptMask {
-	STATEFUL   			= 0x0001, 
+	STATEFUL = 0x0001,
 	IPv4_FORWARDING = 0x0002,
 	IPv6_FORWARDING = 0x0004,
-	DEBUG 					= 0x0008,
-	LOG_ALL					= 0x0010,
-	DOCKER_COMPAT		= 0x0020, 
-	CROWDSEC_COMPAT	= 0x0040,
-	FAIL2BAN_COMPAT	= 0x0080
+	DEBUG = 0x0008,
+	LOG_ALL = 0x0010,
+	DOCKER_COMPAT = 0x0020,
+	CROWDSEC_COMPAT = 0x0040,
+	FAIL2BAN_COMPAT = 0x0080
 }
 
 @Entity(tableName)
@@ -167,7 +171,7 @@ export class Firewall extends Model {
 	@Column()
 	options: number;
 
-	@Column({name: 'fwcloud'})
+	@Column({ name: 'fwcloud' })
 	fwCloudId: number;
 
 	@ManyToOne(type => FwCloud, fwcloud => fwcloud.firewalls)
@@ -176,7 +180,7 @@ export class Firewall extends Model {
 	})
 	fwCloud: FwCloud;
 
-	@Column({name: 'cluster'})
+	@Column({ name: 'cluster' })
 	clusterId: number;
 
 	@ManyToOne(type => Cluster, cluster => cluster.firewalls)
@@ -212,6 +216,18 @@ export class Firewall extends Model {
 	@OneToMany(type => Route, route => route.firewallApplyTo)
 	routes: Route[]
 
+	@OneToMany(type => DHCPGroup, dhcpGroup => dhcpGroup.firewall)
+	dhcpGroups: DHCPGroup[];
+
+	@OneToMany(type => DHCPRule, dhcpRule => dhcpRule.firewall)
+	dhcpRules: DHCPRule[];
+
+	@OneToMany(type => KeepalivedGroup, keepalivedGroup => keepalivedGroup.firewall)
+	keepalivedGroups: KeepalivedGroup[];
+
+	@OneToMany(type => KeepalivedRule, keepalivedRule => keepalivedRule.firewall)
+	keepalivedRules: KeepalivedRule[];
+
 	public getTableName(): string {
 		return tableName;
 	}
@@ -223,7 +239,7 @@ export class Firewall extends Model {
 	 * @param sshpassword 
 	 * @returns 
 	 */
-	async getCommunication(custom: {sshuser?: string, sshpassword?: string} = {}): Promise<Communication<unknown>> {
+	async getCommunication(custom: { sshuser?: string, sshpassword?: string } = {}): Promise<Communication<unknown>> {
 		if (this.install_communication === FirewallInstallCommunication.SSH) {
 			return new SSHCommunication({
 				host: (await getRepository(IPObj).findOneOrFail(this.install_ipobj)).address,
@@ -299,7 +315,7 @@ export class Firewall extends Model {
 				resolve(rows[0].id);
 			});
 		});
-}
+	}
 
 
 
@@ -322,15 +338,15 @@ export class Firewall extends Model {
 				LEFT join ipobj O on O.id=T.install_ipobj and O.interface=I.id
 				LEFT JOIN firewall M on M.cluster=T.cluster and M.fwmaster=1
 				WHERE T.id=${req.body.firewall} AND T.fwcloud=${req.body.fwcloud}`;
-			
+
 			req.dbCon.query(sql, async (error, rows) => {
 				if (error) return reject(error);
 				if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
 
 				try {
-					let firewall_data:any = (await Promise.all(rows.map(data => utilsModel.decryptFirewallData(data))))[0];
+					let firewall_data: any = (await Promise.all(rows.map(data => utilsModel.decryptFirewallData(data))))[0];
 					resolve(firewall_data);
-				} catch(error) { return reject(error) } 
+				} catch (error) { return reject(error) }
 			});
 		});
 	}
@@ -536,9 +552,9 @@ export class Firewall extends Model {
 					callback(error, null);
 				else {
 					try {
-						let firewall_data:any = await Promise.all(rows.map(data => utilsModel.decryptFirewallData(data)));
+						let firewall_data: any = await Promise.all(rows.map(data => utilsModel.decryptFirewallData(data)));
 						callback(null, firewall_data);
-					} catch(error) { return callback(error, null) } 
+					} catch (error) { return callback(error, null) }
 				}
 			});
 		});
@@ -734,7 +750,7 @@ export class Firewall extends Model {
 		}
 
 		const query = getRepository(Firewall).createQueryBuilder('firewall')
-			.where('firewall.fwCloudId = :fwcloudId', {fwcloudId})
+			.where('firewall.fwCloudId = :fwcloudId', { fwcloudId })
 			.andWhere((qb) => {
 				const subqueryPolicy = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
 					.innerJoin('firewall.policyRules', 'policy_rule')
@@ -765,13 +781,13 @@ export class Firewall extends Model {
 					.innerJoin('routingRuleToIPObjs.ipObj', 'ipobj', 'ipobj.id IN (:ipobjIds)', {
 						ipobjIds: ipObjs.map(item => item.id).join(','),
 					});
-				
-				
+
+
 				return `firewall.id IN ${subqueryPolicy.getQuery()} OR firewall.id IN ${subQueryRoutesFrom.getQuery()} OR firewall.id IN ${subQueryRoutesGateway.getQuery()} OR firewall.id IN ${subQueryRoutingRules.getQuery()}`;
 			});
 
 		const firewalls = await query.getMany();
-		
+
 		if (firewalls.length > 0) {
 			await getRepository(Firewall).update({
 				id: In(firewalls.map(firewall => firewall.id))
@@ -788,7 +804,7 @@ export class Firewall extends Model {
 			.innerJoin('ipObjToIPObjGroups.ipObj', 'ipobj', 'ipobj.id IN (:id)', {
 				id: ipObjs.map(item => item.id).join(',')
 			}).getMany()
-		
+
 		if (groupContainers.length > 0) {
 			await this.updateFirewallStatusIPOBJGroup(fwcloudId, groupContainers.map(group => group.id));
 		}
@@ -798,7 +814,7 @@ export class Firewall extends Model {
 			.innerJoin('interface.ipObjs', 'ipobj', 'ipobj.id IN (:id)', {
 				id: ipObjs.map(item => item.id).join(',')
 			})
-			.where('ipobj.ipObjType = :addressType', {addressType: 5}).getMany();
+			.where('ipobj.ipObjType = :addressType', { addressType: 5 }).getMany();
 
 		if (interfacesUsingAddress.length > 0) {
 			await this.updateFirewallStatusInterface(fwcloudId, interfacesUsingAddress.map(item => item.id));
@@ -822,30 +838,30 @@ export class Firewall extends Model {
 		}
 
 		const query = getRepository(Firewall).createQueryBuilder('firewall')
-			.where('firewall.fwCloudId = :fwcloudId', {fwcloudId: fwcloudId})
+			.where('firewall.fwCloudId = :fwcloudId', { fwcloudId: fwcloudId })
 			.andWhere((qb) => {
 				const subqueryPolicy = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
 					.innerJoin('firewall.policyRules', 'policy_rule')
 					.innerJoin('policy_rule.policyRuleToIPObjs', 'policyRuleToIPObjs')
-					.innerJoin('policyRuleToIPObjs.ipObjGroup', 'group', 'group.id IN (:id)', {id: ipObjGroupIds})
-					
+					.innerJoin('policyRuleToIPObjs.ipObjGroup', 'group', 'group.id IN (:id)', { id: ipObjGroupIds })
+
 				const subQueryRoutes = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
 					.innerJoin('firewall.routingTables', 'table')
 					.innerJoin('table.routes', 'route')
 					.innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
-					.innerJoin('routeToIPObjGroups.ipObjGroup', 'group', 'group.id IN (:ids)', {ids: ipObjGroups.map(item => item.id).join(',')});
+					.innerJoin('routeToIPObjGroups.ipObjGroup', 'group', 'group.id IN (:ids)', { ids: ipObjGroups.map(item => item.id).join(',') });
 
 				const subQueryRoutingRules = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
 					.innerJoin('firewall.routingTables', 'table')
 					.innerJoin('table.routingRules', 'rule')
 					.innerJoin('rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
-					.innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'group', 'group.id IN (:ids)', {ids: ipObjGroups.map(item => item.id).join(',')});
-	
+					.innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'group', 'group.id IN (:ids)', { ids: ipObjGroups.map(item => item.id).join(',') });
+
 				return `firewall.id IN ${subqueryPolicy.getQuery()} OR firewall.id IN ${subQueryRoutes.getQuery()} OR firewall.id IN ${subQueryRoutingRules.getQuery()}`;
 			});
-		
+
 		const firewalls = await query.getMany();
-		
+
 		if (firewalls.length > 0) {
 			await getRepository(Firewall).update({
 				id: In(firewalls.map(firewall => firewall.id))
@@ -863,13 +879,13 @@ export class Firewall extends Model {
 		}
 
 		const interfaces: Interface[] = await getRepository(Interface).createQueryBuilder('int')
-		.innerJoin('int.firewall', 'firewall')
-		.innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloudId', {fwcloudId})
-		.where('int.id IN (:interfaceIds)', {interfaceIds}).getMany();
+			.innerJoin('int.firewall', 'firewall')
+			.innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloudId', { fwcloudId })
+			.where('int.id IN (:interfaceIds)', { interfaceIds }).getMany();
 
 		if (interfaces.length > 0) {
 			const query = getRepository(Firewall).createQueryBuilder('firewall')
-				.where('firewall.fwCloudId = :fwcloudId', {fwcloudId})
+				.where('firewall.fwCloudId = :fwcloudId', { fwcloudId })
 				.andWhere((qb) => {
 					const subqueryPolicy = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
 						.innerJoin('firewall.policyRules', 'policy_rule')
@@ -910,7 +926,7 @@ export class Firewall extends Model {
 			await this.updateFirewallStatusIPOBJ(fwcloudId, hosts.map(item => item.id));
 		}
 	}
-	
+
 	public static cloneFirewall(iduser, firewallData) {
 		return new Promise((resolve, reject) => {
 			db.get((error, connection) => {
@@ -1184,7 +1200,7 @@ export class Firewall extends Model {
 	}
 
 
-	
+
 
 	public static checkBodyFirewall(body, isNew) {
 		try {
@@ -1279,7 +1295,7 @@ export class Firewall extends Model {
 				else
 					reject(fwcError.NOT_FOUND);
 
-			} catch(error) { reject(error) }
+			} catch (error) { reject(error) }
 		});
 	}
 

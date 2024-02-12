@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { OpenVPNArchiveConfigController } from './../controllers/firewalls/openvpn/archive/config/openvpn-archive-config.controller';
-import { OpenVPNArchiveController } from './../controllers/firewalls/openvpn/archive/openvpn-archive.controller';
+import { OpenVPNArchiveConfigController } from '../controllers/firewalls/openvpn/archive/config/openvpn-archive-config.controller';
+import { OpenVPNArchiveController } from '../controllers/firewalls/openvpn/archive/openvpn-archive.controller';
 import { RouteCollection } from "../fonaments/http/router/route-collection";
 import { BackupController } from "../controllers/backups/backup.controller";
 import { BackupConfigController } from "../controllers/backups/backup-config/backup-config.controller";
@@ -46,12 +46,14 @@ import { PolicyRuleController } from "../controllers/policy-rule/policy-rule.con
 import { TfaController } from "../controllers/auth/tfa.controller";
 import { CaController } from "../controllers/ca/ca.controller";
 import { CrtController } from "../controllers/crt/crt.controller";
-import { SystemCtlController } from '../controllers/systemctl/systemctl.controller';
-
+import { DhcpGroupController } from '../controllers/system/dhcp-group/dhcp-group.controller';
+import { DhcpController } from '../controllers/system/dhcp/dhcp.controller';
+import { KeepalivedGroupController } from '../controllers/system/keepalived-group/keepalived-group.controller';
+import { KeepalivedController } from '../controllers/system/keepalived/keepalived.controller';
 export class Routes extends RouteCollection {
 
     public routes(router: RouterParser): void {
-    
+
         router.gates([isLoggedIn], (router) => {
 
             //Admin routes
@@ -95,7 +97,6 @@ export class Routes extends RouteCollection {
                     router.put('/updater', UpdateController, 'update').name('updates.fwcloud-updater');
                 });
             });
-            router.post('/systemctl', SystemCtlController,'systemctlCommunication').name('systemctl.communication')
 
             router.prefix('/fwclouds', (router: RouterParser) => {
                 router.post('/', FwCloudController, 'store').name('fwclouds.store');
@@ -111,13 +112,13 @@ export class Routes extends RouteCollection {
                                     router.put('/', CrtController, 'update').name('fwclouds.cas.crts.update');
                                 })
                             })
-                        })  
+                        })
                     });
                     router.prefix('/firewalls', (router: RouterParser) => {
                         router.post('/communication/ping', FirewallController, 'pingCommunication').name('fwclouds.firewalls.communication.ping');
                         router.post('/communication/info', FirewallController, 'infoCommunication').name('fwclouds.firewalls.communication.info');
-                        router.post('/plugin',FirewallController,'installPlugin').name('fwclouds.firewalls.communication.installPlugin');
-                        router.prefix('/:firewall(\\d+)', (router:RouterParser) => {
+                        router.post('/plugin', FirewallController, 'installPlugin').name('fwcloud.firewalls.communication.installPlugin')
+                        router.prefix('/:firewall(\\d+)', (router: RouterParser) => {
 
                             router.prefix('/policyRules', (router: RouterParser) => {
                                 router.get('/read', PolicyRuleController, 'read').name('fwclouds.firewalls.policyRules.read');
@@ -135,13 +136,13 @@ export class Routes extends RouteCollection {
                             router.prefix('/routingTables', (router: RouterParser) => {
                                 router.post('/', RoutingTableController, 'create').name('fwclouds.firewalls.routing.tables.store');
                                 router.get('/', RoutingTableController, 'index').name('fwclouds.firewalls.routing.tables.index');
-                                router.prefix('/:routingTable(\\d+)', (router:RouterParser) => {
+                                router.prefix('/:routingTable(\\d+)', (router: RouterParser) => {
                                     router.get('/', RoutingTableController, 'show').name('fwclouds.firewalls.routing.tables.show');
                                     router.get('/grid', RoutingTableController, 'grid').name('fwclouds.firewalls.routing.tables.grid');
                                     router.put('/', RoutingTableController, 'update').name('fwclouds.firewalls.routing.tables.update');
                                     router.get('/restricted', RoutingTableController, 'restrictions').name('fwclouds.firewalls.routing.tables.restrictions');
                                     router.delete('/', RoutingTableController, 'remove').name('fwclouds.firewalls.routing.tables.delete');
-                                    
+
                                     router.prefix('/routes', (router: RouterParser) => {
                                         router.get('/compile', RoutingTableController, 'compileRoutes').name('fwclouds.firewalls.routing.tables.compile');
                                         router.get('/', RouteController, 'index').name('fwclouds.firewalls.routing.tables.routes.index');
@@ -153,12 +154,72 @@ export class Routes extends RouteCollection {
                                         router.put('/moveInterface', RouteController, 'moveInterface').name('fwclouds.firewalls.routing.tables.routes.moveInterface');
                                         router.put('/moveToGateway', RouteController, 'moveToGateway').name('fwclouds.firewalls.routing.tables.routes.moveToGateway');
                                         router.delete('/bulkRemove', RouteController, 'bulkRemove').name('fwclouds.firewalls.routing.tables.routes.bulkRemove');
-                                        router.prefix('/:route(\\d+)', (router:RouterParser) => {
+                                        router.prefix('/:route(\\d+)', (router: RouterParser) => {
                                             router.get('/', RouteController, 'show').name('fwclouds.firewalls.routing.tables.routes.show');
                                             router.get('/compile', RouteController, 'compile').name('fwclouds.firewalls.routing.tables.routes.compile')
                                             router.put('/', RouteController, 'update').name('fwclouds.firewalls.routing.tables.routes.update');
                                             router.delete('/', RouteController, 'remove').name('fwclouds.firewalls.routing.tables.routes.delete');
                                         });
+                                    });
+                                });
+                            });
+
+                            router.prefix('/system', (router: RouterParser) => {
+                                router.prefix('/dhcpGroups', (router: RouterParser) => {
+                                    router.get('/', DhcpGroupController, 'index').name('fwclouds.firewalls.system.dhcp.groups.index');
+                                    router.post('/', DhcpGroupController, 'create').name('fwclouds.firewalls.system.dhcp.groups.store');
+                                    router.prefix(':dhcpgroup(\\d+)', (router: RouterParser) => {
+                                        router.get('/', DhcpGroupController, 'show').name('fwclouds.firewalls.system.dhcp.groups.show');
+                                        router.put('/', DhcpGroupController, 'update').name('fwclouds.firewalls.system.dhcp.groups.update');
+                                        router.delete('/', DhcpGroupController, 'remove').name('fwclouds.firewalls.system.dhcp.groups.delete');
+                                    });
+                                });
+
+                                router.prefix('/dhcpRules', (router: RouterParser) => {
+                                    router.prefix('/grid', (router: RouterParser) => {
+                                        router.prefix('/:set(\\d+)', (router: RouterParser) => {
+                                            router.get('/', DhcpController, 'grid').name('fwclouds.firewalls.system.dhcp.grid');
+                                        });
+                                    });
+                                    router.get('/', DhcpController, 'index').name('fwclouds.firewalls.system.dhcp.index');
+                                    router.post('/', DhcpController, 'create').name('fwclouds.firewalls.system.dhcp.store');
+                                    router.post('/copy', DhcpController, 'copy').name('fwclouds.firewalls.system.dhcp.copy');
+                                    router.put('/move', DhcpController, 'move').name('fwclouds.firewalls.system.dhcp.move');
+                                    router.put('/bulkUpdate', DhcpController, 'bulkUpdate').name('fwclouds.firewalls.system.dhcp.bulkUpdate');
+                                    router.delete('/bulkRemove', DhcpController, 'bulkRemove').name('fwclouds.firewalls.system.dhcp.bulkRemove');
+                                    router.prefix('/:dhcp(\\d+)', (router: RouterParser) => {
+                                        router.get('/', DhcpController, 'show').name('fwclouds.firewalls.system.dhcp.show');
+                                        router.put('/', DhcpController, 'update').name('fwclouds.firewalls.system.dhcp.update');
+                                        router.delete('/', DhcpController, 'remove').name('fwclouds.firewalls.system.dhcp.delete');
+                                    });
+                                });
+
+                                router.prefix('/keepalivedGroups', (router: RouterParser) => {
+                                    router.get('/', KeepalivedGroupController, 'index').name('fwclouds.firewalls.system.keepalived.groups.index');
+                                    router.post('/', KeepalivedGroupController, 'create').name('fwclouds.firewalls.system.keepalived.groups.store');
+                                    router.prefix(':keepalivedgroup(\\d+)', (router: RouterParser) => {
+                                        router.get('/', KeepalivedGroupController, 'show').name('fwclouds.firewalls.system.keepalived.groups.show');
+                                        router.put('/', KeepalivedGroupController, 'update').name('fwclouds.firewalls.system.keepalived.groups.update');
+                                        router.delete('/', KeepalivedGroupController, 'remove').name('fwclouds.firewalls.system.keepalived.groups.delete');
+                                    });
+                                });
+
+                                router.prefix('/keepalivedRules', (router: RouterParser) => {
+                                    router.prefix('/grid', (router: RouterParser) => {
+                                        router.prefix('/:set(\\d+)', (router: RouterParser) => {
+                                            router.get('/', KeepalivedController, 'grid').name('fwclouds.firewalls.system.keepalived.grid');
+                                        });
+                                    });
+                                    router.get('/', KeepalivedController, 'index').name('fwclouds.firewalls.system.keepalived.index');
+                                    router.post('/', KeepalivedController, 'create').name('fwclouds.firewalls.system.keepalived.store');
+                                    router.post('/copy', KeepalivedController, 'copy').name('fwclouds.firewalls.system.keepalived.copy');
+                                    router.put('/move', KeepalivedController, 'move').name('fwclouds.firewalls.system.keepalived.move');
+                                    router.put('/bulkUpdate', KeepalivedController, 'bulkUpdate').name('fwclouds.firewalls.system.keepalived.bulkUpdate');
+                                    router.delete('/bulkRemove', KeepalivedController, 'bulkRemove').name('fwclouds.firewalls.system.keepalived.bulkRemove');
+                                    router.prefix('/:keepalived(\\d+)', (router: RouterParser) => {
+                                        router.get('/', KeepalivedController, 'show').name('fwclouds.firewalls.system.keepalived.show');
+                                        router.put('/', KeepalivedController, 'update').name('fwclouds.firewalls.system.keepalived.update');
+                                        router.delete('/', KeepalivedController, 'remove').name('fwclouds.firewalls.system.keepalived.delete');
                                     });
                                 });
                             });
@@ -193,7 +254,7 @@ export class Routes extends RouteCollection {
                                 router.get('/compile', FirewallController, 'compileRoutingRules').name('fwclouds.firewalls.routing.compile');
                                 router.put('/bulkUpdate', RoutingRuleController, 'bulkUpdate').name('fwclouds.firewalls.routing.rules.bulkUpdate');
                                 router.delete('/bulkRemove', RoutingRuleController, 'bulkRemove').name('fwclouds.firewalls.routing.rules.bulkRemove');
-                                router.prefix('/:routingRule(\\d+)', (router:RouterParser) => {
+                                router.prefix('/:routingRule(\\d+)', (router: RouterParser) => {
                                     router.get('/', RoutingRuleController, 'show').name('fwclouds.firewalls.routing.rules.show');
                                     router.get('/compile', RoutingRuleController, 'compile').name('fwclouds.firewalls.routing.rules.compile')
                                     router.put('/', RoutingRuleController, 'update').name('fwclouds.firewalls.routing.rules.update');
@@ -229,7 +290,7 @@ export class Routes extends RouteCollection {
 
             // iptables-save import/export
             router.prefix('/iptables-save', (router: RouterParser) => {
-                router.put('/import', IptablesSaveController , 'import').name('iptables-save.import');
+                router.put('/import', IptablesSaveController, 'import').name('iptables-save.import');
                 router.put('/export', IptablesSaveController, 'export').name('iptables-save.export');
             });
 
@@ -238,17 +299,17 @@ export class Routes extends RouteCollection {
                 router.put('/', PingController, 'ping').name('ping.pong');
             });
         });
-        router.prefix('/profile/tfa',(router: RouterParser) => {
-            router.post('/verify',TfaController,'verify').name('profile.tfa.verify');
-            router.prefix('/setup',(router:RouterParser) => {
-                router.get('/',TfaController,'getSetup').name('profile.tfa.setup.get');
-                router.post('/',TfaController,'setup').name('profile.tfa.setup');
-                router.delete('/',TfaController,'deleteSetup').name('profile.tfa.setup.delete')
+        router.prefix('/profile/tfa', (router: RouterParser) => {
+            router.post('/verify', TfaController, 'verify').name('profile.tfa.verify');
+            router.prefix('/setup', (router: RouterParser) => {
+                router.get('/', TfaController, 'getSetup').name('profile.tfa.setup.get');
+                router.post('/', TfaController, 'setup').name('profile.tfa.setup');
+                router.delete('/', TfaController, 'deleteSetup').name('profile.tfa.setup.delete')
             })
         });
 
-        router.prefix('/config',(router: RouterParser) => {
-            router.get('/',FwCloudController,'getConfig').name('config.get')
+        router.prefix('/config', (router: RouterParser) => {
+            router.get('/', FwCloudController, 'getConfig').name('config.get')
         })
     }
 }

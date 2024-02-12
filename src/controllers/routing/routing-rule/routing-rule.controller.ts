@@ -55,7 +55,7 @@ export class RoutingRuleController extends Controller {
 
     public async make(request: Request): Promise<void> {
         this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
-        
+
         if (request.params.routingRule) {
             this._routingRule = await getRepository(RoutingRule).findOneOrFail(parseInt(request.params.routingRule));
         }
@@ -193,7 +193,6 @@ export class RoutingRuleController extends Controller {
                     .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
             }
         });
-
         const result: RoutingRule[] = await this.routingRuleService.move(rules.map(item => item.id), request.inputs.get('to'), request.inputs.get<Offset>('offset'));
 
         return ResponseBuilder.buildResponse().status(200).body(result);

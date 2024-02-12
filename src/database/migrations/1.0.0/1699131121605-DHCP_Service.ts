@@ -76,6 +76,12 @@ export class DHCPService1699131121605 implements MigrationInterface {
                     isPrimary: true
                 },
                 {
+                    name: 'firewall',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false
+                },
+                {
                     name: 'rule_type',
                     type: 'tinyint',
                     length: '1',
@@ -175,6 +181,11 @@ export class DHCPService1699131121605 implements MigrationInterface {
                 {
                     columnNames: ['interface'],
                     referencedTableName: 'interface',
+                    referencedColumnNames: ['id']
+                },
+                {
+                    columnNames: ['firewall'],
+                    referencedTableName: 'firewall',
                     referencedColumnNames: ['id']
                 }
             ]
