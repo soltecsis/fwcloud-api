@@ -1,5 +1,5 @@
 /*!
-    Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2024 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -78,7 +78,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
             keepalivedGroupId: keepalived_rs[0].group?.id,
         });
 
-        const destkeepalived: KeepalivedRule = await this.findOneOrFail({
+        const destkeepalived: KeepalivedRule | undefined = await this.findOneOrFail({
             where: {
                 id: keepalivedDestId,
             },
@@ -265,6 +265,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
         }))[0];
     }
 
+    //TODO: REVISAR
     async getKeepalivedRules(fwcloud: number, firewall: number, rules?: number[],rule_types?: number[]): Promise<KeepalivedRule[]> {
         const query: SelectQueryBuilder<KeepalivedRule> = this.createQueryBuilder('keepalived_r')
         .leftJoinAndSelect('keepalived_r.group', 'group')

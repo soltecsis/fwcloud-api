@@ -1,5 +1,5 @@
 /*!
-    Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2024 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -24,6 +24,7 @@ import { IPObj } from "../../../ipobj/IPObj";
 import { KeepalivedGroup } from "../keepalived_g/keepalived_g.model";
 import Model from "../../../Model";
 import { Firewall } from "../../../firewall/Firewall";
+import { Interface } from "../../../interface/Interface";
 
 const tableName: string = 'keepalived_r';
 //TODO: REVISAR 
@@ -48,21 +49,24 @@ export class KeepalivedRule extends Model {
     @Column({ type: 'varchar', length: 50 })
     style: string;
 
-    @ManyToOne(() => IPObj)
+    @ManyToOne(() => Interface, { eager: true })
     @JoinColumn({ name: 'interface' })
-    interface: IPObj; //INTERFACE ES UNA IP DE UN FIREWALL O CLUSTER
+    interface: Interface;
 
-    @ManyToOne(() => IPObj)
+    @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'virtualIp' })
     virtualIp: IPObj;
 
-    @ManyToOne(() => IPObj)
+    @ManyToOne(() => Firewall, { eager: true })
     @JoinColumn({ name: 'masterNode' })
-    masterNode: IPObj;
+    masterNode: Firewall;
 
     @ManyToOne(() => Firewall)
     @JoinColumn({ name: 'firewall' })
     firewall: Firewall;
+
+    @Column({ type: 'text' })
+    cfg_text: string;
 
     @Column({ type: 'text' })
     comment: string;

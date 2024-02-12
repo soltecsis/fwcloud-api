@@ -1,5 +1,5 @@
 /*!
-    Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2024 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
