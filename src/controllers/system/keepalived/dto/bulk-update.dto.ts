@@ -1,5 +1,5 @@
 /*!
-    Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2024 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -19,7 +19,6 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-
 import { IsBoolean, IsOptional, IsString, IsNumber } from "class-validator";
 
 export class KeepalivedRuleBulkUpdateDto {

@@ -41,6 +41,10 @@ export class KeepalivedRuleCreateDto {
 
     @IsNumber()
     @IsOptional()
+    rule_type: number;
+
+    @IsNumber()
+    @IsOptional()
     interfaceId?: number;
     
     @IsNumber()
@@ -50,6 +54,10 @@ export class KeepalivedRuleCreateDto {
     @IsNumber()
     @IsOptional()
     masterNodeId?: number;
+
+    @IsString()
+    @IsOptional()
+    cfg_text?: string;
 
     @IsString()
     @IsOptional()

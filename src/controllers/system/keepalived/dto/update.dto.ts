@@ -1,5 +1,5 @@
 /*!
-    Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2024 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -28,7 +28,7 @@ export class KeepalivedRuleUpdateDto {
 
     @IsNumber()
     @IsOptional()
-    groupId?: number;
+    group?: number;
 
     @IsNumber()
     @IsOptional()
@@ -49,6 +49,10 @@ export class KeepalivedRuleUpdateDto {
     @IsNumber()
     @IsOptional()
     masterNodeId?: number;
+
+    @IsString()
+    @IsOptional()
+    cfg_text?: string;
 
     @IsString()
     @IsOptional()
