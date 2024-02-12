@@ -1,13 +1,12 @@
 import { SelectQueryBuilder } from "typeorm";
-import { IPObj } from "../ipobj/IPObj";
-import { IPObjGroup } from "../ipobj/IPObjGroup";
+import { IPObj } from "../../ipobj/IPObj";
+import { IPObjGroup } from "../../ipobj/IPObjGroup";
 
-//TODO: Everything related to compilation is missing
-export type AvailableDestinations = 'regular_grid' | 'fixed_grid' | 'compiler'| 'keepalived_grid';
+export type AvailableDestinations = 'compiler'| 'keepalived_grid';
 
 export type ItemForGrid = {
     entityId: number;
-    id: number; // Item id.
+    id: number;
     name: string;
     type: number;
     firewall_id: number;
@@ -17,29 +16,7 @@ export type ItemForGrid = {
     host_id?: number;
     host_name?: string;
 };
-
-export type DHCPRuleItemForCompiler = {
-    entityId: number;
-    type: number;
-    address: string;
-    netmask: string;
-    range_start: string;
-    range_end: string;
-};
-
-export class DHCPUtils {
-    public static async mapEntityData<T extends ItemForGrid | DHCPRuleItemForCompiler>(sql: SelectQueryBuilder<IPObj | IPObjGroup>, ItemsArrayMap: Map<number, T[]>): Promise<void> {
-        const data: T[] = await sql.getRawMany() as T[];
-
-        for (let i = 0; i < data.length; i++) {
-            const items: T[] = ItemsArrayMap.get(data[i].entityId);
-            items?.push(data[i]);
-        }
-
-        return;
-    }
-}
-//TODO: REVISAR
+//TODO: Revisar
 export type KeepalivedRuleItemForCompiler = {
     entityId: number;
     type: number;

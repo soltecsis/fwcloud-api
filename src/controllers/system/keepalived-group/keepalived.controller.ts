@@ -2,20 +2,15 @@
     Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
-
-
     This file is part of FWCloud (https://fwcloud.net).
-
     FWCloud is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-
     FWCloud is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
-
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
@@ -29,15 +24,15 @@ import { KeepalivedGroup } from '../../../models/system/keepalived/keepalived_g/
 import { Firewall } from '../../../models/firewall/Firewall';
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { getRepository, SelectQueryBuilder } from 'typeorm';
-import { KeepalivedRuleService, KeepalivedRulesData, ICreateKeepalivedRule, IUpdateKeepalivedRule } from '../../../models/system/keepalived/keepalived_r/keepalived_r.service';
-import { KeepalivedRuleCreateDto } from './dto/create.dto';
+import { KeepalivedRuleService, ICreateKeepalivedRule, IUpdateKeepalivedRule } from '../../../models/system/keepalived/keepalived_r/keepalived_r.service';
 import { Offset } from '../../../offset';
-import { KeepalivedRuleCopyDto } from './dto/copy.dto';
-import { KeepalivedRuleUpdateDto } from './dto/update.dto';
-import { KeepalivedRuleBulkUpdateDto } from './dto/bulk-update.dto';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
-import { KeepalivedRuleBulkRemoveDto } from './dto/bulk-remove.dto';
-import { AvailableDestinations, KeepalivedRuleItemForCompiler } from '../../../models/system/keepalived/shared';
+import { AvailableDestinations } from '../../../models/system/keepalived/shared';
+import { KeepalivedRuleCreateDto } from '../keepalived/dto/create.dto';
+import { KeepalivedRuleCopyDto } from '../keepalived/dto/copy.dto';
+import { KeepalivedRuleBulkUpdateDto } from '../keepalived/dto/bulk-update.dto';
+import { KeepalivedRuleBulkRemoveDto } from '../keepalived/dto/bulk-remove.dto';
+import { KeepalivedRuleUpdateDto } from '../keepalived/dto/update.dto';
 
 
 export class KeepalivedController extends Controller {

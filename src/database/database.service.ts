@@ -74,8 +74,8 @@ import { Ca } from "../models/vpn/pki/Ca";
 import { CaPrefix } from "../models/vpn/pki/CaPrefix";
 import { Crt } from "../models/vpn/pki/Crt";
 import { Tfa } from "../models/user/Tfa";
-import { DHCPRule } from "../models/system/dhcp/dhcp_r/dhcp_r.model";
-import { DHCPGroup } from "../models/system/dhcp/dhcp_g/dhcp_g.model";
+import { KeepalivedRule } from "../models/system/keepalived/keepalived_r/keepalived_r.model";
+import { KeepalivedGroup } from "../models/system/keepalived/keepalived_g/keepalived_g.model";
 
 export interface DatabaseConfig {
     host: string,
@@ -317,8 +317,8 @@ export class DatabaseService extends Service {
                 CaPrefix,
                 Crt,
                 Tfa,
-                DHCPRule,
-                DHCPGroup
+                KeepalivedRule,
+                KeepalivedGroup,
             ]
         }
     }

@@ -54,8 +54,6 @@ import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { Route } from '../routing/route/route.model';
 import { RoutingRule } from './../routing/routing-rule/routing-rule.model';
-import { DHCPGroup } from "../system/dhcp/dhcp_g/dhcp_g.model";
-import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
 import { KeepalivedGroup } from "../system/keepalived/keepalived_g/keepalived_g.model";
 import { KeepalivedRule } from "../system/keepalived/keepalived_r/keepalived_r.model";
 
@@ -215,12 +213,6 @@ export class Firewall extends Model {
 
 	@OneToMany(type => Route, route => route.firewallApplyTo)
 	routes: Route[]
-
-	@OneToMany(type => DHCPGroup, dhcpGroup => dhcpGroup.firewall)
-	dhcpGroups: DHCPGroup[];
-
-	@OneToMany(type => DHCPRule, dhcpRule => dhcpRule.firewall)
-	dhcpRules: DHCPRule[];
 
 	@OneToMany(type => KeepalivedGroup, keepalivedGroup => keepalivedGroup.firewall)
 	keepalivedGroups: KeepalivedGroup[];

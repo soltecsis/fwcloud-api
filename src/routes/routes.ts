@@ -46,8 +46,6 @@ import { PolicyRuleController } from "../controllers/policy-rule/policy-rule.con
 import { TfaController } from "../controllers/auth/tfa.controller";
 import { CaController } from "../controllers/ca/ca.controller";
 import { CrtController } from "../controllers/crt/crt.controller";
-import { DhcpGroupController } from '../controllers/system/dhcp-group/dhcp-group.controller';
-import { DhcpController } from '../controllers/system/dhcp/dhcp.controller';
 import { KeepalivedGroupController } from '../controllers/system/keepalived-group/keepalived-group.controller';
 import { KeepalivedController } from '../controllers/system/keepalived/keepalived.controller';
 export class Routes extends RouteCollection {
@@ -165,35 +163,6 @@ export class Routes extends RouteCollection {
                             });
 
                             router.prefix('/system', (router: RouterParser) => {
-                                router.prefix('/dhcpGroups', (router: RouterParser) => {
-                                    router.get('/', DhcpGroupController, 'index').name('fwclouds.firewalls.system.dhcp.groups.index');
-                                    router.post('/', DhcpGroupController, 'create').name('fwclouds.firewalls.system.dhcp.groups.store');
-                                    router.prefix(':dhcpgroup(\\d+)', (router: RouterParser) => {
-                                        router.get('/', DhcpGroupController, 'show').name('fwclouds.firewalls.system.dhcp.groups.show');
-                                        router.put('/', DhcpGroupController, 'update').name('fwclouds.firewalls.system.dhcp.groups.update');
-                                        router.delete('/', DhcpGroupController, 'remove').name('fwclouds.firewalls.system.dhcp.groups.delete');
-                                    });
-                                });
-
-                                router.prefix('/dhcpRules', (router: RouterParser) => {
-                                    router.prefix('/grid', (router: RouterParser) => {
-                                        router.prefix('/:set(\\d+)', (router: RouterParser) => {
-                                            router.get('/', DhcpController, 'grid').name('fwclouds.firewalls.system.dhcp.grid');
-                                        });
-                                    });
-                                    router.get('/', DhcpController, 'index').name('fwclouds.firewalls.system.dhcp.index');
-                                    router.post('/', DhcpController, 'create').name('fwclouds.firewalls.system.dhcp.store');
-                                    router.post('/copy', DhcpController, 'copy').name('fwclouds.firewalls.system.dhcp.copy');
-                                    router.put('/move', DhcpController, 'move').name('fwclouds.firewalls.system.dhcp.move');
-                                    router.put('/bulkUpdate', DhcpController, 'bulkUpdate').name('fwclouds.firewalls.system.dhcp.bulkUpdate');
-                                    router.delete('/bulkRemove', DhcpController, 'bulkRemove').name('fwclouds.firewalls.system.dhcp.bulkRemove');
-                                    router.prefix('/:dhcp(\\d+)', (router: RouterParser) => {
-                                        router.get('/', DhcpController, 'show').name('fwclouds.firewalls.system.dhcp.show');
-                                        router.put('/', DhcpController, 'update').name('fwclouds.firewalls.system.dhcp.update');
-                                        router.delete('/', DhcpController, 'remove').name('fwclouds.firewalls.system.dhcp.delete');
-                                    });
-                                });
-
                                 router.prefix('/keepalivedGroups', (router: RouterParser) => {
                                     router.get('/', KeepalivedGroupController, 'index').name('fwclouds.firewalls.system.keepalived.groups.index');
                                     router.post('/', KeepalivedGroupController, 'create').name('fwclouds.firewalls.system.keepalived.groups.store');
@@ -205,11 +174,7 @@ export class Routes extends RouteCollection {
                                 });
 
                                 router.prefix('/keepalivedRules', (router: RouterParser) => {
-                                    router.prefix('/grid', (router: RouterParser) => {
-                                        router.prefix('/:set(\\d+)', (router: RouterParser) => {
-                                            router.get('/', KeepalivedController, 'grid').name('fwclouds.firewalls.system.keepalived.grid');
-                                        });
-                                    });
+                                    router.get('/grid', KeepalivedController, 'grid').name('fwclouds.firewalls.system.keepalived.grid');
                                     router.get('/', KeepalivedController, 'index').name('fwclouds.firewalls.system.keepalived.index');
                                     router.post('/', KeepalivedController, 'create').name('fwclouds.firewalls.system.keepalived.store');
                                     router.post('/copy', KeepalivedController, 'copy').name('fwclouds.firewalls.system.keepalived.copy');
