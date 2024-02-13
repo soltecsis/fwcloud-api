@@ -48,6 +48,7 @@ import { CaController } from "../controllers/ca/ca.controller";
 import { CrtController } from "../controllers/crt/crt.controller";
 import { KeepalivedGroupController } from '../controllers/system/keepalived-group/keepalived-group.controller';
 import { KeepalivedController } from '../controllers/system/keepalived/keepalived.controller';
+
 export class Routes extends RouteCollection {
 
     public routes(router: RouterParser): void {
@@ -225,34 +226,6 @@ export class Routes extends RouteCollection {
                                     router.put('/', RoutingRuleController, 'update').name('fwclouds.firewalls.routing.rules.update');
                                     router.delete('/', RoutingRuleController, 'remove').name('fwclouds.firewalls.routing.rules.delete');
                                 });
-                            });
-
-                            router.prefix('/system', (router: RouterParser) => {
-                                router.prefix('/keepalivedGroups', (router: RouterParser) => {
-                                    router.get('/', KeepalivedGroupController, 'index').name('fwclouds.firewalls.system.keepalived.groups.index');
-                                    router.post('/', KeepalivedGroupController, 'create').name('fwclouds.firewalls.system.keepalived.groups.store');
-                                    router.prefix(':keepalivedgroup(\\d+)', (router: RouterParser) => {
-                                        router.get('/', KeepalivedGroupController, 'show').name('fwclouds.firewalls.system.keepalived.groups.show');
-                                        router.put('/', KeepalivedGroupController, 'update').name('fwclouds.firewalls.system.keepalived.groups.update');
-                                        router.delete('/', KeepalivedGroupController, 'remove').name('fwclouds.firewalls.system.keepalived.groups.delete');
-                                    });
-                                });
-
-                                router.prefix('/keepalivedRules', (router: RouterParser) => {
-                                    router.get('/grid', KeepalivedController, 'grid').name('fwclouds.firewalls.system.keepalived.grid');
-                                    router.get('/', KeepalivedController, 'index').name('fwclouds.firewalls.system.keepalived.index');
-                                    router.post('/', KeepalivedController, 'create').name('fwclouds.firewalls.system.keepalived.store');
-                                    router.post('/copy', KeepalivedController, 'copy').name('fwclouds.firewalls.system.keepalived.copy');
-                                    router.put('/move', KeepalivedController, 'move').name('fwclouds.firewalls.system.keepalived.move');
-                                    router.put('/bulkUpdate', KeepalivedController, 'bulkUpdate').name('fwclouds.firewalls.system.keepalived.bulkUpdate');
-                                    router.delete('/bulkRemove', KeepalivedController, 'bulkRemove').name('fwclouds.firewalls.system.keepalived.bulkRemove');
-                                    router.prefix('/:keepalived(\\d+)', (router: RouterParser) => {
-                                        router.get('/', KeepalivedController, 'show').name('fwclouds.firewalls.system.keepalived.show');
-                                        router.put('/', KeepalivedController, 'update').name('fwclouds.firewalls.system.keepalived.update');
-                                        router.delete('/', KeepalivedController, 'remove').name('fwclouds.firewalls.system.keepalived.delete');
-                                    });
-                                });
-                            });
                             });
                         })
                     })
