@@ -184,9 +184,10 @@ export class Routes extends RouteCollection {
                                     router.post('/', DhcpController, 'create').name('fwclouds.firewalls.system.dhcp.store');
                                     router.post('/copy', DhcpController, 'copy').name('fwclouds.firewalls.system.dhcp.copy');
                                     router.put('/move', DhcpController, 'move').name('fwclouds.firewalls.system.dhcp.move');
+                                    router.put('/moveFrom', DhcpController, 'moveFrom').name('fwclouds.firewalls.system.dhcp.moveFrom');
                                     router.put('/bulkUpdate', DhcpController, 'bulkUpdate').name('fwclouds.firewalls.system.dhcp.bulkUpdate');
                                     router.get('/compile', FirewallController, 'compileDHCPRules').name('fwclouds.firewalls.system.dhcp.compile');
-                                    router.put('/install',DhcpController,'install').name('fwclouds.firewalls.system.dhcp.install');
+                                    router.put('/install', DhcpController, 'install').name('fwclouds.firewalls.system.dhcp.install');
                                     router.delete('/bulkRemove', DhcpController, 'bulkRemove').name('fwclouds.firewalls.system.dhcp.bulkRemove');
                                     router.prefix('/:dhcp(\\d+)', (router: RouterParser) => {
                                         router.get('/', DhcpController, 'show').name('fwclouds.firewalls.system.dhcp.rules.show');

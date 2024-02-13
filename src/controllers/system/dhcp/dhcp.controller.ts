@@ -41,7 +41,8 @@ import { AvailableDestinations, DHCPRuleItemForCompiler } from '../../../models/
 import { DHCPCompiler } from '../../../compiler/system/dhcp/DHCPCompiler';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
-import {Communication} from "../../../communications/communication";
+import { Communication } from "../../../communications/communication";
+import { DHCPRuleMoveFromDto } from './dto/move-from.dto';
 
 export class DhcpController extends Controller {
   protected _dhcpRuleService: DHCPRuleService;
@@ -217,6 +218,45 @@ export class DhcpController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
 
+  @Validate(DHCPRuleMoveFromDto)
+  async moveFrom(req: Request): Promise<ResponseBuilder> {
+    (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
+
+    const fromRule: DHCPRule = await getRepository(DHCPRule).findOneOrFail({
+      join: {
+        alias: 'rule',
+        innerJoin: {
+          firewall: 'rule.firewall',
+          fwcloud: 'firewall.fwCloud'
+        }
+      },
+      where: (qb: SelectQueryBuilder<DHCPRule>): void => {
+        qb.whereInIds(req.inputs.get('fromId'))
+          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
+      }
+    });
+
+    const toRule: DHCPRule = await getRepository(DHCPRule).findOneOrFail({
+      join: {
+        alias: 'rule',
+        innerJoin: {
+          firewall: 'rule.firewall',
+          fwcloud: 'firewall.fwCloud'
+        }
+      },
+      where: (qb: SelectQueryBuilder<DHCPRule>): void => {
+        qb.whereInIds(req.inputs.get('toId'))
+          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
+      }
+    });
+
+    const result: DHCPRule[] = await this._dhcpRuleService.moveFrom(fromRule.id, toRule.id, req.inputs.all());
+
+    return ResponseBuilder.buildResponse().status(200).body(result);
+  }
+
   @Validate()
   /**
    * Compiles the DHCP configuration based on the provided request.
@@ -287,7 +327,7 @@ export class DhcpController extends Controller {
     if (!rules.length) {
       throw new HttpException(`No rules found`, 400);
     }
-    
+
     const result: DHCPRule[] = await this._dhcpRuleService.bulkUpdate(rules.map(item => item.id), req.inputs.all<IUpdateDHCPRule>());
 
     return ResponseBuilder.buildResponse().status(200).body(result);

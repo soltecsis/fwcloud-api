@@ -84,6 +84,12 @@ export interface DHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler> 
     items: (T & { _order: number })[];
 }
 
+interface IMoveFromDHCPRule {
+    fromId: number;
+    toId: number;
+    ipObjId?: number;
+}
+
 export class DHCPRuleService extends Service {
     private _repository: DHCPRepository;
     private _ipobjRepository: IPObjRepository;
@@ -167,6 +173,36 @@ export class DHCPRuleService extends Service {
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
         return this._repository.move(ids, destRule, offset);
+    }
+
+    async moveFrom(fromId: number, toId: number, data: IMoveFromDHCPRule): Promise<[DHCPRule, DHCPRule]> {
+        const fromRule: DHCPRule = await this._repository.findOneOrFail(fromId, {
+            relations: ['firewall', 'firewall.fwCloud', 'dhcpRuleToIPObjs']
+        });
+        const toRule: DHCPRule = await this._repository.findOneOrFail(toId, {
+            relations: ['firewall', 'firewall.fwCloud', 'dhcpRuleToIPObjs']
+        });
+
+        let lastPosition = 0;
+
+        [].concat(toRule.dhcpRuleToIPObjs).forEach(item => {
+            lastPosition < item.order ? lastPosition = item.order : null;
+        });
+
+        if (data.ipObjId !== undefined) {
+            const index: number = toRule.dhcpRuleToIPObjs.findIndex(item => item.ipObjId === data.ipObjId);
+            if (index >= 0) {
+                fromRule.dhcpRuleToIPObjs.splice(index, 1);
+                toRule.dhcpRuleToIPObjs.push({
+                    dhcpRuleId: toRule.id,
+                    ipObjId: data.ipObjId,
+                    order: lastPosition + 1
+                } as DHCPRuleToIPObj);
+            }
+        }
+
+        return await this._repository.save([fromRule, toRule]) as [DHCPRule, DHCPRule];
+
     }
 
     async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
