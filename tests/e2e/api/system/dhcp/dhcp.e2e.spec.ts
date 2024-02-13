@@ -38,6 +38,7 @@ import { DHCPRepository } from "../../../../../src/models/system/dhcp/dhcp_r/dhc
 import { Offset } from "../../../../../src/offset";
 import { DhcpRuleBulkUpdateDto } from "../../../../../src/controllers/system/dhcp/dto/bulk-update.dto";
 import { IPObj } from "../../../../../src/models/ipobj/IPObj";
+import { DHCPRuleMoveFromDto } from "../../../../../src/controllers/system/dhcp/dto/move-from.dto";
 
 describe('DHCPRule E2E Tests', () => {
     let app: Application;
@@ -725,7 +726,94 @@ describe('DHCPRule E2E Tests', () => {
             });
         });
 
-        describe('@compile',() => {
+        describe('@moveFrom', () => {
+            let rule1: DHCPRule;
+            let rule2: DHCPRule;
+            let data: DHCPRuleMoveFromDto;
+
+            beforeEach(async () => {
+                const ipobj = await getRepository(IPObj).save(getRepository(IPObj).create({
+                    name: 'test',
+                    address: '0.0.0.0',
+                    ipObjTypeId: 0
+                }));
+
+                rule1 = await DHCPRuleServiceInstance.store({
+                    active: true,
+                    group: group.id,
+                    firewallId: firewall.id,
+                    max_lease: 1,
+                    cfg_text: "cfg_text",
+                    comment: "comment",
+                    rule_order: 1,
+                });
+
+                rule2 = await DHCPRuleServiceInstance.store({
+                    active: true,
+                    group: group.id,
+                    firewallId: firewall.id,
+                    max_lease: 2,
+                    cfg_text: "cfg_text",
+                    comment: "comment",
+                    rule_order: 2,
+                });
+
+                data = {
+                    fromId: rule1.id,
+                    toId: rule2.id,
+                    ipObjId: ipobj.id,
+                }
+            });
+
+            it('guest user should not move a dhcp rule', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.moveFrom', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .send(data)
+                    .expect(401);
+            });
+
+            it('regular user which does not belong to the fwcloud should not move a dhcp rule', async () => {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.moveFrom', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(401);
+            });
+
+            it('regular user which belongs to the fwcloud should move a dhcp rule', async () => {
+                loggedUser.fwClouds = [fwCloud];
+                await getRepository(User).save(loggedUser);
+
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.moveFrom', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id,
+                    }))
+                    .set('Cookie', [attachSession(loggedUserSessionId)])
+                    .send(data)
+                    .expect(200);
+
+            });
+
+            it('admin user should move a dhcp rule', async () => {
+                await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.system.dhcp.moveFrom', {
+                        fwcloud: fwCloud.id,
+                        firewall: firewall.id
+                    }))
+                    .set('Cookie', [attachSession(adminUserSessionId)])
+                    .send(data)
+                    .expect(200);
+            });
+        });
+
+        describe('@compile', () => {
             let dhcpRule: DHCPRule;
 
             beforeEach(async () => {

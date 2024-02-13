@@ -448,6 +448,55 @@ describe(DHCPRuleService.name, () => {
         });
     });
 
+    describe('moveFrom', () => {
+        let rule1: DHCPRule;
+        let rule2: DHCPRule;
+        let ipobj: IPObj;
+
+        beforeEach(async () => {
+            ipobj = await getRepository(IPObj).save(getRepository(IPObj).create({
+                name: 'test',
+                address: '0.0.0.0',
+                ipObjTypeId: 0
+            }));
+
+            rule1 = await service.store({
+                active: true,
+                firewallId: firewall.id,
+                max_lease: 1,
+                cfg_text: "cfg_text",
+                comment: "comment",
+                rule_order: 1,
+            });
+
+            rule2 = await service.store({
+                active: true,
+                firewallId: firewall.id,
+                max_lease: 2,
+                cfg_text: "cfg_text",
+                comment: "comment",
+                rule_order: 2,
+            });
+        });
+
+        describe('ipObj', () => {
+            it('shoudl move ipObj correctly', async () => {
+                await service.update(rule1.id, {
+                    ipObjIds: [{ id: ipobj.id, order: 1 }]
+                });
+
+                const result = await service.moveFrom(rule1.id, rule2.id, {
+                    fromId: rule1.id,
+                    toId: rule2.id,
+                    ipObjId: ipobj.id
+                });
+
+                expect(result[1].dhcpRuleToIPObjs).to.be.empty;
+                expect(result[0].dhcpRuleToIPObjs).to.be.not.empty;
+            });
+        });
+    });
+
     describe('update', () => {
         it('should successfully update a DHCPRule', async () => {
             const dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
