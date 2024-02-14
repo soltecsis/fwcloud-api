@@ -441,14 +441,22 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         return super.handleRequestException(error, eventEmitter);
     }
 
-    async installDHCPConfigs(dir: string, configs: { name: string; content: string; }[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
+    async installDHCPConfigs(dir: string, configs: { name: string; content: string; }[], eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         try {
             const pathUrl: string = this.url + '/api/v1/daemons/config/upload';
             const form: FormData = new FormData();
-
+            
             const requestConfig: AxiosRequestConfig = this.obtainRequestConfig(form, dir, configs, eventEmitter);
+            
+            requestConfig.timeout = 0;
 
-            axios.post(pathUrl, form, requestConfig);
+            requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+            
+            const response: AxiosResponse<string> = await axios.post(pathUrl, form, requestConfig);
+
+            response.data.split("\n").forEach(item => eventEmitter.emit('message', new ProgressSSHCmdPayload(item)));
+
+            return "DONE";
         } catch (error) {
             this.handleRequestException(error, eventEmitter)
         }
