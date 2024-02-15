@@ -443,7 +443,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
     async installDHCPConfigs(dir: string, configs: { name: string; content: string; }[], eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         try {
-            const pathUrl: string = this.url + '/api/v1/daemons/config/upload';
+            const pathUrl: string = this.url + '/api/v1/daemon/config/upload';
             const form: FormData = new FormData();
 
             const requestConfig: AxiosRequestConfig = this.obtainRequestConfig(form, dir, configs, eventEmitter);
