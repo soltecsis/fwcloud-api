@@ -283,11 +283,22 @@ export class DhcpController extends Controller {
    */
   public async install(req: Request): Promise<ResponseBuilder> {
     const channel: Channel = await Channel.fromRequest(req);
+    let firewallId: number;
 
-    const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] = await this._dhcpRuleService.getDHCPRulesData('compiler', this._fwCloud.id, this._firewall.id);
+    let firewall: Firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
+    if (firewall.clusterId) {
+      firewallId = (await getRepository(Firewall).createQueryBuilder('firewall')
+        .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
+        .andWhere('firewall.fwmaster = 1')
+        .getOneOrFail()).id;
+    } else {
+      firewallId = firewall.id;
+    }
+
+    const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] = await this._dhcpRuleService.getDHCPRulesData('compiler', this._fwCloud.id, firewallId);
+
     const content: string = (new DHCPCompiler().compile(rules, channel)).map(item => item.cs).join('\n');
 
-    const firewall: Firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
     const communication: Communication<unknown> = await firewall.getCommunication();
 
     channel.emit('message', new ProgressPayload('start', false, `Installing DHCP`));
