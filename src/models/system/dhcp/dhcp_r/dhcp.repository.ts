@@ -110,15 +110,15 @@ export class DHCPRepository extends Repository<DHCPRule> {
                 dhcp_r.group ? dhcp_r.group.id = destDHCP.group.id : dhcp_r.group = destDHCP.group;
             } else {
                 if (forward && dhcp_r.rule_order >= destDHCP.rule_order) {
-                    dhcp_r.rule_order += dhcp_rs.length;
+                    dhcp_r.rule_order += 1;
                 }
 
                 if (!forward && dhcp_r.rule_order >= destDHCP.rule_order && dhcp_r.rule_order < dhcp_rs[0].rule_order) {
-                    dhcp_r.rule_order += dhcp_rs.length;
+                    dhcp_r.rule_order += 1;
                 }
             }
         });
-
+        
         return affectedDHCPs;
     }
 
@@ -281,6 +281,9 @@ export class DHCPRepository extends Repository<DHCPRule> {
                 query
                     .orderBy('FIELD(dhcp_r.rule_type, :...rule_types)', 'ASC')
                     .addOrderBy('dhcp_r.rule_order', 'ASC');
+            } else {
+                query
+                    .orderBy('dhcp_r.rule_order', 'ASC');
             }
         } else {
             query.orderBy('dhcp_r.rule_order', 'ASC');
