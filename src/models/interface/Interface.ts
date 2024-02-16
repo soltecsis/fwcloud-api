@@ -450,12 +450,7 @@ export class Interface extends Model {
 							.where('firewall.fwCloudId = :fwcloud', { fwcloud })
 							.getRawMany()
 
-						search.restrictions.InterfaceInDhcpRule = await getRepository(DHCPRule).createQueryBuilder('dhcpRule')
-							.addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
-							.leftJoin('dhcpRule.interface', 'interface', 'interface.id = :interface', { interface: id })
-							.innerJoin('dhcpRule.firewall', 'firewall')
-							.where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
-							.getMany();
+						search.restrictions.InterfaceInDhcpRule = await this.searchInterfaceInDhcpRule(id, fwcloud);
 
 						for (let key in search.restrictions) {
 							if (search.restrictions[key].length > 0) {
@@ -510,6 +505,17 @@ export class Interface extends Model {
 			});
 		});
 	};
+
+	public static async searchInterfaceInDhcpRule(id: string, fwcloud: string): Promise<any> {
+		return await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
+			.addSelect('dhcp_rule.id', 'dhcp_rule_id').addSelect('dhcp_rule.rule_type', 'dhcp_rule_type')
+			.addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
+			.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+			.leftJoin('dhcp_rule.interface', 'interface', 'interface.id = :interface', { interface: id })
+			.innerJoin('dhcp_rule.firewall', 'firewall')
+			.where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
+			.getRawMany();
+	}
 
 
 	//Add new interface from user
