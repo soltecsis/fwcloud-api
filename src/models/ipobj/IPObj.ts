@@ -979,6 +979,7 @@ export class IPObj extends Model {
                     search.restrictions.AddrHostInRule = await PolicyRuleToIPObj.searchAddrHostInRule(dbCon, fwcloud, id);
                     search.restrictions.AddrHostInGroup = await IPObjToIPObjGroup.searchAddrHostInGroup(dbCon, fwcloud, id);
                     search.restrictions.AddrHostInOpenvpn = await this.searchAddrHostInOpenvpn(dbCon, fwcloud, id);
+                    search.restrictions.InterfaceHostInDhcpRule = await this.searchInterfaceHostInDhcpRule(dbCon, fwcloud, id);
                 }
 
                 // Avoid leaving an interface used in a rule without address.
@@ -1180,6 +1181,19 @@ export class IPObj extends Model {
         });
     };
 
+    public static async searchInterfaceHostInDhcpRule(dbCon: any, fwcloud: number, id: number): Promise<any> {
+        const result = await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
+            .addSelect('dhcp_rule.id', 'dhcp_rule_id').addSelect('dhcp_rule.rule_type', 'dhcp_rule_type')
+            .addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .innerJoin('dhcp_rule.interface', 'interface')
+            .innerJoin('interface.hosts', 'hosts')
+            .innerJoin('hosts.hostIPObj', 'ipObj', 'ipObj.id = :id', { id })
+            .innerJoin('dhcp_rule.firewall', 'firewall')
+            .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
+            .getRawMany();
+        return result;
+    }
 
     public static searchLastInterfaceWithAddrInHostInRule(_interface, fwcloud) {
         return new Promise((resolve, reject) => {
