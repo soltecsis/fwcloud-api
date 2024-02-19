@@ -267,8 +267,8 @@ export class DHCPRepository extends Repository<DHCPRule> {
             .leftJoinAndSelect('dhcp_r.interface', 'interface')
             .leftJoinAndSelect('interface.hosts', 'hosts')
             .leftJoinAndSelect('hosts.hostIPObj', 'hostIPObj')
-            .innerJoinAndSelect('dhcp_r.firewall', 'firewall')
-            .innerJoinAndSelect('firewall.fwCloud', 'fwCloud')
+            .leftJoinAndSelect('dhcp_r.firewall', 'firewall')
+            .leftJoinAndSelect('firewall.fwCloud', 'fwCloud')
             .where('firewall.id = :firewallId', { firewallId: firewall })
             .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: FWCloud });
 
