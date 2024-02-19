@@ -45,16 +45,6 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     }
 
     /**
-     * Finds a Keepalived record in a specific path.
-     * @param path - The path to search for the keepalived record.
-     * @param options - The options to apply to the query.
-     * @returns A promise that resolves to the found keepalived record.
-     */
-    findOneInPath(path: IFindOneKeepalivedRPath, options?: FindManyOptions<KeepalivedRule>): Promise<KeepalivedRule> {
-        return this.findOne(this.getFindInPathOptions(path, options));
-    }
-
-    /**
      * Moves the Keepalived rules with the specified IDs to a new position relative to the keepalived rule with the given ID.
      * @param ids - An array of keepalived rule IDs to be moved.
      * @param keepalivedDestId - The ID of the Keepalived rule to which the selected rules will be moved.
@@ -120,11 +110,11 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
                 keepalived_r.group ? keepalived_r.group.id = destKeepalived.group.id : keepalived_r.group = destKeepalived.group;
             } else {
                 if (forward && keepalived_r.rule_order >= destKeepalived.rule_order) {
-                    keepalived_r.rule_order += keepalived_rs.length;
+                    keepalived_r.rule_order += 1;
                 }
 
                 if (!forward && keepalived_r.rule_order >= destKeepalived.rule_order && keepalived_r.rule_order < keepalived_rs[0].rule_order) {
-                    keepalived_r.rule_order += keepalived_rs.length;
+                    keepalived_r.rule_order += 1;
                 }
             }
         });
@@ -275,6 +265,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
             .innerJoin('firewall.fwCloud', 'fwCloud')
             .where('firewall.id = :firewallId', { firewallId: firewall })
             .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud });
+        // TODO: Revisar si es necesario cambiar el orden de compilacion
         if (rule_types) {
             query
                 .andWhere('keepalived_r.rule_type IN (:...rule_types)')
