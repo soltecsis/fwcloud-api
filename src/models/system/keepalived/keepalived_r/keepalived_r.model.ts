@@ -59,7 +59,7 @@ export class KeepalivedRule extends Model {
     virtualIp: IPObj;
 
     @ManyToOne(() => Firewall, { eager: true })
-    @JoinColumn({ name: 'masterNode' })
+    @JoinColumn({ name: 'master_node' })
     masterNode: Firewall;
 
     @ManyToOne(() => Firewall, { eager: true })
