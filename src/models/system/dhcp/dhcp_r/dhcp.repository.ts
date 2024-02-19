@@ -266,6 +266,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
             .leftJoinAndSelect('routerFirewall.cluster', 'routerCluster')
             .leftJoinAndSelect('dhcp_r.interface', 'interface')
             .leftJoinAndSelect('interface.firewall', 'interfaceFirewall')
+            .leftJoinAndSelect('interfaceFirewall.cluster', 'interfaceCluster')
             .leftJoinAndSelect('interface.hosts', 'hosts')
             .leftJoinAndSelect('hosts.hostIPObj', 'hostIPObj')
             .leftJoinAndSelect('dhcp_r.firewall', 'firewall')
