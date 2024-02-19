@@ -53,12 +53,12 @@ export class KeepalivedRule extends Model {
     interface: IPObj; //INTERFACE ES UNA IP DE UN FIREWALL O CLUSTER
 
     @ManyToOne(() => IPObj)
-    @JoinColumn({ name: 'virtualIp' })
+    @JoinColumn({ name: 'virtual_ip' })
     virtualIp: IPObj;
 
-    @ManyToOne(() => IPObj)
-    @JoinColumn({ name: 'masterNode' })
-    masterNode: IPObj;
+    @ManyToOne(() => Firewall)
+    @JoinColumn({ name: 'master_node' })
+    masterNode: Firewall;
 
     @ManyToOne(() => Firewall)
     @JoinColumn({ name: 'firewall' })

@@ -104,7 +104,7 @@ export class KeepalivedRuleService extends Service {
             keepalivedRuleData.virtualIp = await getRepository(IPObj).findOneOrFail(data.virtualIpId) as IPObj;
         }
         if (data.masterNodeId) {
-            keepalivedRuleData.masterNode = await getRepository(IPObj).findOneOrFail(data.masterNodeId) as IPObj;
+            keepalivedRuleData.masterNode = await getRepository(Firewall).findOneOrFail(data.masterNodeId) as Firewall;
         }
         if (data.firewallId) {
             keepalivedRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
