@@ -84,7 +84,7 @@ describe('KeepalivedRule E2E Tests', () => {
             beforeEach(async () => {
                 KeepalivedRule = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 1,
@@ -147,7 +147,7 @@ describe('KeepalivedRule E2E Tests', () => {
             beforeEach(async () => {
                 KeepalivedRule = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 1,
@@ -294,14 +294,14 @@ describe('KeepalivedRule E2E Tests', () => {
             beforeEach(async () => {
                 KeepalivedRule1 = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 1,
                 });
                 KeepalivedRule2 = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 2,
@@ -372,7 +372,7 @@ describe('KeepalivedRule E2E Tests', () => {
             beforeEach(async () => {
                 KeepalivedRule = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 1,
@@ -470,7 +470,7 @@ describe('KeepalivedRule E2E Tests', () => {
             beforeEach(async () => {
                 KeepalivedRule = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 1,
@@ -536,7 +536,7 @@ describe('KeepalivedRule E2E Tests', () => {
             beforeEach(async () => {
                 KeepalivedRule = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 1,
@@ -606,28 +606,28 @@ describe('KeepalivedRule E2E Tests', () => {
             beforeEach(async () => {
                 KeepalivedRule1 = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 1,
                 });
                 KeepalivedRule2 = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 2,
                 });
                 KeepalivedRule3 = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 3,
                 });
                 KeepalivedRule4 = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 4,
@@ -712,14 +712,14 @@ describe('KeepalivedRule E2E Tests', () => {
             beforeEach(async () => {
                 rule1 = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 1,
                 });
                 rule2 = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 2,
@@ -804,14 +804,14 @@ describe('KeepalivedRule E2E Tests', () => {
             beforeEach(async () => {
                 rule1 = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 1,
                 });
                 rule2 = await keepalivedRuleServiceInstance.store({
                     active: true,
-                    groupId: group.id,
+                    group: group.id,
                     firewallId: firewall.id,
                     comment: "comment",
                     rule_order: 2,
