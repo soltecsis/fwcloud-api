@@ -118,7 +118,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
                 }
             }
         });
-        
+
         return affectedDHCPs;
     }
 
@@ -265,6 +265,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
             .leftJoinAndSelect('routerInterface.firewall', 'routerFirewall')
             .leftJoinAndSelect('routerFirewall.cluster', 'routerCluster')
             .leftJoinAndSelect('dhcp_r.interface', 'interface')
+            .leftJoinAndSelect('interface.firewall', 'interfaceFirewall')
             .leftJoinAndSelect('interface.hosts', 'hosts')
             .leftJoinAndSelect('hosts.hostIPObj', 'hostIPObj')
             .leftJoinAndSelect('dhcp_r.firewall', 'firewall')
