@@ -1,5 +1,5 @@
 /*!
-    Copyright 2024 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -32,7 +32,6 @@ import { IPObjRepository } from "../../../ipobj/IPObj.repository";
 import { IPObjGroup } from "../../../ipobj/IPObjGroup";
 import { AvailableDestinations, KeepalivedRuleItemForCompiler, KeepalivedUtils, ItemForGrid } from "../shared";
 import { Firewall } from "../../../firewall/Firewall";
-import { FirewallRepository } from "../../../firewall/firewall.repository";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
 
@@ -49,7 +48,6 @@ export interface ICreateKeepalivedRule {
     active?: boolean;
     group?: number;
     style?: string;
-    rule_type?: number;
     firewallId?: number
     interfaceId?: number;
     virtualIpId?: number;
@@ -57,23 +55,21 @@ export interface ICreateKeepalivedRule {
     cfg_text?: string;
     comment?: string;
     rule_order?: number;
+    rule_type?: number;
     to?: number;
     offset?: Offset;
 }
 
 export interface IUpdateKeepalivedRule {
     active?: boolean;
-    group?: number;
     style?: string;
-    firewallId?: number
-    interfaceId?: number;
-    virtualIpId?: number;
+    virutalIpId?: number;
     masterNodeId?: number;
+    interfaceId?: number;
     cfg_text?: string;
     comment?: string;
     rule_order?: number;
-    to?: number;
-    offset?: Offset;
+    group?: number;
 }
 
 export interface KeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemForCompiler> extends KeepalivedRule {
@@ -82,23 +78,25 @@ export interface KeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemF
 
 export class KeepalivedRuleService extends Service {
     private _repository: KeepalivedRepository;
-    private _firewallRepository: FirewallRepository;
     private _ipobjRepository: IPObjRepository;
+    private _keepalivedRangeRepository: IPObjRepository;
+    private _routerRepository: IPObjRepository;
 
     constructor(app: Application) {
         super(app)
         this._repository = getCustomRepository(KeepalivedRepository);
         this._ipobjRepository = getCustomRepository(IPObjRepository);
-        this._firewallRepository = getCustomRepository(FirewallRepository);
+        this._keepalivedRangeRepository = getCustomRepository(IPObjRepository);
+        this._routerRepository = getCustomRepository(IPObjRepository);
     }
 
     async store(data: ICreateKeepalivedRule): Promise<KeepalivedRule> {
         const keepalivedRuleData: Partial<KeepalivedRule> = {
             active: data.active,
             style: data.style,
+            rule_type: data.rule_type,
             cfg_text: data.cfg_text,
             comment: data.comment,
-            rule_type: data.rule_type,
         };
 
         if (data.group) {
@@ -117,7 +115,7 @@ export class KeepalivedRuleService extends Service {
             keepalivedRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
         }
 
-        const lastKeepalivedRule = await this._repository.getLastKeepalivedRuleInGroup(data.group);
+        const lastKeepalivedRule = await this._repository.getLastKeepalivedRuleInGroup(data.group) ? await this._repository.getLastKeepalivedRuleInGroup(data.group) : await getRepository(KeepalivedRule).findOne({ id: data.to });
         keepalivedRuleData.rule_order = lastKeepalivedRule?.rule_order ? lastKeepalivedRule.rule_order + 1 : 1;
 
         const persisted = await this._repository.save(keepalivedRuleData);
@@ -134,7 +132,7 @@ export class KeepalivedRuleService extends Service {
             where: {
                 id: In(ids),
             },
-            relations: ['group', 'firewall', 'firewall.fwCloud'],
+            relations: ['group', 'firewall', 'firewall.fwCloud', 'interface', 'virtualIp', 'masterNode']
         });
 
         const savedCopies: KeepalivedRule[] = await Promise.all(
@@ -152,7 +150,7 @@ export class KeepalivedRuleService extends Service {
     }
 
     async update(id: number, data: Partial<ICreateKeepalivedRule>): Promise<KeepalivedRule> {
-        const keepalivedRule: KeepalivedRule | undefined = await this._repository.findOne(id, { relations: ['group', 'firewall', 'masterNode', 'interface', 'virtualIp'] });
+        const keepalivedRule: KeepalivedRule | undefined = await this._repository.findOne(id, { relations: ['group', 'firewall', 'firewall.fwCloud', 'interface', 'virtualIp', 'masterNode'] });
 
         if (!keepalivedRule) {
             throw new Error('keepalivedRule not found');
@@ -166,24 +164,24 @@ export class KeepalivedRuleService extends Service {
             rule_order: data.rule_order !== undefined ? data.rule_order : keepalivedRule.rule_order
         });
 
-        if (data.group !== undefined) {
-            keepalivedRule.group = data.group ? await getRepository(KeepalivedGroup).findOneOrFail(data.group) as KeepalivedGroup : keepalivedRule.group;
-        }
+        if (data.group) {
+            keepalivedRule.group = data.group ? await getRepository(KeepalivedGroup).findOne(data.group) : null;
+        } else {
+            const fieldsToUpdate = ['virtualIpId', 'masterNodeId', 'interfaceId', 'firewallId'];
 
-        const fieldsToUpdate = ['virtualIpId', 'masterNodeId', 'interfaceId', 'firewallId'];
-
-        for (const field of fieldsToUpdate) {
-            if (data[field]) {
-                if (field === 'interfaceId') {
+            for (const field of fieldsToUpdate) {
+                if (data[field] === 'interfaceId') {
+                    //TODO: Revisar mac
                     keepalivedRule[field.slice(0, -2)] = await getRepository(Interface).findOneOrFail(data[field]) as Interface;
-                    //TODO: Check mac address
+                } else if (data[field] === 'masterNodeId' || data[field] === 'firewallId') {
+                    keepalivedRule[field.slice(0, -2)] = await getRepository(Firewall).findOneOrFail(data[field]) as Firewall;
                 } else {
-                    keepalivedRule[field.slice(0, -2)] = await getRepository(field === 'virtualIpId' ? IPObj : Firewall).findOneOrFail(data[field]) as Firewall | IPObj;
+                    keepalivedRule[field.slice(0, -2)] = await getRepository(IPObj).findOneOrFail(data[field]) as IPObj;
                 }
             }
         }
 
-        //TODO: Check for IP version incompatibility
+        //TODO: Revisar macs
 
         await this._repository.save(keepalivedRule);
 
@@ -200,10 +198,6 @@ export class KeepalivedRuleService extends Service {
 
     findOneInPath(path: IFindOneKeepalivedRulePath, options?: FindOneOptions<KeepalivedRule>): Promise<KeepalivedRule | undefined> {
         return this._repository.findOneOrFail(this.getFindInPathOptions(path, options));
-    }
-
-    findManyInPath(path: IFindManyKeepalivedRulePath, options?: FindOneOptions<KeepalivedRule>): Promise<KeepalivedRule[]> {
-        return this._repository.find(this.getFindInPathOptions(path, options));
     }
 
     protected getFindInPathOptions(path: Partial<IFindOneKeepalivedRulePath>, options: FindOneOptions<KeepalivedRule> = {}): FindOneOptions<KeepalivedRule> {
@@ -229,11 +223,13 @@ export class KeepalivedRuleService extends Service {
         }, options);
     }
 
+    //TODO: Need to add the data type keepalivedRuleItemForCompile
     public async getKeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, rules?: number[]): Promise<KeepalivedRulesData<T>[]> {
         let rulesData: KeepalivedRulesData<T>[];
         switch (dst) {
+
             case 'keepalived_grid':
-                rulesData = await this._repository.getKeepalivedRules(fwcloud, firewall, rules, [1]) as KeepalivedRulesData<T>[];
+                rulesData = await this._repository.getKeepalivedRules(fwcloud, firewall, rules) as KeepalivedRulesData<T>[];
                 break;
             case 'compiler':
                 rulesData = await this._repository.getKeepalivedRules(fwcloud, firewall, rules) as KeepalivedRulesData<T>[];
@@ -241,16 +237,19 @@ export class KeepalivedRuleService extends Service {
         }
 
         const ItemsArrayMap = new Map<number, T[]>();
-        for (const rule of rulesData) {
-            ItemsArrayMap.set(rule.id, rule.items);
+        for (let i = 0; i < rulesData.length; i++) {
+            rulesData[i].items = [];
+
+            ItemsArrayMap.set(rulesData[i].id, rulesData[i].items);
         }
 
-        const sqls: SelectQueryBuilder<IPObj | IPObjGroup>[] = (dst === 'compiler') ?
-            this.buildKeepalivedRulesCompilerSql(fwcloud, firewall) :
-            this.getKeepalivedRulesGridSql(fwcloud, firewall);
-
-        const result = await Promise.all(sqls.map(sql => KeepalivedUtils.mapEntityData<T>(sql, ItemsArrayMap)));
-
+        //TODO: REVISAR
+        /*    const sqls = (dst === 'compiler') ?
+                this.buildKeepalivedRulesCompilerSql(fwcloud, firewall, rules) : 
+                this.getKeepalivedRulesGridSql(fwcloud, firewall, rules);
+    
+            const result = await Promise.all(sqls.map(sql => KeepalivedUtils.mapEntityData<T>(sql, ItemsArrayMap)));
+    */
         return rulesData.map(rule => {
             if (rule.items) {
                 rule.items = rule.items.sort((a, b) => a._order - b._order);
@@ -267,13 +266,13 @@ export class KeepalivedRuleService extends Service {
         } else {
             await this._repository.update({
                 id: In(ids),
-            }, data as QueryDeepPartialEntity<KeepalivedRule>);
+            }, { ...data as QueryDeepPartialEntity<KeepalivedRule> });
         }
 
         return this._repository.find({
             where: {
                 id: In(ids),
-            }
+            },
         });
     }
 
@@ -290,16 +289,20 @@ export class KeepalivedRuleService extends Service {
 
         return rules;
     }
-
-    private getKeepalivedRulesGridSql(fwcloud: number, firewall: number): SelectQueryBuilder<IPObj | IPObjGroup>[] {
-        return [
-            this._ipobjRepository.getIpobjsInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),
-        ];
-    }
-
-    private buildKeepalivedRulesCompilerSql(fwcloud: number, firewall: number): SelectQueryBuilder<IPObj | IPObjGroup>[] {
-        return [
-            this._ipobjRepository.getIpobjsInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),
-        ];
-    }
+    //TODO: REVISAR
+    /*  private getKeepalivedRulesGridSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {
+          return [
+              this._ipobjRepository.getIpobjsInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),
+              this._keepalivedRangeRepository.getKeepalivedRangesInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),
+              this._routerRepository.getRoutersInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),
+          ];
+      }
+  
+      private buildKeepalivedRulesCompilerSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {
+          return [
+              this._ipobjRepository.getIpobjsInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),
+              this._keepalivedRangeRepository.getKeepalivedRangesInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),
+              this._routerRepository.getRoutersInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),
+          ];
+      }*/
 }

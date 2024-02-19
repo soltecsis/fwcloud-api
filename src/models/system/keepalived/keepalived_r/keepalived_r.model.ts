@@ -27,7 +27,7 @@ import { Firewall } from "../../../firewall/Firewall";
 import { Interface } from "../../../interface/Interface";
 
 const tableName: string = 'keepalived_r';
-//TODO: REVISAR 
+
 @Entity(tableName)
 export class KeepalivedRule extends Model {
     @PrimaryGeneratedColumn()
@@ -51,17 +51,18 @@ export class KeepalivedRule extends Model {
 
     @ManyToOne(() => Interface, { eager: true })
     @JoinColumn({ name: 'interface' })
-    interface: Interface;
+    interface: Interface; //INTERFACE ES UNA IP DE UN FIREWALL O CLUSTER
+
 
     @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'virtual_ip' })
     virtualIp: IPObj;
 
-    @ManyToOne(() => IPObj)
+    @ManyToOne(() => Firewall, { eager: true })
     @JoinColumn({ name: 'masterNode' })
-    masterNode: IPObj;
+    masterNode: Firewall;
 
-    @ManyToOne(() => Firewall)
+    @ManyToOne(() => Firewall, { eager: true })
     @JoinColumn({ name: 'firewall' })
     firewall: Firewall;
 
