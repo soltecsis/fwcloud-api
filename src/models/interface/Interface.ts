@@ -35,6 +35,8 @@ import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface/rou
 import { RouteToIPObj } from "../routing/route/route-to-ipobj.model";
 import { RoutingRuleToIPObj } from "../routing/routing-rule/routing-rule-to-ipobj.model";
 import { Tree } from '../../models/tree/Tree';
+import { KeepalivedRule } from "../system/keepalived/keepalived_r/keepalived_r.model";
+import { check } from "yargs";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -450,6 +452,8 @@ export class Interface extends Model {
 							.where('firewall.fwCloudId = :fwcloud', {fwcloud})  
 							.getRawMany()
 
+						search.restrictions.InterfaceInKeepalivedRule = await this.searchInterfaceInKeepalivedRule(id, fwcloud);
+
 						for (let key in search.restrictions) {
 							if (search.restrictions[key].length > 0) {
 								search.result = true;
@@ -503,6 +507,15 @@ export class Interface extends Model {
 		});
 	};
 
+	public static async searchInterfaceInKeepalivedRule(id: string, fwcloud: string) {
+		return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
+			.addSelect('keepalived_rule.id', 'keepalived_rule_id').addSelect('keepalived_rule.rule_type','keepalived_rule_type')
+			.addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
+			.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+			.leftJoin('dhcp_rule.interface', 'interface', 'interface.id = :interface', { interface: id })
+			.innerJoin('dhcp_rule.firewall', 'firewall')
+			.where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
+	}
 
 	//Add new interface from user
 	public static insertInterface(dbCon, interfaceData) {
@@ -574,26 +587,54 @@ export class Interface extends Model {
 
 	//Update interface from user
 	public static updateInterface(interfaceData, callback) {
-		db.get((error, connection) => {
-			if (error)
+		db.get(async (error, connection) => {
+			if (error) {
 				callback(error, null);
-			var sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(interfaceData.name) + ',' +
-				'labelName = ' + connection.escape(interfaceData.labelName) + ', ' +
-				'type = ' + connection.escape(interfaceData.type) + ', ' +
-				'comment = ' + connection.escape(interfaceData.comment) + ', ' +
-				'mac = ' + connection.escape(interfaceData.mac) + ' ' +
-				' WHERE id = ' + interfaceData.id;
-			logger().debug(sql);
-			connection.query(sql, async (error, result) => {
-				if (error) {
-					callback(error, null);
+				return;
+			}
+
+			const checkKeepalivedRule = async () => {
+				return new Promise((resolve, reject) => {
+					const keepalivedCheckSql = 'SELECT COUNT(*) as count FROM keepalived_r WHERE interface = ?';
+					connection.query(keepalivedCheckSql, [interfaceData.id], (error, result) => {
+						if (error) {
+							return reject(error)
+						} else {
+							resolve(result[0].count)
+						}
+					});
+				});
+			}
+
+			await checkKeepalivedRule().then((count: number) => {
+				if (count > 0 && (interfaceData.mac === null || interfaceData.mac === '' || interfaceData.mac === undefined)) {
+					const errorMessage = 'The interface cannot be updated. There are references in keepalice rules.';
+					callback(errorMessage, null);
 				} else {
-					if (result.affectedRows > 0) {
-						callback(null, { "result": true });
-					} else {
-						callback(null, { "result": false });
-					}
+					const sql = `
+						UPDATE ${tableName}
+						SET name = ${connection.escape(interfaceData.name)}, 
+							labelName = ${connection.escape(interfaceData.labelName)},
+							type = ${connection.escape(interfaceData.type)},
+							comment = ${connection.escape(interfaceData.comment)},
+							mac = ${connection.escape(interfaceData.mac)}
+						WHERE id = ${connection.escape(interfaceData.id)}`;
+					logger().debug(sql);
+
+					connection.query(sql, (error, result) => {
+						if (error) {
+							callback(error, null);
+						} else {
+							if (result.affectedRows > 0) {
+								callback(null, { result: true });
+							} else {
+								callback(null, { result: false });
+							}
+						}
+					});
 				}
+			}).catch((error) => {
+				callback(error, null);
 			});
 		});
 	};

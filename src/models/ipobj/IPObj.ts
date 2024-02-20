@@ -37,6 +37,7 @@ import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
 import { IdManager } from '../../fwcloud-exporter/database-importer/terraformer/mapper/id-manager';
 import { RouteToIPObj } from '../routing/route/route-to-ipobj.model';
 import { RoutingRuleToIPObj } from '../routing/routing-rule/routing-rule-to-ipobj.model';
+import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
 const ip = require('ip');
 var asyncMod = require('async');
 var host_Data = require('../../models/data/data_ipobj_host');
@@ -965,11 +966,14 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInRoutingRule = await this.searchIpobjInRoutingRule(id, fwcloud);
                 search.restrictions.IpobjInGroupInRoutingRule = await this.searchIpobjInGroupInRoutingRule(id, fwcloud);
 
+                search.restrictions.IpobjInKeepalivedRule = await this.searchIpobjInKeepalivedRule(id, fwcloud);
+
                 if (type === 8) { // HOST
                     search.restrictions.InterfaceHostInRule = await PolicyRuleToIPObj.searchInterfaceHostInRule(dbCon, fwcloud, id);
                     search.restrictions.AddrHostInRule = await PolicyRuleToIPObj.searchAddrHostInRule(dbCon, fwcloud, id);
                     search.restrictions.AddrHostInGroup = await IPObjToIPObjGroup.searchAddrHostInGroup(dbCon, fwcloud, id);
                     search.restrictions.AddrHostInOpenvpn = await this.searchAddrHostInOpenvpn(dbCon, fwcloud, id);
+                    search.restrictions.InterfaceHostInKeepalivedRule = await this.searchInterfaceHostInKeepalivedRule(dbCon, fwcloud, id);
                 }
 
                 // Avoid leaving an interface used in a rule without address.
@@ -1045,6 +1049,16 @@ export class IPObj extends Model {
             .innerJoin('table.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
             .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+            .getRawMany();
+    };
+
+    public static async searchIpobjInKeepalivedRule(id: number, fwcloud: number): Promise<any> {
+        return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
+            .addSelect('virtualIp.id', 'virtual_ip_id').addSelect('virtualIp.name', 'virtual_ip_name')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .leftJoin('keepalived_rule.virtual_ip', 'virtualIp', 'keepalived_rule.virtual_ip = :IPObj', { IPObj: IPObj })
+            .innerJoin('keepalived_rule.firewall', 'firewall')
+            .where(`firewall.fwCloudId = :FWCloud AND (virtualIp.id IS NOT NULL)`, { FWCloud: fwcloud })
             .getRawMany();
     };
 
@@ -1152,6 +1166,19 @@ export class IPObj extends Model {
             });
         });
     };
+
+    public static async searchInterfaceHostInKeepalivedRule(dbCon: any,fwcloid:number,id:number) {
+        return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
+        .addSelect('keepalived_rule.id', 'keepalived_rule_id').addSelect('keepalived_rule.rule_type', 'keepalived_rule_type')
+        .addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
+        .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+        .innerJoin('keepalived_rule.interface', 'interface')
+        .innerJoin('interface.hosts', 'hosts')
+        .innerJoin('hosts.hostIPObj', 'ipObj', 'ipObj.id = :id', { id })
+        .innerJoin('keepalived_rule.firewall', 'firewall')
+        .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloid })
+        .getRawMany();
+    }
 
 
     public static searchLastInterfaceWithAddrInHostInRule(_interface, fwcloud) {
