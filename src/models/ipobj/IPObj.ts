@@ -1049,15 +1049,19 @@ export class IPObj extends Model {
         return await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
             .addSelect('network.id', 'network_id').addSelect('network.name', 'network_name')
             .addSelect('ipObj.id', 'ipObj_id').addSelect('ipObj.name', 'ipObj_name')
+            .addSelect('range.id', 'range_id').addSelect('range.name', 'range_name')
+            .addSelect('router.id', 'router_id').addSelect('router.name', 'router_name')
             .addSelect('dhcp_rule.range', 'dhcp_range')
             .addSelect('dhcp_rule.router', 'dhcp_router')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .leftJoin('dhcp_rule.network', 'network', 'network.id = :IPObj', { IPObj: IPObj })
             .leftJoin('dhcp_rule.range', 'range', 'range.id = :IPObj')
             .leftJoin('dhcp_rule.router', 'router', 'router.id = :IPObj')
             .leftJoin('dhcp_rule.dhcpRuleToIPObjs', 'dhcpRuleToIPObjs', 'dhcpRuleToIPObjs.ipObj = :IPObj')
             .leftJoin('dhcpRuleToIPObjs.ipObj', 'ipObj')
             .innerJoin('dhcp_rule.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
             .where(`firewall.fwCloudId = :FWCloud AND (network.id IS NOT NULL OR range.id IS NOT NULL OR router.id IS NOT NULL OR ipObj.id IS NOT NULL)`, { FWCloud: FWCloud })
             .getRawMany();
     }
@@ -1186,10 +1190,12 @@ export class IPObj extends Model {
             .addSelect('dhcp_rule.id', 'dhcp_rule_id').addSelect('dhcp_rule.rule_type', 'dhcp_rule_type')
             .addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoin('dhcp_rule.interface', 'interface')
             .innerJoin('interface.hosts', 'hosts')
             .innerJoin('hosts.hostIPObj', 'ipObj', 'ipObj.id = :id', { id })
             .innerJoin('dhcp_rule.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
             .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
             .getRawMany();
         return result;
