@@ -182,8 +182,8 @@ describe(DHCPRepository.name, () => {
         });
     });
 
-    describe('getLastDHCPRuleInGroup', () => {
-        it('should return the last DHCP rule in the group', async () => {
+    describe('getLastDHCPRule', () => {
+        it('should return the last DHCP rule in the firewall', async () => {
             const dhcpgid = group.id;
             const expectedRule: DHCPRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
                 group: group,
@@ -192,7 +192,7 @@ describe(DHCPRepository.name, () => {
                 interface: null,
             }));
 
-            const result = await repository.getLastDHCPRuleInGroup(dhcpgid);
+            const result = await repository.getLastDHCPRule(firewall.id, expectedRule.rule_type);
 
             expect(result.id).to.equal(expectedRule.id);
             expect(result.rule_order).to.equal(expectedRule.rule_order);

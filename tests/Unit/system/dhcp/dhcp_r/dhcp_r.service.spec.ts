@@ -156,8 +156,8 @@ describe(DHCPRuleService.name, () => {
                 rule_order: 1,
                 interface: null,
             });
-            service['_repository'].getLastDHCPRuleInGroup = () => null;
-            const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup');
+            service['_repository'].getLastDHCPRule = () => null;
+            const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRule');
             getLastDHCPRuleInGroupStub.returns(null);
             const saveStub = sinon.stub(service['_repository'], 'save').resolves(expectedDHCPRule);
 
@@ -235,7 +235,7 @@ describe(DHCPRuleService.name, () => {
                 interface: null,
             }));
             existingDHCPRule.rule_order = 5;
-            const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup').resolves(existingDHCPRule);
+            const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRule').resolves(existingDHCPRule);
 
             const result = await service.store(data);
             expect(result).to.have.property('rule_order', 6);
@@ -265,7 +265,7 @@ describe(DHCPRuleService.name, () => {
                 interface: {} as Interface,
             });
 
-            const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInGroup');
+            const getLastDHCPRuleInGroupStub = sinon.stub(service['_repository'], 'getLastDHCPRule');
             getLastDHCPRuleInGroupStub.returns(null);
 
             const saveStub = sinon.stub(service['_repository'], 'save');

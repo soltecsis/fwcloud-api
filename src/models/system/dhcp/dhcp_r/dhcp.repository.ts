@@ -238,15 +238,18 @@ export class DHCPRepository extends Repository<DHCPRule> {
         await this.save(dhcp_rs);
     }
 
+    
     /**
-     * Retrieves the last DHCP rule in a specified group.
-     * @param DHCPGroupId - The ID of the DHCP group.
-     * @returns A Promise that resolves to the last DHCP rule in the group.
+     * Retrieves the last DHCP rule based on the firewall and type.
+     * @param firewall The firewall number.
+     * @param type The rule type.
+     * @returns A promise that resolves to the last DHCP rule.
      */
-    async getLastDHCPRuleInGroup(DHCPGroupId: number): Promise<DHCPRule> {
+    async getLastDHCPRule(firewall: number, type: number): Promise<DHCPRule> {
         return (await this.find({
             where: {
-                group: DHCPGroupId,
+                firewall: firewall,
+                rule_type: In(type === 2 ? [2] : [1, 3]),
             },
             order: {
                 'rule_order': 'DESC',

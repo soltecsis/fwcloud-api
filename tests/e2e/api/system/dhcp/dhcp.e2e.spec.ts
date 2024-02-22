@@ -322,7 +322,7 @@ describe('DHCPRule E2E Tests', () => {
                 });
                 data = {
                     rules: [DHCPRule1.id, DHCPRule2.id],
-                    to: (await getCustomRepository(DHCPRepository).getLastDHCPRuleInGroup(group.id)).id,
+                    to: (await getCustomRepository(DHCPRepository).getLastDHCPRule(firewall.id, 1)).id,
                     offset: Offset.Below,
                 } as DHCPRuleCopyDto;
             });
@@ -464,9 +464,8 @@ describe('DHCPRule E2E Tests', () => {
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .send({
                         active: false,
-                        groupId: group.id,
                         firewallId: firewall.id,
-                        max_lease: 5,
+                        max_lease: 50,
                         cfg_text: "cfg_text",
                         comment: "comment",
                     })
@@ -703,8 +702,8 @@ describe('DHCPRule E2E Tests', () => {
 
                 expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule1.id)).rule_order).to.equal(3);
                 expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule2.id)).rule_order).to.equal(4);
-                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule3.id)).rule_order).to.equal(5);
-                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule4.id)).rule_order).to.equal(6);
+                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule3.id)).rule_order).to.equal(4);
+                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule4.id)).rule_order).to.equal(5);
             });
 
             it('admin user should move a dhcp rule', async () => {
@@ -721,8 +720,8 @@ describe('DHCPRule E2E Tests', () => {
                     });
                 expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule1.id)).rule_order).to.equal(3);
                 expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule2.id)).rule_order).to.equal(4);
-                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule3.id)).rule_order).to.equal(5);
-                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule4.id)).rule_order).to.equal(6);
+                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule3.id)).rule_order).to.equal(4);
+                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule4.id)).rule_order).to.equal(5);
             });
         });
 
