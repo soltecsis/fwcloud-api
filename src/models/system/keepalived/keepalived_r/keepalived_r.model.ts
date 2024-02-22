@@ -19,11 +19,12 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { IPObj } from "../../../ipobj/IPObj";
 import { KeepalivedGroup } from "../keepalived_g/keepalived_g.model";
 import Model from "../../../Model";
 import { Firewall } from "../../../firewall/Firewall";
+import { KeepalivedToIPObj } from "./keepalived_r-to-ipobj";
 
 const tableName: string = 'keepalived_r';
 //TODO: REVISAR 
@@ -50,11 +51,12 @@ export class KeepalivedRule extends Model {
 
     @ManyToOne(() => IPObj)
     @JoinColumn({ name: 'interface' })
-    interface: IPObj; //INTERFACE ES UNA IP DE UN FIREWALL O CLUSTER
+    interface: IPObj;
 
-    @ManyToOne(() => IPObj)
-    @JoinColumn({ name: 'virtual_ip' })
-    virtualIp: IPObj;
+    @OneToMany(() => KeepalivedToIPObj, (keepalivedToIPObj) => keepalivedToIPObj.keepalivedRule, {
+        cascade: true
+    })
+    virtualIps: KeepalivedToIPObj[];
 
     @ManyToOne(() => Firewall)
     @JoinColumn({ name: 'master_node' })
