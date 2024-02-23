@@ -51,7 +51,7 @@ export interface ICreateKeepalivedRule {
     style?: string;
     firewallId?: number
     interfaceId?: number;
-    virtualIpsIds?: number[];
+    virtualIpsIds?: { id: number, order: number }[];
     masterNodeId?: number;
     cfg_text?: string;
     comment?: string;
@@ -106,17 +106,24 @@ export class KeepalivedRuleService extends Service {
         if (data.interfaceId) {
             keepalivedRuleData.interface = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
         }
-        if (data.virtualIpsIds) {
-            keepalivedRuleData.virtualIps = data.virtualIpsIds.map(item => ({
-                keepalivedId: keepalivedRuleData.id,
-                ipObj: item,
-            }) as unknown as KeepalivedToIPObj);
-        }
         if (data.masterNodeId) {
             keepalivedRuleData.masterNode = await getRepository(Firewall).findOneOrFail(data.masterNodeId) as Firewall;
         }
         if (data.firewallId) {
             keepalivedRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
+        }
+
+        const lastKeepalivedRule = await this._repository.getLastKeepalivedRuleInGroup(data.group) ? await this._repository.getLastKeepalivedRuleInGroup(data.group) : await getRepository(KeepalivedRule).findOne({ id: data.to });
+        keepalivedRuleData.rule_order = lastKeepalivedRule?.rule_order ? lastKeepalivedRule.rule_order + 1 : 1;
+
+        const persisted = await this._repository.save(keepalivedRuleData);
+
+        if (data.virtualIpsIds) {
+            keepalivedRuleData.virtualIps = data.virtualIpsIds.map(item => ({
+                keepalivedId: persisted.id,
+                ipObjId: item.id,
+                order: item.order
+            }) as unknown as KeepalivedToIPObj);
         }
 
         if(keepalivedRuleData.virtualIps) {
@@ -126,14 +133,10 @@ export class KeepalivedRuleService extends Service {
                }) 
             })
             if(notHasMatchingIpVersion) {
+                this._repository.remove(persisted);
                 throw new Error('IP version mismatch');
             }
         }
-
-        const lastKeepalivedRule = await this._repository.getLastKeepalivedRuleInGroup(data.group) ? await this._repository.getLastKeepalivedRuleInGroup(data.group) : await getRepository(KeepalivedRule).findOne({ id: data.to });
-        keepalivedRuleData.rule_order = lastKeepalivedRule?.rule_order ? lastKeepalivedRule.rule_order + 1 : 1;
-
-        const persisted = await this._repository.save(keepalivedRuleData);
 
         if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'offset')) {
             return (await this.move([persisted.id], data.to, data.offset))[0]
