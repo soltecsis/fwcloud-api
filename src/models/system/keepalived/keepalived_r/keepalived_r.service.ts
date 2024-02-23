@@ -33,6 +33,7 @@ import { IPObjGroup } from "../../../ipobj/IPObjGroup";
 import { AvailableDestinations, KeepalivedRuleItemForCompiler, KeepalivedUtils, ItemForGrid } from "../shared";
 import { Firewall } from "../../../firewall/Firewall";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import { KeepalivedToIPObj } from "./keepalived_r-to-ipobj";
 
 
 interface IFindManyKeepalivedRulePath {
@@ -50,7 +51,7 @@ export interface ICreateKeepalivedRule {
     style?: string;
     firewallId?: number
     interfaceId?: number;
-    virtualIpId?: number;
+    virtualIpsIds?: { id: number, order: number }[];
     masterNodeId?: number;
     cfg_text?: string;
     comment?: string;
@@ -63,7 +64,7 @@ export interface ICreateKeepalivedRule {
 export interface IUpdateKeepalivedRule {
     active?: boolean;
     style?: string;
-    virutalIpId?: number;
+    virutalIpsIds?: { id: number, order: number }[];
     masterNodeId?: number;
     interfaceId?: number;
     cfg_text?: string;
@@ -105,14 +106,29 @@ export class KeepalivedRuleService extends Service {
         if (data.interfaceId) {
             keepalivedRuleData.interface = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
         }
-        if (data.virtualIpId) {
-            keepalivedRuleData.virtualIp = await getRepository(IPObj).findOneOrFail(data.virtualIpId) as IPObj;
+        if (data.virtualIpsIds) {
+            keepalivedRuleData.virtualIps = data.virtualIpsIds.map(item => ({
+                keepalivedId: keepalivedRuleData.id,
+                ipObj: item.id,
+                order: item.order
+            }) as unknown as KeepalivedToIPObj);
         }
         if (data.masterNodeId) {
             keepalivedRuleData.masterNode = await getRepository(Firewall).findOneOrFail(data.masterNodeId) as Firewall;
         }
         if (data.firewallId) {
             keepalivedRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
+        }
+
+        if(keepalivedRuleData.virtualIps) {
+            const notHasMatchingIpVersion: boolean = keepalivedRuleData.virtualIps.some((item,index,array) => {
+               return array.some((otherItem,otherIndex) => {
+                return index !== otherIndex && item.ipObj.ip_version !== otherItem.ipObj.ip_version;
+               }) 
+            })
+            if(notHasMatchingIpVersion) {
+                throw new Error('IP version mismatch');
+            }
         }
 
         const lastKeepalivedRule = await this._repository.getLastKeepalivedRuleInGroup(data.group) ? await this._repository.getLastKeepalivedRuleInGroup(data.group) : await getRepository(KeepalivedRule).findOne({ id: data.to });
