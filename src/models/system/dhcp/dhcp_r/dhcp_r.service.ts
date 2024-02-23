@@ -36,6 +36,7 @@ import { DHCPRuleToIPObj } from "./dhcp_r-to-ipobj.model";
 import { ErrorBag } from "../../../../fonaments/validation/validator";
 import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import { DHCPGroupService } from "../dhcp_g/dhcp_g.service";
 
 interface IFindManyDHCPRulePath {
     fwcloudId?: number;
@@ -93,11 +94,13 @@ interface IMoveFromDHCPRule {
 export class DHCPRuleService extends Service {
     private _repository: DHCPRepository;
     private _ipobjRepository: IPObjRepository;
+    private _groupService: DHCPGroupService;
 
     constructor(app: Application) {
         super(app)
         this._repository = getCustomRepository(DHCPRepository);
         this._ipobjRepository = getCustomRepository(IPObjRepository);
+        this._groupService = new DHCPGroupService(app);
     }
 
     async store(data: ICreateDHCPRule): Promise<DHCPRule> {
@@ -221,6 +224,9 @@ export class DHCPRuleService extends Service {
         });
 
         if (data.group !== undefined) {
+            if (dhcpRule.group && !data.group && dhcpRule.group.rules.length === 1) {
+                this._groupService.remove({ id: dhcpRule.group.id });
+            }
             dhcpRule.group = data.group ? await getRepository(DHCPGroup).findOne(data.group) : null;
         } else if (data.ipObjIds) {
             await this.validateUpdateIpObjIds(dhcpRule.firewall, data);
@@ -262,11 +268,15 @@ export class DHCPRuleService extends Service {
     }
 
     async remove(path: IFindOneDHCPRulePath): Promise<DHCPRule> {
-        const dhcpRule: DHCPRule = await this.findOneInPath(path);
+        const dhcpRule: DHCPRule = await this._repository.findOne(path.id, { relations: ['group', 'firewall'] });
 
         dhcpRule.dhcpRuleToIPObjs = [];
 
         await this._repository.save(dhcpRule);
+
+        if (dhcpRule.group && dhcpRule.group.rules.length === 1) {
+            await this._groupService.remove({ id: dhcpRule.group.id });
+        }
 
         await this._repository.remove(dhcpRule);
 
