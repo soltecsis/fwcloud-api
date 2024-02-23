@@ -1060,11 +1060,11 @@ export class IPObj extends Model {
 
     public static async searchIpobjInKeepalivedRule(id: number, fwcloud: number): Promise<any> {
         return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
-            .addSelect('virtualIp.id', 'virtual_ip_id').addSelect('virtualIp.name', 'virtual_ip_name')
-            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
-            .leftJoin('keepalived_rule.virtual_ip', 'virtualIp', 'keepalived_rule.virtual_ip = :IPObj', { IPObj: IPObj })
-            .innerJoin('keepalived_rule.firewall', 'firewall')
-            .where(`firewall.fwCloudId = :FWCloud AND (virtualIp.id IS NOT NULL)`, { FWCloud: fwcloud })
+            .leftJoin('keepalived_rule.keepalivedRuleToIPObjs', 'keepalivedRuleToIPObjs')
+            .leftJoin('keepalivedRuleToIPObjs.ipObj', 'ipObj', 'ipObj.id = :id', { id: id })
+            .innerJoin('keepaliced.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud AND (ipObj.id IS NOT NULL)`, { fwcloud: fwcloud })
             .getRawMany();
     };
 
@@ -1173,17 +1173,15 @@ export class IPObj extends Model {
         });
     };
 
-    public static async searchInterfaceHostInKeepalivedRule(dbCon: any,fwcloid:number,id:number) {
+    public static async searchInterfaceHostInKeepalivedRule(dbCon: any, fwcloid: number, id: number) {
         return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
-        .addSelect('keepalived_rule.id', 'keepalived_rule_id').addSelect('keepalived_rule.rule_type', 'keepalived_rule_type')
-        .addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
-        .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
-        .innerJoin('keepalived_rule.interface', 'interface')
-        .innerJoin('interface.hosts', 'hosts')
-        .innerJoin('hosts.hostIPObj', 'ipObj', 'ipObj.id = :id', { id })
-        .innerJoin('keepalived_rule.firewall', 'firewall')
-        .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloid })
-        .getRawMany();
+            .innerJoin('keepalived_rule.interface', 'interface')
+            .innerJoin('interface.hosts', 'hosts')
+            .innerJoin('hosts.hostIPObj', 'ipObj', 'ipObj.id = :id', { id })
+            .innerJoin('keepalived_rule.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloid })
+            .getRawMany();
     }
 
 

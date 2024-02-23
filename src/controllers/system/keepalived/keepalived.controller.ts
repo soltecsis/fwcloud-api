@@ -38,6 +38,7 @@ import { KeepalivedRuleBulkUpdateDto } from './dto/bulk-update.dto';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { KeepalivedRuleBulkRemoveDto } from './dto/bulk-remove.dto';
 import { AvailableDestinations, KeepalivedRuleItemForCompiler } from '../../../models/system/keepalived/shared';
+import { KeepalivedMoveFromDto } from './dto/move-from.dto';
 
 
 export class KeepalivedController extends Controller {
@@ -203,9 +204,48 @@ export class KeepalivedController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
 
-  //TODO: Compile
+  @Validate(KeepalivedMoveFromDto)
+  async moveFrom(req: Request): Promise<ResponseBuilder> {
+    (await KeepalivedPolicy.move(this._firewall, req.session.user)).authorize();
+
+    const fromRule: KeepalivedRule = await getRepository(KeepalivedRule).findOneOrFail({
+      join: {
+        alias: 'rule',
+        innerJoin: {
+          firewall: 'rule.firewall',
+          fwcloud: 'firewall.fwCloud'
+        }
+      },
+      where: (qb: SelectQueryBuilder<KeepalivedRule>) => {
+        qb.whereInIds(req.inputs.get('fromId'))
+          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
+      }
+    });
+
+    const toRule: KeepalivedRule = await getRepository(KeepalivedRule).findOneOrFail({
+      join: {
+        alias: 'rule',
+        innerJoin: {
+          firewall: 'rule.firewall',
+          fwcloud: 'firewall.fwCloud'
+        }
+      },
+      where: (qb: SelectQueryBuilder<KeepalivedRule>) => {
+        qb.whereInIds(req.inputs.get('toId'))
+          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
+      }
+    });
+
+    const result: KeepalivedRule[] = await this._keepalivedRuleService.moveFrom(fromRule, toRule, req.inputs.get('ipObjId'));
+
+    return ResponseBuilder.buildResponse().status(200).body(result);
+  }
+
   @Validate()
   public async compile(req: Request): Promise<ResponseBuilder> {
+    (await KeepalivedPolicy.create(this._firewall, req.session.user)).authorize();
     return ResponseBuilder.buildResponse().status(200);
   }
 
