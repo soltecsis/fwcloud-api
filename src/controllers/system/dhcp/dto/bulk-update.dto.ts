@@ -33,5 +33,5 @@ export class DhcpRuleBulkUpdateDto {
 
     @IsNumber()
     @IsOptional()
-    dhcpGroupId?: number;
+    group?: number;
 }
