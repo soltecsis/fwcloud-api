@@ -76,6 +76,7 @@ import { Crt } from "../models/vpn/pki/Crt";
 import { Tfa } from "../models/user/Tfa";
 import { KeepalivedRule } from "../models/system/keepalived/keepalived_r/keepalived_r.model";
 import { KeepalivedGroup } from "../models/system/keepalived/keepalived_g/keepalived_g.model";
+import { KeepalivedToIPObj } from "../models/system/keepalived/keepalived_r/keepalived_r-to-ipobj";
 
 export interface DatabaseConfig {
     host: string,
@@ -319,6 +320,7 @@ export class DatabaseService extends Service {
                 Tfa,
                 KeepalivedRule,
                 KeepalivedGroup,
+                KeepalivedToIPObj
             ]
         }
     }
