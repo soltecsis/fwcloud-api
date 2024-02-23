@@ -61,7 +61,15 @@ export class DHCPCompiler {
                 if (ruleData.comment) {
                     cs += `# ${ruleData.comment}\n`;
                 }
-                cs += `host ${ruleData.interface.name} {\n`;
+                let parentName: string;
+                if (ruleData.interface.hosts && ruleData.interface.hosts.length > 0) {
+                    parentName = ruleData.interface.hosts[0].hostIPObj.name
+                } else if (ruleData.interface.firewall && ruleData.interface.firewall.cluster) {
+                    parentName = ruleData.interface.firewall.cluster.name;
+                } else if (ruleData.interface.firewall) {
+                    parentName = ruleData.interface.firewall.name;
+                }
+                cs += `host ${parentName}:${ruleData.interface.name} {\n`;
                 cs += `\thardware ethernet ${ruleData.interface.mac};\n`;
                 cs += `\tfixed-address ${ruleData.router.address};\n`;
                 cs += `}\n`;
