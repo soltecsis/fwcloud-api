@@ -119,15 +119,15 @@ export class KeepalivedRuleService extends Service {
         const persisted = await this._repository.save(keepalivedRuleData);
 
         if (data.virtualIpsIds) {
-            keepalivedRuleData.virtualIps = data.virtualIpsIds.map(item => ({
+            persisted.virtualIps = data.virtualIpsIds.map(item => ({
                 keepalivedId: persisted.id,
                 ipObjId: item.id,
                 order: item.order
             }) as unknown as KeepalivedToIPObj);
         }
 
-        if(keepalivedRuleData.virtualIps) {
-            const notHasMatchingIpVersion: boolean = keepalivedRuleData.virtualIps.some((item,index,array) => {
+        if(persisted.virtualIps) {
+            const notHasMatchingIpVersion: boolean = persisted.virtualIps.some((item,index,array) => {
                return array.some((otherItem,otherIndex) => {
                 return index !== otherIndex && item.ipObj.ip_version !== otherItem.ipObj.ip_version;
                }) 
@@ -135,6 +135,8 @@ export class KeepalivedRuleService extends Service {
             if(notHasMatchingIpVersion) {
                 this._repository.remove(persisted);
                 throw new Error('IP version mismatch');
+            } else {
+                await this._repository.save(persisted);
             }
         }
 
