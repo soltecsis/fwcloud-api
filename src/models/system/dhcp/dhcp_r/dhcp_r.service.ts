@@ -353,6 +353,11 @@ export class DHCPRuleService extends Service {
                 id: In(ids),
             }, { ...data, group: { id: data.group } });
         } else {
+            const group: DHCPGroup = (await this._repository.findOne(ids[0], {relations: ['group']})).group;
+            if(data.group !== undefined && group && (group.rules.length - ids.length) < 1) {
+                await this._groupService.remove({id: group.id});
+            }
+            
             await this._repository.update({
                 id: In(ids),
             }, data as QueryDeepPartialEntity<DHCPRule>);
