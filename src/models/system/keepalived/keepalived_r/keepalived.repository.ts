@@ -259,7 +259,6 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
         const query: SelectQueryBuilder<KeepalivedRule> = this.createQueryBuilder('keepalived_r')
             .leftJoinAndSelect('keepalived_r.group', 'group')
             .leftJoinAndSelect('keepalived_r.interface', 'interface')
-            .leftJoinAndSelect('keepalived_r.virtualIp', 'virtualIp')
             .leftJoinAndSelect('keepalived_r.masterNode', 'masterNode')
             .leftJoinAndSelect('interface.firewall', 'interfaceFirewall')
             .leftJoinAndSelect('interfaceFirewall.cluster', 'interfaceCluster')
