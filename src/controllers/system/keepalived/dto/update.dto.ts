@@ -19,7 +19,9 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { IsBoolean, IsOptional, IsNumber, IsString } from "class-validator";
+import { Type } from "class-transformer";
+import { IsBoolean, IsOptional, IsNumber, IsString, IsArray, Validate, ValidateNested } from "class-validator";
+import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
 
 export class KeepalivedRuleUpdateDto {
     @IsBoolean()
@@ -42,9 +44,11 @@ export class KeepalivedRuleUpdateDto {
     @IsOptional()
     intefaceId?: number;
 
-    @IsNumber()
+    @IsArray()
     @IsOptional()
-    virtualIpId?: number;
+    @ValidateNested({ each: true })
+    @Type(() => PositionalEntityDto)
+    virtualIpsIds?: PositionalEntityDto[];
 
     @IsNumber()
     @IsOptional()
