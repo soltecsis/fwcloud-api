@@ -118,9 +118,13 @@ export class DhcpController extends Controller {
     (await DhcpPolicy.create(this._firewall, req.session.user)).authorize();
 
     const data: ICreateDHCPRule = Object.assign(req.inputs.all<DHCPRuleCreateDto>(), this._dhcpgroup ? { group: this._dhcpgroup.id } : null);
-    const dhcpRule: DHCPRule = await this._dhcpRuleService.store(data);
+    try {
+      const dhcpRule: DHCPRule = await this._dhcpRuleService.store(data);
 
-    return ResponseBuilder.buildResponse().status(201).body(dhcpRule);
+      return ResponseBuilder.buildResponse().status(201).body(dhcpRule);
+    } catch (err) {
+      return ResponseBuilder.buildResponse().status(422).body({ message: err.message });
+    }
   }
 
   @Validate(DHCPRuleCopyDto)
@@ -150,10 +154,13 @@ export class DhcpController extends Controller {
    */
   public async update(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.update(this._dhcprule, req.session.user)).authorize();
+    try {
+      const result: DHCPRule = await this._dhcpRuleService.update(this._dhcprule.id, req.inputs.all<IUpdateDHCPRule>());
 
-    const result: DHCPRule = await this._dhcpRuleService.update(this._dhcprule.id, req.inputs.all<IUpdateDHCPRule>());
-
-    return ResponseBuilder.buildResponse().status(200).body(result);
+      return ResponseBuilder.buildResponse().status(200).body(result);
+    } catch (err) {
+      return ResponseBuilder.buildResponse().status(422).body({ message: err.message });
+    }
   }
 
   @Validate()
