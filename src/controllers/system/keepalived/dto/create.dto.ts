@@ -36,7 +36,7 @@ export class KeepalivedRuleCreateDto {
     @IsNumber()
     @IsOptional()
     firewallId?: number;
-    
+
     @IsString()
     @IsOptional()
     style: string;
@@ -48,10 +48,12 @@ export class KeepalivedRuleCreateDto {
     @IsNumber()
     @IsOptional()
     interfaceId?: number;
-    
+
     @IsArray()
     @IsOptional()
-    virtualIpsIds?: number[];
+    @ValidateNested({ each: true })
+    @Type(() => PositionalEntityDto)
+    virtualIpsIds?: PositionalEntityDto[];
 
     @IsNumber()
     @IsOptional()
