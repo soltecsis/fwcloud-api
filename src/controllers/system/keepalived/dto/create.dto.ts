@@ -36,7 +36,7 @@ export class KeepalivedRuleCreateDto {
     @IsNumber()
     @IsOptional()
     firewallId?: number;
-    
+
     @IsString()
     @IsOptional()
     style: string;
