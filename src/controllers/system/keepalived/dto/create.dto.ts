@@ -51,9 +51,7 @@ export class KeepalivedRuleCreateDto {
     
     @IsArray()
     @IsOptional()
-    @ValidateNested({ each: true })
-    @Type(() => PositionalEntityDto)
-    virtualIpsIds?: PositionalEntityDto[];
+    virtualIpsIds?: number[];
 
     @IsNumber()
     @IsOptional()

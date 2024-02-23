@@ -51,7 +51,7 @@ export interface ICreateKeepalivedRule {
     style?: string;
     firewallId?: number
     interfaceId?: number;
-    virtualIpsIds?: { id: number, order: number }[];
+    virtualIpsIds?: number[];
     masterNodeId?: number;
     cfg_text?: string;
     comment?: string;
@@ -109,8 +109,7 @@ export class KeepalivedRuleService extends Service {
         if (data.virtualIpsIds) {
             keepalivedRuleData.virtualIps = data.virtualIpsIds.map(item => ({
                 keepalivedId: keepalivedRuleData.id,
-                ipObj: item.id,
-                order: item.order
+                ipObj: item,
             }) as unknown as KeepalivedToIPObj);
         }
         if (data.masterNodeId) {
