@@ -72,11 +72,7 @@ export class DHCPGroup extends Model {
                 newDHCPGroup.style = originalDHCPGroup.style;
                 await newDHCPGroup.save();
 
-                const originalRules = await DHCPRule.find({
-                    where: {
-                        group: originalDHCPGroup
-                    }
-                });
+                const originalRules = await DHCPRule.find({ firewall: originalFirewall, group: originalDHCPGroup });
 
                 for (const originalRule of originalRules) {
                     const newRule = new DHCPRule();

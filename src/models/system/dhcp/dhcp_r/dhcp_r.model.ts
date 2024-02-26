@@ -94,7 +94,7 @@ export class DHCPRule extends Model {
         const newFirewall = await Firewall.findOne(idNewFirewall);
 
         if (originalFirewall && newFirewall) {
-            const originalRules = await DHCPRule.find({ firewall: originalFirewall });
+            const originalRules = await DHCPRule.find({ firewall: originalFirewall, group: null });
 
             for (const originalRule of originalRules) {
                 const newRule = new DHCPRule();
@@ -113,6 +113,7 @@ export class DHCPRule extends Model {
                 newRule.comment = originalRule.comment;
 
                 if (!originalRule.group) {
+                    console.log("New rule without group", originalRule, newRule);
                     await newRule.save();
                 }
             }
