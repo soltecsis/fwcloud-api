@@ -36,7 +36,6 @@ import { Mark } from "../../../../models/ipobj/Mark";
 import { CaPrefix } from "../../../../models/vpn/pki/CaPrefix";
 import { OpenVPNPrefix } from "../../../../models/vpn/openvpn/OpenVPNPrefix";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { RoutingRule } from "../../../../models/routing/routing-rule/routing-rule.model";
 import { RoutingTable } from "../../../../models/routing/routing-table/routing-table.model";
 
 export class FwcTreeTerraformer extends TableTerraformer {
@@ -93,7 +92,13 @@ export class FwcTreeTerraformer extends TableTerraformer {
         'ROU': Firewall,
         'RTS': Firewall,
         'RT': RoutingTable,
-        'RR': Firewall
+        'RR': Firewall,
+
+        'SYS': Firewall,
+        'S01': Firewall,
+        'S02': Firewall,
+        'S03': Firewall,
+        'S04': Firewall,
     }
 
     public static async make(mapper: ImportMapping, eventEmitter: EventEmitter = new EventEmitter()): Promise<FwcTreeTerraformer> {
@@ -110,12 +115,12 @@ export class FwcTreeTerraformer extends TableTerraformer {
          * it calls the mapper in order to get the terraformed id
          */
         result['id_obj'] = (mapper: ImportMapping, row: any, value: any) => {
-            if (row.hasOwnProperty('node_type') && 
+            if (row.hasOwnProperty('node_type') &&
                 row.node_type !== null &&
                 this._typeToTableNameMapping.hasOwnProperty(row.node_type) &&
                 this._typeToTableNameMapping[row.node_type] !== null) {
-                    const referencedEntity: typeof Model = this._typeToTableNameMapping[row.node_type];
-                    return mapper.getMappedId(referencedEntity._getTableName(), referencedEntity.getPrimaryKeys()[0].propertyName, value)
+                const referencedEntity: typeof Model = this._typeToTableNameMapping[row.node_type];
+                return mapper.getMappedId(referencedEntity._getTableName(), referencedEntity.getPrimaryKeys()[0].propertyName, value)
             }
         }
 

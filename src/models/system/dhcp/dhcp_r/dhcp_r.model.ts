@@ -44,6 +44,9 @@ export class DHCPRule extends Model {
     @Column({ type: 'boolean', default: false })
     active: boolean;
 
+    @Column({name: 'group'})
+    groupId: number;
+
     @ManyToOne(() => DHCPGroup)
     @JoinColumn({ name: 'group' })
     group: DHCPGroup;
@@ -51,17 +54,29 @@ export class DHCPRule extends Model {
     @Column({ type: 'varchar', length: 50 })
     style: string;
 
+    @Column({name: 'network'})
+    networkId: number;
+
     @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'network' })
     network: IPObj;
+
+    @Column({name: 'range'})
+    rangeId: number;
 
     @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'range' })
     range: IPObj;
 
+    @Column({name: 'router'})
+    routerId: number;
+
     @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'router' })
     router: IPObj;
+
+    @Column({name: 'interface'})
+    interfaceId: number;
 
     @ManyToOne(() => Interface, { eager: true })
     @JoinColumn({ name: 'interface' })
@@ -71,6 +86,9 @@ export class DHCPRule extends Model {
         cascade: true
     })
     dhcpRuleToIPObjs: DHCPRuleToIPObj[];
+
+    @Column({name: 'firewall'})
+    firewallId: number;
 
     @ManyToOne(() => Firewall)
     @JoinColumn({ name: 'firewall' })
