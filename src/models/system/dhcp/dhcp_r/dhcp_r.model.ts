@@ -26,6 +26,7 @@ import { DHCPGroup } from "../dhcp_g/dhcp_g.model";
 import Model from "../../../Model";
 import { Firewall } from "../../../firewall/Firewall";
 import { DHCPRuleToIPObj } from "./dhcp_r-to-ipobj.model";
+import { ControllerHandlerSignature } from "../../../../fonaments/http/router/route";
 
 const tableName: string = 'dhcp_r';
 
@@ -86,5 +87,35 @@ export class DHCPRule extends Model {
 
     public getTableName(): string {
         return tableName;
+    }
+
+    public static async cloneFirewallDHCP(idfirewall: number, idNewFirewall: number) {
+        const originalFirewall = await Firewall.findOne(idfirewall);
+        const newFirewall = await Firewall.findOne(idNewFirewall);
+
+        if (originalFirewall && newFirewall) {
+            const originalRules = await DHCPRule.find({ firewall: originalFirewall });
+
+            for (const originalRule of originalRules) {
+                const newRule = new DHCPRule();
+                newRule.rule_type = originalRule.rule_type;
+                newRule.rule_order = originalRule.rule_order;
+                newRule.active = originalRule.active;
+                newRule.style = originalRule.style;
+                newRule.network = originalRule.network;
+                newRule.range = originalRule.range;
+                newRule.router = originalRule.router;
+                newRule.interface = originalRule.interface;
+                newRule.dhcpRuleToIPObjs = originalRule.dhcpRuleToIPObjs;
+                newRule.firewall = newFirewall;
+                newRule.max_lease = originalRule.max_lease;
+                newRule.cfg_text = originalRule.cfg_text;
+                newRule.comment = originalRule.comment;
+
+                if (!originalRule.group) {
+                    await newRule.save();
+                }
+            }
+        }
     }
 }
