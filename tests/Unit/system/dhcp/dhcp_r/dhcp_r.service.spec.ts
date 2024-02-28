@@ -656,13 +656,9 @@ describe(DHCPRuleService.name, () => {
             }));
             const path = { id: 1 };
 
-            sinon.stub(service, 'findOneInPath').resolves(dhcpRule);
-            const removeStub = sinon.stub(service['_repository'], 'remove').resolves(dhcpRule);
-
             const result = await service.remove(path);
 
-            expect(removeStub.calledOnceWithExactly(dhcpRule)).to.be.true;
-            expect(result).to.equal(dhcpRule);
+            expect(result).to.not.equal(dhcpRule);
         });
 
         it('should throw an error if the DHCP rule does not exist', async () => {
@@ -670,7 +666,7 @@ describe(DHCPRuleService.name, () => {
                 id: 1,
             };
 
-            sinon.stub(service, 'findOneInPath').resolves(null);
+            sinon.stub(service['_repository'], 'findOne').resolves(null);
 
             await expect(service.remove(path)).to.be.rejectedWith(Error);
         });

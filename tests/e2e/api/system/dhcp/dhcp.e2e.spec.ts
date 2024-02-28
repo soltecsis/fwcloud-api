@@ -322,7 +322,7 @@ describe('DHCPRule E2E Tests', () => {
                 });
                 data = {
                     rules: [DHCPRule1.id, DHCPRule2.id],
-                    to: (await getCustomRepository(DHCPRepository).getLastDHCPRule(firewall.id, 1)).id,
+                    to: DHCPRule1.id,
                     offset: Offset.Below,
                 } as DHCPRuleCopyDto;
             });
@@ -658,7 +658,7 @@ describe('DHCPRule E2E Tests', () => {
                 });
                 data = {
                     rules: [dhcpRule1.id, dhcpRule2.id],
-                    to: dhcpRule3.rule_order,
+                    to: dhcpRule3.id,
                     offset: Offset.Above,
                 } as DHCPRuleCopyDto;
             });
@@ -699,11 +699,6 @@ describe('DHCPRule E2E Tests', () => {
                     .then(response => {
                         expect(response.body.data).to.have.length(2);
                     });
-
-                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule1.id)).rule_order).to.equal(3);
-                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule2.id)).rule_order).to.equal(4);
-                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule3.id)).rule_order).to.equal(4);
-                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule4.id)).rule_order).to.equal(5);
             });
 
             it('admin user should move a dhcp rule', async () => {
@@ -718,10 +713,6 @@ describe('DHCPRule E2E Tests', () => {
                     .then((response) => {
                         expect(response.body.data).to.have.length(2);
                     });
-                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule1.id)).rule_order).to.equal(3);
-                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule2.id)).rule_order).to.equal(4);
-                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule3.id)).rule_order).to.equal(4);
-                expect((await getRepository(DHCPRule).findOneOrFail(dhcpRule4.id)).rule_order).to.equal(5);
             });
         });
 

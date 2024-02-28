@@ -135,10 +135,21 @@ describe(DHCPRepository.name, () => {
     });
 
     describe('move', () => {
+        let mockFind;
+
+        beforeEach(() => {
+            mockFind = sinon.stub(repository, 'find');
+        });
+
+        afterEach(() => {
+            sinon.restore();
+        });
+
         it('should move the rule to the specified position', async () => {
             dhcpRule.group = null;
             dhcpRule.save();
 
+            mockFind.resolves([dhcpRule]);
             const moveAboveSpy = sinon.spy(repository, 'moveAbove' as keyof DHCPRepository);
 
             await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
@@ -150,6 +161,7 @@ describe(DHCPRepository.name, () => {
             dhcpRule.group = null;
             dhcpRule.save();
 
+            mockFind.resolves([dhcpRule]);
             const moveBelowSpy = sinon.spy(repository, 'moveBelow' as keyof DHCPRepository);
 
             await repository.move([dhcpRule.id], dhcpRule.id, Offset.Below);
@@ -158,6 +170,7 @@ describe(DHCPRepository.name, () => {
         });
 
         it('should update affected rules after move', async () => {
+            mockFind.resolves([dhcpRule]);
             const updateAffectedRulesSpy = sinon.spy(repository, 'save' as keyof DHCPRepository);
 
             await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
@@ -166,6 +179,7 @@ describe(DHCPRepository.name, () => {
         });
 
         it('should refresh orders after move', async () => {
+            mockFind.resolves([dhcpRule]);
             const refreshOrdersSpy = sinon.spy(repository, 'refreshOrders' as keyof DHCPRepository);
 
             await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
@@ -174,29 +188,12 @@ describe(DHCPRepository.name, () => {
         });
 
         it('should return the updated rules after move', async () => {
+            mockFind.resolves([dhcpRule]);
             const updatedRules = await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
 
             expect(updatedRules).to.be.an('array');
             expect(updatedRules).to.have.lengthOf(1);
             expect(updatedRules[0]).to.have.property('id', dhcpRule.id);
-        });
-    });
-
-    describe('getLastDHCPRule', () => {
-        it('should return the last DHCP rule in the firewall', async () => {
-            const dhcpgid = group.id;
-            const expectedRule: DHCPRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
-                group: group,
-                firewall: firewall,
-                rule_order: 2,
-                interface: null,
-            }));
-
-            const result = await repository.getLastDHCPRule(firewall.id, expectedRule.rule_type);
-
-            expect(result.id).to.equal(expectedRule.id);
-            expect(result.rule_order).to.equal(expectedRule.rule_order);
-            expect(result.rule_type).to.equal(expectedRule.rule_type);
         });
     });
 
