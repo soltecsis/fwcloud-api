@@ -42,7 +42,7 @@ export class KeepalivedRuleUpdateDto {
 
     @IsNumber()
     @IsOptional()
-    intefaceId?: number;
+    interfaceId?: number;
 
     @IsArray()
     @IsOptional()

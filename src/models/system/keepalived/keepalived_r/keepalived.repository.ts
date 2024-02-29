@@ -268,7 +268,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
             .innerJoin('firewall.fwCloud', 'fwCloud')
             .where('firewall.id = :firewallId', { firewallId: firewall })
             .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud });
-        // TODO: Revisar si es necesario cambiar el orden de compilacion
+
         if (rule_types) {
             query
                 .andWhere('keepalived_r.rule_type IN (:...rule_types)')

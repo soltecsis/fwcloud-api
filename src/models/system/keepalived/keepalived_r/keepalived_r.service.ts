@@ -77,6 +77,12 @@ export interface KeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemF
     items: (T & { _order: number })[];
 }
 
+interface IMoveFromKeepalivedRule {
+    fromId: number;
+    toId: number;
+    virtualIpId: number;
+}
+
 export class KeepalivedRuleService extends Service {
     private _repository: KeepalivedRepository;
     private _ipobjRepository: IPObjRepository;
@@ -126,13 +132,13 @@ export class KeepalivedRuleService extends Service {
             }) as unknown as KeepalivedToIPObj);
         }
 
-        if(persisted.virtualIps) {
-            const notHasMatchingIpVersion: boolean = persisted.virtualIps.some((item,index,array) => {
-               return array.some((otherItem,otherIndex) => {
-                return index !== otherIndex && item.ipObj.ip_version !== otherItem.ipObj.ip_version;
-               }) 
+        if (persisted.virtualIps) {
+            const notHasMatchingIpVersion: boolean = persisted.virtualIps.some((item, index, array) => {
+                return array.some((otherItem, otherIndex) => {
+                    return index !== otherIndex && item.ipObj.ip_version !== otherItem.ipObj.ip_version;
+                })
             })
-            if(notHasMatchingIpVersion) {
+            if (notHasMatchingIpVersion) {
                 this._repository.remove(persisted);
                 throw new Error('IP version mismatch');
             } else {
@@ -167,6 +173,31 @@ export class KeepalivedRuleService extends Service {
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<KeepalivedRule[]> {
         return await this._repository.move(ids, destRule, offset);
+    }
+
+    async moveFrom(fromId: number, toId: number, data: IMoveFromKeepalivedRule): Promise<[KeepalivedRule, KeepalivedRule]> {
+        const fromRule: KeepalivedRule = await this._repository.findOneOrFail(fromId, { relations: ['firewall', 'firewall.fwCloud', 'virtualIp'] });
+        const toRule: KeepalivedRule = await this._repository.findOneOrFail(toId, { relations: ['firewall', 'firewall.fwCloud', 'virtualIp'] });
+
+        let lastPosition = 0;
+
+        [].concat(fromRule.virtualIps).forEach((item) => {
+            lastPosition < item.order ? lastPosition = item.order : null;
+        });
+
+        if (data.virtualIpId) {
+            const index: number = toRule.virtualIps.findIndex(item => item.ipObjId === data.virtualIpId);
+            if (index >= 0) {
+                fromRule.virtualIps.splice(index, 1);
+                toRule.virtualIps.push({
+                    keepalivedId: toRule.id,
+                    ipObjId: data.virtualIpId,
+                    order: lastPosition + 1
+                } as KeepalivedToIPObj);
+            }
+        }
+
+        return [await this._repository.save(fromRule), await this._repository.save(toRule)];
     }
 
     async update(id: number, data: Partial<ICreateKeepalivedRule>): Promise<KeepalivedRule> {

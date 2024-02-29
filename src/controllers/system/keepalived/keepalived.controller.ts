@@ -37,7 +37,7 @@ import { KeepalivedRuleUpdateDto } from './dto/update.dto';
 import { KeepalivedRuleBulkUpdateDto } from './dto/bulk-update.dto';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { KeepalivedRuleBulkRemoveDto } from './dto/bulk-remove.dto';
-import { AvailableDestinations, KeepalivedRuleItemForCompiler } from '../../../models/system/keepalived/shared';
+import { KeepalivedRuleItemForCompiler } from '../../../models/system/keepalived/shared';
 import { KeepalivedMoveFromDto } from './dto/move-from.dto';
 
 
@@ -238,7 +238,7 @@ export class KeepalivedController extends Controller {
       }
     });
 
-    const result: KeepalivedRule[] = await this._keepalivedRuleService.moveFrom(fromRule, toRule, req.inputs.get('ipObjId'));
+    const result: KeepalivedRule[] = await this._keepalivedRuleService.moveFrom(fromRule.id, toRule.id, req.inputs.get('ipObjId'));
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
