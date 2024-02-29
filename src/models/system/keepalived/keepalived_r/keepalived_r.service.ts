@@ -34,6 +34,8 @@ import { AvailableDestinations, KeepalivedRuleItemForCompiler, KeepalivedUtils, 
 import { Firewall } from "../../../firewall/Firewall";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { KeepalivedToIPObj } from "./keepalived_r-to-ipobj";
+import { ErrorBag } from "../../../../fonaments/validation/validator";
+import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
 
 
 interface IFindManyKeepalivedRulePath {
@@ -80,7 +82,7 @@ export interface KeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemF
 interface IMoveFromKeepalivedRule {
     fromId: number;
     toId: number;
-    virtualIpId: number;
+    virtualIpsIds: number;
 }
 
 export class KeepalivedRuleService extends Service {
@@ -158,7 +160,7 @@ export class KeepalivedRuleService extends Service {
             where: {
                 id: In(ids),
             },
-            relations: ['group', 'firewall', 'firewall.fwCloud', 'interface', 'virtualIp', 'masterNode']
+            relations: ['group', 'firewall', 'firewall.fwCloud', 'interface', 'virtualIps', 'masterNode']
         });
 
         const savedCopies: KeepalivedRule[] = await Promise.all(
@@ -176,8 +178,8 @@ export class KeepalivedRuleService extends Service {
     }
 
     async moveFrom(fromId: number, toId: number, data: IMoveFromKeepalivedRule): Promise<[KeepalivedRule, KeepalivedRule]> {
-        const fromRule: KeepalivedRule = await this._repository.findOneOrFail(fromId, { relations: ['firewall', 'firewall.fwCloud', 'virtualIp'] });
-        const toRule: KeepalivedRule = await this._repository.findOneOrFail(toId, { relations: ['firewall', 'firewall.fwCloud', 'virtualIp'] });
+        const fromRule: KeepalivedRule = await this._repository.findOneOrFail(fromId, { relations: ['firewall', 'firewall.fwCloud', 'virtualIps'] });
+        const toRule: KeepalivedRule = await this._repository.findOneOrFail(toId, { relations: ['firewall', 'firewall.fwCloud', 'virtualIps'] });
 
         let lastPosition = 0;
 
@@ -185,13 +187,13 @@ export class KeepalivedRuleService extends Service {
             lastPosition < item.order ? lastPosition = item.order : null;
         });
 
-        if (data.virtualIpId) {
-            const index: number = toRule.virtualIps.findIndex(item => item.ipObjId === data.virtualIpId);
+        if (data.virtualIpsIds) {
+            const index: number = toRule.virtualIps.findIndex(item => item.ipObjId === data.virtualIpsIds);
             if (index >= 0) {
                 fromRule.virtualIps.splice(index, 1);
                 toRule.virtualIps.push({
                     keepalivedId: toRule.id,
-                    ipObjId: data.virtualIpId,
+                    ipObjId: data.virtualIpsIds,
                     order: lastPosition + 1
                 } as KeepalivedToIPObj);
             }
@@ -201,7 +203,7 @@ export class KeepalivedRuleService extends Service {
     }
 
     async update(id: number, data: Partial<ICreateKeepalivedRule>): Promise<KeepalivedRule> {
-        const keepalivedRule: KeepalivedRule | undefined = await this._repository.findOne(id, { relations: ['group', 'firewall', 'firewall.fwCloud', 'interface', 'virtualIp', 'masterNode'] });
+        const keepalivedRule: KeepalivedRule | undefined = await this._repository.findOne(id, { relations: ['group', 'firewall', 'interface', 'virtualIps', 'masterNode'] });
 
         if (!keepalivedRule) {
             throw new Error('keepalivedRule not found');
@@ -217,17 +219,26 @@ export class KeepalivedRuleService extends Service {
 
         if (data.group) {
             keepalivedRule.group = data.group ? await getRepository(KeepalivedGroup).findOne(data.group) : null;
+        } else if (data.virtualIpsIds) {
+            await this.validateVirtualIps(keepalivedRule.firewall, data);
+            keepalivedRule.virtualIps = data.virtualIpsIds.map(item => ({
+                keepalivedId: keepalivedRule.id,
+                ipObjId: item.id,
+                order: item.order
+            }) as KeepalivedToIPObj);
         } else {
-            const fieldsToUpdate = ['virtualIpId', 'masterNodeId', 'interfaceId', 'firewallId'];
+            const fieldsToUpdate = ['masterNodeId', 'interfaceId', 'firewallId'];
 
             for (const field of fieldsToUpdate) {
-                if (data[field] === 'interfaceId') {
-                    //TODO: Revisar mac
-                    keepalivedRule[field.slice(0, -2)] = await getRepository(Interface).findOneOrFail(data[field]) as Interface;
-                } else if (data[field] === 'masterNodeId' || data[field] === 'firewallId') {
-                    keepalivedRule[field.slice(0, -2)] = await getRepository(Firewall).findOneOrFail(data[field]) as Firewall;
-                } else {
-                    keepalivedRule[field.slice(0, -2)] = await getRepository(IPObj).findOneOrFail(data[field]) as IPObj;
+                if (data[field]) {
+                    if (field === 'interfaceId') {
+                        //TODO: Revisar mac
+                        keepalivedRule[field.slice(0, -2)] = await getRepository(Interface).findOneOrFail(data[field]) as Interface;
+                    } else if (field === 'masterNodeId') {
+                        keepalivedRule[field.slice(0, -2)] = await getRepository(Firewall).findOneOrFail(data[field]) as Firewall;
+                    } else if (field === 'firewallId') {
+                        keepalivedRule[field.slice(0, -2)] = await getRepository(Firewall).findOneOrFail(data[field]) as Firewall;
+                    }
                 }
             }
         }
@@ -356,4 +367,32 @@ export class KeepalivedRuleService extends Service {
               this._routerRepository.getRoutersInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),
           ];
       }*/
+
+    async validateVirtualIps(firewall: Firewall, data: IUpdateKeepalivedRule): Promise<void> {
+        const errors: ErrorBag = {};
+
+        if (!data.virutalIpsIds || !data.virutalIpsIds.length) {
+            return;
+        }
+
+        const virtualIps: IPObj[] = await this._ipobjRepository.find({
+            where: {
+                id: In(data.virutalIpsIds.map(item => item.id)),
+                ipObjTypeId: 5 //ADDRESS
+            },
+            relations: ['fwCloud'],
+        });
+
+        for (let i = 0; i < virtualIps.length; i++) {
+            const ipObj: IPObj = virtualIps[i];
+
+            if (ipObj.fwCloud.id && ipObj.fwCloud.id !== firewall.fwCloudId) {
+                errors[`virtualIpsIds.${i}`] = ['ipObj id must exist'];
+            }
+        }
+
+        if (Object.keys(errors).length > 0) {
+            throw new ValidationException('The given data was invalid', errors);
+        }
+    }
 }
