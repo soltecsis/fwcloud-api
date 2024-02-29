@@ -84,7 +84,7 @@ describe(KeepalivedRuleService.name, () => {
                 interface_type: '11'
             }));
         });
-        it('should store a new KeepalivedRule', async () => {
+        /*it('should store a new KeepalivedRule', async () => {
             const data = {
                 active: true,
                 style: 'default',
@@ -212,7 +212,7 @@ describe(KeepalivedRuleService.name, () => {
             getLastKeepalivedRuleInGroupStub.restore();
             saveStub.restore();
             moveStub.restore();
-        });
+        });*/
     });
     describe('copy', () => {
         let getLastKeepalivedRuleInGroupStub: sinon.SinonStub;

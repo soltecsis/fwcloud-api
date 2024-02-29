@@ -243,10 +243,10 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
      * @param keepalivedgid - The ID of the Keepalived group.
      * @returns A Promise that resolves to the last Keepalived rule in the group.
      */
-    async getLastKeepalivedRuleInGroup(keepalivedgid: number): Promise<KeepalivedRule> {
+    async getLastKeepalivedRule(firewall: number): Promise<KeepalivedRule> {
         return (await this.find({
             where: {
-                group: keepalivedgid,
+                firewall: firewall,
             },
             order: {
                 'rule_order': 'DESC',

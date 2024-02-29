@@ -76,7 +76,7 @@ describe('KeepalivedRule E2E Tests', () => {
             firewall: firewall,
         }));
     });
-//TODO: REVISAR TESTS
+    //TODO: REVISAR TESTS
     describe(KeepalivedController.name, () => {
         describe('@index', () => {
             let KeepalivedRule: KeepalivedRule;
@@ -308,7 +308,7 @@ describe('KeepalivedRule E2E Tests', () => {
                 });
                 data = {
                     rules: [KeepalivedRule1.id, KeepalivedRule2.id],
-                    to: (await getCustomRepository(KeepalivedRepository).getLastKeepalivedRuleInGroup(group.id)).id,
+                    to: (await getCustomRepository(KeepalivedRepository).getLastKeepalivedRule(firewall.id)).id,
                     offset: Offset.Below,
                 } as KeepalivedRuleCopyDto;
             });
