@@ -2,7 +2,7 @@ import { SelectQueryBuilder } from "typeorm";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 
-export type AvailableDestinations = 'compiler'| 'keepalived_grid';
+export type AvailableDestinations = 'compiler' | 'keepalived_grid';
 
 export type ItemForGrid = {
     entityId: number;
@@ -16,14 +16,11 @@ export type ItemForGrid = {
     host_id?: number;
     host_name?: string;
 };
-//TODO: Revisar
+
 export type KeepalivedRuleItemForCompiler = {
     entityId: number;
-    type: number;
-    address: string;
-    netmask: string;
-    range_start: string;
-    range_end: string;
+    interface: string;
+    masterNode: string;
 };
 
 export class KeepalivedUtils {

@@ -64,6 +64,7 @@ export abstract class Communication<ConnectionData> {
 
     abstract installOpenVPNServerConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<void>
     abstract installOpenVPNClientConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<void>
+    abstract installKeepalivedConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<string>
     abstract ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]>
     abstract getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]>;
     abstract getRealtimeStatus(statusFilepath: string): Promise<string>

@@ -39,6 +39,7 @@ import { HttpException } from '../../../fonaments/exceptions/http/http-exception
 import { KeepalivedRuleBulkRemoveDto } from './dto/bulk-remove.dto';
 import { KeepalivedRuleItemForCompiler } from '../../../models/system/keepalived/shared';
 import { KeepalivedMoveFromDto } from './dto/move-from.dto';
+import { KeepalivedCompiler } from '../../../../tests/Unit/compiler/system/keepalived/KeepalivedCompiler';
 
 
 export class KeepalivedController extends Controller {
@@ -250,14 +251,13 @@ export class KeepalivedController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
 
-  //TODO: Compile and install methods are not implemented yet
   @Validate()
   public async compile(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.create(this._firewall, req.session.user)).authorize();
 
-    //const rules: KeepalivedRulesData<KeepalivedRulteItemForCompiler>[] = await this._keepalivedRuleService.getKeepalivedRulesData('compiler', this._fwCloud.id, this._firewall.id);
+    const rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] = await this._keepalivedRuleService.getKeepalivedRulesData('compiler', this._fwCloud.id, this._firewall.id);
 
-    //new KeepalivedCompiler().compile(rules);
+    new KeepalivedCompiler().compile(rules);
 
     return ResponseBuilder.buildResponse().status(200).body(null);
   }
