@@ -37,15 +37,15 @@ export class DHCPRUleExporter extends TableExporter {
     public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
         return qb
             .where((qb) => {
-                const subquery = qb.subQuery().from(DHCPGroup, 'dhcp_g').select('dhcp_g.id');
+                const query = qb.subQuery().from(DHCPGroup, 'dhcp_g').select('dhcp_g.id');
 
                 return `${alias}.dhcpGroupId IN ` + new DHCPGroupExporter()
-                    .getFilterBuilder(subquery, 'dhcp_g', fwCloudId).getQuery()
+                    .getFilterBuilder(query, 'dhcp_g', fwCloudId).getQuery()
             })
             .where((qb) => {
-                const subquery = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
+                const query = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
                 return `${alias}.firewallId IN ` + new FirewallExporter()
-                    .getFilterBuilder(subquery, 'firewall', fwCloudId).getQuery()
+                    .getFilterBuilder(query, 'firewall', fwCloudId).getQuery()
             })
     }
 }

@@ -20,23 +20,22 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableTerraformer, TerraformHandlerCollection } from "../table-terraformer";
-import { ImportMapping } from "../mapper/import-mapping";
-import { IPObjType } from "../../../../models/ipobj/IPObjType";
-import { Firewall } from "../../../../models/firewall/Firewall";
-import { Ca } from "../../../../models/vpn/pki/Ca";
-import { Cluster } from "../../../../models/firewall/Cluster";
-import { Crt } from "../../../../models/vpn/pki/Crt";
+import {TableTerraformer, TerraformHandlerCollection} from "../table-terraformer";
+import {ImportMapping} from "../mapper/import-mapping";
+import {Firewall} from "../../../../models/firewall/Firewall";
+import {Ca} from "../../../../models/vpn/pki/Ca";
+import {Cluster} from "../../../../models/firewall/Cluster";
+import {Crt} from "../../../../models/vpn/pki/Crt";
 import Model from "../../../../models/Model";
-import { Interface } from "../../../../models/interface/Interface";
-import { OpenVPN } from "../../../../models/vpn/openvpn/OpenVPN";
-import { IPObj } from "../../../../models/ipobj/IPObj";
-import { IPObjGroup } from "../../../../models/ipobj/IPObjGroup";
-import { Mark } from "../../../../models/ipobj/Mark";
-import { CaPrefix } from "../../../../models/vpn/pki/CaPrefix";
-import { OpenVPNPrefix } from "../../../../models/vpn/openvpn/OpenVPNPrefix";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { RoutingTable } from "../../../../models/routing/routing-table/routing-table.model";
+import {Interface} from "../../../../models/interface/Interface";
+import {OpenVPN} from "../../../../models/vpn/openvpn/OpenVPN";
+import {IPObj} from "../../../../models/ipobj/IPObj";
+import {IPObjGroup} from "../../../../models/ipobj/IPObjGroup";
+import {Mark} from "../../../../models/ipobj/Mark";
+import {CaPrefix} from "../../../../models/vpn/pki/CaPrefix";
+import {OpenVPNPrefix} from "../../../../models/vpn/openvpn/OpenVPNPrefix";
+import {EventEmitter} from "typeorm/platform/PlatformTools";
+import {RoutingTable} from "../../../../models/routing/routing-table/routing-table.model";
 
 export class FwcTreeTerraformer extends TableTerraformer {
     protected _typeToTableNameMapping: {[type: string]: typeof Model} = {
@@ -102,8 +101,7 @@ export class FwcTreeTerraformer extends TableTerraformer {
     }
 
     public static async make(mapper: ImportMapping, eventEmitter: EventEmitter = new EventEmitter()): Promise<FwcTreeTerraformer> {
-        const terraformer: FwcTreeTerraformer = new FwcTreeTerraformer(mapper, eventEmitter);
-        return terraformer;
+        return new FwcTreeTerraformer(mapper, eventEmitter);
     }
 
     protected getCustomHandlers(): TerraformHandlerCollection {
