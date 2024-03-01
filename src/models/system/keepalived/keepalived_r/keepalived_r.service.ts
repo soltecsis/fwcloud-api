@@ -131,7 +131,7 @@ export class KeepalivedRuleService extends Service {
                 order: item.order
             }) as KeepalivedToIPObj);
 
-            const hasMatchingIpVersion = keepalivedRuleData.virtualIps.some(virtualIp => virtualIp.ipObj.ip_version === keepalivedRuleData.virtualIps[0].ipObj.ip_version);
+            const hasMatchingIpVersion = keepalivedRuleData.virtualIps.some(async virtualIp => (await getRepository(IPObj).findOneOrFail(virtualIp.ipObj)).ip_version === (await getRepository(IPObj).findOneOrFail(keepalivedRuleData.virtualIps[0].ipObj)).ip_version);
             if (!hasMatchingIpVersion) {
                 throw new Error('IP version mismatch');
             }
@@ -247,7 +247,7 @@ export class KeepalivedRuleService extends Service {
             }
         }
 
-        const hasMatchingIpVersion = keepalivedRule.virtualIps.some(virtualIp => virtualIp.ipObj.ip_version === keepalivedRule.virtualIps[0].ipObj.ip_version);
+        const hasMatchingIpVersion = keepalivedRule.virtualIps.some(async virtualIp => (await getRepository(IPObj).findOneOrFail(virtualIp.ipObj)).ip_version === (await getRepository(IPObj).findOneOrFail(keepalivedRule.virtualIps[0].ipObj)).ip_version);
         if (!hasMatchingIpVersion) {
             throw new Error('IP version mismatch');
         }
@@ -372,13 +372,13 @@ export class KeepalivedRuleService extends Service {
 
     private getKeepalivedRulesGridSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {
         return [
-            this._ipobjRepository.getIpobjsInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),
+            this._ipobjRepository.getIpobjsInKeepalived_ForGrid('rule', fwcloud, firewall),
         ];
     }
 
     private buildKeepalivedRulesCompilerSql(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<IPObj | IPObjGroup>[] {
         return [
-            this._ipobjRepository.getIpobjsInKeepalived_ForGrid('keepalived_r', fwcloud, firewall),
+            this._ipobjRepository.getIpobjsInKeepalived_ForGrid('rule', fwcloud, firewall),
         ];
     }
 

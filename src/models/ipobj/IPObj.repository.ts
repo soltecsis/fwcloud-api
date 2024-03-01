@@ -282,9 +282,8 @@ export class IPObjRepository extends Repository<IPObj> {
   }
 
   getIpobjsInKeepalived_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, dhcpRule?: number): SelectQueryBuilder<IPObj> {
-    let query: SelectQueryBuilder<IPObj> = this.createQueryBuilder("ipobj")
+    let query = this.createQueryBuilder("ipobj")
       .select("ipobj.id", "id")
-      .addSelect("ipobj.address", "address")
       .addSelect("ipobj.name", "name")
       .addSelect("ipobj.type", "type")
       .addSelect("host.id", "host_id")
@@ -297,9 +296,9 @@ export class IPObjRepository extends Repository<IPObj> {
 
     if (entity === 'rule') {
       query
-        .innerJoin('ipobj.keepalivedRuleToIPObjs', 'keepalivedRuleToIPObjs')
-        .addSelect('keepalivedRuleToIPObjs.order', '_order')
-        .innerJoin('keepalivedRuleToIPObjs.keepalivedRule', entity);
+        .innerJoin('ipobj.keepalivedToIPObjs', 'keepalivedToIPObjs')
+        .addSelect('keepalivedToIPObjs.order', '_order')
+        .innerJoin('keepalivedToIPObjs.keepalivedRule', entity);
     }
 
     query
