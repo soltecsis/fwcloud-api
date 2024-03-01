@@ -227,6 +227,10 @@ export class KeepalivedRuleService extends Service {
                 ipObjId: item.id,
                 order: item.order
             }) as KeepalivedToIPObj);
+            const hasMatchingIpVersion = keepalivedRule.virtualIps.some(async virtualIp => (await getRepository(IPObj).findOneOrFail(virtualIp.ipObj)).ip_version === (await getRepository(IPObj).findOneOrFail(keepalivedRule.virtualIps[0].ipObj)).ip_version);
+            if (!hasMatchingIpVersion) {
+                throw new Error('IP version mismatch');
+            }
         } else {
             const fieldsToUpdate = ['masterNodeId', 'interfaceId', 'firewallId'];
 
@@ -245,11 +249,6 @@ export class KeepalivedRuleService extends Service {
                     }
                 }
             }
-        }
-
-        const hasMatchingIpVersion = keepalivedRule.virtualIps.some(async virtualIp => (await getRepository(IPObj).findOneOrFail(virtualIp.ipObj)).ip_version === (await getRepository(IPObj).findOneOrFail(keepalivedRule.virtualIps[0].ipObj)).ip_version);
-        if (!hasMatchingIpVersion) {
-            throw new Error('IP version mismatch');
         }
 
         await this._repository.save(keepalivedRule);
