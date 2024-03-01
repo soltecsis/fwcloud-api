@@ -218,7 +218,7 @@ export class KeepalivedRuleService extends Service {
             rule_order: data.rule_order !== undefined ? data.rule_order : keepalivedRule.rule_order
         });
 
-        if (data.group) {
+        if (data.group !== undefined) {
             keepalivedRule.group = data.group ? await getRepository(KeepalivedGroup).findOne(data.group) : null;
         } else if (data.virtualIpsIds) {
             await this.validateVirtualIps(keepalivedRule.firewall, data);
