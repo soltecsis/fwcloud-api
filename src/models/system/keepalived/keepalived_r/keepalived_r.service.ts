@@ -95,7 +95,7 @@ export class KeepalivedRuleService extends Service {
         super(app)
         this._repository = getCustomRepository(KeepalivedRepository);
         this._ipobjRepository = getCustomRepository(IPObjRepository);
-        this._groupService = getCustomRepository(KeepalivedGroupService);
+        this._groupService = new KeepalivedGroupService(app);
     }
 
     async store(data: ICreateKeepalivedRule): Promise<KeepalivedRule> {

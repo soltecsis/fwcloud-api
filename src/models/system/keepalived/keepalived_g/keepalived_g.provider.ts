@@ -27,12 +27,12 @@ import { KeepalivedGroupService } from "./keepalived_g.service";
 export class KeepalivedGroupServiceProvider extends ServiceProvider {
 
     public register(serviceContainer: ServiceContainer) {
-        return serviceContainer.singleton(KeepalivedGroupService.name, async(app): Promise<KeepalivedGroupService> => {
+        return serviceContainer.singleton(KeepalivedGroupService.name, async(app: AbstractApplication): Promise<KeepalivedGroupService> => {
             return KeepalivedGroupService.make(app);
         });
     }
 
-    public async bootstrap(app: AbstractApplication) {
+    public async bootstrap(app: AbstractApplication): Promise<void> {
         await app.getService<KeepalivedGroupService>(KeepalivedGroupService.name);
     }
 
