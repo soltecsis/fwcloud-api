@@ -97,61 +97,49 @@ export class DHCPRepository extends Repository<DHCPRule> {
      * @returns The updated array of affected DHCP rules.
      */
     protected async moveAbove(dhcp_rs: DHCPRule[], affectedDHCPs: DHCPRule[], destDHCP: DHCPRule): Promise<DHCPRule[]> {
-        const destPosition: number = destDHCP.rule_order;
-        const movingIds: number[] = dhcp_rs.map((dhcp_r: DHCPRule) => dhcp_r.id);
+        let destPosition = destDHCP.rule_order - 1;
 
-        const currentPosition: number = dhcp_rs[0].rule_order;
-        const forward: boolean = currentPosition < destDHCP.rule_order;
+        const movingIds = new Set(dhcp_rs.map(dhcp_r => dhcp_r.id));
 
-        affectedDHCPs.forEach((dhcp_r: DHCPRule) => {
-            if (movingIds.includes(dhcp_r.id)) {
-                const offset: number = movingIds.indexOf(dhcp_r.id);
-                dhcp_r.rule_order = destPosition + offset;
-                dhcp_r.group ? dhcp_r.group.id = destDHCP.group.id : dhcp_r.group = destDHCP.group;
+        affectedDHCPs.forEach(dhcp_r => {
+            if (movingIds.has(dhcp_r.id)) {
+                dhcp_r.rule_order = --destPosition;
             } else {
-                if (forward && dhcp_r.rule_order >= destDHCP.rule_order) {
-                    dhcp_r.rule_order += 1;
-                }
-
-                if (!forward && dhcp_r.rule_order >= destDHCP.rule_order && dhcp_r.rule_order < dhcp_rs[0].rule_order) {
-                    dhcp_r.rule_order += 1;
+                if (dhcp_r.rule_order >= destDHCP.rule_order) {
+                    dhcp_r.rule_order += dhcp_rs.length;
                 }
             }
         });
+
+        dhcp_rs.forEach(dhcp_r => dhcp_r.group = destDHCP.group);
 
         return affectedDHCPs;
     }
 
     /**
-     * Moves the affected DHCP rules below the specified destination DHCP rule.
+     * Moves the DHCP rules below the specified destination DHCP rule.
      * 
      * @param dhcp_rs - The array of all DHCP rules.
-     * @param affectedDHCPs - The array of affected DHCP rules.
+     * @param affectedDHCPs - The array of DHCP rules to be moved.
      * @param destDHCP - The destination DHCP rule.
      * @returns The updated array of affected DHCP rules.
      */
     protected async moveBelow(dhcp_rs: DHCPRule[], affectedDHCPs: DHCPRule[], destDHCP: DHCPRule): Promise<DHCPRule[]> {
-        const destPosition: number = destDHCP.rule_order;
-        const movingIds: number[] = dhcp_rs.map((dhcp_r: DHCPRule) => dhcp_r.id);
+        let destPosition = destDHCP.rule_order + 1;
 
-        const currentPosition: number = dhcp_rs[0].rule_order;
-        const forward: boolean = currentPosition < destDHCP.rule_order;
+        const movingIds = new Set(dhcp_rs.map(dhcp_r => dhcp_r.id));
 
-        affectedDHCPs.forEach((dhcp_r: DHCPRule): void => {
-            if (movingIds.includes(dhcp_r.id)) {
-                const offset: number = movingIds.indexOf(dhcp_r.id);
-                dhcp_r.rule_order = destPosition + offset + 1;
-                dhcp_r.group ? dhcp_r.group.id = destDHCP.group.id : dhcp_r.group = destDHCP.group;
+        affectedDHCPs.forEach(dhcp_r => {
+            if (movingIds.has(dhcp_r.id)) {
+                dhcp_r.rule_order = destPosition++;
             } else {
-                if (forward && dhcp_r.rule_order > destDHCP.rule_order) {
-                    dhcp_r.rule_order += dhcp_rs.length;
-                }
-
-                if (!forward && dhcp_r.rule_order > destDHCP.rule_order && dhcp_r.rule_order < dhcp_rs[0].rule_order) {
+                if (dhcp_r.rule_order > destDHCP.rule_order) {
                     dhcp_r.rule_order += dhcp_rs.length;
                 }
             }
         });
+
+        dhcp_rs.forEach(dhcp_r => dhcp_r.group = destDHCP.group);
 
         return affectedDHCPs;
     }
@@ -238,7 +226,6 @@ export class DHCPRepository extends Repository<DHCPRule> {
         await this.save(dhcp_rs);
     }
 
-    
     /**
      * Retrieves the last DHCP rule based on the firewall and type.
      * @param firewall The firewall number.
