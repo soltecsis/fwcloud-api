@@ -226,40 +226,10 @@ export class DhcpController extends Controller {
   }
 
   @Validate(DHCPRuleMoveFromDto)
-  async moveFrom(req: Request): Promise<ResponseBuilder> {
+  public async moveFrom(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
 
-    const fromRule: DHCPRule = await getRepository(DHCPRule).findOneOrFail({
-      join: {
-        alias: 'rule',
-        innerJoin: {
-          firewall: 'rule.firewall',
-          fwcloud: 'firewall.fwCloud'
-        }
-      },
-      where: (qb: SelectQueryBuilder<DHCPRule>): void => {
-        qb.whereInIds(req.inputs.get('fromId'))
-          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
-          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
-      }
-    });
-
-    const toRule: DHCPRule = await getRepository(DHCPRule).findOneOrFail({
-      join: {
-        alias: 'rule',
-        innerJoin: {
-          firewall: 'rule.firewall',
-          fwcloud: 'firewall.fwCloud'
-        }
-      },
-      where: (qb: SelectQueryBuilder<DHCPRule>): void => {
-        qb.whereInIds(req.inputs.get('toId'))
-          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
-          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
-      }
-    });
-
-    const result: DHCPRule[] = await this._dhcpRuleService.moveFrom(fromRule.id, toRule.id, req.inputs.all());
+    const result: DHCPRule[] = await this._dhcpRuleService.moveFrom(req.inputs.get('fromId'), req.inputs.get('toId'), req.inputs.all());
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
