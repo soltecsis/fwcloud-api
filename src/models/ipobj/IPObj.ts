@@ -1063,6 +1063,7 @@ export class IPObj extends Model {
             .innerJoin('dhcp_rule.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
             .where(`firewall.fwCloudId = :FWCloud AND (network.id IS NOT NULL OR range.id IS NOT NULL OR router.id IS NOT NULL OR ipObj.id IS NOT NULL)`, { FWCloud: FWCloud })
+            .orderBy('dhcp_rule.rule_type','ASC')
             .getRawMany();
     }
 
@@ -1197,6 +1198,7 @@ export class IPObj extends Model {
             .innerJoin('dhcp_rule.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
             .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
+            .orderBy('dhcp_rule.rule_type','ASC')
             .getRawMany();
         return result;
     }

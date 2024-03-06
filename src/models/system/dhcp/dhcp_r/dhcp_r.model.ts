@@ -122,7 +122,7 @@ export class DHCPRule extends Model {
                 groupMapping.set(group.id, newGroup.id);
             }
 
-            const originalRules = await DHCPRule.find({ firewall: originalFirewall });
+            const originalRules = await DHCPRule.find({ where: { firewall: originalFirewall }, relations: ['dhcpRuleToIPObjs'] });
 
             for (const originalRule of originalRules) {
                 const newRule = new DHCPRule();
