@@ -175,6 +175,23 @@ export class DHCPRuleService extends Service {
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
+        const destinationRule: DHCPRule = await this._repository.findOneOrFail(destRule, {
+            relations: ['group']
+        });
+
+        const sourceRules: DHCPRule[] = await this._repository.findByIds(ids, {
+            relations: ['group']
+        });
+
+        if (destinationRule.group) {
+            sourceRules.forEach(rule => {
+                if (!rule.group) {
+                    rule.group = destinationRule.group;
+                }
+            });
+            await this._repository.save(sourceRules);
+        }
+
         return this._repository.move(ids, destRule, offset);
     }
 

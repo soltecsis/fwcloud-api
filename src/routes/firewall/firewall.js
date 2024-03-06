@@ -669,7 +669,6 @@ router.put('/clone', async (req, res) => {
 		await utilsModel.createFirewallDataDir(req.body.fwcloud, idNewFirewall);
 		await Tree.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, idNewFirewall);
 
-		await DHCPGroup.cloneFirewallDHCPGroup(req.body.firewall, idNewFirewall);
 		await DHCPRule.cloneFirewallDHCP(req.body.firewall, idNewFirewall);
 		
 		const firewallService = await app().getService(FirewallService.name);

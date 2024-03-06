@@ -53,46 +53,4 @@ export class DHCPGroup extends Model {
     public getTableName(): string {
         return tableName;
     }
-
-    public static async cloneFirewallDHCPGroup(idfirewall, idNewFirewall) {
-        const originalFirewall = await Firewall.findOne(idfirewall);
-        const newFirewall = await Firewall.findOne(idNewFirewall);
-
-        if (originalFirewall && newFirewall) {
-            const originalDHCPGroups = await DHCPGroup.find({
-                where: {
-                    firewall: originalFirewall
-                }
-            });
-
-            for (const originalDHCPGroup of originalDHCPGroups) {
-                const newDHCPGroup = new DHCPGroup();
-                newDHCPGroup.name = originalDHCPGroup.name;
-                newDHCPGroup.firewall = newFirewall;
-                newDHCPGroup.style = originalDHCPGroup.style;
-                await newDHCPGroup.save();
-
-                const originalRules = await DHCPRule.find({ firewall: originalFirewall, group: originalDHCPGroup });
-
-                for (const originalRule of originalRules) {
-                    const newRule = new DHCPRule();
-                    newRule.rule_type = originalRule.rule_type;
-                    newRule.rule_order = originalRule.rule_order;
-                    newRule.active = originalRule.active;
-                    newRule.group = newDHCPGroup;
-                    newRule.style = originalRule.style;
-                    newRule.network = originalRule.network;
-                    newRule.range = originalRule.range;
-                    newRule.router = originalRule.router;
-                    newRule.interface = originalRule.interface;
-                    newRule.dhcpRuleToIPObjs = originalRule.dhcpRuleToIPObjs;
-                    newRule.firewall = newFirewall;
-                    newRule.max_lease = originalRule.max_lease;
-                    newRule.cfg_text = originalRule.cfg_text;
-                    newRule.comment = originalRule.comment;
-                    await newRule.save();
-                }
-            }
-        }
-    }
 }

@@ -26,7 +26,6 @@ import { DHCPGroup } from "../dhcp_g/dhcp_g.model";
 import Model from "../../../Model";
 import { Firewall } from "../../../firewall/Firewall";
 import { DHCPRuleToIPObj } from "./dhcp_r-to-ipobj.model";
-import { ControllerHandlerSignature } from "../../../../fonaments/http/router/route";
 
 const tableName: string = 'dhcp_r';
 
@@ -44,7 +43,7 @@ export class DHCPRule extends Model {
     @Column({ type: 'boolean', default: false })
     active: boolean;
 
-    @Column({name: 'group'})
+    @Column({ name: 'group' })
     groupId: number;
 
     @ManyToOne(() => DHCPGroup)
@@ -54,28 +53,28 @@ export class DHCPRule extends Model {
     @Column({ type: 'varchar', length: 50 })
     style: string;
 
-    @Column({name: 'network'})
+    @Column({ name: 'network' })
     networkId: number;
 
     @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'network' })
     network: IPObj;
 
-    @Column({name: 'range'})
+    @Column({ name: 'range' })
     rangeId: number;
 
     @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'range' })
     range: IPObj;
 
-    @Column({name: 'router'})
+    @Column({ name: 'router' })
     routerId: number;
 
     @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'router' })
     router: IPObj;
 
-    @Column({name: 'interface'})
+    @Column({ name: 'interface' })
     interfaceId: number;
 
     @ManyToOne(() => Interface, { eager: true })
@@ -87,7 +86,7 @@ export class DHCPRule extends Model {
     })
     dhcpRuleToIPObjs: DHCPRuleToIPObj[];
 
-    @Column({name: 'firewall'})
+    @Column({ name: 'firewall' })
     firewallId: number;
 
     @ManyToOne(() => Firewall)
@@ -112,7 +111,18 @@ export class DHCPRule extends Model {
         const newFirewall = await Firewall.findOne(idNewFirewall);
 
         if (originalFirewall && newFirewall) {
-            const originalRules = await DHCPRule.find({ firewall: originalFirewall, group: null });
+            const groupMapping = new Map<number, number>();
+            const originalDHCPGroups = await DHCPGroup.find({ firewall: originalFirewall });
+            for (const group of originalDHCPGroups) {
+                const newGroup = new DHCPGroup();
+                newGroup.name = group.name;
+                newGroup.firewall = newFirewall;
+                newGroup.style = group.style;
+                await newGroup.save();
+                groupMapping.set(group.id, newGroup.id);
+            }
+
+            const originalRules = await DHCPRule.find({ firewall: originalFirewall });
 
             for (const originalRule of originalRules) {
                 const newRule = new DHCPRule();
@@ -129,11 +139,10 @@ export class DHCPRule extends Model {
                 newRule.max_lease = originalRule.max_lease;
                 newRule.cfg_text = originalRule.cfg_text;
                 newRule.comment = originalRule.comment;
-
-                if (!originalRule.group) {
-                    console.log("New rule without group", originalRule, newRule);
-                    await newRule.save();
+                if (originalRule.groupId && groupMapping.has(originalRule.groupId)) {
+                    newRule.groupId = groupMapping.get(originalRule.groupId);
                 }
+                await newRule.save();
             }
         }
     }
