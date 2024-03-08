@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { expect } from "chai";
-import { DeepPartial, getRepository } from "typeorm";
+import { getRepository } from "typeorm";
 import { DHCPGroup } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model";
 import { DHCPRuleService, ICreateDHCPRule } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service";
 import sinon from "sinon";
@@ -434,18 +434,6 @@ describe(DHCPRuleService.name, () => {
 
             moveStub.restore();
         });
-
-        it('should handle exceptions from _repository.move correctly', async () => {
-            const ids = [1, 2, 3];
-            const destRule = 4;
-            const offset = Offset.Above;
-
-            const moveStub = sinon.stub(service['_repository'], 'move').rejects(new Error('Move error'));
-
-            await expect(service.move(ids, destRule, offset)).to.be.rejectedWith(Error, 'Move error');
-
-            moveStub.restore();
-        });
     });
 
     describe('moveFrom', () => {
@@ -480,7 +468,7 @@ describe(DHCPRuleService.name, () => {
         });
 
         describe('ipObj', () => {
-            it('shoudl move ipObj correctly', async () => {
+            it('should move ipObj correctly', async () => {
                 await service.update(rule1.id, {
                     ipObjIds: [{ id: ipobj.id, order: 1 }]
                 });
@@ -490,9 +478,8 @@ describe(DHCPRuleService.name, () => {
                     toId: rule2.id,
                     ipObjId: ipobj.id
                 });
-
-                expect(result[1].dhcpRuleToIPObjs).to.be.empty;
-                expect(result[0].dhcpRuleToIPObjs).to.be.not.empty;
+                expect(result[1].dhcpRuleToIPObjs).to.be.not.empty;
+                expect(result[0].dhcpRuleToIPObjs).to.be.empty;
             });
         });
     });

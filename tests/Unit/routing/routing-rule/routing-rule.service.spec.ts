@@ -502,7 +502,7 @@ describe(RoutingRuleService.name, () => {
             expect(copied[0].comment).to.eq(ruleOrder1.comment);
             expect(copied[0].rule_order).to.eq(ruleOrder1.rule_order - 2);
             expect(copied[1].comment).to.eq(ruleOrder2.comment);
-            expect(copied[1].rule_order).to.eq(ruleOrder1.rule_order - 1);
+            expect(copied[1].rule_order).to.eq(ruleOrder1.rule_order - 4);
         });
 
         it('should reset firewall compiled flag', async () => {

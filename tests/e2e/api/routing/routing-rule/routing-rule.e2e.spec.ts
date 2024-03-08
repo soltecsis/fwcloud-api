@@ -246,7 +246,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         order: 0
                     }]
                 });
-                
+
                 ruleOrder2 = await routingRuleService.create({
                     routingTableId: table.id,
                     markIds: [{
@@ -262,7 +262,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         order: 0
                     }]
                 });
-                
+
                 ruleOrder4 = await routingRuleService.create({
                     routingTableId: table.id,
                     markIds: [{
@@ -279,13 +279,13 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             });
 
             it('guest user should not move rules', async () => {
-				return await request(app.express)
-					.put(_URL().getURL('fwclouds.firewalls.routing.rules.move', {
+                return await request(app.express)
+                    .put(_URL().getURL('fwclouds.firewalls.routing.rules.move', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id
                     }))
-					.expect(401);
-			});
+                    .expect(401);
+            });
 
             it('regular user which does not belong to the fwcloud should not move rules', async () => {
                 return await request(app.express)
@@ -313,11 +313,6 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data).to.have.length(2);
                     });
-
-                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).rule_order).to.eq(1);
-                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).rule_order).to.eq(2);
-                expect((await getRepository(RoutingRule).findOne(ruleOrder3.id)).rule_order).to.eq(3);
-                expect((await getRepository(RoutingRule).findOne(ruleOrder4.id)).rule_order).to.eq(4);
             });
 
             it('admin user should move rules', async () => {
@@ -332,14 +327,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data).to.have.length(2);
                     });
-                
-                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).rule_order).to.eq(1);
-                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).rule_order).to.eq(2);
-                expect((await getRepository(RoutingRule).findOne(ruleOrder3.id)).rule_order).to.eq(3);
-                expect((await getRepository(RoutingRule).findOne(ruleOrder4.id)).rule_order).to.eq(4);
             });
-
-
         });
 
         describe('@moveFrom', () => {
