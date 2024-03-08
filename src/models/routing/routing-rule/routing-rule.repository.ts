@@ -89,20 +89,21 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
             order: {
                 'rule_order': 'ASC'
             },
-            relations: ['routingTable', 'routingTable.firewall']
+            relations: ['routingTable', 'routingTable.firewall', 'routingGroup']
         });
 
         let affectedRules: RoutingRule[] = await this.findManyInPath({
             fwCloudId: rules[0].routingTable.firewall.fwCloudId,
             firewallId: rules[0].routingTable.firewall.id
         });
-        
+
         const destRule: RoutingRule | undefined = await this.findOneOrFail({
             where: {
                 id: toRuleId
-            }
+            },
+            relations: ['routingTable', 'routingTable.firewall', 'routingGroup']
         });
-        
+
         if (offset === Offset.Above) {
             affectedRules = await this.moveAbove(rules, affectedRules, destRule);
         } else {
@@ -112,36 +113,28 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         await this.save(affectedRules);
 
         await this.refreshOrders(rules[0].routingTable.firewall.id);
-        
-        return this.find({where: {id: In(ids)}});
+
+        return this.find({ where: { id: In(ids) } });
     }
 
     protected async moveAbove(rules: RoutingRule[], affectedRules: RoutingRule[], destRule: RoutingRule): Promise<RoutingRule[]> {
         const destPosition: number = destRule.rule_order;
         const movingIds: number[] = rules.map(rule => rule.id);
 
-        const currentPosition: number = rules[0].rule_order;
-        const forward: boolean = currentPosition < destRule.rule_order;
+        let newPosition = destPosition - 1;
 
         affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
-                const offset: number = movingIds.indexOf(rule.id);
-                rule.rule_order = destPosition + offset;
-                rule.routingGroupId = destRule.routingGroupId;
+                rule.rule_order = newPosition--;
             } else {
-                if (forward &&
-                    rule.rule_order >= destRule.rule_order
-                ) {
-                    rule.rule_order += rules.length;
-                }
-                
-                if (!forward && 
-                    rule.rule_order >= destRule.rule_order && 
-                    rule.rule_order < rules[0].rule_order
-                ) {
+                if (rule.rule_order < destRule.rule_order) {
                     rule.rule_order += rules.length;
                 }
             }
+        });
+
+        rules.forEach(rule => {
+            rule.routingGroup = destRule.routingGroup;
         });
 
         return affectedRules;
@@ -150,28 +143,23 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
     protected async moveBelow(rules: RoutingRule[], affectedRules: RoutingRule[], destRule: RoutingRule): Promise<RoutingRule[]> {
         const destPosition: number = destRule.rule_order;
         const movingIds: number[] = rules.map(rule => rule.id);
-
-        const currentPosition: number = rules[0].rule_order;
-        const forward: boolean = currentPosition < destRule.rule_order;
-
+    
+        let newPosition = destPosition + 1;
+    
         affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
-                const offset: number = movingIds.indexOf(rule.id);
-                rule.rule_order = destPosition + offset + 1;
-                rule.routingGroupId = destRule.routingGroupId;
+                rule.rule_order = newPosition++;
             } else {
-                if (forward && rule.rule_order > destRule.rule_order) {
-                    rule.rule_order += rules.length;
-                }
-                
-                if (!forward && rule.rule_order > destRule.rule_order &&
-                    rule.rule_order < rules[0].rule_order
-                ) {
+                if (rule.rule_order > destRule.rule_order) {
                     rule.rule_order += rules.length;
                 }
             }
         });
-
+    
+        rules.forEach(rule => {
+            rule.routingGroup = destRule.routingGroup;
+        });
+    
         return affectedRules;
     }
 

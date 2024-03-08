@@ -51,6 +51,8 @@ import { RoutingRuleToOpenVPNPrefix } from "./routing-rule-to-openvpn-prefix.mod
 import { RoutingRuleToOpenVPN } from "./routing-rule-to-openvpn.model";
 import { RoutingRule } from "./routing-rule.model";
 import { IFindManyRoutingRulePath, IFindOneRoutingRulePath, RoutingRuleRepository } from "./routing-rule.repository";
+import { RoutingGroup } from "../routing-group/routing-group.model";
+import { RoutingGroupService } from "../routing-group/routing-group.service";
 
 export interface ICreateRoutingRule {
     routingTableId: number;
@@ -82,6 +84,7 @@ interface IUpdateRoutingRule {
 }
 
 interface IBulkUpdateRoutingRule {
+    routingGroupId?: number;
     style?: string;
     active?: boolean;
 }
@@ -103,12 +106,13 @@ interface IMoveFromRoutingRule {
 export class RoutingRuleService extends Service {
     protected _repository: RoutingRuleRepository;
     private _ipobjRepository: IPObjRepository;
-    private _ipobjGroupRepository: IPObjGroupRepository;   
+    private _ipobjGroupRepository: IPObjGroupRepository;
     private _openvpnRepository: OpenVPNRepository;
     private _openvpnPrefixRepository: OpenVPNPrefixRepository;
     private _markRepository: MarkRepository;
     private _routingTableRepository: Repository<RoutingTable>;
     protected _firewallService: FirewallService;
+    private _groupService: RoutingGroupService;
 
     constructor(app: Application) {
         super(app);
@@ -119,6 +123,7 @@ export class RoutingRuleService extends Service {
         this._openvpnPrefixRepository = getCustomRepository(OpenVPNPrefixRepository);
         this._markRepository = getCustomRepository(MarkRepository);
         this._routingTableRepository = getRepository(RoutingTable);
+        this._groupService = new RoutingGroupService(app);
     }
 
     public async build(): Promise<Service> {
@@ -301,9 +306,20 @@ export class RoutingRuleService extends Service {
     }
 
     async bulkUpdate(ids: number[], data: IBulkUpdateRoutingRule): Promise<RoutingRule[]> {
-        await this._repository.update({
-            id: In(ids)
-        }, data);
+        if (data.routingGroupId) {
+            await this._repository.update({
+                id: In(ids)
+            }, { ...data, routingGroupId: data.routingGroupId });
+        } else {
+            const group: RoutingGroup = (await this._repository.findOneOrFail(ids[0], { relations: ['routingGroup'] })).routingGroup;
+            if (data.routingGroupId !== undefined && group && (group.routingRules.length - ids.length) < 1) {
+                await this._groupService.remove({ id: group.id });
+            }
+
+            await this._repository.update({
+                id: In(ids)
+            }, data);
+        }
 
         const firewallIds: number[] = (await this._repository.find({
             where: {
@@ -327,8 +343,25 @@ export class RoutingRuleService extends Service {
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<RoutingRule[]> {
+        const destinationRule: RoutingRule = await this._repository.findOneOrFail(destRule, {
+            relations: ['routingGroup']
+        });
+
+        const sourceRules: RoutingRule[] = await this._repository.findByIds(ids, {
+            relations: ['routingGroup']
+        });
+
+        if (destinationRule.routingGroup) {
+            sourceRules.forEach(rule => {
+                if (!rule.routingGroup) {
+                    rule.routingGroup = destinationRule.routingGroup;
+                }
+            });
+            await this._repository.save(sourceRules);
+        }
+
         const rules: RoutingRule[] = await this._repository.move(ids, destRule, offset);
-    
+
         const firewallIds: number[] = (await this._repository.find({
             where: {
                 id: In(ids),
@@ -340,7 +373,7 @@ export class RoutingRuleService extends Service {
                 }
             }
         })).map(rule => rule.routingTable.firewallId);
-        
+
         await this._firewallService.markAsUncompiled(firewallIds);
 
         return rules;
