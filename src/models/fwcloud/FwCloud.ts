@@ -193,8 +193,7 @@ export class FwCloud extends Model {
 				+`DELETE DHCPR 
 				FROM dhcp_r__ipobj DHCPR 
 				INNER JOIN dhcp_r RULE ON RULE.id = DHCPR.rule 
-				INNER JOIN dhcp_g DG ON DG.id = RULE.group 
-				INNER JOIN firewall FW ON FW.id = DG.firewall 
+				INNER JOIN firewall FW ON FW.id = RULE.firewall 
 				WHERE FW.fwcloud = ${this.id};
 				
 				DELETE FROM dhcp_r 

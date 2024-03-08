@@ -20,32 +20,32 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SelectQueryBuilder } from "typeorm";
 import Model from "../../../models/Model";
+import { IPObj } from "../../../models/ipobj/IPObj";
+import { DHCPRuleToIPObj } from "../../../models/system/dhcp/dhcp_r/dhcp_r-to-ipobj.model";
 import { DHCPRule } from "../../../models/system/dhcp/dhcp_r/dhcp_r.model";
+import { DHCPRuleExporter } from "./dhcp_r.exporter";
+import { IPObjExporter } from "./ipobj.exporter";
 import { TableExporter } from "./table-exporter";
-import { DHCPGroup } from "../../../models/system/dhcp/dhcp_g/dhcp_g.model";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FirewallExporter } from "./firewall.exporter";
-import { DHCPGroupExporter } from "./dhcp_g.exporter";
 
-export class DHCPRuleExporter extends TableExporter {
+export class DHCPRuleToIPObjExporter extends TableExporter {
     protected getEntity(): typeof Model {
-        return DHCPRule;
+        return DHCPRuleToIPObj;
     }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
+    public getFilterBuilder(qb: any, alias: string, fwCloudId: number): any {
         return qb
-            .where((qb) => {
-                const query = qb.subQuery().from(DHCPGroup, 'dhcp_g').select('dhcp_g.id');
+            .where((qb: any) => {
+                const subquery = qb.subQuery().from(DHCPRule, 'dhcp_r').select('dhcp_r.id');
 
-                return `${alias}.dhcpGroupId IN ` + new DHCPGroupExporter()
-                    .getFilterBuilder(query, 'dhcp_g', fwCloudId).getQuery()
+                return `${alias}.dhcpRuleId IN ` + new DHCPRuleExporter()
+                    .getFilterBuilder(subquery, 'dhcp_r', fwCloudId).getQuery()
             })
-            .where((qb) => {
-                const query = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
-                return `${alias}.firewallId IN ` + new FirewallExporter()
-                    .getFilterBuilder(query, 'firewall', fwCloudId).getQuery()
-            })
+            .orWhere((qb: any) => {
+                const subquery = qb.subQuery().from(IPObj, 'ipobj').select('ipobj.id');
+
+                return `${alias}.ipObjId IN ` + new IPObjExporter()
+                    .getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery()
+            });
     }
 }
