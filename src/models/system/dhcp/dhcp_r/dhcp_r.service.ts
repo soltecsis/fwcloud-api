@@ -242,7 +242,7 @@ export class DHCPRuleService extends Service {
 
         if (data.group !== undefined) {
             if (dhcpRule.group && !data.group && dhcpRule.group.rules.length === 1) {
-                this._groupService.remove({ id: dhcpRule.group.id });
+                await this._groupService.remove({id: dhcpRule.group.id});
             }
             dhcpRule.group = data.group ? await getRepository(DHCPGroup).findOne(data.group) : null;
         } else if (data.ipObjIds) {

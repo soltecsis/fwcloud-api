@@ -1,3 +1,24 @@
+/*!
+    Copyright 2023 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    https://soltecsis.com
+    info@soltecsis.com
+
+
+    This file is part of FWCloud (https://fwcloud.net).
+
+    FWCloud is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FWCloud is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
+*/
 import { getRepository } from "typeorm";
 import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { User } from "../models/user/User";
@@ -55,16 +76,7 @@ export class DhcpPolicy extends Policy {
     }
 
     static async move(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, { relations: ['fwClouds'] });
-        firewall = await getRepository(Firewall).findOneOrFail(firewall.id, { relations: ['fwCloud'] });
-
-        if (user.role === 1) {
-            return Authorization.grant();
-        }
-
-        const match: FwCloud[] = user.fwClouds.filter((fwcloud: FwCloud): boolean => { return fwcloud.id === firewall.fwCloudId });
-
-        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+        return this.create(firewall, user);
     }
 
     static async update(dhcp: DHCPRule, user: User): Promise<Authorization> {

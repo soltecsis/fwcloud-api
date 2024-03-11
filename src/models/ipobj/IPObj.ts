@@ -21,23 +21,23 @@
 */
 
 import db from '../../database/database-manager';
-import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-import { IPObjGroup } from './IPObjGroup';
-import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
-import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
-import { Interface } from '../../models/interface/Interface';
+import {PolicyRuleToIPObj} from '../../models/policy/PolicyRuleToIPObj';
+import {IPObjGroup} from './IPObjGroup';
+import {InterfaceIPObj} from '../../models/interface/InterfaceIPObj';
+import {IPObjToIPObjGroup} from '../../models/ipobj/IPObjToIPObjGroup';
+import {Interface} from '../../models/interface/Interface';
 import Model from '../Model';
-import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany, ManyToMany, getRepository, SelectQueryBuilder } from 'typeorm';
-import { FwCloud } from '../fwcloud/FwCloud';
-import { logger } from '../../fonaments/abstract-application';
-import { IPObjType } from './IPObjType';
-import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
-import { Route } from '../routing/route/route.model';
-import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
-import { RouteToIPObj } from '../routing/route/route-to-ipobj.model';
-import { RoutingRuleToIPObj } from '../routing/routing-rule/routing-rule-to-ipobj.model';
-import { DHCPRuleToIPObj } from '../system/dhcp/dhcp_r/dhcp_r-to-ipobj.model';
-import { DHCPRule } from '../system/dhcp/dhcp_r/dhcp_r.model';
+import {Column, Entity, getRepository, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
+import {FwCloud} from '../fwcloud/FwCloud';
+import {logger} from '../../fonaments/abstract-application';
+import {IPObjType} from './IPObjType';
+import {OpenVPNOption} from '../vpn/openvpn/openvpn-option.model';
+import {Route} from '../routing/route/route.model';
+import {RoutingRule} from '../routing/routing-rule/routing-rule.model';
+import {RouteToIPObj} from '../routing/route/route-to-ipobj.model';
+import {RoutingRuleToIPObj} from '../routing/routing-rule/routing-rule-to-ipobj.model';
+import {DHCPRuleToIPObj} from '../system/dhcp/dhcp_r/dhcp_r-to-ipobj.model';
+import {DHCPRule} from '../system/dhcp/dhcp_r/dhcp_r.model';
 
 const ip = require('ip');
 var asyncMod = require('async');
@@ -1187,7 +1187,7 @@ export class IPObj extends Model {
     };
 
     public static async searchInterfaceHostInDhcpRule(dbCon: any, fwcloud: number, id: number): Promise<any> {
-        const result = await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
+        return await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
             .addSelect('dhcp_rule.id', 'dhcp_rule_id').addSelect('dhcp_rule.rule_type', 'dhcp_rule_type')
             .addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
@@ -1200,7 +1200,6 @@ export class IPObj extends Model {
             .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
             .orderBy('dhcp_rule.rule_type','ASC')
             .getRawMany();
-        return result;
     }
 
     public static searchLastInterfaceWithAddrInHostInRule(_interface, fwcloud) {
