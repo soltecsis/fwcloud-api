@@ -64,6 +64,9 @@ import { RouteToIPObjExporter } from "./exporters/route-to-ipobj.exporter";
 import { RouteToIPObjGroupExporter } from "./exporters/route-to-ipobj-group.exporter";
 import { RouteToOpenVPNExporter } from "./exporters/route-to-openvpn.exporter";
 import { RouteToOpenVPNPrefixExporter } from "./exporters/route-to-openvpn-prefix.exporter";
+import {KeepalivedRuleExporter} from "./exporters/keepalived_r.exporter";
+import {KeepalivedGroupExporter} from "./exporters/keepalived_g.exporter";
+import {KeepalivedRuleToIPObjExporter} from "./exporters/keepalived_r-to-ipobj.exporter";
 
 const EXPORTERS = [
     new CaExporter(),
@@ -102,6 +105,9 @@ const EXPORTERS = [
     new RouteToOpenVPNExporter(),
     new RouteToOpenVPNPrefixExporter(),
     new RouteGroupExporter(),
+    new KeepalivedRuleExporter(),
+    new KeepalivedRuleToIPObjExporter(),
+    new KeepalivedGroupExporter(),
     new OpenVPNToIPObjGroupExporter(),
     new FwcTreeExporter(),
 ];
