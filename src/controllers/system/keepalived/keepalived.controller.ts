@@ -40,6 +40,9 @@ import { KeepalivedRuleBulkRemoveDto } from './dto/bulk-remove.dto';
 import { KeepalivedRuleItemForCompiler } from '../../../models/system/keepalived/shared';
 import { KeepalivedMoveFromDto } from './dto/move-from.dto';
 import { KeepalivedCompiler } from '../../../../tests/Unit/compiler/system/keepalived/KeepalivedCompiler';
+import {Channel} from "../../../sockets/channels/channel";
+import {Communication} from "../../../communications/communication";
+import {ProgressPayload} from "../../../sockets/messages/socket-message";
 
 
 export class KeepalivedController extends Controller {
@@ -264,7 +267,32 @@ export class KeepalivedController extends Controller {
 
   @Validate()
   public async install(req: Request): Promise<ResponseBuilder> {
-    return ResponseBuilder.buildResponse().status(200);
+    const channel: Channel = await Channel.fromRequest(req);
+    let firewallId: number;
+
+    let firewall: Firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
+    if(firewall.clusterId) {
+      firewallId = (await getRepository(Firewall).createQueryBuilder('firewall')
+          .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
+          .andWhere('firewall.fwmaster = 1')
+          .getOneOrFail()).id;
+    } else {
+      //TODO: envia error?
+    }
+
+    const rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] = await this._keepalivedRuleService.getKeepalivedRulesData('compiler', this._fwCloud.id, firewallId);
+
+    const content: string = (new KeepalivedCompiler().compile(rules, channel)).map(item => item.cs).join('\n');
+
+    const communication: Communication<unknown> = await firewall.getCommunication();
+
+    channel.emit('message', new ProgressPayload('start',false,`Installing Keepalived configuration`));
+
+    await communication.installKeepalivedConfigs('etc/keepalived', [{ name: 'keepalived.conf', content: content }], channel);
+
+    channel.emit('message', new ProgressPayload('end',false,`Keepalived configuration installed`));
+
+    return ResponseBuilder.buildResponse().status(200).body(null);
   }
 
   @Validate(KeepalivedRuleBulkUpdateDto)
