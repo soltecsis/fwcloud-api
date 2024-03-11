@@ -38,6 +38,8 @@
  * 
  */
 
+import {KeepalivedRule} from "../../models/system/keepalived/keepalived_r/keepalived_r.model";
+
 /**
  * Property  to manage express
  *
@@ -666,6 +668,8 @@ router.put('/clone', async (req, res) => {
 		await PolicyRule.cloneFirewallPolicy(req.dbCon, req.body.firewall, idNewFirewall, dataI);
 		await utilsModel.createFirewallDataDir(req.body.fwcloud, idNewFirewall);
 		await Tree.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, idNewFirewall);
+
+		await KeepalivedRule.cloneFirewallKeepalived(req.session.user_id, req.body.firewall, idNewFirewall);
 
 		const firewallService = await app().getService(FirewallService.name);
 		await firewallService.clone(req.body.firewall, idNewFirewall, dataI);

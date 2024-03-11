@@ -45,12 +45,19 @@ import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { PgpHelper } from "../../utils/pgp";
 import { PluginDto } from './dtos/plugin.dto';
+import {
+    KeepalivedRulesData,
+    KeepalivedRuleService
+} from "../../models/system/keepalived/keepalived_r/keepalived_r.service";
+import {KeepalivedRuleItemForCompiler} from "../../models/system/keepalived/shared";
+import {KeepalivedCompiler} from "../../../tests/Unit/compiler/system/keepalived/KeepalivedCompiler";
 
 
 export class FirewallController extends Controller {
 
     protected firewallService: FirewallService;
     protected routingRuleService: RoutingRuleService;
+    protected keepalivedService: KeepalivedRuleService;
     protected _fwCloud: FwCloud;
 
     public async make(request: Request): Promise<void> {
@@ -128,6 +135,27 @@ export class FirewallController extends Controller {
             request.query.rules ? (request.query.rules as string[]).map(item => parseInt(item)) : undefined
         );
         const compilation = new RoutingCompiler().compile('Rule', rules);
+
+        return ResponseBuilder.buildResponse().status(200).body(compilation)
+    }
+
+    @Validate()
+    @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
+    async compileKeepalivedRules(request: Request): Promise<ResponseBuilder> {
+        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+            id: parseInt(request.params.firewall),
+            fwCloudId: parseInt(request.params.fwcloud)
+        });
+
+        (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
+
+        let rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] = await this.keepalivedService.getKeepalivedRulesData(
+            'compiler',
+            firewall.fwCloudId,
+            firewall.id,
+            request.query.rules ? (request.query.rules as string[]).map(item => parseInt(item)) : undefined
+        );
+        const compilation = new KeepalivedCompiler().compile(rules);
 
         return ResponseBuilder.buildResponse().status(200).body(compilation)
     }
