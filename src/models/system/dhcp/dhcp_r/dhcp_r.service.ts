@@ -183,16 +183,13 @@ export class DHCPRuleService extends Service {
             relations: ['group']
         });
 
-        if (destinationRule.group) {
-            sourceRules.forEach(rule => {
-                if (!rule.group) {
-                    rule.group = destinationRule.group;
-                }
-            });
-            await this._repository.save(sourceRules);
+        const movedRules = this._repository.move(ids, destRule, offset);
+
+        if (!destinationRule.group && sourceRules[0].group && (sourceRules[0].group.rules.length - ids.length) < 1) {
+            await this._groupService.remove({ id: sourceRules[0].group.id });
         }
 
-        return this._repository.move(ids, destRule, offset);
+        return movedRules;
     }
 
     async moveFrom(fromId: number, toId: number, data: IMoveFromDHCPRule): Promise<[DHCPRule, DHCPRule]> {
@@ -242,7 +239,7 @@ export class DHCPRuleService extends Service {
 
         if (data.group !== undefined) {
             if (dhcpRule.group && !data.group && dhcpRule.group.rules.length === 1) {
-                await this._groupService.remove({id: dhcpRule.group.id});
+                await this._groupService.remove({ id: dhcpRule.group.id });
             }
             dhcpRule.group = data.group ? await getRepository(DHCPGroup).findOne(data.group) : null;
         } else if (data.ipObjIds) {
