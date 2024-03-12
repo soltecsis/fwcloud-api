@@ -74,6 +74,7 @@ import { app, logger } from '../../fonaments/abstract-application';
 import { PgpHelper } from '../../utils/pgp';
 import { FirewallService } from '../../models/firewall/firewall.service';
 import { ClusterService } from '../../models/firewall/cluster.service';
+import { DHCPRule } from '../../models/system/dhcp/dhcp_r/dhcp_r.model';
 
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -565,7 +566,7 @@ router.put('/clustertofw', async (req, res) => {
 router.put('/clone', async (req, res) => {
 	try {
 		let clusters = await Cluster.getClusterCloud(req)
-		if(clusters.length >= app().config.get('limits').clusters && app().config.get('limits').clusters>0) {
+		if (clusters.length >= app().config.get('limits').clusters && app().config.get('limits').clusters > 0) {
 			throw fwcError.LIMIT_CLUSTERS
 		}
 		var iduser = req.session.user_id;
@@ -586,7 +587,7 @@ router.put('/clone', async (req, res) => {
 			return res.status(400).json(fwcError.BAD_TREE_NODE_TYPE);
 		}
 
-		Firewall.getFirewallCluster(iduser, idCluster, async(error, firewallDataArry) => {
+		Firewall.getFirewallCluster(iduser, idCluster, async (error, firewallDataArry) => {
 			if (error) {
 				logger().error('Error getting firewall cluster: ' + JSON.stringify(fwcError.BAD_TREE_NODE_TYPE));
 				return res.status(400).json(error);
@@ -627,6 +628,9 @@ router.put('/clone', async (req, res) => {
 
 					//INSERT FIREWALL NODE STRUCTURE
 					await Tree.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newClusterId);
+
+					// Clone DHCP rules.
+					await DHCPRule.cloneDHCP(idCluster, newClusterId);
 
 					// Update aaply_to fields of rules in the master firewall for point to nodes in the cloned cluster.
 					await PolicyRule.updateApplyToRules(newClusterId, fwNewMaster);
