@@ -388,12 +388,10 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			else // Move rule into group.
 				new_order = moveRule.rule_order;
 
-			let idgroup = moveRule.idgroup ? moveRule.idgroup : pasteOnRule.idgroup;
-
 			//Update the moved rule data
 			var policy_rData = {
 				id: rule,
-				idgroup: idgroup,
+				idgroup: pasteOnRule.idgroup,
 				rule_order: new_order
 			};
 			await PolicyRule.updatePolicy_r(dbCon, policy_rData);
@@ -404,6 +402,11 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 				const policyGroup = await getCustomRepository(PolicyGroupRepository).findOne(moveRule.idgroup);
 				if (policyGroup) {
 					await getCustomRepository(PolicyGroupRepository).deleteIfEmpty(policyGroup);
+				}
+			} else if (!pasteOnRule.idgroup && moveRule.idgroup) {
+				const policyGroup = await getCustomRepository(PolicyGroupRepository).findOne(moveRule.idgroup, { relations: ['policyRules'] });
+				if (policyGroup.policyRules.length < 1) {
+					await getCustomRepository(PolicyGroupRepository).delete({ id: policyGroup.id });
 				}
 			}
 
