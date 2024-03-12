@@ -351,15 +351,6 @@ export class RoutingRuleService extends Service {
             relations: ['routingGroup']
         });
 
-        if (destinationRule.routingGroup) {
-            sourceRules.forEach(rule => {
-                if (!rule.routingGroup) {
-                    rule.routingGroup = destinationRule.routingGroup;
-                }
-            });
-            await this._repository.save(sourceRules);
-        }
-
         const rules: RoutingRule[] = await this._repository.move(ids, destRule, offset);
 
         const firewallIds: number[] = (await this._repository.find({
@@ -375,6 +366,10 @@ export class RoutingRuleService extends Service {
         })).map(rule => rule.routingTable.firewallId);
 
         await this._firewallService.markAsUncompiled(firewallIds);
+
+        if(!destinationRule.routingGroup && sourceRules[0].routingGroup && (sourceRules[0].routingGroup.routingRules.length - ids.length) < 1) {
+            await this._groupService.remove({ id: sourceRules[0].routingGroup.id });
+        }
 
         return rules;
     }
