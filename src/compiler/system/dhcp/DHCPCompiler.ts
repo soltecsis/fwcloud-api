@@ -69,7 +69,7 @@ export class DHCPCompiler {
                 } else if (ruleData.interface.firewall) {
                     parentName = ruleData.interface.firewall.name;
                 }
-                cs += `host ${parentName}:${ruleData.interface.name} {\n`;
+                cs += `host ${parentName}.${ruleData.interface.name} {\n`;
                 cs += `\thardware ethernet ${ruleData.interface.mac};\n`;
                 cs += `\tfixed-address ${ruleData.router.address};\n`;
                 cs += `}\n`;
