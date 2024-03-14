@@ -24,7 +24,7 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
         );
 
         let nodes = await queryRunner.query(
-            "SELECT `id`, `id_obj` ,`fwcloud`\n" +
+            "SELECT `id`, `id_obj`, `node_type`, `fwcloud`\n" +
             "FROM `fwc_tree` t\n" +
             "WHERE `node_type` IN ('FW', 'CL')\n" +
             "AND ( \n" +
@@ -38,10 +38,21 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
         );
 
         for (const node of nodes) {
+            let idObj = node.id_obj;
+            if (node.node_type === 'CL') {
+                const masterFirewall = await queryRunner.query(
+                    "SELECT `id` FROM `firewall` WHERE `fwmaster` = '1' AND `cluster` = ?",
+                    [node.id_obj]
+                );
+                if (masterFirewall.length > 0) {
+                    idObj = masterFirewall[0].id;
+                }
+            }
             await queryRunner.query(
                 "INSERT INTO `fwc_tree` (`id_parent`, `name`, `node_type`,`node_order`,`id_obj`,`fwcloud` ) VALUES (?, 'System', 'SYS',0,?,?)",
-                [node.id, node.id_obj, node.fwcloud]
+                [node.id, idObj, node.fwcloud]
             );
+
         }
 
         nodes = await queryRunner.query(
