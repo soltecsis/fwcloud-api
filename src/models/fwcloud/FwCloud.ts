@@ -190,21 +190,9 @@ export class FwCloud extends Model {
 				delete RG from route_g RG inner join firewall FW on FW.id=RG.firewall where FW.fwcloud=${this.id};`
 
 				//Delete DHCP Rules
-				+`DELETE DHCPR 
-				FROM dhcp_r__ipobj DHCPR 
-				INNER JOIN dhcp_r RULE ON RULE.id = DHCPR.rule 
-				INNER JOIN firewall FW ON FW.id = RULE.firewall 
-				WHERE FW.fwcloud = ${this.id};
-				
-				DELETE FROM dhcp_r 
-				WHERE firewall IN (
-					SELECT id FROM firewall WHERE fwcloud = ${this.id}
-				);
-				
-				DELETE FROM dhcp_g 
-				WHERE firewall IN (
-					SELECT id FROM firewall WHERE fwcloud = ${this.id}
-				);`
+				+`delete DHCPIPOBJ from dhcp_r__ipobj DHCPIPOBJ inner join dhcp_r RULE on RULE.id=DHCPIPOBJ.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
+				delete DHCPR from dhcp_r DHCPR inner join firewall FW on FW.id=DHCPR.firewall where FW.fwcloud=${this.id};
+				delete DHCPG from dhcp_g DHCPG inner join firewall FW on FW.id=DHCPG.firewall where FW.fwcloud=${this.id};`
 
 				// Next the OpenVPN entities of the database.
 			+`delete OPT from openvpn_opt OPT inner join openvpn VPN on VPN.id=OPT.openvpn inner join firewall FW On FW.id=VPN.firewall where FW.fwcloud=${this.id};
