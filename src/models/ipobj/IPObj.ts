@@ -973,7 +973,7 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInGroupInRoutingRule = await this.searchIpobjInGroupInRoutingRule(id, fwcloud);
 
                 search.restrictions.IpobjInDhcpRule = await this.searchIPObjInDhpRule(id, fwcloud);
-
+                
                 if (type === 8) { // HOST
                     search.restrictions.InterfaceHostInRule = await PolicyRuleToIPObj.searchInterfaceHostInRule(dbCon, fwcloud, id);
                     search.restrictions.AddrHostInRule = await PolicyRuleToIPObj.searchAddrHostInRule(dbCon, fwcloud, id);
@@ -1046,9 +1046,8 @@ export class IPObj extends Model {
     };
 
     public static async searchIPObjInDhpRule(IPObj: number, FWCloud: number): Promise<any> {
-        return await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
+        const resultAsRouter = await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
             .addSelect('network.id', 'network_id').addSelect('network.name', 'network_name')
-            .addSelect('ipObj.id', 'ipObj_id').addSelect('ipObj.name', 'ipObj_name')
             .addSelect('range.id', 'range_id').addSelect('range.name', 'range_name')
             .addSelect('router.id', 'router_id').addSelect('router.name', 'router_name')
             .addSelect('dhcp_rule.range', 'dhcp_range')
@@ -1058,13 +1057,27 @@ export class IPObj extends Model {
             .leftJoin('dhcp_rule.network', 'network', 'network.id = :IPObj', { IPObj: IPObj })
             .leftJoin('dhcp_rule.range', 'range', 'range.id = :IPObj')
             .leftJoin('dhcp_rule.router', 'router', 'router.id = :IPObj')
+            .innerJoin('dhcp_rule.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :FWCloud AND (network.id IS NOT NULL OR range.id IS NOT NULL OR router.id IS NOT NULL)`, { FWCloud: FWCloud })
+            .getRawMany();
+        const resultAsIpObj = await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
+            .addSelect('network.id', 'network_id').addSelect('network.name', 'network_name')
+            .addSelect('ipObj.id', 'ipObj_id').addSelect('ipObj.name', 'ipObj_name')
+            .addSelect('range.id', 'range_id').addSelect('range.name', 'range_name')
+            .addSelect('dhcp_rule.range', 'dhcp_range')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .leftJoin('dhcp_rule.network', 'network', 'network.id = :IPObj', { IPObj: IPObj })
+            .leftJoin('dhcp_rule.range', 'range', 'range.id = :IPObj')
             .leftJoin('dhcp_rule.dhcpRuleToIPObjs', 'dhcpRuleToIPObjs', 'dhcpRuleToIPObjs.ipObj = :IPObj')
             .leftJoin('dhcpRuleToIPObjs.ipObj', 'ipObj')
             .innerJoin('dhcp_rule.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
-            .where(`firewall.fwCloudId = :FWCloud AND (network.id IS NOT NULL OR range.id IS NOT NULL OR router.id IS NOT NULL OR ipObj.id IS NOT NULL)`, { FWCloud: FWCloud })
-            .orderBy('dhcp_rule.rule_type','ASC')
+            .where(`firewall.fwCloudId = :FWCloud AND (network.id IS NOT NULL OR range.id IS NOT NULL OR ipObj.id IS NOT NULL)`, { FWCloud: FWCloud })
             .getRawMany();
+
+        return [...resultAsRouter, ...resultAsIpObj].sort((a, b) => a.dhcp_rule_rule_type - b.dhcp_rule_rule_type);
     }
 
     public static async searchIpobjInGroupInRoute(ipobj: number, fwcloud: number): Promise<any> {
