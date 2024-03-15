@@ -156,13 +156,10 @@ export class DHCPRuleService extends Service {
         return persisted;
     }
 
-    async copy(ids: number[], destRule: number, position: Offset): Promise<DHCPRule[]> {
+    async copy(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
         const dhcp_rs: DHCPRule[] = await this._repository.find({
             where: {
                 id: In(ids),
-            },
-            order: {
-                rule_order: 'ASC'
             },
             relations: ['group', 'firewall', 'firewall.fwCloud', 'network', 'range', 'router', 'interface', 'dhcpRuleToIPObjs'],
         });
@@ -176,7 +173,7 @@ export class DHCPRuleService extends Service {
 
         const persisted = await this._repository.save(dhcp_rs);
 
-        return this.move(persisted.map(item => item.id), destRule, position);
+        return this.move(persisted.map(item => item.id), destRule, offset);
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
