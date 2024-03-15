@@ -171,9 +171,10 @@ export class DHCPRuleService extends Service {
             item.rule_order = lastRule.rule_order + index + 1;
         });
 
-        const persisted = await this._repository.save(dhcp_rs);
+        const persisted: DHCPRule[] = await this._repository.save(dhcp_rs);
+        const persistedArray = Array.isArray(persisted) ? persisted : [persisted];
 
-        return this.move(persisted.map(item => item.id), destRule, offset);
+        return this.move(persistedArray.map(item => item.id), destRule, offset);
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
