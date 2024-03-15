@@ -31,6 +31,7 @@ import { RoutingRuleToOpenVPNPrefix } from "../routing/routing-rule/routing-rule
 import { RoutingRuleToMark } from "../routing/routing-rule/routing-rule-to-mark.model";
 import { RoutingRuleService } from "../routing/routing-rule/routing-rule.service";
 import { DHCPRuleService } from "../system/dhcp/dhcp_r/dhcp_r.service";
+import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
 const fwcError = require('../../utils/error_table');
 var utilsModel = require("../../utils/utils.js");
 
@@ -197,79 +198,80 @@ export class FirewallService extends Service {
 
     public deleteFirewallFromCluster(clusterId: number, firewallId: number, fwcloudId: number, userId: number) {
 
-		return new Promise((resolve, reject) => {
-			var sqlExists = `SELECT T.*, A.id as idnode FROM ${Firewall._getTableName()} T 
+        return new Promise((resolve, reject) => {
+            var sqlExists = `SELECT T.*, A.id as idnode FROM ${Firewall._getTableName()} T 
 				INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${userId}
 				INNER JOIN fwc_tree A ON A.id_obj=T.id AND A.node_type="FW"
 				WHERE T.id=${firewallId} AND T.cluster=${clusterId}`;
-			
+
             db.getQuery().query(sqlExists, async (error, row) => {
-				if (error) return reject(error);
-				if (row.length === 0) return reject(fwcError.NOT_FOUND);
+                if (error) return reject(error);
+                if (row.length === 0) return reject(fwcError.NOT_FOUND);
 
-				var rowF = row[0];
-				var idNodeFirewall = rowF.idnode;
+                var rowF = row[0];
+                var idNodeFirewall = rowF.idnode;
 
-				// Deleting FIREWAL MASTER
-				if (rowF.fwmaster === 1) {
-					// Transfer data to the new slave firewall.
-					var sql = `SELECT T.id FROM ${Firewall._getTableName()} T
+                // Deleting FIREWAL MASTER
+                if (rowF.fwmaster === 1) {
+                    // Transfer data to the new slave firewall.
+                    var sql = `SELECT T.id FROM ${Firewall._getTableName()} T
 						WHERE fwmaster=0 AND  T.cluster=${clusterId}	ORDER by T.id limit 1`;
-					db.getQuery().query(sql, async (error, rowS) => {
-						if (error) return reject(error);
-						if (rowS.length === 0) return reject(fwcError.NOT_FOUND);
+                    db.getQuery().query(sql, async (error, rowS) => {
+                        if (error) return reject(error);
+                        if (rowS.length === 0) return reject(fwcError.NOT_FOUND);
 
-						var idNewFM = rowS[0].id;
-						try {
-							// Rename data directory with the new firewall master id.
-							await utilsModel.renameFirewallDataDir(fwcloudId, firewallId, idNewFM);
-                            
+                        var idNewFM = rowS[0].id;
+                        try {
+                            // Rename data directory with the new firewall master id.
+                            await utilsModel.renameFirewallDataDir(fwcloudId, firewallId, idNewFM);
+
                             // Move all related objects to the new firewall.
-							await PolicyRule.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM)
+                            await PolicyRule.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM)
                             await PolicyGroup.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM)
                             await Interface.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM)
                             await OpenVPN.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
+                            await DHCPRule.moveToOtherFirewall(firewallId, idNewFM);
 
-							// Move routing tables.
+                            // Move routing tables.
                             let routingTableService = await app().getService<RoutingTableService>(RoutingTableService.name);
                             await routingTableService.moveToOtherFirewall(firewallId, idNewFM);
-                            
-							// Promote the new master.
-							await Firewall.promoteToMaster(db.getQuery(), idNewFM);
 
-							// Delete the old firewall node.
-							await Firewall.deleteFirewallRow(db.getQuery(), fwcloudId, firewallId);
-						} catch (error) { return reject(error) }
+                            // Promote the new master.
+                            await Firewall.promoteToMaster(db.getQuery(), idNewFM);
 
-						//UPDATE TREE RECURSIVE FROM IDNODE CLUSTER
-						//GET NODE FROM CLUSTER
-						sql = `SELECT ${firewallId} as OLDFW, ${idNewFM} as NEWFW, T.* FROM fwc_tree T 
+                            // Delete the old firewall node.
+                            await Firewall.deleteFirewallRow(db.getQuery(), fwcloudId, firewallId);
+                        } catch (error) { return reject(error) }
+
+                        //UPDATE TREE RECURSIVE FROM IDNODE CLUSTER
+                        //GET NODE FROM CLUSTER
+                        sql = `SELECT ${firewallId} as OLDFW, ${idNewFM} as NEWFW, T.* FROM fwc_tree T 
 							WHERE node_type='CL' AND id_obj=${clusterId} AND fwcloud=${fwcloudId}`;
-						db.getQuery().query(sql, async (error, rowT) => {
-							if (error) return reject(error);
+                        db.getQuery().query(sql, async (error, rowT) => {
+                            if (error) return reject(error);
 
-							if (rowT && rowT.length > 0) {
-								try {
-									await Tree.updateIDOBJFwc_TreeFullNode(rowT[0]);
+                            if (rowT && rowT.length > 0) {
+                                try {
+                                    await Tree.updateIDOBJFwc_TreeFullNode(rowT[0]);
 
-									//DELETE TREE NODES From firewall
-									var dataNode = { id: idNodeFirewall, fwcloud: fwcloudId, iduser: userId }
-                                        await Tree.deleteFwc_TreeFullNode(dataNode)
-                                	} catch (error) { return reject(error) }
-                                }
+                                    //DELETE TREE NODES From firewall
+                                    var dataNode = { id: idNodeFirewall, fwcloud: fwcloudId, iduser: userId }
+                                    await Tree.deleteFwc_TreeFullNode(dataNode)
+                                } catch (error) { return reject(error) }
+                            }
 
-							resolve();
-						});
-					});
-				} else { // Deleting FIREWALL SLAVE
-					try {
-						//DELETE TREE NODES From firewall
-						await Tree.deleteFwc_TreeFullNode({ id: idNodeFirewall, fwcloud: fwcloudId, iduser: userId });
-						await Firewall.deleteFirewallRow(db.getQuery(), fwcloudId, firewallId);
-						resolve();
-					} catch (error) { reject(error) }
-				}
-			});
-		});
-	};
+                            resolve();
+                        });
+                    });
+                } else { // Deleting FIREWALL SLAVE
+                    try {
+                        //DELETE TREE NODES From firewall
+                        await Tree.deleteFwc_TreeFullNode({ id: idNodeFirewall, fwcloud: fwcloudId, iduser: userId });
+                        await Firewall.deleteFirewallRow(db.getQuery(), fwcloudId, firewallId);
+                        resolve();
+                    } catch (error) { reject(error) }
+                }
+            });
+        });
+    };
 }

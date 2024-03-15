@@ -147,4 +147,12 @@ export class DHCPRule extends Model {
             }
         }
     }
+
+    public static moveToOtherFirewall(src_firewall: number, dst_firewall: number) {
+        return DHCPRule.createQueryBuilder()
+            .update()
+            .set({ firewallId: dst_firewall })
+            .where('firewall = :src_firewall', { src_firewall })
+            .execute();
+    }
 }
