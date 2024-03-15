@@ -96,16 +96,17 @@ export class DHCPRepository extends Repository<DHCPRule> {
      * @returns The updated array of affected DHCP rules.
      */
     protected async moveAbove(rules: DHCPRule[], affectedRules: DHCPRule[], destRule: DHCPRule): Promise<DHCPRule[]> {
-        let destPosition = destRule.rule_order;
+        const destPosition = destRule.rule_order;
         const movingIds = rules.map(dhcp_r => dhcp_r.id);
 
         const currentPosition = rules[0].rule_order;
         const forward: boolean = currentPosition < destRule.rule_order;
+
         affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
                 const offset = movingIds.indexOf(rule.id);
                 rule.rule_order = destPosition + offset;
-                rule.group = destRule.group;
+                rule.groupId = destRule.groupId;
             } else {
                 if (forward &&
                     rule.rule_order >= destRule.rule_order
@@ -257,6 +258,14 @@ export class DHCPRepository extends Repository<DHCPRule> {
             },
             take: 1,
         }))[0];
+    }
+
+    async getLastDHCPRuleInFirewall(firewall: number): Promise<DHCPRule | undefined> {
+        return this.createQueryBuilder('rule')
+            .where('rule.firewall = :firewall', { firewall })
+            .orderBy('rule.rule_order', 'DESC')
+            .take(1)
+            .getOne();
     }
 
     async getDHCPRules(FWCloud: number, firewall: number, rules?: number[], rule_types?: number[], forCompilation: boolean = false): Promise<DHCPRule[]> {
