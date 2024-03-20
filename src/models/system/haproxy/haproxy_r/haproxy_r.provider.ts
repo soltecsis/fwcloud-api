@@ -19,7 +19,7 @@ import { ServiceBound, ServiceContainer } from "../../../../fonaments/services/s
 import { AbstractApplication } from "../../../../fonaments/abstract-application";
 import { HAProxyRuleService } from "./haproxy_r.service";
 
-export class DHCPRuleServiceProvider extends ServiceProvider {
+export class HAProxyRuleServiceProvider extends ServiceProvider {
 
     public register(serviceContainer: ServiceContainer): ServiceBound {
         return serviceContainer.singleton(HAProxyRuleService.name, async (app: AbstractApplication): Promise<HAProxyRuleService> => {

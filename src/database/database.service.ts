@@ -76,6 +76,9 @@ import { Ca } from "../models/vpn/pki/Ca";
 import { CaPrefix } from "../models/vpn/pki/CaPrefix";
 import { Crt } from "../models/vpn/pki/Crt";
 import { Tfa } from "../models/user/Tfa";
+import { HAProxyRule } from "../models/system/haproxy/haproxy_r/haproxy_r.model";
+import { HAProxyGroup } from "../models/system/haproxy/haproxy_g/haproxy_g.model";
+import { HAProxyRuleToIPObj } from "../models/system/haproxy/haproxy_r/haproxy_r-to_ipobj.model";
 
 export interface DatabaseConfig {
     host: string,
@@ -316,7 +319,10 @@ export class DatabaseService extends Service {
                 Ca,
                 CaPrefix,
                 Crt,
-                Tfa
+                Tfa,
+                HAProxyRule,
+                HAProxyGroup,
+                HAProxyRuleToIPObj
             ]
         }
     }

@@ -72,6 +72,8 @@ import { AuthServiceProvider } from "./models/user/auth.provider";
 import { CaServiceProvider } from "./ca/ca.provider";
 import { CrtServiceProvider } from "./crt/crt.provider";
 import { OpenVPNService } from "./models/vpn/openvpn/openvpn.service";
+import { HAProxyRuleServiceProvider } from "./models/system/haproxy/haproxy_r/haproxy_r.provider";
+import { HAProxyGroupServiceProvider } from "./models/system/haproxy/haproxy_g/haproxy_g.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -147,6 +149,8 @@ export class Application extends HTTPApplication {
             RouteGroupServiceProvider,
             OpenVPNPrefixServiceProvider,
             OpenVPNStatusHistoryServiceProvider,
+            HAProxyRuleServiceProvider,
+            HAProxyGroupServiceProvider,
             PolicyRuleServiceProvider,
             AuthServiceProvider,
             CaServiceProvider,
