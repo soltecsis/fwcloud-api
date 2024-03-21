@@ -190,21 +190,10 @@ export class FwCloud extends Model {
 				delete RG from route_g RG inner join firewall FW on FW.id=RG.firewall where FW.fwcloud=${this.id};`
 
 				//Delete Keepalived Rules
-				+`DELETE KEEPALIVEDR 
-				FROM keepalived_r__ipobj KEEPALIVEDR 
-				INNER JOIN keepalived_r RULE ON RULE.id = KEEPALIVEDR.rule 
-				INNER JOIN firewall FW ON FW.id = RULE.firewall 
-				WHERE FW.fwcloud = ${this.id};
+				+`delete KEEPALIVEDIPOBJ from keepalived_r__ipobj KEEPALIVEDIPOBJ inner join keepalived_r RULE on RULE.id=KEEPALIVEDIPOBJ.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
 				
-				DELETE FROM keepalived_r 
-				WHERE firewall IN (
-					SELECT id FROM firewall WHERE fwcloud = ${this.id}
-				);
-				
-				DELETE FROM keepalived_g 
-				WHERE firewall IN (
-					SELECT id FROM firewall WHERE fwcloud = ${this.id}
-				);`
+				delete KEEPALIVEDR from keepalived_r KEEPALIVEDR inner join firewall FW on FW.id=KEEPALIVEDR.firewall where FW.fwcloud=${this.id};
+				delete KEEPALIVEDRG from keepalived_g KEEPALIVEDRG inner join firewall FW on FW.id=KEEPALIVEDRG.firewall where FW.fwcloud=${this.id};`
 
 				// Next the OpenVPN entities of the database.
 			+`delete OPT from openvpn_opt OPT inner join openvpn VPN on VPN.id=OPT.openvpn inner join firewall FW On FW.id=VPN.firewall where FW.fwcloud=${this.id};

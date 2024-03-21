@@ -74,6 +74,7 @@ import { app, logger } from '../../fonaments/abstract-application';
 import { PgpHelper } from '../../utils/pgp';
 import { FirewallService } from '../../models/firewall/firewall.service';
 import { ClusterService } from '../../models/firewall/cluster.service';
+import { KeepalivedRule } from '../../models/system/keepalived/keepalived_r/keepalived_r.model';
 
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -627,6 +628,9 @@ router.put('/clone', async (req, res) => {
 
 					//INSERT FIREWALL NODE STRUCTURE
 					await Tree.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newClusterId);
+
+					// Clone Keepalived rules
+					await KeepalivedRule.cloneKeepalived(idCluster,newClusterId);
 
 					// Update aaply_to fields of rules in the master firewall for point to nodes in the cloned cluster.
 					await PolicyRule.updateApplyToRules(newClusterId, fwNewMaster);
