@@ -15,9 +15,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { KeepalivedRulesData } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service";
-import { KeepalivedRuleItemForCompiler } from "../../../../../src/models/system/keepalived/shared";
-import { ProgressNoticePayload } from "../../../../../src/sockets/messages/socket-message";
+import { KeepalivedRulesData } from "../../../models/system/keepalived/keepalived_r/keepalived_r.service";
+import { KeepalivedRuleItemForCompiler } from "../../../models/system/keepalived/shared";
+import { ProgressNoticePayload } from "../../../sockets/messages/socket-message";
 
 export type KeepalivedCompiled = {
     id: number;

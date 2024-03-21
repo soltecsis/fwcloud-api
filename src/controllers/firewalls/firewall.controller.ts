@@ -50,7 +50,7 @@ import {
     KeepalivedRuleService
 } from "../../models/system/keepalived/keepalived_r/keepalived_r.service";
 import {KeepalivedRuleItemForCompiler} from "../../models/system/keepalived/shared";
-import {KeepalivedCompiler} from "../../../tests/Unit/compiler/system/keepalived/KeepalivedCompiler";
+import {KeepalivedCompiler} from "../../compiler/system/keepalived/KeepalivedCompiler";
 
 
 export class FirewallController extends Controller {

@@ -39,7 +39,7 @@ import { HttpException } from '../../../fonaments/exceptions/http/http-exception
 import { KeepalivedRuleBulkRemoveDto } from './dto/bulk-remove.dto';
 import { KeepalivedRuleItemForCompiler } from '../../../models/system/keepalived/shared';
 import { KeepalivedMoveFromDto } from './dto/move-from.dto';
-import { KeepalivedCompiler } from '../../../../tests/Unit/compiler/system/keepalived/KeepalivedCompiler';
+import { KeepalivedCompiler } from '../../../compiler/system/keepalived/KeepalivedCompiler';
 import {Channel} from "../../../sockets/channels/channel";
 import {Communication} from "../../../communications/communication";
 import {ProgressPayload} from "../../../sockets/messages/socket-message";
