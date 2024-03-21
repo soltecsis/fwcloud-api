@@ -43,7 +43,7 @@ export class KeepalivedRule extends Model {
     @Column({ type: 'boolean', default: false })
     active: boolean;
 
-    @Column({ name: 'group'})
+    @Column({ name: 'group' })
     groupId: number;
 
     @ManyToOne(() => KeepalivedGroup)
@@ -53,19 +53,27 @@ export class KeepalivedRule extends Model {
     @Column({ type: 'varchar', length: 50 })
     style: string;
 
+    @Column({ name: 'interface' })
+    interfaceId: number;
+
     @ManyToOne(() => Interface, { eager: true })
     @JoinColumn({ name: 'interface' })
     interface: Interface;
-
 
     @OneToMany(() => KeepalivedToIPObj, (keepalivedToIPObj) => keepalivedToIPObj.keepalivedRule, {
         cascade: true
     })
     virtualIps: KeepalivedToIPObj[];
 
+    @Column({ name: 'master_node' })
+    masterNodeId: number;
+
     @ManyToOne(() => Firewall, { eager: true })
     @JoinColumn({ name: 'master_node' })
     masterNode: Firewall;
+
+    @Column({ name: 'firewall' })
+    firewallId: number;
 
     @ManyToOne(() => Firewall, { eager: true })
     @JoinColumn({ name: 'firewall' })
@@ -81,13 +89,14 @@ export class KeepalivedRule extends Model {
         return tableName;
     }
 
-    public static async cloneFirewallKeepalivedRules(idfirewall: number, idNewFirewall: number): Promise<void> {
+    public static async cloneKeepalived(idfirewall: number, idNewFirewall: number): Promise<void> {
         const originalFirewall = await Firewall.findOne(idfirewall);
         const newFirewall = await Firewall.findOne(idNewFirewall);
 
-        if(originalFirewall && newFirewall) {
-            const groupMapping = new Map<number,number>();
-            const originalKeepalivedGroups = await KeepalivedGroup.find({firewall: originalFirewall});
+        if (originalFirewall && newFirewall) {
+            const groupMapping = new Map<number, number>();
+            const originalKeepalivedGroups = await KeepalivedGroup.find({ firewall: originalFirewall });
+
             for (const group of originalKeepalivedGroups) {
                 const newGroup = new KeepalivedGroup();
                 newGroup.name = group.name;
@@ -97,9 +106,9 @@ export class KeepalivedRule extends Model {
                 groupMapping.set(group.id, newGroup.id);
             }
 
-            const originalKeepalivedRules: KeepalivedRule[] = await KeepalivedRule.find({where: {firewall: originalFirewall}, relations: ['virtualIps']});
+            const originalKeepalivedRules: KeepalivedRule[] = await KeepalivedRule.find({ where: { firewall: originalFirewall }, relations: ['virtualIps'] });
 
-            for(const originalRule of originalKeepalivedRules) {
+            for (const originalRule of originalKeepalivedRules) {
                 const newRule: KeepalivedRule = new KeepalivedRule();
                 newRule.rule_type = originalRule.rule_type;
                 newRule.rule_order = originalRule.rule_order;
@@ -110,11 +119,19 @@ export class KeepalivedRule extends Model {
                 newRule.firewall = newFirewall;
                 newRule.cfg_text = originalRule.cfg_text;
                 newRule.comment = originalRule.comment;
-                if(originalRule.groupId && groupMapping.has(originalRule.group.id)) {
+                if (originalRule.groupId && groupMapping.has(originalRule.group.id)) {
                     newRule.groupId = groupMapping.get(originalRule.group.id);
                 }
                 await newRule.save();
             }
         }
+    }
+
+    public static moveToOtherFirewall(src_firewall: number, dst_firewall: number) {
+        return KeepalivedRule.createQueryBuilder()
+            .update()
+            .set({ firewallId: dst_firewall })
+            .where('firewallId = :src_firewall', { src_firewall })
+            .execute();
     }
 }

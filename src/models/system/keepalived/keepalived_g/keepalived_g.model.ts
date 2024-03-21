@@ -35,6 +35,7 @@ export class KeepalivedGroup extends Model {
 
     @Column({ name: 'firewall' })
     firewallId: number;
+
     @ManyToOne(type => Firewall, firewall => firewall.keepalivedGroups)
     @JoinColumn({
         name: 'firewall'

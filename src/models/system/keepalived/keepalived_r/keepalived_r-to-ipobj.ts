@@ -10,7 +10,7 @@ export class KeepalivedToIPObj extends Model {
     @PrimaryColumn({
         name: 'rule',
     })
-    keepalivedId: number;
+    keepalivedRuleId: number;
 
     @PrimaryColumn({
         name: 'ipobj',

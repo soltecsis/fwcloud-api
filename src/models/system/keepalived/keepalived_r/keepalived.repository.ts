@@ -19,9 +19,10 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { EntityRepository, FindManyOptions, FindOneOptions, In, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
+import { EntityRepository, FindManyOptions, FindOneOptions, In, RemoveOptions, Repository, SelectQueryBuilder, getRepository } from "typeorm";
 import { Offset } from "../../../../offset";
 import { KeepalivedRule } from "./keepalived_r.model";
+import { Firewall } from "../../../firewall/Firewall";
 
 interface IFindManyKeepalivedRPath {
     fwcloudId?: number;
@@ -59,20 +60,18 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
             order: {
                 'rule_order': 'ASC',
             },
-            relations: ['firewall'],
+            relations: ['firewall','group'],
         });
 
         let affectedKeepaliveds: KeepalivedRule[] = await this.findManyInPath({
             fwcloudId: keepalived_rs[0].firewall.fwCloudId,
             firewallId: keepalived_rs[0].firewall.id,
-            keepalivedGroupId: keepalived_rs[0].group?.id,
         });
 
         const destkeepalived: KeepalivedRule | undefined = await this.findOneOrFail({
             where: {
                 id: keepalivedDestId,
             },
-            relations: ['group', 'firewall'],
         });
 
         if (offset === Offset.Above) {
@@ -83,7 +82,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
 
         await this.save(affectedKeepaliveds);
 
-        await this.refreshOrders(keepalived_rs[0].group?.id);
+        await this.refreshOrders(keepalived_rs[0].firewallId);
 
         return await this.find({ where: { id: In(ids) } });
     }
@@ -91,30 +90,30 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     /**
      * Moves the affected Keepalived rules above the specified destination Keepalived rule.
      * 
-     * @param keepalived_rs - The array of all Keepalived rules.
+     * @param rules - The array of all Keepalived rules.
      * @param affectedkeepaliveds - The array of affected Keepalived rules.
      * @param destkeepalived - The destination Keepalived rule.
      * @returns The updated array of affected Keepalived rules.
      */
-    protected async moveAbove(keepalived_rs: KeepalivedRule[], affectedKeepaliveds: KeepalivedRule[], destKeepalived: KeepalivedRule): Promise<KeepalivedRule[]> {
+    protected async moveAbove(rules: KeepalivedRule[], affectedKeepaliveds: KeepalivedRule[], destKeepalived: KeepalivedRule): Promise<KeepalivedRule[]> {
         const destPosition: number = destKeepalived.rule_order;
-        const movingIds: number[] = keepalived_rs.map((keepalived_r: KeepalivedRule) => keepalived_r.id);
+        const movingIds: number[] = rules.map((keepalived_r: KeepalivedRule) => keepalived_r.id);
 
-        const currentPosition: number = keepalived_rs[0].rule_order;
+        const currentPosition: number = rules[0].rule_order;
         const forward: boolean = currentPosition < destKeepalived.rule_order;
 
-        affectedKeepaliveds.forEach((keepalived_r: KeepalivedRule) => {
-            if (movingIds.includes(keepalived_r.id)) {
-                const offset: number = movingIds.indexOf(keepalived_r.id);
-                keepalived_r.rule_order = destPosition + offset;
-                keepalived_r.group ? keepalived_r.group.id = destKeepalived.group.id : keepalived_r.group = destKeepalived.group;
+        affectedKeepaliveds.forEach((rule) => {
+            if (movingIds.includes(rule.id)) {
+                const offset: number = movingIds.indexOf(rule.id);
+                rule.rule_order = destPosition + offset;
+                rule.groupId = destKeepalived.groupId;
             } else {
-                if (forward && keepalived_r.rule_order >= destKeepalived.rule_order) {
-                    keepalived_r.rule_order += 1;
+                if (forward && rule.rule_order >= destKeepalived.rule_order) {
+                    rule.rule_order += rules.length;
                 }
 
-                if (!forward && keepalived_r.rule_order >= destKeepalived.rule_order && keepalived_r.rule_order < keepalived_rs[0].rule_order) {
-                    keepalived_r.rule_order += 1;
+                if (!forward && rule.rule_order >= destKeepalived.rule_order && rule.rule_order < rules[0].rule_order) {
+                    rule.rule_order += rules.length;
                 }
             }
         });
@@ -125,30 +124,30 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     /**
      * Moves the affected Keepalived rules below the specified destination keepalived rule.
      * 
-     * @param keepalived_rs - The array of all Keepalived rules.
+     * @param rules - The array of all Keepalived rules.
      * @param affectedkeepaliveds - The array of affected Keepalived rules.
      * @param destkeepalived - The destination Keepalived rule.
      * @returns The updated array of affected Keepalived rules.
      */
-    protected async moveBelow(keepalived_rs: KeepalivedRule[], affectedKeepaliveds: KeepalivedRule[], destKeepalived: KeepalivedRule): Promise<KeepalivedRule[]> {
+    protected async moveBelow(rules: KeepalivedRule[], affectedKeepaliveds: KeepalivedRule[], destKeepalived: KeepalivedRule): Promise<KeepalivedRule[]> {
         const destPosition: number = destKeepalived.rule_order;
-        const movingIds: number[] = keepalived_rs.map((keepalived_r: KeepalivedRule) => keepalived_r.id);
+        const movingIds: number[] = rules.map((keepalived_r: KeepalivedRule) => keepalived_r.id);
 
-        const currentPosition: number = keepalived_rs[0].rule_order;
+        const currentPosition: number = rules[0].rule_order;
         const forward: boolean = currentPosition < destKeepalived.rule_order;
 
-        affectedKeepaliveds.forEach((keepalived_r: KeepalivedRule) => {
-            if (movingIds.includes(keepalived_r.id)) {
-                const offset: number = movingIds.indexOf(keepalived_r.id);
-                keepalived_r.rule_order = destPosition + offset + 1;
-                keepalived_r.group ? keepalived_r.group.id = destKeepalived.group.id : keepalived_r.group = destKeepalived.group;
+        affectedKeepaliveds.forEach((rule: KeepalivedRule) => {
+            if (movingIds.includes(rule.id)) {
+                const offset: number = movingIds.indexOf(rule.id);
+                rule.rule_order = destPosition + offset + 1;
+                rule.groupId = destKeepalived.groupId;
             } else {
-                if (forward && keepalived_r.rule_order > destKeepalived.rule_order) {
-                    keepalived_r.rule_order += keepalived_rs.length;
+                if (forward && rule.rule_order > destKeepalived.rule_order) {
+                    rule.rule_order += rules.length;
                 }
 
-                if (!forward && keepalived_r.rule_order > destKeepalived.rule_order && keepalived_r.rule_order < keepalived_rs[0].rule_order) {
-                    keepalived_r.rule_order += keepalived_rs.length;
+                if (!forward && rule.rule_order > destKeepalived.rule_order && rule.rule_order < rules[0].rule_order) {
+                    rule.rule_order += rules.length;
                 }
             }
         });
@@ -171,12 +170,12 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
         if (result && !Array.isArray(result)) {
             const keepalivedRule = result as KeepalivedRule;
             if (keepalivedRule.group) {
-                await this.refreshOrders(keepalivedRule.group.id);
+                await this.refreshOrders(keepalivedRule.firewallId);
             }
         } else if (result && Array.isArray(result) && result.length > 0) {
             const keepalivedRule = result[0] as KeepalivedRule;
             if (keepalivedRule.group) {
-                await this.refreshOrders(keepalivedRule.group.id);
+                await this.refreshOrders(keepalivedRule.firewallId);
             }
         }
         return result;
@@ -220,22 +219,20 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
      * @param keepalivedgid The group ID of the Keepalived rules to refresh.
      * @returns A Promise that resolves when the orders are successfully refreshed.
      */
-    protected async refreshOrders(keepalivedgid: number): Promise<void> {
-        const keepalived_rs: KeepalivedRule[] = await this.find({
-            where: {
-                group: keepalivedgid,
-            },
-            order: {
-                'rule_order': 'ASC',
-            },
+    protected async refreshOrders(firewallId: number): Promise<void> {
+        const firewall: Firewall = await getRepository(Firewall).findOneOrFail(firewallId);
+        const rules: KeepalivedRule[] = await this.findManyInPath({
+            fwcloudId: firewall.fwCloudId,
+            firewallId: firewall.id,
         });
 
-        let order: number = 1;
-        keepalived_rs.forEach((keepalived_r: KeepalivedRule) => {
-            keepalived_r.rule_order = order++;
-        });
+        if (rules.length === 0) {
+            return;
+        }
 
-        await this.save(keepalived_rs);
+        await this.query(
+            `SET @a:=0; UPDATE ${KeepalivedRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map(item => item.id).join(',')}) ORDER BY rule_order`
+        );
     }
 
     /**
@@ -255,6 +252,15 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
         }))[0];
     }
 
+    async getLastKeepalivedRuleInFirewall(firewall: number): Promise<KeepalivedRule | undefined> {
+        return this.createQueryBuilder('rule')
+            .where('rule.firewall = :firewall', { firewall })
+            .orderBy('rule.rule_order', 'DESC')
+            .take(1)
+            .getOne();
+    }
+
+    //TODO: Revisar
     async getKeepalivedRules(fwcloud: number, firewall: number, rules?: number[], rule_types?: number[]): Promise<KeepalivedRule[]> {
         const query: SelectQueryBuilder<KeepalivedRule> = this.createQueryBuilder('keepalived_r')
             .leftJoinAndSelect('keepalived_r.group', 'group')

@@ -126,7 +126,7 @@ export class KeepalivedRuleService extends Service {
         if (data.virtualIpsIds) {
             await this.validateVirtualIps(keepalivedRuleData.firewall, data);
             keepalivedRuleData.virtualIps = data.virtualIpsIds.map(item => ({
-                keepalivedId: keepalivedRuleData.id,
+                keepalivedRuleId: keepalivedRuleData.id,
                 ipObjId: item.id,
                 order: item.order
             }) as KeepalivedToIPObj);
@@ -193,7 +193,7 @@ export class KeepalivedRuleService extends Service {
             if (index >= 0) {
                 fromRule.virtualIps.splice(index, 1);
                 toRule.virtualIps.push({
-                    keepalivedId: toRule.id,
+                    keepalivedRuleId: toRule.id,
                     ipObjId: data.virtualIpsIds,
                     order: lastPosition + 1
                 } as KeepalivedToIPObj);
@@ -223,7 +223,7 @@ export class KeepalivedRuleService extends Service {
         } else if (data.virtualIpsIds) {
             await this.validateVirtualIps(keepalivedRule.firewall, data);
             keepalivedRule.virtualIps = data.virtualIpsIds.map(item => ({
-                keepalivedId: keepalivedRule.id,
+                keepalivedRuleId: keepalivedRule.id,
                 ipObjId: item.id,
                 order: item.order
             }) as KeepalivedToIPObj);
