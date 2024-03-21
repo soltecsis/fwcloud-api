@@ -123,19 +123,6 @@ export class KeepalivedRuleService extends Service {
         if (data.firewallId) {
             keepalivedRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
         }
-        if (data.virtualIpsIds) {
-            await this.validateVirtualIps(keepalivedRuleData.firewall, data);
-            keepalivedRuleData.virtualIps = data.virtualIpsIds.map(item => ({
-                keepalivedRuleId: keepalivedRuleData.id,
-                ipObjId: item.id,
-                order: item.order
-            }) as KeepalivedToIPObj);
-
-            const hasMatchingIpVersion = keepalivedRuleData.virtualIps.some(async virtualIp => (await getRepository(IPObj).findOneOrFail(virtualIp.ipObj)).ip_version === (await getRepository(IPObj).findOneOrFail(keepalivedRuleData.virtualIps[0].ipObj)).ip_version);
-            if (!hasMatchingIpVersion) {
-                throw new Error('IP version mismatch');
-            }
-        }
 
         const lastKeepalivedRule = await this._repository.getLastKeepalivedRule(data.firewallId) as KeepalivedRule;
         keepalivedRuleData.rule_order = lastKeepalivedRule?.rule_order ? lastKeepalivedRule.rule_order + 1 : 1;
@@ -147,12 +134,20 @@ export class KeepalivedRuleService extends Service {
                 ipObjId: item.id,
                 order: item.order
             }) as unknown as KeepalivedToIPObj);
-        }
 
+            const hasMatchingIpVersion = persisted.virtualIps.some(async virtualIp => (await getRepository(IPObj).findOneOrFail(virtualIp.ipObj)).ip_version === (await getRepository(IPObj).findOneOrFail(persisted.virtualIps[0].ipObj)).ip_version);
+            if (!hasMatchingIpVersion) {
+                this._repository.remove(persisted);
+                throw new Error('IP version mismatch');
+            }
+
+            await this._repository.save(persisted);
+        }
+        
         if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'offset')) {
             return (await this.move([persisted.id], data.to, data.offset))[0]
         }
-
+        
         return persisted;
     }
 

@@ -509,12 +509,12 @@ export class Interface extends Model {
 
 	public static async searchInterfaceInKeepalivedRule(id: string, fwcloud: string) {
 		return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
-			.addSelect('keepalived_rule.id', 'keepalived_rule_id').addSelect('keepalived_rule.rule_type','keepalived_rule_type')
+			.addSelect('keepalived_rule.id', 'keepalived_rule_id').addSelect('keepalived_rule.rule_type', 'keepalived_rule_type')
 			.addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
 			.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
 			.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-			.leftJoin('dhcp_rule.interface', 'interface', 'interface.id = :interface', { interface: id })
-			.innerJoin('dhcp_rule.firewall', 'firewall')
+			.leftJoin('keepalived_rule.interface', 'interface', 'interface.id = :interface', { interface: id })
+			.innerJoin('keepalived_rule.firewall', 'firewall')
 			.leftJoin('firewall.cluster', 'cluster')
 			.where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
 			.getRawMany();
