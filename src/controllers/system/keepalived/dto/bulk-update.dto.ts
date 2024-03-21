@@ -32,5 +32,5 @@ export class KeepalivedRuleBulkUpdateDto {
 
     @IsNumber()
     @IsOptional()
-    keepalivedGroupId?: number;
+    group?: number;
 }

@@ -9,5 +9,5 @@ export class KeepalivedMoveFromDto {
 
     @IsNumber()
     @IsOptional()
-    ipObjId: number;
+    ipObjId?: number;
 }

@@ -219,37 +219,7 @@ export class KeepalivedController extends Controller {
   async moveFrom(req: Request): Promise<ResponseBuilder> {
     (await KeepalivedPolicy.move(this._firewall, req.session.user)).authorize();
 
-    const fromRule: KeepalivedRule = await getRepository(KeepalivedRule).findOneOrFail({
-      join: {
-        alias: 'rule',
-        innerJoin: {
-          firewall: 'rule.firewall',
-          fwcloud: 'firewall.fwCloud'
-        }
-      },
-      where: (qb: SelectQueryBuilder<KeepalivedRule>) => {
-        qb.whereInIds(req.inputs.get('fromId'))
-          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
-          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
-      }
-    });
-
-    const toRule: KeepalivedRule = await getRepository(KeepalivedRule).findOneOrFail({
-      join: {
-        alias: 'rule',
-        innerJoin: {
-          firewall: 'rule.firewall',
-          fwcloud: 'firewall.fwCloud'
-        }
-      },
-      where: (qb: SelectQueryBuilder<KeepalivedRule>) => {
-        qb.whereInIds(req.inputs.get('toId'))
-          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
-          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
-      }
-    });
-
-    const result: KeepalivedRule[] = await this._keepalivedRuleService.moveFrom(fromRule.id, toRule.id, req.inputs.get('ipObjId'));
+    const result: KeepalivedRule[] = await this._keepalivedRuleService.moveFrom(req.inputs.get('fromId'), req.inputs.get('toId'), req.inputs.all());
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
