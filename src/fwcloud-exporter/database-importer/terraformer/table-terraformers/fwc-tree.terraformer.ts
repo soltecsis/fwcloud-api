@@ -93,7 +93,13 @@ export class FwcTreeTerraformer extends TableTerraformer {
         'ROU': Firewall,
         'RTS': Firewall,
         'RT': RoutingTable,
-        'RR': Firewall
+        'RR': Firewall,
+
+        'SYS': Firewall,
+        'S01': Firewall,
+        'S02': Firewall,
+        'S03': Firewall,
+        'S04': Firewall,
     }
 
     public static async make(mapper: ImportMapping, eventEmitter: EventEmitter = new EventEmitter()): Promise<FwcTreeTerraformer> {
