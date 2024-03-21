@@ -284,6 +284,7 @@ export class IPObjRepository extends Repository<IPObj> {
   getIpobjsInKeepalived_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, dhcpRule?: number): SelectQueryBuilder<IPObj> {
     let query = this.createQueryBuilder("ipobj")
       .select("ipobj.id", "id")
+      .addSelect("ipobj.address", "address")
       .addSelect("ipobj.name", "name")
       .addSelect("ipobj.type", "type")
       .addSelect("host.id", "host_id")

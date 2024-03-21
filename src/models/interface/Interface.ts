@@ -512,9 +512,12 @@ export class Interface extends Model {
 			.addSelect('keepalived_rule.id', 'keepalived_rule_id').addSelect('keepalived_rule.rule_type','keepalived_rule_type')
 			.addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
 			.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+			.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
 			.leftJoin('dhcp_rule.interface', 'interface', 'interface.id = :interface', { interface: id })
 			.innerJoin('dhcp_rule.firewall', 'firewall')
+			.leftJoin('firewall.cluster', 'cluster')
 			.where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
+			.getRawMany();
 	}
 
 	//Add new interface from user
@@ -593,7 +596,7 @@ export class Interface extends Model {
 				return;
 			}
 
-			const checkKeepalivedRule = async () => {
+			const checkKeepalivedReferences = async () => {
 				return new Promise((resolve, reject) => {
 					const keepalivedCheckSql = 'SELECT COUNT(*) as count FROM keepalived_r WHERE interface = ?';
 					connection.query(keepalivedCheckSql, [interfaceData.id], (error, result) => {
@@ -606,7 +609,7 @@ export class Interface extends Model {
 				});
 			}
 
-			await checkKeepalivedRule().then((count: number) => {
+			await checkKeepalivedReferences().then((count: number) => {
 				if (count > 0 && (interfaceData.mac === null || interfaceData.mac === '' || interfaceData.mac === undefined)) {
 					const errorMessage = 'The interface cannot be updated. There are references in keepalice rules.';
 					callback(errorMessage, null);
@@ -619,6 +622,7 @@ export class Interface extends Model {
 							comment = ${connection.escape(interfaceData.comment)},
 							mac = ${connection.escape(interfaceData.mac)}
 						WHERE id = ${connection.escape(interfaceData.id)}`;
+
 					logger().debug(sql);
 
 					connection.query(sql, (error, result) => {
