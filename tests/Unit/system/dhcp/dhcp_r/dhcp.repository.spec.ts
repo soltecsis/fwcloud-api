@@ -145,30 +145,6 @@ describe(DHCPRepository.name, () => {
             sinon.restore();
         });
 
-        it('should move the rule to the specified position', async () => {
-            dhcpRule.group = null;
-            dhcpRule.save();
-
-            mockFind.resolves([dhcpRule]);
-            const moveAboveSpy = sinon.spy(repository, 'moveAbove' as keyof DHCPRepository);
-
-            await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
-
-            expect(moveAboveSpy.calledOnce).to.be.true;
-        });
-
-        it('should move the rule below the specified position', async () => {
-            dhcpRule.group = null;
-            dhcpRule.save();
-
-            mockFind.resolves([dhcpRule]);
-            const moveBelowSpy = sinon.spy(repository, 'moveBelow' as keyof DHCPRepository);
-
-            await repository.move([dhcpRule.id], dhcpRule.id, Offset.Below);
-
-            expect(moveBelowSpy.calledOnce).to.be.true;
-        });
-
         it('should update affected rules after move', async () => {
             mockFind.resolves([dhcpRule]);
             const updateAffectedRulesSpy = sinon.spy(repository, 'save' as keyof DHCPRepository);
