@@ -89,11 +89,11 @@ export class DHCPRepository extends Repository<DHCPRule> {
 
     /**
      * Moves the affected DHCP rules above the specified destination DHCP rule.
-     * 
-     * @param dhcp_rs - The array of all DHCP rules.
-     * @param affectedDHCPs - The array of affected DHCP rules.
-     * @param destDHCP - The destination DHCP rule.
+     *
      * @returns The updated array of affected DHCP rules.
+     * @param rules
+     * @param affectedRules
+     * @param destRule
      */
     protected async moveAbove(rules: DHCPRule[], affectedRules: DHCPRule[], destRule: DHCPRule): Promise<DHCPRule[]> {
         const destPosition = destRule.rule_order;
@@ -128,11 +128,11 @@ export class DHCPRepository extends Repository<DHCPRule> {
 
     /**
      * Moves the DHCP rules below the specified destination DHCP rule.
-     * 
-     * @param dhcp_rs - The array of all DHCP rules.
-     * @param affectedDHCPs - The array of DHCP rules to be moved.
-     * @param destDHCP - The destination DHCP rule.
+     *
      * @returns The updated array of affected DHCP rules.
+     * @param rules
+     * @param affectedRules
+     * @param destRule
      */
     protected async moveBelow(rules: DHCPRule[], affectedRules: DHCPRule[], destRule: DHCPRule): Promise<DHCPRule[]> {
         const destPosition = destRule.rule_order;
@@ -222,8 +222,8 @@ export class DHCPRepository extends Repository<DHCPRule> {
 
     /**
      * Refreshes the orders of DHCP rules based on the specified group ID.
-     * @param DHCPGroupId The group ID of the DHCP rules to refresh.
      * @returns A Promise that resolves when the orders are successfully refreshed.
+     * @param firewallId
      */
     protected async refreshOrders(firewallId: number): Promise<void> {
         const firewall: Firewall = await getRepository(Firewall).findOneOrFail(firewallId);
@@ -239,25 +239,6 @@ export class DHCPRepository extends Repository<DHCPRule> {
         await this.query(
             `SET @a:=0; UPDATE ${DHCPRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map(item => item.id).join(',')}) ORDER BY rule_order`
         )
-    }
-
-    /**
-     * Retrieves the last DHCP rule based on the firewall and type.
-     * @param firewall The firewall number.
-     * @param type The rule type.
-     * @returns A promise that resolves to the last DHCP rule.
-     */
-    async getLastDHCPRule(firewall: number, type: number): Promise<DHCPRule> {
-        return (await this.find({
-            where: {
-                firewall: firewall,
-                rule_type: In(type === 2 ? [2] : [1, 3]),
-            },
-            order: {
-                'rule_order': 'DESC',
-            },
-            take: 1,
-        }))[0];
     }
 
     async getLastDHCPRuleInFirewall(firewall: number): Promise<DHCPRule | undefined> {

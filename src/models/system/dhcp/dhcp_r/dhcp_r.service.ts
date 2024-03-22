@@ -145,7 +145,7 @@ export class DHCPRuleService extends Service {
             throw new Error('IP version mismatch');
         }
 
-        const lastDHCPRule: DHCPRule = await this._repository.getLastDHCPRule(data.firewallId, data.rule_type) as DHCPRule;
+        const lastDHCPRule: DHCPRule = await this._repository.getLastDHCPRuleInFirewall(data.firewallId) as DHCPRule;
         dhcpRuleData.rule_order = lastDHCPRule?.rule_order ? lastDHCPRule.rule_order + 1 : 1;
         const persisted: Partial<DHCPRule> & DHCPRule = await this._repository.save(dhcpRuleData);
 
@@ -186,7 +186,7 @@ export class DHCPRuleService extends Service {
             relations: ['group']
         });
 
-        const movedRules = this._repository.move(ids, destRule, offset);
+        const movedRules = await this._repository.move(ids, destRule, offset);
 
         if (!destinationRule.group && sourceRules[0].group && (sourceRules[0].group.rules.length - ids.length) < 1) {
             await this._groupService.remove({ id: sourceRules[0].group.id });
