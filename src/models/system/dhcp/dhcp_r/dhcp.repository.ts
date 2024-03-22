@@ -104,13 +104,9 @@ export class DHCPRepository extends Repository<DHCPRule> {
 
         affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
-                if (!destRule.groupId) {
-                    const offset = movingIds.indexOf(rule.id);
-                    rule.rule_order = destPosition + offset;
-                    rule.groupId = destRule.groupId;
-                } else {
-                    rule.groupId = destRule.groupId;
-                }
+                const offset = movingIds.indexOf(rule.id);
+                rule.rule_order = destPosition + offset;
+                rule.groupId = destRule.groupId;
             } else {
                 if (forward &&
                     rule.rule_order >= destRule.rule_order
@@ -152,6 +148,10 @@ export class DHCPRepository extends Repository<DHCPRule> {
                     rule.groupId = destRule.groupId;
                 } else {
                     rule.groupId = destRule.groupId;
+                    if(!forward) {
+                        const offset: number = movingIds.indexOf(rule.id);
+                        rule.rule_order = destPosition + offset + 1;
+                    }
                 }
             } else {
                 if (forward && rule.rule_order > destRule.rule_order) {
@@ -278,29 +278,20 @@ export class DHCPRepository extends Repository<DHCPRule> {
             .where('firewall.id = :firewallId', { firewallId: firewall })
             .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: FWCloud });
 
-        if (rule_types) {
-            query
-                .andWhere('dhcp_r.rule_type IN (:...rule_types)')
-                .setParameter('rule_types', rule_types);
-
-            if (forCompilation) {
-                query
-                    .orderBy('FIELD(dhcp_r.rule_type, :...rule_types)', 'ASC')
-                    .addOrderBy('dhcp_r.rule_order', 'ASC');
-            } else {
-                query
-                    .orderBy('dhcp_r.rule_order', 'ASC');
+            if (rules) {
+                query.andWhere('dhcp_r.id IN (:...rules)', { rules });
             }
-        } else {
-            query.orderBy('dhcp_r.rule_order', 'ASC');
-        }
-
-        if (rules) {
-            query
-                .andWhere('dhcp_r.id IN (:...rule)')
-                .setParameter('rule', rules);
-        }
-
-        return query.getMany();
+        
+            if (rule_types) {
+                query.andWhere('dhcp_r.rule_type IN (:...rule_types)', { rule_types });
+            }
+        
+            if (forCompilation && rule_types) {
+                query.orderBy(`CASE WHEN dhcp_r.rule_type = 2 THEN 1 ELSE 0 END, dhcp_r.rule_order`, 'ASC');
+            } else {
+                query.orderBy('dhcp_r.rule_order', 'ASC');
+            }
+        
+            return await query.getMany();
     }
 }
