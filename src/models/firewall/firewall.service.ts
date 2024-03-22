@@ -32,6 +32,7 @@ import { RoutingRuleToMark } from "../routing/routing-rule/routing-rule-to-mark.
 import { RoutingRuleService } from "../routing/routing-rule/routing-rule.service";
 import { DHCPRuleService } from "../system/dhcp/dhcp_r/dhcp_r.service";
 import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
+import { DHCPGroup } from "../system/dhcp/dhcp_g/dhcp_g.model";
 const fwcError = require('../../utils/error_table');
 var utilsModel = require("../../utils/utils.js");
 
@@ -230,6 +231,7 @@ export class FirewallService extends Service {
                             await PolicyGroup.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM)
                             await Interface.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM)
                             await OpenVPN.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
+                            await DHCPGroup.moveToOtherFirewall(firewallId, idNewFM);
                             await DHCPRule.moveToOtherFirewall(firewallId, idNewFM);
 
                             // Move routing tables.

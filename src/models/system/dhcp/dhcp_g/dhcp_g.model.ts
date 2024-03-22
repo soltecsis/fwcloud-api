@@ -53,4 +53,12 @@ export class DHCPGroup extends Model {
     public getTableName(): string {
         return tableName;
     }
+
+    public static moveToOtherFirewall(src_firewall: number, dst_firewall: number) {
+        return DHCPGroup.createQueryBuilder()
+            .update()
+            .set({ firewallId: dst_firewall })
+            .where('firewall = :src_firewall', { src_firewall })
+            .execute();
+    }
 }
