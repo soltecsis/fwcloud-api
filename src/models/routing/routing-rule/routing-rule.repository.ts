@@ -125,9 +125,13 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
 
         affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
-                const offset: number = movingIds.indexOf(rule.id);
-                rule.rule_order = destPosition + offset;
-                rule.routingGroupId = destRule.routingGroupId;
+                if (!destRule.routingGroupId) {
+                    const offset = movingIds.indexOf(rule.id);
+                    rule.rule_order = destPosition + offset;
+                    rule.routingGroupId = destRule.routingGroupId;
+                } else {
+                    rule.routingGroupId = destRule.routingGroupId;
+                }
             } else {
                 if (forward &&
                     rule.rule_order >= destRule.rule_order
@@ -156,9 +160,13 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
 
         affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
-                const offset: number = movingIds.indexOf(rule.id);
-                rule.rule_order = destPosition + offset + 1;
-                rule.routingGroupId = destRule.routingGroupId;
+                if (!destRule.routingGroupId) {
+                    const offset: number = movingIds.indexOf(rule.id);
+                    rule.rule_order = destPosition + offset + 1;
+                    rule.routingGroupId = destRule.routingGroupId;
+                } else {
+                    rule.routingGroupId = destRule.routingGroupId;
+                }
             } else {
                 if (forward && rule.rule_order > destRule.rule_order) {
                     rule.rule_order += rules.length;

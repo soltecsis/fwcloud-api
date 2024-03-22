@@ -104,9 +104,13 @@ export class DHCPRepository extends Repository<DHCPRule> {
 
         affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
-                const offset = movingIds.indexOf(rule.id);
-                rule.rule_order = destPosition + offset;
-                rule.groupId = destRule.groupId;
+                if (!destRule.groupId) {
+                    const offset = movingIds.indexOf(rule.id);
+                    rule.rule_order = destPosition + offset;
+                    rule.groupId = destRule.groupId;
+                } else {
+                    rule.groupId = destRule.groupId;
+                }
             } else {
                 if (forward &&
                     rule.rule_order >= destRule.rule_order
@@ -142,9 +146,13 @@ export class DHCPRepository extends Repository<DHCPRule> {
         const forward: boolean = currentPosition < destRule.rule_order;
         affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
-                const offset: number = movingIds.indexOf(rule.id);
-                rule.rule_order = destPosition + offset + 1;
-                rule.groupId = destRule.groupId;
+                if (!destRule.groupId) {
+                    const offset: number = movingIds.indexOf(rule.id);
+                    rule.rule_order = destPosition + offset + 1;
+                    rule.groupId = destRule.groupId;
+                } else {
+                    rule.groupId = destRule.groupId;
+                }
             } else {
                 if (forward && rule.rule_order > destRule.rule_order) {
                     rule.rule_order += rules.length;
