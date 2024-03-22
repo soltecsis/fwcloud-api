@@ -280,7 +280,7 @@ export class DhcpController extends Controller {
 
     channel.emit('message', new ProgressPayload('start', false, `Installing DHCP`));
 
-    await communication.installDHCPConfigs('/etc/dhcp', [{ name: 'dhcpd.config', content: content }], channel);
+    await communication.installDHCPConfigs('/etc/dhcp', [{ name: 'dhcpd.conf', content: content }], channel);
 
     channel.emit('message', new ProgressPayload('end', false, `Installing DHCP`));
 
