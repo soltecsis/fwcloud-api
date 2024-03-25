@@ -278,20 +278,45 @@ export class DHCPRepository extends Repository<DHCPRule> {
             .where('firewall.id = :firewallId', { firewallId: firewall })
             .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: FWCloud });
 
-            if (rules) {
-                query.andWhere('dhcp_r.id IN (:...rules)', { rules });
-            }
-        
-            if (rule_types) {
-                query.andWhere('dhcp_r.rule_type IN (:...rule_types)', { rule_types });
-            }
-        
-            if (forCompilation && rule_types) {
-                query.orderBy(`CASE WHEN dhcp_r.rule_type = 2 THEN 1 ELSE 0 END, dhcp_r.rule_order`, 'ASC');
+        if (rule_types) {
+            query
+                .andWhere('dhcp_r.rule_type IN (:...rule_types)')
+                .setParameter('rule_types', rule_types);
+
+            if (forCompilation) {
+                query
+                    .orderBy('FIELD(dhcp_r.rule_type, :...rule_types)', 'ASC')
+                    .addOrderBy('dhcp_r.rule_order', 'ASC');
             } else {
-                query.orderBy('dhcp_r.rule_order', 'ASC');
+                query
+                    .orderBy('dhcp_r.rule_order', 'ASC');
             }
-        
-            return await query.getMany();
+        } else {
+            query.orderBy('dhcp_r.rule_order', 'ASC');
+        }
+
+        if (rules) {
+            query
+                .andWhere('dhcp_r.id IN (:...rule)')
+                .setParameter('rule', rules);
+        }
+
+        let dhcpRules: DHCPRule[] = await query.getMany();
+
+        if(rule_types && forCompilation) {
+            dhcpRules.sort((a, b) => {
+                if (a.rule_type === b.rule_type) {
+                    return a.rule_order - b.rule_order;
+                } else if (a.rule_type === 2) {
+                    return 1;
+                } else if (b.rule_type === 2) {
+                    return -1;
+                } else {
+                    return a.rule_order - b.rule_order;
+                }
+            });
+        }
+
+        return dhcpRules;
     }
 }
