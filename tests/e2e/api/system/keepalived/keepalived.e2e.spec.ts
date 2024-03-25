@@ -308,7 +308,7 @@ describe('KeepalivedRule E2E Tests', () => {
                 });
                 data = {
                     rules: [KeepalivedRule1.id, KeepalivedRule2.id],
-                    to: (await getCustomRepository(KeepalivedRepository).getLastKeepalivedRule(firewall.id)).id,
+                    to: (await getCustomRepository(KeepalivedRepository).getLastKeepalivedRuleInFirewall(firewall.id)).id,
                     offset: Offset.Below,
                 } as KeepalivedRuleCopyDto;
             });

@@ -124,7 +124,7 @@ export class KeepalivedRuleService extends Service {
             keepalivedRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
         }
 
-        const lastKeepalivedRule = await this._repository.getLastKeepalivedRule(data.firewallId) as KeepalivedRule;
+        const lastKeepalivedRule = await this._repository.getLastKeepalivedRuleInFirewall(data.firewallId) as KeepalivedRule;
         keepalivedRuleData.rule_order = lastKeepalivedRule?.rule_order ? lastKeepalivedRule.rule_order + 1 : 1;
         const persisted: Partial<KeepalivedRule> & KeepalivedRule = await this._repository.save(keepalivedRuleData);
 
@@ -151,7 +151,7 @@ export class KeepalivedRuleService extends Service {
         return persisted;
     }
 
-    async copy(ids: number[], destRule: number, position: Offset): Promise<KeepalivedRule[]> {
+    async copy(ids: number[], destRule: number, offset: Offset): Promise<KeepalivedRule[]> {
         const keepalived_rs: KeepalivedRule[] = await this._repository.find({
             where: {
                 id: In(ids),
@@ -159,14 +159,16 @@ export class KeepalivedRuleService extends Service {
             relations: ['group', 'firewall', 'firewall.fwCloud', 'interface', 'virtualIps', 'masterNode']
         });
 
-        const savedCopies: KeepalivedRule[] = await Promise.all(
-            keepalived_rs.map(async rule => {
-                const { id, ...copy } = rule;
-                return await this._repository.save({ ...copy });
-            })
-        );
+        const lastRule: KeepalivedRule = await this._repository.getLastKeepalivedRuleInFirewall(keepalived_rs[0].firewallId);
 
-        return this.move(savedCopies.map(item => item.id), destRule, position);
+        keepalived_rs.map((item,index) => {
+            item.id = undefined;
+            item.rule_order = lastRule.rule_order + index + 1;
+        });
+
+        const persisted = await this._repository.save(keepalived_rs);
+
+        return this.move(persisted.map(item => item.id), destRule, offset);
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<KeepalivedRule[]> {

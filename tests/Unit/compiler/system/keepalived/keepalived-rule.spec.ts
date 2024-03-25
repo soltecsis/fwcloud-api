@@ -49,6 +49,8 @@ describe(KeepalivedCompiler.name, () => {
                 rule_type: 1,
                 firewall: fwc.firewall,
                 max_lease: 5,
+                interface: null,
+                virtualIps: [],
             } as DeepPartial<KeepalivedRule>));
 
             testData.push(rule);
@@ -89,7 +91,7 @@ describe(KeepalivedCompiler.name, () => {
             compiler.compile(rules, eventEmitter);
 
             rules.forEach((rule: KeepalivedRulesData<KeepalivedRuleItemForCompiler>, index: number): void => {
-                expect(progressHandler.calledWith(sinon.match({ message: `Compiling DHCP rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}` }))).to.be.true;
+                expect(progressHandler.calledWith(sinon.match({ message: `Compiling Keepalived rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}` }))).to.be.true;
             });
         });
     })

@@ -60,7 +60,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
             order: {
                 'rule_order': 'ASC',
             },
-            relations: ['firewall','group'],
+            relations: ['firewall', 'group'],
         });
 
         let affectedKeepaliveds: KeepalivedRule[] = await this.findManyInPath({
@@ -95,30 +95,45 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
      * @param destkeepalived - The destination Keepalived rule.
      * @returns The updated array of affected Keepalived rules.
      */
-    protected async moveAbove(rules: KeepalivedRule[], affectedKeepaliveds: KeepalivedRule[], destKeepalived: KeepalivedRule): Promise<KeepalivedRule[]> {
-        const destPosition: number = destKeepalived.rule_order;
+    protected async moveAbove(rules: KeepalivedRule[], affectedRules: KeepalivedRule[], destRule: KeepalivedRule): Promise<KeepalivedRule[]> {
+        const destPosition: number = destRule.rule_order;
         const movingIds: number[] = rules.map((keepalived_r: KeepalivedRule) => keepalived_r.id);
 
         const currentPosition: number = rules[0].rule_order;
-        const forward: boolean = currentPosition < destKeepalived.rule_order;
+        const forward: boolean = currentPosition < destRule.rule_order;
 
-        affectedKeepaliveds.forEach((rule) => {
+        affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
-                const offset: number = movingIds.indexOf(rule.id);
-                rule.rule_order = destPosition + offset;
-                rule.groupId = destKeepalived.groupId;
+                if (!destRule.groupId) {
+                    const offset = movingIds.indexOf(rule.id);
+                    rule.rule_order = destPosition + offset;
+                    rule.groupId = destRule.groupId;
+                } else {
+                    if (forward &&
+                        rule.rule_order >= destRule.rule_order
+                    ) {
+                        rule.rule_order += rules.length;
+                    }
+
+                    if (!forward &&
+                        rule.rule_order >= destRule.rule_order &&
+                        rule.rule_order < rules[0].rule_order
+                    ) {
+                        rule.rule_order += rules.length;
+                    }
+                }
             } else {
-                if (forward && rule.rule_order >= destKeepalived.rule_order) {
+                if (forward && rule.rule_order >= destRule.rule_order) {
                     rule.rule_order += rules.length;
                 }
 
-                if (!forward && rule.rule_order >= destKeepalived.rule_order && rule.rule_order < rules[0].rule_order) {
+                if (!forward && rule.rule_order >= destRule.rule_order && rule.rule_order < rules[0].rule_order) {
                     rule.rule_order += rules.length;
                 }
             }
         });
 
-        return affectedKeepaliveds;
+        return affectedRules;
     }
 
     /**
@@ -129,30 +144,40 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
      * @param destkeepalived - The destination Keepalived rule.
      * @returns The updated array of affected Keepalived rules.
      */
-    protected async moveBelow(rules: KeepalivedRule[], affectedKeepaliveds: KeepalivedRule[], destKeepalived: KeepalivedRule): Promise<KeepalivedRule[]> {
-        const destPosition: number = destKeepalived.rule_order;
+    protected async moveBelow(rules: KeepalivedRule[], affectedRules: KeepalivedRule[], destRule: KeepalivedRule): Promise<KeepalivedRule[]> {
+        const destPosition: number = destRule.rule_order;
         const movingIds: number[] = rules.map((keepalived_r: KeepalivedRule) => keepalived_r.id);
 
         const currentPosition: number = rules[0].rule_order;
-        const forward: boolean = currentPosition < destKeepalived.rule_order;
+        const forward: boolean = currentPosition < destRule.rule_order;
 
-        affectedKeepaliveds.forEach((rule: KeepalivedRule) => {
+        affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
-                const offset: number = movingIds.indexOf(rule.id);
-                rule.rule_order = destPosition + offset + 1;
-                rule.groupId = destKeepalived.groupId;
+                if (!destRule.groupId) {
+                    const offset: number = movingIds.indexOf(rule.id);
+                    rule.rule_order = destPosition + offset + 1;
+                    rule.groupId = destRule.groupId;
+                } else {
+                    rule.groupId = destRule.groupId;
+                    if(!forward) {
+                        const offset: number = movingIds.indexOf(rule.id);
+                        rule.rule_order = destPosition + offset + 1;
+                    }
+                }
             } else {
-                if (forward && rule.rule_order > destKeepalived.rule_order) {
+                if (forward && rule.rule_order > destRule.rule_order) {
                     rule.rule_order += rules.length;
                 }
 
-                if (!forward && rule.rule_order > destKeepalived.rule_order && rule.rule_order < rules[0].rule_order) {
+                if (!forward && rule.rule_order > destRule.rule_order &&
+                    rule.rule_order < rules[0].rule_order
+                ) {
                     rule.rule_order += rules.length;
                 }
             }
         });
 
-        return affectedKeepaliveds;
+        return affectedRules;
     }
 
     async remove(entities: KeepalivedRule[], options?: RemoveOptions): Promise<KeepalivedRule[]>;
@@ -233,23 +258,6 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
         await this.query(
             `SET @a:=0; UPDATE ${KeepalivedRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map(item => item.id).join(',')}) ORDER BY rule_order`
         );
-    }
-
-    /**
-     * Retrieves the last Keepalived rule in a specified group.
-     * @param keepalivedgid - The ID of the Keepalived group.
-     * @returns A Promise that resolves to the last Keepalived rule in the group.
-     */
-    async getLastKeepalivedRule(firewall: number): Promise<KeepalivedRule> {
-        return (await this.find({
-            where: {
-                firewall: firewall,
-            },
-            order: {
-                'rule_order': 'DESC',
-            },
-            take: 1,
-        }))[0];
     }
 
     async getLastKeepalivedRuleInFirewall(firewall: number): Promise<KeepalivedRule | undefined> {

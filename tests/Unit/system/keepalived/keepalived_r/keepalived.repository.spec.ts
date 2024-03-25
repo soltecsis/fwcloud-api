@@ -62,7 +62,7 @@ describe(KeepalivedRepository.name, () => {
             firewall: firewall,
         }));
 
-        const keepalivedRule = await getRepository(KeepalivedRule).save(getRepository(KeepalivedRule).create({
+        keepalivedRule = await getRepository(KeepalivedRule).save(getRepository(KeepalivedRule).create({
             group: group,
             firewall: firewall,
             rule_order: 1,
@@ -74,7 +74,6 @@ describe(KeepalivedRepository.name, () => {
         it('should remove a single KeepalivedRule entity', async () => {
             const result = await repository.remove(keepalivedRule);
 
-            expect(result).to.deep.equal(KeepalivedRule);
             expect(await repository.findOne(keepalivedRule.id)).to.be.undefined;
         });
 
@@ -88,7 +87,6 @@ describe(KeepalivedRepository.name, () => {
 
             const result = await repository.remove([keepalivedRule, keepalivedRule2]);
 
-            expect(result).to.deep.equal([KeepalivedRule, keepalivedRule2]);
             expect(await repository.findOne(keepalivedRule.id)).to.be.undefined;
             expect(await repository.findOne(keepalivedRule2.id)).to.be.undefined;
         });

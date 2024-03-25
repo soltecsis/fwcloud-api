@@ -53,4 +53,12 @@ export class KeepalivedGroup extends Model {
     public getTableName(): string {
         return tableName;
     }
+
+    public static moveToOtherFirewall(src_firewall: number, dst_firewall: number) {
+        return KeepalivedGroup.createQueryBuilder()
+            .update()
+            .set({ firewallId: dst_firewall })
+            .where('firewallId = :src_firewall', { src_firewall })
+            .execute();
+    }
 }

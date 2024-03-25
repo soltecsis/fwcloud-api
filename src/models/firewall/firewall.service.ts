@@ -31,6 +31,8 @@ import { RoutingRuleToOpenVPNPrefix } from "../routing/routing-rule/routing-rule
 import { RoutingRuleToMark } from "../routing/routing-rule/routing-rule-to-mark.model";
 import { RoutingRuleService } from "../routing/routing-rule/routing-rule.service";
 import { KeepalivedRuleService } from "../system/keepalived/keepalived_r/keepalived_r.service";
+import { KeepalivedGroup } from "../system/keepalived/keepalived_g/keepalived_g.model";
+import { KeepalivedRule } from "../system/keepalived/keepalived_r/keepalived_r.model";
 const fwcError = require('../../utils/error_table');
 var utilsModel = require("../../utils/utils.js");
 
@@ -229,6 +231,8 @@ export class FirewallService extends Service {
                             await PolicyGroup.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM)
                             await Interface.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM)
                             await OpenVPN.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
+                            await KeepalivedGroup.moveToOtherFirewall(firewallId, idNewFM);
+                            await KeepalivedRule.moveToOtherFirewall(firewallId, idNewFM);
 
 							// Move routing tables.
                             let routingTableService = await app().getService<RoutingTableService>(RoutingTableService.name);

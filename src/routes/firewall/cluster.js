@@ -619,6 +619,8 @@ router.put('/clone', async (req, res) => {
 							await Firewall.updateFWMaster(iduser, fwcloud, newClusterId, idNewFirewall, 1);
 							//CLONE INTERFACES
 							let dataI = await Interface.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
+							//Clone Keepalived rules
+							await KeepalivedRule.cloneKeepalived(oldFirewall,idNewFirewall);
 							await PolicyRule.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
 							await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
 							const firewallService = await app().getService(FirewallService.name);
@@ -628,9 +630,6 @@ router.put('/clone', async (req, res) => {
 
 					//INSERT FIREWALL NODE STRUCTURE
 					await Tree.insertFwc_Tree_New_cluster(fwcloud, req.body.node_id, newClusterId);
-
-					// Clone Keepalived rules
-					await KeepalivedRule.cloneKeepalived(idCluster,newClusterId);
 
 					// Update aaply_to fields of rules in the master firewall for point to nodes in the cloned cluster.
 					await PolicyRule.updateApplyToRules(newClusterId, fwNewMaster);
