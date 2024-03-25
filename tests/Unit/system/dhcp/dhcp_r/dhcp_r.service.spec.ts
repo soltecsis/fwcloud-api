@@ -331,6 +331,7 @@ describe(DHCPRuleService.name, () => {
 
     describe('copy', () => {
         let copyStub: sinon.SinonStub;
+        let getLastDHCPRuleInFirewallStub: sinon.SinonStub;
         let moveStub: sinon.SinonStub;
 
         beforeEach(async () => {
@@ -338,8 +339,9 @@ describe(DHCPRuleService.name, () => {
                 name: 'group',
                 firewall: firewall,
             }));
-            copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule);
-            moveStub = sinon.stub(service, 'move').resolves([dhcpRule]);
+            copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule as DHCPRule);
+            getLastDHCPRuleInFirewallStub = sinon.stub(service['_repository'], 'getLastDHCPRuleInFirewall').resolves(dhcpRule);
+            moveStub = sinon.stub(service, 'move').resolves([dhcpRule] as DHCPRule[]);
         });
 
         afterEach(() => {
@@ -349,7 +351,7 @@ describe(DHCPRuleService.name, () => {
 
         it('should copy a DHCPRule successfully', async () => {
             const result: DHCPRule[] = await service.copy([dhcpRule.id], dhcpRule.id, Offset.Above);
-
+            
             expect(copyStub.called).to.be.true;
             expect(result[0].id).equal(dhcpRule.id);
             expect(result[0].rule_order).equal(dhcpRule.rule_order);
