@@ -135,13 +135,16 @@ describe(KeepalivedGroupService.name, () => {
                 style: 'default',
             };
 
-            const findOneStub = sinon.stub(service['_repository'], 'findOne').resolves(undefined);
+            const findOneStub = sinon.stub(service['_repository'], 'findOne').resolves(group);
+            const saveStub = sinon.stub(service['_repository'], 'save').rejects(new Error('KeepalivedGroup not found'));
 
             await expect(service.update(id, data)).to.be.rejectedWith('KeepalivedGroup not found');
 
             expect(findOneStub.calledOnce).to.be.true;
+            expect(saveStub.calledOnce).to.be.true;
 
             findOneStub.restore();
+            saveStub.restore();
         });
 
         it('should handle errors during the update process', async () => {

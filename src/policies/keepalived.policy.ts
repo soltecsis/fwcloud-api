@@ -26,7 +26,7 @@ export class KeepalivedPolicy extends Policy {
 
         keepalived = await this.getKeepalivedR(keepalived.id);
 
-        return this.checkAuthorization(user, keepalived.firewall.fwCloud.id);
+        return this.checkAuthorization(user, keepalived.firewall.fwCloudId);
     }
 
     static async create(firewall: Firewall, user: User): Promise<Authorization> {
@@ -44,13 +44,14 @@ export class KeepalivedPolicy extends Policy {
 
     static async copy(keepalived: KeepalivedRule, user: User): Promise<Authorization> {
         user = await this.getUser(user.id);
+
         if (user.role === 1) {
             return Authorization.grant();
         }
 
         keepalived = await this.getKeepalivedR(keepalived.id);
 
-        return this.checkAuthorization(user, keepalived.firewall.fwCloud.id);
+        return this.checkAuthorization(user, keepalived.firewall.fwCloudId);
     }
 
     static async move(firewall: Firewall, user: User): Promise<Authorization> {
@@ -74,7 +75,7 @@ export class KeepalivedPolicy extends Policy {
 
         keepalived = await this.getKeepalivedR(keepalived.id);
 
-        return this.checkAuthorization(user, keepalived.firewall.fwCloud.id);
+        return this.checkAuthorization(user, keepalived.firewall.fwCloudId);
     }
 
     static async delete(keepalived: KeepalivedRule, user: User): Promise<Authorization> {
@@ -85,7 +86,7 @@ export class KeepalivedPolicy extends Policy {
 
         keepalived = await this.getKeepalivedR(keepalived.id);
 
-        return this.checkAuthorization(user, keepalived.firewall.fwCloud.id);
+        return this.checkAuthorization(user, keepalived.firewall.fwCloudId);
     }
 
     private static async checkAuthorization(user: User, fwCloudId: number): Promise<Authorization> {

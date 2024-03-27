@@ -76,7 +76,7 @@ describe('KeepalivedRule E2E Tests', () => {
             firewall: firewall,
         }));
     });
-    //TODO: REVISAR TESTS
+
     describe(KeepalivedController.name, () => {
         describe('@index', () => {
             let KeepalivedRule: KeepalivedRule;
@@ -129,7 +129,7 @@ describe('KeepalivedRule E2E Tests', () => {
 
             it('admin user should see Keepalived rules', async () => {
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.system.kepalived.index', {
+                    .get(_URL().getURL('fwclouds.firewalls.system.keepalived.index', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id
                     }))
@@ -215,7 +215,6 @@ describe('KeepalivedRule E2E Tests', () => {
                         active: true,
                         groupId: group.id,
                         firewallId: firewall.id,
-                        max_lease: 5,
                         cfg_text: "cfg_text",
                         comment: "comment",
                     })
@@ -233,7 +232,6 @@ describe('KeepalivedRule E2E Tests', () => {
                         active: true,
                         groupId: group.id,
                         firewallId: firewall.id,
-                        max_lease: 5,
                         cfg_text: "cfg_text",
                         comment: "comment",
                     })
@@ -254,7 +252,6 @@ describe('KeepalivedRule E2E Tests', () => {
                         active: true,
                         groupId: group.id,
                         firewallId: firewall.id,
-                        max_lease: 5,
                         cfg_text: "cfg_text",
                         comment: "comment",
                     })
@@ -275,7 +272,6 @@ describe('KeepalivedRule E2E Tests', () => {
                         active: true,
                         groupId: group.id,
                         firewallId: firewall.id,
-                        max_lease: 5,
                         cfg_text: "cfg_text",
                         comment: "comment",
                     })
@@ -308,7 +304,7 @@ describe('KeepalivedRule E2E Tests', () => {
                 });
                 data = {
                     rules: [KeepalivedRule1.id, KeepalivedRule2.id],
-                    to: (await getCustomRepository(KeepalivedRepository).getLastKeepalivedRuleInFirewall(firewall.id)).id,
+                    to: KeepalivedRule1.id,
                     offset: Offset.Below,
                 } as KeepalivedRuleCopyDto;
             });
@@ -367,10 +363,10 @@ describe('KeepalivedRule E2E Tests', () => {
         });
 
         describe('@update', () => {
-            let KeepalivedRule: KeepalivedRule;
+            let keepalivedRule: KeepalivedRule;
 
             beforeEach(async () => {
-                KeepalivedRule = await keepalivedRuleServiceInstance.store({
+                keepalivedRule = await keepalivedRuleServiceInstance.store({
                     active: true,
                     group: group.id,
                     firewallId: firewall.id,
@@ -384,13 +380,10 @@ describe('KeepalivedRule E2E Tests', () => {
                     .put(_URL().getURL('fwclouds.firewalls.system.keepalived.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        Keepalived: KeepalivedRule.id,
+                        keepalived: keepalivedRule.id,
                     }))
                     .send({
                         active: false,
-                        groupId: group.id,
-                        firewallId: firewall.id,
-                        max_lease: 5,
                         cfg_text: "cfg_text",
                         comment: "comment",
                     })
@@ -402,14 +395,11 @@ describe('KeepalivedRule E2E Tests', () => {
                     .put(_URL().getURL('fwclouds.firewalls.system.keepalived.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        Keepalived: KeepalivedRule.id,
+                        keepalived: keepalivedRule.id,
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .send({
                         active: false,
-                        groupId: group.id,
-                        firewallId: firewall.id,
-                        max_lease: 5,
                         cfg_text: "cfg_text",
                         comment: "comment",
                     })
@@ -421,17 +411,14 @@ describe('KeepalivedRule E2E Tests', () => {
                 await getRepository(User).save(loggedUser);
 
                 return await request(app.express)
-                    .put(_URL().getURL('fwclouds.firewalls.system.Keepalived.update', {
+                    .put(_URL().getURL('fwclouds.firewalls.system.keepalived.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        Keepalived: KeepalivedRule.id,
+                        keepalived: keepalivedRule.id,
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .send({
                         active: false,
-                        groupId: group.id,
-                        firewallId: firewall.id,
-                        max_lease: 5,
                         cfg_text: "cfg_text",
                         comment: "comment",
                     })
@@ -446,14 +433,11 @@ describe('KeepalivedRule E2E Tests', () => {
                     .put(_URL().getURL('fwclouds.firewalls.system.keepalived.update', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        Keepalived: KeepalivedRule.id,
+                        keepalived: keepalivedRule.id,
                     }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .send({
                         active: false,
-                        groupId: group.id,
-                        firewallId: firewall.id,
-                        max_lease: 5,
                         cfg_text: "cfg_text",
                         comment: "comment",
                     })
@@ -465,10 +449,10 @@ describe('KeepalivedRule E2E Tests', () => {
         });
 
         describe('@remove', () => {
-            let KeepalivedRule: KeepalivedRule;
+            let keepalivedRule: KeepalivedRule;
 
             beforeEach(async () => {
-                KeepalivedRule = await keepalivedRuleServiceInstance.store({
+                keepalivedRule = await keepalivedRuleServiceInstance.store({
                     active: true,
                     group: group.id,
                     firewallId: firewall.id,
@@ -482,7 +466,7 @@ describe('KeepalivedRule E2E Tests', () => {
                     .delete(_URL().getURL('fwclouds.firewalls.system.keepalived.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        Keepalived: KeepalivedRule.id,
+                        keepalived: keepalivedRule.id,
                     }))
                     .expect(401);
             });
@@ -492,7 +476,7 @@ describe('KeepalivedRule E2E Tests', () => {
                     .delete(_URL().getURL('fwclouds.firewalls.system.keepalived.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        Keepalived: KeepalivedRule.id,
+                        keepalived: keepalivedRule.id,
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401);
@@ -506,7 +490,7 @@ describe('KeepalivedRule E2E Tests', () => {
                     .delete(_URL().getURL('fwclouds.firewalls.system.keepalived.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        keepalived: KeepalivedRule.id,
+                        keepalived: keepalivedRule.id,
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
@@ -520,7 +504,7 @@ describe('KeepalivedRule E2E Tests', () => {
                     .delete(_URL().getURL('fwclouds.firewalls.system.keepalived.delete', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        keepalived: KeepalivedRule.id,
+                        keepalived: keepalivedRule.id,
                     }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
@@ -531,10 +515,10 @@ describe('KeepalivedRule E2E Tests', () => {
         });
 
         describe('@show', () => {
-            let KeepalivedRule: KeepalivedRule;
+            let keepalivedRule: KeepalivedRule;
 
             beforeEach(async () => {
-                KeepalivedRule = await keepalivedRuleServiceInstance.store({
+                keepalivedRule = await keepalivedRuleServiceInstance.store({
                     active: true,
                     group: group.id,
                     firewallId: firewall.id,
@@ -545,20 +529,20 @@ describe('KeepalivedRule E2E Tests', () => {
 
             it('guest user should not see a Keepalived rule', async () => {
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.system.Keepalived.show', {
+                    .get(_URL().getURL('fwclouds.firewalls.system.keepalived.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        keepalived: KeepalivedRule.id,
+                        keepalived: keepalivedRule.id,
                     }))
                     .expect(401);
             });
 
             it('regular user which does not belong to the fwcloud should not see a Keepalived rule', async () => {
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.system.Keepalived.show', {
+                    .get(_URL().getURL('fwclouds.firewalls.system.keepalived.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        keepalived: KeepalivedRule.id,
+                        keepalived: keepalivedRule.id,
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(401);
@@ -572,7 +556,7 @@ describe('KeepalivedRule E2E Tests', () => {
                     .get(_URL().getURL('fwclouds.firewalls.system.keepalived.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        keepalived: KeepalivedRule.id,
+                        keepalived: keepalivedRule.id,
                     }))
                     .set('Cookie', [attachSession(loggedUserSessionId)])
                     .expect(200)
@@ -586,7 +570,7 @@ describe('KeepalivedRule E2E Tests', () => {
                     .get(_URL().getURL('fwclouds.firewalls.system.keepalived.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
-                        keepalived: KeepalivedRule.id,
+                        keepalived: keepalivedRule.id,
                     }))
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(200)
@@ -676,10 +660,10 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule1.id)).rule_order).to.equal(3);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule2.id)).rule_order).to.equal(4);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule3.id)).rule_order).to.equal(5);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule4.id)).rule_order).to.equal(6);
+                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule1.id)).rule_order).to.equal(1);
+                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule2.id)).rule_order).to.equal(2);
+                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule3.id)).rule_order).to.equal(3);
+                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule4.id)).rule_order).to.equal(4);
             });
 
             it('admin user should move a Keepalived rule', async () => {
@@ -694,10 +678,11 @@ describe('KeepalivedRule E2E Tests', () => {
                     .then((response) => {
                         expect(response.body.data).to.have.length(2);
                     });
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule1.id)).rule_order).to.equal(3);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule2.id)).rule_order).to.equal(4);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule3.id)).rule_order).to.equal(5);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule4.id)).rule_order).to.equal(6);
+
+                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule1.id)).rule_order).to.equal(1);
+                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule2.id)).rule_order).to.equal(2);
+                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule3.id)).rule_order).to.equal(3);
+                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule4.id)).rule_order).to.equal(4);
             });
         });
 

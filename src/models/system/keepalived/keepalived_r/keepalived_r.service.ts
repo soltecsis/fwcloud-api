@@ -80,7 +80,7 @@ export interface KeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemF
     items: (T & { _order: number })[];
 }
 
-interface IMoveFromKeepalivedRule {
+export interface IMoveFromKeepalivedRule {
     fromId: number;
     toId: number;
     virtualIpsIds: number;
@@ -128,7 +128,7 @@ export class KeepalivedRuleService extends Service {
         keepalivedRuleData.rule_order = lastKeepalivedRule?.rule_order ? lastKeepalivedRule.rule_order + 1 : 1;
         const persisted: Partial<KeepalivedRule> & KeepalivedRule = await this._repository.save(keepalivedRuleData);
 
-        if (data.virtualIpsIds) {
+        if (data.virtualIpsIds && data.virtualIpsIds.length > 0) {
             persisted.virtualIps = data.virtualIpsIds.map(item => ({
                 keepalivedId: persisted.id,
                 ipObjId: item.id,
@@ -143,11 +143,11 @@ export class KeepalivedRuleService extends Service {
 
             await this._repository.save(persisted);
         }
-        
+
         if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'offset')) {
             return (await this.move([persisted.id], data.to, data.offset))[0]
         }
-        
+
         return persisted;
     }
 
@@ -161,14 +161,15 @@ export class KeepalivedRuleService extends Service {
 
         const lastRule: KeepalivedRule = await this._repository.getLastKeepalivedRuleInFirewall(keepalived_rs[0].firewallId);
 
-        keepalived_rs.map((item,index) => {
+        keepalived_rs.map((item, index) => {
             item.id = undefined;
             item.rule_order = lastRule.rule_order + index + 1;
         });
 
         const persisted = await this._repository.save(keepalived_rs);
+        const persistedArray = Array.isArray(persisted) ? persisted : [persisted];
 
-        return this.move(persisted.map(item => item.id), destRule, offset);
+        return this.move(persistedArray.map(item => item.id), destRule, offset);
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<KeepalivedRule[]> {

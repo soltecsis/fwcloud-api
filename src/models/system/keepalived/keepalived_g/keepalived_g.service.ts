@@ -105,7 +105,7 @@ export class KeepalivedGroupService extends Service {
         let group: KeepalivedGroup | undefined = await this._repository.findOne(id);
 
         if (!group) {
-            throw new Error('keepalivedGroup not found');
+            throw new Error('KeepalivedGroup not found');
         }
 
         Object.assign(group, data);
@@ -117,7 +117,7 @@ export class KeepalivedGroupService extends Service {
     async remove(path: IFindOneKeepalivedGPath): Promise<KeepalivedGroup> {
         const group: KeepalivedGroup = await this.findOneInPath(path);
         if (!group) {
-            throw new Error('keepalivedGroup not found');
+            throw new Error('KeepalivedGroup not found');
         }
         if (group.rules && group.rules.length > 0) {
             await getRepository(KeepalivedRule).update(group.rules.map(rule => rule.id), {

@@ -40,9 +40,9 @@ import { KeepalivedRuleBulkRemoveDto } from './dto/bulk-remove.dto';
 import { KeepalivedRuleItemForCompiler } from '../../../models/system/keepalived/shared';
 import { KeepalivedMoveFromDto } from './dto/move-from.dto';
 import { KeepalivedCompiler } from '../../../compiler/system/keepalived/KeepalivedCompiler';
-import {Channel} from "../../../sockets/channels/channel";
-import {Communication} from "../../../communications/communication";
-import {ProgressPayload} from "../../../sockets/messages/socket-message";
+import { Channel } from "../../../sockets/channels/channel";
+import { Communication } from "../../../communications/communication";
+import { ProgressPayload } from "../../../sockets/messages/socket-message";
 
 
 export class KeepalivedController extends Controller {
@@ -241,11 +241,11 @@ export class KeepalivedController extends Controller {
     let firewallId: number;
 
     let firewall: Firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
-    if(firewall.clusterId) {
+    if (firewall.clusterId) {
       firewallId = (await getRepository(Firewall).createQueryBuilder('firewall')
-          .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
-          .andWhere('firewall.fwmaster = 1')
-          .getOneOrFail()).id;
+        .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
+        .andWhere('firewall.fwmaster = 1')
+        .getOneOrFail()).id;
     } else {
       //TODO: envia error?
     }
@@ -256,11 +256,11 @@ export class KeepalivedController extends Controller {
 
     const communication: Communication<unknown> = await firewall.getCommunication();
 
-    channel.emit('message', new ProgressPayload('start',false,`Installing Keepalived configuration`));
+    channel.emit('message', new ProgressPayload('start', false, `Installing Keepalived configuration`));
 
     await communication.installKeepalivedConfigs('etc/keepalived', [{ name: 'keepalived.conf', content: content }], channel);
 
-    channel.emit('message', new ProgressPayload('end',false,`Keepalived configuration installed`));
+    channel.emit('message', new ProgressPayload('end', false, `Keepalived configuration installed`));
 
     return ResponseBuilder.buildResponse().status(200).body(null);
   }
