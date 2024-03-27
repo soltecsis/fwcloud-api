@@ -19,13 +19,14 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import {TableExporter} from "./table-exporter";
+import { TableExporter } from "./table-exporter";
 import Model from "../../../models/Model";
-import {KeepalivedRule} from "../../../models/system/keepalived/keepalived_r/keepalived_r.model";
-import {SelectQueryBuilder} from "typeorm";
-import {KeepalivedGroup} from "../../../models/system/keepalived/keepalived_g/keepalived_g.model";
-import {Firewall} from "../../../models/firewall/Firewall";
-import {FirewallExporter} from "./firewall.exporter";
+import { KeepalivedRule } from "../../../models/system/keepalived/keepalived_r/keepalived_r.model";
+import { SelectQueryBuilder } from "typeorm";
+import { KeepalivedGroup } from "../../../models/system/keepalived/keepalived_g/keepalived_g.model";
+import { Firewall } from "../../../models/firewall/Firewall";
+import { FirewallExporter } from "./firewall.exporter";
+import { KeepalivedGroupExporter } from "./keepalived_g.exporter";
 
 export class KeepalivedRuleExporter extends TableExporter {
     protected getEntity(): typeof Model {
@@ -37,7 +38,7 @@ export class KeepalivedRuleExporter extends TableExporter {
             .where((qb) => {
                 const query = qb.subQuery().from(KeepalivedGroup, 'keepalived_g').select('keepalived_g.id');
 
-                return `${alias}.dhcpGroupId IN ` + new KeepalivedRuleExporter().getFilterBuilder(query, 'keepalived_g', fwCloudId).getQuery();
+                return `${alias}.dhcpGroupId IN ` + new KeepalivedGroupExporter().getFilterBuilder(query, 'keepalived_g', fwCloudId).getQuery();
             })
             .where((qb) => {
                 const query = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');

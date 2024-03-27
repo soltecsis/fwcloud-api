@@ -20,12 +20,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {TableExporter} from "./table-exporter";
-import {KeepalivedGroup} from "../../../models/system/keepalived/keepalived_g/keepalived_g.model";
+import { TableExporter } from "./table-exporter";
+import { KeepalivedGroup } from "../../../models/system/keepalived/keepalived_g/keepalived_g.model";
 import Model from "../../../models/Model";
-import {SelectQueryBuilder} from "typeorm";
-import {Firewall} from "../../../models/firewall/Firewall";
-import {FirewallExporter} from "./firewall.exporter";
+import { SelectQueryBuilder } from "typeorm";
+import { Firewall } from "../../../models/firewall/Firewall";
+import { FirewallExporter } from "./firewall.exporter";
 
 export class KeepalivedGroupExporter extends TableExporter {
     protected getEntity(): typeof Model {
@@ -35,7 +35,7 @@ export class KeepalivedGroupExporter extends TableExporter {
     public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
         return qb
             .where(qb => {
-                const query = qb.subQuery().from(Firewall,'firewall').select('firewall.id');
+                const query = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
                 return `${alias}.firewallId IN ` + new FirewallExporter().getFilterBuilder(query, 'firewall', fwCloudId).getQuery();
             });
     }

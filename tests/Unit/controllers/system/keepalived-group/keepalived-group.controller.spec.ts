@@ -71,7 +71,7 @@ describe(KeepalivedGroupController.name, () => {
         it('should fetch KeepalivedGroup when KeepalivedGroup param is present', async () => {
             const requestMock = {
                 params: {
-                    Keepalivedgroup: Keepalivedgroup.id,
+                    keepalivedgroup: Keepalivedgroup.id,
                     firewall: firewall.id,
                     fwcloud: fwCloud.id,
                 }
@@ -118,7 +118,7 @@ describe(KeepalivedGroupController.name, () => {
         it('should handle errors when entities are not found', async () => {
             const requestMock = {
                 params: {
-                    Keepalivedgroup: 9999,
+                    keepalivedgroup: 9999,
                     firewall: firewall.id,
                     fwcloud: fwCloud.id,
                 }

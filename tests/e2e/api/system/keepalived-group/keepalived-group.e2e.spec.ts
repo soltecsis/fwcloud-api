@@ -46,7 +46,7 @@ describe('keepalivedGroup E2E Tests', () => {
     let fwCloud: FwCloud;
 
     let keepalivedGroupService: KeepalivedGroupService;
-//TODO: REVISAR TESTS
+
     beforeEach(async () => {
         app = testSuite.app;
         await testSuite.resetDatabaseData();
@@ -207,7 +207,7 @@ describe('keepalivedGroup E2E Tests', () => {
 
             it('regular user which does not belong to the firewall should not be able to show a Keepalived group', async () => {
                 return await request(app.express)
-                    .get(_URL().getURL('fwclouds.firewalls.system.Keepalived.groups.show', {
+                    .get(_URL().getURL('fwclouds.firewalls.system.keepalived.groups.show', {
                         fwcloud: fwCloud.id,
                         firewall: firewall.id,
                         keepalivedgroup: keepalivedGroup.id,
