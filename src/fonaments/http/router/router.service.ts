@@ -159,7 +159,6 @@ export class RouterService extends Service {
 
                 await this.checkGates(route, request);
                 await this.validateInput(route, request);
-
                 const controllerInstance = new route.controllerSignature.controller(this._app);
                 await controllerInstance.make(request);
 

@@ -115,12 +115,6 @@ export class KeepAlivedService1707389184803 implements MigrationInterface {
                     isNullable: true,
                 },
                 {
-                    name: 'virtual_ip',
-                    type: 'int',
-                    length: '11',
-                    isNullable: true,
-                },
-                {
                     name: 'master_node',
                     type: 'int',
                     length: '11',
@@ -149,11 +143,6 @@ export class KeepAlivedService1707389184803 implements MigrationInterface {
                     referencedColumnNames: ['id'],
                 },
                 {
-                    columnNames: ['virtual_ip'],
-                    referencedTableName: 'ipobj',
-                    referencedColumnNames: ['id'],
-                },
-                {
                     columnNames: ['master_node'],
                     referencedTableName: 'firewall',
                     referencedColumnNames: ['id'],
@@ -165,9 +154,46 @@ export class KeepAlivedService1707389184803 implements MigrationInterface {
                 }
             ]
         }));
+
+        await queryRunner.createTable(new Table({
+            name: 'keepalived_r__ipobj',
+            columns: [
+                {
+                    name: 'rule',
+                    type: 'int',
+                    length: '11',
+                    isPrimary: true,
+                },
+                {
+                    name: 'ipobj',
+                    type: 'int',
+                    length: '11',
+                    isPrimary: true,
+                },
+                {
+                    name: 'order',
+                    type: 'int',
+                    length: '11',
+                    isNullable: false,
+                }
+            ],
+            foreignKeys: [
+                {
+                    columnNames: ['rule'],
+                    referencedTableName: 'keepalived_r',
+                    referencedColumnNames: ['id']
+                },
+                {
+                    columnNames: ['ipobj'],
+                    referencedTableName: 'ipobj',
+                    referencedColumnNames: ['id']
+                }
+            ]
+        }));
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.dropTable('keepalived_r__ipobj');
         await queryRunner.dropTable('keepalived_r');
         await queryRunner.dropTable('keepalived_g');
     }

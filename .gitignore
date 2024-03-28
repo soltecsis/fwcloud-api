@@ -9,6 +9,7 @@ logs/
 !.vscode/launch.json
 nbproject/private/
 nbproject/
+.idea/*
 
 # Dependency directories
 node_modules/
