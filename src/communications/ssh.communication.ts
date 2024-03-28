@@ -259,4 +259,8 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     installPlugin(name: string,enabled: boolean): Promise<string> {
         throw new Error("Method not implemented.");
     }
+
+    installHAPRoxyConfigs(dir: string, configs: { name: string; content: string; }[], eventEmitter?: EventEmitter): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
 }
