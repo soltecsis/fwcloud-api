@@ -29,28 +29,35 @@ export class KeepalivedCompiler {
     public ruleCompile(ruleData: KeepalivedRulesData<KeepalivedRuleItemForCompiler>): string {
         let cs: string = "";
 
-        if (ruleData.comment) {
-            cs += `# ${ruleData.comment}\n`;
-        }
+        switch (ruleData.rule_type) {
+            case 3:
+                cs = ruleData.cfg_text ? ruleData.cfg_text : '';
+                break;
+            default:
+                if (ruleData.comment) {
+                    cs += `# ${ruleData.comment}\n`;
+                }
 
-        cs += `vrrp_script VI_${ruleData.interface?.name} {\n`;
-        cs += `\tinterface ${ruleData.interface?.name}\n`;
-        cs += `\tstate BACKUP\n`;
-        if (ruleData.interface?.hosts?.length > 0) {
-            cs += `\tvirtual_router_id ${ruleData.interface.hosts[0].ipObjId}\n`;
+                cs += `vrrp_script VI_${ruleData.interface?.name} {\n`;
+                cs += `\tinterface ${ruleData.interface?.name}\n`;
+                cs += `\tstate BACKUP\n`;
+                if (ruleData.interface?.hosts?.length > 0) {
+                    cs += `\tvirtual_router_id ${ruleData.interface.hosts[0].ipObjId}\n`;
+                }
+                cs += `\tpriority ${ruleData.masterNode === ruleData.firewall ? 99 : 50}\n`;
+                cs += '\tadvert_int 5\n';
+                if (ruleData.virtualIps?.length) {
+                    cs += '\tvirtual_ipaddress {\n';
+                    for (const vip of ruleData.virtualIps) {
+                        const ipobj = vip.ipObj;
+                        const ipSplit = ipobj.address.split('.');
+                        cs += `\t\t${ipobj.address} label ${ruleData.interface.name}:${ipSplit[ipSplit.length - 1]} dev ${ruleData.interface.name}\n`;
+                    }
+                    cs += '\t}\n';
+                }
+                cs += '}\n';
+                break;
         }
-        cs += `\tpriority ${ruleData.masterNode === ruleData.firewall ? 99 : 50}\n`;
-        cs += '\tadvert_int 5\n';
-        if (ruleData.virtualIps?.length) {
-            cs += '\tvirtual_ipaddress {\n';
-            for (const vip of ruleData.virtualIps) {
-                const ipobj = vip.ipObj;
-                const ipSplit = ipobj.address.split('.');
-                cs += `\t\t${ipobj.address} label ${ruleData.interface.name}:${ipSplit[ipSplit.length - 1]} dev ${ruleData.interface.name}\n`;
-            }
-            cs += '\t}\n';
-        }
-        cs += '}\n';
 
         return cs;
     }
