@@ -22,8 +22,9 @@ import { HAProxyGroup } from "../../../models/system/haproxy/haproxy_g/haproxy_g
 import { HAProxyGroupExporter } from "./haproxy_g.exporter";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FirewallExporter } from "./firewall.exporter";
+import { TableExporter } from "./table-exporter";
 
-export class HAProxyRuleExporter {
+export class HAProxyRuleExporter extends TableExporter{
     protected getEntity(): typeof Model {
         return HAProxyRule;
     }

@@ -23,8 +23,9 @@ import { HAProxyRule } from "../../../models/system/haproxy/haproxy_r/haproxy_r.
 import { HAProxyRuleExporter } from "./haproxy_r.exporter";
 import { IPObj } from "../../../models/ipobj/IPObj";
 import { IPObjExporter } from "./ipobj.exporter";
+import { TableExporter } from "./table-exporter";
 
-export class HAProxyRuleToIPObjExporter {
+export class HAProxyRuleToIPObjExporter extends TableExporter{
     protected getEntity(): typeof Model {
         return HAProxyRuleToIPObj;
     }
