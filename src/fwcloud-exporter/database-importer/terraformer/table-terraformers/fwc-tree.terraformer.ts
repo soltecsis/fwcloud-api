@@ -20,24 +20,22 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableTerraformer, TerraformHandlerCollection } from "../table-terraformer";
-import { ImportMapping } from "../mapper/import-mapping";
-import { IPObjType } from "../../../../models/ipobj/IPObjType";
-import { Firewall } from "../../../../models/firewall/Firewall";
-import { Ca } from "../../../../models/vpn/pki/Ca";
-import { Cluster } from "../../../../models/firewall/Cluster";
-import { Crt } from "../../../../models/vpn/pki/Crt";
+import {TableTerraformer, TerraformHandlerCollection} from "../table-terraformer";
+import {ImportMapping} from "../mapper/import-mapping";
+import {Firewall} from "../../../../models/firewall/Firewall";
+import {Ca} from "../../../../models/vpn/pki/Ca";
+import {Cluster} from "../../../../models/firewall/Cluster";
+import {Crt} from "../../../../models/vpn/pki/Crt";
 import Model from "../../../../models/Model";
-import { Interface } from "../../../../models/interface/Interface";
-import { OpenVPN } from "../../../../models/vpn/openvpn/OpenVPN";
-import { IPObj } from "../../../../models/ipobj/IPObj";
-import { IPObjGroup } from "../../../../models/ipobj/IPObjGroup";
-import { Mark } from "../../../../models/ipobj/Mark";
-import { CaPrefix } from "../../../../models/vpn/pki/CaPrefix";
-import { OpenVPNPrefix } from "../../../../models/vpn/openvpn/OpenVPNPrefix";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { RoutingRule } from "../../../../models/routing/routing-rule/routing-rule.model";
-import { RoutingTable } from "../../../../models/routing/routing-table/routing-table.model";
+import {Interface} from "../../../../models/interface/Interface";
+import {OpenVPN} from "../../../../models/vpn/openvpn/OpenVPN";
+import {IPObj} from "../../../../models/ipobj/IPObj";
+import {IPObjGroup} from "../../../../models/ipobj/IPObjGroup";
+import {Mark} from "../../../../models/ipobj/Mark";
+import {CaPrefix} from "../../../../models/vpn/pki/CaPrefix";
+import {OpenVPNPrefix} from "../../../../models/vpn/openvpn/OpenVPNPrefix";
+import {EventEmitter} from "typeorm/platform/PlatformTools";
+import {RoutingTable} from "../../../../models/routing/routing-table/routing-table.model";
 
 export class FwcTreeTerraformer extends TableTerraformer {
     protected _typeToTableNameMapping: {[type: string]: typeof Model} = {
@@ -93,12 +91,17 @@ export class FwcTreeTerraformer extends TableTerraformer {
         'ROU': Firewall,
         'RTS': Firewall,
         'RT': RoutingTable,
-        'RR': Firewall
+        'RR': Firewall,
+
+        'SYS': Firewall,
+        'S01': Firewall,
+        'S02': Firewall,
+        'S03': Firewall,
+        'S04': Firewall,
     }
 
     public static async make(mapper: ImportMapping, eventEmitter: EventEmitter = new EventEmitter()): Promise<FwcTreeTerraformer> {
-        const terraformer: FwcTreeTerraformer = new FwcTreeTerraformer(mapper, eventEmitter);
-        return terraformer;
+        return new FwcTreeTerraformer(mapper, eventEmitter);
     }
 
     protected getCustomHandlers(): TerraformHandlerCollection {
@@ -110,12 +113,12 @@ export class FwcTreeTerraformer extends TableTerraformer {
          * it calls the mapper in order to get the terraformed id
          */
         result['id_obj'] = (mapper: ImportMapping, row: any, value: any) => {
-            if (row.hasOwnProperty('node_type') && 
+            if (row.hasOwnProperty('node_type') &&
                 row.node_type !== null &&
                 this._typeToTableNameMapping.hasOwnProperty(row.node_type) &&
                 this._typeToTableNameMapping[row.node_type] !== null) {
-                    const referencedEntity: typeof Model = this._typeToTableNameMapping[row.node_type];
-                    return mapper.getMappedId(referencedEntity._getTableName(), referencedEntity.getPrimaryKeys()[0].propertyName, value)
+                const referencedEntity: typeof Model = this._typeToTableNameMapping[row.node_type];
+                return mapper.getMappedId(referencedEntity._getTableName(), referencedEntity.getPrimaryKeys()[0].propertyName, value)
             }
         }
 

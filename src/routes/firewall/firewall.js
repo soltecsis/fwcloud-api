@@ -83,6 +83,8 @@ import { FirewallService } from '../../models/firewall/firewall.service';
 import { RoutingTableService } from '../../models/routing/routing-table/routing-table.service';
 import { getRepository } from 'typeorm';
 import { Cluster } from '../../models/firewall/Cluster';
+import { DHCPRule } from '../../models/system/dhcp/dhcp_r/dhcp_r.model';
+import { DHCPGroup } from '../../models/system/dhcp/dhcp_g/dhcp_g.model';
 
 var utilsModel = require("../../utils/utils.js");
 const restrictedCheck = require('../../middleware/restricted');
@@ -667,6 +669,8 @@ router.put('/clone', async (req, res) => {
 		await utilsModel.createFirewallDataDir(req.body.fwcloud, idNewFirewall);
 		await Tree.insertFwc_Tree_New_firewall(req.body.fwcloud, req.body.node_id, idNewFirewall);
 
+		await DHCPRule.cloneDHCP(req.body.firewall, idNewFirewall);
+		
 		const firewallService = await app().getService(FirewallService.name);
 		await firewallService.clone(req.body.firewall, idNewFirewall, dataI);
 		

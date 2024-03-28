@@ -256,7 +256,11 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         }
     }
 
-    installPlugin(name: string,enabled: boolean): Promise<string> {
+    installPlugin(name: string, enabled: boolean): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
+
+    installDHCPConfigs(dir: string, configs: { name: string; content: string; }[], eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         throw new Error("Method not implemented.");
     }
 }

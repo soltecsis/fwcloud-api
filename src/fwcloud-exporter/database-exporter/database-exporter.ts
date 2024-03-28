@@ -64,6 +64,9 @@ import { RouteToIPObjExporter } from "./exporters/route-to-ipobj.exporter";
 import { RouteToIPObjGroupExporter } from "./exporters/route-to-ipobj-group.exporter";
 import { RouteToOpenVPNExporter } from "./exporters/route-to-openvpn.exporter";
 import { RouteToOpenVPNPrefixExporter } from "./exporters/route-to-openvpn-prefix.exporter";
+import { DHCPRuleExporter } from "./exporters/dhcp_r.exporter";
+import { DHCPGroupExporter } from "./exporters/dhcp_g.exporter";
+import { DHCPRuleToIPObjExporter } from "./exporters/dhcp_r-to-ipobj.exporter";
 
 const EXPORTERS = [
     new CaExporter(),
@@ -102,6 +105,9 @@ const EXPORTERS = [
     new RouteToOpenVPNExporter(),
     new RouteToOpenVPNPrefixExporter(),
     new RouteGroupExporter(),
+    new DHCPRuleExporter(),
+    new DHCPRuleToIPObjExporter(),
+    new DHCPGroupExporter(),
     new OpenVPNToIPObjGroupExporter(),
     new FwcTreeExporter(),
 ];

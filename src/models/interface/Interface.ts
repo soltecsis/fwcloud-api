@@ -34,7 +34,7 @@ import { Route } from "../routing/route/route.model";
 import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface/routing-rule-to-interface.model";
 import { RouteToIPObj } from "../routing/route/route-to-ipobj.model";
 import { RoutingRuleToIPObj } from "../routing/routing-rule/routing-rule-to-ipobj.model";
-import { Tree } from '../../models/tree/Tree';
+import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -415,40 +415,42 @@ export class Interface extends Model {
 						search.restrictions.InterfaceInFirewall = await this.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
 						search.restrictions.InterfaceInHost = await InterfaceIPObj.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
 						search.restrictions.LastInterfaceWithAddrInHostInRule = await IPObj.searchLastInterfaceWithAddrInHostInRule(id, fwcloud);
-						
+
 						search.restrictions.InterfaceInRoute = await getRepository(Route).createQueryBuilder('route')
 							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
 							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-							.innerJoinAndSelect('route.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoinAndSelect('route.interface', 'interface', 'interface.id = :interface', { interface: id })
 							.innerJoinAndSelect('route.routingTable', 'table')
 							.innerJoin('table.firewall', 'firewall')
 							.leftJoin('firewall.cluster', 'cluster')
-							.where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
+							.where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
 							.getRawMany();
 
 						search.restrictions.IpobjInterfaceInRoute = await getRepository(RouteToIPObj).createQueryBuilder('routeToIPObj')
 							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
 							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
 							.innerJoin('routeToIPObj.ipObj', 'ipobj')
-							.innerJoin('ipobj.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoin('ipobj.interface', 'interface', 'interface.id = :interface', { interface: id })
 							.innerJoinAndSelect('routeToIPObj.route', 'route')
 							.innerJoinAndSelect('route.routingTable', 'table')
 							.innerJoin('table.firewall', 'firewall')
 							.leftJoin('firewall.cluster', 'cluster')
-							.where('firewall.fwCloudId = :fwcloud', {fwcloud})  
+							.where('firewall.fwCloudId = :fwcloud', { fwcloud })
 							.getRawMany()
 
 						search.restrictions.IpobjInterfaceInRoutingRule = await getRepository(RoutingRuleToIPObj).createQueryBuilder('routingRuleToIPObj')
 							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
 							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
 							.innerJoin('routingRuleToIPObj.ipObj', 'ipobj')
-							.innerJoin('ipobj.interface', 'interface', 'interface.id = :interface', {interface: id})
+							.innerJoin('ipobj.interface', 'interface', 'interface.id = :interface', { interface: id })
 							.innerJoinAndSelect('routingRuleToIPObj.routingRule', 'rule')
 							.innerJoin('rule.routingTable', 'table')
 							.innerJoin('table.firewall', 'firewall')
 							.leftJoin('firewall.cluster', 'cluster')
-							.where('firewall.fwCloudId = :fwcloud', {fwcloud})  
+							.where('firewall.fwCloudId = :fwcloud', { fwcloud })
 							.getRawMany()
+
+						search.restrictions.InterfaceInDhcpRule = await this.searchInterfaceInDhcpRule(id, fwcloud);
 
 						for (let key in search.restrictions) {
 							if (search.restrictions[key].length > 0) {
@@ -456,6 +458,7 @@ export class Interface extends Model {
 								break;
 							}
 						}
+
 						resolve(search);
 					} catch (error) { reject(error) }
 				} else resolve(search);
@@ -502,6 +505,20 @@ export class Interface extends Model {
 			});
 		});
 	};
+
+	public static async searchInterfaceInDhcpRule(id: string, fwcloud: string): Promise<any> {
+		return await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
+			.addSelect('dhcp_rule.id', 'dhcp_rule_id').addSelect('dhcp_rule.rule_type', 'dhcp_rule_type')
+			.addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
+			.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+			.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+			.leftJoin('dhcp_rule.interface', 'interface', 'interface.id = :interface', { interface: id })
+			.innerJoin('dhcp_rule.firewall', 'firewall')
+			.leftJoin('firewall.cluster', 'cluster')
+			.where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
+			.orderBy('dhcp_rule.rule_type', 'ASC')
+			.getRawMany();
+	}
 
 
 	//Add new interface from user
@@ -574,27 +591,58 @@ export class Interface extends Model {
 
 	//Update interface from user
 	public static updateInterface(interfaceData, callback) {
-		db.get((error, connection) => {
-			if (error)
+		db.get(async (error, connection) => {
+			if (error) {
 				callback(error, null);
-			var sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(interfaceData.name) + ',' +
-				'labelName = ' + connection.escape(interfaceData.labelName) + ', ' +
-				'type = ' + connection.escape(interfaceData.type) + ', ' +
-				'comment = ' + connection.escape(interfaceData.comment) + ', ' +
-				'mac = ' + connection.escape(interfaceData.mac) + ' ' +
-				' WHERE id = ' + interfaceData.id;
-			logger().debug(sql);
-			connection.query(sql, async (error, result) => {
-				if (error) {
-					callback(error, null);
-				} else {
-					if (result.affectedRows > 0) {
-						callback(null, { "result": true });
+				return;
+			}
+
+			const checkDhcpReferences = async () => {
+				return new Promise((resolve, reject) => {
+					const dhcpCheckSql = 'SELECT COUNT(*) as count FROM dhcp_r WHERE interface = ?';
+					connection.query(dhcpCheckSql, [interfaceData.id], (error, result) => {
+						if (error) {
+							reject(error);
+						} else {
+							resolve(result[0].count);
+						}
+					});
+				});
+			};
+
+			await checkDhcpReferences()
+				.then((count: number) => {
+					if (count > 0 && (interfaceData.mac === null || interfaceData.mac === '' || interfaceData.mac === undefined)) {
+						const errorMessage = 'The interface cannot be updated. There are references in dhcp_r.';
+						callback({ "data": errorMessage }, null);
 					} else {
-						callback(null, { "result": false });
+						const sql = `
+							UPDATE ${tableName}
+							SET name = ${connection.escape(interfaceData.name)},
+								labelName = ${connection.escape(interfaceData.labelName)},
+								type = ${connection.escape(interfaceData.type)},
+								comment = ${connection.escape(interfaceData.comment)},
+								mac = ${connection.escape(interfaceData.mac)}
+							WHERE id = ${interfaceData.id}`;
+
+						logger().debug(sql);
+
+						connection.query(sql, (error, result) => {
+							if (error) {
+								callback(error, null);
+							} else {
+								if (result.affectedRows > 0) {
+									callback(null, { result: true });
+								} else {
+									callback(null, { result: false });
+								}
+							}
+						});
 					}
-				}
-			});
+				})
+				.catch((error) => {
+					callback(error, null);
+				});
 		});
 	};
 

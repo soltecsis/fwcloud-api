@@ -43,6 +43,7 @@ import { RoutingRuleService } from "../../src/models/routing/routing-rule/routin
 import { Mark } from "../../src/models/ipobj/Mark";
 
 export type FwCloudProduct = {
+    dhcpGroup: any;
     fwcloud: FwCloud;
     firewall: Firewall;
     ipobjGroup: IPObjGroup;
