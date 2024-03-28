@@ -38,11 +38,11 @@ export class KeepalivedRuleToIPObjExporter extends TableExporter {
         return qb
             .where((qb) => {
                 const subquery = qb.subQuery().from(KeepalivedRule, 'keepalived_r').select('keepalived_r.id');
-                return `${alias}.keepalivedRuleId IN ` + new KeepalivedRuleExporter().getFilterBuilder(subquery, 'keepalived_r', fwCloudId).getQuery();
+                return `${alias}.rule IN ` + new KeepalivedRuleExporter().getFilterBuilder(subquery, 'keepalived_r', fwCloudId).getQuery();
             })
             .orWhere((qb) => {
                 const subquery = qb.subQuery().from(IPObj, 'ipobj').select('ipobj.id');
-                return `${alias}.ipobjId IN ` + new IPObjExporter().getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery();
+                return `${alias}.ipobj IN ` + new IPObjExporter().getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery();
             })
     }
 }

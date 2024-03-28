@@ -176,7 +176,7 @@ export class IPObj extends Model {
     @OneToMany(()=> KeepalivedToIPObj, model => model.ipObj, {
         cascade: true,
     })
-    keepalivedToIPObjs: KeepalivedToIPObj[];
+    keepalivedRuleToIPObjs: KeepalivedToIPObj[];
 
     public getTableName(): string {
         return tableName;
@@ -1060,9 +1060,9 @@ export class IPObj extends Model {
 
     public static async searchIpobjInKeepalivedRule(id: number, fwcloud: number): Promise<any> {
         return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
-            .leftJoin('keepalived_rule.keepalivedRuleToIPObjs', 'keepalivedRuleToIPObjs')
-            .leftJoin('keepalivedRuleToIPObjs.ipObj', 'ipObj', 'ipObj.id = :id', { id: id })
-            .innerJoin('keepaliced.firewall', 'firewall')
+            .leftJoin('keepalived_rule.virtualIps', 'virtualIps')
+            .leftJoin('virtualIps.ipObj', 'ipObj', 'ipObj.id = :id', { id: id })
+            .innerJoin('keepalived_rule.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
             .where(`firewall.fwCloudId = :fwcloud AND (ipObj.id IS NOT NULL)`, { fwcloud: fwcloud })
             .getRawMany();

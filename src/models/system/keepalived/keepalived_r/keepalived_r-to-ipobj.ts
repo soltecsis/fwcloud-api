@@ -26,7 +26,7 @@ export class KeepalivedToIPObj extends Model {
     @JoinColumn({ name: 'rule' })
     keepalivedRule: KeepalivedRule;
 
-    @ManyToOne(() => IPObj, (ipObj) => ipObj.keepalivedToIPObjs, {
+    @ManyToOne(() => IPObj, (ipObj) => ipObj.keepalivedRuleToIPObjs, {
         orphanedRowAction: 'delete',
     })
     @JoinColumn({ name: 'ipobj' })

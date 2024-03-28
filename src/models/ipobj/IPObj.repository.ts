@@ -297,7 +297,7 @@ export class IPObjRepository extends Repository<IPObj> {
 
     if (entity === 'rule') {
       query
-        .innerJoin('ipobj.keepalivedToIPObjs', 'keepalivedToIPObjs')
+        .innerJoin('ipobj.keepalivedRuleToIPObjs', 'keepalivedToIPObjs')
         .addSelect('keepalivedToIPObjs.order', '_order')
         .innerJoin('keepalivedToIPObjs.keepalivedRule', entity);
     }
