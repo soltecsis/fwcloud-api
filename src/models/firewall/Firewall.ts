@@ -54,6 +54,8 @@ import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { Route } from '../routing/route/route.model';
 import { RoutingRule } from './../routing/routing-rule/routing-rule.model';
+import { HAProxyGroup } from "../system/haproxy/haproxy_g/haproxy_g.model";
+import { HAProxyRule } from "../system/haproxy/haproxy_r/haproxy_r.model";
 
 const tableName: string = 'firewall';
 
@@ -211,6 +213,12 @@ export class Firewall extends Model {
 
 	@OneToMany(type => Route, route => route.firewallApplyTo)
 	routes: Route[]
+
+	@OneToMany(type => HAProxyGroup, haproxyGroup => haproxyGroup.firewall)
+	haproxyGroups: HAProxyGroup[];
+
+	@OneToMany(type => HAProxyRule, haproxyRule => haproxyRule.firewall)
+	haproxyRules: HAProxyRule[];
 
 	public getTableName(): string {
 		return tableName;

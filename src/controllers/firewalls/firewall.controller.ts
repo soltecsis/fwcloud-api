@@ -45,12 +45,16 @@ import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { PgpHelper } from "../../utils/pgp";
 import { PluginDto } from './dtos/plugin.dto';
+import { HAProxyRuleService, HAProxyRulesData } from "../../models/system/haproxy/haproxy_r/haproxy_r.service";
+import { HAProxyRuleItemForCompiler } from "../../models/system/haproxy/shared";
+import { HAProxyCompiler } from "../../compiler/system/haproxy/HAProxyCompiler";
 
 
 export class FirewallController extends Controller {
 
     protected firewallService: FirewallService;
     protected routingRuleService: RoutingRuleService;
+    protected haproxyRuleService: HAProxyRuleService;
     protected _fwCloud: FwCloud;
 
     public async make(request: Request): Promise<void> {
@@ -61,6 +65,7 @@ export class FirewallController extends Controller {
 
         this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
         this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
+        this.haproxyRuleService = await this._app.getService<HAProxyRuleService>(HAProxyRuleService.name);
     }
 
     @Validate(FirewallControllerCompileDto)
@@ -128,6 +133,26 @@ export class FirewallController extends Controller {
             request.query.rules ? (request.query.rules as string[]).map(item => parseInt(item)) : undefined
         );
         const compilation = new RoutingCompiler().compile('Rule', rules);
+
+        return ResponseBuilder.buildResponse().status(200).body(compilation)
+    }
+
+    @Validate()
+    @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
+    async compileHAProxyRules(request: Request): Promise<ResponseBuilder> {
+        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+            id: parseInt(request.params.firewall),
+            fwCloudId: parseInt(request.params.fwcloud)
+        });
+
+        (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
+
+        let rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] = await this.haproxyRuleService.getHAProxyRulesData(
+            firewall.fwCloudId,
+            firewall.id,
+        );
+
+        const compilation = new HAProxyCompiler().compile(rules);
 
         return ResponseBuilder.buildResponse().status(200).body(compilation)
     }
