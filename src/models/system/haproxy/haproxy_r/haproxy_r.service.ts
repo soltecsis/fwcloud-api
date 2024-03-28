@@ -18,7 +18,6 @@
 import { FindOneOptions, In, getCustomRepository, getRepository } from "typeorm";
 import { Service } from "../../../../fonaments/services/service";
 import { Offset } from "../../../../offset";
-import { ItemForGrid } from "../../../routing/shared";
 import { HAProxyRuleRepository } from "./haproxy.repository";
 import { HAProxyRule } from "./haproxy_r.model";
 import { IPObjRepository } from "../../../ipobj/IPObj.repository";
@@ -31,6 +30,7 @@ import { FwCloud } from "../../../fwcloud/FwCloud";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { ErrorBag } from "../../../../fonaments/validation/validator";
 import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
+import { HAProxyRuleItemForCompiler, ItemForGrid } from "../shared";
 
 interface IFindManyHAProxyRPath {
     fwcloudId?: number;
@@ -73,8 +73,8 @@ export interface IUpdateHAProxyRule {
     rule_order?: number;
     offset?: Offset;
 }
-//TODO: Add HAProxyRuleItemForCompiler
-export interface HAProxyRulesData<T extends ItemForGrid> extends HAProxyRule {
+
+export interface HAProxyRulesData<T extends ItemForGrid | HAProxyRuleItemForCompiler> extends HAProxyRule {
     items: (T & { _order: number })[];
 }
 
@@ -272,8 +272,8 @@ export class HAProxyRuleService extends Service {
             },
         }, options);
     }
-    //TODO: Add HAProxyRuleItemForCompiler
-    public async getHAProxyRulesData<T extends ItemForGrid>(fwcloud: number, firewall: number, rules?: number[]): Promise<HAProxyRulesData<T>[]> {
+    
+    public async getHAProxyRulesData<T extends ItemForGrid | HAProxyRuleItemForCompiler>(fwcloud: number, firewall: number, rules?: number[]): Promise<HAProxyRulesData<T>[]> {
         const rulesData: HAProxyRulesData<T>[] = await this._repository.getHAProxyRules(fwcloud, firewall, rules) as HAProxyRulesData<T>[];
 
         let ItemsArrayMap: Map<number, T[]> = new Map<number, T[]>();

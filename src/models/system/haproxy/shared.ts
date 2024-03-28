@@ -15,4 +15,46 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-//TODO Compiler needed
+import { SelectQueryBuilder } from "typeorm";
+import { IPObj } from "../../ipobj/IPObj";
+import { IPObjGroup } from "../../ipobj/IPObjGroup";
+
+export type AvailableDestination = 'grid' | 'compiler';
+
+export type ItemForGrid = {
+    entityId: number;
+    id: number;
+    name: string;
+    type: number;
+    firewall_id: number;
+    firewall_name: string;
+    cluster_id: number;
+    cluster_name: string;
+    frontend_ip_id?: number;
+    frontend_ip_name?: string;
+    frontend_port_id?: number;
+    frontend_port_name?: string;
+    backend_ip_id?: number;
+    backend_ip_name?: string;
+}
+
+export type HAProxyRuleItemForCompiler = {
+    entityId: number;
+    type: number;
+    frontend_ip: string;
+    frontend_port: string;
+    backend_port: string;
+}
+
+export class HAProxyUtils {
+    public static async mapEntityData<T extends ItemForGrid | HAProxyRuleItemForCompiler>(sql: SelectQueryBuilder<IPObj | IPObjGroup>, ItemsArrayMap: Map<number, T[]>): Promise<void> {
+        const data: T[] = await sql.getRawMany() as T[];
+
+        for (let i = 0; i < data.length; i++) {
+            const items: T[] = ItemsArrayMap.get(data[i].entityId);
+            items?.push(data[i]);
+        }
+
+        return;
+    }
+}
