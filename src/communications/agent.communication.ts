@@ -40,7 +40,7 @@ type AgentCommunicationData = {
 }
 
 export class AgentCommunication extends Communication<AgentCommunicationData> {
- 
+
     protected readonly url: string;
     protected readonly ws_url: string;
     protected readonly headers: Record<string, unknown>;
@@ -58,8 +58,8 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
 
         this.url = `${this.connectionData.protocol}://${this.connectionData.host}:${this.connectionData.port}`
-        this.ws_url = this.url.replace('http://','ws://').replace('https://','wss://');
-        this.cancel_token = axios.CancelToken.source() ;
+        this.ws_url = this.url.replace('http://', 'ws://').replace('https://', 'wss://');
+        this.cancel_token = axios.CancelToken.source();
         this.config = {
             timeout: app().config.get('openvpn.agent.timeout'),
             headers: {
@@ -99,12 +99,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             response.data.split("\n").forEach(item => eventEmitter.emit('message', new ProgressSSHCmdPayload(item)));
 
             return "DONE";
-        } catch(error) {
+        } catch (error) {
             this.handleRequestException(error, eventEmitter);
         }
     }
 
-    async installOpenVPNServerConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<void> {
+    async installOpenVPNServerConfigs(dir: string, configs: { name: string, content: string }[], eventEmitter?: EventEmitter): Promise<void> {
         try {
             const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
             const form = new FormData();
@@ -120,28 +120,20 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
 
             await axios.post(pathUrl, form, requestConfig);
-        } catch(error) {
+        } catch (error) {
             this.handleRequestException(error, eventEmitter);
         }
     }
 
-    async installOpenVPNClientConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
+    async installOpenVPNClientConfigs(dir: string, configs: { name: string, content: string }[], eventEmitter: EventEmitter = new EventEmitter()): Promise<void> {
         try {
             const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
             const form = new FormData();
-            form.append('dst_dir', dir);
-            form.append('perms', 644);
 
-            configs.forEach(config => {
-                form.append('data', config.content, config.name);
-                eventEmitter.emit('message', new ProgressInfoPayload(`Uploading configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
-            });
-
-            const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
-            requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+            const requestConfig: AxiosRequestConfig = this.obtainRequestConfig(form, dir, configs, eventEmitter);
 
             await axios.post(pathUrl, form, requestConfig);
-        } catch(error) {
+        } catch (error) {
             this.handleRequestException(error, eventEmitter);
         }
     }
@@ -163,7 +155,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
             await axios.delete(pathUrl, config);
 
-        } catch(error) {
+        } catch (error) {
             this.handleRequestException(error, eventEmitter);
         }
     }
@@ -179,7 +171,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             }
 
             throw new Error("Unexpected getInterfaces response");
-        } catch(error) {
+        } catch (error) {
             this.handleRequestException(error);
         }
     }
@@ -195,7 +187,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             }
 
             throw new Error("Unexpected getInterfaces response");
-        } catch(error) {
+        } catch (error) {
             this.handleRequestException(error);
         }
     }
@@ -220,11 +212,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             }
 
             throw new Error("Unexpected ccdHashList response");
-        } catch(error) {
+        } catch (error) {
             this.handleRequestException(error);
         }
     }
-    
+
     async ping(): Promise<void> {
         try {
             const pathUrl: string = this.url + '/api/v1/ping';
@@ -232,7 +224,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             await axios.put(pathUrl, "", this.config);
 
             return;
-        } catch(error) {
+        } catch (error) {
             return this.handleRequestException(error);
         }
     }
@@ -240,51 +232,51 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     async info(): Promise<FwcAgentInfo> {
         try {
             const pathUrl: string = this.url + '/api/v1/info';
-            
+
             const response: AxiosResponse<FwcAgentInfo> = await axios.get(pathUrl, this.config);
-            
+
             if (response.status === 200) {
                 return response.data
             }
 
             throw new Error("Unexpected FWCloud-Agent info response");
 
-        } catch(error) {
+        } catch (error) {
             this.handleRequestException(error);
         }
     }
-    
+
     async installPlugin(name: string, enabled: boolean, eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         try {
             const pathUrl: string = this.url + '/api/v1/plugin';
 
             const config: AxiosRequestConfig = Object.assign({}, this.config);
             config.headers["Content-Type"] = "application/json";
-            
-            let params = { 
-                name: name, 
+
+            let params = {
+                name: name,
                 "action": enabled ? 'enable' : 'disable',
                 ws_id: await this.createWebSocket(eventEmitter)
             };
 
-            const requestConfig: AxiosRequestConfig = Object.assign({},this.config);
+            const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
 
             // Disable timeout and manage it from the WebSocket events.
             requestConfig.timeout = 0;
 
-            axios.post(pathUrl,params,requestConfig).then((_) => {
+            axios.post(pathUrl, params, requestConfig).then((_) => {
                 const endMessage: ProgressPayload = new ProgressPayload('end', false, "Plugin action finished")
 
-                this.WSisClosed 
+                this.WSisClosed
                     ? eventEmitter.emit('message', endMessage)
-                    : this.eventEmitterWSClose.on('close', ()=> eventEmitter.emit('message', endMessage))
+                    : this.eventEmitterWSClose.on('close', () => eventEmitter.emit('message', endMessage))
 
             }).catch((err) => {
                 eventEmitter.emit('message', new ProgressPayload('error', false, "Plugin action failed: " + err.message));
             });
 
             return "";
-        }catch(error) {
+        } catch (error) {
             this.handleRequestException(error);
         }
     }
@@ -294,7 +286,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             const pathUrl: string = this.ws_url + '/api/v1/ws';
             const ws = new WebSocket(pathUrl, {
                 headers: {
-                  ['X-API-Key']: this.connectionData.apikey,
+                    ['X-API-Key']: this.connectionData.apikey,
                 },
                 rejectUnauthorized: false
             });
@@ -360,7 +352,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             }
 
             throw new Error("Unexpected getRealtimeStatus response");
-        } catch(error) {
+        } catch (error) {
             this.handleRequestException(error);
         }
     }
@@ -391,14 +383,14 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             }
 
             throw new Error("Unexpected getOpenVPNHistoryFile response");
-        } catch(error) {
+        } catch (error) {
             this.handleRequestException(error);
         }
     }
-    async systemctlManagement(command: string,service: string): Promise<string> {
+    async systemctlManagement(command: string, service: string): Promise<string> {
         try {
             const pathUrl: string = this.url + '/api/v1/systemctl';
-            
+
             const systemCtlInfo: SystemCtlInfo = {
                 command: command,
                 service: service
@@ -408,7 +400,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
                 return response.data
             }
             throw new Error("Unexpected FWCloud-Agent info response");
-        } catch(error) {
+        } catch (error) {
             this.handleRequestException(error);
         }
     }
@@ -471,6 +463,42 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     private obtainRequestConfig(form: FormData, dir: string, configs: { name: string, content: string }[], eventEmitter: EventEmitter) {
+        form.append('dst_dir', dir);
+        form.append('perms', 644);
+
+        configs.forEach(config => {
+            form.append('data', config.content, config.name);
+            eventEmitter.emit('message', new ProgressInfoPayload(`Uploading configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
+        });
+
+        const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
+        requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+        return requestConfig;
+    }    async installDHCPConfigs(dir: string, configs: { name: string; content: string; }[], eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
+        try {
+            const pathUrl: string = this.url + '/api/v1/daemon/config/upload';
+            const form: FormData = new FormData();
+
+            const requestConfig: AxiosRequestConfig = this.obtainRequestConfig(form, dir, configs, eventEmitter);
+
+            requestConfig.timeout = 0;
+
+            requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
+
+            const response: AxiosResponse<string> = await axios.post(pathUrl, form, requestConfig);
+
+            response.data.split("\n").forEach(item => eventEmitter.emit('message', new ProgressSSHCmdPayload(item)));
+
+            return "DONE";
+        } catch (error) {
+            this.handleRequestException(error, eventEmitter)
+        }
+    }
+
+    private obtainRequestConfig(form: FormData, dir: string, configs: {
+        name: string;
+        content: string
+    }[], eventEmitter: EventEmitter) {
         form.append('dst_dir', dir);
         form.append('perms', 644);
 

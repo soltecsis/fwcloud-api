@@ -67,6 +67,9 @@ import { RouteToOpenVPNPrefixExporter } from "./exporters/route-to-openvpn-prefi
 import { HAProxyRuleExporter } from "./exporters/haproxy_r.exporter";
 import { HAProxyRuleToIPObjExporter } from "./exporters/haproxy_r-to-ipobj.exporter";
 import { HAProxyGroupExporter } from "./exporters/haproxy_g.exporter";
+import { DHCPRuleExporter } from "./exporters/dhcp_r.exporter";
+import { DHCPGroupExporter } from "./exporters/dhcp_g.exporter";
+import { DHCPRuleToIPObjExporter } from "./exporters/dhcp_r-to-ipobj.exporter";
 
 const EXPORTERS = [
     new CaExporter(),
@@ -108,6 +111,9 @@ const EXPORTERS = [
     new HAProxyRuleExporter(),
     new HAProxyRuleToIPObjExporter(),
     new HAProxyGroupExporter(),
+    new DHCPRuleExporter(),
+    new DHCPRuleToIPObjExporter(),
+    new DHCPGroupExporter(),
     new OpenVPNToIPObjGroupExporter(),
     new FwcTreeExporter(),
 ];

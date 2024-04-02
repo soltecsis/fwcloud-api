@@ -377,13 +377,13 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 			let new_order;
 
 			// We can not move the Catch-All special rule.
-			if (moveRule.special===2) throw(fwcError.NOT_ALLOWED);
+			if (moveRule.special === 2) throw (fwcError.NOT_ALLOWED);
 			// It is not possible to move rules under the Catch-All special rule.
-			if (pasteOnRule.special===2 && pasteOffset===1) throw(fwcError.NOT_ALLOWED);
+			if (pasteOnRule.special === 2 && pasteOffset === 1) throw (fwcError.NOT_ALLOWED);
 
-			if (pasteOffset===1)
+			if (pasteOffset === 1)
 				new_order = await PolicyRule.makeAfterRuleOrderGap(firewall, moveRule.type, pasteOnRuleId);
-			else if (pasteOffset===-1)
+			else if (pasteOffset === -1)
 				new_order = await PolicyRule.makeBeforeRuleOrderGap(firewall, moveRule.type, pasteOnRuleId);
 			else // Move rule into group.
 				new_order = moveRule.rule_order;
@@ -395,18 +395,23 @@ async function ruleMove(dbCon, firewall, rule, pasteOnRuleId, pasteOffset) {
 				rule_order: new_order
 			};
 			await PolicyRule.updatePolicy_r(dbCon, policy_rData);
-			
+
 
 			// If we have moved rule from a group, if the group is empty remove de rules group from the database.
-			if (pasteOffset!=0 && moveRule.idgroup) {
+			if (pasteOffset != 0 && moveRule.idgroup) {
 				const policyGroup = await getCustomRepository(PolicyGroupRepository).findOne(moveRule.idgroup);
 				if (policyGroup) {
 					await getCustomRepository(PolicyGroupRepository).deleteIfEmpty(policyGroup);
 				}
+			} else if (!pasteOnRule.idgroup && moveRule.idgroup) {
+				const policyGroup = await getCustomRepository(PolicyGroupRepository).findOne(moveRule.idgroup, { relations: ['policyRules'] });
+				if (policyGroup.policyRules.length < 1) {
+					await getCustomRepository(PolicyGroupRepository).delete({ id: policyGroup.id });
+				}
 			}
 
 			resolve();
-		} catch(error) { return reject(error) }
+		} catch (error) { return reject(error) }
 	});
 }
 
