@@ -189,15 +189,15 @@ export class FwCloud extends Model {
 				delete RT from routing_table RT inner join firewall FW on FW.id=RT.firewall where FW.fwcloud=${this.id};
 				delete RG from route_g RG inner join firewall FW on FW.id=RG.firewall where FW.fwcloud=${this.id};`
 
-				//Delete HAProxy groups and rules
-				+`delete HAPROXYIPOBJ from haproxy_r__ipobj HAPROXYIPOBJ inner join haproxy_r RULE on RULE.id=HAPROXYIPOBJ.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
-				delete HAPROXYR from harpoxy_r HAPROXYR inner join firewall FW on FW.id=HAPROXYR.firewall where FW.fwcloud=${this.id};
-				delete HAPROXYG from haproxy_g HAPROXYG inner join firewall FW on FW.id=HAPROXYG.firewall where FW.fwcloud=${this.id};`
-
 				//Delete DHCP Rules
 				+`delete DHCPIPOBJ from dhcp_r__ipobj DHCPIPOBJ inner join dhcp_r RULE on RULE.id=DHCPIPOBJ.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
 				delete DHCPR from dhcp_r DHCPR inner join firewall FW on FW.id=DHCPR.firewall where FW.fwcloud=${this.id};
 				delete DHCPG from dhcp_g DHCPG inner join firewall FW on FW.id=DHCPG.firewall where FW.fwcloud=${this.id};`
+
+				//Delete HAProxy groups and rules
+				+`delete HAPROXYIPOBJ from haproxy_r__ipobj HAPROXYIPOBJ inner join haproxy_r RULE on RULE.id=HAPROXYIPOBJ.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
+				delete HAPROXYR from haproxy_r HAPROXYR inner join firewall FW on FW.id=HAPROXYR.firewall where FW.fwcloud=${this.id};
+				delete HAPROXYG from haproxy_g HAPROXYG inner join firewall FW on FW.id=HAPROXYG.firewall where FW.fwcloud=${this.id};`
 
 				// Next the OpenVPN entities of the database.
 			+`delete OPT from openvpn_opt OPT inner join openvpn VPN on VPN.id=OPT.openvpn inner join firewall FW On FW.id=VPN.firewall where FW.fwcloud=${this.id};
