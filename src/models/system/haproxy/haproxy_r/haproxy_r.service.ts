@@ -120,7 +120,7 @@ export class HAProxyRuleService extends Service {
             await this.validateBackEndIPs(haProxyRule.firewall, data);
             haProxyRule.backEndIPs = data.backEndIPsIds.map(item => ({
                 haproxyRuleId: haProxyRule.id,
-                ipobjId: item.id,
+                ipObjId: item.id,
                 order: item.order
             } as HAProxyRuleToIPObj));
         }
@@ -183,12 +183,12 @@ export class HAProxyRuleService extends Service {
         });
 
         if (data.backEndIPsId !== undefined) {
-            const index = toRule.backEndIPs.findIndex(item => item.ipobjId === data.backEndIPsId);
+            const index = toRule.backEndIPs.findIndex(item => item.ipObjId === data.backEndIPsId);
             if (index >= 0) {
                 fromRule.backEndIPs.splice(index, 1);
                 toRule.backEndIPs.push({
                     haproxyRuleId: toRule.id,
-                    ipobjId: data.backEndIPsId,
+                    ipObjId: data.backEndIPsId,
                     order: lastPosition + 1
                 } as HAProxyRuleToIPObj);
             }
@@ -216,7 +216,7 @@ export class HAProxyRuleService extends Service {
             await this.validateBackEndIPs(haProxyRule.firewall, data);
             haProxyRule.backEndIPs = data.backEndIPsIds.map(item => ({
                 haproxyRuleId: haProxyRule.id,
-                ipobjId: item.id,
+                ipObjId: item.id,
                 order: item.order
             } as HAProxyRuleToIPObj));
         } else {

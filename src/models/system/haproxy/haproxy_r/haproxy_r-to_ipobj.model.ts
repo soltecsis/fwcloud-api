@@ -33,7 +33,7 @@ export class HAProxyRuleToIPObj extends Model {
     haproxyRuleId: number;
 
     @PrimaryColumn({ name: 'ipobj' })
-    ipobjId: number;
+    ipObjId: number;
 
     @Column({ type: Number })
     order: number;

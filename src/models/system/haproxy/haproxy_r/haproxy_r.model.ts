@@ -65,6 +65,9 @@ export class HAProxyRule extends Model {
     @JoinColumn({ name: 'backend_port' })
     backEndPort: IPObj;
 
+    @Column({ name: 'firewall' })
+    firewallId: number;
+
     @ManyToOne(() => Firewall)
     @JoinColumn({ name: 'firewall' })
     firewall: Firewall;
