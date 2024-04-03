@@ -75,6 +75,7 @@ import { PgpHelper } from '../../utils/pgp';
 import { FirewallService } from '../../models/firewall/firewall.service';
 import { ClusterService } from '../../models/firewall/cluster.service';
 import { DHCPRule } from '../../models/system/dhcp/dhcp_r/dhcp_r.model';
+import { KeepalivedRule } from '../../models/system/keepalived/keepalived_r/keepalived_r.model';
 
 const restrictedCheck = require('../../middleware/restricted');
 const fwcError = require('../../utils/error_table');
@@ -621,6 +622,8 @@ router.put('/clone', async (req, res) => {
 							let dataI = await Interface.cloneFirewallInterfaces(iduser, fwcloud, oldFirewall, idNewFirewall);
 							// Clone DHCP rules.
 							await DHCPRule.cloneDHCP(oldFirewall, idNewFirewall);
+							// Clone Keepalived rules.
+							await KeepalivedRule.cloneKeepalived(oldFirewall, idNewFirewall);
 							await PolicyRule.cloneFirewallPolicy(req.dbCon, oldFirewall, idNewFirewall, dataI);
 							await utilsModel.createFirewallDataDir(fwcloud, idNewFirewall);
 							const firewallService = await app().getService(FirewallService.name);

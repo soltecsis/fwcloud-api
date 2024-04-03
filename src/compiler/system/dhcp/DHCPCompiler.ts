@@ -21,7 +21,7 @@
 */
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 import { DHCPRulesData } from "../../../models/system/dhcp/dhcp_r/dhcp_r.service";
-import { DHCPRuleItemForCompiler } from "../../../models/system/shared";
+import { DHCPRuleItemForCompiler } from "../../../models/system/dhcp/shared";
 import ip from 'ip';
 import { ProgressNoticePayload } from "../../../sockets/messages/socket-message";
 

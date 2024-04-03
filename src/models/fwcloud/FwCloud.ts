@@ -194,6 +194,11 @@ export class FwCloud extends Model {
 				delete DHCPR from dhcp_r DHCPR inner join firewall FW on FW.id=DHCPR.firewall where FW.fwcloud=${this.id};
 				delete DHCPG from dhcp_g DHCPG inner join firewall FW on FW.id=DHCPG.firewall where FW.fwcloud=${this.id};`
 
+				//Delete Keepalived Rules
+				+`delete KEEPALIVEDIPOBJ from keepalived_r__ipobj KEEPALIVEDIPOBJ inner join keepalived_r RULE on RULE.id=KEEPALIVEDIPOBJ.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
+				delete KEEPALIVEDR from keepalived_r KEEPALIVEDR inner join firewall FW on FW.id=KEEPALIVEDR.firewall where FW.fwcloud=${this.id};
+				delete KEEPALIVEDRG from keepalived_g KEEPALIVEDRG inner join firewall FW on FW.id=KEEPALIVEDRG.firewall where FW.fwcloud=${this.id};`
+
 				// Next the OpenVPN entities of the database.
 			+`delete OPT from openvpn_opt OPT inner join openvpn VPN on VPN.id=OPT.openvpn inner join firewall FW On FW.id=VPN.firewall where FW.fwcloud=${this.id};
 				delete VPN from openvpn__ipobj_g VPN inner join ipobj_g G on G.id=VPN.ipobj_g where G.fwcloud=${this.id};
