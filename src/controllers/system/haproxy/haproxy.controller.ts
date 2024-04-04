@@ -36,7 +36,7 @@ import { HAProxyRuleUpdateDto } from './dto/update.dto';
 import { HAProxyRuleBulkUpdateDto } from './dto/bulk-update.dto';
 import { HAProxyMoveFromDto } from './dto/move-from.dto';
 
-export class HaproxyController extends Controller {
+export class HAProxyController extends Controller {
     protected _haproxyRuleService: HAProxyRuleService;
     protected _haproxyRule: HAProxyRule;
     protected _haproxyGroup: HAProxyGroup;

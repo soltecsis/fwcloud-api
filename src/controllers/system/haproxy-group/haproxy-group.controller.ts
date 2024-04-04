@@ -20,7 +20,7 @@ import { Controller } from "../../../fonaments/http/controller";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { HAProxyGroup } from "../../../models/system/haproxy/haproxy_g/haproxy_g.model";
-import { HAProxyGService } from "../../../models/system/haproxy/haproxy_g/haproxy_g.service";
+import { HAProxyGroupService } from "../../../models/system/haproxy/haproxy_g/haproxy_g.service";
 import { HAProxyRuleService } from "../../../models/system/haproxy/haproxy_r/haproxy_r.service";
 import { Request } from 'express';
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
@@ -30,7 +30,7 @@ import { DHCPGroupControllerCreateDto } from "./dto/create.dto";
 import { DHCPGroupControllerUpdateDto } from "./dto/update.dto";
 
 export class HAProxyGroupController extends Controller {
-    protected _haproxyGroupService: HAProxyGService;
+    protected _haproxyGroupService: HAProxyGroupService;
     protected _haproxyRuleService: HAProxyRuleService;
 
     protected _firewall: Firewall;
@@ -38,7 +38,7 @@ export class HAProxyGroupController extends Controller {
     protected _haproxyGroup: HAProxyGroup;
 
     public async make(request: Request): Promise<void> {
-        this._haproxyGroupService = await this._app.getService<HAProxyGService>(HAProxyGService.name);
+        this._haproxyGroupService = await this._app.getService<HAProxyGroupService>(HAProxyGroupService.name);
         this._haproxyRuleService = await this._app.getService<HAProxyRuleService>(HAProxyRuleService.name);
 
         if (request.params.haproxygroup) {

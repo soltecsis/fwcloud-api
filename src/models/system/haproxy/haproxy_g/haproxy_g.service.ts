@@ -46,7 +46,7 @@ interface IUpdateHAProxyGroup {
     rules?: Partial<HAProxyRule>[];
 }
 
-export class HAProxyGService extends Service {
+export class HAProxyGroupService extends Service {
     protected _repository: Repository<HAProxyGroup>;
 
     constructor(app: Application) {
@@ -101,7 +101,7 @@ export class HAProxyGService extends Service {
         let group: HAProxyGroup | undefined = await this._repository.findOne(id);
 
         if (!group) {
-            throw new Error('DHCPGroup not found');
+            throw new Error('HAProxyGroup not found');
         }
 
         Object.assign(group, data);
@@ -113,7 +113,7 @@ export class HAProxyGService extends Service {
     async remove(path: IFindOneHAProxyGPath): Promise<HAProxyGroup> {
         const group: HAProxyGroup = await this.findOneInPath(path);
         if (!group) {
-            throw new Error('DHCPGroup not found');
+            throw new Error('HAProxyGroup not found');
         }
         if (group.rules && group.rules.length > 0) {
             await getRepository(HAProxyRule).update(group.rules.map(rule => rule.id), {
