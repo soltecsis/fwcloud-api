@@ -78,7 +78,7 @@ export interface KeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemF
 export interface IMoveFromKeepalivedRule {
     fromId: number;
     toId: number;
-    virtualIpsIds: number;
+    ipObjId?: number;
 }
 
 export class KeepalivedRuleService extends Service {
@@ -177,17 +177,17 @@ export class KeepalivedRuleService extends Service {
 
         let lastPosition = 0;
 
-        [].concat(fromRule.virtualIps).forEach((item) => {
+        [].concat(toRule.virtualIps).forEach((item) => {
             lastPosition < item.order ? lastPosition = item.order : null;
         });
 
-        if (data.virtualIpsIds) {
-            const index: number = toRule.virtualIps.findIndex(item => item.ipObjId === data.virtualIpsIds);
+        if (data.ipObjId !== undefined) {
+            const index: number = fromRule.virtualIps.findIndex(item => item.ipObjId === data.ipObjId);
             if (index >= 0) {
                 fromRule.virtualIps.splice(index, 1);
                 toRule.virtualIps.push({
                     keepalivedRuleId: toRule.id,
-                    ipObjId: data.virtualIpsIds,
+                    ipObjId: data.ipObjId,
                     order: lastPosition + 1
                 } as KeepalivedToIPObj);
             }
