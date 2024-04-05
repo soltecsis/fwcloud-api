@@ -70,6 +70,7 @@ export class FirewallController extends Controller {
         this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
         this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
         this.dhcpRuleService = await this._app.getService<DHCPRuleService>(DHCPRuleService.name);
+        this.keepalivedService = await this._app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
     }
 
     @Validate(FirewallControllerCompileDto)

@@ -263,8 +263,8 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
             .getOne();
     }
 
-    //TODO: Revisar
-    async getKeepalivedRules(fwcloud: number, firewall: number, rules?: number[], rule_types?: number[]): Promise<KeepalivedRule[]> {
+    async getKeepalivedRules(fwcloud: number, firewall: number, rules?: number[]): Promise<KeepalivedRule[]> {
+        console.log('getKeepalivedRules', fwcloud, firewall, rules);
         const query: SelectQueryBuilder<KeepalivedRule> = this.createQueryBuilder('keepalived_r')
             .leftJoinAndSelect('keepalived_r.group', 'group')
             .leftJoinAndSelect('keepalived_r.interface', 'interface')
@@ -278,11 +278,6 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
             .where('firewall.id = :firewallId', { firewallId: firewall })
             .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud });
 
-        if (rule_types) {
-            query
-                .andWhere('keepalived_r.rule_type IN (:...rule_types)')
-                .setParameter('rule_types', rule_types);
-        }
         if (rules) {
             query
                 .andWhere('keepalived_r.id IN (:...rule)')
