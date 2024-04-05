@@ -264,7 +264,6 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     }
 
     async getKeepalivedRules(fwcloud: number, firewall: number, rules?: number[]): Promise<KeepalivedRule[]> {
-        console.log('getKeepalivedRules', fwcloud, firewall, rules);
         const query: SelectQueryBuilder<KeepalivedRule> = this.createQueryBuilder('keepalived_r')
             .leftJoinAndSelect('keepalived_r.group', 'group')
             .leftJoinAndSelect('keepalived_r.interface', 'interface')
