@@ -25,7 +25,7 @@ import sinon from "sinon";
 import { HAProxyGroup } from "../../../../../src/models/system/haproxy/haproxy_g/haproxy_g.model";
 import { IFindOneRoutingRulePath } from "../../../../../src/models/routing/routing-rule/routing-rule.repository";
 
-describe.only(HAProxyGroupService.name, () => {
+describe(HAProxyGroupService.name, () => {
     let service: HAProxyGroupService;
     let fwCloud: FwCloud;
     let firewall: Firewall;

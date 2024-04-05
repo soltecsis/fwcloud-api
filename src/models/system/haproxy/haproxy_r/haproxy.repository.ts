@@ -15,9 +15,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, FindManyOptions, FindOneOptions, In, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
+import { EntityRepository, FindManyOptions, FindOneOptions, In, RemoveOptions, Repository, SelectQueryBuilder, getRepository } from "typeorm";
 import { HAProxyRule } from "./haproxy_r.model";
 import { Offset } from "../../../../offset";
+import { Firewall } from "../../../firewall/Firewall";
 
 interface IFindManyHAProxyRPath {
     fwcloudId?: number;
@@ -67,7 +68,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
 
         await this.save(affectedHAProxies);
 
-        await this.refreshOrder(haproxy_rs[0].group?.id);
+        await this.refreshOrders(haproxy_rs[0].group?.id);
 
         return await this.find({ where: { id: In(ids) } });
     }
@@ -130,12 +131,12 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
         if (result && !Array.isArray(result)) {
             const haproxy: HAProxyRule = result;
             if (haproxy.group) {
-                await this.refreshOrder(haproxy.group.id);
+                await this.refreshOrders(haproxy.firewallId);
             }
         } else {
             const haproxy: HAProxyRule = (result as HAProxyRule[])[0];
             if (haproxy.group) {
-                await this.refreshOrder(haproxy.group.id);
+                await this.refreshOrders(haproxy.firewallId);
             }
         }
         return result;
@@ -168,36 +169,28 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
         }), options;
     }
 
-    protected async refreshOrder(haproxyGroupId: number) {
-        const haproxy_rs: HAProxyRule[] = await this.find({
-            where: {
-                group: {
-                    id: haproxyGroupId,
-                },
-            },
-            order: {
-                rule_order: 'ASC',
-            },
+    protected async refreshOrders(firewallId: number) {
+        const firewall: Firewall = await getRepository(Firewall).findOneOrFail(firewallId);
+        const rules: HAProxyRule[] = await this.findManyInPath({
+            fwcloudId: firewall.fwCloudId,
+            firewallId: firewall.id,
         });
 
-        let order: number = 1;
-        haproxy_rs.forEach((haproxy_r: HAProxyRule) => {
-            haproxy_r.rule_order = order++;
-        });
+        if(rules.length === 0) {
+            return;
+        }
 
-        await this.save(haproxy_rs);
+        await this.query(
+            `SET @a:=0; UPDATE ${HAProxyRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map(item => item.id).join(',')}) ORDER BY rule_order`
+        );
     }
 
-    async getLastHAProxy(firewall: number): Promise<HAProxyRule> {
-        return (await this.find({
-            where: {
-                firewall: firewall,
-            },
-            order: {
-                'rule_order': 'DESC',
-            },
-            take: 1,
-        }))[0];
+    async getLastHAProxyRuleInFirewall(firewall: number): Promise<HAProxyRule> {
+        return this.createQueryBuilder('rule')
+            .where('rule.firewall = :firewall', { firewall })
+            .orderBy('rule.rule_order', 'DESC')
+            .take(1)
+            .getOne();
     }
 
     async getHAProxyRules(FwCloud: number, firewall: number, rules?: number[]): Promise<HAProxyRule[]> {
