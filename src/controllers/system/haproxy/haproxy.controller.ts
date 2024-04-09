@@ -46,7 +46,7 @@ export class HAProxyController extends Controller {
     public async make(request: Request): Promise<void> {
         this._haproxyRuleService = await this._app.getService<HAProxyRuleService>(HAProxyRuleService.name);
         if (request.params.haproxy) {
-            this._haproxyRule = await this._haproxyRuleService.findOneInPath({ id: parseInt(request.params.haproxy) });
+            this._haproxyRule = await getRepository(HAProxyRule).findOneOrFail(request.params.haproxy);
         }
         if (request.params.haproxygroup) {
             this._haproxyGroup = await getRepository(HAProxyGroup).findOneOrFail(request.params.haproxygroup);
