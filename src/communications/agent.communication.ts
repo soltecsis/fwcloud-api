@@ -464,7 +464,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
     async installKeepalivedConfigs(dir: string, configs: { name: string; content: string; }[], eventEmitter?: EventEmitter): Promise<string> {
         try {
-            const pathUrl: string = this.url + '/api/v1/deamon/config/upload';
+            const pathUrl: string = this.url + '/api/v1/daemon/config/upload';
 
             const form: FormData = new FormData();
 
