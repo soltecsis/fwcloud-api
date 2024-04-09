@@ -83,9 +83,7 @@ describe(HAProxyController.name, () => {
             const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail').resolves(firewall);
             const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
 
-            console.log("Antes del make")
             await controller.make(requestMock);
-            console.log("Despues del make")
 
             expect(haproxyruleStub.calledOnce).to.be.true;
             expect(firewallStub.calledOnce).to.be.true;

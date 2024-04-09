@@ -52,19 +52,6 @@ describe(HAProxyRuleService.name, () => {
             rule_order: 1,
             rule_type: 1,
             firewall: firewall,
-            /*frontEndIP: await getRepository(IPObj).save(getRepository(IPObj).create({
-                address: `192.168.1.1`,
-                destination_port_start: 80,
-                destination_port_end: 80,
-                name: 'test',
-                ipObjTypeId: 0
-            })),
-            frontEndPort: await getRepository(IPObj).save(getRepository(IPObj).create({
-                destination_port_start: 80,
-                destination_port_end: 80,
-                name: 'test',
-                ipObjTypeId: 0
-            })),*/
         }));
     });
 
