@@ -52,18 +52,18 @@ export class HAProxyRule extends Model {
 
     @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'frontend_ip' })
-    frontEndIP: IPObj;
+    frontendIp: IPObj;
 
     @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'frontend_port' })
-    frontEndPort: IPObj;
+    frontendPort: IPObj;
 
     @OneToMany(() => HAProxyRuleToIPObj, ruleToIPObj => ruleToIPObj.haproxyRule, { cascade: true })
-    backEndIPs: HAProxyRuleToIPObj[];
+    backendIps: HAProxyRuleToIPObj[];
 
     @ManyToOne(() => IPObj, { eager: true })
     @JoinColumn({ name: 'backend_port' })
-    backEndPort: IPObj;
+    backendPort: IPObj;
 
     @Column({ name: 'firewall' })
     firewallId: number;

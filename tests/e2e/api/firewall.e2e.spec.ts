@@ -398,14 +398,14 @@ describe(describeName('Firewall E2E Tests'), () => {
             rule1 = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
                 rule_type: 1,
                 firewall: firewall,
-                frontEndIP: await getRepository(IPObj).save(getRepository(IPObj).create({
+                frontendIp: await getRepository(IPObj).save(getRepository(IPObj).create({
                     address: `192.168.1.1`,
                     destination_port_start: 80,
                     destination_port_end: 80,
                     name: 'test',
                     ipObjTypeId: 0
                 })),
-                frontEndPort: await getRepository(IPObj).save(getRepository(IPObj).create({
+                frontendPort: await getRepository(IPObj).save(getRepository(IPObj).create({
                     destination_port_start: 80,
                     destination_port_end: 80,
                     name: 'test',
@@ -416,14 +416,14 @@ describe(describeName('Firewall E2E Tests'), () => {
             rule2 = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
                 rule_type: 1,
                 firewall: firewall,
-                frontEndIP: await getRepository(IPObj).save(getRepository(IPObj).create({
+                frontendIp: await getRepository(IPObj).save(getRepository(IPObj).create({
                     address: `192.168.1.1`,
                     destination_port_start: 80,
                     destination_port_end: 80,
                     name: 'test',
                     ipObjTypeId: 0
                 })),
-                frontEndPort: await getRepository(IPObj).save(getRepository(IPObj).create({
+                frontendPort: await getRepository(IPObj).save(getRepository(IPObj).create({
                     destination_port_start: 80,
                     destination_port_end: 80,
                     name: 'test',

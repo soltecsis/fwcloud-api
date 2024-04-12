@@ -38,7 +38,7 @@ export class HAProxyRuleCreateDto {
         each: true
     })
     @Type(() => PositionalEntityDto)
-    backendIpsIds?: number;
+    backendIpsIds?: PositionalEntityDto[];
 
     @IsNumber()
     @IsOptional()

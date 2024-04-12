@@ -38,22 +38,22 @@ export class HAProxyCompiler {
                 if (ruleData.comment) {
                     cs += `# ${ruleData.comment}\n`;
                 }
-                cs += `frontend\tfront_${ruleData.frontEndIP.name}\n`;
+                cs += `frontend\pfront_${ruleData.frontendIp.name}\n`;
                 cs += `\tmode\ttcp\n`;
-                cs += `\tbind\t${ruleData.frontEndIP.address}:${ruleData.frontEndPort.destination_port_start}\n`;
+                cs += `\tbind\t${ruleData.frontendIp.address}:${ruleData.frontendPort.destination_port_start}\n`;
                 cs += `\ttimeout\tclient 86400s\n`;
                 cs += `\toption\ttcplog\n`;
-                cs += `\tuse_backend\tback_${ruleData.frontEndIP.name}\n`;
+                cs += `\tuse_backend\tback_${ruleData.frontendIp.name}\n`;
                 cs += `\n`;
-                cs += `backend\tback_${ruleData.frontEndIP.name}\n`;
+                cs += `backend\tback_${ruleData.frontendIp.name}\n`;
                 cs += `\tmode\ttcp\n`;
                 cs += `\ttimeout\tconnect 30s\n`;
                 cs += `\ttimeout\tserver 86400s\n`;
                 cs += `\tbalance\tleastconn\n`;
                 cs += `\n`;
                 cs += `default-server\tinter 15s maxconn 50000\n`;
-                for (let i = 0; i < ruleData.backEndIPs.length; i++) {
-                    cs += `\tserver\t${ruleData.backEndIPs[i].ipObj.address}:${ruleData.backEndIPs[i].ipObj.destination_port_end}\n`;
+                for (let i = 0; i < ruleData.backendIps.length; i++) {
+                    cs += `\tserver\t${ruleData.backendIps[i].ipObj.address}:${ruleData.backendIps[i].ipObj.destination_port_end}\n`;
                 }
         }
         return cs;

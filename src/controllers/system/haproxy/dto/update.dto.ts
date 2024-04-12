@@ -38,7 +38,7 @@ export class HAProxyRuleUpdateDto {
         each: true
     })
     @Type(() => PositionalEntityDto)
-    backendIpsIds?: number;
+    backendIpsIds?: PositionalEntityDto[];
 
     @IsNumber()
     @IsOptional()

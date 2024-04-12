@@ -101,8 +101,8 @@ describe(HAProxyRuleService.name, () => {
                 rule_order: 1,
                 rule_type: 1,
                 firewallId: firewall.id,
-                frontEndIPId: 1,
-                frontEndPortId: 1,
+                frontendIpId: 1,
+                frontendPortId: 1,
             };
             const expected = await getRepository(HAProxyRule).create(data);
             service['_repository'].getLastHAProxyRuleInFirewall = async () => null;
@@ -127,8 +127,8 @@ describe(HAProxyRuleService.name, () => {
                 rule_order: 1,
                 rule_type: 1,
                 firewallId: firewall.id,
-                frontEndIPId: 1,
-                frontEndPortId: 1,
+                frontendIpId: 1,
+                frontendPortId: 1,
                 group: 999
             };
 
@@ -146,8 +146,8 @@ describe(HAProxyRuleService.name, () => {
                 rule_order: 1,
                 rule_type: 1,
                 firewallId: firewall.id,
-                frontEndIPId: 1,
-                frontEndPortId: 1,
+                frontendIpId: 1,
+                frontendPortId: 1,
             };
 
             const saveStub = sinon.stub(service['_repository'], 'save').rejects(new Error('Save error'));
@@ -164,8 +164,8 @@ describe(HAProxyRuleService.name, () => {
                 rule_order: 1,
                 rule_type: 1,
                 firewallId: firewall.id,
-                frontEndIPId: 1,
-                frontEndPortId: 1,
+                frontendIpId: 1,
+                frontendPortId: 1,
             };
             const expected = await getRepository(HAProxyRule).create(getRepository(HAProxyRule).create({
                 rule_order: 5,
@@ -187,8 +187,8 @@ describe(HAProxyRuleService.name, () => {
                 rule_order: 1,
                 rule_type: 1,
                 firewallId: firewall.id,
-                frontEndIPId: 1,
-                frontEndPortId: 1,
+                frontendIpId: 1,
+                frontendPortId: 1,
                 to: 3,
                 offset: 'Above'
             };
@@ -216,8 +216,8 @@ describe(HAProxyRuleService.name, () => {
                 rule_order: 1,
                 rule_type: 1,
                 firewallId: firewall.id,
-                frontEndIPId: 1,
-                frontEndPortId: 1,
+                frontendIpId: 1,
+                frontendPortId: 1,
             } as Partial<ICreateHAProxyRule>;
 
             const frontEndIP = await getRepository(IPObj).save(getRepository(IPObj).create({
@@ -233,8 +233,8 @@ describe(HAProxyRuleService.name, () => {
                 ipObjTypeId: 0,
                 ip_version: 6,
             }));
-            data.frontEndIPId = frontEndIP.id;
-            data.backEndIPsIds = [{ id: virtualIP.id, order: 1 }];
+            data.frontendIpId = frontEndIP.id;
+            data.backendIpsIds = [{ id: virtualIP.id, order: 1 }];
 
             await expect(service.store(data)).to.be.rejectedWith('IP version mismatch');
         });
@@ -380,16 +380,16 @@ describe(HAProxyRuleService.name, () => {
         describe('ipObj', () => {
             it('should move ipObj correctly', async () => {
                 await service.update(rule1.id, {
-                    backEndIPsIds: [{ id: ipobj.id, order: 1 }]
+                    backendIpsIds: [{ id: ipobj.id, order: 1 }]
                 });
 
                 const result = await service.moveFrom(rule1.id, rule2.id, {
                     fromId: rule1.id,
                     toId: rule2.id,
-                    backEndIPsId: ipobj.id
+                    backendIpsId: ipobj.id
                 });
-                expect(result[1].backEndIPs).to.be.not.empty;
-                expect(result[0].backEndIPs).to.be.empty;
+                expect(result[1].backendIps).to.be.not.empty;
+                expect(result[0].backendIps).to.be.empty;
             });
         });
     });
@@ -493,9 +493,9 @@ describe(HAProxyRuleService.name, () => {
                 ipObjIds.push({ id: ipObj.id, order: i });
             }
 
-            const validateUpdateIpObjIdsStub = sinon.stub(service, 'validateBackEndIPs').rejects(new Error('Validation error'));
+            const validateUpdateIpObjIdsStub = sinon.stub(service, 'validateBackendIps').rejects(new Error('Validation error'));
 
-            await expect(service.update(haproxyRule.id, { backEndIPsIds: ipObjIds } as Partial<ICreateHAProxyRule>)).to.be.rejectedWith(Error, 'Validation error');
+            await expect(service.update(haproxyRule.id, { backendIpsIds: ipObjIds } as Partial<ICreateHAProxyRule>)).to.be.rejectedWith(Error, 'Validation error');
 
             validateUpdateIpObjIdsStub.restore();
         });

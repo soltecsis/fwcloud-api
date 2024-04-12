@@ -38,7 +38,7 @@ export class HAProxyRuleToIPObj extends Model {
     @Column({ type: Number })
     order: number;
 
-    @ManyToOne(() => HAProxyRule, haproxyRule => haproxyRule.backEndIPs, {
+    @ManyToOne(() => HAProxyRule, haproxyRule => haproxyRule.backendIps, {
         orphanedRowAction: 'delete'
     })
     @JoinColumn({ name: 'rule' })

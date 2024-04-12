@@ -48,10 +48,10 @@ export interface ICreateHAProxyRule {
     style?: string;
     rule_type?: number;
     firewallId?: number;
-    frontEndIPId?: number;
-    frontEndPortId?: number;
-    backEndIPsIds?: { id: number, order: number }[];
-    backEndPortId?: number;
+    frontendIpId?: number;
+    frontendPortId?: number;
+    backendIpsIds?: { id: number, order: number }[];
+    backendPortId?: number;
     cfg_text?: string;
     comment?: string;
     rule_order?: number;
@@ -65,10 +65,10 @@ export interface IUpdateHAProxyRule {
     style?: string;
     rule_type?: number;
     firewallId?: number;
-    frontEndIPId?: number;
-    frontEndPortId?: number;
-    backEndIPsIds?: { id: number, order: number }[];
-    backEndPortId?: number;
+    frontendIpId?: number;
+    frontendPortId?: number;
+    backendIpsIds?: { id: number, order: number }[];
+    backendPortId?: number;
     cfg_text?: string;
     comment?: string;
     rule_order?: number;
@@ -82,7 +82,7 @@ export interface HAProxyRulesData<T extends ItemForGrid | HAProxyRuleItemForComp
 interface IMoveFromHaProxyRule {
     fromId: number;
     toId: number;
-    backEndIPsId?: number;
+    backendIpsId?: number;
 }
 
 export class HAProxyRuleService extends Service {
@@ -109,21 +109,21 @@ export class HAProxyRuleService extends Service {
         if (data.group) {
             haProxyRule.group = await getRepository(HAProxyGroup).findOneOrFail(data.group);
         }
-        if (data.frontEndIPId) {
-            haProxyRule.frontEndIP = await this._ipobjService.findOneOrFail({ id: data.frontEndIPId });
+        if (data.frontendIpId) {
+            haProxyRule.frontendIp = await this._ipobjService.findOneOrFail({ id: data.frontendIpId });
         }
-        if (data.frontEndPortId) {
-            haProxyRule.frontEndPort = await this._ipobjService.findOneOrFail({ id: data.frontEndPortId });
+        if (data.frontendPortId) {
+            haProxyRule.frontendPort = await this._ipobjService.findOneOrFail({ id: data.frontendPortId });
         }
-        if (data.backEndPortId) {
-            haProxyRule.backEndPort = await this._ipobjService.findOneOrFail({ id: data.backEndPortId });
+        if (data.backendPortId) {
+            haProxyRule.backendPort = await this._ipobjService.findOneOrFail({ id: data.backendPortId });
         }
         if (data.firewallId) {
             haProxyRule.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId);
         }
-        if (data.backEndIPsIds) {
-            await this.validateBackEndIPs(haProxyRule.firewall, data);
-            haProxyRule.backEndIPs = await Promise.all(data.backEndIPsIds.map(async item => ({
+        if (data.backendIpsIds) {
+            await this.validateBackendIps(haProxyRule.firewall, data);
+            haProxyRule.backendIps = await Promise.all(data.backendIpsIds.map(async item => ({
                 haproxyRuleId: haProxyRule.id,
                 haproxyRule: haProxyRule,
                 ipObjId: item.id,
@@ -132,10 +132,10 @@ export class HAProxyRuleService extends Service {
             } as HAProxyRuleToIPObj)));
         }
 
-        // Validate that the ip_version of haProxyRule.frontEndIp matches any of the ip_versions in haProxyRule.backEndIps
-        if (haProxyRule.frontEndIP && haProxyRule.backEndIPs) {
-            const frontEndIpVersion = haProxyRule.frontEndIP.ip_version;
-            const hasMatchingIpVersion = haProxyRule.backEndIPs.some(backEndIp => backEndIp.ipObj.ip_version === frontEndIpVersion);
+        // Validate that the ip_version of haProxyRule.frontendIp matches any of the ip_versions in haProxyRule.backendIps
+        if (haProxyRule.frontendIp && haProxyRule.backendIps) {
+            const frontendIpVersion = haProxyRule.frontendIp.ip_version;
+            const hasMatchingIpVersion = haProxyRule.backendIps.some(backEndIp => backEndIp.ipObj.ip_version === frontendIpVersion);
             if (!hasMatchingIpVersion) {
                 throw new Error('IP version mismatch');
             }
@@ -157,7 +157,7 @@ export class HAProxyRuleService extends Service {
             where: {
                 id: In(ids),
             },
-            relations: ['group', 'firewall', 'firewall.fwCloud', 'frontEndIP', 'frontEndPort', 'backEndIPs', 'backEndPort'],
+            relations: ['group', 'firewall', 'firewall.fwCloud', 'frontendIp', 'frontendPort', 'backendIps', 'backendPort'],
         });
 
         const lastRule = await this._repository.getLastHAProxyRuleInFirewall(haproxy_rs[0].firewall.id);
@@ -179,26 +179,26 @@ export class HAProxyRuleService extends Service {
 
     async moveFrom(fromId: number, toId: number, data: IMoveFromHaProxyRule): Promise<[HAProxyRule, HAProxyRule]> {
         const fromRule: HAProxyRule = await this._repository.findOneOrFail(fromId, {
-            relations: ['firewall', 'firewall.fwCloud', 'backEndIPs']
+            relations: ['firewall', 'firewall.fwCloud', 'backendIps']
         });
 
         const toRule: HAProxyRule = await this._repository.findOneOrFail(toId, {
-            relations: ['firewall', 'firewall.fwCloud', 'backEndIPs']
+            relations: ['firewall', 'firewall.fwCloud', 'backendIps']
         });
 
         let lastPosition = 0;
 
-        [].concat(toRule.backEndIPs).forEach((ipobj) => {
+        [].concat(toRule.backendIps).forEach((ipobj) => {
             lastPosition < ipobj.order ? lastPosition = ipobj.order : null;
         });
 
-        if (data.backEndIPsId !== undefined) {
-            const index = fromRule.backEndIPs.findIndex(item => item.ipObjId === data.backEndIPsId);
+        if (data.backendIpsId !== undefined) {
+            const index = fromRule.backendIps.findIndex(item => item.ipObjId === data.backendIpsId);
             if (index >= 0) {
-                fromRule.backEndIPs.splice(index, 1);
-                toRule.backEndIPs.push({
+                fromRule.backendIps.splice(index, 1);
+                toRule.backendIps.push({
                     haproxyRuleId: toRule.id,
-                    ipObjId: data.backEndIPsId,
+                    ipObjId: data.backendIpsId,
                     order: lastPosition + 1
                 } as HAProxyRuleToIPObj);
             }
@@ -209,7 +209,7 @@ export class HAProxyRuleService extends Service {
 
     async update(id: number, data: Partial<ICreateHAProxyRule>): Promise<HAProxyRule> {
         let haProxyRule: HAProxyRule | undefined = await this._repository.findOneOrFail(id, {
-            relations: ['group', 'frontEndIP', 'frontEndPort', 'backEndIPs', 'backEndPort']
+            relations: ['group', 'frontendIp', 'frontendPort', 'backendIps', 'backendPort']
         });
 
         Object.assign(haProxyRule, {
@@ -222,9 +222,9 @@ export class HAProxyRuleService extends Service {
 
         if (data.group !== undefined) {
             haProxyRule.group = await getRepository(HAProxyGroup).findOneOrFail(data.group);
-        } else if (data.backEndIPsIds) {
-            await this.validateBackEndIPs(haProxyRule.firewall, data);
-            haProxyRule.backEndIPs = await Promise.all(data.backEndIPsIds.map(async item => ({
+        } else if (data.backendIpsIds) {
+            await this.validateBackendIps(haProxyRule.firewall, data);
+            haProxyRule.backendIps = await Promise.all(data.backendIpsIds.map(async item => ({
                 haproxyRuleId: haProxyRule.id,
                 haproxyRule: haProxyRule,
                 ipObjId: item.id,
@@ -232,7 +232,7 @@ export class HAProxyRuleService extends Service {
                 order: item.order
             } as HAProxyRuleToIPObj)));
         } else {
-            const fieldsToUpdate: string[] = ['frontEndIPId', 'frontEndPortId', 'backEndPortId', 'firewallId'];
+            const fieldsToUpdate: string[] = ['frontendIpId', 'frontendPortId', 'backendPortId', 'firewallId'];
 
             for (const field of fieldsToUpdate) {
                 if (data[field] !== undefined) {
@@ -241,9 +241,9 @@ export class HAProxyRuleService extends Service {
             }
         }
 
-        if (haProxyRule.frontEndIP && haProxyRule.backEndIPs) {
-            const frontEndIpVersion = haProxyRule.frontEndIP.ip_version;
-            const hasMatchingIpVersion = haProxyRule.backEndIPs.some(backEndIp => backEndIp.ipObj.ip_version === frontEndIpVersion);
+        if (haProxyRule.frontendIp && haProxyRule.backendIps) {
+            const frontendIpVersion = haProxyRule.frontendIp.ip_version;
+            const hasMatchingIpVersion = haProxyRule.backendIps.some(backEndIp => backEndIp.ipObj.ip_version === frontendIpVersion);
             if (!hasMatchingIpVersion) {
                 throw new Error('IP version mismatch');
             }
@@ -255,7 +255,7 @@ export class HAProxyRuleService extends Service {
     async remove(path: IFindOneHAProxyRPath): Promise<HAProxyRule> {
         const haProxyRule: HAProxyRule = await this._repository.findOne(path.id, {relations: ['group','firewall']});
 
-        haProxyRule.backEndIPs = [];
+        haProxyRule.backendIps = [];
 
         if(haProxyRule.group && haProxyRule.group.rules.length === 1) {
             await this._groupService.remove({id: haProxyRule.group.id});
@@ -342,16 +342,16 @@ export class HAProxyRuleService extends Service {
         return rules;
     }
 
-    async validateBackEndIPs(firewall: Firewall, data: IUpdateHAProxyRule): Promise<void> {
+    async validateBackendIps(firewall: Firewall, data: IUpdateHAProxyRule): Promise<void> {
         const errors: ErrorBag = {};
 
-        if (!data.backEndIPsIds || data.backEndIPsIds.length === 0) {
+        if (!data.backendIpsIds || data.backendIpsIds.length === 0) {
             return;
         }
 
         const ipObjs: IPObj[] = await getRepository(IPObj).find({
             where: {
-                id: In(data.backEndIPsIds.map(item => item.id)),
+                id: In(data.backendIpsIds.map(item => item.id)),
                 ipObjTypeId: 1,
             },
             relations: ['fwCloud']

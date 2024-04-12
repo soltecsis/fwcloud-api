@@ -48,14 +48,14 @@ describe(HAProxyCompiler.name, () => {
                 rule_order: i + 1,
                 rule_type: 1,
                 firewall: fwc.firewall,
-                frontEndIP: await getRepository(IPObj).save(getRepository(IPObj).create({
+                frontendIp: await getRepository(IPObj).save(getRepository(IPObj).create({
                     address: `192.168.1.${i}`,
                     destination_port_start: 80,
                     destination_port_end: 80,
                     name: 'test',
                     ipObjTypeId: 0
                 })),
-                frontEndPort: await getRepository(IPObj).save(getRepository(IPObj).create({
+                frontendPort: await getRepository(IPObj).save(getRepository(IPObj).create({
                     destination_port_start: 80,
                     destination_port_end: 80,
                     name: 'test',
@@ -66,7 +66,7 @@ describe(HAProxyCompiler.name, () => {
             testData.push(rule);
         }
 
-        rules = await haproxyService.getHAProxyRulesData<HAProxyRuleItemForCompiler>(fwc.fwcloud.id, fwc.firewall.id);
+        rules = await haproxyService.getHAProxyRulesData<HAProxyRuleItemForCompiler>( fwc.fwcloud.id, fwc.firewall.id);
     });
 
     describe('compile', () => {
