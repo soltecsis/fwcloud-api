@@ -5,5 +5,5 @@ export class HAProxyRuleBulkRemoveDto {
     @IsArray()
     @IsNumber({}, { each: true })
     @Type(() => Number)
-    ids: number[];
+    rules: number[];
 }
