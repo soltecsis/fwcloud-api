@@ -257,6 +257,8 @@ export class HAProxyRuleService extends Service {
 
         haProxyRule.backendIps = [];
 
+        await this._repository.save(haProxyRule);
+
         if(haProxyRule.group && haProxyRule.group.rules.length === 1) {
             await this._groupService.remove({id: haProxyRule.group.id});
         }
