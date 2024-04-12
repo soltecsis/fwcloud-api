@@ -1091,6 +1091,8 @@ export class IPObj extends Model {
 
     public static async searchIpobjInKeepalivedRule(id: number, fwcloud: number): Promise<any> {
         return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .leftJoin('keepalived_rule.virtualIps', 'virtualIps')
             .leftJoin('virtualIps.ipObj', 'ipObj', 'ipObj.id = :id', { id: id })
             .innerJoin('keepalived_rule.firewall', 'firewall')
