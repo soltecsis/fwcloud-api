@@ -15,7 +15,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindOneOptions, In, getCustomRepository, getRepository } from "typeorm";
+import { FindOneOptions, In, SelectQueryBuilder, getCustomRepository, getRepository } from "typeorm";
 import { Service } from "../../../../fonaments/services/service";
 import { Offset } from "../../../../offset";
 import { HAProxyRuleRepository } from "./haproxy.repository";
@@ -30,8 +30,10 @@ import { FwCloud } from "../../../fwcloud/FwCloud";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { ErrorBag } from "../../../../fonaments/validation/validator";
 import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
-import { HAProxyRuleItemForCompiler, ItemForGrid } from "../shared";
+import { HAProxyRuleItemForCompiler, HAProxyUtils, ItemForGrid } from "../shared";
 import { HAProxyGroupService } from "../haproxy_g/haproxy_g.service";
+import { IPObjGroup } from "../../../ipobj/IPObjGroup";
+import { AvailableDestinations } from "../../haproxy/shared";
 
 interface IFindManyHAProxyRPath {
     fwcloudId?: number;
@@ -87,13 +89,13 @@ interface IMoveFromHaProxyRule {
 
 export class HAProxyRuleService extends Service {
     private _repository: HAProxyRuleRepository;
-    private _ipobjService: IPObjRepository;
+    private _ipobjRepository: IPObjRepository;
     private _groupService: HAProxyGroupService;
 
     constructor(app: Application) {
         super(app);
         this._repository = getCustomRepository(HAProxyRuleRepository);
-        this._ipobjService = getCustomRepository(IPObjRepository);
+        this._ipobjRepository = getCustomRepository(IPObjRepository);
         this._groupService = new HAProxyGroupService(app);
     }
 
@@ -110,13 +112,13 @@ export class HAProxyRuleService extends Service {
             haProxyRule.group = await getRepository(HAProxyGroup).findOneOrFail(data.group);
         }
         if (data.frontendIpId) {
-            haProxyRule.frontendIp = await this._ipobjService.findOneOrFail({ id: data.frontendIpId });
+            haProxyRule.frontendIp = await this._ipobjRepository.findOneOrFail({ id: data.frontendIpId });
         }
         if (data.frontendPortId) {
-            haProxyRule.frontendPort = await this._ipobjService.findOneOrFail({ id: data.frontendPortId });
+            haProxyRule.frontendPort = await this._ipobjRepository.findOneOrFail({ id: data.frontendPortId });
         }
         if (data.backendPortId) {
-            haProxyRule.backendPort = await this._ipobjService.findOneOrFail({ id: data.backendPortId });
+            haProxyRule.backendPort = await this._ipobjRepository.findOneOrFail({ id: data.backendPortId });
         }
         if (data.firewallId) {
             haProxyRule.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId);
@@ -295,15 +297,29 @@ export class HAProxyRuleService extends Service {
         }, options);
     }
 
-    public async getHAProxyRulesData<T extends ItemForGrid | HAProxyRuleItemForCompiler>(fwcloud: number, firewall: number, rules?: number[]): Promise<HAProxyRulesData<T>[]> {
-        const rulesData: HAProxyRulesData<T>[] = await this._repository.getHAProxyRules(fwcloud, firewall, rules) as HAProxyRulesData<T>[];
+    public async getHAProxyRulesData<T extends ItemForGrid | HAProxyRuleItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, rules?: number[]): Promise<HAProxyRulesData<T>[]> {
+        let rulesData: HAProxyRulesData<T>[];
 
+        switch (dst) {
+            case 'haproxy_grid':
+                rulesData = await this._repository.getHAProxyRules(fwcloud, firewall, rules) as HAProxyRulesData<T>[];
+                break;           
+            case 'compiler':
+                rulesData = await this._repository.getHAProxyRules(fwcloud, firewall, rules, true) as HAProxyRulesData<T>[];
+                break;
+        }
         let ItemsArrayMap: Map<number, T[]> = new Map<number, T[]>();
         for (let i = 0; i < rulesData.length; i++) {
             rulesData[i].items = [];
             ItemsArrayMap.set(rulesData[i].id, rulesData[i].items);
         }
+        //console.log("rulesdata",rulesData)
+        const sqls: SelectQueryBuilder<IPObj | IPObjGroup>[] = (dst === 'compiler') ?
+        this.buildHAProxyRulesCompilerSql(fwcloud, firewall) :
+        this.getHAProxyRulesGridSql(fwcloud, firewall);
 
+        await Promise.all(sqls.map(sql => HAProxyUtils.mapEntityData<T>(sql, ItemsArrayMap)));
+        console.log("rulesData",rulesData)
         return rulesData.map((rule) => {
             if (rule.items) {
                 rule.items = rule.items.sort((a, b) => a._order - b._order);
@@ -342,6 +358,18 @@ export class HAProxyRuleService extends Service {
         }
 
         return rules;
+    }
+
+    private getHAProxyRulesGridSql(fwcloud: number, firewall: number): SelectQueryBuilder<IPObj | IPObjGroup>[] {
+        return [
+            this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall),
+        ];
+    }
+
+    private buildHAProxyRulesCompilerSql(fwcloud: number, firewall: number): SelectQueryBuilder<IPObj | IPObjGroup>[] {
+        return [
+            this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall),
+        ];
     }
 
     async validateBackendIps(firewall: Firewall, data: IUpdateHAProxyRule): Promise<void> {

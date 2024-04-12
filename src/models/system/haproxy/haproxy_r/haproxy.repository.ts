@@ -193,23 +193,18 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
             .getOne();
     }
 
-    async getHAProxyRules(FwCloud: number, firewall: number, rules?: number[]): Promise<HAProxyRule[]> {
+    async getHAProxyRules(FwCloud: number, firewall: number, rules?: number[], forCompilation: boolean = false): Promise<HAProxyRule[]> {
         const query: SelectQueryBuilder<HAProxyRule> = this.createQueryBuilder('haproxy')
             .leftJoinAndSelect('haproxy.group', 'group')
             .leftJoinAndSelect('haproxy.frontendIp', 'frontendIp')
             .leftJoinAndSelect('haproxy.frontendPort', 'frontendPort')
             .leftJoinAndSelect('haproxy.backendIps', 'backendIps')
             .leftJoinAndSelect('haproxy.backendPort', 'backendPort')
-            /*.leftJoinAndSelect('frontendIp.interface', 'frontendIpInterface')
+            .leftJoinAndSelect('frontendIp.interface', 'frontendIpInterface')
             .leftJoinAndSelect('frontendIpInterface.firewall', 'frontendIpFirewall')
             .leftJoinAndSelect('frontendIpInterface.hosts', 'frontendIpInterfaceHosts')
             .leftJoinAndSelect('frontendIpInterfaceHosts.hostIPObj', 'frontendIpInterfaceHostIPObj')
-            .leftJoinAndSelect('frontendIpFirewall.cluster', 'frontendIpCluster')
-            .leftJoinAndSelect('backendIps.interface', 'backendIpsInterface')
-            .leftJoinAndSelect('backendIpsInterface.firewall', 'backendIpsFirewall')
-            .leftJoinAndSelect('backendIpsInterface.hosts', 'backendIpsInterfaceHosts')
-            .leftJoinAndSelect('backendIpsInterfaceHosts.hostIPObj', 'backendIpsInterfaceHostIPObj')
-            .leftJoinAndSelect('backendIpsFirewall.cluster', 'backendIpsCluster')*/
+            .leftJoinAndSelect('frontendIpFirewall.cluster', 'frontendIpCluster')           
             .leftJoinAndSelect('haproxy.firewall', 'firewall')
             .leftJoinAndSelect('firewall.fwCloud', 'fwCloud')
             .where('firewall.id = :firewall', { firewall: firewall })
@@ -219,6 +214,12 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
             query.andWhere('haproxy.id IN (:...rules)', { rules });
         }
 
-        return query.orderBy('haproxy.rule_order', 'ASC').getMany();
+        let haproxyRules: HAProxyRule[] = await query.orderBy('haproxy.rule_order', 'ASC').getMany();
+
+        if (forCompilation) {
+            haproxyRules.sort(item => item.rule_type);
+        }
+
+        return haproxyRules;
     }
 }

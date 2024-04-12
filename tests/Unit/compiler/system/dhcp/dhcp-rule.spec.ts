@@ -23,7 +23,7 @@
 import { expect } from "chai";
 import {DHCPCompiled, DHCPCompiler} from "../../../../../src/compiler/system/dhcp/DHCPCompiler";
 import { DHCPRuleService, DHCPRulesData } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service";
-import { DHCPRuleItemForCompiler } from "../../../../../src/models/system/shared";
+import { DHCPRuleItemForCompiler } from "../../../../../src/models/system/dhcp/shared";
 import { testSuite } from "../../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
 import { getRepository } from "typeorm";

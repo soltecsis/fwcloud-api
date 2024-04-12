@@ -37,7 +37,7 @@ import { DHCPRuleUpdateDto } from './dto/update.dto';
 import { DhcpRuleBulkUpdateDto } from './dto/bulk-update.dto';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { DhcpRuleBulkRemoveDto } from './dto/bulk-remove.dto';
-import { AvailableDestinations, DHCPRuleItemForCompiler } from '../../../models/system/shared';
+import { AvailableDestinations, DHCPRuleItemForCompiler } from '../../../models/system/dhcp/shared';
 import { DHCPCompiler } from '../../../compiler/system/dhcp/DHCPCompiler';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';

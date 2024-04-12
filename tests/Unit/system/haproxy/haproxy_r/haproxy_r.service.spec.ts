@@ -62,14 +62,14 @@ describe(HAProxyRuleService.name, () => {
     describe('getHAProxyRulesData', () => {
 
         it('should return an array of HAProxyRules', async () => {
-            const result = await service.getHAProxyRulesData(fwCloud.id, firewall.id);
+            const result = await service.getHAProxyRulesData('compiler', fwCloud.id, firewall.id);
 
             expect(result).to.be.an('array').that.is.not.empty;
             expect(result[0]).to.be.an.instanceOf(HAProxyRule);
         });
 
         it('should return compiler rules data', async () => {
-            const result = await service.getHAProxyRulesData(fwCloud.id, firewall.id);
+            const result = await service.getHAProxyRulesData('compiler', fwCloud.id, firewall.id);
 
             expect(result).to.be.an('array').that.is.not.empty;
             expect(result[0]).to.have.property('rule_order');
@@ -79,7 +79,7 @@ describe(HAProxyRuleService.name, () => {
         it('should handle errors calling getHAProxyRulesData', async () => {
             sinon.stub(service['_repository'], 'getHAProxyRules').rejects(new Error('Get rules error'));
 
-            await expect(service.getHAProxyRulesData(fwCloud.id, firewall.id)).to.be.rejectedWith('Get rules error');
+            await expect(service.getHAProxyRulesData('compiler', fwCloud.id, firewall.id)).to.be.rejectedWith('Get rules error');
         });
     });
 

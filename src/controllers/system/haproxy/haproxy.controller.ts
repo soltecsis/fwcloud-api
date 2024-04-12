@@ -59,7 +59,7 @@ export class HAProxyController extends Controller {
     public async index(request: Request): Promise<ResponseBuilder> {
         (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
 
-        const rules: HAProxyRule[] = await this._haproxyRuleService.getHAProxyRulesData(this._fwCloud.id, this._firewall.id);
+        const rules: HAProxyRule[] = await this._haproxyRuleService.getHAProxyRulesData('compiler', this._fwCloud.id, this._firewall.id);
 
         return ResponseBuilder.buildResponse().status(200).body(rules);
     }
@@ -68,7 +68,7 @@ export class HAProxyController extends Controller {
     public async grid(request: Request): Promise<ResponseBuilder> {
         (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
 
-        const rules: HAProxyRule[] = await this._haproxyRuleService.getHAProxyRulesData(this._fwCloud.id, this._firewall.id);
+        const rules: HAProxyRule[] = await this._haproxyRuleService.getHAProxyRulesData('haproxy_grid', this._fwCloud.id, this._firewall.id);
 
         return ResponseBuilder.buildResponse().status(200).body(rules);
     }

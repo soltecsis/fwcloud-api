@@ -66,7 +66,7 @@ describe(HAProxyCompiler.name, () => {
             testData.push(rule);
         }
 
-        rules = await haproxyService.getHAProxyRulesData<HAProxyRuleItemForCompiler>( fwc.fwcloud.id, fwc.firewall.id);
+        rules = await haproxyService.getHAProxyRulesData<HAProxyRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id);
     });
 
     describe('compile', () => {

@@ -19,7 +19,7 @@ import { SelectQueryBuilder } from "typeorm";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
 
-export type AvailableDestination = 'grid' | 'compiler';
+export type AvailableDestinations = 'haproxy_grid' | 'compiler';
 
 export type ItemForGrid = {
     entityId: number;

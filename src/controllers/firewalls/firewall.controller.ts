@@ -49,7 +49,7 @@ import { HAProxyRuleService, HAProxyRulesData } from "../../models/system/haprox
 import { HAProxyRuleItemForCompiler } from "../../models/system/haproxy/shared";
 import { HAProxyCompiler } from "../../compiler/system/haproxy/HAProxyCompiler";
 import { DHCPRuleService, DHCPRulesData } from "../../models/system/dhcp/dhcp_r/dhcp_r.service";
-import { DHCPRuleItemForCompiler } from "../../models/system/shared";
+import { DHCPRuleItemForCompiler } from "../../models/system/dhcp/shared";
 import {DHCPCompiled, DHCPCompiler} from "../../compiler/system/dhcp/DHCPCompiler";
 
 
@@ -153,8 +153,9 @@ export class FirewallController extends Controller {
         (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
 
         let rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] = await this.haproxyRuleService.getHAProxyRulesData(
+            'compiler',
             firewall.fwCloudId,
-            firewall.id,
+            firewall.id
         );
 
         const compilation = new HAProxyCompiler().compile(rules);

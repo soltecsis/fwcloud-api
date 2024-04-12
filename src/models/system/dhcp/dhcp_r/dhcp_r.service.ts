@@ -30,7 +30,7 @@ import { Application } from "../../../../Application";
 import { Service } from "../../../../fonaments/services/service";
 import { IPObjRepository } from "../../../ipobj/IPObj.repository";
 import { IPObjGroup } from "../../../ipobj/IPObjGroup";
-import { AvailableDestinations, DHCPRuleItemForCompiler, DHCPUtils, ItemForGrid } from "../../shared";
+import { AvailableDestinations, DHCPRuleItemForCompiler, DHCPUtils, ItemForGrid } from "../shared";
 import { Firewall } from "../../../firewall/Firewall";
 import { DHCPRuleToIPObj } from "./dhcp_r-to-ipobj.model";
 import { ErrorBag } from "../../../../fonaments/validation/validator";
