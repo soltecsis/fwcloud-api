@@ -25,7 +25,7 @@ import { IPObj } from "../../../models/ipobj/IPObj";
 import { IPObjExporter } from "./ipobj.exporter";
 import { TableExporter } from "./table-exporter";
 
-export class HAProxyRuleToIPObjExporter extends TableExporter{
+export class HAProxyRuleToIPObjExporter extends TableExporter {
     protected getEntity(): typeof Model {
         return HAProxyRuleToIPObj;
     }
