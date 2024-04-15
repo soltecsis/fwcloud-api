@@ -176,7 +176,21 @@ export class HAProxyRuleService extends Service {
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<HAProxyRule[]> {
-        return this._repository.move(ids, destRule, offset);
+        const destinatationRule: HAProxyRule = await this._repository.findOneOrFail(destRule, {
+            relations: ['group']
+        });
+
+        const sourceRules: HAProxyRule[] = await this._repository.findByIds(ids, {
+            relations: ['group']
+        });
+
+        const movedRules = await this._repository.move(ids, destRule, offset);
+
+        if (!destinatationRule.group && sourceRules[0].group && (sourceRules[0].group.rules.length - ids.length) < 1) {
+            await this._groupService.remove({ id: sourceRules[0].group.id });
+        }
+
+        return movedRules;
     }
 
     async moveFrom(fromId: number, toId: number, data: IMoveFromHaProxyRule): Promise<[HAProxyRule, HAProxyRule]> {
@@ -213,6 +227,9 @@ export class HAProxyRuleService extends Service {
         let haProxyRule: HAProxyRule | undefined = await this._repository.findOneOrFail(id, {
             relations: ['group', 'frontendIp', 'frontendPort', 'backendIps', 'backendPort']
         });
+        if (!haProxyRule) {
+            throw new Error('HAProxy rule not found');
+        }
 
         Object.assign(haProxyRule, {
             active: data.active === undefined ? data.active : haProxyRule.active,
@@ -223,14 +240,15 @@ export class HAProxyRuleService extends Service {
         });
 
         if (data.group !== undefined) {
-            haProxyRule.group = await getRepository(HAProxyGroup).findOneOrFail(data.group);
+            if (haProxyRule.group && !data.group && haProxyRule.group.rules.length === 1) {
+                await this._groupService.remove({ id: haProxyRule.group.id });
+            }
+            haProxyRule.group = data.group ? await getRepository(HAProxyGroup).findOne(data.group) : null;
         } else if (data.backendIpsIds) {
             await this.validateBackendIps(haProxyRule.firewall, data);
             haProxyRule.backendIps = await Promise.all(data.backendIpsIds.map(async item => ({
                 haproxyRuleId: haProxyRule.id,
-                haproxyRule: haProxyRule,
                 ipObjId: item.id,
-                ipObj: await getRepository(IPObj).findOneOrFail(item.id),
                 order: item.order
             } as HAProxyRuleToIPObj)));
         } else {
@@ -255,14 +273,14 @@ export class HAProxyRuleService extends Service {
     }
 
     async remove(path: IFindOneHAProxyRPath): Promise<HAProxyRule> {
-        const haProxyRule: HAProxyRule = await this._repository.findOne(path.id, {relations: ['group','firewall']});
+        const haProxyRule: HAProxyRule = await this._repository.findOne(path.id, { relations: ['group', 'firewall'] });
 
         haProxyRule.backendIps = [];
 
         await this._repository.save(haProxyRule);
 
-        if(haProxyRule.group && haProxyRule.group.rules.length === 1) {
-            await this._groupService.remove({id: haProxyRule.group.id});
+        if (haProxyRule.group && haProxyRule.group.rules.length === 1) {
+            await this._groupService.remove({ id: haProxyRule.group.id });
         }
 
         await this._repository.remove(haProxyRule);
@@ -303,23 +321,24 @@ export class HAProxyRuleService extends Service {
         switch (dst) {
             case 'haproxy_grid':
                 rulesData = await this._repository.getHAProxyRules(fwcloud, firewall, rules) as HAProxyRulesData<T>[];
-                break;           
+                break;
             case 'compiler':
                 rulesData = await this._repository.getHAProxyRules(fwcloud, firewall, rules, true) as HAProxyRulesData<T>[];
                 break;
         }
+
         let ItemsArrayMap: Map<number, T[]> = new Map<number, T[]>();
         for (let i = 0; i < rulesData.length; i++) {
             rulesData[i].items = [];
             ItemsArrayMap.set(rulesData[i].id, rulesData[i].items);
         }
-        //console.log("rulesdata",rulesData)
+
         const sqls: SelectQueryBuilder<IPObj | IPObjGroup>[] = (dst === 'compiler') ?
-        this.buildHAProxyRulesCompilerSql(fwcloud, firewall) :
-        this.getHAProxyRulesGridSql(fwcloud, firewall);
+            this.buildHAProxyRulesCompilerSql(fwcloud, firewall) :
+            this.getHAProxyRulesGridSql(fwcloud, firewall);
 
         await Promise.all(sqls.map(sql => HAProxyUtils.mapEntityData<T>(sql, ItemsArrayMap)));
-        console.log("rulesData",rulesData)
+
         return rulesData.map((rule) => {
             if (rule.items) {
                 rule.items = rule.items.sort((a, b) => a._order - b._order);
@@ -334,6 +353,11 @@ export class HAProxyRuleService extends Service {
                 id: In(ids),
             }, { ...data, group: { id: data.group } })
         } else {
+            const group = (await this._repository.findOne(ids[0], { relations: ['group'] })).group;
+            if (data.group !== undefined && group && (group.rules.length - ids.length) < 1) {
+                await this._groupService.remove({ id: group.id });
+            }
+
             await this._repository.update({
                 id: In(ids),
             }, data as QueryDeepPartialEntity<HAProxyRule>);
@@ -362,13 +386,13 @@ export class HAProxyRuleService extends Service {
 
     private getHAProxyRulesGridSql(fwcloud: number, firewall: number): SelectQueryBuilder<IPObj | IPObjGroup>[] {
         return [
-            this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall),
+            this._ipobjRepository.getIPObjsInHAProxy_ForGrid('rule', fwcloud, firewall),
         ];
     }
 
     private buildHAProxyRulesCompilerSql(fwcloud: number, firewall: number): SelectQueryBuilder<IPObj | IPObjGroup>[] {
         return [
-            this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall),
+            this._ipobjRepository.getIPObjsInHAProxy_ForGrid('rule', fwcloud, firewall),
         ];
     }
 

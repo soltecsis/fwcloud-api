@@ -43,6 +43,9 @@ export class HAProxyRule extends Model {
     @Column({ type: 'boolean', default: false })
     active: boolean;
 
+    @Column({ name: 'group' })
+    groupId: number;
+
     @ManyToOne(() => HAProxyGroup)
     @JoinColumn({ name: 'group' })
     group: HAProxyGroup;

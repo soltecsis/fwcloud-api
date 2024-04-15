@@ -32,8 +32,8 @@ interface IFindOneHAProxyGPath extends IFindManyHAProxyRPath {
 
 @EntityRepository(HAProxyRule)
 export class HAProxyRuleRepository extends Repository<HAProxyRule> {
-    findManyInPath(path: IFindManyHAProxyRPath): Promise<HAProxyRule[]> {
-        return this.find(this.getFindInPathOptions(path));
+    findManyInPath(path: IFindManyHAProxyRPath, options?: FindManyOptions<HAProxyRule>): Promise<HAProxyRule[]> {
+        return this.find(this.getFindInPathOptions(path, options));
     }
 
     async move(ids: number[], haproxyDestId: number, offset: Offset): Promise<HAProxyRule[]> {
@@ -44,20 +44,18 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
             order: {
                 'rule_order': 'ASC',
             },
-            relations: ['firewall'],
+            relations: ['firewall', 'group'],
         });
 
         let affectedHAProxies: HAProxyRule[] = await this.findManyInPath({
             fwcloudId: haproxy_rs[0].firewall.fwCloudId,
             firewallId: haproxy_rs[0].firewall.id,
-            haproxyGroupId: haproxy_rs[0].group?.id,
         });
 
         const destHAProxy: HAProxyRule | undefined = await this.findOneOrFail({
             where: {
                 id: haproxyDestId,
-            },
-            relations: ['group', 'firewall'],
+            }
         });
 
         if (offset === Offset.Above) {
@@ -68,59 +66,70 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
 
         await this.save(affectedHAProxies);
 
-        await this.refreshOrders(haproxy_rs[0].group?.id);
+        await this.refreshOrders(haproxy_rs[0].firewallId);
 
         return await this.find({ where: { id: In(ids) } });
     }
 
-    protected async moveAbove(haproxy_rs: HAProxyRule[], affectedHAProxies: HAProxyRule[], destHAProxy: HAProxyRule): Promise<HAProxyRule[]> {
-        const destPosition: number = destHAProxy.rule_order;
-        const movingIds: number[] = haproxy_rs.map((haproxy_r: HAProxyRule) => haproxy_r.id);
+    protected async moveAbove(rules: HAProxyRule[], affectedRules: HAProxyRule[], destRule: HAProxyRule): Promise<HAProxyRule[]> {
+        const destPosition: number = destRule.rule_order;
+        const movingIds: number[] = rules.map((haproxy_r: HAProxyRule) => haproxy_r.id);
 
-        const currentPosition: number = haproxy_rs[0].rule_order;
+        const currentPosition: number = rules[0].rule_order;
         const forward: boolean = currentPosition < destPosition;
 
-        affectedHAProxies.forEach((haproxy_r: HAProxyRule) => {
-            if (movingIds.includes(haproxy_r.id)) {
-                const offset: number = movingIds.indexOf(haproxy_r.id);
-                haproxy_r.rule_order = destPosition + offset;
-                haproxy_r.group ? haproxy_r.group.id = destHAProxy.group.id : haproxy_r.group = destHAProxy.group;
+        affectedRules.forEach((rule) => {
+            if (movingIds.includes(rule.id)) {
+                const offset = movingIds.indexOf(rule.id);
+                rule.rule_order = destPosition + offset;
+                rule.groupId = destRule.groupId;
             } else {
-                if (forward && haproxy_r.rule_order >= destHAProxy.rule_order) {
-                    haproxy_r.rule_order++;
+                if (forward &&
+                    rule.rule_order >= destRule.rule_order) {
+                    rule.rule_order += rules.length;
                 }
-                if (!forward && haproxy_r.rule_order >= destHAProxy.rule_order && haproxy_r.rule_order < haproxy_r[0].rule_order) {
-                    haproxy_r.rule_order++;
+                if (!forward &&
+                    rule.rule_order >= destRule.rule_order &&
+                    rule.rule_order < rule[0].rule_order) {
+                    rule.rule_order += rules.length;
                 }
             }
         });
 
-        return affectedHAProxies;
+        return affectedRules;
     }
 
-    protected async moveBelow(haproxy_rs: HAProxyRule[], affectedHAProxies: HAProxyRule[], destHAProxy: HAProxyRule): Promise<HAProxyRule[]> {
-        const destPosition: number = destHAProxy.rule_order;
-        const movingIds: number[] = haproxy_rs.map((haproxy_r: HAProxyRule) => haproxy_r.id);
+    protected async moveBelow(rules: HAProxyRule[], affectedRules: HAProxyRule[], destRule: HAProxyRule): Promise<HAProxyRule[]> {
+        const destPosition: number = destRule.rule_order;
+        const movingIds: number[] = rules.map((haproxy_r: HAProxyRule) => haproxy_r.id);
 
-        const currentPosition: number = haproxy_rs[0].rule_order;
+        const currentPosition: number = rules[0].rule_order;
         const forward: boolean = currentPosition < destPosition;
 
-        affectedHAProxies.forEach((haproxy_r: HAProxyRule) => {
-            if (movingIds.includes(haproxy_r.id)) {
-                const offset: number = movingIds.indexOf(haproxy_r.id);
-                haproxy_r.rule_order = destPosition + offset + 1;
-                haproxy_r.group ? haproxy_r.group.id = destHAProxy.group.id : haproxy_r.group = destHAProxy.group;
-            } else {
-                if (forward && haproxy_r.rule_order > destHAProxy.rule_order) {
-                    haproxy_r.rule_order += haproxy_rs.length;
+        affectedRules.forEach((rule: HAProxyRule) => {
+            if (movingIds.includes(rule.id)) {
+                if (!destRule.groupId) {
+                    const offset = movingIds.indexOf(rule.id);
+                    rule.rule_order = destPosition + offset + 1;
+                    rule.groupId = destRule.groupId;
+                } else {
+                    rule.groupId = destRule.groupId;
+                    if (!forward) {
+                        const offset = movingIds.indexOf(rule.id);
+                        rule.rule_order = destPosition + offset + 1;
+                    }
                 }
-                if (!forward && haproxy_r.rule_order > destHAProxy.rule_order && haproxy_r.rule_order < haproxy_rs[0].rule_order) {
-                    haproxy_r.rule_order += haproxy_rs.length;
+            } else {
+                if (forward && rule.rule_order > destRule.rule_order) {
+                    rule.rule_order += rules.length;
+                }
+                if (!forward && rule.rule_order > destRule.rule_order && rule.rule_order < rules[0].rule_order) {
+                    rule.rule_order += rules.length;
                 }
             }
         });
 
-        return affectedHAProxies;
+        return affectedRules;
     }
 
     async remove(entities: HAProxyRule[], options?: RemoveOptions): Promise<HAProxyRule[]>;
@@ -133,7 +142,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
             if (haproxy.group) {
                 await this.refreshOrders(haproxy.firewallId);
             }
-        } else {
+        } else if (result && Array.isArray(result) && result.length > 0) {
             const haproxy: HAProxyRule = (result as HAProxyRule[])[0];
             if (haproxy.group) {
                 await this.refreshOrders(haproxy.firewallId);
@@ -176,7 +185,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
             firewallId: firewall.id,
         });
 
-        if(rules.length === 0) {
+        if (rules.length === 0) {
             return;
         }
 
@@ -204,7 +213,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
             .leftJoinAndSelect('frontendIpInterface.firewall', 'frontendIpFirewall')
             .leftJoinAndSelect('frontendIpInterface.hosts', 'frontendIpInterfaceHosts')
             .leftJoinAndSelect('frontendIpInterfaceHosts.hostIPObj', 'frontendIpInterfaceHostIPObj')
-            .leftJoinAndSelect('frontendIpFirewall.cluster', 'frontendIpCluster')           
+            .leftJoinAndSelect('frontendIpFirewall.cluster', 'frontendIpCluster')
             .leftJoinAndSelect('haproxy.firewall', 'firewall')
             .leftJoinAndSelect('firewall.fwCloud', 'fwCloud')
             .where('firewall.id = :firewall', { firewall: firewall })
