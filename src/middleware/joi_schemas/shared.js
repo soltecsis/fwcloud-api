@@ -62,7 +62,7 @@ sharedSchema.mac_addr = Joi.string().regex(/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]
 
 sharedSchema.interface_type = Joi.number().integer().valid([10, 11]);
 sharedSchema.group_type = Joi.number().integer().valid([20, 21]);
-sharedSchema.policy_type = Joi.number().integer().valid([1, 2, 3, 4, 5, 6, 61, 62, 63, 64, 65, 66, 67, 68,66,67,68]);
+sharedSchema.policy_type = Joi.number().integer().valid([1, 2, 3, 4, 5, 6, 61, 62, 63, 64, 65, 66, 67, 68, 66, 67, 68]);
 
 sharedSchema.policy_compiler = Joi.string().valid(['IPTables','NFTables']);
 
