@@ -29,7 +29,7 @@ export class HAProxyGroupExporter extends TableExporter {
 
     public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
         return qb
-            .where((qb)=>{
+            .where((qb) => {
                 const query = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
 
                 return `${alias}.firewallId IN ` + new FirewallExporter()
