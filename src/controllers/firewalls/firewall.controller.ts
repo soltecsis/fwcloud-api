@@ -155,7 +155,8 @@ export class FirewallController extends Controller {
         let rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] = await this.haproxyRuleService.getHAProxyRulesData(
             'compiler',
             firewall.fwCloudId,
-            firewall.id
+            firewall.id,
+            request.query.rules ? (request.query.rules as string[]).map(item => parseInt(item)) : undefined
         );
 
         const compilation = new HAProxyCompiler().compile(rules);
