@@ -23,10 +23,9 @@ import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { HAProxyGroup } from "../../../models/system/haproxy/haproxy_g/haproxy_g.model";
 import { HAProxyRule } from "../../../models/system/haproxy/haproxy_r/haproxy_r.model";
-import { HAProxyRuleService, ICreateHAProxyRule, IUpdateHAProxyRule } from "../../../models/system/haproxy/haproxy_r/haproxy_r.service";
+import { HAProxyRuleService, HAProxyRulesData, ICreateHAProxyRule, IUpdateHAProxyRule } from "../../../models/system/haproxy/haproxy_r/haproxy_r.service";
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
 import { HAProxyPolicy } from '../../../policies/haproxy.policy';
-import rule from '../../../middleware/joi_schemas/policy/rule';
 import { Offset } from '../../../offset';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { HAProxyRuleBulkRemoveDto } from './dto/bulk-remove.dto';
@@ -35,165 +34,179 @@ import { HAProxyRuleCreateDto } from './dto/create.dto';
 import { HAProxyRuleUpdateDto } from './dto/update.dto';
 import { HAProxyRuleBulkUpdateDto } from './dto/bulk-update.dto';
 import { HAProxyMoveFromDto } from './dto/move-from.dto';
+import { HAProxyRuleItemForCompiler } from '../../../models/system/haproxy/shared';
+import { HAProxyCompiler } from '../../../compiler/system/haproxy/HAProxyCompiler';
+import { Channel } from '../../../sockets/channels/channel';
+import { Communication } from '../../../communications/communication';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
 
 export class HAProxyController extends Controller {
-    protected _haproxyRuleService: HAProxyRuleService;
-    protected _haproxyRule: HAProxyRule;
-    protected _haproxyGroup: HAProxyGroup;
-    protected _firewall: Firewall;
-    protected _fwCloud: FwCloud;
+  protected _haproxyRuleService: HAProxyRuleService;
+  protected _haproxyRule: HAProxyRule;
+  protected _haproxyGroup: HAProxyGroup;
+  protected _firewall: Firewall;
+  protected _fwCloud: FwCloud;
 
-    public async make(request: Request): Promise<void> {
-        this._haproxyRuleService = await this._app.getService<HAProxyRuleService>(HAProxyRuleService.name);
-        if (request.params.haproxy) {
-            this._haproxyRule = await getRepository(HAProxyRule).findOneOrFail(request.params.haproxy);
+  public async make(request: Request): Promise<void> {
+    this._haproxyRuleService = await this._app.getService<HAProxyRuleService>(HAProxyRuleService.name);
+    if (request.params.haproxy) {
+      this._haproxyRule = await getRepository(HAProxyRule).findOneOrFail(request.params.haproxy);
+    }
+    if (request.params.haproxygroup) {
+      this._haproxyGroup = await getRepository(HAProxyGroup).findOneOrFail(request.params.haproxygroup);
+    }
+    this._firewall = await getRepository(Firewall).findOneOrFail(request.params.firewall);
+    this._fwCloud = await getRepository(FwCloud).findOneOrFail(request.params.fwcloud);
+  }
+
+  @Validate()
+  public async index(request: Request): Promise<ResponseBuilder> {
+    (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
+
+    const rules: HAProxyRule[] = await this._haproxyRuleService.getHAProxyRulesData('compiler', this._fwCloud.id, this._firewall.id);
+
+    return ResponseBuilder.buildResponse().status(200).body(rules);
+  }
+
+  @Validate()
+  public async grid(request: Request): Promise<ResponseBuilder> {
+    (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
+
+    const rules: HAProxyRule[] = await this._haproxyRuleService.getHAProxyRulesData('haproxy_grid', this._fwCloud.id, this._firewall.id);
+
+    return ResponseBuilder.buildResponse().status(200).body(rules);
+  }
+
+  @Validate(HAProxyRuleCreateDto)
+  public async create(request: Request): Promise<ResponseBuilder> {
+    (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
+
+    const data: ICreateHAProxyRule = Object.assign(request.inputs.all<HAProxyRuleCreateDto>(), this._haproxyGroup ? { group: this._haproxyGroup.id } : null);
+    try {
+      const rule: HAProxyRule = await this._haproxyRuleService.store(data);
+
+      return ResponseBuilder.buildResponse().status(201).body(rule);
+    } catch (err) {
+      return ResponseBuilder.buildResponse().status(422).body({ message: err.message });
+    }
+  }
+
+  @Validate(HAProxyRuleCopyDto)
+  public async copy(request: Request): Promise<ResponseBuilder> {
+    const ids: number[] = request.inputs.get<number[]>('rules');
+    for (const id of ids) {
+      const rule: HAProxyRule = await getRepository(HAProxyRule).findOneOrFail(id);
+      (await HAProxyPolicy.show(rule, request.session.user)).authorize();
+    }
+
+    const copied: HAProxyRule[] = await this._haproxyRuleService.copy(ids, request.inputs.get('to'), request.inputs.get<Offset>('offset'));
+
+    return ResponseBuilder.buildResponse().status(201).body(copied);
+  }
+
+  @Validate(HAProxyRuleUpdateDto)
+  public async update(request: Request): Promise<ResponseBuilder> {
+    (await HAProxyPolicy.show(this._haproxyRule, request.session.user)).authorize();
+    try {
+      const result: HAProxyRule = await this._haproxyRuleService.update(this._haproxyRule.id, request.inputs.all<IUpdateHAProxyRule>());
+
+      return ResponseBuilder.buildResponse().status(200).body(result);
+    } catch (err) {
+      return ResponseBuilder.buildResponse().status(422).body({ message: err.message });
+    }
+  }
+
+  @Validate()
+  public async remove(request: Request): Promise<ResponseBuilder> {
+    (await HAProxyPolicy.show(this._haproxyRule, request.session.user)).authorize();
+
+    await this._haproxyRuleService.remove({
+      fwcloudId: this._fwCloud.id,
+      firewallId: this._firewall.id,
+      id: parseInt(request.params.haproxy),
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(this._haproxyRule);
+  }
+
+  @Validate()
+  public async show(request: Request): Promise<ResponseBuilder> {
+    (await HAProxyPolicy.show(this._haproxyRule, request.session.user)).authorize();
+
+    return ResponseBuilder.buildResponse().status(200).body(this._haproxyRule);
+  }
+
+  @Validate(HAProxyRuleCopyDto)
+  public async move(request: Request): Promise<ResponseBuilder> {
+    (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
+
+    const rules: HAProxyRule[] = await getRepository(HAProxyRule).find({
+      join: {
+        alias: 'rule',
+        innerJoin: {
+          firewall: 'rule.firewall',
+          fwcloud: 'firewall.fwCloud'
         }
-        if (request.params.haproxygroup) {
-            this._haproxyGroup = await getRepository(HAProxyGroup).findOneOrFail(request.params.haproxygroup);
-        }
-        this._firewall = await getRepository(Firewall).findOneOrFail(request.params.firewall);
-        this._fwCloud = await getRepository(FwCloud).findOneOrFail(request.params.fwcloud);
-    }
+      },
+      where: (qb) => {
+        qb.whereInIds(request.inputs.get('rules'))
+          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
+      }
+    });
 
-    @Validate()
-    public async index(request: Request): Promise<ResponseBuilder> {
-        (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
+    const result: HAProxyRule[] = await this._haproxyRuleService.move(rules.map(item => item.id), request.inputs.get('to'), request.inputs.get<Offset>('offset'));
 
-        const rules: HAProxyRule[] = await this._haproxyRuleService.getHAProxyRulesData('compiler', this._fwCloud.id, this._firewall.id);
+    return ResponseBuilder.buildResponse().status(200).body(result);
+  }
 
-        return ResponseBuilder.buildResponse().status(200).body(rules);
-    }
+  @ValidateQuery(HAProxyMoveFromDto)
+  async moveFrom(request: Request): Promise<ResponseBuilder> {
+    (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
 
-    @Validate()
-    public async grid(request: Request): Promise<ResponseBuilder> {
-        (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
+    const result: HAProxyRule[] = await this._haproxyRuleService.moveFrom(request.inputs.get('fromId'), request.inputs.get('toId'), request.inputs.all());
 
-        const rules: HAProxyRule[] = await this._haproxyRuleService.getHAProxyRulesData('haproxy_grid', this._fwCloud.id, this._firewall.id);
+    return ResponseBuilder.buildResponse().status(200).body(result);
+  }
 
-        return ResponseBuilder.buildResponse().status(200).body(rules);
-    }
-
-    @Validate(HAProxyRuleCreateDto)
-    public async create(request: Request): Promise<ResponseBuilder> {
-        (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
-
-        const data: ICreateHAProxyRule = Object.assign(request.inputs.all<HAProxyRuleCreateDto>(), this._haproxyGroup ? { group: this._haproxyGroup.id } : null);
-        const rule: HAProxyRule = await this._haproxyRuleService.store(data);
-
-        return ResponseBuilder.buildResponse().status(201).body(rule);
-    }
-
-    @Validate(HAProxyRuleCopyDto)
-    public async copy(request: Request): Promise<ResponseBuilder> {
-        const ids: number[] = request.inputs.get<number[]>('rules');
-        for (const id of ids) {
-            const rule: HAProxyRule = await this._haproxyRuleService.findOneInPath({ id });
-            (await HAProxyPolicy.show(rule, request.session.user)).authorize();
-        }
-
-        const copied: HAProxyRule[] = await this._haproxyRuleService.copy(ids, request.inputs.get('to'), request.inputs.get<Offset>('offset'));
-
-        return ResponseBuilder.buildResponse().status(201).body(copied);
-    }
-
-    @Validate(HAProxyRuleUpdateDto)
-    public async update(request: Request): Promise<ResponseBuilder> {
-        (await HAProxyPolicy.show(this._haproxyRule, request.session.user)).authorize();
-
-        const result: HAProxyRule = await this._haproxyRuleService.update(this._haproxyRule.id, request.inputs.all<IUpdateHAProxyRule>());
-
-        return ResponseBuilder.buildResponse().status(200).body(result);
-    }
-
-    @Validate()
-    public async remove(request: Request): Promise<ResponseBuilder> {
-        (await HAProxyPolicy.show(this._haproxyRule, request.session.user)).authorize();
-
-        await this._haproxyRuleService.remove({ id: this._haproxyRule.id });
-
-        return ResponseBuilder.buildResponse().status(200).body(this._haproxyRule);
-    }
-
-    @Validate()
-    public async show(request: Request): Promise<ResponseBuilder> {
-        (await HAProxyPolicy.show(this._haproxyRule, request.session.user)).authorize();
-
-        return ResponseBuilder.buildResponse().status(200).body(this._haproxyRule);
-    }
-
-    @Validate(HAProxyRuleCopyDto)
-    public async move(request: Request): Promise<ResponseBuilder> {
-        (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
-
-        const rules: HAProxyRule[] = await getRepository(HAProxyRule).find({
-            join: {
-                alias: 'haproxy',
-                innerJoin: {
-                    firewall: 'rule.firewall',
-                    fwcloud: 'firewall.fwCloud'
-                }
-            },
-            where: (qb) => {
-                qb.whereInIds(request.inputs.get('rules'))
-                    .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
-                    .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
-            }
-        });
-
-        const result: HAProxyRule[] = await this._haproxyRuleService.move(rules.map(item => item.id), request.inputs.get('to'), request.inputs.get<Offset>('offset'));
-
-        return ResponseBuilder.buildResponse().status(200).body(result);
-    }
-
-    @ValidateQuery(HAProxyMoveFromDto)
-    async moveFrom(request: Request): Promise<ResponseBuilder> {
-        (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
-
-        const fromRule: HAProxyRule = await getRepository(HAProxyRule).findOneOrFail({
-            join: {
-              alias: 'rule',
-              innerJoin: {
-                firewall: 'rule.firewall',
-                fwcloud: 'firewall.fwCloud'
-              }
-            },
-            where: (qb: SelectQueryBuilder<HAProxyRule>): void => {
-              qb.whereInIds(request.inputs.get('fromId'))
-                .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
-                .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
-            }
-          });
-      
-          const toRule: HAProxyRule = await getRepository(HAProxyRule).findOneOrFail({
-            join: {
-              alias: 'rule',
-              innerJoin: {
-                firewall: 'rule.firewall',
-                fwcloud: 'firewall.fwCloud'
-              }
-            },
-            where: (qb: SelectQueryBuilder<HAProxyRule>): void => {
-              qb.whereInIds(request.inputs.get('toId'))
-                .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
-                .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
-            }
-          });
-      
-          const result: HAProxyRule[] = await this._haproxyRuleService.moveFrom(fromRule.id, toRule.id, request.inputs.all());
-      
-          return ResponseBuilder.buildResponse().status(200).body(result);
-    }
-
-    @Validate()
+  @Validate()
   public async compile(req: Request): Promise<ResponseBuilder> {
-    //TODO: Implement this method
+    (await HAProxyPolicy.create(this._firewall, req.session.user)).authorize();
+
+    const rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] = await this._haproxyRuleService.getHAProxyRulesData('compiler', this._fwCloud.id, this._firewall.id, [this._haproxyRule.id]);
+
+    new HAProxyCompiler().compile(rules);
 
     return ResponseBuilder.buildResponse().status(200).body(null);
   }
 
   @Validate()
   public async install(req: Request): Promise<ResponseBuilder> {
-    //TODO: Implement this method
+    const channel: Channel = await Channel.fromRequest(req);
+    let firewallId: number;
+
+    let firewall: Firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
+    if (firewall.clusterId) {
+      firewallId = (await getRepository(Firewall).createQueryBuilder('firewall')
+        .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
+        .andWhere('firewall.fwmaster = 1')
+        .getOneOrFail()).id;
+    } else {
+      firewallId = firewall.id;
+    }
+
+    const rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] = await this._haproxyRuleService.getHAProxyRulesData('compiler', this._fwCloud.id, firewallId);
+
+    const content: string = (new HAProxyCompiler().compile(rules, channel)).map(item => item.cs).join('\n');
+
+    const communication: Communication<unknown> = await firewall.getCommunication();
+
+    channel.emit('message', new ProgressPayload('start', false, 'Installing HAProxy rules'));
+
+    await communication.installHAPRoxyConfigs('/etc/haproxy', [{ name: 'haproxy.cfg', content: content }], channel);
+
+    channel.emit('message', new ProgressPayload('end', false, 'Installing HAProxy rules'));
+
     return ResponseBuilder.buildResponse().status(200).body(null);
   }
 
