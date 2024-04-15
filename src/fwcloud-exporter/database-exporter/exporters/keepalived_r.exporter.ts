@@ -33,7 +33,7 @@ export class KeepalivedRuleExporter extends TableExporter {
             .where((qb) => {
                 const query = qb.subQuery().from(KeepalivedGroup, 'keepalived_g').select('keepalived_g.id');
 
-                return `${alias}.dhcpGroupId IN ` + new KeepalivedGroupExporter().getFilterBuilder(query, 'keepalived_g', fwCloudId).getQuery();
+                return `${alias}.keepalivedGroupId IN ` + new KeepalivedGroupExporter().getFilterBuilder(query, 'keepalived_g', fwCloudId).getQuery();
             })
             .where((qb) => {
                 const query = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
