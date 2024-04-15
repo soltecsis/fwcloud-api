@@ -24,7 +24,7 @@ import { Firewall } from "../../../models/firewall/Firewall";
 import { FirewallExporter } from "./firewall.exporter";
 import { TableExporter } from "./table-exporter";
 
-export class HAProxyRuleExporter extends TableExporter{
+export class HAProxyRuleExporter extends TableExporter {
     protected getEntity(): typeof Model {
         return HAProxyRule;
     }
