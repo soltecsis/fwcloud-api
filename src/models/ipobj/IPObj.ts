@@ -980,7 +980,7 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInGroupInRoutingRule = await this.searchIpobjInGroupInRoutingRule(id, fwcloud);
 
                 search.restrictions.IpobjInDhcpRule = await this.searchIPObjInDhcpRule(id, fwcloud);
-                search.restrictions.IPObjInHAProxyRuleç = await this.searchIPObjInHAProxyRule(id, fwcloud);
+                search.restrictions.IPObjInHAProxyRule = await this.searchIPObjInHAProxyRule(id, fwcloud);
                 
                 if (type === 8) { // HOST
                     search.restrictions.InterfaceHostInRule = await PolicyRuleToIPObj.searchInterfaceHostInRule(dbCon, fwcloud, id);
@@ -1096,14 +1096,11 @@ export class IPObj extends Model {
             .addSelect('backendPort.id', 'backendPort_id').addSelect('backendPort.name', 'backendPort_name')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-            .leftJoin('haproxy_rule.frontendIp', 'frontendIp')
-            .leftJoin('frontendIp.ipObj', 'ipObj', 'ipObj.id = :id', { id: id })
-            .leftJoin('haproxy_rule.frontendPort', 'frontendPort')
-            .leftJoin('frontendPort.ipObj', 'ipObj', 'ipObj.id = :id')
-            .leftJoin('haproxy_rule.backendIps', 'backendIps')
-            .leftJoin('backendIps.ipObj', 'ipObj', 'ipObj.id = :id')
-            .leftJoin('haproxy_rule.backendPort', 'backendPort')
-            .leftJoin('backendPort.ipObj', 'ipObj', 'ipObj.id = :id')
+            .leftJoin('haproxy_rule.frontendIp', 'frontendIp','frontendIp.id = :id', { id: id })
+            .leftJoin('haproxy_rule.frontendPort', 'frontendPort', 'frontendPort.id = :id')
+            .leftJoin('haproxy_rule.backendIps', 'backendIps', 'backendIps.ipObj = :id')
+            .leftJoin('backendIps.ipObj', 'ipObj')
+            .leftJoin('haproxy_rule.backendPort', 'backendPort', 'backendPort.id = :id')
             .innerJoin('haproxy_rule.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
             .where(`firewall.fwCloudId = :fwcloud AND (ipObj.id IS NOT NULL)`, { fwcloud: fwcloud })
