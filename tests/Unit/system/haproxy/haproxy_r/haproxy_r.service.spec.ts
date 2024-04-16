@@ -189,13 +189,13 @@ describe(HAProxyRuleService.name, () => {
                 firewallId: firewall.id,
                 frontendIpId: 1,
                 frontendPortId: 1,
-                to: 3,
+                to: haproxyRule.id,
                 offset: 'Above'
             };
             const expected = await getRepository(HAProxyRule).create(data);
             const getLastHAProxyRuleInFirewallStub = sinon.stub(service['_repository'], 'getLastHAProxyRuleInFirewall').returns(null);
             const saveStub = sinon.stub(service['_repository'], 'save').resolves(expected);
-            const moveStub = sinon.stub(service['_repository'], 'move').resolves([expected]);
+            const moveStub = sinon.stub(service, 'move').resolves([expected]);
 
             const result = await service.store(data as ICreateHAProxyRule);
 
