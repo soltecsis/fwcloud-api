@@ -15,13 +15,13 @@ export class HAProxyPolicy extends Policy {
         return this.checksAutorization(user,firewall);
     }
 
-    static async show(group: HAProxyRule, user: User): Promise<Authorization> {
+    static async show(rule: HAProxyRule, user: User): Promise<Authorization> {
         user = await this.getUser(user);
-        const firewall = await getRepository(Firewall).findOneOrFail(group.firewall.id,{
+        const firewall = await getRepository(Firewall).findOneOrFail(rule.firewallId,{
             relations: ['fwCloud'],
         });
 
-        return this.checksAutorization(user,group.firewall);
+        return this.checksAutorization(user,rule.firewall);
     }
 
     protected static async checksAutorization(user: User, firewall: Firewall): Promise<Authorization> {

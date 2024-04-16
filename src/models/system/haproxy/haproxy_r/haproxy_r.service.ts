@@ -137,7 +137,7 @@ export class HAProxyRuleService extends Service {
         // Validate that the ip_version of haProxyRule.frontendIp matches any of the ip_versions in haProxyRule.backendIps
         if (haProxyRule.frontendIp && haProxyRule.backendIps) {
             const frontendIpVersion = haProxyRule.frontendIp.ip_version;
-            const hasMatchingIpVersion = haProxyRule.backendIps.some(backEndIp => backEndIp.ipObj.ip_version === frontendIpVersion);
+            const hasMatchingIpVersion = haProxyRule.backendIps.some(async backEndIp => (await getRepository(IPObj).findOne(backEndIp.ipObj)).ip_version === frontendIpVersion);
             if (!hasMatchingIpVersion) {
                 throw new Error('IP version mismatch');
             }
@@ -263,7 +263,7 @@ export class HAProxyRuleService extends Service {
 
         if (haProxyRule.frontendIp && haProxyRule.backendIps) {
             const frontendIpVersion = haProxyRule.frontendIp.ip_version;
-            const hasMatchingIpVersion = haProxyRule.backendIps.some(backEndIp => backEndIp.ipObj.ip_version === frontendIpVersion);
+            const hasMatchingIpVersion = haProxyRule.backendIps.some(async backEndIp => (await getRepository(IPObj).findOne(backEndIp.ipObj)).ip_version === frontendIpVersion);
             if (!hasMatchingIpVersion) {
                 throw new Error('IP version mismatch');
             }
