@@ -406,7 +406,7 @@ export class HAProxyRuleService extends Service {
         const ipObjs: IPObj[] = await getRepository(IPObj).find({
             where: {
                 id: In(data.backendIpsIds.map(item => item.id)),
-                ipObjTypeId: 1,
+                ipObjTypeId: 5,
             },
             relations: ['fwCloud']
         });
