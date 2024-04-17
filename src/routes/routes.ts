@@ -48,6 +48,7 @@ import { CaController } from "../controllers/ca/ca.controller";
 import { CrtController } from "../controllers/crt/crt.controller";
 import { DhcpGroupController } from '../controllers/system/dhcp-group/dhcp-group.controller';
 import { DhcpController } from '../controllers/system/dhcp/dhcp.controller';
+import { SystemCtlController } from '../controllers/systemctl/systemctl.controller';
 
 export class Routes extends RouteCollection {
 
@@ -96,6 +97,9 @@ export class Routes extends RouteCollection {
                     router.put('/updater', UpdateController, 'update').name('updates.fwcloud-updater');
                 });
             });
+
+            //Systemctl routes
+            router.post('/systemctl', SystemCtlController, 'systemctlCommunication').name('systemctl.communication')
 
             router.prefix('/fwclouds', (router: RouterParser) => {
                 router.post('/', FwCloudController, 'store').name('fwclouds.store');
