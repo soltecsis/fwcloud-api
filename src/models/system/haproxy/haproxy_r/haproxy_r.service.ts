@@ -225,7 +225,7 @@ export class HAProxyRuleService extends Service {
 
     async update(id: number, data: Partial<ICreateHAProxyRule>): Promise<HAProxyRule> {
         let haProxyRule: HAProxyRule | undefined = await this._repository.findOneOrFail(id, {
-            relations: ['group', 'frontendIp', 'frontendPort', 'backendIps', 'backendPort']
+            relations: ['group', 'frontendIp', 'frontendPort', 'backendIps', 'backendPort', 'firewall']
         });
         if (!haProxyRule) {
             throw new Error('HAProxy rule not found');
@@ -246,11 +246,11 @@ export class HAProxyRuleService extends Service {
             haProxyRule.group = data.group ? await getRepository(HAProxyGroup).findOne(data.group) : null;
         } else if (data.backendIpsIds) {
             await this.validateBackendIps(haProxyRule.firewall, data);
-            haProxyRule.backendIps = await Promise.all(data.backendIpsIds.map(async item => ({
+            haProxyRule.backendIps = data.backendIpsIds.map(item => ({
                 haproxyRuleId: haProxyRule.id,
                 ipObjId: item.id,
                 order: item.order
-            } as HAProxyRuleToIPObj)));
+            } as HAProxyRuleToIPObj));
         } else {
             const fieldsToUpdate: string[] = ['frontendIpId', 'frontendPortId', 'backendPortId', 'firewallId'];
 
