@@ -140,8 +140,7 @@ export class HAProxyRuleService extends Service {
 
             const backendIpVersions = await Promise.all(
                 haProxyRule.backendIps.map(async backEndIp => {
-                    const ipObj = await getRepository(IPObj).findOne(backEndIp.ipObj);
-                    console.log('backEndIpVersion', ipObj.ip_version);
+                    const ipObj = await getRepository(IPObj).findOne(backEndIp.ipObjId);
                     return ipObj.ip_version;
                 })
             );
@@ -276,8 +275,7 @@ export class HAProxyRuleService extends Service {
 
             const backendIpVersions = await Promise.all(
                 haProxyRule.backendIps.map(async backEndIp => {
-                    const ipObj = await getRepository(IPObj).findOne(backEndIp.ipObj);
-                    console.log('backEndIpVersion', ipObj.ip_version);
+                    const ipObj = await getRepository(IPObj).findOne(backEndIp.ipObjId);
                     return ipObj.ip_version;
                 })
             );
