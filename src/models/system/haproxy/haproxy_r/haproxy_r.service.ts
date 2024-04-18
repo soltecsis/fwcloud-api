@@ -297,7 +297,7 @@ export class HAProxyRuleService extends Service {
             join: {
                 alias: 'haproxy',
                 innerJoin: {
-                    firewall: 'group.firewall',
+                    firewall: 'haproxy.firewall',
                     fwcloud: 'firewall.fwCloud',
                 }
             },
@@ -377,7 +377,7 @@ export class HAProxyRuleService extends Service {
             }
         });
 
-        for (const rule of rules) {
+        for (let rule of rules) {
             await this.remove({ id: rule.id })
         }
 
