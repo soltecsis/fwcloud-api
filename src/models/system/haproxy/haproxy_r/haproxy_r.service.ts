@@ -84,7 +84,7 @@ export interface HAProxyRulesData<T extends ItemForGrid | HAProxyRuleItemForComp
 interface IMoveFromHaProxyRule {
     fromId: number;
     toId: number;
-    backendIpsId?: number;
+    ipObjId?: number;
 }
 
 export class HAProxyRuleService extends Service {
@@ -208,13 +208,13 @@ export class HAProxyRuleService extends Service {
             lastPosition < ipobj.order ? lastPosition = ipobj.order : null;
         });
 
-        if (data.backendIpsId !== undefined) {
-            const index = fromRule.backendIps.findIndex(item => item.ipObjId === data.backendIpsId);
+        if (data.ipObjId !== undefined) {
+            const index = fromRule.backendIps.findIndex(item => item.ipObjId === data.ipObjId);
             if (index >= 0) {
                 fromRule.backendIps.splice(index, 1);
                 toRule.backendIps.push({
                     haproxyRuleId: toRule.id,
-                    ipObjId: data.backendIpsId,
+                    ipObjId: data.ipObjId,
                     order: lastPosition + 1
                 } as HAProxyRuleToIPObj);
             }

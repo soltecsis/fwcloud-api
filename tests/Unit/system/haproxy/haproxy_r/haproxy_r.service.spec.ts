@@ -386,7 +386,7 @@ describe(HAProxyRuleService.name, () => {
                 const result = await service.moveFrom(rule1.id, rule2.id, {
                     fromId: rule1.id,
                     toId: rule2.id,
-                    backendIpsId: ipobj.id
+                    ipObjId: ipobj.id
                 });
                 expect(result[1].backendIps).to.be.not.empty;
                 expect(result[0].backendIps).to.be.empty;
