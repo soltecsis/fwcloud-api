@@ -137,7 +137,17 @@ export class HAProxyRuleService extends Service {
         // Validate that the ip_version of haProxyRule.frontendIp matches any of the ip_versions in haProxyRule.backendIps
         if (haProxyRule.frontendIp && haProxyRule.backendIps) {
             const frontendIpVersion = haProxyRule.frontendIp.ip_version;
-            const hasMatchingIpVersion = haProxyRule.backendIps.some(async backEndIp => (await getRepository(IPObj).findOne(backEndIp.ipObj)).ip_version === frontendIpVersion);
+
+            const backendIpVersions = await Promise.all(
+                haProxyRule.backendIps.map(async backEndIp => {
+                    const ipObj = await getRepository(IPObj).findOne(backEndIp.ipObj);
+                    console.log('backEndIpVersion', ipObj.ip_version);
+                    return ipObj.ip_version;
+                })
+            );
+
+            const hasMatchingIpVersion = backendIpVersions.some(version => version === frontendIpVersion);
+
             if (!hasMatchingIpVersion) {
                 throw new Error('IP version mismatch');
             }
@@ -263,7 +273,17 @@ export class HAProxyRuleService extends Service {
 
         if (haProxyRule.frontendIp && haProxyRule.backendIps) {
             const frontendIpVersion = haProxyRule.frontendIp.ip_version;
-            const hasMatchingIpVersion = haProxyRule.backendIps.some(async backEndIp => (await getRepository(IPObj).findOne(backEndIp.ipObj)).ip_version === frontendIpVersion);
+
+            const backendIpVersions = await Promise.all(
+                haProxyRule.backendIps.map(async backEndIp => {
+                    const ipObj = await getRepository(IPObj).findOne(backEndIp.ipObj);
+                    console.log('backEndIpVersion', ipObj.ip_version);
+                    return ipObj.ip_version;
+                })
+            );
+
+            const hasMatchingIpVersion = backendIpVersions.some(version => version === frontendIpVersion);
+
             if (!hasMatchingIpVersion) {
                 throw new Error('IP version mismatch');
             }
