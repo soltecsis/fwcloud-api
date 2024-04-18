@@ -160,7 +160,7 @@ export class HAProxyController extends Controller {
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
 
-  @ValidateQuery(HAProxyMoveFromDto)
+  @Validate(HAProxyMoveFromDto)
   async moveFrom(request: Request): Promise<ResponseBuilder> {
     (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
 
