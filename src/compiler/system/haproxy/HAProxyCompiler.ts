@@ -31,7 +31,7 @@ export class HAProxyCompiler {
         let cs = '';
 
         switch (ruleData.rule_type) {
-            case 3:
+            case 2:
                 cs = ruleData.cfg_text ? ruleData.cfg_text : '';
                 break;
             default:
@@ -52,8 +52,8 @@ export class HAProxyCompiler {
                 cs += `\tbalance\tleastconn\n`;
                 cs += `\n`;
                 cs += `default-server\tinter 15s maxconn 50000\n`;
-                for (let i = 0; i < ruleData.backendIps.length; i++) {
-                    cs += `\tserver\t${ruleData.backendIps[i].ipObj.address}:${ruleData.backendIps[i].ipObj.destination_port_end}\n`;
+                for (let i = 0; i < ruleData.items.length; i++) {
+                    cs += `\tserver\t${ruleData.items[i].address}:${ruleData.backendPort.destination_port_end}\n`;
                 }
         }
         return cs;
