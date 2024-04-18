@@ -1096,14 +1096,14 @@ export class IPObj extends Model {
             .addSelect('backendPort.id', 'backendPort_id').addSelect('backendPort.name', 'backendPort_name')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-            .leftJoin('haproxy_rule.frontendIp', 'frontendIp','frontendIp.id = :id', { id: id })
-            .leftJoin('haproxy_rule.frontendPort', 'frontendPort', 'frontendPort.id = :id')
-            .leftJoin('haproxy_rule.backendIps', 'backendIps', 'backendIps.ipObj = :id')
+            .leftJoin('haproxy_rule.frontendIp', 'frontendIp', 'frontendIp.id = :id', { id: id })
+            .leftJoin('haproxy_rule.frontendPort', 'frontendPort', 'frontendPort.id = :id', { id: id })
+            .leftJoin('haproxy_rule.backendPort', 'backendPort', 'backendPort.id = :id', { id: id })
+            .leftJoin('haproxy_rule.backendIps', 'backendIps', 'backendIps.ipObj = :id', { id: id })
             .leftJoin('backendIps.ipObj', 'ipObj')
-            .leftJoin('haproxy_rule.backendPort', 'backendPort', 'backendPort.id = :id')
             .innerJoin('haproxy_rule.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
-            .where(`firewall.fwCloudId = :fwcloud AND (ipObj.id IS NOT NULL)`, { fwcloud: fwcloud })
+            .where(`firewall.fwCloudId = :fwcloud AND ( frontendIp.id IS NOT NULL OR frontendPort.id IS NOT NULL OR backendPort.id IS NOT NULL OR ipObj.id IS NOT NULL)`, { fwcloud: fwcloud })
             .getRawMany();
     };
 
