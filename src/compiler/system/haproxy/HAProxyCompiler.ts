@@ -38,7 +38,7 @@ export class HAProxyCompiler {
                 if (ruleData.comment) {
                     cs += `# ${ruleData.comment}\n`;
                 }
-                cs += `frontend\pfront_${ruleData.frontendIp.name}\n`;
+                cs += `frontend\tfront_${ruleData.frontendIp.name}\n`;
                 cs += `\tmode\ttcp\n`;
                 cs += `\tbind\t${ruleData.frontendIp.address}:${ruleData.frontendPort.destination_port_start}\n`;
                 cs += `\ttimeout\tclient 86400s\n`;
