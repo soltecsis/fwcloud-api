@@ -99,7 +99,9 @@ export class Routes extends RouteCollection {
                     router.put('/updater', UpdateController, 'update').name('updates.fwcloud-updater');
                 });
             });
-            router.post('/systemctl', SystemCtlController,'systemctlCommunication').name('systemctl.communication');
+
+            //Systemctl routes
+            router.post('/systemctl', SystemCtlController, 'systemctlCommunication').name('systemctl.communication')
 
             router.prefix('/fwclouds', (router: RouterParser) => {
                 router.post('/', FwCloudController, 'store').name('fwclouds.store');
