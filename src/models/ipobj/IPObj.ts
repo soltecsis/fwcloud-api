@@ -1115,6 +1115,7 @@ export class IPObj extends Model {
             .addSelect('frontendIp.id', 'frontendIp_id').addSelect('frontendIp.name', 'frontendIp_name')
             .addSelect('frontendPort.id', 'frontendPort_id').addSelect('frontendPort.name', 'frontendPort_name')
             .addSelect('backendPort.id', 'backendPort_id').addSelect('backendPort.name', 'backendPort_name')
+            .addSelect('ipObj.id', 'backendIps_id').addSelect('ipObj.name', 'backendIps_name')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .leftJoin('haproxy_rule.frontendIp', 'frontendIp', 'frontendIp.id = :id', { id: id })
