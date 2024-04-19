@@ -38,6 +38,8 @@ import {RouteToIPObj} from '../routing/route/route-to-ipobj.model';
 import {RoutingRuleToIPObj} from '../routing/routing-rule/routing-rule-to-ipobj.model';
 import {DHCPRuleToIPObj} from '../system/dhcp/dhcp_r/dhcp_r-to-ipobj.model';
 import {DHCPRule} from '../system/dhcp/dhcp_r/dhcp_r.model';
+import { KeepalivedToIPObj } from '../system/keepalived/keepalived_r/keepalived_r-to-ipobj';
+import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
 
 const ip = require('ip');
 var asyncMod = require('async');
@@ -172,6 +174,11 @@ export class IPObj extends Model {
         cascade: true,
     })
     dhcpRuleToIPObjs: DHCPRuleToIPObj[];
+
+    @OneToMany(()=> KeepalivedToIPObj, model => model.ipObj, {
+        cascade: true,
+    })
+    keepalivedRuleToIPObjs: KeepalivedToIPObj[];
 
     @OneToMany(() => RouteToIPObj, model => model.ipObj, {
         cascade: true,
@@ -973,6 +980,7 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInGroupInRoutingRule = await this.searchIpobjInGroupInRoutingRule(id, fwcloud);
 
                 search.restrictions.IpobjInDhcpRule = await this.searchIPObjInDhpRule(id, fwcloud);
+                search.restrictions.IpobjInKeepalivedRule = await this.searchIpobjInKeepalivedRule(id, fwcloud);
                 
                 if (type === 8) { // HOST
                     search.restrictions.InterfaceHostInRule = await PolicyRuleToIPObj.searchInterfaceHostInRule(dbCon, fwcloud, id);
@@ -980,6 +988,7 @@ export class IPObj extends Model {
                     search.restrictions.AddrHostInGroup = await IPObjToIPObjGroup.searchAddrHostInGroup(dbCon, fwcloud, id);
                     search.restrictions.AddrHostInOpenvpn = await this.searchAddrHostInOpenvpn(dbCon, fwcloud, id);
                     search.restrictions.InterfaceHostInDhcpRule = await this.searchInterfaceHostInDhcpRule(dbCon, fwcloud, id);
+                    search.restrictions.InterfaceHostInKeepalivedRule = await this.searchInterfaceHostInKeepalivedRule(dbCon, fwcloud, id);
                 }
 
                 // Avoid leaving an interface used in a rule without address.
@@ -1079,6 +1088,18 @@ export class IPObj extends Model {
 
         return [...resultAsRouter, ...resultAsIpObj].sort((a, b) => a.dhcp_rule_rule_type - b.dhcp_rule_rule_type);
     }
+
+    public static async searchIpobjInKeepalivedRule(id: number, fwcloud: number): Promise<any> {
+        return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .leftJoin('keepalived_rule.virtualIps', 'virtualIps')
+            .leftJoin('virtualIps.ipObj', 'ipObj', 'ipObj.id = :id', { id: id })
+            .innerJoin('keepalived_rule.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud AND (ipObj.id IS NOT NULL)`, { fwcloud: fwcloud })
+            .getRawMany();
+    };
 
     public static async searchIpobjInGroupInRoute(ipobj: number, fwcloud: number): Promise<any> {
         return await getRepository(Route).createQueryBuilder('route')
@@ -1212,6 +1233,17 @@ export class IPObj extends Model {
             .leftJoin('firewall.cluster', 'cluster')
             .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
             .orderBy('dhcp_rule.rule_type','ASC')
+            .getRawMany();
+    }
+
+    public static async searchInterfaceHostInKeepalivedRule(dbCon: any, fwcloid: number, id: number) {
+        return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
+            .innerJoin('keepalived_rule.interface', 'interface')
+            .innerJoin('interface.hosts', 'hosts')
+            .innerJoin('hosts.hostIPObj', 'ipObj', 'ipObj.id = :id', { id })
+            .innerJoin('keepalived_rule.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloid })
             .getRawMany();
     }
 

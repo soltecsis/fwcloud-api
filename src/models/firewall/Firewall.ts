@@ -56,6 +56,8 @@ import { Route } from '../routing/route/route.model';
 import { RoutingRule } from './../routing/routing-rule/routing-rule.model';
 import { DHCPGroup } from "../system/dhcp/dhcp_g/dhcp_g.model";
 import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
+import { KeepalivedGroup } from "../system/keepalived/keepalived_g/keepalived_g.model";
+import { KeepalivedRule } from "../system/keepalived/keepalived_r/keepalived_r.model";
 
 const tableName: string = 'firewall';
 
@@ -219,6 +221,12 @@ export class Firewall extends Model {
 
 	@OneToMany(type => DHCPRule, dhcpRule => dhcpRule.firewall)
 	dhcpRules: DHCPRule[];
+
+	@OneToMany(type => KeepalivedGroup, keepalivedGroup => keepalivedGroup.firewall)
+	keepalivedGroups: KeepalivedGroup[];
+
+	@OneToMany(type => KeepalivedRule, keepalivedRule => keepalivedRule.firewall)
+	keepalivedRules: KeepalivedRule[];
 
 	public getTableName(): string {
 		return tableName;

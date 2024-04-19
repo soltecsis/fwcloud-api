@@ -33,6 +33,9 @@ import { RoutingRuleService } from "../routing/routing-rule/routing-rule.service
 import { DHCPRuleService } from "../system/dhcp/dhcp_r/dhcp_r.service";
 import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
 import { DHCPGroup } from "../system/dhcp/dhcp_g/dhcp_g.model";
+import { KeepalivedRuleService } from "../system/keepalived/keepalived_r/keepalived_r.service";
+import { KeepalivedGroup } from "../system/keepalived/keepalived_g/keepalived_g.model";
+import { KeepalivedRule } from "../system/keepalived/keepalived_r/keepalived_r.model";
 const fwcError = require('../../utils/error_table');
 var utilsModel = require("../../utils/utils.js");
 
@@ -165,8 +168,9 @@ export class FirewallService extends Service {
         const routingTableService: RoutingTableService = await app().getService(RoutingTableService.name);
         const routingRuleService: RoutingRuleService = await app().getService(RoutingRuleService.name);
         const dhcpRuleService: DHCPRuleService = await app().getService(DHCPRuleService.name);
+        const keepalivedRuleService: KeepalivedRuleService = await app().getService(KeepalivedRuleService.name);
 
-        const firewallEntity: Firewall = await getRepository(Firewall).findOneOrFail(firewallId, { relations: ['routingTables', 'routingTables.routingRules', 'dhcpRules'] });
+        const firewallEntity: Firewall = await getRepository(Firewall).findOneOrFail(firewallId, { relations: ['routingTables', 'routingTables.routingRules', 'dhcpRules', 'keepalivedRules'] });
         for (let table of firewallEntity.routingTables) {
             await routingRuleService.bulkRemove(table.routingRules.map(item => item.id));
             await routingTableService.remove({
@@ -177,6 +181,7 @@ export class FirewallService extends Service {
         }
 
         await dhcpRuleService.bulkRemove(firewallEntity.dhcpRules.map(item => item.id));
+        await keepalivedRuleService.bulkRemove(firewallEntity.keepalivedRules.map(item => item.id));
 
         await Firewall.deleteFirewall(userId, fwcloudId, firewallId);
     }
@@ -233,6 +238,8 @@ export class FirewallService extends Service {
                             await OpenVPN.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
                             await DHCPGroup.moveToOtherFirewall(firewallId, idNewFM);
                             await DHCPRule.moveToOtherFirewall(firewallId, idNewFM);
+                            await KeepalivedGroup.moveToOtherFirewall(firewallId, idNewFM);
+                            await KeepalivedRule.moveToOtherFirewall(firewallId, idNewFM);
 
                             // Move routing tables.
                             let routingTableService = await app().getService<RoutingTableService>(RoutingTableService.name);

@@ -263,4 +263,8 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
     installDHCPConfigs(dir: string, configs: { name: string; content: string; }[], eventEmitter: EventEmitter = new EventEmitter()): Promise<string> {
         throw new Error("Method not implemented.");
     }
+
+    installKeepalivedConfigs(dir: string, configs: { name: string; content: string; }[], eventEmitter?: EventEmitter): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
 }

@@ -35,6 +35,7 @@ import { RoutingRuleToInterface } from "../routing/routing-rule-to-interface/rou
 import { RouteToIPObj } from "../routing/route/route-to-ipobj.model";
 import { RoutingRuleToIPObj } from "../routing/routing-rule/routing-rule-to-ipobj.model";
 import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
+import { KeepalivedRule } from "../system/keepalived/keepalived_r/keepalived_r.model";
 var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -452,6 +453,8 @@ export class Interface extends Model {
 
 						search.restrictions.InterfaceInDhcpRule = await this.searchInterfaceInDhcpRule(id, fwcloud);
 
+						search.restrictions.InterfaceInKeepalivedRule = await this.searchInterfaceInKeepalivedRule(id, fwcloud);
+
 						for (let key in search.restrictions) {
 							if (search.restrictions[key].length > 0) {
 								search.result = true;
@@ -517,6 +520,19 @@ export class Interface extends Model {
 			.leftJoin('firewall.cluster', 'cluster')
 			.where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
 			.orderBy('dhcp_rule.rule_type', 'ASC')
+			.getRawMany();
+	}
+
+	public static async searchInterfaceInKeepalivedRule(id: string, fwcloud: string) {
+		return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
+			.addSelect('keepalived_rule.id', 'keepalived_rule_id').addSelect('keepalived_rule.rule_type', 'keepalived_rule_type')
+			.addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
+			.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+			.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+			.leftJoin('keepalived_rule.interface', 'interface', 'interface.id = :interface', { interface: id })
+			.innerJoin('keepalived_rule.firewall', 'firewall')
+			.leftJoin('firewall.cluster', 'cluster')
+			.where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloud })
 			.getRawMany();
 	}
 
@@ -643,6 +659,51 @@ export class Interface extends Model {
 				.catch((error) => {
 					callback(error, null);
 				});
+
+			const checkKeepalivedReferences = async () => {
+				return new Promise((resolve, reject) => {
+					const keepalivedCheckSql = 'SELECT COUNT(*) as count FROM keepalived_r WHERE interface = ?';
+					connection.query(keepalivedCheckSql, [interfaceData.id], (error, result) => {
+						if (error) {
+							return reject(error)
+						} else {
+							resolve(result[0].count)
+						}
+					});
+				});
+			}
+
+			await checkKeepalivedReferences().then((count: number) => {
+				if (count > 0 && (interfaceData.mac === null || interfaceData.mac === '' || interfaceData.mac === undefined)) {
+					const errorMessage = 'The interface cannot be updated. There are references in keepalice rules.';
+					callback(errorMessage, null);
+				} else {
+					const sql = `
+							UPDATE ${tableName}
+							SET name = ${connection.escape(interfaceData.name)}, 
+								labelName = ${connection.escape(interfaceData.labelName)},
+								type = ${connection.escape(interfaceData.type)},
+								comment = ${connection.escape(interfaceData.comment)},
+								mac = ${connection.escape(interfaceData.mac)}
+							WHERE id = ${connection.escape(interfaceData.id)}`;
+
+					logger().debug(sql);
+
+					connection.query(sql, (error, result) => {
+						if (error) {
+							callback(error, null);
+						} else {
+							if (result.affectedRows > 0) {
+								callback(null, { result: true });
+							} else {
+								callback(null, { result: false });
+							}
+						}
+					});
+				}
+			}).catch((error) => {
+				callback(error, null);
+			});
 		});
 	};
 

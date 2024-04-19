@@ -77,6 +77,9 @@ import { Tfa } from "../models/user/Tfa";
 import { DHCPRule } from "../models/system/dhcp/dhcp_r/dhcp_r.model";
 import { DHCPGroup } from "../models/system/dhcp/dhcp_g/dhcp_g.model";
 import { DHCPRuleToIPObj } from "../models/system/dhcp/dhcp_r/dhcp_r-to-ipobj.model";
+import { KeepalivedRule } from "../models/system/keepalived/keepalived_r/keepalived_r.model";
+import { KeepalivedGroup } from "../models/system/keepalived/keepalived_g/keepalived_g.model";
+import { KeepalivedToIPObj } from "../models/system/keepalived/keepalived_r/keepalived_r-to-ipobj";
 
 export interface DatabaseConfig {
     host: string,
@@ -320,7 +323,10 @@ export class DatabaseService extends Service {
                 Tfa,
                 DHCPRule,
                 DHCPGroup,
-                DHCPRuleToIPObj
+                DHCPRuleToIPObj,
+                KeepalivedRule,
+                KeepalivedGroup,
+                KeepalivedToIPObj
             ]
         }
     }
