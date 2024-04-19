@@ -264,6 +264,10 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         throw new Error("Method not implemented.");
     }
 
+    installKeepalivedConfigs(dir: string, configs: { name: string; content: string; }[], eventEmitter?: EventEmitter): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
+
     installHAPRoxyConfigs(dir: string, configs: { name: string; content: string; }[], eventEmitter?: EventEmitter): Promise<string> {
         throw new Error("Method not implemented.");
     }

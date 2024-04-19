@@ -194,6 +194,11 @@ export class FwCloud extends Model {
 				delete DHCPR from dhcp_r DHCPR inner join firewall FW on FW.id=DHCPR.firewall where FW.fwcloud=${this.id};
 				delete DHCPG from dhcp_g DHCPG inner join firewall FW on FW.id=DHCPG.firewall where FW.fwcloud=${this.id};`
 
+				//Delete Keepalived Rules
+				+`delete KEEPALIVEDIPOBJ from keepalived_r__ipobj KEEPALIVEDIPOBJ inner join keepalived_r RULE on RULE.id=KEEPALIVEDIPOBJ.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
+				delete KEEPALIVEDR from keepalived_r KEEPALIVEDR inner join firewall FW on FW.id=KEEPALIVEDR.firewall where FW.fwcloud=${this.id};
+				delete KEEPALIVEDRG from keepalived_g KEEPALIVEDRG inner join firewall FW on FW.id=KEEPALIVEDRG.firewall where FW.fwcloud=${this.id};`
+
 				//Delete HAProxy groups and rules
 				+`delete HAPROXYIPOBJ from haproxy_r__ipobj HAPROXYIPOBJ inner join haproxy_r RULE on RULE.id=HAPROXYIPOBJ.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};
 				delete HAPROXYR from haproxy_r HAPROXYR inner join firewall FW on FW.id=HAPROXYR.firewall where FW.fwcloud=${this.id};

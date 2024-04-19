@@ -51,6 +51,9 @@ import { HAProxyCompiler } from "../../compiler/system/haproxy/HAProxyCompiler";
 import { DHCPRuleService, DHCPRulesData } from "../../models/system/dhcp/dhcp_r/dhcp_r.service";
 import { DHCPRuleItemForCompiler } from "../../models/system/dhcp/shared";
 import {DHCPCompiled, DHCPCompiler} from "../../compiler/system/dhcp/DHCPCompiler";
+import { KeepalivedRuleService, KeepalivedRulesData } from "../../models/system/keepalived/keepalived_r/keepalived_r.service";
+import { KeepalivedCompiler } from "../../compiler/system/keepalived/KeepalivedCompiler";
+import { KeepalivedRuleItemForCompiler } from "../../models/system/keepalived/shared";
 
 
 export class FirewallController extends Controller {
@@ -59,6 +62,7 @@ export class FirewallController extends Controller {
     protected routingRuleService: RoutingRuleService;
     protected haproxyRuleService: HAProxyRuleService;
     protected dhcpRuleService: DHCPRuleService;
+    protected keepalivedService: KeepalivedRuleService;
     protected _fwCloud: FwCloud;
 
     public async make(request: Request): Promise<void> {
@@ -71,6 +75,7 @@ export class FirewallController extends Controller {
         this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
         this.haproxyRuleService = await this._app.getService<HAProxyRuleService>(HAProxyRuleService.name);
         this.dhcpRuleService = await this._app.getService<DHCPRuleService>(DHCPRuleService.name);
+        this.keepalivedService = await this._app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
     }
 
     @Validate(FirewallControllerCompileDto)
@@ -182,6 +187,27 @@ export class FirewallController extends Controller {
         );
 
         const compilation: DHCPCompiled[] = new DHCPCompiler().compile(rules);
+
+        return ResponseBuilder.buildResponse().status(200).body(compilation)
+    }
+
+    @Validate()
+    @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
+    async compileKeepalivedRules(request: Request): Promise<ResponseBuilder> {
+        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+            id: parseInt(request.params.firewall),
+            fwCloudId: parseInt(request.params.fwcloud)
+        });
+
+        (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
+
+        let rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] = await this.keepalivedService.getKeepalivedRulesData(
+            'compiler',
+            firewall.fwCloudId,
+            firewall.id,
+            request.query.rules ? (request.query.rules as string[]).map(item => parseInt(item)) : undefined
+        );
+        const compilation = new KeepalivedCompiler().compile(rules);
 
         return ResponseBuilder.buildResponse().status(200).body(compilation)
     }

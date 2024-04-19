@@ -76,6 +76,8 @@ import { HAProxyRuleServiceProvider } from "./models/system/haproxy/haproxy_r/ha
 import { HAProxyGroupServiceProvider } from "./models/system/haproxy/haproxy_g/haproxy_g.provider";
 import { DHCPRuleServiceProvider } from "./models/system/dhcp/dhcp_r/dhcp_r.provider";
 import { DHCPGroupServiceProvider } from "./models/system/dhcp/dhcp_g/dhcp_g.provider";
+import { KeepalivedGroupServiceProvider } from "./models/system/keepalived/keepalived_g/keepalived_g.provider";
+import { KeepalivedRuleServiceProvider } from "./models/system/keepalived/keepalived_r/keepalived_r.provider";
 
 export class Application extends HTTPApplication {
     public static async run(path?: string): Promise<Application> {
@@ -151,6 +153,8 @@ export class Application extends HTTPApplication {
             RouteGroupServiceProvider,
             DHCPRuleServiceProvider,
             DHCPGroupServiceProvider,
+            KeepalivedRuleServiceProvider,
+            KeepalivedGroupServiceProvider,
             OpenVPNPrefixServiceProvider,
             OpenVPNStatusHistoryServiceProvider,
             HAProxyRuleServiceProvider,

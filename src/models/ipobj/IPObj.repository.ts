@@ -24,7 +24,7 @@ import {EntityRepository, SelectQueryBuilder} from "typeorm";
 import {Repository} from "../../database/repository";
 import {IPObj} from "./IPObj";
 
-export type ValidEntities = 'route' | 'rule' | 'dhcp_r' | 'haproxy_r';
+export type ValidEntities = 'route' | 'rule' | 'dhcp_r' | 'keepalived_r' | 'haproxy_r';
 
 @EntityRepository(IPObj)
 export class IPObjRepository extends Repository<IPObj> {
@@ -300,6 +300,41 @@ export class IPObjRepository extends Repository<IPObj> {
         .innerJoin('ipobj.dhcpRuleToIPObjs', 'dhcpRuleToIPObjs')
         .addSelect('dhcpRuleToIPObjs.order', '_order')
         .innerJoin('dhcpRuleToIPObjs.dhcpRule', entity)
+    }
+
+    query
+      .innerJoin(`${entity}.firewall`, "firewall")
+      .innerJoin("firewall.fwCloud", "fwcloud")
+      .leftJoin('ipobj.interface', 'int')
+      .leftJoin('int.hosts', 'InterfaceIPObj')
+      .leftJoin('InterfaceIPObj.hostIPObj', 'host')
+      .leftJoin('int.firewall', 'int_firewall')
+      .leftJoin("int_firewall.cluster", "int_cluster")
+      .where("fwcloud.id = :fwcloud", { fwcloud: fwcloud })
+      .andWhere("firewall.id = :firewall", { firewall: firewall });
+
+    return query;
+  }
+
+  getIpobjsInKeepalived_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, dhcpRule?: number): SelectQueryBuilder<IPObj> {
+    let query = this.createQueryBuilder("ipobj")
+      .select("ipobj.id", "id")
+      .addSelect("ipobj.address", "address")
+      .addSelect("ipobj.name", "name")
+      .addSelect("ipobj.type", "type")
+      .addSelect("host.id", "host_id")
+      .addSelect("host.name", "host_name")
+      .addSelect("int_firewall.id", "firewall_id")
+      .addSelect("int_firewall.name", "firewall_name")
+      .addSelect("int_cluster.id", "cluster_id")
+      .addSelect("int_cluster.name", "cluster_name")
+      .addSelect(`${entity}.id`, "entityId");
+
+    if (entity === 'rule') {
+      query
+        .innerJoin('ipobj.keepalivedRuleToIPObjs', 'keepalivedToIPObjs')
+        .addSelect('keepalivedToIPObjs.order', '_order')
+        .innerJoin('keepalivedToIPObjs.keepalivedRule', entity);
     }
 
     query

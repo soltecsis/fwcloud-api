@@ -66,6 +66,7 @@ export abstract class Communication<ConnectionData> {
     abstract installOpenVPNClientConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<void>
     abstract installHAPRoxyConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<string>
     abstract installDHCPConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<string>;
+    abstract installKeepalivedConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<string>;
     abstract ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]>
     abstract getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]>;
     abstract getRealtimeStatus(statusFilepath: string): Promise<string>
