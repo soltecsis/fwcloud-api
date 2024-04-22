@@ -72,6 +72,8 @@ import { AuthServiceProvider } from "./models/user/auth.provider";
 import { CaServiceProvider } from "./ca/ca.provider";
 import { CrtServiceProvider } from "./crt/crt.provider";
 import { OpenVPNService } from "./models/vpn/openvpn/openvpn.service";
+import { HAProxyRuleServiceProvider } from "./models/system/haproxy/haproxy_r/haproxy_r.provider";
+import { HAProxyGroupServiceProvider } from "./models/system/haproxy/haproxy_g/haproxy_g.provider";
 import { DHCPRuleServiceProvider } from "./models/system/dhcp/dhcp_r/dhcp_r.provider";
 import { DHCPGroupServiceProvider } from "./models/system/dhcp/dhcp_g/dhcp_g.provider";
 import { KeepalivedGroupServiceProvider } from "./models/system/keepalived/keepalived_g/keepalived_g.provider";
@@ -155,6 +157,8 @@ export class Application extends HTTPApplication {
             KeepalivedGroupServiceProvider,
             OpenVPNPrefixServiceProvider,
             OpenVPNStatusHistoryServiceProvider,
+            HAProxyRuleServiceProvider,
+            HAProxyGroupServiceProvider,
             PolicyRuleServiceProvider,
             AuthServiceProvider,
             CaServiceProvider,

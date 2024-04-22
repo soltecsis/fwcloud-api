@@ -74,6 +74,9 @@ import { Ca } from "../models/vpn/pki/Ca";
 import { CaPrefix } from "../models/vpn/pki/CaPrefix";
 import { Crt } from "../models/vpn/pki/Crt";
 import { Tfa } from "../models/user/Tfa";
+import { HAProxyRule } from "../models/system/haproxy/haproxy_r/haproxy_r.model";
+import { HAProxyGroup } from "../models/system/haproxy/haproxy_g/haproxy_g.model";
+import { HAProxyRuleToIPObj } from "../models/system/haproxy/haproxy_r/haproxy_r-to_ipobj.model";
 import { DHCPRule } from "../models/system/dhcp/dhcp_r/dhcp_r.model";
 import { DHCPGroup } from "../models/system/dhcp/dhcp_g/dhcp_g.model";
 import { DHCPRuleToIPObj } from "../models/system/dhcp/dhcp_r/dhcp_r-to-ipobj.model";
@@ -321,6 +324,9 @@ export class DatabaseService extends Service {
                 CaPrefix,
                 Crt,
                 Tfa,
+                HAProxyRule,
+                HAProxyGroup,
+                HAProxyRuleToIPObj,
                 DHCPRule,
                 DHCPGroup,
                 DHCPRuleToIPObj,

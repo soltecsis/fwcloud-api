@@ -37,9 +37,11 @@ import {RoutingRule} from '../routing/routing-rule/routing-rule.model';
 import {RouteToIPObj} from '../routing/route/route-to-ipobj.model';
 import {RoutingRuleToIPObj} from '../routing/routing-rule/routing-rule-to-ipobj.model';
 import {DHCPRuleToIPObj} from '../system/dhcp/dhcp_r/dhcp_r-to-ipobj.model';
+import { HAProxyRuleToIPObj } from '../system/haproxy/haproxy_r/haproxy_r-to_ipobj.model';
 import {DHCPRule} from '../system/dhcp/dhcp_r/dhcp_r.model';
 import { KeepalivedToIPObj } from '../system/keepalived/keepalived_r/keepalived_r-to-ipobj';
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
+import { HAProxyRule } from '../system/haproxy/haproxy_r/haproxy_r.model';
 
 const ip = require('ip');
 var asyncMod = require('async');
@@ -184,6 +186,11 @@ export class IPObj extends Model {
         cascade: true,
     })
     routeToIPObjs: RouteToIPObj[];
+
+    @OneToMany(() => HAProxyRuleToIPObj, model => model.ipObj, {
+        cascade: true,
+    })
+    haproxyRuleToIPObjs: HAProxyRuleToIPObj[];
 
     public getTableName(): string {
         return tableName;
@@ -979,8 +986,9 @@ export class IPObj extends Model {
                 search.restrictions.IpobjInRoutingRule = await this.searchIpobjInRoutingRule(id, fwcloud);
                 search.restrictions.IpobjInGroupInRoutingRule = await this.searchIpobjInGroupInRoutingRule(id, fwcloud);
 
-                search.restrictions.IpobjInDhcpRule = await this.searchIPObjInDhpRule(id, fwcloud);
+                search.restrictions.IpobjInDhcpRule = await this.searchIPObjInDhcpRule(id, fwcloud);
                 search.restrictions.IpobjInKeepalivedRule = await this.searchIpobjInKeepalivedRule(id, fwcloud);
+                search.restrictions.IPObjInHAProxyRule = await this.searchIPObjInHAProxyRule(id, fwcloud);
                 
                 if (type === 8) { // HOST
                     search.restrictions.InterfaceHostInRule = await PolicyRuleToIPObj.searchInterfaceHostInRule(dbCon, fwcloud, id);
@@ -989,6 +997,7 @@ export class IPObj extends Model {
                     search.restrictions.AddrHostInOpenvpn = await this.searchAddrHostInOpenvpn(dbCon, fwcloud, id);
                     search.restrictions.InterfaceHostInDhcpRule = await this.searchInterfaceHostInDhcpRule(dbCon, fwcloud, id);
                     search.restrictions.InterfaceHostInKeepalivedRule = await this.searchInterfaceHostInKeepalivedRule(dbCon, fwcloud, id);
+                    search.restrictions.InterfaceHostInHAProxyRule = await this.searchInterfaceHostInHAProxyRule(dbCon, fwcloud, id);
                 }
 
                 // Avoid leaving an interface used in a rule without address.
@@ -1054,7 +1063,7 @@ export class IPObj extends Model {
             .getRawMany();
     };
 
-    public static async searchIPObjInDhpRule(IPObj: number, FWCloud: number): Promise<any> {
+    public static async searchIPObjInDhcpRule(IPObj: number, FWCloud: number): Promise<any> {
         const resultAsRouter = await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
             .addSelect('network.id', 'network_id').addSelect('network.name', 'network_name')
             .addSelect('range.id', 'range_id').addSelect('range.name', 'range_name')
@@ -1099,6 +1108,35 @@ export class IPObj extends Model {
             .leftJoin('firewall.cluster', 'cluster')
             .where(`firewall.fwCloudId = :fwcloud AND (ipObj.id IS NOT NULL)`, { fwcloud: fwcloud })
             .getRawMany();
+    };
+
+    public static async searchIPObjInHAProxyRule(id: number, fwcloud: number): Promise<any> {
+        const resultAsFrontendIpAndPort = await getRepository(HAProxyRule).createQueryBuilder('haproxy_rule')
+            .addSelect('frontendIp.id', 'frontendIp_id').addSelect('frontendIp.name', 'frontendIp_name')
+            .addSelect('frontendPort.id', 'frontendPort_id').addSelect('frontendPort.name', 'frontendPort_name')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .leftJoin('haproxy_rule.frontendIp', 'frontendIp', 'frontendIp.id = :id', { id: id })
+            .leftJoin('haproxy_rule.frontendPort', 'frontendPort', 'frontendPort.id = :id', { id: id })
+            .innerJoin('haproxy_rule.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud AND ( frontendIp.id IS NOT NULL OR frontendPort.id IS NOT NULL)`, { fwcloud: fwcloud })
+            .getRawMany();
+
+        const resultAsBackendIpAndPort = await getRepository(HAProxyRule).createQueryBuilder('haproxy_rule')
+            .addSelect('backendPort.id', 'backendPort_id').addSelect('backendPort.name', 'backendPort_name')
+            .addSelect('ipObj.id', 'backendIps_id').addSelect('ipObj.name', 'backendIps_name')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
+            .leftJoin('haproxy_rule.frontendPort', 'frontendPort', 'frontendPort.id = :id', { id: id })
+            .leftJoin('haproxy_rule.backendPort', 'backendPort', 'backendPort.id = :id', { id: id })
+            .leftJoin('haproxy_rule.backendIps', 'backendIps', 'backendIps.ipObj = :id', { id: id })
+            .leftJoin('backendIps.ipObj', 'ipObj')
+            .innerJoin('haproxy_rule.firewall', 'firewall')
+            .leftJoin('firewall.cluster', 'cluster')
+            .where(`firewall.fwCloudId = :fwcloud AND (backendPort.id IS NOT NULL OR ipObj.id IS NOT NULL)`, { fwcloud: fwcloud })
+            .getRawMany();
+        return [...resultAsFrontendIpAndPort, ...resultAsBackendIpAndPort].sort((a, b) => a.haproxy_rule_id - b.haproxy_rule_id);
     };
 
     public static async searchIpobjInGroupInRoute(ipobj: number, fwcloud: number): Promise<any> {
@@ -1244,6 +1282,31 @@ export class IPObj extends Model {
             .innerJoin('keepalived_rule.firewall', 'firewall')
             .leftJoin('firewall.cluster', 'cluster')
             .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', { fwcloid })
+            .getRawMany();
+    }
+
+    public static async searchInterfaceHostInHAProxyRule(dbCon: any, fwcloud: number, ipObjId: number): Promise<any> {
+        return await getRepository(HAProxyRule).createQueryBuilder('haproxy_rule')
+            .addSelect('haproxy_rule.id', 'haproxy_rule_id')
+            .addSelect('haproxy_rule.rule_type', 'haproxy_rule_type')
+            .addSelect('haproxy_rule.rule_order', 'haproxy_rule_order')
+            .addSelect('haproxy_rule.active', 'haproxy_rule_active')
+            .addSelect('haproxy_rule.style', 'haproxy_rule_style')
+            .addSelect('haproxy_rule.cfg_text', 'haproxy_rule_cfg_text')
+            .addSelect('haproxy_rule.comment', 'haproxy_rule_comment')
+            .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
+            .addSelect('frontend_ip.id', 'frontend_ip_id').addSelect('frontend_ip.name', 'frontend_ip_name')
+            .addSelect('frontend_port.id', 'frontend_port_id').addSelect('frontend_port.name', 'frontend_port_name')
+            .addSelect('backend_port.id', 'backend_port_id').addSelect('backend_port.name', 'backend_port_name')
+            .innerJoin('haproxy_rule.frontendIp', 'frontend_ip', 'frontend_ip.id = :ipObjId', { ipObjId })
+            .innerJoin('haproxy_rule.frontendPort', 'frontend_port', 'frontend_port.id = :ipObjId', { ipObjId })
+            .innerJoin('haproxy_rule.backendPort', 'backend_port', 'backend_port.id = :ipObjId', { ipObjId })
+            .innerJoin('haproxy_rule.firewall', 'firewall', 'firewall.fwCloudId = :fwcloud', { fwcloud })
+            .leftJoin('haproxy_rule.group', 'group')
+            .leftJoin('haproxy_rule.backendIps', 'backend_ips')
+            .leftJoin('backend_ips.ipObj', 'backend_ip')
+            .where('firewall.fwCloudId = :fwcloud AND (frontend_ip.id = :ipObjId OR frontend_port.id = :ipObjId OR backend_port.id = :ipObjId)', { fwcloud, ipObjId })
+            .orderBy('haproxy_rule.rule_order', 'ASC')
             .getRawMany();
     }
 

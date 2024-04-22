@@ -30,6 +30,8 @@ import { RoutingRuleToOpenVPN } from "../routing/routing-rule/routing-rule-to-op
 import { RoutingRuleToOpenVPNPrefix } from "../routing/routing-rule/routing-rule-to-openvpn-prefix.model";
 import { RoutingRuleToMark } from "../routing/routing-rule/routing-rule-to-mark.model";
 import { RoutingRuleService } from "../routing/routing-rule/routing-rule.service";
+import { HAProxyRule } from "../system/haproxy/haproxy_r/haproxy_r.model";
+import { HAProxyRuleService } from "../system/haproxy/haproxy_r/haproxy_r.service";
 import { DHCPRuleService } from "../system/dhcp/dhcp_r/dhcp_r.service";
 import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
 import { DHCPGroup } from "../system/dhcp/dhcp_g/dhcp_g.model";
@@ -167,6 +169,7 @@ export class FirewallService extends Service {
     public async remove(firewallId: number, fwcloudId: number, userId: number): Promise<void> {
         const routingTableService: RoutingTableService = await app().getService(RoutingTableService.name);
         const routingRuleService: RoutingRuleService = await app().getService(RoutingRuleService.name);
+        const haproxyRuleService: HAProxyRuleService = await app().getService(HAProxyRuleService.name);
         const dhcpRuleService: DHCPRuleService = await app().getService(DHCPRuleService.name);
         const keepalivedRuleService: KeepalivedRuleService = await app().getService(KeepalivedRuleService.name);
 
@@ -179,6 +182,8 @@ export class FirewallService extends Service {
                 id: table.id
             });
         }
+
+        await haproxyRuleService.bulkRemove(firewallEntity.haproxyRules.map(item => item.id));
 
         await dhcpRuleService.bulkRemove(firewallEntity.dhcpRules.map(item => item.id));
         await keepalivedRuleService.bulkRemove(firewallEntity.keepalivedRules.map(item => item.id));

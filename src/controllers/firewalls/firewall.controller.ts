@@ -45,6 +45,9 @@ import { SSHCommunication } from "../../communications/ssh.communication";
 import { AgentCommunication } from "../../communications/agent.communication";
 import { PgpHelper } from "../../utils/pgp";
 import { PluginDto } from './dtos/plugin.dto';
+import { HAProxyRuleService, HAProxyRulesData } from "../../models/system/haproxy/haproxy_r/haproxy_r.service";
+import { HAProxyRuleItemForCompiler } from "../../models/system/haproxy/shared";
+import { HAProxyCompiler } from "../../compiler/system/haproxy/HAProxyCompiler";
 import { DHCPRuleService, DHCPRulesData } from "../../models/system/dhcp/dhcp_r/dhcp_r.service";
 import { DHCPRuleItemForCompiler } from "../../models/system/dhcp/shared";
 import {DHCPCompiled, DHCPCompiler} from "../../compiler/system/dhcp/DHCPCompiler";
@@ -57,6 +60,7 @@ export class FirewallController extends Controller {
 
     protected firewallService: FirewallService;
     protected routingRuleService: RoutingRuleService;
+    protected haproxyRuleService: HAProxyRuleService;
     protected dhcpRuleService: DHCPRuleService;
     protected keepalivedService: KeepalivedRuleService;
     protected _fwCloud: FwCloud;
@@ -69,6 +73,7 @@ export class FirewallController extends Controller {
 
         this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
         this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
+        this.haproxyRuleService = await this._app.getService<HAProxyRuleService>(HAProxyRuleService.name);
         this.dhcpRuleService = await this._app.getService<DHCPRuleService>(DHCPRuleService.name);
         this.keepalivedService = await this._app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
     }
@@ -138,6 +143,28 @@ export class FirewallController extends Controller {
             request.query.rules ? (request.query.rules as string[]).map(item => parseInt(item)) : undefined
         );
         const compilation = new RoutingCompiler().compile('Rule', rules);
+
+        return ResponseBuilder.buildResponse().status(200).body(compilation)
+    }
+
+    @Validate()
+    @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
+    async compileHAProxyRules(request: Request): Promise<ResponseBuilder> {
+        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+            id: parseInt(request.params.firewall),
+            fwCloudId: parseInt(request.params.fwcloud)
+        });
+
+        (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
+
+        let rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] = await this.haproxyRuleService.getHAProxyRulesData(
+            'compiler',
+            firewall.fwCloudId,
+            firewall.id,
+            request.query.rules ? (request.query.rules as string[]).map(item => parseInt(item)) : undefined
+        );
+
+        const compilation = new HAProxyCompiler().compile(rules);
 
         return ResponseBuilder.buildResponse().status(200).body(compilation)
     }

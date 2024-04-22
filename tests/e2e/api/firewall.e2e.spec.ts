@@ -19,6 +19,7 @@ import { Mark } from "../../../src/models/ipobj/Mark";
 import { Tree, TreeNode } from "../../../src/models/tree/Tree";
 import db from "../../../src/database/database-manager";
 import { DHCPRule } from "../../../src/models/system/dhcp/dhcp_r/dhcp_r.model";
+import { HAProxyRule } from "../../../src/models/system/haproxy/haproxy_r/haproxy_r.model";
 
 describe(describeName('Firewall E2E Tests'), () => {
     let app: Application;
@@ -381,6 +382,97 @@ describe(describeName('Firewall E2E Tests'), () => {
                 .expect(response => {
                     expect(response.body.data).to.have.length(2);
                 })
+        });
+    });
+
+    describe('@compileHAProxyRules', () => {
+        let fwcProduct: FwCloudProduct;
+        let rule1: HAProxyRule;
+        let rule2: HAProxyRule;
+
+        beforeEach(async () => {
+            fwcProduct = await new FwCloudFactory().make();
+            fwCloud = fwcProduct.fwcloud;
+            firewall = fwcProduct.firewall;
+
+            rule1 = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+                rule_type: 1,
+                firewall: firewall,
+                frontendIp: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    address: `192.168.1.1`,
+                    destination_port_start: 80,
+                    destination_port_end: 80,
+                    name: 'test',
+                    ipObjTypeId: 0
+                })),
+                frontendPort: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    destination_port_start: 80,
+                    destination_port_end: 80,
+                    name: 'test',
+                    ipObjTypeId: 0
+                })),
+                rule_order: 1
+            }));
+            rule2 = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+                rule_type: 1,
+                firewall: firewall,
+                frontendIp: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    address: `192.168.1.1`,
+                    destination_port_start: 80,
+                    destination_port_end: 80,
+                    name: 'test',
+                    ipObjTypeId: 0
+                })),
+                frontendPort: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    destination_port_start: 80,
+                    destination_port_end: 80,
+                    name: 'test',
+                    ipObjTypeId: 0
+                })),
+                rule_order: 2
+            })); 
+        });
+
+        it('guest user should not haproxy compile a firewall', async () => {
+            return await request(app.express)
+                .get(_URL().getURL('fwclouds.firewalls.system.haproxy.compile', {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id
+                }))
+                .expect(401);
+        });
+
+        it('regular user should not haproxy compile a firewall if it does not belong to the fwcloud', async () => {
+            return await request(app.express)
+                .get(_URL().getURL('fwclouds.firewalls.system.haproxy.compile', {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id
+                }))
+                .set('Cookie', [attachSession(loggedUserSessionId)])
+                .expect(401);
+        });
+
+        it('regular user should haproxy compile a firewall if it does belong to the fwcloud', async () => {
+            loggedUser.fwClouds = [fwcProduct.fwcloud];
+            await getRepository(User).save(loggedUser);
+
+            return await request(app.express)
+                .get(_URL().getURL('fwclouds.firewalls.system.haproxy.compile', {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id
+                }))
+                .set('Cookie', [attachSession(loggedUserSessionId)])
+                .expect(200);
+        });
+
+        it('admin user should haproxy compile a firewall', async () => {
+            return await request(app.express)
+                .get(_URL().getURL('fwclouds.firewalls.system.haproxy.compile', {
+                    fwcloud: firewall.fwCloudId,
+                    firewall: firewall.id
+                }))
+                .set('Cookie', [attachSession(adminUserSessionId)])
+                .expect(200);
         });
     });
 
