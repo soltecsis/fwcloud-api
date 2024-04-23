@@ -152,8 +152,19 @@ export class HAProxyRuleService extends Service {
             }
         }
 
-        const lastHAProxy: HAProxyRule = await this._repository.getLastHAProxyRuleInFirewall(data.firewallId);
-        haProxyRule.rule_order = lastHAProxy ? lastHAProxy.rule_order + 1 : 1;
+        // Validate that the protocol of haProxyRule.frontendPort matches any of the protocols in haProxyRule.backendPort
+        if (haProxyRule.frontendPort && haProxyRule.backendPort) {
+            const frontendPortProtocol = haProxyRule.frontendPort.protocol;
+
+            const backendPortProtocol = haProxyRule.backendPort.protocol;
+
+            if (frontendPortProtocol !== backendPortProtocol) {
+                throw new Error('Protocol mismatch');
+            }
+        }
+
+        const lastHAProxy: HAProxyRule = await this._repository.getLastHAProxyRuleInFirewall(data.firewallId) as HAProxyRule;
+        haProxyRule.rule_order = lastHAProxy?.rule_order ? lastHAProxy.rule_order + 1 : 1;
         const persisted: HAProxyRule = await this._repository.save(haProxyRule);
 
         if (Object.prototype.hasOwnProperty.call(data, 'to') && Object.prototype.hasOwnProperty.call(data, 'offset')) {
@@ -284,6 +295,16 @@ export class HAProxyRuleService extends Service {
 
             if (!hasMatchingIpVersion) {
                 throw new Error('IP version mismatch');
+            }
+        }
+
+        if (haProxyRule.frontendPort && haProxyRule.backendPort) {
+            const frontendPortProtocol = haProxyRule.frontendPort.protocol;
+
+            const backendPortProtocol = haProxyRule.backendPort.protocol;
+
+            if (frontendPortProtocol !== backendPortProtocol) {
+                throw new Error('Protocol mismatch');
             }
         }
 
