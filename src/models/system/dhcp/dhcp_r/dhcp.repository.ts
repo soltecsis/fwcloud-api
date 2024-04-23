@@ -140,6 +140,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
 
         const currentPosition = rules[0].rule_order;
         const forward: boolean = currentPosition < destRule.rule_order;
+
         affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
                 if (!destRule.groupId) {
@@ -147,11 +148,11 @@ export class DHCPRepository extends Repository<DHCPRule> {
                     rule.rule_order = destPosition + offset + 1;
                     rule.groupId = destRule.groupId;
                 } else {
-                    rule.groupId = destRule.groupId;
-                    if(!forward) {
+                    if (forward && rule.groupId == destRule.groupId) {
                         const offset: number = movingIds.indexOf(rule.id);
                         rule.rule_order = destPosition + offset + 1;
                     }
+                    rule.groupId = destRule.groupId;
                 }
             } else {
                 if (forward && rule.rule_order > destRule.rule_order) {
@@ -303,7 +304,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
 
         let dhcpRules: DHCPRule[] = await query.getMany();
 
-        if(rule_types && forCompilation) {
+        if (rule_types && forCompilation) {
             dhcpRules.sort((a, b) => {
                 if (a.rule_type === b.rule_type) {
                     return a.rule_order - b.rule_order;

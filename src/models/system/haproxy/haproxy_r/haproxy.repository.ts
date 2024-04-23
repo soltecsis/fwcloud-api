@@ -73,10 +73,10 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
 
     protected async moveAbove(rules: HAProxyRule[], affectedRules: HAProxyRule[], destRule: HAProxyRule): Promise<HAProxyRule[]> {
         const destPosition: number = destRule.rule_order;
-        const movingIds: number[] = rules.map((haproxy_r: HAProxyRule) => haproxy_r.id);
+        const movingIds: number[] = rules.map((haproxy_r) => haproxy_r.id);
 
         const currentPosition: number = rules[0].rule_order;
-        const forward: boolean = currentPosition < destPosition;
+        const forward: boolean = currentPosition < destRule.rule_order;
 
         affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
@@ -85,12 +85,15 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
                 rule.groupId = destRule.groupId;
             } else {
                 if (forward &&
-                    rule.rule_order >= destRule.rule_order) {
+                    rule.rule_order >= destRule.rule_order
+                ) {
                     rule.rule_order += rules.length;
                 }
+
                 if (!forward &&
                     rule.rule_order >= destRule.rule_order &&
-                    rule.rule_order < rule[0].rule_order) {
+                    rule.rule_order < rules[0].rule_order
+                ) {
                     rule.rule_order += rules.length;
                 }
             }
@@ -103,27 +106,30 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
         const destPosition: number = destRule.rule_order;
         const movingIds: number[] = rules.map((haproxy_r: HAProxyRule) => haproxy_r.id);
 
-        const currentPosition: number = rules[0].rule_order;
-        const forward: boolean = currentPosition < destPosition;
+        const currentPosition = rules[0].rule_order;
+        const forward: boolean = currentPosition < destRule.rule_order;
 
-        affectedRules.forEach((rule: HAProxyRule) => {
+        affectedRules.forEach((rule) => {
             if (movingIds.includes(rule.id)) {
                 if (!destRule.groupId) {
-                    const offset = movingIds.indexOf(rule.id);
+                    const offset: number = movingIds.indexOf(rule.id);
                     rule.rule_order = destPosition + offset + 1;
                     rule.groupId = destRule.groupId;
                 } else {
-                    rule.groupId = destRule.groupId;
-                    if (!forward) {
-                        const offset = movingIds.indexOf(rule.id);
+                    if (forward && rule.groupId == destRule.groupId) {
+                        const offset: number = movingIds.indexOf(rule.id);
                         rule.rule_order = destPosition + offset + 1;
                     }
+                    rule.groupId = destRule.groupId;
                 }
             } else {
                 if (forward && rule.rule_order > destRule.rule_order) {
                     rule.rule_order += rules.length;
                 }
-                if (!forward && rule.rule_order > destRule.rule_order && rule.rule_order < rules[0].rule_order) {
+
+                if (!forward && rule.rule_order > destRule.rule_order &&
+                    rule.rule_order < rules[0].rule_order
+                ) {
                     rule.rule_order += rules.length;
                 }
             }
@@ -156,8 +162,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
             join: {
                 alias: 'haproxy',
                 innerJoin: {
-                    group: 'haproxy.group',
-                    firewall: 'group.firewall',
+                    firewall: 'haproxy.firewall',
                     fwcloud: 'firewall.fwCloud',
                 }
             },
