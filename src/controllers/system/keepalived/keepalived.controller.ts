@@ -241,8 +241,6 @@ export class KeepalivedController extends Controller {
         .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
         .andWhere('firewall.fwmaster = 1')
         .getOneOrFail()).id;
-    } else {
-      //TODO: envia error?
     }
 
     const rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] = await this._keepalivedRuleService.getKeepalivedRulesData('compiler', this._fwCloud.id, firewallId);
