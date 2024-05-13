@@ -169,11 +169,11 @@ export class FirewallService extends Service {
     public async remove(firewallId: number, fwcloudId: number, userId: number): Promise<void> {
         const routingTableService: RoutingTableService = await app().getService(RoutingTableService.name);
         const routingRuleService: RoutingRuleService = await app().getService(RoutingRuleService.name);
-        const haproxyRuleService: HAProxyRuleService = await app().getService(HAProxyRuleService.name);
         const dhcpRuleService: DHCPRuleService = await app().getService(DHCPRuleService.name);
         const keepalivedRuleService: KeepalivedRuleService = await app().getService(KeepalivedRuleService.name);
+        const haproxyRuleService: HAProxyRuleService = await app().getService(HAProxyRuleService.name);
 
-        const firewallEntity: Firewall = await getRepository(Firewall).findOneOrFail(firewallId, { relations: ['routingTables', 'routingTables.routingRules', 'dhcpRules', 'keepalivedRules'] });
+        const firewallEntity: Firewall = await getRepository(Firewall).findOneOrFail(firewallId, { relations: ['routingTables', 'routingTables.routingRules', 'dhcpRules', 'keepalivedRules', 'haproxyRules'] });
         for (let table of firewallEntity.routingTables) {
             await routingRuleService.bulkRemove(table.routingRules.map(item => item.id));
             await routingTableService.remove({
@@ -183,10 +183,9 @@ export class FirewallService extends Service {
             });
         }
 
-        await haproxyRuleService.bulkRemove(firewallEntity.haproxyRules.map(item => item.id));
-
         await dhcpRuleService.bulkRemove(firewallEntity.dhcpRules.map(item => item.id));
         await keepalivedRuleService.bulkRemove(firewallEntity.keepalivedRules.map(item => item.id));
+        await haproxyRuleService.bulkRemove(firewallEntity.haproxyRules.map(item => item.id));
 
         await Firewall.deleteFirewall(userId, fwcloudId, firewallId);
     }

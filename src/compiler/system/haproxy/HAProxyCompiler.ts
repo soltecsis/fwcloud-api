@@ -46,7 +46,7 @@ export class HAProxyCompiler {
                 cs += `\tuse_backend\tback_${ruleData.frontendIp.name}\n`;
                 cs += `\n`;
                 cs += `backend\tback_${ruleData.frontendIp.name}\n`;
-                cs += `\tmode\ttcp\n`;
+                cs += `\tmode\t${ruleData.frontendPort.protocol == 6 ? 'tcp' : 'udp'}\n`;
                 cs += `\ttimeout\tconnect 30s\n`;
                 cs += `\ttimeout\tserver 86400s\n`;
                 cs += `\tbalance\tleastconn\n`;

@@ -11,5 +11,5 @@ export class HAProxyRuleBulkUpdateDto {
 
     @IsNumber()
     @IsOptional()
-    dhcpGroupId?: number;
+    group?: number;
 }

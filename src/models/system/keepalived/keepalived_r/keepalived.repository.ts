@@ -153,11 +153,11 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
                     rule.rule_order = destPosition + offset + 1;
                     rule.groupId = destRule.groupId;
                 } else {
-                    rule.groupId = destRule.groupId;
-                    if(!forward) {
+                    if (forward && rule.groupId == destRule.groupId) {
                         const offset: number = movingIds.indexOf(rule.id);
                         rule.rule_order = destPosition + offset + 1;
                     }
+                    rule.groupId = destRule.groupId;
                 }
             } else {
                 if (forward && rule.rule_order > destRule.rule_order) {
