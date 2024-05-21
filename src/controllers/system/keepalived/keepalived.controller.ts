@@ -251,7 +251,7 @@ export class KeepalivedController extends Controller {
 
     channel.emit('message', new ProgressPayload('start', false, `Installing Keepalived configuration`));
 
-    await communication.installKeepalivedConfigs('etc/keepalived', [{ name: 'keepalived.conf', content: content }], channel);
+    await communication.installKeepalivedConfigs('/etc/keepalived', [{ name: 'keepalived.conf', content: content }], channel);
 
     channel.emit('message', new ProgressPayload('end', false, `Keepalived configuration installed`));
 
