@@ -45,6 +45,7 @@ export type HAProxyRuleItemForCompiler = {
     frontend_port: string;
     backend_port: string;
     address: string;
+    name?: string;
 }
 
 export class HAProxyUtils {

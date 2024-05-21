@@ -30,7 +30,7 @@ export class KeepalivedCompiler {
         let cs: string = "";
 
         switch (ruleData.rule_type) {
-            case 3:
+            case 2:
                 cs = ruleData.cfg_text ? ruleData.cfg_text : '';
                 break;
             default:

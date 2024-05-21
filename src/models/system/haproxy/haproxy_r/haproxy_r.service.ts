@@ -127,26 +127,23 @@ export class HAProxyRuleService extends Service {
             await this.validateBackendIps(haProxyRule.firewall, data);
             haProxyRule.backendIps = await Promise.all(data.backendIpsIds.map(async item => ({
                 haproxyRuleId: haProxyRule.id,
-                haproxyRule: haProxyRule,
                 ipObjId: item.id,
-                ipObj: await getRepository(IPObj).findOneOrFail(item.id),
                 order: item.order
             } as HAProxyRuleToIPObj)));
         }
 
         // Validate that the ip_version of haProxyRule.frontendIp matches any of the ip_versions in haProxyRule.backendIps
-        if (haProxyRule.frontendIp && haProxyRule.backendIps) {
+        if (haProxyRule.frontendIp && haProxyRule.backendIps && haProxyRule.backendIps.length > 0) {
             const frontendIpVersion = haProxyRule.frontendIp.ip_version;
-
             const backendIpVersions = await Promise.all(
-                haProxyRule.backendIps.map(async backEndIp => {
-                    const ipObj = await getRepository(IPObj).findOne(backEndIp.ipObjId);
+                haProxyRule.backendIps.map(async backendIp => {
+                    const ipObj = await getRepository(IPObj).findOneOrFail(backendIp.ipObjId);
                     return ipObj.ip_version;
                 })
             );
-
+    
             const hasMatchingIpVersion = backendIpVersions.some(version => version === frontendIpVersion);
-
+    
             if (!hasMatchingIpVersion) {
                 throw new Error('IP version mismatch');
             }

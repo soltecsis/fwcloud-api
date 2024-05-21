@@ -53,7 +53,7 @@ export class HAProxyCompiler {
                 cs += `\n`;
                 cs += `default-server\tinter 15s maxconn 50000\n`;
                 for (let i = 0; i < ruleData.items.length; i++) {
-                    cs += `\tserver\t${ruleData.items[i].address}:${ruleData.backendPort.destination_port_end}\n`;
+                    cs += `\tserver\t${(ruleData.items[i] as HAProxyRuleItemForCompiler).name}\t${ruleData.items[i].address}:${ruleData.backendPort.destination_port_end}\n`;
                 }
         }
         return cs;
