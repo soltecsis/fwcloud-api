@@ -6,22 +6,20 @@ export class pluginsfirewalls1658153656051 implements MigrationInterface {
         await queryRunner.addColumn('firewall', 
             new TableColumn({
                 name: 'plugins',
-                type: 'smallint',
-                length: "2",
+                type: 'int',
                 isNullable: false,
                 default: 0
-            }), 
-        )
+            })
+        );
 
         await queryRunner.addColumn('cluster',
             new TableColumn({
                 name: 'plugins',
-                type: 'smallint',
-                length: "2",
+                type: 'int',
                 isNullable: false,
                 default: 0
             })
-        )
+        );
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
