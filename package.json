@@ -74,7 +74,7 @@
     "socket.io": "^3.0.4",
     "speakeasy": "^2.0.0",
     "sqlstring": "2.3.3",
-    "ssh2": "^0.8.7",
+    "ssh2": "^1.15.0",
     "ts-node": "^8.6.2",
     "typeorm": "^0.2.30",
     "typescript": "^3.9.10",
