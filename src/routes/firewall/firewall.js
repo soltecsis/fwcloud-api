@@ -476,7 +476,7 @@ router.put('/get', async (req, res) => {
  */
 router.put('/cloud/get', async (req, res) => {
 	try {
-		data = await Firewall.getFirewallCloud(req);
+		let data = await Firewall.getFirewallCloud(req);
 		if (data && data.length > 0) {
 
 			for (let i=0; i<data.length; i++) {
