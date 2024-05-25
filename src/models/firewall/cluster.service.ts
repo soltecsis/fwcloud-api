@@ -6,7 +6,7 @@ import { Cluster } from "./Cluster";
 import { FirewallService } from "./firewall.service";
 
 export class ClusterService extends Service {
-    public async remove(clusterId: number, fwcloudId: number, userId: number) {
+    public async remove(clusterId: number, fwcloudId: number, userId: number): Promise<void> {
         return new Promise((resolve, reject) => {
             //BUCLE de FIREWALL en CLUSTER
             let sql = `SELECT ${userId} as iduser, F.* FROM firewall F

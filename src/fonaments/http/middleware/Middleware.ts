@@ -29,7 +29,7 @@ export type Middlewareable = typeof Middleware | typeof ErrorMiddleware;
 export abstract class Middleware {
     protected app: HTTPApplication;
 
-    public async abstract handle(req: Request, res: Response, next: NextFunction): Promise<void>;
+    public abstract handle(req: Request, res: Response, next: NextFunction): Promise<void>;
 
     private async safeHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {

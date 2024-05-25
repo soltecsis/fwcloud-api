@@ -35,6 +35,7 @@ import { getFWCloudMetadata } from "../../../metadata/metadata";
 import { HTTPApplication } from "../../http-application";
 import { CLIApplication } from "../../cli-application";
 import { ClassConstructor } from "class-transformer";
+import { Routes } from "../../../routes/routes";
 
 export type HttpMethod = "ALL" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";
 export type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
@@ -71,8 +72,8 @@ export class RouterService extends Service {
         return this;
     }
 
-    public registerRoutes(routesDefinition: RouteCollectionable): void {
-        const routes: Array<Route> = this.parseRoutes(routesDefinition);
+    public registerRoutes(): void {
+        const routes: Array<Route> = this.parseRoutes();
 
         for(let i = 0; i < routes.length; i++) {
             if (this._app instanceof HTTPApplication) {
@@ -125,10 +126,9 @@ export class RouterService extends Service {
         return null;
     }
 
-    protected parseRoutes(routesDefinition: RouteCollectionable): Array<Route> {
-
+    protected parseRoutes(): Array<Route> {
         const parser = new RouterParser();
-        const routes: RouteDefinition = new routesDefinition();
+        const routes: Routes = new Routes();
 
         routes.parse(parser);
         parser.commitCurrentRoute();

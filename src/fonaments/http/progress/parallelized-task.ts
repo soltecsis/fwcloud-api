@@ -46,8 +46,8 @@ export class ParalellizedTask extends Task {
         this._tasks.push(new SequencedTask(this._eventEmitter, fn));
     }
 
-    public run(): Promise<any> {
-        return new Promise<any>((resolve,reject) => {
+    public run(): Promise<void> {
+        return new Promise((resolve,reject) => {
             const promises: Array<Promise<any>> = [];
 
             for(let i = 0; i < this._tasks.length; i++) {

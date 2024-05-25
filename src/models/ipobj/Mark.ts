@@ -104,7 +104,7 @@ export class Mark extends Model {
     };
 
     // Modify an iptables mark.
-    public static modifyMark(req) {
+    public static modifyMark(req): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `UPDATE ${tableName} SET code=${req.body.code}, name=${req.dbCon.escape(req.body.name)},
 	  comment=${req.dbCon.escape(req.body.comment)} WHERE id=${req.body.mark}`
@@ -116,7 +116,7 @@ export class Mark extends Model {
     };
 
     // Delete an iptables mark.
-    public static deleteMark(dbCon, mark) {
+    public static deleteMark(dbCon, mark): Promise<void> {
         return new Promise((resolve, reject) => {
             dbCon.query(`DELETE from ${tableName} WHERE id=${mark}`, (error, result) => {
                 if (error) return reject(error);

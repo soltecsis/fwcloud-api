@@ -57,7 +57,7 @@ public static createFolderNode(nodeData) {
 };
 
 //Remove folder node from tree
-public static deleteFolderNode(fwcloud,id) {
+public static deleteFolderNode(fwcloud,id): Promise<void> {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -81,7 +81,7 @@ public static deleteFolderNode(fwcloud,id) {
 };
 
 //Rename folder node
-public static renameFolderNode(fwcloud,id,old_name,new_name) {
+public static renameFolderNode(fwcloud,id,old_name,new_name): Promise<void> {
 	return new Promise((resolve, reject) => {
 		db.get((error, connection) => {
 			if (error) return reject(error);
@@ -121,7 +121,7 @@ public static getParentId(connection,fwcloud,id) {
 };
 
 //Move node into folder
-public static moveToFolder(fwcloud,src,dst) {
+public static moveToFolder(fwcloud,src,dst): Promise<void> {
 	return new Promise((resolve, reject) => {
 		if (src === dst) return reject(fwcError.other('Source and destination nodes are the same'));
 		db.get((error, connection) => {

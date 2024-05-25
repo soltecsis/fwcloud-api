@@ -346,7 +346,7 @@ export class PolicyRuleToIPObj extends Model {
 
 
     //Add new policy_r__ipobj 
-    public static insertPolicy_r__ipobj(policy_r__ipobjData) {
+    public static insertPolicy_r__ipobj(policy_r__ipobjData): Promise<void> {
         return new Promise((resolve, reject) => {
             //Check if IPOBJ TYPE is ALLOWED in this Position  ONLY 'O' POSITIONS
             this.checkIpobjPosition(policy_r__ipobjData.ipobj, policy_r__ipobjData.ipobj_g, policy_r__ipobjData.interface, policy_r__ipobjData.position, (error, allowed) => {
@@ -457,7 +457,7 @@ export class PolicyRuleToIPObj extends Model {
         });
     };
     //Duplicate policy_r__ipobj RULES
-    public static duplicatePolicy_r__ipobj = (dbCon, rule, new_rule) => {
+    public static duplicatePolicy_r__ipobj = (dbCon, rule, new_rule): Promise<void> => {
         return new Promise((resolve, reject) => {
             let sql = `INSERT INTO ${tableModel} (rule, ipobj, ipobj_g, interface, position, position_order)
 			(SELECT ${new_rule}, ipobj, ipobj_g, interface, position, position_order
@@ -545,7 +545,7 @@ export class PolicyRuleToIPObj extends Model {
     };
     //Update policy_r__ipobj POSITION
     //When Update position we order New and Old POSITION
-    public static updatePolicy_r__ipobj_position(dbCon, rule, ipobj, ipobj_g, _interface, position, position_order, new_rule, new_position, new_order) {
+    public static updatePolicy_r__ipobj_position(dbCon, rule, ipobj, ipobj_g, _interface, position, position_order, new_rule, new_position, new_order): Promise<void> {
         return new Promise((resolve, reject) => {
             //Check if IPOBJ TYPE is ALLOWED in this Position    
             this.checkIpobjPosition(ipobj, ipobj_g, _interface, new_position, (error, data) => {
@@ -662,7 +662,7 @@ export class PolicyRuleToIPObj extends Model {
     };
 
     //Remove policy_r__ipobj 
-    public static deletePolicy_r__ipobj(dbCon, rule, ipobj, ipobj_g, _interface, position, position_order) {
+    public static deletePolicy_r__ipobj(dbCon, rule, ipobj, ipobj_g, _interface, position, position_order): Promise<void> {
         return new Promise(async (resolve, reject) => {
             var sqlExists = `SELECT * FROM ${tableModel}
                 WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}

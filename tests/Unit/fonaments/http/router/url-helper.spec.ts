@@ -49,7 +49,8 @@ let routing: URLHelper;
 describe(describeName('URL tests'), () => {
     beforeEach(async () => {
         service = await RouterService.make(testSuite.app);
-        service.registerRoutes(RouteDefinitionTest);
+        //service.registerRoutes(RouteDefinitionTest);
+        service.registerRoutes();
 
         routeGet = new Route();
         routeGet.setControllerHandler({ controller: TestController, method: 'test' })

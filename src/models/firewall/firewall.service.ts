@@ -206,7 +206,7 @@ export class FirewallService extends Service {
         fs.writeFileSync(path.join(directoryPath, this._scriptFilename), "");
     }
 
-    public deleteFirewallFromCluster(clusterId: number, firewallId: number, fwcloudId: number, userId: number) {
+    public deleteFirewallFromCluster(clusterId: number, firewallId: number, fwcloudId: number, userId: number): Promise<void> {
 
         return new Promise((resolve, reject) => {
             var sqlExists = `SELECT T.*, A.id as idnode FROM ${Firewall._getTableName()} T 

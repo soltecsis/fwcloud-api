@@ -287,7 +287,7 @@ export class IPObj extends Model {
      * 
      * @return {ROW} Returns ROW Data from Ipobj and FWC_TREE
      * */
-    public static getIpobjPro(position_ipobj) {
+    public static getIpobjPro(position_ipobj): Promise<any | void> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
@@ -319,7 +319,7 @@ export class IPObj extends Model {
                                         resolve(hostdata);
                                     })
                                     .catch(e => {
-                                        resolve();
+                                        resolve(void 0);
                                     });
                             } else {
                                 //RETURN IPOBJ DATA
@@ -712,7 +712,7 @@ export class IPObj extends Model {
      * #### JSON RESPONSE ERROR:
      *      {result: false}
      * */
-    public static updateIpobj(req, ipobjData) {
+    public static updateIpobj(req, ipobjData): Promise<void> {
         return new Promise((resolve, reject) => {
             var sql = 'UPDATE ' + tableName + ' SET ' +
                 'fwcloud = ' + ipobjData.fwcloud + ',' +
@@ -780,7 +780,7 @@ export class IPObj extends Model {
         });
     };
 
-    public static deleteHost(dbCon, fwcloud, host) {
+    public static deleteHost(dbCon, fwcloud, host): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `select II.interface as id from interface__ipobj II
 			inner join ipobj I on I.id=II.ipobj

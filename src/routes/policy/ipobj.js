@@ -80,7 +80,7 @@ async (req, res) => {
 	var rule = req.body.rule;
 	var ipobj = req.body.ipobj;
 	var ipobj_g = req.body.ipobj_g;
-	var interface = req.body.interface;
+	var interfaceName = req.body.interface;
 	var position = req.body.position;
 	var position_order = req.body.position_order;
 	var new_rule = req.body.new_rule;
@@ -101,7 +101,7 @@ async (req, res) => {
 		rule: new_rule,
 		ipobj: ipobj,
 		ipobj_g: ipobj_g,
-		interface: interface,
+		interface: interfaceName,
 		position: new_position,
 		position_order: new_order
 	};
@@ -116,7 +116,7 @@ async (req, res) => {
 		const psts = await PolicyRuleToIPObj.getPositionsContent(req.dbCon, position, new_position);
 
 		if (psts.content1 === psts.content2) { // MOVE BETWEEN POSITIONS WITH THE SAME CONTENT TYPE
-			await PolicyRuleToIPObj.updatePolicy_r__ipobj_position(req.dbCon,rule, ipobj, ipobj_g, interface, position, position_order, new_rule, new_position, new_order);
+			await PolicyRuleToIPObj.updatePolicy_r__ipobj_position(req.dbCon,rule, ipobj, ipobj_g, interfaceName, position, position_order, new_rule, new_position, new_order);
 		} else if (psts.content1 === 'I' && psts.content2 === 'O') { // MOVE BETWEEN POSITIONS WITH DIFFERENT CONTENT TYPE
 			//Create New Position 'O'
 			//Create New objet with data policy_r__ipobj
@@ -124,13 +124,13 @@ async (req, res) => {
 				rule: new_rule,
 				ipobj: ipobj,
 				ipobj_g: ipobj_g,
-				interface: interface,
+				interface: interfaceName,
 				position: new_position,
 				position_order: new_order
 			};
 
 			await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
-			await PolicyRuleToInterface.deletePolicy_r__interface(req.dbCon, rule, interface, position, position_order);
+			await PolicyRuleToInterface.deletePolicy_r__interface(req.dbCon, rule, interfaceName, position, position_order);
 		}	else { // NOT ALLOWED TO MOVE BETWEEN THESE POSITIONS BECAUSE THE CONTENT TYPE
 			throw fwcError.NOT_ALLOWED;
 		}
@@ -156,12 +156,12 @@ utilsModel.disableFirewallCompileStatus,
 	var rule = req.body.rule;
 	var ipobj = req.body.ipobj;
 	var ipobj_g = req.body.ipobj_g;
-	var interface = req.body.interface;
+	var interfaceName = req.body.interface;
 	var position = req.body.position;
 	var position_order = req.body.position_order;
 	var new_order = req.body.new_order;
 
-	PolicyRuleToIPObj.updatePolicy_r__ipobj_position_order(rule, ipobj, ipobj_g, interface, position, position_order, new_order, (error, data) => {
+	PolicyRuleToIPObj.updatePolicy_r__ipobj_position_order(rule, ipobj, ipobj_g, interfaceName, position, position_order, new_order, (error, data) => {
 		if (error) return res.status(400).json(error);
 		//If saved policy_r__ipobj saved ok, get data
 		if (data && data.result) {
@@ -195,12 +195,12 @@ async (req, res) => {
 	var rule = req.body.rule;
 	var ipobj = req.body.ipobj;
 	var ipobj_g = req.body.ipobj_g;
-	var interface = req.body.interface;
+	var interfaceName = req.body.interface;
 	var position = req.body.position;
 	var position_order = req.body.position_order;
 
 	try {
-		await PolicyRuleToIPObj.deletePolicy_r__ipobj(req.dbCon, rule, ipobj, ipobj_g, interface, position, position_order);
+		await PolicyRuleToIPObj.deletePolicy_r__ipobj(req.dbCon, rule, ipobj, ipobj_g, interfaceName, position, position_order);
 		var accessData = { sessionID: req.sessionID, iduser: req.session.user_id, fwcloud: req.body.fwcloud, idfirewall: req.body.firewall, rule: rule };
 		// If after the delete we have empty rule positions, then remove them from the negate position list.
 		await PolicyRule.allowEmptyRulePositions(req);

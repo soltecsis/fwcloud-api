@@ -87,7 +87,7 @@ export class IPObjToIPObjGroup extends Model {
 
     //FALTA comprobar si el Grupo está en alguna Regla
     //Remove ipobj__ipobjg with id to remove
-    public static deleteIpobj__ipobjg(dbCon, ipobj_g, ipobj) {
+    public static deleteIpobj__ipobjg(dbCon, ipobj_g, ipobj): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `DELETE FROM ${tableName} WHERE ipobj_g=${ipobj_g} AND ipobj=${ipobj}`;		
             dbCon.query(sql, (error, result) => {
@@ -98,7 +98,7 @@ export class IPObjToIPObjGroup extends Model {
     }
 
     //Remove ipobj__ipobjg with id to remove
-    public static deleteIpobj__ipobjgAll(dbCon, ipobj_g) {
+    public static deleteIpobj__ipobjgAll(dbCon, ipobj_g): Promise<void> {
         return new Promise((resolve, reject) => {
             dbCon.query(`DELETE FROM ${tableName} WHERE ipobj_g=${ipobj_g}`, (error, result) => {
                 if (error) return reject(error);

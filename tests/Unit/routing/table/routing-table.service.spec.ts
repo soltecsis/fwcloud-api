@@ -26,7 +26,7 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
         firewall = fwcloudProduct.firewall;
 
         service = await app.getService(RoutingTableService.name);
-        await Tree.createAllTreeCloud(fwcloud) as {id: number};
+        await Tree.createAllTreeCloud(fwcloud);
         const node: {id: number} = await Tree.getNodeByNameAndType(fwcloud.id, 'FIREWALLS', 'FDF') as {id: number};
         await Tree.insertFwc_Tree_New_firewall(fwcloud.id, node.id, firewall.id);
     });

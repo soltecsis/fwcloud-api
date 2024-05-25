@@ -48,7 +48,7 @@ describe(RoutingRuleController.name, () => {
             fwCloudId: fwcProduct.fwcloud.id
         });
         
-        await Tree.createAllTreeCloud(fwcProduct.fwcloud) as {id: number};
+        await Tree.createAllTreeCloud(fwcProduct.fwcloud);
         const node: {id: number} = await Tree.getNodeByNameAndType(fwcProduct.fwcloud.id, 'FIREWALLS', 'FDF') as {id: number};
         await Tree.insertFwc_Tree_New_firewall(fwcProduct.fwcloud.id, node.id, firewall.id);
         

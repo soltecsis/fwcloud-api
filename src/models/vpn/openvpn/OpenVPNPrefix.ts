@@ -105,7 +105,7 @@ export class OpenVPNPrefix extends Model {
 
 
     // Modify a CRT Prefix container.
-    public static modifyPrefix(req) {
+    public static modifyPrefix(req): Promise<void> {
         return new Promise((resolve, reject) => {
             req.dbCon.query(`UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)} WHERE id=${req.body.prefix}`, (error, result) => {
                 if (error) return reject(error);
@@ -115,7 +115,7 @@ export class OpenVPNPrefix extends Model {
     }
 
     // Delete CRT Prefix container.
-    public static deletePrefix(dbCon, prefix) {
+    public static deletePrefix(dbCon, prefix): Promise<void> {
         return new Promise((resolve, reject) => {
             dbCon.query(`DELETE from ${tableName} WHERE id=${prefix}`, (error, result) => {
                 if (error) return reject(error);
@@ -235,7 +235,7 @@ export class OpenVPNPrefix extends Model {
     }
 
     // Fill prefix node with matching entries.
-    public static fillPrefixNodeOpenVPN(dbCon, fwcloud, openvpn_ser, prefix_name, prefix_id, parent) {
+    public static fillPrefixNodeOpenVPN(dbCon, fwcloud, openvpn_ser, prefix_name, prefix_id, parent): Promise<void> {
         return new Promise((resolve, reject) => {
             // Move all affected nodes into the new prefix container node.
             const prefix = dbCon.escape(prefix_name).slice(1, -1);
@@ -266,7 +266,7 @@ export class OpenVPNPrefix extends Model {
 
 
     // Apply OpenVPN server prefixes to tree node.
-    public static applyOpenVPNPrefixes(dbCon, fwcloud, openvpn_srv) {
+    public static applyOpenVPNPrefixes(dbCon, fwcloud, openvpn_srv): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
                 let node = await Tree.getNodeInfo(dbCon, fwcloud, 'OSR', openvpn_srv);

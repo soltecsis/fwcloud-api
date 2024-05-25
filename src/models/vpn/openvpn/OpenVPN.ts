@@ -162,7 +162,7 @@ export class OpenVPN extends Model {
         });
     };
 
-    public static updateCfg(req) {
+    public static updateCfg(req): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `UPDATE ${tableName} SET install_dir=${req.dbCon.escape(req.body.install_dir)},
                 install_name=${req.dbCon.escape(req.body.install_name)},
@@ -175,7 +175,7 @@ export class OpenVPN extends Model {
         });
     };
 
-    public static addCfgOpt(req, opt) {
+    public static addCfgOpt(req, opt): Promise<void> {
         return new Promise((resolve, reject) => {
             req.dbCon.query('insert into openvpn_opt SET ?', opt, (error, result) => {
                 if (error) return reject(error);
@@ -184,7 +184,7 @@ export class OpenVPN extends Model {
         });
     };
 
-    public static delCfgOptAll(req) {
+    public static delCfgOptAll(req): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = 'delete from openvpn_opt where openvpn=' + req.body.openvpn;
             req.dbCon.query(sql, (error, result) => {
@@ -194,7 +194,7 @@ export class OpenVPN extends Model {
         });
     };
 
-    public static delCfg(dbCon, fwcloud, openvpn) {
+    public static delCfg(dbCon, fwcloud, openvpn): Promise<void> {
         return new Promise((resolve, reject) => {
             // Get all the ipobj referenced by this OpenVPN configuration.
             let sql = `select OBJ.id,OBJ.type from openvpn_opt OPT
@@ -229,7 +229,7 @@ export class OpenVPN extends Model {
         });
     };
 
-    public static delCfgAll(dbCon, fwcloud, firewall) {
+    public static delCfgAll(dbCon, fwcloud, firewall): Promise<void> {
         return new Promise((resolve, reject) => {
             // Remove all the ipobj referenced by this OpenVPN configuration.
             // In the restrictions check we have already checked that it is possible to remove them.
@@ -485,7 +485,7 @@ export class OpenVPN extends Model {
         });
     };
 
-    public static updateOpenvpnStatusIPOBJ(req, ipobj, status_action) {
+    public static updateOpenvpnStatusIPOBJ(req, ipobj, status_action): Promise<void> {
         return new Promise((resolve, reject) => {
             var sql = `UPDATE openvpn VPN
                 INNER JOIN openvpn_opt OPT ON OPT.openvpn=VPN.id
@@ -751,7 +751,7 @@ export class OpenVPN extends Model {
     };
 
 
-    public static createOpenvpnServerInterface(req, cfg) {
+    public static createOpenvpnServerInterface(req, cfg): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
                 let openvpn_opt: any = await this.getOptData(req.dbCon, cfg, 'dev');
@@ -829,7 +829,7 @@ export class OpenVPN extends Model {
     };
 
     //Move rules from one firewall to other.
-    public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall) {
+    public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
         return new Promise((resolve, reject) => {
             dbCon.query(`UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, (error, result) => {
                 if (error) return reject(error);

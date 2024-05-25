@@ -48,8 +48,8 @@ export class SequencedTask extends Task {
         this._tasks.push(new SequencedTask(this._eventEmitter, fn));
     }
 
-    public run(): Promise<any> {
-        return new Promise<any>(async (resolve,reject) => {
+    public run(): Promise<void> {
+        return new Promise(async (resolve,reject) => {
             for(let i = 0; i < this._tasks.length; i++) {
                 try {
                     await this._tasks[i].run();

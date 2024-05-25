@@ -279,7 +279,7 @@ export class PolicyGroup extends Model {
 		});
 	};
 
-	public static cloneGroup(rowData) {
+	public static cloneGroup(rowData): Promise<void> {
 		return new Promise((resolve, reject) => {
 			db.get((error, connection) => {
 				if (error) return reject(error);
@@ -303,7 +303,7 @@ export class PolicyGroup extends Model {
 	};
 
 	//Clone policy groups
-	public static deleteFirewallGroups(idFirewall) {
+	public static deleteFirewallGroups(idFirewall): Promise<void> {
 		return new Promise((resolve, reject) => {
 			db.get((error, connection) => {
 				if (error) return reject(error);
@@ -318,7 +318,7 @@ export class PolicyGroup extends Model {
 	};
 
 	//Move rules from one firewall to other.
-	public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall) {
+	public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
 		return new Promise((resolve, reject) => {
 			dbCon.query(`UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, (error, result) => {
 				if (error) return reject(error);

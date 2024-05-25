@@ -219,7 +219,7 @@ export class User extends Model {
     }
 
 
-    public static _update(req) {
+    public static _update(req): Promise<void> {
         return new Promise(async (resolve, reject) => {
             let crypt_pass = '';
             if (req.body.password) {
@@ -244,7 +244,7 @@ export class User extends Model {
     }
     
 
-    public static changeLoggedUserPass(req) {
+    public static changeLoggedUserPass(req): Promise<void> {
         return new Promise(async (resolve, reject) => {
             var salt = bcrypt.genSaltSync(10);
             const crypt_pass = bcrypt.hashSync(req.session.customer_id + req.session.username + req.body.password, salt);
@@ -273,7 +273,7 @@ export class User extends Model {
     }
 
 
-    public static _delete(req) {
+    public static _delete(req): Promise<void> {
         return new Promise(async (resolve, reject) => {
             req.dbCon.query(`delete from user__fwcloud where user=${req.body.user}`, (error, result) => {
                 if (error) return reject(error);
@@ -310,7 +310,7 @@ export class User extends Model {
         });
     }
 
-    public static allowAllFwcloudAccess(dbCon, user) {
+    public static allowAllFwcloudAccess(dbCon, user): Promise<void> {
         return new Promise(async (resolve, reject) => {
             dbCon.query(`select id from fwcloud`, async (error, result) => {
                 if (error) return reject(error);
@@ -326,7 +326,7 @@ export class User extends Model {
         });
     }
 
-    public static disableFwcloudAccess(dbCon, user, fwcloud) {
+    public static disableFwcloudAccess(dbCon, user, fwcloud): Promise<void> {
         return new Promise(async (resolve, reject) => {
             dbCon.query(`delete from user__fwcloud where user=${user} and fwcloud=${fwcloud}`, (error, result) => {
                 if (error) return reject(error);

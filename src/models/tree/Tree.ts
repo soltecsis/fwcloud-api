@@ -350,7 +350,7 @@ export class Tree extends Model {
     }
 
     // Put STD folders first.
-    public static stdFoldersFirst(root_node) {
+    public static stdFoldersFirst(root_node): Promise<void> {
         return new Promise((resolve, reject) => {
             // Put standard folders at the begining.
             for (let node1 of root_node.children) {
@@ -368,7 +368,7 @@ export class Tree extends Model {
     }
 
     // Remove all tree nodes with the indicated id_obj.
-    public static deleteObjFromTree(fwcloud, id_obj, obj_type) {
+    public static deleteObjFromTree(fwcloud, id_obj, obj_type): Promise<void> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
@@ -390,7 +390,7 @@ export class Tree extends Model {
     }
 
     //REMOVE FULL TREE FROM PARENT NODE
-    public static deleteFwc_TreeFullNode(data) {
+    public static deleteFwc_TreeFullNode(data): Promise<void> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
@@ -426,7 +426,7 @@ export class Tree extends Model {
     }
 
     // Delete nodes under the indicated node.
-    public static deleteNodesUnderMe(dbCon, fwcloud, node_id) {
+    public static deleteNodesUnderMe(dbCon, fwcloud, node_id): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `SELECT fwcloud,id FROM ${tableName} 
 			WHERE (fwcloud=${fwcloud} OR fwcloud is null) AND id_parent=${node_id}`;
@@ -473,7 +473,7 @@ export class Tree extends Model {
 
 
     //UPDATE ID_OBJ FOR FIREWALL CLUSTER FULL TREE FROM PARENT NODE
-    public static updateIDOBJFwc_TreeFullNode(data) {
+    public static updateIDOBJFwc_TreeFullNode(data): Promise<void> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
@@ -675,7 +675,7 @@ export class Tree extends Model {
         });
     }
 
-    public static createAllTreeCloud(fwCloud: FwCloud) {
+    public static createAllTreeCloud(fwCloud: FwCloud): Promise<void> {
         const dbCon: Query = db.getQuery();
 
         return new Promise(async (resolve, reject) => {
@@ -697,7 +697,7 @@ export class Tree extends Model {
     }
 
     // Create tree with standard objects.
-    public static createStdObjectsTree(dbCon, node_id, node_type, ipobj_type) {
+    public static createStdObjectsTree(dbCon, node_id, node_type, ipobj_type): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql: string
             (ipobj_type === 24 && node_type === "COD") ?
@@ -725,7 +725,7 @@ export class Tree extends Model {
     };
 
     // Create nodes under group.
-    public static createGroupNodes(dbCon, fwcloud, node_id, group) {
+    public static createGroupNodes(dbCon, fwcloud, node_id, group): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `SELECT O.id,O.name,O.type FROM ipobj__ipobjg G
 			INNER JOIN ipobj O ON O.id=G.ipobj
@@ -780,7 +780,7 @@ export class Tree extends Model {
     };
 
     // Create tree with standard groups.
-    public static createStdGroupsTree(dbCon, node_id, node_type, ipobj_type) {
+    public static createStdGroupsTree(dbCon, node_id, node_type, ipobj_type): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = 'SELECT id,name FROM ipobj_g WHERE fwcloud is null and type=' + ipobj_type;
             dbCon.query(sql, async (error, groups) => {
@@ -800,7 +800,7 @@ export class Tree extends Model {
 
 
     //Generate the IPs nodes for each interface.
-    public static interfacesIpTree(connection, fwcloud, nodeId, ifId) {
+    public static interfacesIpTree(connection, fwcloud, nodeId, ifId): Promise<void> {
         return new Promise((resolve, reject) => {
             // Get interface IPs.  
             let sql = 'SELECT O.id,O.name,O.type,O.address,T.node_type FROM ipobj O' +
@@ -973,7 +973,7 @@ export class Tree extends Model {
     // };
 
     //Add new TREE FIREWALL for a New Firewall
-    public static insertFwc_Tree_New_firewall(fwcloud, nodeId, firewallId) {
+    public static insertFwc_Tree_New_firewall(fwcloud, nodeId, firewallId): Promise<void> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
@@ -1019,7 +1019,7 @@ export class Tree extends Model {
     };
 
     // Create a new node for the new firewall into the NODES node of the cluster tree.
-    public static insertFwc_Tree_New_cluster_firewall(fwcloud, clusterId, firewallId, firewallName) {
+    public static insertFwc_Tree_New_cluster_firewall(fwcloud, clusterId, firewallId, firewallName): Promise<void> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
@@ -1039,7 +1039,7 @@ export class Tree extends Model {
     };
 
     //Add new TREE CLUSTER for a New CLuster
-    public static insertFwc_Tree_New_cluster(fwcloud, nodeId, clusterId) {
+    public static insertFwc_Tree_New_cluster(fwcloud, nodeId, clusterId): Promise<void> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
@@ -1356,7 +1356,7 @@ export class Tree extends Model {
     };
 
     //Update NODE from FIREWALL UPDATE
-    public static updateFwc_Tree_Firewall(dbCon, fwcloud, FwData) {
+    public static updateFwc_Tree_Firewall(dbCon, fwcloud, FwData): Promise<void> {
         return new Promise((resolve, reject) => {
             var sql = `UPDATE ${tableName} SET name=${dbCon.escape(FwData.name)}
 			WHERE id_obj=${FwData.id} AND fwcloud=${fwcloud} AND node_type='FW'`;
@@ -1368,7 +1368,7 @@ export class Tree extends Model {
     };
 
     //Update NODE from CLUSTER UPDATE
-    public static updateFwc_Tree_Cluster(dbCon, fwcloud, Data) {
+    public static updateFwc_Tree_Cluster(dbCon, fwcloud, Data): Promise<void> {
         return new Promise((resolve, reject) => {
             var sql = `UPDATE ${tableName} SET name=${dbCon.escape(Data.name)}
 			WHERE id_obj=${Data.id} AND fwcloud=${fwcloud} AND node_type='CL'`;
@@ -1404,7 +1404,7 @@ export class Tree extends Model {
 
 
     //Remove NODE FROM GROUP with id_obj to remove
-    public static deleteFwc_TreeGroupChild(dbCon, fwcloud, id_group, id_obj) {
+    public static deleteFwc_TreeGroupChild(dbCon, fwcloud, id_group, id_obj): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `DELETE T.* FROM ${tableName} T INNER JOIN ${tableName} T2 ON T.id_parent=T2.id 
 			WHERE T.fwcloud=${fwcloud} AND T.id_obj=${id_obj} AND T2.id_obj=${id_group}`;

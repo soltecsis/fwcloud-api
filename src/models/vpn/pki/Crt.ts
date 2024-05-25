@@ -104,7 +104,7 @@ export class Crt extends Model {
     }
 
     // Delete CRT.
-    public static deleteCRT(req) {
+    public static deleteCRT(req): Promise<void> {
         return new Promise((resolve, reject) => {
             // Verify that the CA can be deleted.
             req.dbCon.query('SELECT count(*) AS n FROM openvpn WHERE crt=' + req.body.crt, (error, result) => {
