@@ -27,7 +27,7 @@ import * as path from "path";
 export class FSHelper {
     public static async directoryExists(directoryPath: fs.PathLike): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            fs.stat(directoryPath, (error: Error, stats: fs.BigIntStats) => {
+            fs.stat(directoryPath, (error: Error, stats: fs.Stats) => {
                 if (error) {
                     return resolve(false);
                 }
