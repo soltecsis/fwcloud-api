@@ -1,5 +1,5 @@
 /*!
-    Copyright 2019 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
+    Copyright 2024 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
     info@soltecsis.com
 
@@ -45,16 +45,17 @@ export class PgpHelper {
     public async init(rsaBits: number): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
-                const { publicKeyArmored, privateKeyArmored } = await openpgp.generateKey({
-                    rsaBits: rsaBits,     
-                    userIds: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }]
+                const { privateKey, publicKey } = await openpgp.generateKey({
+                    userIDs: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }],
+                    rsaBits: rsaBits,
+                    format: 'binary' // Change the format to 'binary'
                 });
 
-                if (!publicKeyArmored || !privateKeyArmored)
+                if (!publicKey || !privateKey)
                     return reject(fwcError.PGP_KEYS_GEN);
 
-                this._publicKey = publicKeyArmored;
-                this._privateKey = privateKeyArmored;
+                this._publicKey = publicKey.toString();
+                this._privateKey = privateKey.toString();
                 resolve();
             } catch (error) { reject(error) }
         });
@@ -63,13 +64,14 @@ export class PgpHelper {
     public encrypt(msg: string): Promise<string> {
         return new Promise(async (resolve, reject) => {
             try {
-                const options = {
-                    message: openpgp.message.fromText(msg), // input as Message object
-                    publicKeys: (await openpgp.key.readArmored(this._publicKey)).keys // for encryption
-                };
-                const { data: msgEncrypted } = await openpgp.encrypt(options);
-                //console.log(msgEncrypted);
-                resolve(msgEncrypted);
+                const publicKey = await openpgp.readKey({ armoredKey: this._publicKey });
+
+                const msgEncrypted = await openpgp.encrypt({
+                    message: await openpgp.createMessage({ text: msg }),
+                    encryptionKeys: publicKey
+                  });
+
+                resolve(msgEncrypted.toString());
             } catch (error) { reject(error); }
         });
     }
@@ -77,13 +79,16 @@ export class PgpHelper {
     public decrypt(msgEncrypted: string): Promise<string> {
         return new Promise(async (resolve, reject) => {
             try {
-                const options = {
-                    message: await openpgp.message.readArmored(msgEncrypted), // parse armored message
-                    privateKeys: (await openpgp.key.readArmored(this._privateKey)).keys // for decryption
-                }
-                const { data: msg } = await openpgp.decrypt(options);
-                //console.log(msg);
-                resolve(msg);
+                const privateKey = await openpgp.decryptKey({
+                    privateKey: await openpgp.readPrivateKey({ armoredKey: this._privateKey })
+                  });
+
+                const msg = await openpgp.decrypt({
+                    message: await openpgp.readMessage({ armoredMessage: msgEncrypted }),
+                    decryptionKeys: privateKey
+                  });
+
+                resolve(msg.data.toString());
             } catch (error) { reject(error); }
         });
     }
