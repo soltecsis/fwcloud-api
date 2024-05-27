@@ -340,7 +340,7 @@ export class DatabaseService extends Service {
     protected async importSQLFile(path: string, connection: Connection = null): Promise<void> {
         connection = connection ? connection : this._connection;
         const queryRunner: QueryRunner = connection.createQueryRunner();
-        const queries = fs.readFileSync(path, { encoding: 'UTF-8' })
+        const queries = fs.readFileSync(path, { encoding: 'utf-8' })
             .replace(new RegExp('\'', 'gm'), '"')
             .replace(new RegExp('^--.*\n', 'gm'), '')
             .replace(/(\r\n|\n|\r)/gm, " ")
