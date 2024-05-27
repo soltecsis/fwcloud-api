@@ -59,7 +59,7 @@ router.put('/move',
 utilsModel.disableFirewallCompileStatus,
 async(req, res) => {
 	var rule = req.body.rule;
-	var interface = req.body.interface;
+	var interfaceName = req.body.interface;
 	var position = req.body.position;
 	var position_order = req.body.position_order;
 	var new_rule = req.body.new_rule;
@@ -74,18 +74,18 @@ async(req, res) => {
 		const psts = await 	PolicyRuleToIPObj.getPositionsContent(req.dbCon, position, new_position);
 
 		if (psts.content1 === psts.content2) { //SAME POSITION CONTENT TYPE
-			await PolicyRuleToInterface.updatePolicy_r__interface_position(req.dbCon, firewall, rule, interface, position, position_order, new_rule, new_position, new_order);
+			await PolicyRuleToInterface.updatePolicy_r__interface_position(req.dbCon, firewall, rule, interfaceName, position, position_order, new_rule, new_position, new_order);
 		} else if (psts.content1 === 'O' && psts.content2 === 'I') { //DIFFERENTS POSITIONS CONTENT TYPE
 			//Create New Position 'I'
 			//Create New objet with data policy_r__interface
 			var policy_r__interfaceData = {
 				rule: new_rule,
-				interface: interface,
+				interface: interfaceName,
 				position: new_position,
 				position_order: new_order
 			};
 			await PolicyRuleToInterface.insertPolicy_r__interface(firewall, policy_r__interfaceData);
-			await	PolicyRuleToIPObj.deletePolicy_r__ipobj(req.dbCon, rule, -1, -1, interface, position, position_order);
+			await	PolicyRuleToIPObj.deletePolicy_r__ipobj(req.dbCon, rule, -1, -1, interfaceName, position, position_order);
 		} else { // NOT ALLOWED TO MOVE BETWEEN THESE POSITIONS BECAUSE THE CONTENT TYPE
 			throw fwcError.NOT_ALLOWED;
 		}
@@ -107,12 +107,12 @@ router.put('/order',
 utilsModel.disableFirewallCompileStatus,
 (req, res) => {
 	var rule = req.body.rule;
-	var interface = req.body.interface;
+	var interfaceName = req.body.interface;
 	var position = req.body.position;
 	var old_order = req.body.position_order;
 	var new_order = req.body.new_order;
 
-	PolicyRuleToInterface.updatePolicy_r__interface_order(rule, interface, position, old_order, new_order, (error, data) => {
+	PolicyRuleToInterface.updatePolicy_r__interface_order(rule, interfaceName, position, old_order, new_order, (error, data) => {
 		if (error) {
 			logger().error('Error updating order: ' + JSON.stringify(error));
 			return res.status(400).json(error);
@@ -134,12 +134,12 @@ utilsModel.disableFirewallCompileStatus,
 async (req, res) => {
 	//Id from policy_r__interface to remove
 	var rule = req.body.rule;
-	var interface = req.body.interface;
+	var interfaceName = req.body.interface;
 	var position = req.body.position;
 	var old_order = req.body.position_order;
 
 	try {
-		await PolicyRuleToInterface.deletePolicy_r__interface(req.dbCon, rule, interface, position, old_order);
+		await PolicyRuleToInterface.deletePolicy_r__interface(req.dbCon, rule, interfaceName, position, old_order);
 		// If after the delete we have empty rule positions, then remove them from the negate position list.
 		await PolicyRule.allowEmptyRulePositions(req);
 		res.status(204).end();

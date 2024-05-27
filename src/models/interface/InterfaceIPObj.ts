@@ -254,7 +254,7 @@ export class InterfaceIPObj extends Model {
 	}
 
 
-	public static deleteHostInterface(dbCon, host, _interface) {
+	public static deleteHostInterface(dbCon, host, _interface): Promise<void> {
 		return new Promise((resolve, reject) => {
 			dbCon.query(`DELETE FROM ${tableName} WHERE interface=${_interface} and ipobj=${host}`, (error, result) => {
 				if (error) return reject(error);

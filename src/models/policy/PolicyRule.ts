@@ -571,7 +571,7 @@ export class PolicyRule extends Model {
         });
     };
 
-    public static insertDefaultPolicy(fwId, loInterfaceId, options) {
+    public static insertDefaultPolicy(fwId, loInterfaceId, options): Promise<void> {
         return new Promise(async (resolve, reject) => {
             var policy_rData = {
                 id: null,
@@ -731,7 +731,7 @@ export class PolicyRule extends Model {
     }
 
     //Clone policy and IPOBJ
-    public static cloneFirewallPolicy(dbCon, idfirewall, idNewFirewall, dataI) {
+    public static cloneFirewallPolicy(dbCon, idfirewall, idNewFirewall, dataI): Promise<void> {
         return new Promise((resolve, reject) => {
             this.clon_data = dataI;
             let sql = `select ${idNewFirewall} as newfirewall, P.*
@@ -750,7 +750,7 @@ export class PolicyRule extends Model {
         });
     }
 
-    public static clonePolicy(rowData) {
+    public static clonePolicy(rowData): Promise<void> {
         return new Promise((resolve, reject) => {
             db.get(async (error, dbCon) => {
                 if (error) return reject(error);
@@ -790,7 +790,7 @@ export class PolicyRule extends Model {
         });
     }
 
-    public static clonePolicyIpobj(dbCon, newFirewall, oldRule, newRule) {
+    public static clonePolicyIpobj(dbCon, newFirewall, oldRule, newRule): Promise<void> {
         return new Promise((resolve, reject) => {
             //SELECT ALL IPOBJ UNDER POSITIONS
             let sql = `select ${newFirewall} as newfirewall, ${newRule} as newrule, O.*
@@ -833,7 +833,7 @@ export class PolicyRule extends Model {
         });
     };
 
-    public static clonePolicyInterface(dbCon, oldFirewall, oldRule, newRule) {
+    public static clonePolicyInterface(dbCon, oldFirewall, oldRule, newRule): Promise<void> {
         return new Promise((resolve, reject) => {
             //SELECT ALL INTERFACES UNDER POSITIONS
             let sql = `select ${newRule} as newrule, I.id as newInterface, O.*
@@ -865,7 +865,7 @@ export class PolicyRule extends Model {
     }
 
     //Update policy_r from user
-    public static updatePolicy_r(dbCon, policy_rData) {
+    public static updatePolicy_r(dbCon, policy_rData): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = 'UPDATE ' + tableName + ' SET ';
             if (typeof policy_rData.idgroup !== 'undefined') sql += 'idgroup=' + policy_rData.idgroup + ',';
@@ -890,7 +890,7 @@ export class PolicyRule extends Model {
         });
     };
 
-    public static makeBeforeRuleOrderGap(firewall, type, rule) {
+    public static makeBeforeRuleOrderGap(firewall, type, rule): Promise<void> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
@@ -947,7 +947,7 @@ export class PolicyRule extends Model {
         });
     }
 
-    public static reorderAfterRuleOrder(dbCon, firewall, type, rule_order) {
+    public static reorderAfterRuleOrder(dbCon, firewall, type, rule_order): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = 'UPDATE ' + tableName + ' SET rule_order=rule_order+1' +
                 ' WHERE firewall=' + firewall + ' AND type=' + type +
@@ -960,7 +960,7 @@ export class PolicyRule extends Model {
     }
 
     //Remove All policy_r from firewall
-    public static async deletePolicy_r_Firewall(idfirewall) {
+    public static async deletePolicy_r_Firewall(idfirewall): Promise<void> {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
@@ -1088,7 +1088,7 @@ public static repointApplyTo(rowData) {
 };
 
 //Negate rule position.
-public static negateRulePosition(dbCon, firewall, rule, position) {
+public static negateRulePosition(dbCon, firewall, rule, position): Promise<void> {
 	return new Promise((resolve, reject) => {
 		let sql = `select negate from ${tableName} where id=${rule} and firewall=${firewall}`;
 		dbCon.query(sql, (error, result) => {
@@ -1117,7 +1117,7 @@ public static negateRulePosition(dbCon, firewall, rule, position) {
 };
 
 //Allow rule position.
-public static allowRulePosition(dbCon, firewall, rule, position) {
+public static allowRulePosition(dbCon, firewall, rule, position): Promise<void> {
 	return new Promise((resolve, reject) => {
 		let sql = `select negate from ${tableName} where id=${rule} and firewall=${firewall}`;
 		dbCon.query(sql, (error, result) => {
@@ -1173,7 +1173,7 @@ public static firewallWithMarkRules(dbCon, firewall) {
 };
 
 //Move rules from one firewall to other.
-public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall) {
+public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
 	return new Promise((resolve, reject) => {
 		dbCon.query(`UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, (error, result) => {
 			if (error) return reject(error);

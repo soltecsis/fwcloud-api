@@ -410,7 +410,7 @@ export class IPObjGroup extends Model {
     }
 
     //Update ipobj_g
-    public static updateIpobj_g(req, ipobj_gData) {
+    public static updateIpobj_g(req, ipobj_gData): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(ipobj_gData.name)}
             ,type=${ipobj_gData.type}
@@ -424,7 +424,7 @@ export class IPObjGroup extends Model {
     }
 
     //Remove ipobj_g with id to remove
-    public static deleteIpobj_g(dbCon, fwcloud, id, type) {
+    public static deleteIpobj_g(dbCon, fwcloud, id, type): Promise<void> {
         return new Promise(async (resolve, reject) => {
             // FIRST DELETE CHILDREN
             try {

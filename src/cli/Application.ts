@@ -73,7 +73,7 @@ export class Application extends CLIApplication {
 
         const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
 
-        routerService.registerRoutes(Routes);
+        routerService.registerRoutes();
 
         return this;
     }

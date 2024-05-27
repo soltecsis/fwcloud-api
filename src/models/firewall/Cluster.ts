@@ -86,7 +86,7 @@ export class Cluster extends Model {
     }
 
     //Get FULL cluster by  id
-    public static getCluster(req) {
+    public static getCluster(req): Promise<void> {
         return new Promise((resolve, reject) => {
             var sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + req.dbCon.escape(req.body.cluster) + ' AND fwcloud=' + req.dbCon.escape(req.body.fwcloud);
             req.dbCon.query(sql, (error, row) => {
@@ -155,7 +155,7 @@ export class Cluster extends Model {
     }
 
     //Update cluster
-    public static updateCluster(dbCon, fwcloud, clusterData) {
+    public static updateCluster(dbCon, fwcloud, clusterData): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `UPDATE ${tableName} SET name=${dbCon.escape(clusterData.name)}, comment=${dbCon.escape(clusterData.comment)}, plugins=${dbCon.escape(clusterData.plugins)}
                 WHERE id=${clusterData.id} AND fwcloud=${fwcloud}`;

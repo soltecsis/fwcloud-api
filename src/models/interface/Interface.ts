@@ -809,7 +809,7 @@ export class Interface extends Model {
 		});
 	};
 
-	public static deleteInterfaceFW(dbCon, _interface) {
+	public static deleteInterfaceFW(dbCon, _interface): Promise<void> {
 		return new Promise((resolve, reject) => {
 			const sql = `DELETE FROM ${tableName} WHERE type=10 AND id=${_interface}`;
 			dbCon.query(sql, (error, result) => {
@@ -820,7 +820,7 @@ export class Interface extends Model {
 	};
 
 
-	public static deleteInterfaceHOST(dbCon, _interface) {
+	public static deleteInterfaceHOST(dbCon, _interface): Promise<void> {
 		return new Promise((resolve, reject) => {
 			const sql = `DELETE FROM ${tableName} WHERE type=11 AND id=${_interface}`;
 			dbCon.query(sql, (error, result) => {
@@ -832,7 +832,7 @@ export class Interface extends Model {
 
 
 	//Remove all IPOBJ UNDER INTERFACES UNDER FIREWALL
-	public static deleteInterfacesIpobjFirewall(firewall) {
+	public static deleteInterfacesIpobjFirewall(firewall): Promise<void> {
 		return new Promise((resolve, reject) => {
 			db.get((error, dbCon) => {
 				if (error) return reject(error);
@@ -871,7 +871,7 @@ export class Interface extends Model {
 
 
 	//Move rules from one firewall to other.
-	public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall) {
+	public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
 		return new Promise((resolve, reject) => {
 			dbCon.query(`UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, async (error, result) => {
 				if (error) return reject(error);

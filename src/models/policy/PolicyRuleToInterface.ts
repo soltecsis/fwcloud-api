@@ -136,7 +136,7 @@ export class PolicyRuleToInterface extends Model {
 
 
     //Add new policy_r__interface
-    public static insertPolicy_r__interface(idfirewall, policy_r__interfaceData) {
+    public static insertPolicy_r__interface(idfirewall, policy_r__interfaceData): Promise<void> {
         return new Promise((resolve, reject) => {
             //Check if IPOBJ TYPE is ALLOWED in this Position
             this.checkInterfacePosition(idfirewall, policy_r__interfaceData.rule, policy_r__interfaceData.interface, policy_r__interfaceData.position, (error, allowed) => {
@@ -190,7 +190,7 @@ export class PolicyRuleToInterface extends Model {
     };
 
     //Duplicate policy_r__interface RULES
-    public static duplicatePolicy_r__interface = (dbCon, rule, new_rule) => {
+    public static duplicatePolicy_r__interface = (dbCon, rule, new_rule): Promise<void> => {
         return new Promise((resolve, reject) => {
             let sql = `INSERT INTO ${tableName} (rule, interface, position,position_order)
 			(SELECT ${new_rule}, interface, position, position_order
@@ -239,7 +239,7 @@ export class PolicyRuleToInterface extends Model {
     };
 
     //Update policy_r__interface POSITION AND RULE
-    public static updatePolicy_r__interface_position(dbCon, idfirewall, rule, _interface, old_position, old_position_order, new_rule, new_position, new_order) {
+    public static updatePolicy_r__interface_position(dbCon, idfirewall, rule, _interface, old_position, old_position_order, new_rule, new_position, new_order): Promise<void> {
         return new Promise((resolve, reject) => {
             //Check if IPOBJ TYPE is ALLOWED in this Position
             this.checkInterfacePosition(idfirewall, new_rule, _interface, new_position, (error, allowed) => {
@@ -338,7 +338,7 @@ export class PolicyRuleToInterface extends Model {
     }
 
     //Remove policy_r__interface with id to remove
-    public static deletePolicy_r__interface(dbCon, rule, _interface, position, old_order, callback) {
+    public static deletePolicy_r__interface(dbCon, rule, _interface, position, old_order, callback): Promise<void> {
         return new Promise((resolve, reject) => {
             var sqlExists = `SELECT * FROM ${tableName} 
                 WHERE rule=${dbCon.escape(rule)} AND  interface=${dbCon.escape(_interface)}

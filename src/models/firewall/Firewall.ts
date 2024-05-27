@@ -705,7 +705,7 @@ export class Firewall extends Model {
 		});
 	};
 
-	public static updateFirewallCompileDate(fwcloud, firewall) {
+	public static updateFirewallCompileDate(fwcloud, firewall): Promise<void> {
 		return new Promise((resolve, reject) => {
 			db.get((error, connection) => {
 				if (error) return reject(error);
@@ -718,7 +718,7 @@ export class Firewall extends Model {
 		});
 	};
 
-	public static updateFirewallInstallDate(fwcloud, firewall) {
+	public static updateFirewallInstallDate(fwcloud, firewall): Promise<void> {
 		return new Promise((resolve, reject) => {
 			db.get((error, connection) => {
 				if (error) return reject(error);
@@ -731,7 +731,7 @@ export class Firewall extends Model {
 		});
 	};
 
-	public static promoteToMaster(dbCon, firewall) {
+	public static promoteToMaster(dbCon, firewall): Promise<void> {
 		return new Promise((resolve, reject) => {
 			dbCon.query(`UPDATE ${tableName} SET fwmaster=1 WHERE id=${firewall}`, (error, result) => {
 				if (error) return reject(error);
@@ -1169,7 +1169,7 @@ export class Firewall extends Model {
 	 *       callback(null, {"result": false});
 	 *       
 	 */
-	public static deleteFirewall = (user, fwcloud, firewall) => {
+	public static deleteFirewall = (user, fwcloud, firewall): Promise<void> => {
 		return new Promise((resolve, reject) => {
 			db.get((error, dbCon) => {
 				if (error) return reject(error);
@@ -1198,7 +1198,7 @@ export class Firewall extends Model {
 	}
 
 
-	public static deleteFirewallRow = (dbCon, fwcloud, firewall) => {
+	public static deleteFirewallRow = (dbCon, fwcloud, firewall): Promise<void> => {
 		return new Promise((resolve, reject) => {
 			dbCon.query(`DELETE FROM ${tableName} WHERE id=${firewall} AND fwcloud=${fwcloud}`, (error, result) => {
 				if (error) return reject(error);

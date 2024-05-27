@@ -66,7 +66,7 @@ export class Repair extends Model {
         return tableName;
     }
 
-    public static initData(req) {
+    public static initData(req): Promise<void> {
         return new Promise(async resolve => {
             dbCon = req.dbCon;
             fwcloud = req.body.fwcloud;
@@ -149,7 +149,7 @@ export class Repair extends Model {
     }
 
     // Verify all not root nodes.
-    public static checkNotRootNodes(rootNodes, channel: EventEmitter = new EventEmitter()) {
+    public static checkNotRootNodes(rootNodes, channel: EventEmitter = new EventEmitter()): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = 'SELECT id,id_parent,name,node_type,id_obj,obj_type FROM ' + tableName +
                 ' WHERE fwcloud=' + fwcloud + ' AND id_parent is not null';
@@ -204,7 +204,7 @@ export class Repair extends Model {
     }
 
     // Regenerate firewalls tree.
-    public static regenerateFirewallTree(rootNode, firewall, channel: EventEmitter = new EventEmitter()) {
+    public static regenerateFirewallTree(rootNode, firewall, channel: EventEmitter = new EventEmitter()): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = 'SELECT T1.id,T1.id_parent,T2.node_type as parent_node_type FROM fwc_tree T1' +
                 ' INNER JOIN fwc_tree T2 on T2.id=T1.id_parent ' +
@@ -260,7 +260,7 @@ export class Repair extends Model {
     }
 
     // Regenerate cluster tree.
-    public static regenerateClusterTree(rootNode, cluster, channel: EventEmitter = new EventEmitter()) {
+    public static regenerateClusterTree(rootNode, cluster, channel: EventEmitter = new EventEmitter()): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = 'SELECT T1.id,T1.id_parent,T2.node_type as parent_node_type FROM fwc_tree T1' +
                 ' INNER JOIN fwc_tree T2 on T2.id=T1.id_parent ' +
@@ -357,7 +357,7 @@ export class Repair extends Model {
     }
 
     // Verify that the nodes into de folders are valid.
-    public static checkFirewallsFoldersContent(rootNode, channel: EventEmitter = new EventEmitter()) {
+    public static checkFirewallsFoldersContent(rootNode, channel: EventEmitter = new EventEmitter()): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = 'SELECT id,node_type,id_obj,obj_type FROM ' + tableName +
                 ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND id_parent=' + dbCon.escape(rootNode.id);
@@ -387,7 +387,7 @@ export class Repair extends Model {
     }
 
     // Regenerate host tree.
-    public static regenerateHostTree(hostsNode, host) {
+    public static regenerateHostTree(hostsNode, host): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
                 let newId = await Tree.newNode(dbCon, fwcloud, host.name, hostsNode.id, 'OIH', host.id, 8);
@@ -398,7 +398,7 @@ export class Repair extends Model {
     }
 
     // Verify that the host objects are correct.
-    public static checkHostObjects(rootNode) {
+    public static checkHostObjects(rootNode): Promise<void> {
         return new Promise((resolve, reject) => {
             // Verify that we have only one Hosts node.
             let sql = 'SELECT id FROM ' + tableName +
@@ -435,7 +435,7 @@ export class Repair extends Model {
     }
 
     // Regenerate non standard IP objects for this cloud.
-    public static checkNonStdIPObj(node_id, node_type, ipobj_type) {
+    public static checkNonStdIPObj(node_id, node_type, ipobj_type): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = '';
             if (ipobj_type === 30) // Iptables marks
@@ -467,7 +467,7 @@ export class Repair extends Model {
     }
 
     // Regenerate non standard IP objects groups for this cloud.
-    public static checkNonStdIPObjGroup(node_id, node_type, group_type) {
+    public static checkNonStdIPObjGroup(node_id, node_type, group_type): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `SELECT id,name,type FROM ipobj_g WHERE fwcloud=${fwcloud} AND type=${group_type}`;
             dbCon.query(sql, async (error, groups) => {
@@ -486,7 +486,7 @@ export class Repair extends Model {
     };
 
     // Remove orphan nodes (nodes wich id_parent points to a non existing node with this id_parnet value).
-    public static deleteOrphanNodes(channel: EventEmitter = new EventEmitter()) {
+    public static deleteOrphanNodes(channel: EventEmitter = new EventEmitter()): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql:string = `select id,fwcloud from ${tableName}
                 where id_parent is not null and id_parent not in (select id from fwc_tree)`;

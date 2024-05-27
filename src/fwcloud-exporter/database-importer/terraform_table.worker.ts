@@ -3,6 +3,7 @@ import { ExporterResult, ExporterResultData } from '../database-exporter/exporte
 import { IdManager, TableIdState } from './terraformer/mapper/id-manager';
 import { ImportMapping } from './terraformer/mapper/import-mapping';
 import { Terraformer } from './terraformer/terraformer';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
 
 export type InputData = {
     tableName: string,
@@ -22,7 +23,7 @@ export type OutputData = {
 }
 
 async function terraformTable(tableName: string, mapper: ImportMapping, data: object[]): Promise<object[]> {
-    return await (new Terraformer(mapper, this.eventEmitter))
+    return await (new Terraformer(mapper, this ? this.eventEmitter : new EventEmitter()))
         .terraform(tableName, data);
 }
 

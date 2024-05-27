@@ -39,7 +39,7 @@ describe(RouteRepository.name, () => {
             fwCloudId: fwCloud.id
         }));
 
-        await Tree.createAllTreeCloud(fwCloud) as {id: number};
+        await Tree.createAllTreeCloud(fwCloud);
         const node: {id: number} = await Tree.getNodeByNameAndType(fwCloud.id, 'FIREWALLS', 'FDF') as {id: number};
         await Tree.insertFwc_Tree_New_firewall(fwCloud.id, node.id, firewall.id);
 

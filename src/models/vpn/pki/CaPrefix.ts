@@ -86,7 +86,7 @@ export class CaPrefix extends Model {
     };
 
     // Fill prefix node with matching entries.
-    public static fillPrefixNodeCA(dbCon, fwcloud, ca, name, parent, node) {
+    public static fillPrefixNodeCA(dbCon, fwcloud, ca, name, parent, node): Promise<void> {
         return new Promise((resolve, reject) => {
             // Move all affected nodes into the new prefix container node.
             const prefix = dbCon.escape(name).slice(1, -1);
@@ -111,7 +111,7 @@ export class CaPrefix extends Model {
     };
 
     // Apply CRT prefix to tree node.
-    public static applyCrtPrefixes(req, ca) {
+    public static applyCrtPrefixes(req, ca): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
                 // Search for the CA node tree.
@@ -156,7 +156,7 @@ export class CaPrefix extends Model {
     };
 
     // Modify a CRT Prefix container.
-    public static modifyCrtPrefix(req) {
+    public static modifyCrtPrefix(req): Promise<void> {
         return new Promise((resolve, reject) => {
             req.dbCon.query(`UPDATE ca_prefix SET name=${req.dbCon.escape(req.body.name)} WHERE id=${req.body.prefix}`, (error, result) => {
                 if (error) return reject(error);
@@ -166,7 +166,7 @@ export class CaPrefix extends Model {
     };
 
     // Delete CRT Prefix container.
-    public static deleteCrtPrefix(req) {
+    public static deleteCrtPrefix(req): Promise<void> {
         return new Promise((resolve, reject) => {
             req.dbCon.query(`DELETE from ca_prefix WHERE id=${req.body.prefix}`, (error, result) => {
                 if (error) return reject(error);

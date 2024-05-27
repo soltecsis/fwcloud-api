@@ -109,7 +109,7 @@ export class Ca extends Model {
     };
 
     // Delete CA.
-    public static deleteCA(req) {
+    public static deleteCA(req): Promise<void> {
         return new Promise((resolve, reject) => {
             // Verify that the CA can be deleted.
             req.dbCon.query('SELECT count(*) AS n FROM crt WHERE ca=' + req.body.ca, (error, result) => {
@@ -139,7 +139,7 @@ export class Ca extends Model {
     /** 
      * Store the CA and cert ids into the tree's nodes used for the OpenVPN configurations.
      */
-    public static storePkiInfo(req, tree) {
+    public static storePkiInfo(req, tree): Promise<void> {
         return new Promise((resolve, reject) => {
             let sql = `SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca, OPT.name as openvpn_disabled 
                 FROM crt CRT
