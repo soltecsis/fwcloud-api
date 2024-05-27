@@ -45,7 +45,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: ['12', '14', '16']
+        node-version: ['16', '18', '20']
         database: [mysql, mysql8, mariadb]
         include:
           - database: mysql
