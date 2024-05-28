@@ -32,6 +32,14 @@ import { EventEmitter } from "events";
 import { FileInfo } from "../fonaments/http/files/file-info";
 
 export class RequestBuilder extends Middleware {
+    /**
+     * Handles the incoming request.
+     * 
+     * @param req - The incoming request object.
+     * @param res - The response object.
+     * @param next - The next function in the middleware chain.
+     * @returns A Promise that resolves to void.
+     */
     public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         let filesProcessing: number = 0;
         let eventEmitter = new EventEmitter();
@@ -43,13 +51,13 @@ export class RequestBuilder extends Middleware {
         }
 
         try {
-            var busboy = new Busboy({ headers: req.headers });
+            const busboy = Busboy({ headers: req.headers });
 
-            busboy.on('file', (input: string, file: NodeJS.ReadableStream, filename: string) => {
+            busboy.on('file', (input: string, file: NodeJS.ReadableStream, filename: any) => {
                 filesProcessing++;
                 const id: string = uuid.v4();
                 const uploadFile: NodeJS.ReadableStream = file;
-                const destinationPath: string = path.join(this.app.config.get('tmp.directory'), id, filename);
+                const destinationPath: string = path.join(this.app.config.get('tmp.directory'), id, filename.filename);
                 const destinationDirectory: string = path.dirname(destinationPath)
             
                 FSHelper.mkdirSync(destinationDirectory);
