@@ -76,7 +76,7 @@ export default abstract class Model extends BaseEntity implements IModel {
      * @param options 
      */
     public toJSON<T>(options: ToJSONOptions = defaultToJSONOptions): DeepPartial<T> {
-        const result = {};
+        const result: DeepPartial<T> = {} as DeepPartial<T>;
         const propertyReferences: Array<ColumnMetadataArgs> = (<typeof Model>(<any>this.constructor)).getEntityColumns();
 
         options = <ToJSONOptions>ObjectHelpers.merge(defaultToJSONOptions, options);
