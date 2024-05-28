@@ -619,6 +619,23 @@ const config = convict({
       env: 'SSH_COMMUNICATION_ENABLED',
       default: true
     }
+  },
+  //FwCloud - OpenAI Assistant
+  openai_assistant: {
+    openai: {
+      apiKey: {
+        doc: 'OpenAI API Key',
+        format: String,
+        default: '',
+        env: 'OPENAI_API_KEY'
+      },
+      organization:{
+        doc: 'OpenAI API Key Organization',
+        format: String,
+        default: '',
+        env: 'OPENAI_ORGANIZATION'
+      }
+    }
   }
 });
 
