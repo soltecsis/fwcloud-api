@@ -45,7 +45,7 @@ schema.validate = req => {
 		if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/ipobj')) {
 			schema = schema.append({
 				name: sharedSch.name,
-				type: sharedSch.u8bits.valid(valid_types),
+				type: sharedSch.u8bits.valid(...valid_types),
 				interface: sharedSch.id.allow(null).optional(),
 				diff_serv: Joi.number().port().optional(),
 				options: Joi.number().integer().optional(),
@@ -68,7 +68,7 @@ schema.validate = req => {
 
 				case 2: // TCP
 					schema = schema.append({
-						protocol: Joi.number().valid([6]),
+						protocol: Joi.number().valid(6),
 						source_port_start: Joi.number().port(),
 						source_port_end: Joi.number().port(),
 						destination_port_start: Joi.number().port(),
@@ -80,7 +80,7 @@ schema.validate = req => {
 
 				case 3: // ICMP
 					schema = schema.append({
-						protocol: Joi.number().valid([1]),
+						protocol: Joi.number().valid(1),
 						icmp_code: Joi.number().integer().min(-1).max(255),
 						icmp_type: Joi.number().integer().min(-1).max(255)
 					});
@@ -88,7 +88,7 @@ schema.validate = req => {
 
 				case 4: // UDP
 					schema = schema.append({
-						protocol: Joi.number().valid([17]),
+						protocol: Joi.number().valid(17),
 						source_port_start: Joi.number().port(),
 						source_port_end: Joi.number().port(),
 						destination_port_start: Joi.number().port(),
@@ -98,25 +98,25 @@ schema.validate = req => {
 
 				case 5: // ADDRESS
 					schema = schema.append({
-						ip_version: Joi.number().integer().valid([4, 6]),
-						address: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }),
-						netmask: Joi.alternatives().when('ip_version', { is: 4, then: Joi.alternatives(sharedSch.ipv4_netmask_cidr,sharedSch.ipv4_netmask), otherwise: sharedSch.ipv6_netmask }).allow('').optional()
+						ip_version: Joi.number().integer().valid(4, 6),
+						address: Joi.alternatives().conditional('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }),
+						netmask: Joi.alternatives().conditional('ip_version', { is: 4, then: Joi.alternatives(sharedSch.ipv4_netmask_cidr, sharedSch.ipv4_netmask), otherwise: sharedSch.ipv6_netmask }).allow('').optional()
 					});
 					break;
 
 				case 6: // ADDRESS RANGE
 					schema = schema.append({
-						ip_version: Joi.number().integer().valid([4, 6]),
-						range_start: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }),
-						range_end: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 })
+						ip_version: Joi.number().integer().valid(4, 6),
+						range_start: Joi.alternatives().conditional('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }),
+						range_end: Joi.alternatives().conditional('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 })
 					});
 					break;
 
 				case 7: // NETWORK
 					schema = schema.append({
-						ip_version: Joi.number().integer().valid([4, 6]),
-						address: Joi.alternatives().when('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional(),
-						netmask: Joi.alternatives().when('ip_version', { is: 4, then: Joi.alternatives(sharedSch.ipv4_netmask_cidr,sharedSch.ipv4_netmask), otherwise: sharedSch.ipv6_netmask })
+						ip_version: Joi.number().integer().valid(4, 6),
+						address: Joi.alternatives().conditional('ip_version', { is: 4, then: sharedSch.ipv4, otherwise: sharedSch.ipv6 }).optional(),
+						netmask: Joi.alternatives().conditional('ip_version', { is: 4, then: Joi.alternatives(sharedSch.ipv4_netmask_cidr, sharedSch.ipv4_netmask), otherwise: sharedSch.ipv6_netmask })
 					});
 					break;
 
@@ -140,11 +140,11 @@ schema.validate = req => {
 			if (req.url === '/ipobj/get')
 				schema = schema.append({ id: sharedSch.id });
 			else if (req.url === '/ipobj/del' || req.url === '/ipobj/where' || req.url === '/ipobj/restricted')
-				schema = schema.append({ id: sharedSch.id, type: sharedSch.u8bits.valid(valid_types) });
+				schema = schema.append({ id: sharedSch.id, type: sharedSch.u8bits.valid(...valid_types) });
 		} else return reject(fwcError.BAD_API_CALL);
 
 		try {
-			await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
+			await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
 
 			// Semantic validation.
 			if (req.method === 'POST' || (req.method === 'PUT' && req.url === '/ipobj')) {

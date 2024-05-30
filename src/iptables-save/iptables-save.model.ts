@@ -634,7 +634,7 @@ export class IptablesSaveToFWCloud extends Service {
 
   private async eatInterface(dir: string, _interface: string): Promise<void> {
     // IMPORTANT: Validate data before process it.
-    await Joi.validate(_interface, sharedSch.name);
+    await sharedSch.name.validate(_interface);
 
     // Search to find out if it already exists.
     let interfaceId = await Interface.searchInterfaceInFirewallByName(this.req.dbCon, this.req.body.fwcloud, this.req.body.firewall, _interface);
@@ -680,7 +680,7 @@ export class IptablesSaveToFWCloud extends Service {
 
   private async eatAddr(dir: string, addr: string): Promise<void> {
     // IMPORTANT: Validate data before process it.
-    await Joi.validate(addr, Joi.string().ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'required' }));
+    await Joi.string().ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'required' }).validate(addr);
 
     const fullMask = this.req.body.ip_version === 4 ? '32' : '128';
     const addrData = addr.split('/');
@@ -741,8 +741,8 @@ export class IptablesSaveToFWCloud extends Service {
     const ips = data.split('-');
 
     // IMPORTANT: Validate data before process it.
-    await Joi.validate(ips[0], Joi.string().ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'forbidden' }));
-    await Joi.validate(ips[1], Joi.string().ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'forbidden' }));
+    await Joi.string().ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'forbidden' }).validate(ips[0]);
+    await Joi.string().ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'forbidden' }).validate(ips[1]);
 
     // Search to find out if it already exists.
     let iprangeId: any = await IPObj.searchIPRange(this.req.dbCon,this.req.body.fwcloud,ips[0],ips[1]);
@@ -784,11 +784,11 @@ export class IptablesSaveToFWCloud extends Service {
     let protocolId: string;
 
     if (parseInt(protocol)) { // IP protocol by number.
-      await Joi.validate(protocol, sharedSch.u8bits);
+      await Joi.number().port().validateAsync(protocol);
       protocolId = await IPObj.searchIPProtocolByNumber(this.req.dbCon,this.req.body.fwcloud,protocol);
     }
     else { // IP protocol by name.
-      await Joi.validate(protocol, sharedSch.name);
+      await Joi.string().port().validateAsync(protocol);
       protocolId = await IPObj.searchIPProtocolByName(this.req.dbCon,this.req.body.fwcloud,protocol);
     }
 
@@ -806,9 +806,9 @@ export class IptablesSaveToFWCloud extends Service {
 
     // IMPORTANT: Validate data before process it.
     for (let port of srcPorts)
-      await Joi.validate(port, Joi.number().port());
+      await Joi.number().port().validateAsync(port);
     for (let port of dstPorts)
-      await Joi.validate(port, Joi.number().port());
+      await Joi.number().port().validateAsync(port);
 
     if (srcPorts.length < 2) srcPorts.push(srcPorts[0]);
     if (dstPorts.length < 2) dstPorts.push(dstPorts[0]);
@@ -857,13 +857,13 @@ export class IptablesSaveToFWCloud extends Service {
   private async eatICMP(data: string): Promise<void> {
     // IMPORTANT: Validate data before process it.
     let icmp: string[];
-    
+
     if (data === 'any')
       icmp = ['-1', '-1'];
     else {
       icmp = data.split('/');
       for (let val of icmp)
-        await Joi.validate(val, Joi.number().integer().min(-1).max(255));
+        await Joi.number().integer().min(-1).max(255).validateAsync(val);
 
       if (icmp.length < 2) icmp.push('-1');
     }

@@ -51,7 +51,7 @@ sharedSchema.img = Joi.string().allow('').allow(null).dataUri().min(3).max(64);
 
 sharedSchema.style = Joi.string().allow('').allow(null).max(50);
 
-sharedSchema._0_1 = Joi.number().integer().valid([0, 1]);
+sharedSchema._0_1 = Joi.number().integer().valid(0, 1);
 
 sharedSchema.linux_user = Joi.string().regex(/^[a-zA-Z_]([a-zA-Z0-9_-]{0,31}|[a-zA-Z0-9_-]{0,30}\$)$/);
 sharedSchema.linux_pass = Joi.string().regex(/^[ -~\x80-\xFE]{2,64}$/);
@@ -60,11 +60,11 @@ sharedSchema.linux_path = Joi.string().regex(/^\/{1}(((\/{1}\.{1})?[a-zA-Z0-9 -_
 
 sharedSchema.mac_addr = Joi.string().regex(/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/);
 
-sharedSchema.interface_type = Joi.number().integer().valid([10, 11]);
-sharedSchema.group_type = Joi.number().integer().valid([20, 21]);
-sharedSchema.policy_type = Joi.number().integer().valid([1, 2, 3, 4, 5, 6, 61, 62, 63, 64, 65, 66, 67, 68, 66, 67, 68]);
+sharedSchema.interface_type = Joi.number().integer().valid(10, 11);
+sharedSchema.group_type = Joi.number().integer().valid(20, 21);
+sharedSchema.policy_type = Joi.number().integer().valid(1, 2, 3, 4, 5, 6, 61, 62, 63, 64, 65, 66, 67, 68, 66, 67, 68);
 
-sharedSchema.policy_compiler = Joi.string().valid(['IPTables','NFTables']);
+sharedSchema.policy_compiler = Joi.string().valid('IPTables','NFTables');
 
 sharedSchema.ipv4 = Joi.string().ip({ version: ['ipv4'], cidr: 'forbidden' });
 sharedSchema.ipv4_netmask_cidr = Joi.string().regex(/^(\/([0-9]|[1-2][0-9]|3[0-2]))$/);
@@ -80,9 +80,9 @@ sharedSchema.rule_position = Joi.number().integer().min(1).max(61);
 
 sharedSchema.date = Joi.date().min(1).max(5);
 
-sharedSchema.crt_type = Joi.number().integer().valid([1, 2]); // 1=Client certificate, 2=Server certificate.
+sharedSchema.crt_type = Joi.number().integer().valid(1, 2); // 1=Client certificate, 2=Server certificate.
 
-sharedSchema.rule_clipboard_action = Joi.number().integer().valid([1, 2]);
+sharedSchema.rule_clipboard_action = Joi.number().integer().valid(1, 2);
 
 sharedSchema.socketio_id = Joi.string().regex(/^[a-zA-Z0-9\-_]{4,64}$/);
 
@@ -95,6 +95,6 @@ sharedSchema.backup_id = Joi.string().regex(/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[
 //sharedSchema.cron_schedule = Joi.string().regex(/^(((([\*]{1}){1})|((\*\/){0,1}(([0-9]{1}){1}|(([1-5]{1}){1}([0-9]{1}){1}){1}))) ((([\*]{1}){1})|((\*\/){0,1}(([0-9]{1}){1}|(([1-5]{1}){1}([0-9]{1}){1}){1}))) ((([\*]{1}){1})|((\*\/){0,1}(([0-9]{1}){1}|(([1]{1}){1}([0-9]{1}){1}){1}|([2]{1}){1}([0-3]{1}){1}))) ((([\*]{1}){1})|((\*\/){0,1}(([1-9]{1}){1}|(([1-2]{1}){1}([0-9]{1}){1}){1}|([3]{1}){1}([0-1]{1}){1}))) ((([\*]{1}){1})|((\*\/){0,1}(([1-9]{1}){1}|(([1-2]{1}){1}([0-9]{1}){1}){1}|([3]{1}){1}([0-1]{1}){1}))) ((([\*]{1}){1})|((\*\/){0,1}(([0-7]{1}){1}))))$/);
 sharedSchema.cron_schedule = Joi.string().regex(/^(((\*|(\d\d?))(\/\d\d?)?)|(\d\d?\-\d\d?))(,(((\*|(\d\d?))(\/\d\d?)?)|(\d\d?\-\d\d?)))*\s(((\*|(\d\d?))(\/\d\d?)?)|(\d\d?\-\d\d?))(,(((\*|(\d\d?))(\/\d\d?)?)|(\d\d?\-\d\d?)))*\s(((\*|(\d\d?))(\/\d\d?)?)|(\d\d?\-\d\d?))(,(((\*|(\d\d?))(\/\d\d?)?)|(\d\d?\-\d\d?)))*\s(\?|(((\*|(\d\d?L?))(\/\d\d?)?)|(\d\d?L?\-\d\d?L?)|L|(\d\d?W))(,(((\*|(\d\d?L?))(\/\d\d?)?)|(\d\d?L?\-\d\d?L?)|L|(\d\d?W)))*)\s(((\*|(\d|10|11|12|JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC))(\/\d\d?)?)|((\d|10|11|12|JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\-(\d|10|11|12|JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)))(,(((\*|(\d|10|11|12|JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC))(\/\d\d?)?)|((\d|10|11|12|JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\-(\d|10|11|12|JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC))))*\s(((\*|([0-7]|MON|TUE|WED|THU|FRI|SAT|SUN)L?)(\/\d\d?)?)|(([0-7]|MON|TUE|WED|THU|FRI|SAT|SUN)L?\-([0-7]|MON|TUE|WED|THU|FRI|SAT|SUN)L?)|([0-7]|MON|TUE|WED|THU|FRI|SAT|SUN)L?#([1-5]))(,(((\*|([0-7]|MON|TUE|WED|THU|FRI|SAT|SUN)L?)(\/\d\d?)?)|(([0-7]|MON|TUE|WED|THU|FRI|SAT|SUN)L?\-([0-7]|MON|TUE|WED|THU|FRI|SAT|SUN)L?)|([0-7]|MON|TUE|WED|THU|FRI|SAT|SUN)L?#([1-5])))*$/);
 
-sharedSchema.SpecialPolicyRule = Joi.number().integer().valid([0, 1, 2, 3, 4, 5 ,6]);
+sharedSchema.SpecialPolicyRule = Joi.number().integer().valid(0, 1, 2, 3, 4, 5 ,6);
 
 sharedSchema.authCode = Joi.string().allow(null).allow("")

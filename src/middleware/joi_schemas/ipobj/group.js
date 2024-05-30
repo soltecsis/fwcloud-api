@@ -65,7 +65,7 @@ schema.validate = req => {
 
 
 		try {
-			await Joi.validate(req.body, schema, sharedSch.joiValidationOptions);
+			await schema.validateAsync(req.body, sharedSch.joiValidationOptions);
 
 			// With this, the access control middleware will verify the openvpn and prefix objects.
 			if (req.body.node_type === 'OCL') req.body.openvpn = req.body.ipobj;
