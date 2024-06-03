@@ -42,7 +42,7 @@ import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import * as path from 'path';
 import { mkdirpSync } from 'fs-extra';
 
-var config = require('../../config/config');
+const config = require('../../config/config');
 
 export class PolicyScript {
 	private routingCompiler: RoutingCompiler;
@@ -81,7 +81,7 @@ export class PolicyScript {
 	}
 
 	private async dumpFirewallOptions(): Promise<void> {
-		let options = await Firewall.getFirewallOptions(this.fwcloud, this.firewall);
+		const options = await Firewall.getFirewallOptions(this.fwcloud, this.firewall);
 		let action = '';
 
 		this.stream.write('options_load() {\n' +
@@ -272,7 +272,7 @@ export class PolicyScript {
 		this.stream.write("echo \"* NFTABLES TABLES AND CHAINS *\"\n");
 		this.stream.write("echo \"******************************\"\n");
 		const families = ['ip', 'ip6'];
-		for (let family of families) {
+		for (const family of families) {
 			this.stream.write(`$NFT add table ${family} filter\n`);
 			this.stream.write(`$NFT add chain ${family} filter INPUT { type filter hook input priority 0\\; policy drop\\; }\n`);
 			this.stream.write(`$NFT add chain ${family} filter FORWARD { type filter hook forward priority 0\\; policy drop\\; }\n`);
@@ -319,14 +319,14 @@ export class PolicyScript {
 	}
 
 	private async dumpRouting(): Promise<void> {
-		let routingTableService = await app().getService<RoutingTableService>(RoutingTableService.name);
-		let routingRuleService = await app().getService<RoutingRuleService>(RoutingRuleService.name);
+		const routingTableService = await app().getService<RoutingTableService>(RoutingTableService.name);
+		const routingRuleService = await app().getService<RoutingRuleService>(RoutingRuleService.name);
 		let routes: RouteData<RouteItemForCompiler>[];
 		let routesCompiled: RoutingCompiled[];
 		let rules: RoutingRulesData<RoutingRuleItemForCompiler>[];
 		let rulesCompiled: RoutingCompiled[];
 
-		let routingTables: RoutingTable[] = await routingTableService.findManyInPath({ fwCloudId: this.fwcloud, firewallId: this.firewall });
+		const routingTables: RoutingTable[] = await routingTableService.findManyInPath({ fwCloudId: this.fwcloud, firewallId: this.firewall });
 
 		this.stream.write('routing_apply() {\necho -n ""\n');
 

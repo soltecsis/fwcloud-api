@@ -5,7 +5,7 @@ import { Tfa } from "./Tfa";
 export class AuthService extends Service {
     
     public static async UpdateTfa(secret: string,tempSecret: string, dataURL: string, tfaURL: string, userId: number) {
-        var tfData = {
+        const tfData = {
                secret: secret,
                tempSecret: tempSecret,
                dataURL: dataURL,
@@ -25,7 +25,7 @@ export class AuthService extends Service {
     }
     
     public static async GetTfa(userId: number) {
-        var pet = await   getRepository(Tfa)
+        const pet = await   getRepository(Tfa)
                 .createQueryBuilder('tfa')
                 .select()
                 .where("tfa.userId = :id",{id:userId})

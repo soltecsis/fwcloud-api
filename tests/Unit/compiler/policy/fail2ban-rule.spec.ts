@@ -39,7 +39,7 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
   const cmd = 'systemctl restart fail2ban';
   const comment = "Fail2Ban compatibility rule";
 
-  let ruleData = {
+  const ruleData = {
       firewall: 0,
       type: 0,
       rule_order: 1,
@@ -67,7 +67,7 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
       result = await PolicyCompiler.compile(compiler, rulesData);
     } catch(err) { error = err }
 
-    let cs = `###########################\n# Hook script rule code:\n${cmd}\n###########################\n`;
+    const cs = `###########################\n# Hook script rule code:\n${cmd}\n###########################\n`;
 
     if (ruleData.type != PolicyTypesMap.get('IPv4:INPUT'))
     {

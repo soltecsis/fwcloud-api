@@ -57,7 +57,7 @@ export class DatabaseImporter {
     public async import(snapshot: Snapshot): Promise<FwCloud> {
         const promises: Promise<any>[] = [];
         const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
-        let data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME)).toString()));
+        const data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME)).toString()));
         let fwCloudId: number = null;
 
         await queryRunner.startTransaction();
@@ -90,7 +90,7 @@ export class DatabaseImporter {
                     promises.push(pquery);
                 }
                 index++;
-            };
+            }
             await Promise.all(promises);
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
             await queryRunner.commitTransaction();

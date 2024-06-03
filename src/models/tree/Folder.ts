@@ -38,7 +38,7 @@ public static createFolderNode(nodeData) {
 		db.get((error, connection) => {
 			if (error) return reject(error);
 			// Verify that parent node exists and is a node that can contain folders.
-			let sql =  'SELECT node_type FROM ' + tableName +
+			const sql =  'SELECT node_type FROM ' + tableName +
 				' WHERE fwcloud=' + nodeData.fwcloud + ' AND id=' + nodeData.id_parent; 
 			connection.query(sql, (error, result) => {
 				if (error) return reject(error);
@@ -54,7 +54,7 @@ public static createFolderNode(nodeData) {
 			});
 		});
 	});
-};
+}
 
 //Remove folder node from tree
 public static deleteFolderNode(fwcloud,id): Promise<void> {
@@ -78,7 +78,7 @@ public static deleteFolderNode(fwcloud,id): Promise<void> {
 			});
 		});
 	});
-};
+}
 
 //Rename folder node
 public static renameFolderNode(fwcloud,id,old_name,new_name): Promise<void> {
@@ -103,12 +103,12 @@ public static renameFolderNode(fwcloud,id,old_name,new_name): Promise<void> {
 			});
 		});
 	});
-};
+}
 
 // Resolve with the parent id of a tree node.
 public static getParentId(connection,fwcloud,id) {
 	return new Promise((resolve, reject) => {
-		let sql = 'SELECT id_parent,node_type FROM ' + tableName +
+		const sql = 'SELECT id_parent,node_type FROM ' + tableName +
 			' WHERE id=' + id + ' AND fwcloud=' + fwcloud; 
 		connection.query(sql, (error, result) => {
 			if (error) return reject(error);
@@ -118,7 +118,7 @@ public static getParentId(connection,fwcloud,id) {
 			resolve(result[0].id_parent);
 		});
 	});
-};
+}
 
 //Move node into folder
 public static moveToFolder(fwcloud,src,dst): Promise<void> {
@@ -162,6 +162,6 @@ public static moveToFolder(fwcloud,src,dst): Promise<void> {
 			});
 		});
 	});
-};
+}
 
 }

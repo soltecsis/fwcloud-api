@@ -35,9 +35,9 @@ import { Interface } from "../interface/Interface";
 import { FwCloud } from "../fwcloud/FwCloud";
 import { RouteToIPObjGroup } from "../routing/route/route-to-ipobj-group.model";
 import { RoutingRuleToIPObjGroup } from "../routing/routing-rule/routing-rule-to-ipobj-group.model";
-var asyncMod = require('async');
-var ipobj_g_Data = require('../data/data_ipobj_g');
-var ipobj_Data = require('../data/data_ipobj');
+const asyncMod = require('async');
+const ipobj_g_Data = require('../data/data_ipobj_g');
+const ipobj_Data = require('../data/data_ipobj');
 
 const fwcError = require('../../utils/error_table');
 
@@ -124,7 +124,7 @@ export class IPObjGroup extends Model {
     //Count group items.
     public static countGroupItems(dbCon, group) {
         return new Promise((resolve, reject) => {
-            let sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
+            const sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
             union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
             union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}`;
             dbCon.query(sql, (error, result) => {
@@ -224,9 +224,9 @@ export class IPObjGroup extends Model {
                 if (error) return reject(error);
                 if (rows.length === 0) return reject(fwcError.NOT_FOUND);
 
-                let groups = [];
-                let group_data = new ipobj_g_Data(rows[0]);
-                group_data.ipobjs = new Array();
+                const groups = [];
+                const group_data = new ipobj_g_Data(rows[0]);
+                group_data.ipobjs = [];
 
                 sql = `select id, name, 'O' as type from ipobj O
                 inner join ipobj__ipobjg R on R.ipobj=O.id
@@ -245,7 +245,7 @@ export class IPObjGroup extends Model {
                     if (error) return reject(error);
 
                     let ipobj_node;
-                    for (let obj of rows) {
+                    for (const obj of rows) {
                         try {
                             if (obj.type === 'O')
                                 ipobj_node = new ipobj_Data((await IPObj.getIpobj(dbCon, fwcloud, obj.id))[0]);
@@ -267,18 +267,18 @@ export class IPObjGroup extends Model {
     //Get ipobj_g by  id AND ALL IPOBjs
     public static getIpobj_g_Full_Pro(fwcloud, id) {
         return new Promise((resolve, reject) => {
-            var groups = [];
-            var group_cont = 0;
-            var ipobjs_cont = 0;
+            const groups = [];
+            let group_cont = 0;
+            let ipobjs_cont = 0;
 
             db.get((error, connection) => {
                 if (error)
                     reject(error);
 
-                var sqlId = '';
+                let sqlId = '';
                 if (id !== '')
                     sqlId = ' AND G.id = ' + connection.escape(id);
-                var sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableName + ' G ' +
+                const sql = 'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' + tableName + ' G ' +
                     'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' + connection.escape(fwcloud) + ') ' +
                     ' WHERE  (G.fwcloud= ' + connection.escape(fwcloud) + ' OR G.fwcloud is null) ' + sqlId;
                 //logger().debug(sql);
@@ -287,14 +287,14 @@ export class IPObjGroup extends Model {
                         reject(error);
                     else if (rows.length > 0) {
                         group_cont = rows.length;
-                        var row = rows[0];
+                        const row = rows[0];
                         asyncMod.map(rows, (row, callback1) => {
 
-                            var group_node = new ipobj_g_Data(row);
+                            const group_node = new ipobj_g_Data(row);
 
                             logger().debug(" ---> DENTRO de GRUPO: " + row.id + " NAME: " + row.name);
-                            var idgroup = row.id;
-                            group_node.ipobjs = new Array();
+                            const idgroup = row.id;
+                            group_node.ipobjs = [];
                             //GET ALL GROUP OBJECTs
                             IPObj.getAllIpobjsGroup(fwcloud, idgroup, (error, data_ipobjs) => {
                                 if (data_ipobjs.length > 0) {
@@ -304,7 +304,7 @@ export class IPObjGroup extends Model {
                                         //GET OBJECTS
                                         logger().debug("--> DENTRO de OBJECT id:" + data_ipobj.id + "  Name:" + data_ipobj.name + "  Type:" + data_ipobj.type);
 
-                                        var ipobj_node = new ipobj_Data(data_ipobj);
+                                        const ipobj_node = new ipobj_Data(data_ipobj);
                                         //Añadimos ipobj a array Grupo
                                         group_node.ipobjs.push(ipobj_node);
                                         callback2();
@@ -350,7 +350,7 @@ export class IPObjGroup extends Model {
     public static searchGroupUsage(id, fwcloud) {
         return new Promise(async (resolve, reject) => {
             try {
-                let search: any = {};
+                const search: any = {};
                 search.result = false;
                 search.restrictions = {};
                 //search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
@@ -377,7 +377,7 @@ export class IPObjGroup extends Model {
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
                     .getRawMany();
 
-                for (let key in search.restrictions) {
+                for (const key in search.restrictions) {
                     if (search.restrictions[key].length > 0) {
                         search.result = true;
                         break;
@@ -412,7 +412,7 @@ export class IPObjGroup extends Model {
     //Update ipobj_g
     public static updateIpobj_g(req, ipobj_gData): Promise<void> {
         return new Promise((resolve, reject) => {
-            let sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(ipobj_gData.name)}
+            const sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(ipobj_gData.name)}
             ,type=${ipobj_gData.type}
             ,comment=${req.dbCon.escape(ipobj_gData.comment)}
             WHERE id=${ipobj_gData.id} AND fwcloud=${req.body.fwcloud}`;

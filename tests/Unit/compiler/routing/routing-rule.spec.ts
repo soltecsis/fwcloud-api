@@ -32,7 +32,7 @@ describe('Routing rule compiler', () => {
   let fwc: FwCloudProduct;
 
   let routingRuleService: RoutingRuleService;
-  let compiler: RoutingCompiler = new RoutingCompiler;
+  const compiler: RoutingCompiler = new RoutingCompiler;
   let compilation: RoutingCompiled[];
   let gw: string;
   let rtn: number; // Routing table number.

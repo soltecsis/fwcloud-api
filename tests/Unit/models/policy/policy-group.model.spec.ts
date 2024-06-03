@@ -40,7 +40,7 @@ describe(describeName('PolicyRule tests'), () => {
     describe('unassignPolicyRulesBeforeRemove()', () => {
 
         it('should unassign all policy rules which belongs to the group', async () => {
-            let group: PolicyGroup = await PolicyGroup.save(PolicyGroup.create({
+            const group: PolicyGroup = await PolicyGroup.save(PolicyGroup.create({
                 name: 'test',
                 firewall: await Firewall.save(Firewall.create({ name: 'test' }))
             }));

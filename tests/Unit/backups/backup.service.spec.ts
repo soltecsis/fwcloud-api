@@ -164,7 +164,7 @@ describe(describeName('BackupService Unit tests'), async() => {
             });
 
             it('should create a new backup', async () => {
-                let currentBackups: number = (await service.getAll()).length;
+                const currentBackups: number = (await service.getAll()).length;
 
                 const newBackup: Backup = await service.import(zippedFilePath);
 
@@ -178,7 +178,7 @@ describe(describeName('BackupService Unit tests'), async() => {
             });
 
             it('should set the imported flag to true', async () => {
-                let currentBackups: number = (await service.getAll()).length;
+                const currentBackups: number = (await service.getAll()).length;
 
                 const newBackup: Backup = await service.import(zippedFilePath);
 
@@ -239,7 +239,7 @@ describe(describeName('BackupService Unit tests'), async() => {
         describe('updateConfig()', () => {
 
             it('should update the custom config parameters', async () => {
-                let config = service.config;
+                const config = service.config;
 
                 config.default_max_days = 99999;
 

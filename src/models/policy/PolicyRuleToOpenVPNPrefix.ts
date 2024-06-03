@@ -80,7 +80,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     //Add new policy_r__openvpn_prefix
     public static insertInRule = req => {
         return new Promise(async (resolve, reject) => {
-            var policyPrefix = {
+            const policyPrefix = {
                 rule: req.body.rule,
                 prefix: req.body.prefix,
                 position: req.body.position,
@@ -105,7 +105,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
 
     public static checkExistsInPosition = (dbCon, rule, prefix, openvpn, position) => {
         return new Promise((resolve, reject) => {
-            let sql = `SELECT rule FROM ${tableName}
+            const sql = `SELECT rule FROM ${tableName}
                 WHERE rule=${rule} AND prefix=${prefix} AND position=${position}`;
             dbCon.query(sql, (error, rows) => {
                 if (error) return reject(error);
@@ -117,7 +117,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
 
     public static moveToNewPosition(req): Promise<void> {
         return new Promise((resolve, reject) => {
-            let sql = `UPDATE ${tableName} SET rule=${req.body.new_rule}, position=${req.body.new_position}
+            const sql = `UPDATE ${tableName} SET rule=${req.body.new_rule}, position=${req.body.new_position}
                 WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
             req.dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
@@ -129,7 +129,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
 
     public static deleteFromRulePosition(req): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            let sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
+            const sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
             req.dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
                 resolve();
@@ -149,7 +149,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     //Duplicate policy_r__openvpn_prefix RULES
     public static duplicatePolicy_r__prefix(dbCon, rule, new_rule): Promise<void> {
         return new Promise((resolve, reject) => {
-            let sql = `INSERT INTO ${tableName} (rule, prefix, position, position_order)
+            const sql = `INSERT INTO ${tableName} (rule, prefix, position, position_order)
                 (SELECT ${new_rule}, prefix, position, position_order
                 from ${tableName} where rule=${rule} order by  position, position_order)`;
             dbCon.query(sql, async (error, result) => {

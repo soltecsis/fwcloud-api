@@ -36,7 +36,7 @@ describe(DHCPCompiler.name, (): void => {
     let fwc: FwCloudProduct;
 
     let dhcpRuleService: DHCPRuleService;
-    let compiler: DHCPCompiler = new DHCPCompiler;
+    const compiler: DHCPCompiler = new DHCPCompiler;
     let rules: DHCPRulesData<DHCPRuleItemForCompiler>[];
 
     beforeEach(async (): Promise<void> => {
@@ -49,7 +49,7 @@ describe(DHCPCompiler.name, (): void => {
         const testData: DHCPRule[] = [];
 
         for (let i = 0; i < 10; i++) {
-            let rule: DHCPRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            const rule: DHCPRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
                 id: 1,
                 rule_order: 1,
                 interface: null,

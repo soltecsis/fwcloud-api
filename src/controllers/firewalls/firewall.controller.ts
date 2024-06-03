@@ -128,7 +128,7 @@ export class FirewallController extends Controller {
     @Validate()
     @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
     async compileRoutingRules(request: Request): Promise<ResponseBuilder> {
-        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+        const firewall: Firewall = await getRepository(Firewall).findOneOrFail({
             id: parseInt(request.params.firewall),
             fwCloudId: parseInt(request.params.fwcloud)
         });
@@ -136,7 +136,7 @@ export class FirewallController extends Controller {
 
         (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
 
-        let rules: RoutingRulesData<RoutingRuleItemForCompiler>[] = await this.routingRuleService.getRoutingRulesData(
+        const rules: RoutingRulesData<RoutingRuleItemForCompiler>[] = await this.routingRuleService.getRoutingRulesData(
             'compiler',
             firewall.fwCloudId,
             firewall.id,
@@ -150,14 +150,14 @@ export class FirewallController extends Controller {
     @Validate()
     @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
     async compileHAProxyRules(request: Request): Promise<ResponseBuilder> {
-        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+        const firewall: Firewall = await getRepository(Firewall).findOneOrFail({
             id: parseInt(request.params.firewall),
             fwCloudId: parseInt(request.params.fwcloud)
         });
 
         (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
 
-        let rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] = await this.haproxyRuleService.getHAProxyRulesData(
+        const rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] = await this.haproxyRuleService.getHAProxyRulesData(
             'compiler',
             firewall.fwCloudId,
             firewall.id,
@@ -172,14 +172,14 @@ export class FirewallController extends Controller {
     @Validate()
     @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
     async compileDHCPRules(req: Request): Promise<ResponseBuilder> {
-        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+        const firewall: Firewall = await getRepository(Firewall).findOneOrFail({
             id: parseInt(req.params.firewall),
             fwCloudId: parseInt(req.params.fwcloud)
         });
 
         (await FirewallPolicy.compile(firewall, req.session.user)).authorize();
 
-        let rules: DHCPRulesData<DHCPRuleItemForCompiler>[] = await this.dhcpRuleService.getDHCPRulesData(
+        const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] = await this.dhcpRuleService.getDHCPRulesData(
             'compiler',
             firewall.fwCloudId,
             firewall.id,
@@ -194,14 +194,14 @@ export class FirewallController extends Controller {
     @Validate()
     @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
     async compileKeepalivedRules(request: Request): Promise<ResponseBuilder> {
-        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+        const firewall: Firewall = await getRepository(Firewall).findOneOrFail({
             id: parseInt(request.params.firewall),
             fwCloudId: parseInt(request.params.fwcloud)
         });
 
         (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
 
-        let rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] = await this.keepalivedService.getKeepalivedRulesData(
+        const rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] = await this.keepalivedService.getKeepalivedRulesData(
             'compiler',
             firewall.fwCloudId,
             firewall.id,
@@ -282,7 +282,7 @@ export class FirewallController extends Controller {
                 })
              
             }
-            let info: FwcAgentInfo = await communication.info();
+            const info: FwcAgentInfo = await communication.info();
         
 
             return ResponseBuilder.buildResponse().status(200).body(info)

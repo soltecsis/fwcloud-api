@@ -161,7 +161,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
     })
 
     describe('For grid', () => {
-        let item: ItemForGrid & Partial<{_order: number}>;;
+        let item: ItemForGrid & Partial<{_order: number}>;
 
         before( async () => {
             routingRules = await routingRuleService.getRoutingRulesData<ItemForGrid>('grid',fwc.fwcloud.id,fwc.firewall.id);            

@@ -71,13 +71,13 @@ export class RoutingGroupService extends Service {
     }
 
     async create(data: ICreateRoutingGroup): Promise<RoutingGroup> {
-        let group: RoutingGroup = await this._repository.save(data);
+        const group: RoutingGroup = await this._repository.save(data);
         return this._repository.findOne(group.id);
     }
 
     async update(id: number, data: IUpdateRoutingGroup): Promise<RoutingGroup> {
         let group: RoutingGroup = await this._repository.preload(Object.assign(data, {id}));
-        let firewall: Firewall = await getRepository(Firewall).findOne(group.firewallId)
+        const firewall: Firewall = await getRepository(Firewall).findOne(group.firewallId)
         
         if (data.routingRules) {
             if (data.routingRules.length === 0) {

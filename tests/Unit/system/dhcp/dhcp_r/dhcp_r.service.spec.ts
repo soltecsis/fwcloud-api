@@ -287,7 +287,7 @@ describe(DHCPRuleService.name, () => {
         });
 
         it('should throw an error for invalid IP version combination', async () => {
-            let data = {
+            const data = {
                 active: true,
                 style: 'default',
                 max_lease: 3600,

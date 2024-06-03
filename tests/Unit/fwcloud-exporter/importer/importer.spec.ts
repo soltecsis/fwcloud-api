@@ -53,7 +53,7 @@ describe(describeName('Importer tests'), () => {
             FSHelper.mkdirSync(path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString()));
             fs.writeFileSync(path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString(), 'test.txt'), "test");
 
-            let snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
+            const snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
 
             await snapshot.restore();
 
@@ -76,7 +76,7 @@ describe(describeName('Importer tests'), () => {
             FSHelper.mkdirSync(path.join(fwCloud.getPolicyDirectoryPath(), firewall.id.toString()));
             fs.writeFileSync(path.join(fwCloud.getPolicyDirectoryPath(), firewall.id.toString(), 'test.txt'), "test");
 
-            let snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
+            const snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
 
             await snapshot.restore();
 

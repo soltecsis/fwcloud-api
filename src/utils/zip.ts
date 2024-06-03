@@ -19,7 +19,7 @@ export class Zip {
             yauzl.open(zipPath, { lazyEntries: true }, function (err, zipfile) {
                 if (err) {
                     return reject(err);
-                };
+                }
 
                 if(!fs.existsSync(destinationPath)) {
                     FSHelper.mkdirSync(destinationPath);
@@ -35,7 +35,7 @@ export class Zip {
                         zipfile.openReadStream(entry, function (err, readStream) {
                             if (err) {
                                 return reject(err);
-                            };
+                            }
                             readStream.on("end", function () {
                                 zipfile.readEntry();
                             });

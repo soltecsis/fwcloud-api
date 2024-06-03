@@ -34,7 +34,7 @@ describe(describeName('CORSMiddleware E2E test'), () => {
     });
 
     it('should return 400 when request is rejected by CORS', async() => {
-        let stub = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(false);
+        const stub = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(false);
         
 
         await request(app.express)
@@ -48,7 +48,7 @@ describe(describeName('CORSMiddleware E2E test'), () => {
     });
 
     it('should not return 400 when request is allowed by CORS', async() => {
-        let stub = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(true);
+        const stub = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(true);
         
 
         await request(app.express)

@@ -201,7 +201,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
             relations: ['routingTable', 'routingTable.firewall']
         });
 
-        for(let entity of entitiesWithFirewall) {
+        for(const entity of entitiesWithFirewall) {
             if (!Object.prototype.hasOwnProperty.call(affectedFirewalls, entity.routingTable.firewallId)) {
                 affectedFirewalls[entity.routingTable.firewallId] = entity.routingTable.firewall;
             }
@@ -210,7 +210,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         // Using Type assertion because TypeScript compiler fails 
         const result = await super.remove(entityOrEntities as RoutingRule[], options);
 
-        for(let firewall of Object.values(affectedFirewalls)) {
+        for(const firewall of Object.values(affectedFirewalls)) {
             await this.refreshOrders(firewall.id);
         }
 

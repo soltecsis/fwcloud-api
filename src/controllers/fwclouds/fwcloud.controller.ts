@@ -83,11 +83,11 @@ export class FwCloudController extends Controller {
     @Validate()
     public async colors(request: Request): Promise<ResponseBuilder> {
        
-        let fwCloud: FwCloud = await FwCloud.findOneOrFail(request.params.fwcloud);
+        const fwCloud: FwCloud = await FwCloud.findOneOrFail(request.params.fwcloud);
 
         (await FwCloudPolicy.colors(request.session.user, fwCloud)).authorize();
 
-        let colors: colorUsage[] = await this._fwCloudService.colors(fwCloud);
+        const colors: colorUsage[] = await this._fwCloudService.colors(fwCloud);
 
         return ResponseBuilder.buildResponse().status(200).body(colors);
     }

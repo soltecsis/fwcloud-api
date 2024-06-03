@@ -35,7 +35,7 @@ export class FirewallExport {
             db.get((error, connection) => {
                 if (error) return reject(error);
     
-                let sql = 'select * from firewall where id=' + connection.escape(id);
+                const sql = 'select * from firewall where id=' + connection.escape(id);
                 connection.query(sql, async (error, firewallData) => {
                     if (error) return reject(error);
                     if (firewallData.length!==1) return reject(fwcError.NOT_FOUND);
@@ -51,25 +51,25 @@ export class FirewallExport {
                 });
             });
         });
-    };
+    }
 
 
     private static exportAddrs(row) {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
-                var sql = 'select * from ipobj where interface=' + connection.escape(row.id);
+                const sql = 'select * from ipobj where interface=' + connection.escape(row.id);
                 connection.query(sql, (error, rows) => {
                     if (error) return reject(error);
                     resolve(rows);
                 });
             });
         });
-    };
+    }
     
     private static exportInterfaces(connection, id) {
         return new Promise((resolve, reject) => {
-            let sql = 'select * from interface where firewall=' + connection.escape(id);
+            const sql = 'select * from interface where firewall=' + connection.escape(id);
             connection.query(sql, (error, interfaces) => {
                 if (error) return reject(error);
     
@@ -90,14 +90,14 @@ export class FirewallExport {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
-                var sql = 'select * from policy_r__interface where rule=' + connection.escape(row.id);
+                const sql = 'select * from policy_r__interface where rule=' + connection.escape(row.id);
                 connection.query(sql, (error, rows) => {
                     if (error) return reject(error);
                     resolve(rows);
                 });
             });
         });
-    };
+    }
     
     private static exportPolicyInterfaces(rules) {
         return new Promise((resolve, reject) => {
@@ -130,13 +130,13 @@ export class FirewallExport {
                 });
             });
         });
-    };
+    }
     
     private static exportRuleIpobjs(row) {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
-                let sql = 'select * from policy_r__ipobj where rule=' + connection.escape(row.id);
+                const sql = 'select * from policy_r__ipobj where rule=' + connection.escape(row.id);
                 connection.query(sql, (error, ipobjs) => {
                     if (error) return reject(error);
     
@@ -150,7 +150,7 @@ export class FirewallExport {
                 });
             });
         });
-    };
+    }
     
     private static exportPolicyIpobjs(rules) {
         return new Promise((resolve, reject) => {
@@ -167,7 +167,7 @@ export class FirewallExport {
     
     private static exportPolicy(connection, id) {
         return new Promise((resolve, reject) => {
-            let sql = 'select * from policy_r where firewall=' + connection.escape(id);
+            const sql = 'select * from policy_r where firewall=' + connection.escape(id);
             connection.query(sql, async (error, rules) => {
                 if (error) return reject(error);
     

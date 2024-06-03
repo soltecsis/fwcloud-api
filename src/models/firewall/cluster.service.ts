@@ -17,7 +17,7 @@ export class ClusterService extends Service {
                 try {
                     const firewallService: FirewallService = await app().getService(FirewallService.name);
 
-                    for (let fw of fws) {
+                    for (const fw of fws) {
                         await firewallService.remove(fw.id, fwcloudId, userId);
                     }
                 } catch (error) { 

@@ -60,7 +60,7 @@ export class CaPrefix extends Model {
                 resolve((result.length > 0) ? true : false);
             });
         });
-    };
+    }
 
     // Get all prefixes for the indicated CA.
     public static getPrefixes(dbCon, ca) {
@@ -70,12 +70,12 @@ export class CaPrefix extends Model {
                 resolve(result);
             });
         });
-    };
+    }
 
     // Get prefix info.
     public static getPrefixInfo(dbCon, fwcloud, prefix) {
         return new Promise((resolve, reject) => {
-            let sql = `select CA.fwcloud,PRE.*,CA.cn from ca_prefix PRE 
+            const sql = `select CA.fwcloud,PRE.*,CA.cn from ca_prefix PRE 
       inner join ca CA on CA.id=PRE.ca
       where CA.fwcloud=${fwcloud} and PRE.id=${prefix}`;
             dbCon.query(sql, (error, result) => {
@@ -83,7 +83,7 @@ export class CaPrefix extends Model {
                 resolve(result);
             });
         });
-    };
+    }
 
     // Fill prefix node with matching entries.
     public static fillPrefixNodeCA(dbCon, fwcloud, ca, name, parent, node): Promise<void> {
@@ -96,7 +96,7 @@ export class CaPrefix extends Model {
                 if (error) return reject(error);
 
                 try {
-                    for (let row of result)
+                    for (const row of result)
                         await Tree.newNode(dbCon, fwcloud, row.sufix, node, 'CRT', row.id, ((row.type === 1) ? 301 : 302));
                 } catch (error) { return reject(error) }
 
@@ -108,37 +108,37 @@ export class CaPrefix extends Model {
                 });
             });
         });
-    };
+    }
 
     // Apply CRT prefix to tree node.
     public static applyCrtPrefixes(req, ca): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
                 // Search for the CA node tree.
-                let node: any = await Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'CA', ca);
+                const node: any = await Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'CA', ca);
                 if (node.length !== 1)
                     throw fwcError.other(`Found ${node.length} CA nodes, awaited 1`);
-                let node_id = node[0].id;
+                const node_id = node[0].id;
 
                 // Remove all nodes under the CA node.
                 await Tree.deleteNodesUnderMe(req.dbCon, req.body.fwcloud, node_id);
 
                 // Generate all the CRT tree nodes under the CA node.
                 const crt_list: any = await Crt.getCRTlist(req.dbCon, ca);
-                for (let crt of crt_list)
+                for (const crt of crt_list)
                     await Tree.newNode(req.dbCon, req.body.fwcloud, crt.cn, node_id, 'CRT', crt.id, ((crt.type === 1) ? 301 : 302));
 
                 // Create the nodes for all the prefixes.
                 const prefix_list: any = await this.getPrefixes(req.dbCon, ca);
-                for (let prefix of prefix_list) {
-                    let id = await Tree.newNode(req.dbCon, req.body.fwcloud, prefix.name, node_id, 'PRE', prefix.id, 400);
+                for (const prefix of prefix_list) {
+                    const id = await Tree.newNode(req.dbCon, req.body.fwcloud, prefix.name, node_id, 'PRE', prefix.id, 400);
                     await this.fillPrefixNodeCA(req.dbCon, req.body.fwcloud, ca, prefix.name, node_id, id);
                 }
 
                 resolve();
             } catch (error) { return reject(error) }
         });
-    };
+    }
 
     // Add new prefix container.
     public static createCrtPrefix(req) {
@@ -153,7 +153,7 @@ export class CaPrefix extends Model {
                 resolve(result.insertId);
             });
         });
-    };
+    }
 
     // Modify a CRT Prefix container.
     public static modifyCrtPrefix(req): Promise<void> {
@@ -163,7 +163,7 @@ export class CaPrefix extends Model {
                 resolve();
             });
         });
-    };
+    }
 
     // Delete CRT Prefix container.
     public static deleteCrtPrefix(req): Promise<void> {
@@ -173,6 +173,6 @@ export class CaPrefix extends Model {
                 resolve();
             });
         });
-    };
+    }
 
 }

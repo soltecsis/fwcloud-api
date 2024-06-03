@@ -36,7 +36,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
   let rule: number;
   let compiler: AvailablePolicyCompilers;
 
-  let ruleData = {
+  const ruleData = {
       firewall: 0,
       type: 1,
       rule_order: 1,

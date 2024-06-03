@@ -35,7 +35,7 @@ import { AgentCommunication } from "../communications/agent.communication";
 import { getRepository } from "typeorm";
 import { PgpHelper } from "../utils/pgp";
 import { IPObj } from "../models/ipobj/IPObj";
-var utilsModel = require("../utils/utils.js");
+const utilsModel = require("../utils/utils.js");
 
 export class IptablesSaveService extends IptablesSaveToFWCloud {
   public async import(request: Request): Promise<IptablesSaveStats> {

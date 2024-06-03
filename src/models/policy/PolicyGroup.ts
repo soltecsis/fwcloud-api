@@ -51,10 +51,10 @@ export class PolicyGroup extends Model {
 	updated_at: Date;
 
 	@Column()
-	created_by: Number;
+	created_by: number;
 
 	@Column()
-	updated_by: Number;
+	updated_by: number;
 
 	@Column()
 	groupstyle: string;
@@ -98,7 +98,7 @@ export class PolicyGroup extends Model {
 		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
-			var sql = 'SELECT * FROM ' + tableName + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY id';
+			const sql = 'SELECT * FROM ' + tableName + ' WHERE firewall=' + connection.escape(idfirewall) + ' ORDER BY id';
 			connection.query(sql, (error, rows) => {
 				if (error)
 					callback(error, null);
@@ -114,7 +114,7 @@ export class PolicyGroup extends Model {
 		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
-			var sql = 'SELECT * FROM ' + tableName + ' WHERE firewall=' + connection.escape(idfirewall) + ' AND idgroup=' + connection.escape(idgroup) + ' ORDER BY id';
+			const sql = 'SELECT * FROM ' + tableName + ' WHERE firewall=' + connection.escape(idfirewall) + ' AND idgroup=' + connection.escape(idgroup) + ' ORDER BY id';
 			connection.query(sql, (error, rows) => {
 				if (error)
 					callback(error, null);
@@ -129,7 +129,7 @@ export class PolicyGroup extends Model {
 		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
-			var sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
+			const sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
 			connection.query(sql, (error, row) => {
 				if (error)
 					callback(error, null);
@@ -144,7 +144,7 @@ export class PolicyGroup extends Model {
 		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
-			var sqlExists = 'SELECT * FROM ' + tableName + '  WHERE id = ' + connection.escape(policy_gData.id) + ' AND firewall=' + connection.escape(policy_gData.firewall);
+			const sqlExists = 'SELECT * FROM ' + tableName + '  WHERE id = ' + connection.escape(policy_gData.id) + ' AND firewall=' + connection.escape(policy_gData.firewall);
 
 			connection.query(sqlExists, (error, row) => {
 				if (row && row.length > 0) {
@@ -165,7 +165,7 @@ export class PolicyGroup extends Model {
 				}
 			});
 		});
-	};
+	}
 
 	//Update policy_g from user
 	public static updatePolicy_g(policy_gData, callback) {
@@ -173,7 +173,7 @@ export class PolicyGroup extends Model {
 		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
-			var sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_gData.name) + ',' +
+			const sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_gData.name) + ',' +
 				'firewall = ' + connection.escape(policy_gData.firewall) + ',' +
 				'comment = ' + connection.escape(policy_gData.comment) + ' ' +
 				' WHERE id = ' + policy_gData.id;
@@ -186,7 +186,7 @@ export class PolicyGroup extends Model {
 				}
 			});
 		});
-	};
+	}
 
 	//Update policy_g NAME 
 	public static updatePolicy_g_name(policy_gData, callback) {
@@ -194,7 +194,7 @@ export class PolicyGroup extends Model {
 		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
-			var sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_gData.name) + ' ' +
+			const sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_gData.name) + ' ' +
 				' WHERE id = ' + policy_gData.id;
 
 			connection.query(sql, (error, result) => {
@@ -205,7 +205,7 @@ export class PolicyGroup extends Model {
 				}
 			});
 		});
-	};
+	}
 
 	//Update policy_r Style
 	public static updatePolicy_g_Style(firewall, id, style, callback) {
@@ -214,7 +214,7 @@ export class PolicyGroup extends Model {
 			if (error)
 				callback(error, null);
 
-			var sql = 'UPDATE ' + tableName + ' SET ' +
+			const sql = 'UPDATE ' + tableName + ' SET ' +
 				'groupstyle = ' + connection.escape(style) + ' ' +
 				' WHERE id = ' + connection.escape(id) + " and firewall=" + connection.escape(firewall);
 			connection.query(sql, (error, result) => {
@@ -229,7 +229,7 @@ export class PolicyGroup extends Model {
 				}
 			});
 		});
-	};
+	}
 
 	//Remove policy_g with id to remove
 	//FALTA BORRADO EN CASCADA 
@@ -237,12 +237,12 @@ export class PolicyGroup extends Model {
 		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
-			var sqlExists = 'SELECT * FROM ' + tableName + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
+			const sqlExists = 'SELECT * FROM ' + tableName + '  WHERE id = ' + connection.escape(id) + ' AND firewall=' + connection.escape(idfirewall);
 			connection.query(sqlExists, (error, row) => {
 				//If exists Id from policy_g to remove
 				if (row) {
 					db.get((error, connection) => {
-						var sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
+						const sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
 						connection.query(sql, (error, result) => {
 							if (error) {
 								callback(error, null);
@@ -256,7 +256,7 @@ export class PolicyGroup extends Model {
 				}
 			});
 		});
-	};
+	}
 
 
 	//Clone policy groups
@@ -265,7 +265,7 @@ export class PolicyGroup extends Model {
 			db.get((error, connection) => {
 				if (error) return reject(error);
 
-				let sql = 'select ' + connection.escape(idNewFirewall) + ' as newfirewall,id,firewall,name,comment,idgroup,groupstyle' +
+				const sql = 'select ' + connection.escape(idNewFirewall) + ' as newfirewall,id,firewall,name,comment,idgroup,groupstyle' +
 					' from ' + tableName + ' where firewall=' + connection.escape(idFirewall);
 				connection.query(sql, (error, rows) => {
 					if (error) return reject(error);
@@ -277,7 +277,7 @@ export class PolicyGroup extends Model {
 				});
 			});
 		});
-	};
+	}
 
 	public static cloneGroup(rowData): Promise<void> {
 		return new Promise((resolve, reject) => {
@@ -300,7 +300,7 @@ export class PolicyGroup extends Model {
 				});
 			});
 		});
-	};
+	}
 
 	//Clone policy groups
 	public static deleteFirewallGroups(idFirewall): Promise<void> {
@@ -308,14 +308,14 @@ export class PolicyGroup extends Model {
 			db.get((error, connection) => {
 				if (error) return reject(error);
 
-				let sql = 'DELETE FROM ' + tableName + ' WHERE firewall=' + connection.escape(idFirewall);
+				const sql = 'DELETE FROM ' + tableName + ' WHERE firewall=' + connection.escape(idFirewall);
 				connection.query(sql, (error, rows) => {
 					if (error) return reject(error);
 					resolve();
 				});
 			});
 		});
-	};
+	}
 
 	//Move rules from one firewall to other.
 	public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
@@ -325,6 +325,6 @@ export class PolicyGroup extends Model {
 				resolve();
 			});
 		});
-	};
+	}
 }
 

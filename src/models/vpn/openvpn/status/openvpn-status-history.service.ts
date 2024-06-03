@@ -102,11 +102,11 @@ export class OpenVPNStatusHistoryService extends Service {
 
         // Get the timestamps of the records to be persisted
         // IMPORTANT! timestamps must be ordered from lower to higher in order to detect disconnection correctly
-        let timestamps: number[] = [...new Set(data.map(item => item.timestampInSeconds))].sort((a,b) => a < b ? -1 : 1);
+        const timestamps: number[] = [...new Set(data.map(item => item.timestampInSeconds))].sort((a,b) => a < b ? -1 : 1);
 
         let entries: OpenVPNStatusHistory[] = [];
 
-        for(let timestamp of timestamps) {
+        for(const timestamp of timestamps) {
             const timestampedBatch: CreateOpenVPNStatusHistoryData[] = data.filter(item => item.timestampInSeconds === timestamp);
             await this.detectDisconnections(timestampedBatch, lastTimestampedBatch);
 
@@ -168,15 +168,15 @@ export class OpenVPNStatusHistoryService extends Service {
     async history(openVpnServerId: number, options: FindOpenVPNStatusHistoryOptions = {}): Promise<FindResponse> {
         const results: OpenVPNStatusHistory[] = await this.find(openVpnServerId, options);
 
-        let names: string[] = [...new Set(results.map(item => item.name))];
-        let result: FindResponse = {}
+        const names: string[] = [...new Set(results.map(item => item.name))];
+        const result: FindResponse = {}
 
-        for(let name of names) {
+        for(const name of names) {
             const entries: OpenVPNStatusHistory[] = results.filter(item => item.name === name);
-            let connections: ClientHistoryConnection[] = [];
+            const connections: ClientHistoryConnection[] = [];
             
             let currentConnection: undefined | ClientHistoryConnection = undefined;
-            for(let entry of entries) {
+            for(const entry of entries) {
                 if (currentConnection === undefined) {
                     currentConnection = {
                         connected_at: new Date(entry.connectedAtTimestampInSeconds * 1000),
@@ -220,7 +220,7 @@ export class OpenVPNStatusHistoryService extends Service {
 
         // Get results timestamps
         // IMPORTANT! timestamps must be ordered from lower to higher in order to detect disconnection correctly
-        let timestamps: number[] = [...new Set(results.map(item => item.timestampInSeconds))].sort((a,b) => a < b ? -1 : 1);
+        const timestamps: number[] = [...new Set(results.map(item => item.timestampInSeconds))].sort((a,b) => a < b ? -1 : 1);
 
         const response: GraphDataResponse = timestamps.map(timestampInSeconds => {
             //Get all records with the same timestamp
@@ -309,7 +309,7 @@ export class OpenVPNStatusHistoryService extends Service {
     protected async detectDisconnections(newTimestampedBatch: CreateOpenVPNStatusHistoryData[], previousTimestampedBatch: OpenVPNStatusHistory[]): Promise<void> {
         // If the current batch doesn't have an entry which exists on the previous batch,
         // then we must add an entry to the batch with a disconnectedAt value
-        for (let previous of previousTimestampedBatch.filter(item => item.disconnectedAtTimestampInSeconds === null)) {
+        for (const previous of previousTimestampedBatch.filter(item => item.disconnectedAtTimestampInSeconds === null)) {
             const matchIndex: number = newTimestampedBatch.findIndex(item => previous.name === item.name);
             //If the persisted batch name is not present in the current batch, then we must set as disconnected
             if ( matchIndex < 0) {

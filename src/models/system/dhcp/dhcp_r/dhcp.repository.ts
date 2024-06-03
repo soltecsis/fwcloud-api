@@ -302,7 +302,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
                 .setParameter('rule', rules);
         }
 
-        let dhcpRules: DHCPRule[] = await query.getMany();
+        const dhcpRules: DHCPRule[] = await query.getMany();
 
         if (rule_types && forCompilation) {
             dhcpRules.sort((a, b) => {

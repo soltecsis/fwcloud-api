@@ -75,7 +75,7 @@ export class InterfaceIPObj extends Model {
 		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
-			var sql = 'SELECT * FROM ' + tableName + ' WHERE interface=' + connection.escape(_interface) + ' ORDER BY interface_order';
+			const sql = 'SELECT * FROM ' + tableName + ' WHERE interface=' + connection.escape(_interface) + ' ORDER BY interface_order';
 			connection.query(sql, (error, rows) => {
 				if (error)
 					callback(error, null);
@@ -91,7 +91,7 @@ export class InterfaceIPObj extends Model {
 		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
-			var sql = 'SELECT * FROM ' + tableName + ' WHERE ipobj=' + connection.escape(ipobj) + ' ORDER BY interface_order';
+			const sql = 'SELECT * FROM ' + tableName + ' WHERE ipobj=' + connection.escape(ipobj) + ' ORDER BY interface_order';
 			connection.query(sql, (error, rows) => {
 				if (error)
 					callback(error, null);
@@ -108,7 +108,7 @@ export class InterfaceIPObj extends Model {
 		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
-			var sql = 'SELECT * FROM ' + tableName + ' WHERE interface = ' + connection.escape(_interface) + ' AND ipobj=' + connection.escape(ipobj);
+			const sql = 'SELECT * FROM ' + tableName + ' WHERE interface = ' + connection.escape(_interface) + ' AND ipobj=' + connection.escape(ipobj);
 			connection.query(sql, (error, row) => {
 				if (error)
 					callback(error, null);
@@ -123,7 +123,7 @@ export class InterfaceIPObj extends Model {
 		return new Promise((resolve, reject) => {
 			db.get((error, connection) => {
 				if (error) return reject(error);
-				var sql = 'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
+				const sql = 'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
 					'C.id cloud_id, C.name cloud_name, H.id host_id, H.name host_name, H.type host_type, TH.type host_type_name ' +
 					'FROM interface__ipobj O ' +
 					'inner join  interface I on I.id=O.interface ' +
@@ -158,7 +158,7 @@ export class InterfaceIPObj extends Model {
 		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
-			var sql = 'UPDATE ' + tableName + ' SET ' +
+			const sql = 'UPDATE ' + tableName + ' SET ' +
 				'interface = ' + connection.escape(interface__ipobjData.interface) + ',' +
 				'ipobj = ' + connection.escape(interface__ipobjData.ipobj) + ',' +
 				'interface_order = ' + connection.escape(interface__ipobjData.interface_order) + ' ' +
@@ -181,7 +181,7 @@ export class InterfaceIPObj extends Model {
 		db.get((error, connection) => {
 			if (error)
 				callback(error, null);
-			var sql = 'UPDATE ' + tableName + ' SET ' +
+			const sql = 'UPDATE ' + tableName + ' SET ' +
 				'interface_order = ' + connection.escape(new_order) + ' ' +
 				' WHERE interface = ' + connection.escape(interface__ipobjData.interface) + ' AND ipobj=' + connection.escape(interface__ipobjData.ipobj);
 			connection.query(sql, (error, result) => {
@@ -200,7 +200,7 @@ export class InterfaceIPObj extends Model {
 			db.get((error, connection) => {
 				if (error)
 					reject(error);
-				var sql = 'UPDATE ipobj H  ' +
+				const sql = 'UPDATE ipobj H  ' +
 					'inner join interface__ipobj I on I.ipobj=H.id ' +
 					'set H.updated_at= CURRENT_TIMESTAMP ' +
 					' WHERE I.interface = ' + connection.escape(_interface);
@@ -226,9 +226,9 @@ export class InterfaceIPObj extends Model {
 	private static async OrderList(new_order, _interface, old_order) {
 
 		return new Promise<any>((resolve, reject) => {
-			var increment = '+1';
-			var order1 = new_order;
-			var order2 = old_order;
+			let increment = '+1';
+			let order1 = new_order;
+			let order2 = old_order;
 			if (new_order > old_order) {
 				increment = '-1';
 				order1 = old_order;
@@ -238,7 +238,7 @@ export class InterfaceIPObj extends Model {
 			db.get((error, connection) => {
 				if (error)
 					reject(error);
-				var sql = 'UPDATE ' + tableName + ' SET ' +
+				const sql = 'UPDATE ' + tableName + ' SET ' +
 						'interface_order = interface_order' + increment +
 						' WHERE interface = ' + connection.escape(_interface) +
 						' AND interface_order>=' + order1 + ' AND interface_order<=' + order2;

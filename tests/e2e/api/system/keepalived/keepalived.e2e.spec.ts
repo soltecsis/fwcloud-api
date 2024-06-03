@@ -684,7 +684,7 @@ describe('KeepalivedRule E2E Tests', () => {
         describe('@bulkUpdate', () => {
             let rule1: KeepalivedRule;
             let rule2: KeepalivedRule;
-            let data: KeepalivedRuleBulkUpdateDto = {
+            const data: KeepalivedRuleBulkUpdateDto = {
                 active: false,
                 style: 'style',
             };

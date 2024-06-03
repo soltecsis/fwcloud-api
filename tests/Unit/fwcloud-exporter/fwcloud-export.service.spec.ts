@@ -94,8 +94,8 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
     describe('colors()', () => {
         let fwcColors1:fwcloudColors;
         let fwcColors2:fwcloudColors;
-        let cua1: colorUsage[] = [];
-        let cua2: colorUsage[] = [];
+        const cua1: colorUsage[] = [];
+        const cua2: colorUsage[] = [];
 
         beforeEach(async () => {
             let n: number;

@@ -30,7 +30,7 @@ describe(KeepalivedCompiler.name, () => {
     let fwc: FwCloudProduct;
 
     let keepalivedRuleService: KeepalivedRuleService;
-    let compiler: KeepalivedCompiler = new KeepalivedCompiler();
+    const compiler: KeepalivedCompiler = new KeepalivedCompiler();
     let rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[];
 
     beforeEach(async () => {
@@ -43,7 +43,7 @@ describe(KeepalivedCompiler.name, () => {
         const testData: KeepalivedRule[] = [];
 
         for (let i = 0; i < 10; i++) {
-            let rule: KeepalivedRule = await getRepository(KeepalivedRule).save(getRepository(KeepalivedRule).create({
+            const rule: KeepalivedRule = await getRepository(KeepalivedRule).save(getRepository(KeepalivedRule).create({
                 id: 1,
                 rule_order: 1,
                 rule_type: 1,

@@ -43,7 +43,7 @@ describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
 
   const comment = "This is the comment text.\nSecond comment line.\n";
 
-  let ruleData = {
+  const ruleData = {
       firewall: 0,
       type: 0,
       rule_order: 1,

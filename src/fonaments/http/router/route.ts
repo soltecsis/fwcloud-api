@@ -33,7 +33,7 @@ import { HTTPApplication } from "../../http-application";
 export class ControllerHandlerSignature {
     controller: typeof Controller;
     method: string
-};
+}
 
 export type RequestHandlerCallback = (request: Request, response: Response) => void;
 
@@ -131,7 +131,7 @@ export class Route {
     public generateURL(params: object = {}): string {
         let url: string = this._pathParams.toString();
 
-        for (let param in params) {
+        for (const param in params) {
             if (Object.prototype.hasOwnProperty.call(params, param)) {
 
                 if (new RegExp('\/').test(params[param])) {

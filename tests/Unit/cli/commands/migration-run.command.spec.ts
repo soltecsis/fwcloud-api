@@ -33,8 +33,8 @@ describe(describeName('MigrationRunCommand tests'), () => {
         await testSuite.resetDatabaseData();
     })
     it('should run the migrations', async() => {
-        let app: AbstractApplication = testSuite.app;
-        let databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
+        const app: AbstractApplication = testSuite.app;
+        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
 
         let queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
         const migration = await queryRunner.query('SELECT name FROM migrations');

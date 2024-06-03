@@ -55,7 +55,7 @@ export class SystemCtlController extends Controller {
       communication = await firewall.getCommunication();
     }
 
-    let response = await communication.systemctlManagement(req.body.command, req.body.service);
+    const response = await communication.systemctlManagement(req.body.command, req.body.service);
     return ResponseBuilder.buildResponse().status(200).body(response)
   }
 }

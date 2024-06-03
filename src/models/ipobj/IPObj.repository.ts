@@ -237,7 +237,7 @@ export class IPObjRepository extends Repository<IPObj> {
 
   // All ipobj under a position excluding hosts.
   getIpobjsInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<IPObj> {
-    let query = this.createQueryBuilder("ipobj")
+    const query = this.createQueryBuilder("ipobj")
       .select("ipobj.id","id")
       .addSelect("ipobj.name","name")
       .addSelect("ipobj.type","type")
@@ -282,7 +282,7 @@ export class IPObjRepository extends Repository<IPObj> {
   }
 
   getIPObjsInDhcp_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number): SelectQueryBuilder<IPObj> {
-    let query: SelectQueryBuilder<IPObj> = this.createQueryBuilder("ipobj")
+    const query: SelectQueryBuilder<IPObj> = this.createQueryBuilder("ipobj")
       .select("ipobj.id", "id")
       .addSelect("ipobj.address", "address")
       .addSelect("ipobj.name", "name")
@@ -317,7 +317,7 @@ export class IPObjRepository extends Repository<IPObj> {
   }
 
   getIpobjsInKeepalived_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, dhcpRule?: number): SelectQueryBuilder<IPObj> {
-    let query = this.createQueryBuilder("ipobj")
+    const query = this.createQueryBuilder("ipobj")
       .select("ipobj.id", "id")
       .addSelect("ipobj.address", "address")
       .addSelect("ipobj.name", "name")
@@ -352,7 +352,7 @@ export class IPObjRepository extends Repository<IPObj> {
   }
 
   getIPObjsInHAProxy_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number): SelectQueryBuilder<IPObj> {
-    let query: SelectQueryBuilder<IPObj> = this.createQueryBuilder("ipobj")
+    const query: SelectQueryBuilder<IPObj> = this.createQueryBuilder("ipobj")
       .select("ipobj.id", "id")
       .addSelect("ipobj.address", "address")
       .addSelect("ipobj.name", "name")

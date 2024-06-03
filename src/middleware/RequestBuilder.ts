@@ -42,7 +42,7 @@ export class RequestBuilder extends Middleware {
      */
     public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
         let filesProcessing: number = 0;
-        let eventEmitter = new EventEmitter();
+        const eventEmitter = new EventEmitter();
         
         req.inputs = new RequestInputs(req);
         

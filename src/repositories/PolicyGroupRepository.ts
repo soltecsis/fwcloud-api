@@ -39,7 +39,7 @@ export class PolicyGroupRepository extends Repository<PolicyGroup> {
 
     public async deleteFirewallGroups(firewallId: number): Promise<DeleteResult> {
         return await this.delete({ firewall: { id: firewallId } });
-    };
+    }
 
     /**
      * Removes a policyGroup if it is empty

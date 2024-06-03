@@ -56,7 +56,7 @@ export class AuthorizationTest extends Middleware {
                     throw new AuthorizationException();
                 }
 
-                let session_data: SessionData = JSON.parse(fs.readFileSync(session_path).toString());
+                const session_data: SessionData = JSON.parse(fs.readFileSync(session_path).toString());
 
                 req.session.customer_id = session_data.customer_id;
                 req.session.user_id = session_data.user_id;

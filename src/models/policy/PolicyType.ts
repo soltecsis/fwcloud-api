@@ -80,7 +80,7 @@ export class PolicyType extends Model {
     public static getPolicy_type(id, callback) {
         db.get((error, connection) => {
             if (error) callback(error, null);
-            var sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
+            const sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
             connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
@@ -95,7 +95,7 @@ export class PolicyType extends Model {
     public static getPolicy_typeL(id, callback) {
         db.get((error, connection) => {
             if (error) callback(error, null);
-            var sql = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(id);
+            const sql = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(id);
             connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
@@ -110,8 +110,8 @@ export class PolicyType extends Model {
     public static getPolicy_typeName(name, callback) {
         db.get((error, connection) => {
             if (error) callback(error, null);
-            var namesql = '%' + name + '%';
-            var sql = 'SELECT * FROM ' + tableName + ' WHERE name like  ' + connection.escape(namesql) + ' ORDER BY type_order' ;
+            const namesql = '%' + name + '%';
+            const sql = 'SELECT * FROM ' + tableName + ' WHERE name like  ' + connection.escape(namesql) + ' ORDER BY type_order' ;
             connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
@@ -144,7 +144,7 @@ export class PolicyType extends Model {
 
         db.get((error, connection) => {
             if (error) callback(error, null);
-            var sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_typeData.name) + ', ' +            
+            const sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_typeData.name) + ', ' +            
                     ' SET type = ' + connection.escape(policy_typeData.type) + ', ' +            
                     ' SET id = ' + connection.escape(policy_typeData.id) + ' ' +            
                 ' WHERE type = ' + policy_typeData.type;
@@ -164,12 +164,12 @@ export class PolicyType extends Model {
     public static deletePolicy_type(type, callback) {
         db.get((error, connection) => {
             if (error) callback(error, null);
-            var sqlExists = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
+            const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
             connection.query(sqlExists, (error, row) => {
                 //If exists Id from policy_type to remove
                 if (row) {
                     db.get((error, connection) => {
-                        var sql = 'DELETE FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
+                        const sql = 'DELETE FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
                         connection.query(sql, (error, result) => {
                             if (error) {
                                 callback(error, null);

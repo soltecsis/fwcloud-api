@@ -106,7 +106,7 @@ export class KeepalivedRuleService extends Service {
             keepalivedRuleData.group = await getRepository(KeepalivedGroup).findOneOrFail(data.group) as KeepalivedGroup;
         }
         if (data.interfaceId) {
-            let interfaceData = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
+            const interfaceData = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
             if (!interfaceData.mac || interfaceData.mac === '') {
                 throw new Error('Interface mac is not defined');
             }
@@ -230,7 +230,7 @@ export class KeepalivedRuleService extends Service {
             for (const field of fieldsToUpdate) {
                 if (data[field]) {
                     if (field === 'interfaceId') {
-                        let interfaceData = await getRepository(Interface).findOneOrFail(data[field]) as Interface;
+                        const interfaceData = await getRepository(Interface).findOneOrFail(data[field]) as Interface;
                         if (!interfaceData.mac || interfaceData.mac === '') {
                             throw new Error('Interface mac is not defined');
                         }
@@ -355,7 +355,7 @@ export class KeepalivedRuleService extends Service {
             },
         });
 
-        for (let rule of rules) {
+        for (const rule of rules) {
             await this.remove({ id: rule.id });
         }
 

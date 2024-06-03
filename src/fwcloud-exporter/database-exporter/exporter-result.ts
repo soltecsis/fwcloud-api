@@ -51,7 +51,7 @@ export class ExporterResult {
         const names: Array<string> = [];
 
 
-        for(let tableName in this._results) {
+        for(const tableName in this._results) {
             names.push(tableName);
         }
         return names;

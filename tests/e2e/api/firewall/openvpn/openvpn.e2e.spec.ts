@@ -37,7 +37,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
 
     let mockExePath: string;
 
-    let connectioName: string = "test";
+    const connectioName: string = "test";
 
     beforeEach(async () => {
         app = testSuite.app;

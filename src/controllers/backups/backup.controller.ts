@@ -119,7 +119,7 @@ export class BackupController extends Controller {
 
     @Validate()
     public async export(request: Request): Promise<ResponseBuilder> {
-        let backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
+        const backup: Backup = await this._backupService.findOneOrFail(parseInt(request.params.backup));
 
         const exportFilePath: string = await this._backupService.export(backup, 30000);
 

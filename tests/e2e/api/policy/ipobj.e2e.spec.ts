@@ -107,7 +107,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
 
         await getRepository(User).save(adminUser);
 
-        let service = await getRepository(IPObj).findOneOrFail(10040);
+        const service = await getRepository(IPObj).findOneOrFail(10040);
             
         group = await getRepository(IPObjGroup).save({
             name: 'group',

@@ -76,7 +76,7 @@ export class IPObjTypeToPolicyPosition extends Model {
     public static getIpobj_type__policy_position(type, position, callback) {
         db.get((error, connection) => {
             if (error) callback(error, null);
-            var sql = 'SELECT type, position, allowed FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + 'AND  position = ' + connection.escape(position);
+            const sql = 'SELECT type, position, allowed FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + 'AND  position = ' + connection.escape(position);
             logger().debug(sql);
             connection.query(sql, (error, row) => {
                 if (error)
@@ -109,7 +109,7 @@ export class IPObjTypeToPolicyPosition extends Model {
 
         db.get((error, connection) => {
             if (error) callback(error, null);
-            var sql = 'UPDATE ' + tableName + ' SET type = ' + connection.escape(ipobj_type__policy_positionData.type) + ' ' +
+            const sql = 'UPDATE ' + tableName + ' SET type = ' + connection.escape(ipobj_type__policy_positionData.type) + ' ' +
                 ' WHERE type = ' + connection.escape(ipobj_type__policy_positionData.type) + ' position = ' + connection.escape(ipobj_type__policy_positionData.position);
             connection.query(sql, (error, result) => {
                 if (error) {
@@ -126,12 +126,12 @@ export class IPObjTypeToPolicyPosition extends Model {
     public static deleteIpobj_type__policy_position(type, position, callback) {
         db.get((error, connection) => {
             if (error) callback(error, null);
-            var sqlExists = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
+            const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
             connection.query(sqlExists, (error, row) => {
                 //If exists Id from ipobj_type__policy_position to remove
                 if (row) {
                     db.get((error, connection) => {
-                        var sql = 'DELETE FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
+                        const sql = 'DELETE FROM ' + tableName + ' WHERE type = ' + connection.escape(type) + ' position = ' + connection.escape(position);
                         connection.query(sql, (error, result) => {
                             if (error) {
                                 callback(error, null);

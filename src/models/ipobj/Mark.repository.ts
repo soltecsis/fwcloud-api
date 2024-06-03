@@ -27,7 +27,7 @@ import { Mark } from "./Mark";
 @EntityRepository(Mark)
 export class MarkRepository extends Repository<Mark> {
   getMarksInRoutingRules(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<Mark> {
-    let q = this.createQueryBuilder("mark")
+    const q = this.createQueryBuilder("mark")
       .select("(select id from ipobj_type where id=30)","type").addSelect("null as address").addSelect("null as netmask")
       .addSelect("null as range_start").addSelect("null as range_end")
       .addSelect("mark.code","mark_code")

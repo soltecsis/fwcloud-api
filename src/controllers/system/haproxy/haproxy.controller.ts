@@ -185,7 +185,7 @@ export class HAProxyController extends Controller {
     const channel: Channel = await Channel.fromRequest(req);
     let firewallId: number;
 
-    let firewall: Firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
+    const firewall: Firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
     if (firewall.clusterId) {
       firewallId = (await getRepository(Firewall).createQueryBuilder('firewall')
         .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
@@ -216,7 +216,7 @@ export class HAProxyController extends Controller {
 
     const ids: string[] = req.query.rules as string[] || [];
 
-    for (let id of ids) {
+    for (const id of ids) {
       const rule: HAProxyRule = await this._haproxyRuleService.findOneInPath({
         fwcloudId: this._fwCloud.id,
         firewallId: this._firewall.id,
@@ -244,7 +244,7 @@ export class HAProxyController extends Controller {
 
     const ids: number[] = req.query.rules as unknown as number[] || [];
 
-    for (let id of ids) {
+    for (const id of ids) {
       const rule: HAProxyRule = await this._haproxyRuleService.findOneInPath({
         fwcloudId: this._fwCloud.id,
         firewallId: this._firewall.id,

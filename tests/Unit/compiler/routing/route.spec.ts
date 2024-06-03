@@ -32,7 +32,7 @@ describe('Routing route compiler', async () => {
     let fwc: FwCloudProduct;
     let routingTableService: RoutingTableService;
 
-    let compiler: RoutingCompiler = new RoutingCompiler;
+    const compiler: RoutingCompiler = new RoutingCompiler;
     let compilation: RoutingCompiled[];
     let gw: string;
     let dev: string;

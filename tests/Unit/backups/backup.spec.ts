@@ -57,7 +57,7 @@ describe(describeName('Backup Unit tests'), () => {
     describe('create()', () => {
 
         it('should throw error exception if mysqldump command doesn\'t exists', async () => {
-            let backup: Backup = new Backup();
+            const backup: Backup = new Backup();
             sinon.stub(backup, 'existsCmd').callsFake(cmd => { return Promise.resolve(false)});
 
             const t = () => {
@@ -68,8 +68,8 @@ describe(describeName('Backup Unit tests'), () => {
         });
 
         it('should throw error exception if mutex is locked', (done) => {
-            let backup: Backup = new Backup();
-            let backup2: Backup = new Backup();
+            const backup: Backup = new Backup();
+            const backup2: Backup = new Backup();
             
             const t = () => {
                 backup2.create(service.config.data_dir).then(() => done());
@@ -86,7 +86,7 @@ describe(describeName('Backup Unit tests'), () => {
         });
 
         it('should create a backup directory', async () => {
-            let backup: Backup = new Backup();
+            const backup: Backup = new Backup();
             await backup.create(service.config.data_dir);
             expect(backup.exists()).to.be.true;
             expect(backup.id).not.to.be.null;
@@ -198,7 +198,7 @@ describe(describeName('Backup Unit tests'), () => {
         })
 
         it('should throw error exception if mysql command doesn\'t exists', async () => {
-            let backup: Backup = new Backup();
+            const backup: Backup = new Backup();
             sinon.stub(backup, 'existsCmd').callsFake(cmd => { return Promise.resolve(false)});
 
             const t = () => {
@@ -287,7 +287,7 @@ describe(describeName('Backup Unit tests'), () => {
         })
 
         it('should remove compilation status from firewalls', async () => {
-            let fwCloud: FwCloud = await FwCloud.save(FwCloud.create({ name: 'test' }));
+            const fwCloud: FwCloud = await FwCloud.save(FwCloud.create({ name: 'test' }));
             
             let firewall: Firewall = await Firewall.save(Firewall.create({ name: 'test', fwCloud: fwCloud, status: 1, installed_at: moment().utc().format(), compiled_at: moment().utc().format() }));
             
@@ -319,7 +319,7 @@ describe(describeName('Backup Unit tests'), () => {
         });
 
         it('should remove encrypted data if export snapshot hash is not equal', async () => {
-            let fwCloud: FwCloud = await FwCloud.save(FwCloud.create({ name: 'test' }));
+            const fwCloud: FwCloud = await FwCloud.save(FwCloud.create({ name: 'test' }));
             let firewall: Firewall = await Firewall.save(Firewall.create({
                 name: 'firewall_test',
                 status: 1,
@@ -385,7 +385,7 @@ describe(describeName('Backup Unit tests'), () => {
         })
 
         it('should build the correct mysldump/mysql command', async () => {
-            let backup: Backup = new Backup();
+            const backup: Backup = new Backup();
             await backup.create(service.config.data_dir);
             const tmpPath = path.join(app.config.get('tmp.directory'), path.basename(backup.path));
 
@@ -397,7 +397,7 @@ describe(describeName('Backup Unit tests'), () => {
         });
 
         it('should include --protocol=TCP in test environment', async () => {
-            let backup: Backup = new Backup();
+            const backup: Backup = new Backup();
             await backup.create(service.config.data_dir);
             const tmpPath = path.join(app.config.get('tmp.directory'), path.basename(backup.path));
 

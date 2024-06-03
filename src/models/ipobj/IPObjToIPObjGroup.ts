@@ -73,7 +73,7 @@ export class IPObjToIPObjGroup extends Model {
     //Add new ipobj__ipobjg
     public static insertIpobj__ipobjg(req) {
         return new Promise((resolve, reject) => {
-            var ipobj__ipobjgData = {
+            const ipobj__ipobjgData = {
                 ipobj_g: req.body.ipobj_g,
                 ipobj: req.body.ipobj
             };
@@ -89,7 +89,7 @@ export class IPObjToIPObjGroup extends Model {
     //Remove ipobj__ipobjg with id to remove
     public static deleteIpobj__ipobjg(dbCon, ipobj_g, ipobj): Promise<void> {
         return new Promise((resolve, reject) => {
-            let sql = `DELETE FROM ${tableName} WHERE ipobj_g=${ipobj_g} AND ipobj=${ipobj}`;		
+            const sql = `DELETE FROM ${tableName} WHERE ipobj_g=${ipobj_g} AND ipobj=${ipobj}`;		
             dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
                 resolve();
@@ -120,7 +120,7 @@ export class IPObjToIPObjGroup extends Model {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
-                var sql = `SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
+                const sql = `SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
                     C.id cloud_id, C.name cloud_name, GR.id group_id, GR.name group_name, GR.type group_type
                     FROM ${tableName} G
                     INNER JOIN ipobj_g GR ON GR.id=G.ipobj_g
@@ -139,7 +139,7 @@ export class IPObjToIPObjGroup extends Model {
     //check if addr host exists in a group 
     public static searchAddrHostInGroup(dbCon, fwcloud, host) {
         return new Promise((resolve, reject) => {
-            let sql = `SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
+            const sql = `SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
                 C.id cloud_id, C.name cloud_name, GR.id group_id, GR.name group_name, GR.type group_type
                 FROM ${tableName} G
                 INNER JOIN ipobj_g GR ON GR.id=G.ipobj_g

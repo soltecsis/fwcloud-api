@@ -71,7 +71,7 @@ export class OpenVPNService extends Service {
         this._config = this.loadCustomizedConfig(this._app.config.get('openvpn'));
         this._cronService = await this._app.getService<CronService>(CronService.name);
 
-        let archiveDirectory: string = this._config.history.data_dir;
+        const archiveDirectory: string = this._config.history.data_dir;
 
         if (!fs.existsSync(archiveDirectory)) {
             fs.mkdirpSync(archiveDirectory);
@@ -253,7 +253,7 @@ export class OpenVPNService extends Service {
         return new Promise<number>(async (resolve, reject) => {
             try {
                 //Create an array with all files their paths
-                let allFiles:{file:string, path:string}[] = []
+                const allFiles:{file:string, path:string}[] = []
                 fs.readdirSync(this._config.history.data_dir).filter(dirent  => {
                     if(fs.existsSync(path.join(this._config.history.data_dir, dirent))){
                         fs.readdirSync(path.join(this._config.history.data_dir, dirent)).filter(subDirent => {

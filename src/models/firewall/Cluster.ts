@@ -75,7 +75,7 @@ export class Cluster extends Model {
     //Get All clusters
     public static getClusterCloud(req) {
         return new Promise((resolve, reject) => {
-            var sql = `SELECT T.* FROM ${tableName} T 
+            const sql = `SELECT T.* FROM ${tableName} T 
                 INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
                 WHERE T.fwcloud=${req.body.fwcloud}`;
             req.dbCon.query(sql, (error, rows) => {
@@ -88,11 +88,11 @@ export class Cluster extends Model {
     //Get FULL cluster by  id
     public static getCluster(req): Promise<void> {
         return new Promise((resolve, reject) => {
-            var sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + req.dbCon.escape(req.body.cluster) + ' AND fwcloud=' + req.dbCon.escape(req.body.fwcloud);
+            const sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + req.dbCon.escape(req.body.cluster) + ' AND fwcloud=' + req.dbCon.escape(req.body.fwcloud);
             req.dbCon.query(sql, (error, row) => {
                 if (error) return reject(error);
                 if (row && row.length > 0) {
-                    var dataCluster = row[0];
+                    const dataCluster = row[0];
                     //SEARCH FIREWALL NODES
                     Firewall.getFirewallCluster(req.session.user_id, req.body.cluster, (error, dataFw) => {
                         if (error) return reject(error);
@@ -103,7 +103,7 @@ export class Cluster extends Model {
                             Firewall.getFirewallClusterMaster(req.session.user_id, req.body.cluster, (error, dataFwM) => {
                                 if (error) return reject(error);
                                 if (dataFwM && dataFwM.length > 0) {
-                                    var idFwMaster = dataFwM[0].id;
+                                    const idFwMaster = dataFwM[0].id;
                                     Interface.getInterfacesFull(idFwMaster, req.body.fwcloud, (error, dataI) => {
                                         if (error) return reject(error);
                                         if (dataI && dataI.length > 0) {
@@ -131,7 +131,7 @@ export class Cluster extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'SELECT * FROM ' + tableName + ' WHERE name like  "%' + connection.escape(name) + '%"';
+            const sql = 'SELECT * FROM ' + tableName + ' WHERE name like  "%' + connection.escape(name) + '%"';
             connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
@@ -179,18 +179,18 @@ export class Cluster extends Model {
             if (error)
                 callback(error, null);
             logger().debug("------>>>> DELETING CLUSTER: ", id);
-            var sqlExists = 'SELECT T.* , A.id as idnode FROM ' + tableName + ' T ' +
+            const sqlExists = 'SELECT T.* , A.id as idnode FROM ' + tableName + ' T ' +
                 ' INNER JOIN fwc_tree A ON A.id_obj = T.id AND A.obj_type=100 ' +
                 ' WHERE T.id = ' + connection.escape(id);
             logger().debug("SQL DELETE CLUSTER: ", sqlExists);
             connection.query(sqlExists, (error, row) => {
                 //If exists Id from cluster to remove
                 if (row.length > 0) {
-                    var dataNode = { id: row[0].idnode, fwcloud: fwcloud, iduser: iduser }
+                    const dataNode = { id: row[0].idnode, fwcloud: fwcloud, iduser: iduser }
                     Tree.deleteFwc_TreeFullNode(dataNode)
                         .then(resp => {
                             db.get((error, connection) => {
-                                var sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
+                                const sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
                                 connection.query(sql, (error, result) => {
                                     if (error) {
                                         callback(error, null);

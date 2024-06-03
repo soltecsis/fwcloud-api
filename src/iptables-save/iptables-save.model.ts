@@ -62,13 +62,13 @@ export class IptablesSaveToFWCloud extends Service {
   protected stats: IptablesSaveStats;
 
   protected generateCustomChainsMap(): Promise<void> {
-    let chain: string = this.items[0].substr(1);
+    const chain: string = this.items[0].substr(1);
 
     // Ignore standard chains names.
     if (StdChains.has(chain)) return;
 
     // Search all the lines that have data for this custom chain.
-    let value: number[] = [];
+    const value: number[] = [];
     let items: string[];
     for(let p=this.line+1; p < this.data.length; p++) {
       items = this.data[p].trim().split(/\s+/);
@@ -92,7 +92,7 @@ export class IptablesSaveToFWCloud extends Service {
     // Ignore iptables rules for custom chains because they have already been processed.
     if (this.customChainsMap.has(this.chain)) return false;
 
-    let policy_rData = {
+    const policy_rData = {
       id: null,
       firewall: this.req.body.firewall,
       rule_order: this.ruleOrder++,
@@ -117,7 +117,7 @@ export class IptablesSaveToFWCloud extends Service {
       for (let i=0; i<(itemsCopy.length-4); i++) {
         if (itemsCopy[i]==='-m' && itemsCopy[i+1]==='comment' && itemsCopy[i+2]==='--comment') {
           // Remove comment from itemsCopy.
-          let itemsCopy2 = itemsCopy.slice(i+3);
+          const itemsCopy2 = itemsCopy.slice(i+3);
           try { 
             await this.eatCommentString(itemsCopy2); 
             itemsCopy = itemsCopy.slice(0,i).concat(itemsCopy2);
@@ -154,7 +154,7 @@ export class IptablesSaveToFWCloud extends Service {
 
 
   protected async fillRulePositions(line: number): Promise<void> {
-    let lineItems = this.data[line].trim().split(/\s+/); 
+    const lineItems = this.data[line].trim().split(/\s+/); 
     lineItems.shift(); // -A
     lineItems.shift(); // Chain name
 
@@ -171,9 +171,9 @@ export class IptablesSaveToFWCloud extends Service {
       await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
     }
   
-    let lines: number[] = this.customChainsMap.get(this.ruleTarget);
+    const lines: number[] = this.customChainsMap.get(this.ruleTarget);
     if (lines) { // Target is a custom chain.
-      for(let l of lines) {
+      for(const l of lines) {
         // If we found a FWCloud accounting chain, then this is an accounting rule.
         if (this.ruleTarget.startsWith('FWCRULE') && this.ruleTarget.endsWith('.ACC'))
           this.accountingRule = true;
@@ -358,7 +358,7 @@ export class IptablesSaveToFWCloud extends Service {
           throw new Error(`Bad ${module} module option`);
 
         const portsList = data.trim().split(',');
-        for (let ports of portsList) {
+        for (const ports of portsList) {
           const sports = (opt==='--source-ports' || opt==='--sports' || opt==='--ports') ? ports : '0';
           const dports = (opt==='--destination-ports' || opt==='--dports' || opt==='--ports') ? ports : '0';
           await this.eatPort(sports,dports,null,null);
@@ -436,9 +436,9 @@ export class IptablesSaveToFWCloud extends Service {
   }
 
   private async negateLinePositions(line: number): Promise<void> {
-    let items = this.data[line].trim().split(/\s+/);
+    const items = this.data[line].trim().split(/\s+/);
 
-    for (let item of items) {
+    for (const item of items) {
       if (item.charAt(0) === '-') await this.negateRulePosition(item);
     }
   }
@@ -465,7 +465,7 @@ export class IptablesSaveToFWCloud extends Service {
     // Enable rule logging.
     try {
       const ruleData: any = await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
-      let policy_rData = { id: this.ruleId, options: ruleData.options | 4 }
+      const policy_rData = { id: this.ruleId, options: ruleData.options | 4 }
       await PolicyRule.updatePolicy_r(this.req.dbCon, policy_rData);
     } catch(err) { throw new Error(`Error enabling rule log: ${JSON.stringify(err)}`); }  
 
@@ -546,7 +546,7 @@ export class IptablesSaveToFWCloud extends Service {
       }
   
       const ruleData: any = await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
-      let policy_rData = { 
+      const policy_rData = { 
         id: this.ruleId, 
         comment: comment 
       }
@@ -625,7 +625,7 @@ export class IptablesSaveToFWCloud extends Service {
 
     let mask = 0;
     const items = data.split(',');
-    for(let item of items) {
+    for(const item of items) {
       mask |= TcpFlags.get(item);
     }
 
@@ -641,7 +641,7 @@ export class IptablesSaveToFWCloud extends Service {
 
     // If not found create it.
     if (!interfaceId) {
-      let interfaceData = {
+      const interfaceData = {
         id: null,
         firewall: this.req.body.firewall,
         name: _interface,
@@ -664,7 +664,7 @@ export class IptablesSaveToFWCloud extends Service {
     if (!rulePosition)
       throw new Error(`Rule position not found for: ${this.table}:${this.chain}:${dir}`);
 
-    let policy_r__interfaceData = {
+    const policy_r__interfaceData = {
       rule: this.ruleId,
       interface: interfaceId,
       position: rulePosition,
@@ -697,7 +697,7 @@ export class IptablesSaveToFWCloud extends Service {
     
     // If not found create it.
     if (!addrId) {
-      let ipobjData = {
+      const ipobjData = {
         id: null,
         fwcloud: this.req.body.fwcloud,
         name: mask === fullMask ? ip :addr,
@@ -749,7 +749,7 @@ export class IptablesSaveToFWCloud extends Service {
     
     // If not found create it.
     if (!iprangeId) {
-      let ipobjData = {
+      const ipobjData = {
         id: null,
         fwcloud: this.req.body.fwcloud,
         name: data,
@@ -805,9 +805,9 @@ export class IptablesSaveToFWCloud extends Service {
     const dstPorts = dports.split(/:|-/);
 
     // IMPORTANT: Validate data before process it.
-    for (let port of srcPorts)
+    for (const port of srcPorts)
       await Joi.number().port().validateAsync(port);
-    for (let port of dstPorts)
+    for (const port of dstPorts)
       await Joi.number().port().validateAsync(port);
 
     if (srcPorts.length < 2) srcPorts.push(srcPorts[0]);
@@ -825,7 +825,7 @@ export class IptablesSaveToFWCloud extends Service {
 
     // If not found create it.
     if (!portId) {
-      let ipobjData = {
+      const ipobjData = {
         id: null,
         fwcloud: this.req.body.fwcloud,
         name: dports,
@@ -862,7 +862,7 @@ export class IptablesSaveToFWCloud extends Service {
       icmp = ['-1', '-1'];
     else {
       icmp = data.split('/');
-      for (let val of icmp)
+      for (const val of icmp)
         await Joi.number().integer().min(-1).max(255).validateAsync(val);
 
       if (icmp.length < 2) icmp.push('-1');
@@ -873,7 +873,7 @@ export class IptablesSaveToFWCloud extends Service {
     
     // If not found create it.
     if (!icmpId) {
-      let ipobjData = {
+      const ipobjData = {
         id: null,
         fwcloud: this.req.body.fwcloud,
         name: data,
@@ -903,7 +903,7 @@ export class IptablesSaveToFWCloud extends Service {
     if (!rulePosition)
       throw new Error(`Rule position not found for: ${this.table}:${this.chain}:${item}`);
 
-    let policy_r__ipobjData = {
+    const policy_r__ipobjData = {
       rule: this.ruleId,
       ipobj: id,
       ipobj_g: -1,
@@ -920,7 +920,7 @@ export class IptablesSaveToFWCloud extends Service {
 
 
   private async addIPObjGroupToRulePosition(position: number, group: number): Promise<void> {
-    let policy_r__ipobjData = {
+    const policy_r__ipobjData = {
       rule: this.ruleId,
       ipobj: -1,
       ipobj_g: group,
@@ -942,16 +942,16 @@ export class IptablesSaveToFWCloud extends Service {
     const positionsList = GroupablePositionMap.get(`${this.table}:${this.chain}`);
 
     // For all positions for which it is possible to group objects.
-    for (let position of positionsList) {
+    for (const position of positionsList) {
       const ipobjsData: any = await PolicyRuleToIPObj.getRuleIPObjsByPosition(this.ruleId, position);
       if (ipobjsData.length < 2) continue;
-      let ipobjsInRule = ipobjsData.map( ({ ipobj }) => { return ipobj } );
+      const ipobjsInRule = ipobjsData.map( ({ ipobj }) => { return ipobj } );
 
       // For all existing IP objects groups.
-      for(let group of ipobjGroups) {
+      for(const group of ipobjGroups) {
         const groupData: any = await IPObjGroup.getIpobj_g_Full(this.req.dbCon, this.req.body.fwcloud, group);
         if (!groupData || !groupData[0] || !groupData[0].ipobjs || groupData[0].ipobjs.length < 2) continue;
-        const ipobjsInGroup = groupData[0].ipobjs.map( ({ id }) => { return id } );;
+        const ipobjsInGroup = groupData[0].ipobjs.map( ({ id }) => { return id } );
 
         // Check if all group objects exists in the rule position.
         for (i=0; i < ipobjsInGroup.length; i++) {
@@ -963,7 +963,7 @@ export class IptablesSaveToFWCloud extends Service {
           // Add group to rule position.
           await this.addIPObjGroupToRulePosition(position, group);
 
-          for(let ipobjInGroup of ipobjsInGroup) {
+          for(const ipobjInGroup of ipobjsInGroup) {
             // Remove from rule position all the objects that are part of the group.
             await	PolicyRuleToIPObj.deletePolicy_r__ipobj(this.req.dbCon, this.ruleId, ipobjInGroup, -1, -1, position, 0);
 
@@ -1001,7 +1001,7 @@ export class IptablesSaveToFWCloud extends Service {
     if (previousRule.positions.length !== currentRule.positions.length) return;
 
     // Compare rule positions.
-    let posDiffer: number[] = [];
+    const posDiffer: number[] = [];
     for (let i=0; i<previousRule.positions.length; i++) {
       if (previousRule.positions[i].id != currentRule.positions[i].id) return;
 
@@ -1031,8 +1031,8 @@ export class IptablesSaveToFWCloud extends Service {
       const position =  currentRule.positions[posDiffer[0]].id;
       let allMoved = true;
 
-      for(let obj of currPosObjs) {
-        let policy_r__ipobjData = {
+      for(const obj of currPosObjs) {
+        const policy_r__ipobjData = {
           rule: previousRule.id,
           ipobj: obj.id,
           ipobj_g: -1,

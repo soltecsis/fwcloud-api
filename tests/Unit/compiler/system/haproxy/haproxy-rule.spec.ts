@@ -31,7 +31,7 @@ describe(HAProxyCompiler.name, () => {
     let fwc: FwCloudProduct;
 
     let haproxyService: HAProxyRuleService;
-    let compiler: HAProxyCompiler = new HAProxyCompiler();
+    const compiler: HAProxyCompiler = new HAProxyCompiler();
     let rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[];
 
     beforeEach(async () => {

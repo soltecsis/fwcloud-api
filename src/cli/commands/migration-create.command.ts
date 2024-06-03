@@ -38,7 +38,7 @@ export class MigrationCreateCommand extends Command {
 
     async handle(args: yargs.Arguments) {
         const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
-        let version = args.tag ? args.tag as string : this._app.version.tag;
+        const version = args.tag ? args.tag as string : this._app.version.tag;
 
         const directory:string = args.directory as string ? args.directory : databaseService.config.migration_directory
             

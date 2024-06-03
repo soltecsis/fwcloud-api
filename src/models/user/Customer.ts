@@ -69,7 +69,7 @@ export class Customer extends Model {
     public static _insert(req) {
         return new Promise(async (resolve, reject) => {
             //New object with customer data
-            var customerData = {
+            const customerData = {
                 id: req.body.customer,
                 addr: req.body.addr,
                 phone: req.body.phone,
@@ -111,7 +111,7 @@ export class Customer extends Model {
     //Update customer
     public static _update = req => {
         return new Promise<void>(async (resolve, reject) => {
-            let sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)},
+            const sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)},
                 email=${req.dbCon.escape(req.body.email)},
                 addr=${req.dbCon.escape(req.body.addr)},
                 phone=${req.dbCon.escape(req.body.phone)},
@@ -128,7 +128,7 @@ export class Customer extends Model {
     //Update customer
     public static get(req) {
         return new Promise(async (resolve, reject) => {
-            let sql = (req.body.customer) ? `select * from ${tableName} WHERE id=${req.body.customer}` : `select id,name from ${tableName}`;
+            const sql = (req.body.customer) ? `select * from ${tableName} WHERE id=${req.body.customer}` : `select id,name from ${tableName}`;
             req.dbCon.query(sql, (error, result) => {
                 if (error) return reject(error);
                 resolve(result);

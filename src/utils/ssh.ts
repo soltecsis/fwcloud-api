@@ -27,8 +27,8 @@ import { ProgressSSHCmdPayload } from '../sockets/messages/socket-message';
 
 export default class sshTools {
 	public static uploadFile(SSHconn, srcFile, dstFile) {
-		var Client = require('ssh2').Client;
-		var conn = new Client();
+		const Client = require('ssh2').Client;
+		const conn = new Client();
 
 		logger().debug("SSH Upload File: ", srcFile, dstFile);
 
@@ -37,9 +37,9 @@ export default class sshTools {
 				conn.sftp((err, sftp) => {
 					if (err)  return reject(err);
 
-					var fs = require("fs"); // Use node filesystem
-					var readStream = fs.createReadStream(srcFile).on('error',error => {conn.end(); reject(error)});
-					var writeStream = sftp.createWriteStream(dstFile).on('error',error => {conn.end(); reject(error)});
+					const fs = require("fs"); // Use node filesystem
+					const readStream = fs.createReadStream(srcFile).on('error',error => {conn.end(); reject(error)});
+					const writeStream = sftp.createWriteStream(dstFile).on('error',error => {conn.end(); reject(error)});
 
 					writeStream
 						.on('close',() => resolve( "File transferred succesfully"))
@@ -59,15 +59,15 @@ export default class sshTools {
 
 
 	public static uploadStringToFile(SSHconn, str, dstFile) {
-		var Client = require('ssh2').Client;
-		var conn = new Client();
+		const Client = require('ssh2').Client;
+		const conn = new Client();
 
 		return new Promise((resolve,reject) => { 
 			conn.on('ready', () => {
 				conn.sftp((err, sftp) => {
 					if (err)  return reject(err);
 
-					var writeStream = sftp.createWriteStream(dstFile).on('error',error => {conn.end(); reject(error)});
+					const writeStream = sftp.createWriteStream(dstFile).on('error',error => {conn.end(); reject(error)});
 					
 					writeStream
 						.on('close',() => resolve( "File transferred succesfully"))
@@ -89,12 +89,12 @@ export default class sshTools {
 
 
 	public static runCommand(SSHconn, cmd, eventEmitter?: EventEmitter): Promise<string> {
-		var Client = require('ssh2').Client;
-		var conn = new Client();
-		var stdout_log = "";
-		var stderr_log ="";
+		const Client = require('ssh2').Client;
+		const conn = new Client();
+		let stdout_log = "";
+		let stderr_log ="";
 		let sudo_pass_sent = cmd.trim().substr(0,5) === 'sudo ' ? false : true;
-		let regex = new RegExp(`\\[sudo\\] .* ${SSHconn.username}: `);
+		const regex = new RegExp(`\\[sudo\\] .* ${SSHconn.username}: `);
 
 		return new Promise((resolve,reject) => { 
 			conn.on('ready',() => {
@@ -112,7 +112,7 @@ export default class sshTools {
 							reject(new Error("STDOUT: \n"+stdout_log+"\n\nSTDERR: \n"+stderr_log));
 					}).on('data', data => {
 						//console.log('STDOUT: ' + data);
-						let str=""+data;
+						const str=""+data;
 
 						if (!sudo_pass_sent && str.match(regex)) {
 							stream.write(SSHconn.password+"\n");

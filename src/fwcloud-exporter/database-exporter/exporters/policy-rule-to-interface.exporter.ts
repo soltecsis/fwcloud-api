@@ -48,6 +48,6 @@ export class PolicyRuleToInterfaceExporter extends TableExporter {
 
             return `${alias}.policyRuleId IN ` + new PolicyRuleExporter()
                 .getFilterBuilder(subquery, 'policy_r', fwCloudId).getQuery()
-        });;
+        });
     }
 }

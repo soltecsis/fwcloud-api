@@ -51,11 +51,11 @@ export default class Query {
         });
     }
 
-    public escape(value: any): String {
+    public escape(value: any): string {
         return sqlstring.escape(value);
     }
 
-    public escapeId(value: any): String {
+    public escapeId(value: any): string {
         return sqlstring.escapeId(value);
     }
 }

@@ -35,7 +35,7 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
 		}
 	};
 
-	let ipobjData = {
+	const ipobjData = {
 		id: null,
 		fwcloud: null,
 		interface: null,
@@ -71,7 +71,7 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
 	beforeEach(async() => {
 		adminUserSessionId = generateSession(adminUser);
 
-		for (var key in ipobjData ) {
+		for (const key in ipobjData ) {
 			ipobjData[key] = null;
 		}
 		ipobjData.fwcloud = fwCloud.id;
@@ -115,8 +115,8 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
 						expect(response.body).to.have.property("fwcErr").which.is.equal(1003);
 						expect(response.body).to.have.property("msg").which.is.equal("Already exists");
 						expect(response.body).to.have.property("data").which.is.an('array').to.have.lengthOf(1);
-						expect(response.body.data[0]).to.have.property("address").which.is.equal(ipobjData.address);;
-						expect(response.body.data[0]).to.have.property("netmask").which.is.equal(ipobjData.netmask);;
+						expect(response.body.data[0]).to.have.property("address").which.is.equal(ipobjData.address);
+						expect(response.body.data[0]).to.have.property("netmask").which.is.equal(ipobjData.netmask);
 					});
 			});
 
@@ -132,8 +132,8 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
 						expect(response.body).to.have.property("fwcErr").which.is.equal(1003);
 						expect(response.body).to.have.property("msg").which.is.equal("Already exists");
 						expect(response.body).to.have.property("data").which.is.an('array').to.have.lengthOf(2);
-						expect(response.body.data[0]).to.have.property("address").which.is.equal(ipobjData.address);;
-						expect(response.body.data[0]).to.have.property("netmask").which.is.equal(ipobjData.netmask);;
+						expect(response.body.data[0]).to.have.property("address").which.is.equal(ipobjData.address);
+						expect(response.body.data[0]).to.have.property("netmask").which.is.equal(ipobjData.netmask);
 					});
 			});
 

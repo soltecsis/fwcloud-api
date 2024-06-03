@@ -30,7 +30,7 @@ import { Interface } from '../interface/Interface';
 import { PolicyPosition } from './PolicyPosition';
 const fwcError = require('../../utils/error_table');
 
-var asyncMod = require('async');
+const asyncMod = require('async');
 
 const tableName: string = "policy_r__interface";
 
@@ -89,7 +89,7 @@ export class PolicyRuleToInterface extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'SELECT * FROM ' + tableName + ' WHERE interface = ' + connection.escape(_interface) + ' ORDER by interface_order';
+            const sql = 'SELECT * FROM ' + tableName + ' WHERE interface = ' + connection.escape(_interface) + ' ORDER by interface_order';
             connection.query(sql, (error, rows) => {
                 if (error)
                     callback(error, null);
@@ -97,7 +97,7 @@ export class PolicyRuleToInterface extends Model {
                     callback(null, rows);
             });
         });
-    };
+    }
 
     //Get All policy_r__interface by policy_r
     public static getPolicy_r__interfaces_interface(rule, callback) {
@@ -105,7 +105,7 @@ export class PolicyRuleToInterface extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' ORDER by interface_order';
+            const sql = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' ORDER by interface_order';
             connection.query(sql, (error, rows) => {
                 if (error)
                     callback(error, null);
@@ -113,7 +113,7 @@ export class PolicyRuleToInterface extends Model {
                     callback(null, rows);
             });
         });
-    };
+    }
 
 
 
@@ -123,7 +123,7 @@ export class PolicyRuleToInterface extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' AND interface = ' + connection.escape(_interface);
+            const sql = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' AND interface = ' + connection.escape(_interface);
             connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
@@ -131,7 +131,7 @@ export class PolicyRuleToInterface extends Model {
                     callback(null, row);
             });
         });
-    };
+    }
 
 
 
@@ -157,12 +157,12 @@ export class PolicyRuleToInterface extends Model {
                 });
             });
         });
-    };
+    }
 
     //Clone policy_r__interface
     public static clonePolicy_r__interface(policy_r__interfaceData) {
         return new Promise((resolve, reject) => {
-            var p_interfaceData = {
+            const p_interfaceData = {
                 rule: policy_r__interfaceData.newrule,
                 interface: policy_r__interfaceData.newInterface,
                 position: policy_r__interfaceData.position,
@@ -187,12 +187,12 @@ export class PolicyRuleToInterface extends Model {
                 });
             });
         });
-    };
+    }
 
     //Duplicate policy_r__interface RULES
     public static duplicatePolicy_r__interface = (dbCon, rule, new_rule): Promise<void> => {
         return new Promise((resolve, reject) => {
-            let sql = `INSERT INTO ${tableName} (rule, interface, position,position_order)
+            const sql = `INSERT INTO ${tableName} (rule, interface, position,position_order)
 			(SELECT ${new_rule}, interface, position, position_order
 			from ${tableName} where rule=${rule} order by  position, position_order)`;
             dbCon.query(sql, async (error, result) => {
@@ -217,7 +217,7 @@ export class PolicyRuleToInterface extends Model {
                     db.get((error, connection) => {
                         if (error)
                             callback(error, null);
-                        var sql = 'UPDATE ' + tableName + ' SET position = ' + connection.escape(policy_r__interfaceData.position) + ',' +
+                        const sql = 'UPDATE ' + tableName + ' SET position = ' + connection.escape(policy_r__interfaceData.position) + ',' +
                             ' WHERE rule = ' + policy_r__interfaceData.rule + ' AND  interface = ' + policy_r__interfaceData.interface;
 
                         connection.query(sql, async (error, result) => {
@@ -236,7 +236,7 @@ export class PolicyRuleToInterface extends Model {
                 }
             }
         });
-    };
+    }
 
     //Update policy_r__interface POSITION AND RULE
     public static updatePolicy_r__interface_position(dbCon, idfirewall, rule, _interface, old_position, old_position_order, new_rule, new_position, new_order): Promise<void> {
@@ -246,7 +246,7 @@ export class PolicyRuleToInterface extends Model {
                 if (error) return reject(error);
                 if (!allowed) return reject(fwcError.NOT_FOUND);
 
-                var sql = `UPDATE ${tableName} SET position=${dbCon.escape(new_position)},
+                const sql = `UPDATE ${tableName} SET position=${dbCon.escape(new_position)},
                     rule=${dbCon.escape(new_rule)}, position_order=${dbCon.escape(new_order)}
                     WHERE rule=${rule} AND interface=${_interface} AND position=${dbCon.escape(old_position)}`;
                 dbCon.query(sql, async (error, result) => {
@@ -262,7 +262,7 @@ export class PolicyRuleToInterface extends Model {
                 });
             });
         });
-    };
+    }
 
     //Update ORDER policy_r__interface
     public static updatePolicy_r__interface_order(rule, _interface, position, old_order, new_order, callback) {
@@ -271,7 +271,7 @@ export class PolicyRuleToInterface extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'UPDATE ' + tableName + ' SET ' +
+            const sql = 'UPDATE ' + tableName + ' SET ' +
                 ' position_order = ' + connection.escape(new_order) + ' ' +
                 ' WHERE rule = ' + rule + ' AND  interface = ' + _interface;
 
@@ -283,13 +283,13 @@ export class PolicyRuleToInterface extends Model {
                 }
             });
         });
-    };
+    }
 
     private static OrderList(new_order, rule, position, old_order, _interface) {
         return new Promise((resolve, reject) => {
-            var increment = '+1';
-            var order1 = new_order;
-            var order2 = old_order;
+            let increment = '+1';
+            let order1 = new_order;
+            let order2 = old_order;
             if (new_order > old_order) {
                 increment = '-1';
                 order1 = old_order;
@@ -303,7 +303,7 @@ export class PolicyRuleToInterface extends Model {
                     reject(error);
                 }
 
-                var sql = 'UPDATE ' + tableName + ' SET ' +
+                const sql = 'UPDATE ' + tableName + ' SET ' +
                     'position_order = position_order' + increment +
                     ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) +
                     ' AND position_order>=' + order1 + ' AND position_order<=' + order2 +
@@ -319,14 +319,14 @@ export class PolicyRuleToInterface extends Model {
 
             });
         });
-    };
+    }
 
     //Check if a object (type) can be inserted in a position type
     private static checkInterfacePosition(idfirewall, rule, id, position, callback) {
         db.get((error, connection) => {
             if (error) return callback(null, 0);
 
-            let sql = `select A.type from ipobj_type__policy_position A
+            const sql = `select A.type from ipobj_type__policy_position A
 			inner join interface I on A.type=I.interface_type
 			inner join policy_position P on P.id=A.position
 			WHERE I.id=${id} AND A.position=${position} AND I.firewall=${idfirewall}`;
@@ -340,14 +340,14 @@ export class PolicyRuleToInterface extends Model {
     //Remove policy_r__interface with id to remove
     public static deletePolicy_r__interface(dbCon, rule, _interface, position, old_order, callback): Promise<void> {
         return new Promise((resolve, reject) => {
-            var sqlExists = `SELECT * FROM ${tableName} 
+            const sqlExists = `SELECT * FROM ${tableName} 
                 WHERE rule=${dbCon.escape(rule)} AND  interface=${dbCon.escape(_interface)}
                 AND position=${dbCon.escape(position)}`;
             dbCon.query(sqlExists, (error, row) => {
                 //If exists Id from policy_r__interface to remove
                 if (row) {
                     db.get(async (error, connection) => {
-                        var sql = `DELETE FROM ${tableName}
+                        const sql = `DELETE FROM ${tableName}
                             WHERE rule=${connection.escape(rule)} 
                             AND interface=${connection.escape(_interface)} 
                             AND position=${connection.escape(position)}`;
@@ -362,7 +362,7 @@ export class PolicyRuleToInterface extends Model {
                 } else reject(fwcError.NOT_FOUND);
             });
         });
-    };
+    }
 
     //Remove policy_r__interface with id to remove
     public static deletePolicy_r__All(rule, callback) {
@@ -370,13 +370,13 @@ export class PolicyRuleToInterface extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sqlExists = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
+            const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
             connection.query(sqlExists, (error, row) => {
                 //If exists Id from policy_r__interface to remove
                 if (row) {
                     logger().debug("DELETING INTERFACES FROM RULE: " + rule);
                     db.get(async (error, connection) => {
-                        var sql = 'DELETE FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
+                        const sql = 'DELETE FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
                         connection.query(sql, async (error, result) => {
                             if (error) {
                                 logger().debug(error);
@@ -395,7 +395,7 @@ export class PolicyRuleToInterface extends Model {
                 }
             });
         });
-    };
+    }
 
     //Order policy_r__interfaces Position
     public static orderPolicyPosition(rule, position, callback) {
@@ -405,11 +405,11 @@ export class PolicyRuleToInterface extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sqlPos = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' AND position= ' + connection.escape(position) + ' order by position_order';
+            const sqlPos = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' AND position= ' + connection.escape(position) + ' order by position_order';
             //logger().debug(sqlPos);
             connection.query(sqlPos, (error, rows) => {
                 if (rows.length > 0) {
-                    var order = 0;
+                    let order = 0;
                     asyncMod.map(rows, (row, callback1) => {
                         order++;
                         db.get((error, connection) => {
@@ -438,7 +438,7 @@ export class PolicyRuleToInterface extends Model {
                 }
             });
         });
-    };
+    }
 
     //Order policy_r__interfaces Position
     public static orderPolicy(rule, callback) {
@@ -447,14 +447,14 @@ export class PolicyRuleToInterface extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sqlRule = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' order by position, position_order';
+            const sqlRule = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule) + ' order by position, position_order';
             //logger().debug(sqlRule);
             connection.query(sqlRule, (error, rows) => {
                 if (rows.length > 0) {
-                    var order = 0;
-                    var prev_position = 0;
+                    let order = 0;
+                    let prev_position = 0;
                     asyncMod.map(rows, (row, callback1) => {
-                        var position = row.position;
+                        const position = row.position;
                         if (position !== prev_position) {
                             order = 1;
                             prev_position = position;
@@ -487,7 +487,7 @@ export class PolicyRuleToInterface extends Model {
                 }
             });
         });
-    };
+    }
 
     //Order policy_r__interfaces Position
     public static orderAllPolicy(callback) {
@@ -496,16 +496,16 @@ export class PolicyRuleToInterface extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sqlRule = 'SELECT * FROM ' + tableName + ' ORDER by rule,position, position_order';
+            const sqlRule = 'SELECT * FROM ' + tableName + ' ORDER by rule,position, position_order';
             //logger().debug(sqlRule);
             connection.query(sqlRule, (error, rows) => {
                 if (rows.length > 0) {
-                    var order = 0;
-                    var prev_rule = 0;
-                    var prev_position = 0;
+                    let order = 0;
+                    let prev_rule = 0;
+                    let prev_position = 0;
                     asyncMod.map(rows, (row, callback1) => {
-                        var position = row.position;
-                        var rule = row.rule;
+                        const position = row.position;
+                        const rule = row.rule;
                         if (position !== prev_position || rule !== prev_rule) {
                             order = 1;
                             prev_rule = rule;
@@ -540,7 +540,7 @@ export class PolicyRuleToInterface extends Model {
                 }
             });
         });
-    };
+    }
 
 
     //check if INTERFACE Exists in any rule
@@ -550,7 +550,7 @@ export class PolicyRuleToInterface extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'SELECT count(*) as n FROM ' + tableName + ' O INNER JOIN policy_r R on R.id=O.rule ' +
+            const sql = 'SELECT count(*) as n FROM ' + tableName + ' O INNER JOIN policy_r R on R.id=O.rule ' +
                 ' INNER JOIN firewall F on F.id=R.firewall ' +
                 ' INNER JOIN fwcloud C on C.id=F.fwcloud ' +
                 ' inner join interface I on I.id=O.interface ' +
@@ -573,7 +573,7 @@ export class PolicyRuleToInterface extends Model {
                     callback(null, { "result": false });
             });
         });
-    };
+    }
 
     //check if HOST ALL INTERFACEs Exists in any rule
     public static checkHostAllInterfacesInRule(ipobj_host, fwcloud, callback) {
@@ -582,7 +582,7 @@ export class PolicyRuleToInterface extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'SELECT count(*) as n FROM ' + tableName + ' O ' +
+            const sql = 'SELECT count(*) as n FROM ' + tableName + ' O ' +
                 ' inner join interface__ipobj J on J.interface=O.interface  ' +
                 ' INNER JOIN policy_r R on R.id=O.rule ' +
                 ' INNER JOIN firewall F on F.id=R.firewall ' +
@@ -605,7 +605,7 @@ export class PolicyRuleToInterface extends Model {
                     callback(null, { "result": false });
             });
         });
-    };
+    }
 
 
     //search if INTERFACE Exists in any rule I POSITIONS
@@ -662,7 +662,7 @@ export class PolicyRuleToInterface extends Model {
 
     public static interfaceAlreadyInRulePosition = (dbCon, fwcloud, firewall, rule, position, _interface) => {
         return new Promise((resolve, reject) => {
-            let sql = `SELECT O.rule FROM ${tableName} O 
+            const sql = `SELECT O.rule FROM ${tableName} O 
                 INNER JOIN policy_r R on R.id=O.rule
                 INNER JOIN firewall F on F.id=R.firewall
                 INNER JOIN fwcloud C on C.id=F.fwcloud

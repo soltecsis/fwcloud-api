@@ -144,7 +144,7 @@ export class Crt extends Model {
 
     public static searchCRTInOpenvpn(dbCon, fwcloud, crt) {
         return new Promise((resolve, reject) => {
-            let sql = `SELECT VPN.id FROM openvpn VPN
+            const sql = `SELECT VPN.id FROM openvpn VPN
         INNER JOIN crt CRT ON CRT.id=VPN.crt
         INNER JOIN ca CA ON CA.id=CRT.ca
         WHERE CA.fwcloud=${fwcloud} AND CRT.id=${crt}`;

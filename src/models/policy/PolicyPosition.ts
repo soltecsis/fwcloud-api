@@ -142,7 +142,7 @@ export class PolicyPosition extends Model {
     //Get policy_position by  type
     public static checkPolicyRulePosition(dbCon,rule,position) {
         return new Promise((resolve, reject) => {
-            let sql = `select PP.id from ${tableName} PP
+            const sql = `select PP.id from ${tableName} PP
                 inner join policy_r R on R.type=PP.policy_type
                 where R.id=${rule} and PP.id=${position}`;
 
@@ -177,7 +177,7 @@ export class PolicyPosition extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
+            const sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
             connection.query(sql, (error, row) => {
                 if (error)
                     callback(error, null);
@@ -210,7 +210,7 @@ export class PolicyPosition extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_positionData.name) + ', ' +
+            const sql = 'UPDATE ' + tableName + ' SET name = ' + connection.escape(policy_positionData.name) + ', ' +
                     'policy_type = ' + connection.escape(policy_positionData.poicy_type) + ', ' +
                     'position_order = ' + connection.escape(policy_positionData.position_order) + ', ' +
                     'content = ' + connection.escape(policy_positionData.content) + ' ' +
@@ -231,12 +231,12 @@ export class PolicyPosition extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sqlExists = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
+            const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
             connection.query(sqlExists, (error, row) => {
                 //If exists Id from policy_position to remove
                 if (row) {
                     db.get((error, connection) => {
-                        var sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
+                        const sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
                         connection.query(sql, (error, result) => {
                             if (error) {
                                 callback(error, null);

@@ -165,7 +165,7 @@ describe(RoutingRuleRepository.name, () => {
                 rule_order: 3
             });
 
-            let group: RoutingGroup = await routingGroupService.create({
+            const group: RoutingGroup = await routingGroupService.create({
                 name: 'group',
                 routingRules: [ruleOrder2],
                 firewallId: firewall.id,
@@ -244,7 +244,7 @@ describe(RoutingRuleRepository.name, () => {
                     rule_order: 3
                 });
 
-                let group: RoutingGroup = await routingGroupService.create({
+                const group: RoutingGroup = await routingGroupService.create({
                     name: 'group',
                     routingRules: [ruleOrder1],
                     firewallId: firewall.id,

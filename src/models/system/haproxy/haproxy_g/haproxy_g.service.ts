@@ -98,7 +98,7 @@ export class HAProxyGroupService extends Service {
     }
 
     async update(id: number, data: IUpdateHAProxyGroup): Promise<HAProxyGroup> {
-        let group: HAProxyGroup | undefined = await this._repository.findOne(id);
+        const group: HAProxyGroup | undefined = await this._repository.findOne(id);
 
         if (!group) {
             throw new Error('HAProxyGroup not found');

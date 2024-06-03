@@ -35,8 +35,8 @@ describe(describeName('MigrationRollbackCommand tests'), () => {
 
 
     it('should rollback multiple migrations', async () => {
-        let app: AbstractApplication = testSuite.app;
-        let databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
+        const app: AbstractApplication = testSuite.app;
+        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
 
         //First, we need to remove default data.
         await databaseService.emptyDatabase();

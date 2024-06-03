@@ -241,7 +241,7 @@ export class HAProxyRuleService extends Service {
     }
 
     async update(id: number, data: Partial<ICreateHAProxyRule>): Promise<HAProxyRule> {
-        let haProxyRule: HAProxyRule | undefined = await this._repository.findOneOrFail(id, {
+        const haProxyRule: HAProxyRule | undefined = await this._repository.findOneOrFail(id, {
             relations: ['group', 'frontendIp', 'frontendPort', 'backendIps', 'backendPort', 'firewall']
         });
         if (!haProxyRule) {
@@ -363,7 +363,7 @@ export class HAProxyRuleService extends Service {
                 break;
         }
 
-        let ItemsArrayMap: Map<number, T[]> = new Map<number, T[]>();
+        const ItemsArrayMap: Map<number, T[]> = new Map<number, T[]>();
         for (let i = 0; i < rulesData.length; i++) {
             rulesData[i].items = [];
             ItemsArrayMap.set(rulesData[i].id, rulesData[i].items);
@@ -413,7 +413,7 @@ export class HAProxyRuleService extends Service {
             }
         });
 
-        for (let rule of rules) {
+        for (const rule of rules) {
             await this.remove({ id: rule.id })
         }
 

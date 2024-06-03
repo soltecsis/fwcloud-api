@@ -43,7 +43,7 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
   let compiler: AvailablePolicyCompilers;
   let nat: string;
 
-  let ruleData = {
+  const ruleData = {
       firewall: 0,
       type: 0,
       rule_order: 1,

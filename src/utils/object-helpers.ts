@@ -23,7 +23,7 @@
 export default class ObjectHelpers {
 
     public static merge(...objects: object[]): object {
-        let result = {};
+        const result = {};
 
         objects.forEach(element => {
             Object.assign(result, element);
@@ -68,7 +68,7 @@ export default class ObjectHelpers {
                     i++;
             return i==la;
         } else if (Object(inner) === inner) {
-            for (var p in inner)
+            for (const p in inner)
                 if (!(p in container && ObjectHelpers.contains(inner[p], container[p])))
                     return false;
             return true;

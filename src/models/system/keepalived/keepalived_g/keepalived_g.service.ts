@@ -97,7 +97,7 @@ export class KeepalivedGroupService extends Service {
     }
 
     async update(id: number, data: IUpdateKeepalivedGroup): Promise<KeepalivedGroup> {
-        let group: KeepalivedGroup | undefined = await this._repository.findOne(id);
+        const group: KeepalivedGroup | undefined = await this._repository.findOne(id);
 
         if (!group) {
             throw new Error('KeepalivedGroup not found');

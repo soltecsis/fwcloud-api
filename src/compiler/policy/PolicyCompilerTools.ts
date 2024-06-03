@@ -100,7 +100,7 @@ export abstract class PolicyCompilerTools {
 
 
   protected ruleComment(): string {
-    let metaData = {};
+    const metaData = {};
     let comment:string = this._ruleData.comment ? this._ruleData.comment : '';
 
     if (this._ruleData.style) metaData['fwc_rs'] = this._ruleData.style;
@@ -138,9 +138,9 @@ export abstract class PolicyCompilerTools {
   public static isPositionNegated(negate: string, position: number): boolean {
     if (!negate) return false;
 
-    let negatedPositionsList = negate.split(' ').map(val => { return parseInt(val) });
+    const negatedPositionsList = negate.split(' ').map(val => { return parseInt(val) });
     // If the position that we want negate is already in the list, don't add again to the list.
-    for (let pos of negatedPositionsList) {
+    for (const pos of negatedPositionsList) {
         if (pos === position) return true;
     }
 
@@ -281,7 +281,7 @@ export abstract class PolicyCompilerTools {
 
 
   private compileSrcDst(dir: 'SRC' | 'DST', sd: any, negate: boolean, ipv: 4 | 6): void {
-    let cmpPos: CompiledPosition = { negate: negate, items: [] };
+    const cmpPos: CompiledPosition = { negate: negate, items: [] };
     const opt = `${this._compiler === 'NFTables' ? (ipv===4 ? 'ip ' : 'ip6 '): ''}${CompilerDir.get(`${this._compiler}:${dir}`)}`;
 
     for (let i = 0; i < sd.length; i++) {
@@ -321,10 +321,10 @@ export abstract class PolicyCompilerTools {
 
 
   private compileInterface(dir: 'IN' | 'OUT', ifs: any, negate: boolean): void {
-    let cmpPos: CompiledPosition = { negate: negate, items: [] };
+    const cmpPos: CompiledPosition = { negate: negate, items: [] };
     const opt = CompilerDir.get(`${this._compiler}:${dir}`);
 
-    for (var i = 0; i < ifs.length; i++)
+    for (let i = 0; i < ifs.length; i++)
       cmpPos.items.push(`${opt} ${this._compiler=='NFTables' ? '"' : ''}${ifs[i].name}${this._compiler=='NFTables' ? '"' : ''}`);
 
     if (cmpPos.items.length > 0) this._compiledPositions.push(cmpPos);
@@ -352,7 +352,7 @@ export abstract class PolicyCompilerTools {
     else { // Up to 15 ports can be specified. A port range (port:port) counts as two ports.
       let n = 0;
       let currentPorts: string[] = [];
-      for(let port of portsList) {
+      for(const port of portsList) {
         // Is the current port a port range (port:port)?
         n += port.indexOf(sep) === -1 ? 1 : 2;
 
@@ -371,7 +371,7 @@ export abstract class PolicyCompilerTools {
               
     
   private compileSvc(svc: any, negate: boolean, ipv: 4 | 6): void {
-    let cmpPos: CompiledPosition = { negate: negate, items: [] };
+    const cmpPos: CompiledPosition = { negate: negate, items: [] };
     let tcpPorts = '';
     let udpPorts = '';
     let tmp = '';
@@ -587,8 +587,8 @@ export abstract class PolicyCompilerTools {
         return;
 
     // If we have negated positions and not negated positions, then move the negated positions to the end of the array.
-    let position_items_not_negate = [];
-    let position_items_negate = [];
+    const position_items_not_negate = [];
+    const position_items_negate = [];
     for (i = 0; i < this._compiledPositions.length; i++) {
         // Is this position item is negated, search for the next one no negated.
         if (!(this._compiledPositions[i].negate))
@@ -611,7 +611,7 @@ export abstract class PolicyCompilerTools {
       if (this._compiledPositions[0].items.length === 1) // Only one item in the condition.
         cs += `${this._compiledPositions[0].items[0]} ${this._csEnd}`;
       else { // Multiple items in the condition.
-        let cs1 = cs;
+        const cs1 = cs;
         cs = '';
         for (let i = 0; i < this._compiledPositions[0].items.length; i++)
           cs += `${cs1}${this._compiledPositions[0].items[i]} ${this._csEnd}`;
@@ -625,7 +625,7 @@ export abstract class PolicyCompilerTools {
           chainName = `FWCRULE${id}.CH${chainNumber}`;
           // If we are in the first condition and it is not negated.
           if (i === 0 && !(this._compiledPositions[i].negate)) {
-            let cs1 = cs;
+            const cs1 = cs;
             cs = '';
             for (let j = 0; j < this._compiledPositions[0].items.length; j++)
               cs += `${cs1}${this._compiledPositions[0].items[j]} ${j < (this._compiledPositions[0].items.length - 1) ? `${this._stateful} ${this._compiler=='IPTables' ? '-j':'jump'} ${chainName}\n` : ''}`;

@@ -353,7 +353,7 @@ export class DatabaseService extends Service {
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
             
             for (let i = 0; i < queries.length; i++) {
-                let query = queries[i].trim();
+                const query = queries[i].trim();
     
                 if (query !== '') {
                     await queryRunner.query(query);

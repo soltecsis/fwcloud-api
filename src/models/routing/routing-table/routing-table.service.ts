@@ -126,7 +126,7 @@ export class RoutingTableService extends Service {
     }
 
     async update(id: number, data: IUpdateRoutingTable): Promise<RoutingTable> {
-        let table: RoutingTable = await this._repository.preload(Object.assign(data, {id}));
+        const table: RoutingTable = await this._repository.preload(Object.assign(data, {id}));
         await this.validateRoutingTableNumber(table);
         await this._repository.save(table);
 
@@ -204,7 +204,7 @@ export class RoutingTableService extends Service {
         const routesData: RouteData<T>[] = await this._routeRepository.getRoutingTableRoutes(fwcloud, firewall, routingTable, routes) as RouteData<T>[];
          
         // Init the map for access the objects array for each route.
-        let ItemsArrayMap = new Map<number, T[]>();
+        const ItemsArrayMap = new Map<number, T[]>();
         for (let i=0; i<routesData.length; i++) {
           routesData[i].items = [];
     
@@ -221,7 +221,7 @@ export class RoutingTableService extends Service {
         return routesData.map(data => {
             data.items = data.items.sort((a,b) => a._order - b._order);
             return data;
-        });;
+        });
     }
 
     /**
@@ -260,13 +260,13 @@ export class RoutingTableService extends Service {
      * @returns 
      */
     public async moveToOtherFirewall(srcFW: number, dstFW: number): Promise<void> {
-        let routingTables: RoutingTable[] = await this._repository.find({
+        const routingTables: RoutingTable[] = await this._repository.find({
             where: {
                 firewallId: srcFW
             }
         });
 
-        for (let table of routingTables) {
+        for (const table of routingTables) {
             table.firewallId = dstFW;
             await this._repository.update(table.id, table);
         }

@@ -51,7 +51,7 @@ export class RoutingCompiler {
 
 
   public routeCompile(routeData: RouteData<RouteItemForCompiler>): string {
-    let items = this.breakDownItems(routeData.items,'');
+    const items = this.breakDownItems(routeData.items,'');
     const gw = routeData.gateway.address;
     const dev = (routeData.interface && routeData.interface.name) ? ` dev ${routeData.interface.name} ` : ' ';
     let cs = '';
@@ -71,7 +71,7 @@ export class RoutingCompiler {
 
 
   public compile(type: 'Route' | 'Rule', data: RouteData<RouteItemForCompiler>[] | RoutingRulesData<RoutingRuleItemForCompiler>[], eventEmitter?: EventEmitter): RoutingCompiled[] {
-    let result: RoutingCompiled[] = [];
+    const result: RoutingCompiled[] = [];
 
     if (!data) return result;
 
@@ -91,7 +91,7 @@ export class RoutingCompiler {
 
   
   private breakDownItems(items: RouteItemForCompiler[] | RoutingRuleItemForCompiler[], dir: string): string[] {
-    let result: string[] = [];
+    const result: string[] = [];
 
     for (let i=0; i<items.length; i++) {
       switch(items[i].type) {

@@ -253,7 +253,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             const config: AxiosRequestConfig = Object.assign({}, this.config);
             config.headers["Content-Type"] = "application/json";
 
-            let params = {
+            const params = {
                 name: name,
                 "action": enabled ? 'enable' : 'disable',
                 ws_id: await this.createWebSocket(eventEmitter)
@@ -292,7 +292,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
             });
             let waiting_for_websocket_id = true;
 
-            let timer = setTimeout(() => {
+            const timer = setTimeout(() => {
                 // TIMEOUT ERROR
                 ws.close();
                 this.cancel_token.cancel('FWCloud-Agent communication timeout');

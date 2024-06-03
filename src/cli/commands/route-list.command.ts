@@ -33,7 +33,7 @@ interface RouteRow {
     handler: string,
     name: string,
     gates: Array<string>
-};
+}
 
 
 /**

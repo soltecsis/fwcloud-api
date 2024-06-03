@@ -45,7 +45,7 @@ describe(describeName('Policy Compiler Unit Tests - Hook scripts'), () => {
   const code_before = 'echo "Code before policy rule load"';
   const code_after = 'echo "Code before policy rule load"';
 
-  let ruleData = {
+  const ruleData = {
       firewall: 0,
       type: 0,
       rule_order: 1,

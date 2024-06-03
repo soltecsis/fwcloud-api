@@ -121,7 +121,7 @@ export class RoutingRuleController extends Controller {
 
         const ids: string[] = request.inputs.get('rules');
         
-        for(let id of ids) {
+        for(const id of ids) {
             const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
                 fwCloudId: this._fwCloud.id,
                 firewallId: this._firewall.id,
@@ -153,7 +153,7 @@ export class RoutingRuleController extends Controller {
 
         const ids: string[] = request.query.rules as string[] || [];
         
-        for(let id of ids) {
+        for(const id of ids) {
             const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
                 fwCloudId: this._fwCloud.id,
                 firewallId: this._firewall.id,
@@ -269,7 +269,7 @@ export class RoutingRuleController extends Controller {
 
         const ids: string[] = request.query.rules as string[] || [];
         
-        for(let id of ids) {
+        for(const id of ids) {
             const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
                 fwCloudId: this._fwCloud.id,
                 firewallId: this._firewall.id,

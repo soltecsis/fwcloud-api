@@ -38,7 +38,7 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
 
   const comment = "CrowdSec firewall bouncer support";
 
-  let ruleData = {
+  const ruleData = {
       firewall: 0,
       type: 0,
       rule_order: 1,
@@ -66,7 +66,7 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
       result = await PolicyCompiler.compile(compiler, rulesData);
     } catch(err) { error = err }
 
-    let cs = compiler === 'IPTables' ?
+    const cs = compiler === 'IPTables' ?
       `$IP${IPv === 'IPv4' ? '' : '6'}TABLES -A ${chain} -m comment --comment '${comment}' -m set --match-set crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists src -j ACCEPT\n` :
       `$NFT add rule ip${IPv === 'IPv4' ? '' : '6'} filter ${chain} ip saddr . ip daddr vmap @crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists counter accept comment \\\"CrowdSec firewall bouncer support\\\"\n`;
 

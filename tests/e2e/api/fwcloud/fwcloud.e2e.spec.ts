@@ -46,13 +46,13 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 		}
 	};
 
-	let fwcData = {
+	const fwcData = {
 		name: "TEST FWCloud", 
 		image: "", 
 		comment: "This is a little comment."
 	};
 
-	let fwcDataUpdate = {
+	const fwcDataUpdate = {
 		fwcloud: 0,
 		name: "Modified TEST FWCloud", 
 		image: "", 
@@ -109,7 +109,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 					.expect(200)
 					.then(response => {
 						expect(response.body).to.be.an('array').not.to.be.empty; 
-						for (let item of response.body)
+						for (const item of response.body)
 							expect(response.body).to.be.jsonSchema(item); 
 
 						expect(response.body[0]).to.have.property("name").which.is.equal(fwcData.name);

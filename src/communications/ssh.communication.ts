@@ -27,7 +27,7 @@ import { FireWallOptMask } from "../models/firewall/Firewall";
 import { ProgressInfoPayload, ProgressNoticePayload } from "../sockets/messages/socket-message";
 import sshTools from "../utils/ssh";
 import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord } from "./communication";
-var config = require('../config/config');
+const config = require('../config/config');
 const fwcError = require('../utils/error_table');
 
 type SSHConnectionData = {
@@ -88,7 +88,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
                 await sshTools.runCommand(this.connectionData, `${sudo} chmod 755 "${dir}"`);
             }
 
-            for(let config of configs) {
+            for(const config of configs) {
                 eventEmitter.emit('message', new ProgressNoticePayload(`Uploading OpenVPN configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
                 eventEmitter.emit('message', new ProgressNoticePayload(`Installing OpenVPN configuration file.\n`));
                 await sshTools.uploadStringToFile(this.connectionData, config.content, config.name);
@@ -119,7 +119,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
                 await sshTools.runCommand(this.connectionData, `${sudo} chmod 755 "${dir}"`);
             }
 
-            for(let config of configs) {
+            for(const config of configs) {
                 eventEmitter.emit('message', new ProgressInfoPayload(`Uploading CCD configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`));
                 eventEmitter.emit('message', new ProgressNoticePayload(`Installing OpenVPN configuration file.\n`));
                 await sshTools.uploadStringToFile(this.connectionData, config.content, config.name);
@@ -142,7 +142,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
             }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
 
-            for(let file of files) {
+            for(const file of files) {
                 eventEmitter.emit('message', new ProgressNoticePayload(`Removing OpenVPN configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`));
                 
                 await sshTools.runCommand(this.connectionData, `${sudo} rm -f "${dir}/${file}"`);
@@ -180,7 +180,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
             let iptablesSaveOutput: string[] = data.split('\r\n');
 
             if (iptablesSaveOutput[0].startsWith('[sudo]')) iptablesSaveOutput.shift();
-            if (iptablesSaveOutput[iptablesSaveOutput.length-1] === '') iptablesSaveOutput = iptablesSaveOutput.slice(0, -1);;
+            if (iptablesSaveOutput[iptablesSaveOutput.length-1] === '') iptablesSaveOutput = iptablesSaveOutput.slice(0, -1);
 
             return iptablesSaveOutput;
         } catch(error) {
@@ -212,7 +212,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         } catch(error) {
             this.handleRequestException(error, eventEmitter);
         }
-    };
+    }
 
     async getRealtimeStatus(statusFilepath: string): Promise<string> {
         try {
@@ -220,9 +220,9 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
                 throw fwcError.SSH_COMMUNICATION_DISABLE;
             }
             const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
-            let data = await sshTools.runCommand(this.connectionData, `${sudo} cat "${statusFilepath}"`);
+            const data = await sshTools.runCommand(this.connectionData, `${sudo} cat "${statusFilepath}"`);
             // Remove the first line ()
-            let lines = data.split('\n');
+            const lines = data.split('\n');
             if (lines[0].startsWith('[sudo] password for ')) {
                 lines.splice(0, 1);
             }

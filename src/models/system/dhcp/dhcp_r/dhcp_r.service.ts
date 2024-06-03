@@ -126,7 +126,7 @@ export class DHCPRuleService extends Service {
             dhcpRuleData.router = await getRepository(IPObj).findOneOrFail(data.routerId) as IPObj;
         }
         if (data.interfaceId) {
-            let interfaceData: Interface = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
+            const interfaceData: Interface = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
             if (!interfaceData.mac || interfaceData.mac === '') {
                 throw new Error('Interface mac is not defined');
             }
@@ -258,7 +258,7 @@ export class DHCPRuleService extends Service {
             for (const field of fieldsToUpdate) {
                 if (data[field]) {
                     if (field === 'interfaceId') {
-                        let interfaceData = await getRepository(Interface).findOneOrFail(data[field]) as Interface;
+                        const interfaceData = await getRepository(Interface).findOneOrFail(data[field]) as Interface;
                         if (interfaceData.mac === '' || !interfaceData.mac) {
                             throw new Error('Interface mac is not defined');
                         }
@@ -343,7 +343,7 @@ export class DHCPRuleService extends Service {
                 break;
         }
 
-        let ItemsArrayMap: Map<number, T[]> = new Map<number, T[]>();
+        const ItemsArrayMap: Map<number, T[]> = new Map<number, T[]>();
         for (let i = 0; i < rulesData.length; i++) {
             rulesData[i].items = [];
 
@@ -394,7 +394,7 @@ export class DHCPRuleService extends Service {
             },
         });
 
-        for (let rule of rules) {
+        for (const rule of rules) {
             await this.remove({ id: rule.id });
         }
 

@@ -64,9 +64,9 @@ describe(describeName('SnapshotService Unit Tests'), () => {
     describe('getAll()', () => {
 
         it('should return all created snapshots belonging to the fwcloud', async () => {
-            let s1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, '1');
-            let s2: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, '2');
-            let s3: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud2, '3');
+            const s1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, '1');
+            const s2: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, '2');
+            const s3: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud2, '3');
 
             const expected = await service.getAll(fwCloud);
 
@@ -81,7 +81,7 @@ describe(describeName('SnapshotService Unit Tests'), () => {
     describe('findOne()', () => {
 
         it('should return a snapshot if the given id exists', async () => {
-            let s1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+            const s1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
             expect(await service.findOne(fwCloud, s1.id)).to.be.deep.eq(s1);
         });

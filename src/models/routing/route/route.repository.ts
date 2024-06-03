@@ -173,7 +173,7 @@ export class RouteRepository extends Repository<Route> {
             relations: ['routingTable']
         });
 
-        for(let entity of entitiesWithRoutingTable) {
+        for(const entity of entitiesWithRoutingTable) {
             if (!Object.prototype.hasOwnProperty.call(affectedTables, entity.routingTableId)) {
                 affectedTables[entity.routingTableId] = entity.routingTable;
             }
@@ -182,7 +182,7 @@ export class RouteRepository extends Repository<Route> {
         // Using Type assertion because TypeScript compiler fails 
         const result = await super.remove(entityOrEntities as Route[], options);
 
-        for(let routingTable of Object.values(affectedTables)) {
+        for(const routingTable of Object.values(affectedTables)) {
             await this.refreshOrders(routingTable.id);
         }
 
@@ -226,7 +226,7 @@ export class RouteRepository extends Repository<Route> {
      * @param routingTableId 
      */
      protected async refreshOrders(routingTableId: number): Promise<void> {
-        let affectedRoutes: Route[] = await this.findManyInPath({
+        const affectedRoutes: Route[] = await this.findManyInPath({
             routingTableId: routingTableId
         });
 

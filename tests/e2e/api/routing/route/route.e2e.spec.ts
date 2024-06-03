@@ -992,7 +992,7 @@ describe(describeName('Route E2E Tests'), () => {
         describe('@bulkUpdate', () => {
             let routeOrder1: Route;
             let routeOrder2: Route;
-            let data: RouteControllerBulkUpdateDto = {
+            const data: RouteControllerBulkUpdateDto = {
                 style: 'style!'
             }
             

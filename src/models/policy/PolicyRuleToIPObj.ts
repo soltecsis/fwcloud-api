@@ -30,7 +30,7 @@ import { logger } from '../../fonaments/abstract-application';
 import { PolicyPosition } from './PolicyPosition';
 import { RulePositionsMap } from '../../models/policy/PolicyPosition';
 import { IPObj } from '../ipobj/IPObj';
-var asyncMod = require('async');
+const asyncMod = require('async');
 const fwcError = require('../../utils/error_table');
 
 const tableModel: string = "policy_r__ipobj";
@@ -113,7 +113,7 @@ export class PolicyRuleToIPObj extends Model {
             if (error)
                 callback(error, null);
 
-            var sql = 'SELECT * FROM ' + tableModel + ' WHERE rule=' + connection.escape(rule) + ' ORDER BY position_order';
+            const sql = 'SELECT * FROM ' + tableModel + ' WHERE rule=' + connection.escape(rule) + ' ORDER BY position_order';
 
             connection.query(sql, (error, rows) => {
                 if (error)
@@ -123,7 +123,7 @@ export class PolicyRuleToIPObj extends Model {
             });
         });
 
-    };
+    }
 
     //Get All policy_r__ipobj by Policy_r (rule) and position
     public static getRuleIPObjsByPosition(rule, position) {
@@ -131,7 +131,7 @@ export class PolicyRuleToIPObj extends Model {
             db.get((error, connection) => {
                 if (error) return reject(error);
 
-                let sql = `SELECT * FROM ${tableModel} 
+                const sql = `SELECT * FROM ${tableModel} 
                     WHERE rule=${connection.escape(rule)} AND position=${connection.escape(position)}
                     ORDER BY position_order`;
 
@@ -141,7 +141,7 @@ export class PolicyRuleToIPObj extends Model {
                 });
             });
         });
-    };
+    }
 
     //Get All policy_r__ipobj by Policy_r (rule) and position
     public static getPolicy_r__ipobjs_position_data(rule, position, callback) {
@@ -150,8 +150,8 @@ export class PolicyRuleToIPObj extends Model {
             if (error)
                 callback(error, null);
 
-            var sql_obj = " INNER JOIN ipobj O on O.id=P.ipobj ";
-            var sql = 'SELECT * FROM ' + tableModel + ' P ' + sql_obj + ' WHERE P.rule=' + connection.escape(rule) + ' AND P.position=' + connection.escape(position) + ' ORDER BY P.position_order';
+            const sql_obj = " INNER JOIN ipobj O on O.id=P.ipobj ";
+            const sql = 'SELECT * FROM ' + tableModel + ' P ' + sql_obj + ' WHERE P.rule=' + connection.escape(rule) + ' AND P.position=' + connection.escape(position) + ' ORDER BY P.position_order';
             logger().debug(sql);
             connection.query(sql, (error, rows) => {
                 if (error)
@@ -161,7 +161,7 @@ export class PolicyRuleToIPObj extends Model {
             });
         });
 
-    };
+    }
 
     //Get  policy_r__ipobj by primarykey
     public static getPolicy_r__ipobj(rule, ipobj, ipobj_g, _interface, position, callback) {
@@ -170,7 +170,7 @@ export class PolicyRuleToIPObj extends Model {
             if (error)
                 callback(error, null);
 
-            var sql = 'SELECT * FROM ' + tableModel +
+            const sql = 'SELECT * FROM ' + tableModel +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
                 ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position) +
                 ' ORDER BY position_order';
@@ -182,7 +182,7 @@ export class PolicyRuleToIPObj extends Model {
                     callback(null, rows);
             });
         });
-    };
+    }
 
     //Verify that the object is not already present in the destination position. 
     public static checkExistsInPosition = (policy_r__ipobjData) => {
@@ -190,7 +190,7 @@ export class PolicyRuleToIPObj extends Model {
             db.get((error, connection) => {
                 if (error) return reject(error);
                 // First verify that the object is not already in the position.
-                var sql = 'SELECT id_pi FROM ' + tableModel +
+                let sql = 'SELECT id_pi FROM ' + tableModel +
                     ' WHERE rule=' + connection.escape(policy_r__ipobjData.rule) + ' AND ipobj=' + connection.escape(policy_r__ipobjData.ipobj) +
                     ' AND ipobj_g=' + connection.escape(policy_r__ipobjData.ipobj_g) + ' AND interface=' + connection.escape(policy_r__ipobjData.interface) +
                     ' AND position=' + connection.escape(policy_r__ipobjData.position);
@@ -286,7 +286,7 @@ export class PolicyRuleToIPObj extends Model {
     //Check if group is empty.
     public static isGroupEmpty = (dbCon, group) => {
         return new Promise((resolve, reject) => {
-            let sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
+            const sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
 			union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
 			union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}`;
             dbCon.query(sql, (error, result) => {
@@ -303,7 +303,7 @@ export class PolicyRuleToIPObj extends Model {
     public static emptyIpobjContainerToObjectPosition(req) {
         return new Promise((resolve, reject) => {
             // First we need the object type and the content type of the rule position.
-            let sql = `select content,
+            const sql = `select content,
 			${(req.body.ipobj > 0) ? `(select type from ipobj where id=${req.body.ipobj}) as type` : ``}
 			${(req.body.interface > 0) ? `(select type from interface where id=${req.body.interface}) as type` : ``}
 			${(req.body.ipobj_g > 0) ? `(select type from ipobj_g where id=${req.body.ipobj_g}) as type` : ``}
@@ -318,19 +318,19 @@ export class PolicyRuleToIPObj extends Model {
                 try {
                     const rule_ip_version = await PolicyRule.getPolicyRuleIPversion(req.dbCon, req.body.fwcloud, req.body.firewall, req.body.rule);
 
-                    let type = parseInt(rows[0].type);
+                    const type = parseInt(rows[0].type);
                     if (type === 10 || type === 11) { // 10 = INTERFACE FIREWALL, 11 = INTERFACE HOST
-                        let addrs: any = await Interface.getInterfaceAddr(req.dbCon, req.body.interface);
+                        const addrs: any = await Interface.getInterfaceAddr(req.dbCon, req.body.interface);
                         let n = 0;
-                        for (let addr of addrs) { // Count the amount of interface address with the same IP version of the rule.
+                        for (const addr of addrs) { // Count the amount of interface address with the same IP version of the rule.
                             if (parseInt(addr.ip_version) === rule_ip_version) n++;
                         }
                         if (n === 0) return resolve(true);
                     }
                     else if (type === 8) { // 8 = HOST
-                        let addrs: any = await Interface.getHostAddr(req.dbCon, req.body.ipobj);
+                        const addrs: any = await Interface.getHostAddr(req.dbCon, req.body.ipobj);
                         let n = 0;
-                        for (let addr of addrs) { // Count the amount of interface address with the same IP version of the rule.
+                        for (const addr of addrs) { // Count the amount of interface address with the same IP version of the rule.
                             if (parseInt(addr.ip_version) === rule_ip_version) n++;
                         }
                         if (n === 0) return resolve(true);
@@ -365,14 +365,14 @@ export class PolicyRuleToIPObj extends Model {
                 });
             });
         });
-    };
+    }
 
     //Clone policy_r__ipobj 
     public static clonePolicy_r__ipobj(policy_r__ipobjData) {
         return new Promise((resolve, reject) => {
             logger().debug("policy_r__ipobjData: ", policy_r__ipobjData);
-            var newfirewall = policy_r__ipobjData.newfirewall;
-            var p_ipobjData = {
+            const newfirewall = policy_r__ipobjData.newfirewall;
+            const p_ipobjData = {
                 rule: policy_r__ipobjData.newrule,
                 ipobj: policy_r__ipobjData.ipobj,
                 ipobj_g: policy_r__ipobjData.ipobj_g,
@@ -433,7 +433,7 @@ export class PolicyRuleToIPObj extends Model {
 
             });
         });
-    };
+    }
 
     public static cloneInsertPolicy_r__ipobj(p_ipobjData) {
         return new Promise((resolve, reject) => {
@@ -455,11 +455,11 @@ export class PolicyRuleToIPObj extends Model {
                 });
             });
         });
-    };
+    }
     //Duplicate policy_r__ipobj RULES
     public static duplicatePolicy_r__ipobj = (dbCon, rule, new_rule): Promise<void> => {
         return new Promise((resolve, reject) => {
-            let sql = `INSERT INTO ${tableModel} (rule, ipobj, ipobj_g, interface, position, position_order)
+            const sql = `INSERT INTO ${tableModel} (rule, ipobj, ipobj_g, interface, position, position_order)
 			(SELECT ${new_rule}, ipobj, ipobj_g, interface, position, position_order
 			from ${tableModel} where rule=${rule} order by  position, position_order)`;
             dbCon.query(sql, async (error, result) => {
@@ -482,7 +482,7 @@ export class PolicyRuleToIPObj extends Model {
                     db.get((error, connection) => {
                         if (error)
                             callback(error, null);
-                        var sql = 'UPDATE ' + tableModel + ' SET ' +
+                        const sql = 'UPDATE ' + tableModel + ' SET ' +
                             'rule = ' + connection.escape(policy_r__ipobjData.rule) + ',' +
                             'ipobj = ' + connection.escape(policy_r__ipobjData.ipobj) + ',' +
                             'ipobj_g = ' + connection.escape(policy_r__ipobjData.ipobj_g) + ',' +
@@ -516,7 +516,7 @@ export class PolicyRuleToIPObj extends Model {
                 }
             }
         });
-    };
+    }
     //Update policy_r__ipobj Position ORDER
     public static updatePolicy_r__ipobj_position_order(rule, ipobj, ipobj_g, _interface, position, position_order, new_order, callback) {
 
@@ -524,7 +524,7 @@ export class PolicyRuleToIPObj extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'UPDATE ' + tableModel + ' SET ' +
+            const sql = 'UPDATE ' + tableModel + ' SET ' +
                 'position_order = ' + connection.escape(new_order) + ' ' +
                 ' WHERE rule = ' + connection.escape(rule) + ' AND ipobj=' + connection.escape(ipobj) +
                 ' AND ipobj_g=' + connection.escape(ipobj_g) + ' AND position=' + connection.escape(position) +
@@ -542,7 +542,7 @@ export class PolicyRuleToIPObj extends Model {
                 }
             });
         });
-    };
+    }
     //Update policy_r__ipobj POSITION
     //When Update position we order New and Old POSITION
     public static updatePolicy_r__ipobj_position(dbCon, rule, ipobj, ipobj_g, _interface, position, position_order, new_rule, new_position, new_order): Promise<void> {
@@ -552,7 +552,7 @@ export class PolicyRuleToIPObj extends Model {
                 if (error) return reject(error);
                 if (!data) return reject(fwcError.NOT_ALLOWED);
 
-                var sql = `UPDATE ${tableModel} SET
+                const sql = `UPDATE ${tableModel} SET
                     rule=${dbCon.escape(new_rule)}, position=${dbCon.escape(new_position)}, 
                     position_order=${dbCon.escape(new_order)}
                     WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}
@@ -571,14 +571,14 @@ export class PolicyRuleToIPObj extends Model {
                 });
             });
         });
-    };
+    }
 
     private static async OrderList(new_order, rule, position, old_order, ipobj, ipobj_g, _interface) {
 
         return new Promise<any>((resolve, reject) => {
-            var increment = '+1';
-            var order1 = new_order;
-            var order2 = old_order;
+            let increment = '+1';
+            let order1 = new_order;
+            let order2 = old_order;
             if (new_order > old_order) {
                 increment = '-1';
                 order1 = old_order;
@@ -595,7 +595,7 @@ export class PolicyRuleToIPObj extends Model {
             db.get((error, connection) => {
                 if (error)
                     reject(error);
-                var sql = 'UPDATE ' + tableModel + ' SET ' +
+                const sql = 'UPDATE ' + tableModel + ' SET ' +
                     'position_order = position_order' + increment +
                     ' WHERE rule = ' + connection.escape(rule) + ' AND position=' + connection.escape(position) +
                     ' AND position_order>=' + order1 + ' AND position_order<=' + order2 + sql_obj;
@@ -648,12 +648,12 @@ export class PolicyRuleToIPObj extends Model {
             dbCon.query(`SELECT id, content FROM policy_position WHERE id=${position}`, (error, result) => {
                 if (error) return reject(error);
                 if (result.length !== 1) reject(fwcError.NOT_FOUND);
-                let content1 = result[0].content;
+                const content1 = result[0].content;
 
                 dbCon.query(`SELECT id, content FROM policy_position WHERE id=${new_position}`, (error, result) => {
                     if (error) return reject(error);
                     if (result.length !== 1) reject(fwcError.NOT_FOUND);
-                    let content2 = result[0].content;
+                    const content2 = result[0].content;
 
                     resolve({ "content1": content1, "content2": content2 });
                 });
@@ -664,7 +664,7 @@ export class PolicyRuleToIPObj extends Model {
     //Remove policy_r__ipobj 
     public static deletePolicy_r__ipobj(dbCon, rule, ipobj, ipobj_g, _interface, position, position_order): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            var sqlExists = `SELECT * FROM ${tableModel}
+            const sqlExists = `SELECT * FROM ${tableModel}
                 WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}
                 AND ipobj_g=${dbCon.escape(ipobj_g)} AND position=${dbCon.escape(position)}`;
             dbCon.query(sqlExists, async (error, row) => {
@@ -686,7 +686,7 @@ export class PolicyRuleToIPObj extends Model {
                 } else reject(fwcError.NOT_FOUND);
             });
         });
-    };
+    }
     //Remove policy_r__ipobj 
     public static deletePolicy_r__All(rule, callback) {
 
@@ -694,14 +694,14 @@ export class PolicyRuleToIPObj extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sqlExists = 'SELECT * FROM ' + tableModel +
+            const sqlExists = 'SELECT * FROM ' + tableModel +
                 ' WHERE rule = ' + connection.escape(rule);
             connection.query(sqlExists, (error, row) => {
                 //If exists Id from policy_r__ipobj to remove
                 if (row) {
                     logger().debug("DELETING IPOBJ FROM RULE: " + rule);
                     db.get(async (error, connection) => {
-                        var sql = 'DELETE FROM ' + tableModel +
+                        const sql = 'DELETE FROM ' + tableModel +
                             ' WHERE rule = ' + connection.escape(rule);
                         connection.query(sql, async (error, result) => {
                             if (error) {
@@ -721,7 +721,7 @@ export class PolicyRuleToIPObj extends Model {
                 }
             });
         });
-    };
+    }
     //Order policy_r__ipobj Position
     public static orderPolicyPosition(rule, position, callback) {
 
@@ -729,11 +729,11 @@ export class PolicyRuleToIPObj extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sqlPos = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND position= ' + connection.escape(position) + ' order by position_order';
+            const sqlPos = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' AND position= ' + connection.escape(position) + ' order by position_order';
             logger().debug(sqlPos);
             connection.query(sqlPos, (error, rows) => {
                 if (rows.length > 0) {
-                    var order = 0;
+                    let order = 0;
                     asyncMod.map(rows, (row, callback1) => {
                         order++;
                         db.get((error, connection) => {
@@ -761,7 +761,7 @@ export class PolicyRuleToIPObj extends Model {
                 }
             });
         });
-    };
+    }
     //Order policy_r__ipobj Position
     public static orderPolicy(rule, callback) {
 
@@ -769,14 +769,14 @@ export class PolicyRuleToIPObj extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sqlRule = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' order by position, position_order';
+            const sqlRule = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule) + ' order by position, position_order';
             logger().debug(sqlRule);
             connection.query(sqlRule, (error, rows) => {
                 if (rows.length > 0) {
-                    var order = 0;
-                    var prev_position = 0;
+                    let order = 0;
+                    let prev_position = 0;
                     asyncMod.map(rows, (row, callback1) => {
-                        var position = row.position;
+                        const position = row.position;
                         if (position !== prev_position) {
                             order = 1;
                             prev_position = position;
@@ -807,7 +807,7 @@ export class PolicyRuleToIPObj extends Model {
                 }
             });
         });
-    };
+    }
     //Order policy_r__ipobj Position
     public static orderAllPolicy(callback) {
 
@@ -815,16 +815,16 @@ export class PolicyRuleToIPObj extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sqlRule = 'SELECT * FROM ' + tableModel + ' ORDER by rule,position, position_order';
+            const sqlRule = 'SELECT * FROM ' + tableModel + ' ORDER by rule,position, position_order';
             logger().debug(sqlRule);
             connection.query(sqlRule, (error, rows) => {
                 if (rows.length > 0) {
-                    var order = 0;
-                    var prev_rule = 0;
-                    var prev_position = 0;
+                    let order = 0;
+                    let prev_rule = 0;
+                    let prev_position = 0;
                     asyncMod.map(rows, (row, callback1) => {
-                        var position = row.position;
-                        var rule = row.rule;
+                        const position = row.position;
+                        const rule = row.rule;
                         if (position !== prev_position || rule !== prev_rule) {
                             order = 1;
                             prev_rule = rule;
@@ -857,7 +857,7 @@ export class PolicyRuleToIPObj extends Model {
                 }
             });
         });
-    };
+    }
     //FALTA CORREGIR PROBLEMA AL CONTABILIZAR REGISTROS EXISTENTES 
 
     //check if IPOBJ Exists in any rule
@@ -867,7 +867,7 @@ export class PolicyRuleToIPObj extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
+            const sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
                 ' INNER JOIN  ipobj I on I.id=O.ipobj ' +
                 ' WHERE O.ipobj=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
             logger().debug(sql);
@@ -881,7 +881,7 @@ export class PolicyRuleToIPObj extends Model {
                             callback(null, { "result": false });
                         }
                     } else {
-                        var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
+                        const sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
                             ' INNER JOIN ipobj__ipobjg G on G.ipobj_g=O.ipobj_g INNER JOIN  ipobj I on I.id=G.ipobj ' +
                             ' WHERE I.ipobj=' + connection.escape(ipobj) + ' AND I.type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud);
                         logger().debug(sql);
@@ -904,7 +904,7 @@ export class PolicyRuleToIPObj extends Model {
                     callback(null, { "result": false });
             });
         });
-    };
+    }
 
 
     //check if INTERFACE Exists in any rule 'O' POSITIONS
@@ -937,7 +937,7 @@ export class PolicyRuleToIPObj extends Model {
                     callback(null, { "result": false });
             });
         });
-    };
+    }
     //check if ALL INTERFACE UNDER HOST Exists in any rule
     public static checkHostAllInterfacesInRule(ipobj_host, fwcloud, callback) {
 
@@ -945,7 +945,7 @@ export class PolicyRuleToIPObj extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O ' +
+            const sql = 'SELECT count(*) as n FROM ' + tableModel + ' O ' +
                 ' INNER JOIN interface__ipobj J on J.interface=O.interface ' +
                 ' INNER JOIN policy_r R on R.id=O.rule ' +
                 ' INNER JOIN firewall F on F.id=R.firewall ' +
@@ -968,7 +968,7 @@ export class PolicyRuleToIPObj extends Model {
                     callback(null, { "result": false });
             });
         });
-    };
+    }
     //check if ALL IPOBJS UNDER ALL INTERFACE UNDER HOST Exists in any rule
     public static checkHostAllInterfaceAllIpobjInRule(ipobj_host, fwcloud, callback) {
 
@@ -976,7 +976,7 @@ export class PolicyRuleToIPObj extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'SELECT count(*) as n FROM interface__ipobj J ' +
+            const sql = 'SELECT count(*) as n FROM interface__ipobj J ' +
                 ' inner join ipobj I on I.interface=J.interface ' +
                 ' inner join policy_r__ipobj O on O.ipobj=I.id ' +
                 ' INNER JOIN policy_r R on R.id=O.rule ' +
@@ -1000,7 +1000,7 @@ export class PolicyRuleToIPObj extends Model {
                     callback(null, { "result": false });
             });
         });
-    };
+    }
     //check if IPOBJ UNDER INTERFACE Exists in any rule
     public static checkOBJInterfaceInRule(_interface, type, fwcloud, firewall, callback) {
 
@@ -1008,7 +1008,7 @@ export class PolicyRuleToIPObj extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
+            const sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
                 ' INNER JOIN ipobj I on O.ipobj=I.id INNER JOIN interface Z on Z.id=I.interface' +
                 ' WHERE I.interface=' + connection.escape(_interface) + ' AND Z.interface_type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud) + ' AND F.id=' + connection.escape(firewall);
             logger().debug(sql);
@@ -1028,7 +1028,7 @@ export class PolicyRuleToIPObj extends Model {
                     callback(null, { "result": false });
             });
         });
-    };
+    }
     //check if HOST INTERFACE Exists in any rule
     public static checkHOSTInterfaceInRule(_interface, type, fwcloud, firewall, callback) {
 
@@ -1036,7 +1036,7 @@ export class PolicyRuleToIPObj extends Model {
         db.get((error, connection) => {
             if (error)
                 callback(error, null);
-            var sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
+            const sql = 'SELECT count(*) as n FROM ' + tableModel + ' O INNER JOIN policy_r R on R.id=O.rule ' + ' INNER JOIN firewall F on F.id=R.firewall ' +
                 ' inner join interface__ipobj J on J.ipobj=O.ipobj  INNER JOIN interface Z on Z.id=J.interface' +
                 ' WHERE J.interface=' + connection.escape(_interface) + ' AND Z.interface_type=' + connection.escape(type) + ' AND F.fwcloud=' + connection.escape(fwcloud) + ' AND F.id=' + connection.escape(firewall);
             logger().debug(sql);
@@ -1056,7 +1056,7 @@ export class PolicyRuleToIPObj extends Model {
                     callback(null, { "result": false });
             });
         });
-    };
+    }
 
 
     //------------------- SEARCH METHODS -----------------------------------------------
@@ -1066,7 +1066,7 @@ export class PolicyRuleToIPObj extends Model {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
-                var sql = `SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
+                const sql = `SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
 				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 				O.position rule_position_id, P.name rule_position_name, R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1092,7 +1092,7 @@ export class PolicyRuleToIPObj extends Model {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
-                var sql = `SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name,
+                let sql = `SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name,
 				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 				O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1123,7 +1123,7 @@ export class PolicyRuleToIPObj extends Model {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
-                var sql = `SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name,
+                const sql = `SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name,
 				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order, R.type rule_type, PT.name rule_type_name,
 				O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1151,7 +1151,7 @@ export class PolicyRuleToIPObj extends Model {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
-                var sql = `SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
+                const sql = `SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
 				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 				O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1179,7 +1179,7 @@ export class PolicyRuleToIPObj extends Model {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
-                var sql = `SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name,
+                const sql = `SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name,
 				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name, O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 				O.position rule_position_id, P.name rule_position_name, R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1203,7 +1203,7 @@ export class PolicyRuleToIPObj extends Model {
     //Search INTERFACES UNDER IPOBJ HOST that Exists in any rule
     public static searchInterfaceHostInRule = (dbCon, fwcloud, ipobj) => {
         return new Promise((resolve, reject) => {
-            var sql = `SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name,
+            const sql = `SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name,
 			C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 			O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1228,7 +1228,7 @@ export class PolicyRuleToIPObj extends Model {
     //Search ADDR UNDER IPOBJ HOST that Exists in any rule
     public static searchAddrHostInRule = (dbCon, fwcloud, ipobj) => {
         return new Promise((resolve, reject) => {
-            var sql = `SELECT O.ipobj obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
+            const sql = `SELECT O.ipobj obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
 			C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 			O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1253,7 +1253,7 @@ export class PolicyRuleToIPObj extends Model {
     public static searchLastAddrInInterfaceInRule = (dbCon, ipobj, type, fwcloud) => {
         return new Promise((resolve, reject) => {
             // Fisrt get all the interfaces in rules to which the address belongs.
-            var sql = `SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name,
+            const sql = `SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name,
 			C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 			O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1270,16 +1270,16 @@ export class PolicyRuleToIPObj extends Model {
             dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
 
-                let result = [];
+                const result = [];
                 try {
-                    for (let row of rows) {
+                    for (const row of rows) {
                         const rule_ip_version = await PolicyRule.getPolicyRuleIPversion(dbCon, fwcloud, row.firewall_id, row.rule_id);
-                        let addrs: any = await Interface.getInterfaceAddr(dbCon, row.obj_id);
+                        const addrs: any = await Interface.getInterfaceAddr(dbCon, row.obj_id);
 
                         // Count the amount of interface address with the same IP version of the rule.
                         let n = 0;
                         let id = 0;
-                        for (let addr of addrs) {
+                        for (const addr of addrs) {
                             if (parseInt(addr.ip_version) === rule_ip_version) {
                                 n++;
                                 if (n === 1) id = addr.id;
@@ -1300,7 +1300,7 @@ export class PolicyRuleToIPObj extends Model {
     public static searchLastAddrInHostInRule = (dbCon, ipobj, type, fwcloud) => {
         return new Promise((resolve, reject) => {
             // Fisrt get all the host in rules to which the address belongs.
-            var sql = `SELECT O.ipobj obj_id,IR.name obj_name, IR.type obj_type_id,T.type obj_type_name,
+            const sql = `SELECT O.ipobj obj_id,IR.name obj_name, IR.type obj_type_id,T.type obj_type_name,
 			C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 			O.position rule_position_id, P.name rule_position_name, R.comment rule_comment,
 			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1319,16 +1319,16 @@ export class PolicyRuleToIPObj extends Model {
             dbCon.query(sql, async (error, rows) => {
                 if (error) return reject(error);
 
-                let result = [];
+                const result = [];
                 try {
-                    for (let row of rows) {
+                    for (const row of rows) {
                         const rule_ip_version = await PolicyRule.getPolicyRuleIPversion(dbCon, fwcloud, row.firewall_id, row.rule_id);
-                        let addrs: any = await Interface.getHostAddr(dbCon, row.obj_id);
+                        const addrs: any = await Interface.getHostAddr(dbCon, row.obj_id);
 
                         // Count the amount of interface address with the same IP version of the rule.
                         let n = 0;
                         let id = 0;
-                        for (let addr of addrs) {
+                        for (const addr of addrs) {
                             if (parseInt(addr.ip_version) === rule_ip_version) {
                                 n++;
                                 if (n === 1) id = addr.id;
@@ -1360,16 +1360,16 @@ export class PolicyRuleToIPObj extends Model {
             .andWhere('firewall.fwCloudId = :fwcloudId', {fwcloudId})  
             .getMany();
 
-        let result: PolicyRuleToIPObj[] = [];
+        const result: PolicyRuleToIPObj[] = [];
         
-        for (let policyRuleToIPObjGroup of policyRuleToIPObjGroups) {
-            for(let ipObjToIPObjGroup of policyRuleToIPObjGroup.ipObjGroup.ipObjToIPObjGroups) {
-                let addrs: any = await Interface.getHostAddr(db.getQuery(), ipObjToIPObjGroup.ipObjId);
+        for (const policyRuleToIPObjGroup of policyRuleToIPObjGroups) {
+            for(const ipObjToIPObjGroup of policyRuleToIPObjGroup.ipObjGroup.ipObjToIPObjGroups) {
+                const addrs: any = await Interface.getHostAddr(db.getQuery(), ipObjToIPObjGroup.ipObjId);
 
                 // Count the amount of interface address with the same IP version of the rule.
                 let n = 0;
                 let id = 0;
-                for (let addr of addrs) {
+                for (const addr of addrs) {
                     n++;
                     if (n === 1) id = addr.id;
                 }
@@ -1409,7 +1409,7 @@ export class PolicyRuleToIPObj extends Model {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
-                var sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
+                let sql = 'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
                     'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name , ' +
                     'O.rule rule_id, R.rule_order,R.type rule_type,  PT.name rule_type_name,O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
                     'FROM policy_r__ipobj O ' +
@@ -1440,7 +1440,7 @@ export class PolicyRuleToIPObj extends Model {
         return new Promise((resolve, reject) => {
             db.get((error, connection) => {
                 if (error) return reject(error);
-                var sql = `SELECT I.id obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
+                const sql = `SELECT I.id obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
 				G.id group_id, G.name group_name, G.type group_type
 				FROM ipobj__ipobjg O
 				INNER JOIN ipobj_g G ON G.id=O.ipobj_g
@@ -1469,7 +1469,7 @@ export class PolicyRuleToIPObj extends Model {
                     if (error) return reject(error);
                     if (result.length !== 1) return reject(fwcError.NOT_FOUND);
 
-                    let type = parseInt(result[0].type);
+                    const type = parseInt(result[0].type);
                     if (type !== 5 && type !== 6 && type !== 7) //5=ADRRES, 6=ADDRESS RANGE, 7=NETWORK
                         return resolve(true);
 
@@ -1502,5 +1502,5 @@ export class PolicyRuleToIPObj extends Model {
                 } catch (error) { return reject(error) }
             } else resolve(true);
         });
-    };
+    }
 }

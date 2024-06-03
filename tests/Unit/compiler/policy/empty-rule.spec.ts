@@ -39,7 +39,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     let compiler: AvailablePolicyCompilers;
     let family: 'ip' | 'ip6';
 
-    let ruleData = {
+    const ruleData = {
         firewall: 0,
         type: 0,
         rule_order: 1,

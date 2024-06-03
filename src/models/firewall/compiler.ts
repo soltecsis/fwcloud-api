@@ -12,7 +12,7 @@ export class Compiler {
     public async compile(headerPath: string, footerPath: string, eventEmitter: EventEmitter): Promise<void> {
         return new Promise<void>(async (resolve, reject) => {
             const outputPath: string = this._firewall.getPolicyFilePath();
-            var stream = fs.createWriteStream(outputPath);            
+            const stream = fs.createWriteStream(outputPath);            
         });
     }
 }

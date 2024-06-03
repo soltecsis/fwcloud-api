@@ -136,7 +136,7 @@ describe(RouteRepository.name, () => {
                 gatewayId: gateway.id
             });
 
-            let group: RouteGroup = await routeGroupService.create({
+            const group: RouteGroup = await routeGroupService.create({
                 name: 'group',
                 routes: [routeOrder2],
                 firewallId: firewall.id,
@@ -226,7 +226,7 @@ describe(RouteRepository.name, () => {
                     gatewayId: gateway.id
                 });
     
-                let group: RouteGroup = await routeGroupService.create({
+                const group: RouteGroup = await routeGroupService.create({
                     name: 'group',
                     routes: [routeOrder1],
                     firewallId: firewall.id,

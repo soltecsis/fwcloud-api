@@ -52,14 +52,14 @@ export class TfaController extends Controller{
                 name: req.body.username,
                 issuer: 'FWCLOUD - SOLTECSIS'
             });
-            var url = speakeasy.otpauthURL({
+            const url = speakeasy.otpauthURL({
                 secret: secret.base32,
                 label: req.body.username,
                 issuer: 'FWCLOUD - SOLTECSIS',
                 encoding: 'base32'
             });
             QRCode.toDataURL(url,async (err,dataURL)=>{
-                var tfa = {
+                const tfa = {
                     secret: '',
                     tempSecret: secret.base32,
                     dataURL,
@@ -76,7 +76,7 @@ export class TfaController extends Controller{
     
     @Validate()
     public async getSetup(req: Request): Promise<ResponseBuilder> {
-        var tfa = await AuthService.GetTfa(req.session.user_id);
+        const tfa = await AuthService.GetTfa(req.session.user_id);
         
         return ResponseBuilder.buildResponse().status(200).body({
             enabled: tfa !== undefined,
