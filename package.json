@@ -15,7 +15,9 @@
     "fwcloud": "node --no-warnings dist/src/cli/cli.js",
     "test": "npm run build && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --colors dist/tests/**/*spec.js",
     "format": "prettier --check \"{src,app,lib,tests}/**/*.ts\"",
-    "format:fix": "prettier --write \"{src,app,lib,tests}/**/*.ts\""
+    "format:fix": "prettier --write \"{src,app,lib,tests}/**/*.ts\"",
+    "lint": "eslint \"{src,app,lib,tests}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,app,lib,tests}/**/*.ts\" --fix"
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -78,11 +80,14 @@
     "@types/sinon": "^17.0.3",
     "@types/supertest": "6.0.2",
     "@types/uuid": "^9.0.8",
+    "@typescript-eslint/eslint-plugin": "^7.11.0",
+    "@typescript-eslint/parser": "^7.11.0",
     "busboy": "^1.6.0",
     "chai": "4.2.0",
     "chai-as-promised": "7.1.2",
     "chai-json-schema": "^1.5.1",
     "cookie-signature": "1.2.1",
+    "eslint": "^8.57.0",
     "mocha": "^10.4.0",
     "sinon": "18.0.0",
     "supertest": "7.0.0",
