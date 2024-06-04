@@ -17,7 +17,9 @@
     "fwcloud": "node --no-warnings dist/src/cli/cli.js",
     "test": "npm run build && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --colors dist/tests/**/*spec.js",
     "lint": "eslint \"{src,app,lib,tests}/**/*.ts\"",
-    "lint:fix": "eslint \"{src,app,lib,tests}/**/*.ts\" --fix"
+    "lint:fix": "eslint \"{src,app,lib,tests}/**/*.ts\" --fix",
+    "format": "prettier --check \"{src,app,lib,tests}/**/*.ts\"",
+    "format:fix": "prettier --write \"{src,app,lib,tests}/**/*.ts\""
 
   },
   "apidoc": {
@@ -97,7 +99,10 @@
     "chai-json-schema": "^1.5.1",
     "cookie-signature": "1.2.1",
     "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
     "mocha": "^10.4.0",
+    "prettier": "^3.3.0",
     "sinon": "18.0.0",
     "supertest": "7.0.0",
     "typescript": "^5.4.5"
