@@ -25,21 +25,21 @@ import { DatabaseService } from "../../database/database.service";
 import { Connection } from "typeorm";
 import { Command } from "../command";
 
-
 /**
  * Runs migration command.
  */
 export class MigrationResetCommand extends Command {
-    
-    public name: string = "migration:reset";
-    public description: string = "Reset all migrations";
+  public name: string = "migration:reset";
+  public description: string = "Reset all migrations";
 
-    async handle(args: yargs.Arguments) {
-        const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
-        const connection: Connection = await databaseService.getConnection({name: 'cli'}) 
-        
-        await databaseService.resetMigrations(connection);
-        this.output.success(`Database wiped out.`);
-    }
+  async handle(args: yargs.Arguments) {
+    const databaseService: DatabaseService =
+      await this._app.getService<DatabaseService>(DatabaseService.name);
+    const connection: Connection = await databaseService.getConnection({
+      name: "cli",
+    });
 
+    await databaseService.resetMigrations(connection);
+    this.output.success(`Database wiped out.`);
+  }
 }

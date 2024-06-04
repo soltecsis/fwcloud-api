@@ -25,16 +25,18 @@ import Model from "../../../models/Model";
 import { Ca } from "../../../models/vpn/pki/Ca";
 import { SelectQueryBuilder } from "typeorm";
 
-
 export class CaExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return Ca;
-    }
+  protected getEntity(): typeof Model {
+    return Ca;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where(`${alias}.fwCloudId = :id`, {
-            id: fwCloudId
-        });
-    }
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where(`${alias}.fwCloudId = :id`, {
+      id: fwCloudId,
+    });
+  }
 }

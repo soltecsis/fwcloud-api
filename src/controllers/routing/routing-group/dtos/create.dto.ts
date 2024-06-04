@@ -20,17 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ArrayMinSize, IsNumber, IsOptional, IsString, MinLength } from "class-validator";
+import {
+  ArrayMinSize,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MinLength,
+} from "class-validator";
 
 export class RoutingGroupControllerCreateDto {
-    @IsString()
-    name: string;
+  @IsString()
+  name: string;
 
-    @IsString()
-    @IsOptional()
-    comment: string;
+  @IsString()
+  @IsOptional()
+  comment: string;
 
-    @IsNumber({}, {each: true})
-    @ArrayMinSize(1)
-    routingRules: number[]
+  @IsNumber({}, { each: true })
+  @ArrayMinSize(1)
+  routingRules: number[];
 }

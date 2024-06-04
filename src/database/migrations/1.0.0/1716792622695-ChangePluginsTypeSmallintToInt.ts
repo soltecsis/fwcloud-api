@@ -1,6 +1,7 @@
 import { MigrationInterface, QueryRunner, TableColumn } from "typeorm";
 
-export class ChangePluginsTypeSmallintToInt1716792622695 implements MigrationInterface
+export class ChangePluginsTypeSmallintToInt1716792622695
+  implements MigrationInterface
 {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.changeColumn(
@@ -11,7 +12,7 @@ export class ChangePluginsTypeSmallintToInt1716792622695 implements MigrationInt
         type: "int",
         isNullable: false,
         default: 0,
-      })
+      }),
     );
 
     await queryRunner.changeColumn(
@@ -22,7 +23,7 @@ export class ChangePluginsTypeSmallintToInt1716792622695 implements MigrationInt
         type: "int",
         isNullable: false,
         default: 0,
-      })
+      }),
     );
   }
 
@@ -36,7 +37,7 @@ export class ChangePluginsTypeSmallintToInt1716792622695 implements MigrationInt
         length: "2",
         isNullable: false,
         default: 0,
-      })
+      }),
     );
 
     await queryRunner.changeColumn(
@@ -48,7 +49,7 @@ export class ChangePluginsTypeSmallintToInt1716792622695 implements MigrationInt
         length: "2",
         isNullable: false,
         default: 0,
-      })
+      }),
     );
   }
 }

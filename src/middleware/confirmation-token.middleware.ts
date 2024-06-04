@@ -22,82 +22,95 @@
 
 import { Middleware } from "../fonaments/http/middleware/Middleware";
 import { Request, Response, NextFunction } from "express";
-import { User } from '../models/user/User';
+import { User } from "../models/user/User";
 import StringHelper from "../utils/string.helper";
 import { Repository } from "typeorm";
 import { logger } from "../fonaments/abstract-application";
 
 export class ConfirmationToken extends Middleware {
-    public async handle(req: Request, res: Response, next: NextFunction) {
-        try {
-            
-            if (this.app.config.get('confirmation_token') === false) {
-                next();
-                return;
-            }
+  public async handle(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (this.app.config.get("confirmation_token") === false) {
+        next();
+        return;
+      }
 
-            if (this.isConfirmationTokenRequired(req) === false) {
-                next();
-                return;
-            }
+      if (this.isConfirmationTokenRequired(req) === false) {
+        next();
+        return;
+      }
 
-            if(this.hasValidConfirmationToken(req) === true) {
-                next();
-                return;
-            }
+      if (this.hasValidConfirmationToken(req) === true) {
+        next();
+        return;
+      }
 
-            const newToken: string = await this.generateNewConfirmationToken(req.session.user, req.sessionID);
-            res.status(403).json({ "fwc_confirm_token": newToken });
-        
-        } catch (error) { 
-            logger().error('Error during confirmation token middleware: ' + JSON.stringify(error));
-            res.status(400).json(error) 
-        }
+      const newToken: string = await this.generateNewConfirmationToken(
+        req.session.user,
+        req.sessionID,
+      );
+      res.status(403).json({ fwc_confirm_token: newToken });
+    } catch (error) {
+      logger().error(
+        "Error during confirmation token middleware: " + JSON.stringify(error),
+      );
+      res.status(400).json(error);
+    }
+  }
+
+  /**
+   * Returns whether a request URL requires confirmation token validation
+   *
+   * @param req
+   */
+  protected isConfirmationTokenRequired(req: Request): boolean {
+    if (
+      req.url.split("/").pop() === "get" ||
+      req.url.split("/").pop() === "restricted" ||
+      req.url.split("/").pop() === "where" ||
+      req.method === "GET" ||
+      (req.method === "POST" && req.path === "/user/login") ||
+      (req.method === "PUT" && req.path === "/ping") ||
+      // The component used in fwcloud-ui for select the file needed in the next two api calls
+      // doesn't allows confirmation token management.
+      (req.method === "POST" && req.path === "/fwclouds/import") ||
+      (req.method === "POST" && req.path === "/backups/import")
+    ) {
+      return false;
     }
 
-    /**
-     * Returns whether a request URL requires confirmation token validation
-     * 
-     * @param req 
-     */
-    protected isConfirmationTokenRequired(req: Request): boolean {
-        if (req.url.split('/').pop() === 'get' || req.url.split('/').pop() === 'restricted' || req.url.split('/').pop() === 'where'
-            || req.method === 'GET' || (req.method === 'POST' && req.path === '/user/login')
-            || (req.method === 'PUT' && req.path === '/ping')
-            // The component used in fwcloud-ui for select the file needed in the next two api calls
-            // doesn't allows confirmation token management. 
-            || (req.method === 'POST' && req.path === '/fwclouds/import')
-            || (req.method === 'POST' && req.path === '/backups/import')
-            ) {
-            return false;
-        }
+    return true;
+  }
 
-        return true;
+  /**
+   * Returns whether the request has a validation token attached and is valid
+   *
+   * @param req
+   */
+  protected hasValidConfirmationToken(req: Request): boolean {
+    if (
+      req.session.user &&
+      req.session.user.confirmation_token === req.headers["x-fwc-confirm-token"]
+    ) {
+      return true;
     }
 
-    /**
-     * Returns whether the request has a validation token attached and is valid
-     * 
-     * @param req 
-     */
-    protected hasValidConfirmationToken(req: Request): boolean {
-        if (req.session.user && req.session.user.confirmation_token === req.headers['x-fwc-confirm-token']) {
-            return true;
-        }
+    return false;
+  }
 
-        return false;
-    }
+  /**
+   * Generates a new confirmation token and assign it to the user
+   *
+   * @param user
+   * @param sessionId
+   */
+  protected async generateNewConfirmationToken(
+    user: User,
+    sessionId: string,
+  ): Promise<string> {
+    user.confirmation_token = sessionId + "_" + StringHelper.randomize(20);
+    await user.save();
 
-    /**
-     * Generates a new confirmation token and assign it to the user
-     * 
-     * @param user 
-     * @param sessionId 
-     */
-    protected async generateNewConfirmationToken(user: User, sessionId: string): Promise<string> {
-        user.confirmation_token = sessionId + "_" + StringHelper.randomize(20);
-        await user.save();
-
-        return user.confirmation_token;
-    }
+    return user.confirmation_token;
+  }
 }

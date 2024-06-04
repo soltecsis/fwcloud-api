@@ -21,13 +21,16 @@
 */
 
 import { Middleware } from "../fonaments/http/middleware/Middleware";
-import compression from 'compression';
+import compression from "compression";
 import { Request, Response, NextFunction } from "express";
 
 export class Compression extends Middleware {
-    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-        this.app.express.use(compression());
-        next();
-    }
-
+  public async handle(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    this.app.express.use(compression());
+    next();
+  }
 }

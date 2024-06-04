@@ -22,27 +22,34 @@
 
 import * as process from "process";
 import * as yargs from "yargs";
-import { Connection, ConnectionOptionsReader, createConnection, MigrationExecutor, QueryRunner } from "typeorm";
-import * as config from "../../config/config"
+import {
+  Connection,
+  ConnectionOptionsReader,
+  createConnection,
+  MigrationExecutor,
+  QueryRunner,
+} from "typeorm";
+import * as config from "../../config/config";
 import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
 import { logger } from "../../fonaments/abstract-application";
 import { Command } from "../command";
 
-
 /**
  * Runs migration command.
  */
 export class MigrationRunCommand extends Command {
-    public name: string = "migration:run";
-    public description: string = "Run all migrations";
+  public name: string = "migration:run";
+  public description: string = "Run all migrations";
 
-    async handle(args: yargs.Arguments) {
-        const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
-        const connection: Connection = await databaseService.getConnection({name: 'cli'});
+  async handle(args: yargs.Arguments) {
+    const databaseService: DatabaseService =
+      await this._app.getService<DatabaseService>(DatabaseService.name);
+    const connection: Connection = await databaseService.getConnection({
+      name: "cli",
+    });
 
-        await databaseService.runMigrations(connection);
-        this.output.success(`Pending migrations applied.`);
-    }
-
+    await databaseService.runMigrations(connection);
+    this.output.success(`Pending migrations applied.`);
+  }
 }

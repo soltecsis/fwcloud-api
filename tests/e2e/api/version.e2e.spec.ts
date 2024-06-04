@@ -33,43 +33,41 @@ let loggedUserSessionId: string;
 let adminUser: User;
 let adminUserSessionId: string;
 
-describe(describeName('Version E2E tests'), () => {
+describe(describeName("Version E2E tests"), () => {
+  beforeEach(async () => {
+    app = testSuite.app;
 
-    beforeEach(async () => {
-        app = testSuite.app;
+    loggedUser = await createUser({ role: 0 });
+    loggedUserSessionId = generateSession(loggedUser);
 
-        loggedUser = await createUser({ role: 0 });
-        loggedUserSessionId = generateSession(loggedUser);
+    adminUser = await createUser({ role: 1 });
+    adminUserSessionId = generateSession(adminUser);
+  });
 
-        adminUser = await createUser({ role: 1 });
-        adminUserSessionId = generateSession(adminUser);
+  describe("VersionController", () => {
+    describe("VersionController@show", () => {
+      it("guest user should not see the version", async () => {
+        return await request(app.express)
+          .get(_URL().getURL("versions.show"))
+          .expect(401);
+      });
+
+      it("regular user should not see version", async () => {
+        return await request(app.express)
+          .get(_URL().getURL("versions.show"))
+          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .expect(401);
+      });
+
+      it("admin user should see the version", async () => {
+        return await request(app.express)
+          .get(_URL().getURL("versions.show"))
+          .set("Cookie", [attachSession(adminUserSessionId)])
+          .expect(200)
+          .then((response) => {
+            response.body.data = app.version.toResponse();
+          });
+      });
     });
-
-    describe('VersionController', () => {
-
-        describe('VersionController@show', () => {
-            it('guest user should not see the version', async () => {
-                return await request(app.express)
-                    .get(_URL().getURL('versions.show'))
-                    .expect(401);
-            });
-
-            it('regular user should not see version', async () => {
-                return await request(app.express)
-                    .get(_URL().getURL('versions.show'))
-                    .set('Cookie', [attachSession(loggedUserSessionId)])
-                    .expect(401)
-            });
-
-            it('admin user should see the version', async () => {
-                return await request(app.express)
-                    .get(_URL().getURL('versions.show'))
-                    .set('Cookie', [attachSession(adminUserSessionId)])
-                    .expect(200)
-                    .then(response => {
-                        response.body.data = app.version.toResponse()
-                    });
-            });
-        });
-    });
+  });
 });

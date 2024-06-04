@@ -27,15 +27,15 @@ import { HasExtension } from "../../../../fonaments/validation/rules/extension.v
 import { IsFile } from "../../../../fonaments/validation/rules/file.validation";
 
 export class FwCloudExportControllerImportDto {
-    @Validate(IsFile)
-    @Validate(HasExtension, ['fwcloud'])
-    @Transform(({ value }) => {
-        return new FileInfo((value as FileInfo).filepath);
-    })
-    file: FileInfo;
+  @Validate(IsFile)
+  @Validate(HasExtension, ["fwcloud"])
+  @Transform(({ value }) => {
+    return new FileInfo((value as FileInfo).filepath);
+  })
+  file: FileInfo;
 
-    @IsString()
-    @Length(0,255)
-    @IsOptional()
-    channel_id: string;
+  @IsString()
+  @Length(0, 255)
+  @IsOptional()
+  channel_id: string;
 }

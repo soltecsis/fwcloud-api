@@ -25,17 +25,20 @@ import Model from "../../../models/Model";
 import { SelectQueryBuilder } from "typeorm";
 import { RouteGroup } from "../../../models/routing/route-group/route-group.model";
 
-
 export class RouteGroupExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return RouteGroup;
-    }
+  protected getEntity(): typeof Model {
+    return RouteGroup;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-            .innerJoin(`${alias}.firewall`, 'firewall')
-            .where(`firewall.fwCloudId = :id`, {
-                id: fwCloudId
-            });
-    }
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb
+      .innerJoin(`${alias}.firewall`, "firewall")
+      .where(`firewall.fwCloudId = :id`, {
+        id: fwCloudId,
+      });
+  }
 }

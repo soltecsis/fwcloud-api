@@ -20,20 +20,24 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { AbstractApplication } from "../../../../fonaments/abstract-application";
-import {ServiceBound, ServiceContainer} from "../../../../fonaments/services/service-container";
+import {
+  ServiceBound,
+  ServiceContainer,
+} from "../../../../fonaments/services/service-container";
 import { ServiceProvider } from "../../../../fonaments/services/service-provider";
 import { DHCPGroupService } from "./dhcp_g.service";
 
 export class DHCPGroupServiceProvider extends ServiceProvider {
+  public register(serviceContainer: ServiceContainer): ServiceBound {
+    return serviceContainer.singleton(
+      DHCPGroupService.name,
+      async (app: AbstractApplication): Promise<DHCPGroupService> => {
+        return DHCPGroupService.make(app);
+      },
+    );
+  }
 
-    public register(serviceContainer: ServiceContainer): ServiceBound {
-        return serviceContainer.singleton(DHCPGroupService.name, async(app: AbstractApplication): Promise<DHCPGroupService> => {
-            return DHCPGroupService.make(app);
-        });
-    }
-
-    public async bootstrap(app: AbstractApplication): Promise<void> {
-        await app.getService<DHCPGroupService>(DHCPGroupService.name);
-    }
-
+  public async bootstrap(app: AbstractApplication): Promise<void> {
+    await app.getService<DHCPGroupService>(DHCPGroupService.name);
+  }
 }

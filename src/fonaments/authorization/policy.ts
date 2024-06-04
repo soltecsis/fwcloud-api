@@ -24,50 +24,49 @@ import { AuthorizationService } from "./authorization.service";
 import { AuthorizationException } from "../exceptions/authorization-exception";
 
 export abstract class Authorization {
-    public can(): boolean {
-        return false;
-    }
+  public can(): boolean {
+    return false;
+  }
 
-    public authorize(): void {
-        return;
-    }
-    
-    static revoke(): Unauthorized {
-        return new Unauthorized;
-    }
+  public authorize(): void {
+    return;
+  }
 
-    static grant(): Authorized {
-        return new Authorized;
-    }
+  static revoke(): Unauthorized {
+    return new Unauthorized();
+  }
+
+  static grant(): Authorized {
+    return new Authorized();
+  }
 }
 
 export class Authorized extends Authorization {
+  public authorize(): void {
+    return;
+  }
 
-    public authorize(): void {
-        return;
-    }
-
-    public can(): boolean {
-        return true;
-    }
+  public can(): boolean {
+    return true;
+  }
 }
 
 export class Unauthorized extends Authorization {
-    public authorize(): void {
-        const exception = new AuthorizationException();
-        throw exception;
-    }
+  public authorize(): void {
+    const exception = new AuthorizationException();
+    throw exception;
+  }
 
-    public can(): boolean {
-        return false;
-    }
+  public can(): boolean {
+    return false;
+  }
 }
 
 export class Policy {
-    protected _authorizationService: AuthorizationService;
-    protected authorized: boolean;
+  protected _authorizationService: AuthorizationService;
+  protected authorized: boolean;
 
-    constructor() {
-        this.authorized = false;
-    }
+  constructor() {
+    this.authorized = false;
+  }
 }

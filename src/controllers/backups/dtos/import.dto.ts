@@ -27,10 +27,10 @@ import { HasExtension } from "../../../fonaments/validation/rules/extension.vali
 import { IsFile } from "../../../fonaments/validation/rules/file.validation";
 
 export class BackupControllerImportDto {
-    @Validate(IsFile)
-    @Validate(HasExtension, ['zip'])
-    @Transform(({ value }) => {
-        return new FileInfo((value as FileInfo).filepath);
-    })
-    file: FileInfo;
+  @Validate(IsFile)
+  @Validate(HasExtension, ["zip"])
+  @Transform(({ value }) => {
+    return new FileInfo((value as FileInfo).filepath);
+  })
+  file: FileInfo;
 }

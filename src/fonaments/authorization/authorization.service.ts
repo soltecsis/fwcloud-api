@@ -25,31 +25,30 @@ import { AbstractApplication } from "../abstract-application";
 import { Request, Response, NextFunction } from "express";
 import { AuthorizationException } from "../exceptions/authorization-exception";
 
-
 export class AuthorizationService extends Service {
-    protected _policies: Array<any>;
-    
-    protected _req: Request;
-    protected _res: Response;
-    protected _next: NextFunction;
+  protected _policies: Array<any>;
 
-    public async build(): Promise<AuthorizationService> {
-        this._next = null;
-        this._req = null;
-        this._res = null;
+  protected _req: Request;
+  protected _res: Response;
+  protected _next: NextFunction;
 
-        return this;
-    }
+  public async build(): Promise<AuthorizationService> {
+    this._next = null;
+    this._req = null;
+    this._res = null;
 
-    public bindExpressContext(req: Request, res: Response, next: NextFunction) {
-        this._req = req;
-        this._res = res;
-        this._next = next;
-    }
+    return this;
+  }
 
-    public revokeAuthorization(): Promise<void> {
-        const exception = new AuthorizationException();
-        this._next(exception);
-        throw exception;
-    }
+  public bindExpressContext(req: Request, res: Response, next: NextFunction) {
+    this._req = req;
+    this._res = res;
+    this._next = next;
+  }
+
+  public revokeAuthorization(): Promise<void> {
+    const exception = new AuthorizationException();
+    this._next(exception);
+    throw exception;
+  }
 }

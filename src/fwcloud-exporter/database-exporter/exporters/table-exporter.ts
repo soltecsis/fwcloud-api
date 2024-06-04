@@ -25,46 +25,69 @@ import { Connection, SelectQueryBuilder } from "typeorm";
 import { ExporterResult } from "../exporter-result";
 
 export class TableExporter {
-    protected _entity: typeof Model;
+  protected _entity: typeof Model;
 
-    constructor() {
-        this._entity = this.getEntity();
+  constructor() {
+    this._entity = this.getEntity();
+  }
+
+  public async bootstrap(
+    connection: Connection,
+    fwCloudId: number,
+  ): Promise<void> {
+    return;
+  }
+
+  public getTableName(): string {
+    if (this._entity === null) {
+      throw new Error("getTableName with custom table not implemented");
     }
 
-    public async bootstrap(connection: Connection, fwCloudId: number): Promise<void> {
-        return
-    }
+    const instance: Model = new (<any>this._entity)();
+    return instance.getTableName();
+  }
 
-    public getTableName(): string {
-        if (this._entity === null) {
-            throw new Error('getTableName with custom table not implemented');
-        }
+  public getEntityName(): string {
+    return this._entity === null ? null : this._entity.name;
+  }
 
-        const instance: Model = new (<any>this._entity)();
-        return instance.getTableName();
-    }
+  protected getEntity(): typeof Model {
+    throw new Error("getEntity() not implemented for " + this.constructor.name);
+  }
 
-    public getEntityName(): string {
-        return this._entity === null ? null : this._entity.name;
-    }
+  public async export(
+    results: ExporterResult,
+    connection: Connection,
+    fwCloudId: number,
+  ): Promise<ExporterResult> {
+    results.addTableData(
+      this.getTableName(),
+      await this.getRows(connection, fwCloudId),
+    );
 
-    protected getEntity(): typeof Model {
-        throw new Error('getEntity() not implemented for ' + this.constructor.name);
-    }
+    return results;
+  }
 
-    public async export(results: ExporterResult, connection: Connection, fwCloudId: number): Promise<ExporterResult> {
-        results.addTableData(this.getTableName(), await this.getRows(connection, fwCloudId));
+  protected async getRows(
+    connection: Connection,
+    fwCloudId: number,
+  ): Promise<Array<object>> {
+    const qb: SelectQueryBuilder<any> = connection.createQueryBuilder(
+      this._entity,
+      this.getTableName(),
+    );
+    return await this.getFilterBuilder(
+      qb,
+      this.getTableName(),
+      fwCloudId,
+    ).getMany();
+  }
 
-        return results;
-    }
-
-    protected async getRows(connection: Connection, fwCloudId: number): Promise<Array<object>> {
-        const qb: SelectQueryBuilder<any> = connection.createQueryBuilder(this._entity, this.getTableName());
-        return await this.getFilterBuilder(qb, this.getTableName(), fwCloudId).getMany();
-    }
-
-
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        throw new Error('QueryBuilder not implemented');
-    }
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    throw new Error("QueryBuilder not implemented");
+  }
 }

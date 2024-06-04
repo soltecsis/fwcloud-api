@@ -21,16 +21,21 @@
 */
 
 import { ServiceProvider } from "../../services/service-provider";
-import { ServiceContainer, ServiceBound } from "../../services/service-container";
+import {
+  ServiceContainer,
+  ServiceBound,
+} from "../../services/service-container";
 import { RouterService } from "./router.service";
 import { AbstractApplication } from "../../abstract-application";
 import { Service } from "../../services/service";
 
 export class RouterServiceProvider extends ServiceProvider {
-    
-    public register(serviceContainer: ServiceContainer): ServiceBound {
-        return serviceContainer.singleton(RouterService.name, async (app: AbstractApplication): Promise<RouterService> => {
-            return RouterService.make(app);
-        });
-    }
+  public register(serviceContainer: ServiceContainer): ServiceBound {
+    return serviceContainer.singleton(
+      RouterService.name,
+      async (app: AbstractApplication): Promise<RouterService> => {
+        return RouterService.make(app);
+      },
+    );
+  }
 }

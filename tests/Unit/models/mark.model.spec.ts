@@ -30,38 +30,50 @@ import { expect, testSuite } from "../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../utils/fwcloud-factory";
 
 describe(Mark.name, () => {
-    let fwcloudProduct: FwCloudProduct;
-    let routingRule: RoutingRule;
-    let mark: Mark;
-    
-    let routeService: RouteService;
-    let routingRuleService: RoutingRuleService;
+  let fwcloudProduct: FwCloudProduct;
+  let routingRule: RoutingRule;
+  let mark: Mark;
 
-    beforeEach(async () => {
-        fwcloudProduct = await (new FwCloudFactory()).make();
-        routeService = await testSuite.app.getService<RouteService>(RouteService.name);
-        routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
+  let routeService: RouteService;
+  let routingRuleService: RoutingRuleService;
 
-        mark = await getRepository(Mark).save(getRepository(Mark).create({
-            code: 1,
-            name: 'mark',
-            fwCloudId: fwcloudProduct.fwcloud.id
-        }))
+  beforeEach(async () => {
+    fwcloudProduct = await new FwCloudFactory().make();
+    routeService = await testSuite.app.getService<RouteService>(
+      RouteService.name,
+    );
+    routingRuleService = await testSuite.app.getService<RoutingRuleService>(
+      RoutingRuleService.name,
+    );
 
-        routingRule = await routingRuleService.create({
-            routingTableId: fwcloudProduct.routingTable.id,
-            markIds: [{id: mark.id, order: 1}]
-        });
+    mark = await getRepository(Mark).save(
+      getRepository(Mark).create({
+        code: 1,
+        name: "mark",
+        fwCloudId: fwcloudProduct.fwcloud.id,
+      }),
+    );
+
+    routingRule = await routingRuleService.create({
+      routingTableId: fwcloudProduct.routingTable.id,
+      markIds: [{ id: mark.id, order: 1 }],
     });
+  });
 
-    describe('searchMarkUsage', () => {
-        describe('routingRule', () => {
-            it('should detect usages', async () => {
-                const whereUsed: any = await Mark.searchMarkUsage(db.getQuery(), fwcloudProduct.fwcloud.id, mark.id);
-    
-                expect(whereUsed.restrictions.MarkInRoutingRule).to.have.length(1);
-                expect(whereUsed.restrictions.MarkInRoutingRule[0].routing_rule_id).to.be.eq(routingRule.id)
-            })
-        });
-    })
-})
+  describe("searchMarkUsage", () => {
+    describe("routingRule", () => {
+      it("should detect usages", async () => {
+        const whereUsed: any = await Mark.searchMarkUsage(
+          db.getQuery(),
+          fwcloudProduct.fwcloud.id,
+          mark.id,
+        );
+
+        expect(whereUsed.restrictions.MarkInRoutingRule).to.have.length(1);
+        expect(
+          whereUsed.restrictions.MarkInRoutingRule[0].routing_rule_id,
+        ).to.be.eq(routingRule.id);
+      });
+    });
+  });
+});

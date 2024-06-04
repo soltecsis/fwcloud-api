@@ -21,15 +21,20 @@
 */
 
 import { ServiceProvider } from "../fonaments/services/service-provider";
-import { ServiceContainer, ServiceBound } from "../fonaments/services/service-container";
+import {
+  ServiceContainer,
+  ServiceBound,
+} from "../fonaments/services/service-container";
 import { AbstractApplication } from "../fonaments/abstract-application";
 import { PolicyRuleService } from "./policy-rule.service";
 
 export class PolicyRuleServiceProvider extends ServiceProvider {
-    
-    public register(serviceContainer: ServiceContainer): ServiceBound {
-        return serviceContainer.singleton(PolicyRuleService.name, async(app: AbstractApplication): Promise<PolicyRuleService> => {
-            return PolicyRuleService.make(app);
-        });
-    }
+  public register(serviceContainer: ServiceContainer): ServiceBound {
+    return serviceContainer.singleton(
+      PolicyRuleService.name,
+      async (app: AbstractApplication): Promise<PolicyRuleService> => {
+        return PolicyRuleService.make(app);
+      },
+    );
+  }
 }

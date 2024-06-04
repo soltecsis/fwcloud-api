@@ -24,7 +24,7 @@ import express from "express";
 import { AbstractApplication } from "./abstract-application";
 import * as DatabaseQuery from "../database/Query";
 import { RequestInputs } from "./http/request-inputs";
-import io from 'socket.io';
+import io from "socket.io";
 import { SocketMiddleware } from "./http/sockets/socket-middleware";
 import { SessionSocketMiddleware } from "../middleware/Session";
 import { WebSocketService } from "../sockets/web-socket.service";
@@ -32,23 +32,23 @@ import { Middleware } from "./http/middleware/Middleware";
 import { RouterService } from "./http/router/router.service";
 import { Routes } from "../routes/routes";
 
-declare module 'express-serve-static-core' {
-    interface Request {
-        dbCon: DatabaseQuery.default,
-        inputs: RequestInputs
-    }
+declare module "express-serve-static-core" {
+  interface Request {
+    dbCon: DatabaseQuery.default;
+    inputs: RequestInputs;
+  }
 }
 
 export abstract class HTTPApplication extends AbstractApplication {
-    protected _express: express.Application;
-    protected _socketio: io.Server;
+  protected _express: express.Application;
+  protected _socketio: io.Server;
 
-    protected constructor(path: string = process.cwd()) {
-        try {
-            super(path);
-            this._express = express();
+  protected constructor(path: string = process.cwd()) {
+    try {
+      super(path);
+      this._express = express();
 
-            /* ATENTION: If etag is not disabled in expres, when fwcloud-api recevies API requests whose data doesn't change respect
+      /* ATENTION: If etag is not disabled in expres, when fwcloud-api recevies API requests whose data doesn't change respect
             to previous requests, an HTTP 304 "Not Modified" response code is sent back.
 
             Moreover, in the logs file app.log we can see errors like these ones because we try to send an answer after espress
@@ -69,76 +69,80 @@ export abstract class HTTPApplication extends AbstractApplication {
             has not changed. ETags can also be used for optimistic concurrency control,[1] as a way to help prevent simultaneous updates of a 
             resource from overwriting each other.
             */
-            this._express.disable('etag');
-        } catch (e) {
-            console.error('Aplication HTTP startup failed: ' + e.message);
-            process.exit(e);
-        }
+      this._express.disable("etag");
+    } catch (e) {
+      console.error("Aplication HTTP startup failed: " + e.message);
+      process.exit(e);
+    }
+  }
+
+  get express(): express.Application {
+    return this._express;
+  }
+
+  get socketio(): io.Server {
+    return this._socketio;
+  }
+
+  public async bootstrap(): Promise<AbstractApplication> {
+    await super.bootstrap();
+
+    this.registerMiddlewares("before");
+
+    const routerService: RouterService = await this.getService<RouterService>(
+      RouterService.name,
+    );
+    routerService.registerRoutes();
+
+    this.registerMiddlewares("after");
+
+    return this;
+  }
+
+  public async setSocketIO(socketIO: io.Server): Promise<io.Server> {
+    this._socketio = socketIO;
+
+    const sessionMiddleware: SocketMiddleware = new SessionSocketMiddleware();
+    sessionMiddleware.register(this);
+
+    const wsService: WebSocketService = await this.getService<WebSocketService>(
+      WebSocketService.name,
+    );
+    wsService.setSocketIO(this._socketio);
+
+    return this._socketio;
+  }
+
+  /**
+   * Register all middlewares
+   */
+  protected registerMiddlewares(group: "before" | "after"): void {
+    let middlewares: Array<any> = [];
+
+    if (group === "before") {
+      middlewares = this.beforeMiddlewares();
+      for (let i = 0; i < middlewares.length; i++) {
+        const middleware: Middleware = new middlewares[i]();
+        middleware.register(this);
+      }
     }
 
-    get express(): express.Application {
-        return this._express;
+    if (group === "after") {
+      middlewares = this.afterMiddlewares();
+      for (let i = 0; i < middlewares.length; i++) {
+        const middleware: Middleware = new middlewares[i]();
+        middleware.register(this);
+      }
     }
+  }
 
-    get socketio(): io.Server {
-        return this._socketio;
-    }
+  /**
+   * Returns an array of Middleware classes to be registered before the routes handlers
+   */
+  protected abstract beforeMiddlewares(): Array<any>;
 
-    public async bootstrap(): Promise<AbstractApplication> {
-        await super.bootstrap();
-
-        this.registerMiddlewares('before');
-        
-        const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
-        routerService.registerRoutes();
-        
-        this.registerMiddlewares('after');
-    
-        return this;
-    }
-
-    public async setSocketIO(socketIO: io.Server): Promise<io.Server> {
-        this._socketio = socketIO;
-
-        const sessionMiddleware: SocketMiddleware = new SessionSocketMiddleware();
-        sessionMiddleware.register(this);
-
-        const wsService: WebSocketService = await this.getService<WebSocketService>(WebSocketService.name);
-        wsService.setSocketIO(this._socketio);
-
-        return this._socketio;
-    }
-
-    /**
-     * Register all middlewares
-     */
-    protected registerMiddlewares(group: 'before' | 'after'): void {
-        let middlewares: Array<any> = [];
-
-        if (group === 'before') {
-            middlewares = this.beforeMiddlewares();
-            for (let i = 0; i < middlewares.length; i++) {
-                const middleware: Middleware = new middlewares[i]();
-                middleware.register(this);
-            }
-        }
-
-        if (group === 'after') {
-            middlewares = this.afterMiddlewares();
-            for (let i = 0; i < middlewares.length; i++) {
-                const middleware: Middleware = new middlewares[i]();
-                middleware.register(this);
-            }
-        }
-    }
-
-    /**
-     * Returns an array of Middleware classes to be registered before the routes handlers
-     */
-    protected abstract beforeMiddlewares(): Array<any>;
-
-    /**
-     * Returns an array of Middleware classes to be registered after the routes handlers
-     */
-    protected abstract afterMiddlewares(): Array<any>;
+  /**
+   * Returns an array of Middleware classes to be registered after the routes handlers
+   */
+  protected abstract afterMiddlewares(): Array<any>;
 }

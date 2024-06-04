@@ -1,11 +1,20 @@
-import { registerDecorator, ValidationArguments, ValidationOptions, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
+import {
+  registerDecorator,
+  ValidationArguments,
+  ValidationOptions,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from "class-validator";
 import { getRepository, In } from "typeorm";
 import { IPObj } from "../../../models/ipobj/IPObj";
 
-export function IpObjBelongsToTypes(typeIds: number[], validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+export function IpObjBelongsToTypes(
+  typeIds: number[],
+  validationOptions?: ValidationOptions,
+) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
-      name: 'ipObjBelongsToTypes',
+      name: "ipObjBelongsToTypes",
       target: object.constructor,
       propertyName: propertyName,
       constraints: [typeIds],
@@ -16,21 +25,21 @@ export function IpObjBelongsToTypes(typeIds: number[], validationOptions?: Valid
           value = Array.isArray(value) ? value : [value];
 
           const validTypes: number[] = args.constraints[0];
-          const ipObjs: IPObj[] = await getRepository(IPObj).find(
-            {
-              where: { id: In(value as number[])}
-            }
-          );
+          const ipObjs: IPObj[] = await getRepository(IPObj).find({
+            where: { id: In(value as number[]) },
+          });
 
-          const failed: IPObj[] = ipObjs.filter((ipObj: IPObj) => !validTypes.includes(ipObj.ipObjTypeId));
+          const failed: IPObj[] = ipObjs.filter(
+            (ipObj: IPObj) => !validTypes.includes(ipObj.ipObjTypeId),
+          );
 
           return failed.length === 0;
         },
 
         defaultMessage(args: ValidationArguments): string {
-          return `at least one ipObj is not valid`
-        }
-      }
+          return `at least one ipObj is not valid`;
+        },
+      },
     });
   };
 }

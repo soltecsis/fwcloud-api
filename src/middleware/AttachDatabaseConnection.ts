@@ -25,9 +25,12 @@ import { Request, Response, NextFunction } from "express";
 import db from "../database/database-manager";
 
 export class AttachDatabaseConnection extends Middleware {
-    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-        req.dbCon = db.getQuery();
-        next();
-    }
-
+  public async handle(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    req.dbCon = db.getQuery();
+    next();
+  }
 }

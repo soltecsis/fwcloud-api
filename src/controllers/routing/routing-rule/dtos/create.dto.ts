@@ -21,7 +21,16 @@
 */
 
 import { Type } from "class-transformer";
-import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsPositive, IsString, ValidateNested } from "class-validator"
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  ValidateNested,
+} from "class-validator";
 import { IpObjBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation";
 import { IpObjGroupBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-group-belongs-to-types.validation";
 import { IsClientOpenVPN } from "../../../../fonaments/validation/rules/is-client-openvpn.validation";
@@ -29,75 +38,75 @@ import { Offset } from "../../../../offset";
 import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
 
 export class RoutingRuleControllerCreateDto {
-    @IsNumber()
-    routingTableId: number;
+  @IsNumber()
+  routingTableId: number;
 
-    @IsBoolean()
-    @IsOptional()
-    active: boolean;
-    
-    @IsString()
-    @IsOptional()
-    comment: string;
+  @IsBoolean()
+  @IsOptional()
+  active: boolean;
 
-    @IsString()
-    @IsOptional()
-    style: string;
+  @IsString()
+  @IsOptional()
+  comment: string;
 
-    @IsNumber()
-    @IsOptional()
-    rule_order?: number;
+  @IsString()
+  @IsOptional()
+  style: string;
 
-    @IsNumber()
-    @IsOptional()
-    firewallApplyToId?: number;
+  @IsNumber()
+  @IsOptional()
+  rule_order?: number;
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    ipObjIds?: PositionalEntityDto[]
+  @IsNumber()
+  @IsOptional()
+  firewallApplyToId?: number;
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    ipObjGroupIds?: PositionalEntityDto[]
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipObjIds?: PositionalEntityDto[];
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    openVPNIds?: PositionalEntityDto[];
-    
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    openVPNPrefixIds?: PositionalEntityDto[];
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipObjGroupIds?: PositionalEntityDto[];
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    markIds?: PositionalEntityDto[];
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  openVPNIds?: PositionalEntityDto[];
 
-    @IsNumber()
-    @IsPositive()
-    @IsOptional()
-    to?: number;
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  openVPNPrefixIds?: PositionalEntityDto[];
 
-    @IsEnum(Offset)
-    @IsOptional()
-    offset?: Offset;
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  markIds?: PositionalEntityDto[];
+
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  to?: number;
+
+  @IsEnum(Offset)
+  @IsOptional()
+  offset?: Offset;
 }

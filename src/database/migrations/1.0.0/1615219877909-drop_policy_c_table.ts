@@ -20,62 +20,63 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {MigrationInterface, QueryRunner, Table} from "typeorm";
+import { MigrationInterface, QueryRunner, Table } from "typeorm";
 
 export class dropPolicyCTable1615219877909 implements MigrationInterface {
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.dropTable("policy_c", true);
+  }
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.dropTable('policy_c', true);
-    }
-
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.createTable(new Table({
-            name: 'policy_c',
-            columns: [
-                {
-                    name: 'rule',
-                    type: 'int',
-                    length: '11',
-                    isPrimary: true
-                },
-                {
-                    name: 'rule_compiled',
-                    type: 'text',
-                    isNullable: true
-                },
-                {
-                    name: 'created_at',
-                    type: 'datetime',
-                    isNullable: false,
-                    default: "CURRENT_TIMESTAMP"
-                },
-                {
-                    name: 'updated_at',
-                    type: 'datetime',
-                    isNullable: false,
-                    default: 'CURRENT_TIMESTAMP',
-                    onUpdate: 'CURRENT_TIMESTAMP',
-                },
-                {
-                    name: 'created_by',
-                    type: 'int',
-                    isNullable: false,
-                    default: 0,
-                },
-                {
-                    name: 'updated_by',
-                    type: 'int',
-                    isNullable: false,
-                    default: 0,
-                },
-                {
-                    name: 'status_compiled',
-                    type: 'tinyint',
-                    length: '1',
-                    isNullable: false,
-                    default: 0
-                }
-            ]
-        }));
-    }
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.createTable(
+      new Table({
+        name: "policy_c",
+        columns: [
+          {
+            name: "rule",
+            type: "int",
+            length: "11",
+            isPrimary: true,
+          },
+          {
+            name: "rule_compiled",
+            type: "text",
+            isNullable: true,
+          },
+          {
+            name: "created_at",
+            type: "datetime",
+            isNullable: false,
+            default: "CURRENT_TIMESTAMP",
+          },
+          {
+            name: "updated_at",
+            type: "datetime",
+            isNullable: false,
+            default: "CURRENT_TIMESTAMP",
+            onUpdate: "CURRENT_TIMESTAMP",
+          },
+          {
+            name: "created_by",
+            type: "int",
+            isNullable: false,
+            default: 0,
+          },
+          {
+            name: "updated_by",
+            type: "int",
+            isNullable: false,
+            default: 0,
+          },
+          {
+            name: "status_compiled",
+            type: "tinyint",
+            length: "1",
+            isNullable: false,
+            default: 0,
+          },
+        ],
+      }),
+    );
+  }
 }

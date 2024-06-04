@@ -3,45 +3,42 @@ import Model from "../../Model";
 import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
 import { Route } from "./route.model";
 
-const tableName: string = 'route__openvpn_prefix';
+const tableName: string = "route__openvpn_prefix";
 
 @Entity(tableName)
 export class RouteToOpenVPNPrefix extends Model {
-    
-    @PrimaryColumn({
-        name: 'route'
-    })
-    routeId: number;
+  @PrimaryColumn({
+    name: "route",
+  })
+  routeId: number;
 
-    @PrimaryColumn({
-        name: 'openvpn_prefix'
-    })
-    openVPNPrefixId: number;
-    
-    @Column({
-        type: Number
-    })
-    order: number;
+  @PrimaryColumn({
+    name: "openvpn_prefix",
+  })
+  openVPNPrefixId: number;
 
-    @ManyToOne(() => Route, model => model.routeToOpenVPNPrefixes, {
-        orphanedRowAction: 'delete'
-    })
-    @JoinColumn({
-        name: 'route'
-    })
-    route: Route;
+  @Column({
+    type: Number,
+  })
+  order: number;
 
-    @ManyToOne(() => OpenVPNPrefix, model => model.routeToOpenVPNPrefixes, {
-        orphanedRowAction: 'delete'
-    })
-    @JoinColumn({
-        name: 'openvpn_prefix'
-    })
-    openVPNPrefix: OpenVPNPrefix;
+  @ManyToOne(() => Route, (model) => model.routeToOpenVPNPrefixes, {
+    orphanedRowAction: "delete",
+  })
+  @JoinColumn({
+    name: "route",
+  })
+  route: Route;
 
-    
-    public getTableName(): string {
-        return tableName;
-    }
+  @ManyToOne(() => OpenVPNPrefix, (model) => model.routeToOpenVPNPrefixes, {
+    orphanedRowAction: "delete",
+  })
+  @JoinColumn({
+    name: "openvpn_prefix",
+  })
+  openVPNPrefix: OpenVPNPrefix;
 
+  public getTableName(): string {
+    return tableName;
+  }
 }

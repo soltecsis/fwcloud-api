@@ -23,5 +23,5 @@
 import { HttpException } from "./http/http-exception";
 
 export class NotFoundException extends HttpException {
-    public status: number = 404;
+  public status: number = 404;
 }

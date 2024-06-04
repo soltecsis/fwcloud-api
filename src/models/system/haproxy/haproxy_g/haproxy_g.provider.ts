@@ -16,18 +16,24 @@
 */
 
 import { AbstractApplication } from "../../../../fonaments/abstract-application";
-import { ServiceBound, ServiceContainer } from "../../../../fonaments/services/service-container";
+import {
+  ServiceBound,
+  ServiceContainer,
+} from "../../../../fonaments/services/service-container";
 import { ServiceProvider } from "../../../../fonaments/services/service-provider";
 import { HAProxyGroupService } from "./haproxy_g.service";
 
 export class HAProxyGroupServiceProvider extends ServiceProvider {
-    public register(serviceContainer: ServiceContainer): ServiceBound {
-        return serviceContainer.singleton(HAProxyGroupService.name, async (app: AbstractApplication): Promise<HAProxyGroupService> => {
-            return HAProxyGroupService.make(app);
-        });
-    }
+  public register(serviceContainer: ServiceContainer): ServiceBound {
+    return serviceContainer.singleton(
+      HAProxyGroupService.name,
+      async (app: AbstractApplication): Promise<HAProxyGroupService> => {
+        return HAProxyGroupService.make(app);
+      },
+    );
+  }
 
-    public async bootstrap(app: AbstractApplication): Promise<void> {
-        await app.getService<HAProxyGroupService>(HAProxyGroupService.name);
-    }
+  public async bootstrap(app: AbstractApplication): Promise<void> {
+    await app.getService<HAProxyGroupService>(HAProxyGroupService.name);
+  }
 }

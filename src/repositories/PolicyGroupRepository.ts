@@ -20,68 +20,95 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository, UpdateResult, DeleteResult, InsertResult, EntityRepository } from "typeorm";
+import {
+  Repository,
+  UpdateResult,
+  DeleteResult,
+  InsertResult,
+  EntityRepository,
+} from "typeorm";
 import { PolicyGroup } from "../models/policy/PolicyGroup";
 import { PolicyRule } from "../models/policy/PolicyRule";
 
 @EntityRepository(PolicyGroup)
 export class PolicyGroupRepository extends Repository<PolicyGroup> {
+  public async moveToFirewall(
+    id: number,
+    firewallId: number,
+  ): Promise<UpdateResult> {
+    return await this.update(id, {
+      firewall: { id: firewallId },
+    });
+  }
 
-    public async moveToFirewall(id: number, firewallId: number): Promise<UpdateResult> {
-        return await this.update(id, {
-            firewall: { id: firewallId }
-        });
+  public async moveFirewallGroupsToFirewall(
+    firewallId: number,
+    destinationFirewallId: number,
+  ): Promise<UpdateResult> {
+    return await this.update(
+      { firewall: { id: firewallId } },
+      { firewall: { id: destinationFirewallId } },
+    );
+  }
+
+  public async deleteFirewallGroups(firewallId: number): Promise<DeleteResult> {
+    return await this.delete({ firewall: { id: firewallId } });
+  }
+
+  /**
+   * Removes a policyGroup if it is empty
+   *
+   * @param policyGroup
+   */
+  public async deleteIfEmpty(policyGroup: PolicyGroup): Promise<PolicyGroup> {
+    if (
+      (
+        await this.createQueryBuilder()
+          .relation(PolicyGroup, "policyRules")
+          .of(policyGroup)
+          .loadMany()
+      ).length === 0
+    ) {
+      await this.delete(policyGroup);
+      return policyGroup;
     }
 
-    public async moveFirewallGroupsToFirewall(firewallId: number, destinationFirewallId: number): Promise<UpdateResult> {
-        return await this.update({ firewall: { id: firewallId } }, { firewall: { id: destinationFirewallId } });
-    }
+    return policyGroup;
+  }
 
-    public async deleteFirewallGroups(firewallId: number): Promise<DeleteResult> {
-        return await this.delete({ firewall: { id: firewallId } });
-    }
+  /**
+   * Clone a policy group
+   *
+   * @param original
+   */
+  public async clone(original: PolicyGroup): Promise<PolicyGroup> {
+    const cloned: PolicyGroup = this.create({
+      firewallId: original.firewall.id,
+      name: original.name,
+      comment: original.comment,
+      groupstyle: original.groupstyle,
+      parentId: original.parentId,
+    });
 
-    /**
-     * Removes a policyGroup if it is empty
-     * 
-     * @param policyGroup 
-     */
-    public async deleteIfEmpty(policyGroup: PolicyGroup): Promise<PolicyGroup>
-    {
-        if((await this.createQueryBuilder().relation(PolicyGroup, "policyRules").of(policyGroup).loadMany()).length === 0) {
-            await this.delete(policyGroup);
-            return policyGroup;
-        }
+    return await this.save(cloned);
+  }
 
-        return policyGroup;
-    }
+  public async cloneFirewallPolicyGroups(firewallId: number): Promise<any> {
+    const policyGroups: Array<PolicyGroup> = await this.find({
+      firewall: { id: firewallId },
+    });
 
-    /**
-     * Clone a policy group
-     * 
-     * @param original 
-     */
-    public async clone(original: PolicyGroup): Promise<PolicyGroup> {
-        const cloned: PolicyGroup = this.create({
-            firewallId: original.firewall.id,
-            name: original.name,
-            comment: original.comment,
-            groupstyle: original.groupstyle,
-            parentId: original.parentId
-        });
+    return await Promise.all(
+      policyGroups.map((policyGroup: PolicyGroup) => {
+        this.clone(policyGroup);
+      }),
+    );
+  }
 
-        return await this.save(cloned);
-    }
-
-    public async cloneFirewallPolicyGroups(firewallId: number): Promise<any> {
-        const policyGroups: Array<PolicyGroup> = await this.find({ firewall: { id: firewallId } });
-
-        return await Promise.all(policyGroups.map((policyGroup: PolicyGroup) => {
-            this.clone(policyGroup);
-        }));
-    }
-
-    public async isEmpty(firewallId: number, groupId: number): Promise<boolean> {
-        return (await this.find({ firewallId: firewallId, parentId: groupId })).length > 0
-    }
+  public async isEmpty(firewallId: number, groupId: number): Promise<boolean> {
+    return (
+      (await this.find({ firewallId: firewallId, parentId: groupId })).length >
+      0
+    );
+  }
 }

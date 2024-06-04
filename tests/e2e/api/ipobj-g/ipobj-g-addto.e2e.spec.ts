@@ -7,7 +7,11 @@ import { RoutingRule } from "../../../../src/models/routing/routing-rule/routing
 import { User } from "../../../../src/models/user/User";
 import { describeName, expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
-import { attachSession, createUser, generateSession } from "../../../utils/utils";
+import {
+  attachSession,
+  createUser,
+  generateSession,
+} from "../../../utils/utils";
 import request = require("supertest");
 import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
 import { RouteService } from "../../../../src/models/routing/route/route.service";
@@ -18,59 +22,62 @@ import { Route } from "../../../../src/models/routing/route/route.model";
 import { OpenVPN } from "../../../../src/models/vpn/openvpn/OpenVPN";
 import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
 
-describe(describeName('Ipobj group delfrom E2E Tests'), () => {
-    let app: Application;
-    let fwcProduct: FwCloudProduct;
-    let adminUser: User;
-    let session: string;
-    let group: IPObjGroup;
-    let requestData: Record<string,unknown>;
-    let firewall: Firewall;
-    
-    beforeEach(async () => {
-        await testSuite.resetDatabaseData();
+describe(describeName("Ipobj group delfrom E2E Tests"), () => {
+  let app: Application;
+  let fwcProduct: FwCloudProduct;
+  let adminUser: User;
+  let session: string;
+  let group: IPObjGroup;
+  let requestData: Record<string, unknown>;
+  let firewall: Firewall;
 
-        app = testSuite.app;
-        fwcProduct = await new FwCloudFactory().make();
+  beforeEach(async () => {
+    await testSuite.resetDatabaseData();
 
-        adminUser = await createUser({role: 1});
-        session = generateSession(adminUser);
+    app = testSuite.app;
+    fwcProduct = await new FwCloudFactory().make();
 
-        firewall = await getRepository(Firewall).findOneOrFail(fwcProduct.firewall.id, {relations: ['policyRules']});
+    adminUser = await createUser({ role: 1 });
+    session = generateSession(adminUser);
 
-        adminUser.fwClouds = [
-            fwcProduct.fwcloud
-        ];
+    firewall = await getRepository(Firewall).findOneOrFail(
+      fwcProduct.firewall.id,
+      { relations: ["policyRules"] },
+    );
 
-        await getRepository(User).save(adminUser);
+    adminUser.fwClouds = [fwcProduct.fwcloud];
 
-        group = await getRepository(IPObjGroup).save({
-            name: 'group',
-            type: 20,
-            fwCloudId: fwcProduct.fwcloud.id
-        });
+    await getRepository(User).save(adminUser);
 
-        requestData = {
-            fwcloud: fwcProduct.fwcloud.id,
-            ipobj_g: group.id,
-        }
+    group = await getRepository(IPObjGroup).save({
+      name: "group",
+      type: 20,
+      fwCloudId: fwcProduct.fwcloud.id,
     });
 
-    it('should throw an exception if the ipObj to attach is an empty host', async () => {
-        const host = await getRepository(IPObj).save(getRepository(IPObj).create({
-            name: 'test',
-            ipObjTypeId: 8,
-        }));
+    requestData = {
+      fwcloud: fwcProduct.fwcloud.id,
+      ipobj_g: group.id,
+    };
+  });
 
-        requestData.ipobj = host.id;
-        requestData.node_parent = 1;
-        requestData.node_order = 1;
-        requestData.node_type = "OIH";
+  it("should throw an exception if the ipObj to attach is an empty host", async () => {
+    const host = await getRepository(IPObj).save(
+      getRepository(IPObj).create({
+        name: "test",
+        ipObjTypeId: 8,
+      }),
+    );
 
-        return await request(app.express)
-            .put('/ipobj/group/addto')
-            .set('Cookie', [attachSession(session)])
-            .send(requestData)
-            .expect(400);
-    });
+    requestData.ipobj = host.id;
+    requestData.node_parent = 1;
+    requestData.node_order = 1;
+    requestData.node_type = "OIH";
+
+    return await request(app.express)
+      .put("/ipobj/group/addto")
+      .set("Cookie", [attachSession(session)])
+      .send(requestData)
+      .expect(400);
+  });
 });

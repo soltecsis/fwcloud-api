@@ -29,11 +29,10 @@ import { ResponseBuilder } from "../fonaments/http/response-builder";
 import { Validate } from "../decorators/validate.decorator";
 
 export class VersionController extends Controller {
-    
-    @Validate()
-    public async show(request: Request): Promise<ResponseBuilder> {
-        const version: Version = app<Application>().version
-        
-        return ResponseBuilder.buildResponse().status(200).body(version);
-    }
+  @Validate()
+  public async show(request: Request): Promise<ResponseBuilder> {
+    const version: Version = app<Application>().version;
+
+    return ResponseBuilder.buildResponse().status(200).body(version);
+  }
 }

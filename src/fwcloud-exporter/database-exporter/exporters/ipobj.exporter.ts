@@ -30,29 +30,45 @@ import { Interface } from "../../../models/interface/Interface";
 import { InterfaceExporter } from "./interface.exporter";
 
 export class IPObjExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return IPObj;
-    }
+  protected getEntity(): typeof Model {
+    return IPObj;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-            .where(`${alias}.id >= 100000`)
-            .andWhere(new Brackets(qb => {
-                qb.where(qb => {
-                    qb
-                        .where(qb => {
-                            const subquery = qb.subQuery().from(FwCloud, 'fwcloud').select('fwcloud.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where(`${alias}.id >= 100000`).andWhere(
+      new Brackets((qb) => {
+        qb.where((qb) => {
+          qb.where((qb) => {
+            const subquery = qb
+              .subQuery()
+              .from(FwCloud, "fwcloud")
+              .select("fwcloud.id");
 
-                            return `${alias}.fwCloudId IN ` + new FwCloudExporter()
-                                .getFilterBuilder(subquery, 'fwcloud', fwCloudId).getQuery()
-                        })
-                        .orWhere(qb => {
-                            const subquery = qb.subQuery().from(Interface, 'interface').select('interface.id');
+            return (
+              `${alias}.fwCloudId IN ` +
+              new FwCloudExporter()
+                .getFilterBuilder(subquery, "fwcloud", fwCloudId)
+                .getQuery()
+            );
+          }).orWhere((qb) => {
+            const subquery = qb
+              .subQuery()
+              .from(Interface, "interface")
+              .select("interface.id");
 
-                            return `${alias}.interfaceId IN ` + new InterfaceExporter()
-                                .getFilterBuilder(subquery, 'interface', fwCloudId).getQuery()
-                        })
-                });
-            }));
-    }
+            return (
+              `${alias}.interfaceId IN ` +
+              new InterfaceExporter()
+                .getFilterBuilder(subquery, "interface", fwCloudId)
+                .getQuery()
+            );
+          });
+        });
+      }),
+    );
+  }
 }

@@ -23,37 +23,38 @@
 export type ExporterResultData = { [tableName: string]: Array<object> };
 
 export class ExporterResult {
-    protected _results: ExporterResultData;
+  protected _results: ExporterResultData;
 
-    constructor(results: ExporterResultData = {}) {
-        this._results = results
+  constructor(results: ExporterResultData = {}) {
+    this._results = results;
+  }
+
+  public getAll(): ExporterResultData {
+    return this._results;
+  }
+
+  public addTableData(tableName: string, data: Array<object>): this {
+    if (this._results[tableName]) {
+      throw new Error("Exporting a table which already has been exported");
     }
 
-    public getAll(): ExporterResultData {
-        return this._results;
+    this._results[tableName] = data;
+
+    return this;
+  }
+
+  public getTableResults(tableName: string): Array<object> {
+    return this._results.hasOwnProperty(tableName)
+      ? this._results[tableName]
+      : null;
+  }
+
+  public getTableNames(): Array<string> {
+    const names: Array<string> = [];
+
+    for (const tableName in this._results) {
+      names.push(tableName);
     }
-
-    public addTableData(tableName: string, data: Array<object>): this {
-        if(this._results[tableName]) {
-            throw new Error('Exporting a table which already has been exported');
-        }
-
-        this._results[tableName] = data
-        
-        return this;
-    }
-
-    public getTableResults(tableName: string): Array<object> {
-        return this._results.hasOwnProperty(tableName) ? this._results[tableName] : null;
-    }
-
-    public getTableNames(): Array<string> {
-        const names: Array<string> = [];
-
-
-        for(const tableName in this._results) {
-            names.push(tableName);
-        }
-        return names;
-    }
+    return names;
+  }
 }

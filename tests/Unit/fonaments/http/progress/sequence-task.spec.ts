@@ -27,37 +27,36 @@ import { Task } from "../../../../../src/fonaments/http/progress/task";
 
 let eventEmitter: EventEmitter;
 
-describe(describeName('Sequence Task tests'), () => {
-    beforeEach(async () => {
-        eventEmitter = new EventEmitter;
+describe(describeName("Sequence Task tests"), () => {
+  beforeEach(async () => {
+    eventEmitter = new EventEmitter();
+  });
+
+  describe("getTasks()", () => {
+    it("should return parallel task added as a task", () => {
+      const task = new SequencedTask(eventEmitter, (task: Task) => {
+        task.parallel((task) => {});
+      });
+
+      expect(task.getTasks()).to.have.length(1);
     });
 
-    describe('getTasks()', () => {
+    it("should return sequence task added as a task", () => {
+      const task = new SequencedTask(eventEmitter, (task: Task) => {
+        task.sequence((task) => {});
+      });
 
-        it('should return parallel task added as a task', () => {
-            const task = new SequencedTask(eventEmitter, (task: Task) => {
-                task.parallel((task) => {
-                });
-            });
-
-            expect(task.getTasks()).to.have.length(1);
-        });
-
-        it('should return sequence task added as a task', () => {
-            const task = new SequencedTask(eventEmitter, (task: Task) => {
-                task.sequence((task) => {
-                });
-            });
-
-            expect(task.getTasks()).to.have.length(1);
-        });
-
-        it('should return task added as a task', () => {
-            const task = new SequencedTask(eventEmitter, (task: Task) => {
-                task.addTask(() => { return null; });
-            });
-
-            expect(task.getTasks()).to.have.length(1);
-        });
+      expect(task.getTasks()).to.have.length(1);
     });
+
+    it("should return task added as a task", () => {
+      const task = new SequencedTask(eventEmitter, (task: Task) => {
+        task.addTask(() => {
+          return null;
+        });
+      });
+
+      expect(task.getTasks()).to.have.length(1);
+    });
+  });
 });

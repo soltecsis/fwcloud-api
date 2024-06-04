@@ -1,4 +1,4 @@
 export enum Offset {
-    Below = 'below',
-    Above = 'above'
+  Below = "below",
+  Above = "above",
 }

@@ -6,32 +6,34 @@ import { AbstractApplication } from "../../../src/fonaments/abstract-application
 import { WebSocketService } from "../../../src/sockets/web-socket.service";
 import * as uuid from "uuid";
 
-describe(describeName('Channel Unit Tests'), () => {
-    let channel: Channel;
-    let listener: EventEmitter;
-    let app: AbstractApplication;
-    let webSocketService: WebSocketService;
+describe(describeName("Channel Unit Tests"), () => {
+  let channel: Channel;
+  let listener: EventEmitter;
+  let app: AbstractApplication;
+  let webSocketService: WebSocketService;
 
-    beforeEach(async() => {
-        app = testSuite.app;
-        webSocketService = await app.getService<WebSocketService>(WebSocketService.name);
-        listener = new EventEmitter();
-        channel = new Channel(uuid.v1(), listener);
+  beforeEach(async () => {
+    app = testSuite.app;
+    webSocketService = await app.getService<WebSocketService>(
+      WebSocketService.name,
+    );
+    listener = new EventEmitter();
+    channel = new Channel(uuid.v1(), listener);
+  });
+
+  describe("message()", () => {
+    it("should return a boolean", () => {
+      const value: boolean = channel.message({});
+      expect(value).to.be.false;
     });
 
-    describe('message()', () => {
-        it('should return a boolean', () => {
-            const value: boolean = channel.message({});
-            expect(value).to.be.false;
-        });
+    it("should emit an event", (done) => {
+      listener.on(channel.id, (message: SocketMessage) => {
+        expect(message.payload).to.be.deep.eq({});
+        done();
+      });
 
-        it('should emit an event', (done) => {
-            listener.on(channel.id, (message: SocketMessage) => {
-                expect(message.payload).to.be.deep.eq({});
-                done();
-            });
-            
-            channel.message({});
-        });
+      channel.message({});
     });
+  });
 });

@@ -31,59 +31,102 @@ import { SnapshotService } from "../../../../src/snapshots/snapshot.service";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import StringHelper from "../../../../src/utils/string.helper";
 
-describe(describeName('Importer tests'), () => {
-    let snapshotService: SnapshotService;
-    
-    beforeEach(async() => {
-        snapshotService = await testSuite.app.getService<SnapshotService>(SnapshotService.name);
+describe(describeName("Importer tests"), () => {
+  let snapshotService: SnapshotService;
+
+  beforeEach(async () => {
+    snapshotService = await testSuite.app.getService<SnapshotService>(
+      SnapshotService.name,
+    );
+  });
+
+  describe("import()", () => {
+    it("should migrate the pki/CA directories from the snapshot into the DATA directory", async () => {
+      const fwCloud: FwCloud = await FwCloud.save(
+        FwCloud.create({
+          name: StringHelper.randomize(10),
+        }),
+      );
+
+      const ca: Ca = await Ca.save(
+        Ca.create({
+          cn: StringHelper.randomize(10),
+          days: 1,
+          fwCloudId: fwCloud.id,
+        }),
+      );
+
+      FSHelper.mkdirSync(
+        path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString()),
+      );
+      fs.writeFileSync(
+        path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString(), "test.txt"),
+        "test",
+      );
+
+      const snapshot: Snapshot = await Snapshot.create(
+        snapshotService.config.data_dir,
+        fwCloud,
+      );
+
+      await snapshot.restore();
+
+      const newFwCloud: FwCloud = await FwCloud.findOne({ name: fwCloud.name });
+      const newCA: Ca = await Ca.findOne({ cn: ca.cn });
+
+      expect(
+        FSHelper.directoryExistsSync(
+          path.join(newFwCloud.getPkiDirectoryPath(), newCA.id.toString()),
+        ),
+      ).to.be.true;
     });
 
-    describe('import()', () => {
-        it('should migrate the pki/CA directories from the snapshot into the DATA directory', async () => {
-            const fwCloud: FwCloud = await FwCloud.save(FwCloud.create({
-                name: StringHelper.randomize(10)
-            }));
+    it("should migrate the policy/firewall directories from the snapshot into the DATA directory", async () => {
+      const fwCloud: FwCloud = await FwCloud.save(
+        FwCloud.create({
+          name: StringHelper.randomize(10),
+        }),
+      );
 
-            const ca: Ca = await Ca.save(Ca.create({
-                cn: StringHelper.randomize(10),
-                days: 1,
-                fwCloudId: fwCloud.id
-            }));
+      const firewall: Firewall = await Firewall.save(
+        Firewall.create({
+          name: StringHelper.randomize(10),
+          fwCloudId: fwCloud.id,
+        }),
+      );
 
-            FSHelper.mkdirSync(path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString()));
-            fs.writeFileSync(path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString(), 'test.txt'), "test");
+      FSHelper.mkdirSync(
+        path.join(fwCloud.getPolicyDirectoryPath(), firewall.id.toString()),
+      );
+      fs.writeFileSync(
+        path.join(
+          fwCloud.getPolicyDirectoryPath(),
+          firewall.id.toString(),
+          "test.txt",
+        ),
+        "test",
+      );
 
-            const snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
+      const snapshot: Snapshot = await Snapshot.create(
+        snapshotService.config.data_dir,
+        fwCloud,
+      );
 
-            await snapshot.restore();
+      await snapshot.restore();
 
-            const newFwCloud: FwCloud = await FwCloud.findOne({name: fwCloud.name});
-            const newCA: Ca = await Ca.findOne({cn: ca.cn});
+      const newFwCloud: FwCloud = await FwCloud.findOne({ name: fwCloud.name });
+      const newFirewall: Firewall = await Firewall.findOne({
+        name: firewall.name,
+      });
 
-            expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPkiDirectoryPath(), newCA.id.toString()))).to.be.true;
-        });
-
-        it('should migrate the policy/firewall directories from the snapshot into the DATA directory', async () => {
-            const fwCloud: FwCloud = await FwCloud.save(FwCloud.create({
-                name: StringHelper.randomize(10)
-            }));
-
-            const firewall: Firewall = await Firewall.save(Firewall.create({
-                name: StringHelper.randomize(10),
-                fwCloudId: fwCloud.id
-            }));
-
-            FSHelper.mkdirSync(path.join(fwCloud.getPolicyDirectoryPath(), firewall.id.toString()));
-            fs.writeFileSync(path.join(fwCloud.getPolicyDirectoryPath(), firewall.id.toString(), 'test.txt'), "test");
-
-            const snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
-
-            await snapshot.restore();
-
-            const newFwCloud: FwCloud = await FwCloud.findOne({name: fwCloud.name});
-            const newFirewall: Firewall = await Firewall.findOne({name: firewall.name});
-
-            expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPolicyDirectoryPath(), newFirewall.id.toString()))).to.be.true;
-        });
+      expect(
+        FSHelper.directoryExistsSync(
+          path.join(
+            newFwCloud.getPolicyDirectoryPath(),
+            newFirewall.id.toString(),
+          ),
+        ),
+      ).to.be.true;
     });
+  });
 });

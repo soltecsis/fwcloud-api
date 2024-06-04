@@ -23,14 +23,14 @@
 import { ArrayMinSize, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class RouteGroupControllerCreateDto {
-    @IsString()
-    name: string;
+  @IsString()
+  name: string;
 
-    @IsString()
-    @IsOptional()
-    comment: string;
+  @IsString()
+  @IsOptional()
+  comment: string;
 
-    @IsNumber({}, {each: true})
-    @ArrayMinSize(1)
-    routes: number[]
+  @IsNumber({}, { each: true })
+  @ArrayMinSize(1)
+  routes: number[];
 }

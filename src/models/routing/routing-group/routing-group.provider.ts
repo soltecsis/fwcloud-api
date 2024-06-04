@@ -21,20 +21,24 @@
 */
 
 import { AbstractApplication } from "../../../fonaments/abstract-application";
-import { ServiceBound, ServiceContainer } from "../../../fonaments/services/service-container";
+import {
+  ServiceBound,
+  ServiceContainer,
+} from "../../../fonaments/services/service-container";
 import { ServiceProvider } from "../../../fonaments/services/service-provider";
 import { RoutingGroupService } from "./routing-group.service";
 
 export class RoutingGroupServiceProvider extends ServiceProvider {
-    
-    public register(serviceContainer: ServiceContainer): ServiceBound {
-        return serviceContainer.singleton(RoutingGroupService.name, async(app: AbstractApplication): Promise<RoutingGroupService> => {
-            return RoutingGroupService.make(app);
-        });
-    }
+  public register(serviceContainer: ServiceContainer): ServiceBound {
+    return serviceContainer.singleton(
+      RoutingGroupService.name,
+      async (app: AbstractApplication): Promise<RoutingGroupService> => {
+        return RoutingGroupService.make(app);
+      },
+    );
+  }
 
-    public async bootstrap(app: AbstractApplication) {
-        await app.getService<RoutingGroupService>(RoutingGroupService.name);
-    }
-
+  public async bootstrap(app: AbstractApplication) {
+    await app.getService<RoutingGroupService>(RoutingGroupService.name);
+  }
 }

@@ -23,7 +23,7 @@
 import { HttpException } from "./http/http-exception";
 
 export class InternalServerException extends HttpException {
-    constructor(message: string = null, stack?: string) {
-        super(message, 500, stack);
-    }
+  constructor(message: string = null, stack?: string) {
+    super(message, 500, stack);
+  }
 }

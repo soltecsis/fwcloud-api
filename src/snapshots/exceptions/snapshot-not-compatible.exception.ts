@@ -25,9 +25,9 @@ import { app } from "../../fonaments/abstract-application";
 import { HttpException } from "../../fonaments/exceptions/http/http-exception";
 
 export class SnapshotNotCompatibleException extends HttpException {
-    public snapshot: Snapshot;
-    constructor(snapshot: Snapshot) {
-        super(`Snapshot version not compatible`, 400);
-        this.snapshot = snapshot;
-    }
+  public snapshot: Snapshot;
+  constructor(snapshot: Snapshot) {
+    super(`Snapshot version not compatible`, 400);
+    this.snapshot = snapshot;
+  }
 }

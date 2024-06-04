@@ -28,17 +28,24 @@ import { Route } from "../../../models/routing/route/route.model";
 import { RouteToOpenVPNPrefix } from "../../../models/routing/route/route-to-openvpn-prefix.model";
 
 export class RouteToOpenVPNPrefixExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return RouteToOpenVPNPrefix;
-    }
+  protected getEntity(): typeof Model {
+    return RouteToOpenVPNPrefix;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where((qb) => {
-            const subquery = qb.subQuery().from(Route, 'route').select('route.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where((qb) => {
+      const subquery = qb.subQuery().from(Route, "route").select("route.id");
 
-            return `${alias}.routeId IN` + new RoutingRuleExporter()
-                .getFilterBuilder(subquery, 'route', fwCloudId).getQuery()
-        });
-    }
+      return (
+        `${alias}.routeId IN` +
+        new RoutingRuleExporter()
+          .getFilterBuilder(subquery, "route", fwCloudId)
+          .getQuery()
+      );
+    });
+  }
 }

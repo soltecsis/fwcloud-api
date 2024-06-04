@@ -20,68 +20,78 @@ import { KeepalivedRuleItemForCompiler } from "../../../models/system/keepalived
 import { ProgressNoticePayload } from "../../../sockets/messages/socket-message";
 
 export type KeepalivedCompiled = {
-    id: number;
-    active: boolean;
-    cs: string;
-}
+  id: number;
+  active: boolean;
+  cs: string;
+};
 
 export class KeepalivedCompiler {
-    public ruleCompile(ruleData: KeepalivedRulesData<KeepalivedRuleItemForCompiler>): string {
-        let cs: string = "";
+  public ruleCompile(
+    ruleData: KeepalivedRulesData<KeepalivedRuleItemForCompiler>,
+  ): string {
+    let cs: string = "";
 
-        switch (ruleData.rule_type) {
-            case 2:
-                cs = ruleData.cfg_text ? ruleData.cfg_text : '';
-                break;
-            default:
-                if (ruleData.comment) {
-                    cs += `# ${ruleData.comment}\n`;
-                }
-
-                cs += `vrrp_script VI_${ruleData.interface?.name} {\n`;
-                cs += `\tinterface ${ruleData.interface?.name}\n`;
-                cs += `\tstate BACKUP\n`;
-                if (ruleData.interface?.hosts?.length > 0) {
-                    cs += `\tvirtual_router_id ${ruleData.interface.hosts[0].ipObjId}\n`;
-                }
-                cs += `\tpriority ${ruleData.masterNode === ruleData.firewall ? 99 : 50}\n`;
-                cs += '\tadvert_int 5\n';
-                if (ruleData.virtualIps?.length) {
-                    cs += '\tvirtual_ipaddress {\n';
-                    for (const vip of ruleData.virtualIps) {
-                        const ipobj = vip.ipObj;
-                        const ipSplit = ipobj.address.split('.');
-                        cs += `\t\t${ipobj.address} label ${ruleData.interface.name}:${ipSplit[ipSplit.length - 1]} dev ${ruleData.interface.name}\n`;
-                    }
-                    cs += '\t}\n';
-                }
-                cs += '}\n';
-                break;
+    switch (ruleData.rule_type) {
+      case 2:
+        cs = ruleData.cfg_text ? ruleData.cfg_text : "";
+        break;
+      default:
+        if (ruleData.comment) {
+          cs += `# ${ruleData.comment}\n`;
         }
 
-        return cs;
+        cs += `vrrp_script VI_${ruleData.interface?.name} {\n`;
+        cs += `\tinterface ${ruleData.interface?.name}\n`;
+        cs += `\tstate BACKUP\n`;
+        if (ruleData.interface?.hosts?.length > 0) {
+          cs += `\tvirtual_router_id ${ruleData.interface.hosts[0].ipObjId}\n`;
+        }
+        cs += `\tpriority ${ruleData.masterNode === ruleData.firewall ? 99 : 50}\n`;
+        cs += "\tadvert_int 5\n";
+        if (ruleData.virtualIps?.length) {
+          cs += "\tvirtual_ipaddress {\n";
+          for (const vip of ruleData.virtualIps) {
+            const ipobj = vip.ipObj;
+            const ipSplit = ipobj.address.split(".");
+            cs += `\t\t${ipobj.address} label ${ruleData.interface.name}:${ipSplit[ipSplit.length - 1]} dev ${ruleData.interface.name}\n`;
+          }
+          cs += "\t}\n";
+        }
+        cs += "}\n";
+        break;
     }
 
-    public compile(data: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[], eventEmitter?: EventEmitter): KeepalivedCompiled[] {
-        const compiled: KeepalivedCompiled[] = [];
+    return cs;
+  }
 
-        if (!data) {
-            return compiled;
-        }
+  public compile(
+    data: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[],
+    eventEmitter?: EventEmitter,
+  ): KeepalivedCompiled[] {
+    const compiled: KeepalivedCompiled[] = [];
 
-        for (let i: number = 0; i < data.length; i++) {
-            if (eventEmitter) {
-                eventEmitter.emit('progress', new ProgressNoticePayload(`Compiling Keepalived rule ${i} (ID: ${data[i].id})${!(data[i].active) ? ' [DISABLED]' : ''}`));
-            }
-            const ruleData = data[i];
-            const cs = this.ruleCompile(ruleData);
-            compiled.push({
-                id: ruleData.id,
-                active: ruleData.active,
-                cs: cs
-            });
-        }
-
-        return compiled;
+    if (!data) {
+      return compiled;
     }
+
+    for (let i: number = 0; i < data.length; i++) {
+      if (eventEmitter) {
+        eventEmitter.emit(
+          "progress",
+          new ProgressNoticePayload(
+            `Compiling Keepalived rule ${i} (ID: ${data[i].id})${!data[i].active ? " [DISABLED]" : ""}`,
+          ),
+        );
+      }
+      const ruleData = data[i];
+      const cs = this.ruleCompile(ruleData);
+      compiled.push({
+        id: ruleData.id,
+        active: ruleData.active,
+        cs: cs,
+      });
+    }
+
+    return compiled;
+  }
 }

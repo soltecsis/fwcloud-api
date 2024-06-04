@@ -20,15 +20,16 @@ import { ServiceProvider } from "../../../../fonaments/services/service-provider
 import { KeepalivedGroupService } from "./keepalived_g.service";
 
 export class KeepalivedGroupServiceProvider extends ServiceProvider {
+  public register(serviceContainer: ServiceContainer) {
+    return serviceContainer.singleton(
+      KeepalivedGroupService.name,
+      async (app: AbstractApplication): Promise<KeepalivedGroupService> => {
+        return KeepalivedGroupService.make(app);
+      },
+    );
+  }
 
-    public register(serviceContainer: ServiceContainer) {
-        return serviceContainer.singleton(KeepalivedGroupService.name, async(app: AbstractApplication): Promise<KeepalivedGroupService> => {
-            return KeepalivedGroupService.make(app);
-        });
-    }
-
-    public async bootstrap(app: AbstractApplication): Promise<void> {
-        await app.getService<KeepalivedGroupService>(KeepalivedGroupService.name);
-    }
-
+  public async bootstrap(app: AbstractApplication): Promise<void> {
+    await app.getService<KeepalivedGroupService>(KeepalivedGroupService.name);
+  }
 }

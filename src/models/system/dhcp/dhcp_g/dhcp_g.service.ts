@@ -19,7 +19,13 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { FindManyOptions, FindOneOptions, Repository, SelectQueryBuilder, getRepository } from "typeorm";
+import {
+  FindManyOptions,
+  FindOneOptions,
+  Repository,
+  SelectQueryBuilder,
+  getRepository,
+} from "typeorm";
 import { Service } from "../../../../fonaments/services/service";
 import { DHCPRule } from "../dhcp_r/dhcp_r.model";
 import { DHCPGroup } from "./dhcp_g.model";
@@ -27,104 +33,121 @@ import { Firewall } from "../../../firewall/Firewall";
 import { Application } from "../../../../Application";
 
 interface IFindManyDHCPGPath {
-    fwcloudId?: number;
-    firewallId?: number;
+  fwcloudId?: number;
+  firewallId?: number;
 }
 
 interface IFindOneDHCPGPath extends IFindManyDHCPGPath {
-    id: number;
+  id: number;
 }
 
 interface ICreateDHCGroup {
-    firewallId: number;
-    name: string;
-    comment?: string;
-    style?: string;
-    rules?: Partial<DHCPRule>[];
+  firewallId: number;
+  name: string;
+  comment?: string;
+  style?: string;
+  rules?: Partial<DHCPRule>[];
 }
 
 interface IUpdateDHCPGroup {
-    name: string;
-    comment?: string;
-    style?: string;
-    rules?: Partial<DHCPRule>[];
+  name: string;
+  comment?: string;
+  style?: string;
+  rules?: Partial<DHCPRule>[];
 }
 
 export class DHCPGroupService extends Service {
-    protected _repository: Repository<DHCPGroup>;
+  protected _repository: Repository<DHCPGroup>;
 
-    constructor(app: Application) {
-        super(app);
-        this._repository = getRepository(DHCPGroup);
-    }
+  constructor(app: Application) {
+    super(app);
+    this._repository = getRepository(DHCPGroup);
+  }
 
-    findManyInPath(path: IFindManyDHCPGPath): Promise<DHCPGroup[]> {
-        return this._repository.find(this.getFindInPathOptions(path));
-    }
+  findManyInPath(path: IFindManyDHCPGPath): Promise<DHCPGroup[]> {
+    return this._repository.find(this.getFindInPathOptions(path));
+  }
 
-    findOneInPath(path: IFindOneDHCPGPath, options?: FindOneOptions<DHCPGroup>): Promise<DHCPGroup | undefined> {
-        return this._repository.findOne(this.getFindInPathOptions(path, options));
-    }
+  findOneInPath(
+    path: IFindOneDHCPGPath,
+    options?: FindOneOptions<DHCPGroup>,
+  ): Promise<DHCPGroup | undefined> {
+    return this._repository.findOne(this.getFindInPathOptions(path, options));
+  }
 
-    protected getFindInPathOptions(path: Partial<IFindOneDHCPGPath>, options: FindOneOptions<DHCPGroup> | FindManyOptions<DHCPGroup> = {}): FindOneOptions<DHCPGroup> | FindManyOptions<DHCPGroup> {
-        return Object.assign({
-            join: {
-                alias: 'group',
-                innerJoin: {
-                    firewall: 'group.firewall',
-                    fwcloud: 'firewall.fwCloud',
-                }
-            },
-            where: (qb: SelectQueryBuilder<DHCPGroup>) => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
-                }
-                if (path.fwcloudId) {
-                    qb.andWhere('firewall.fwCloudId = :fwcloudId', { fwcloudId: path.fwcloudId });
-                }
-                if (path.id) {
-                    qb.andWhere('group.id = :id', { id: path.id });
-                }
-            }
-        }, options)
-    }
-
-
-    async create(data: ICreateDHCGroup): Promise<DHCPGroup> {
-        const groupData: Partial<DHCPGroup> = {
-            name: data.name,
-            firewall: await getRepository(Firewall).findOne(data.firewallId) as unknown as Firewall,
-            style: data.style,
-        };
-
-        const group: DHCPGroup = await this._repository.save(groupData);
-        return this._repository.findOne(group.id);
-    }
-
-    async update(id: number, data: IUpdateDHCPGroup): Promise<DHCPGroup> {
-        const group: DHCPGroup | undefined = await this._repository.findOne(id);
-
-        if (!group) {
-            throw new Error('DHCPGroup not found');
-        }
-
-        Object.assign(group, data);
-        await this._repository.save(group);
-
-        return group;
-    }
-
-    async remove(path: IFindOneDHCPGPath): Promise<DHCPGroup> {
-        const group: DHCPGroup = await this.findOneInPath(path);
-        if (!group) {
-            throw new Error('DHCPGroup not found');
-        }
-        if (group.rules && group.rules.length > 0) {
-            await getRepository(DHCPRule).update(group.rules.map(rule => rule.id), {
-                group: null
+  protected getFindInPathOptions(
+    path: Partial<IFindOneDHCPGPath>,
+    options: FindOneOptions<DHCPGroup> | FindManyOptions<DHCPGroup> = {},
+  ): FindOneOptions<DHCPGroup> | FindManyOptions<DHCPGroup> {
+    return Object.assign(
+      {
+        join: {
+          alias: "group",
+          innerJoin: {
+            firewall: "group.firewall",
+            fwcloud: "firewall.fwCloud",
+          },
+        },
+        where: (qb: SelectQueryBuilder<DHCPGroup>) => {
+          if (path.firewallId) {
+            qb.andWhere("firewall.id = :firewallId", {
+              firewallId: path.firewallId,
             });
-        }
-        await this._repository.remove(group);
-        return group;
+          }
+          if (path.fwcloudId) {
+            qb.andWhere("firewall.fwCloudId = :fwcloudId", {
+              fwcloudId: path.fwcloudId,
+            });
+          }
+          if (path.id) {
+            qb.andWhere("group.id = :id", { id: path.id });
+          }
+        },
+      },
+      options,
+    );
+  }
+
+  async create(data: ICreateDHCGroup): Promise<DHCPGroup> {
+    const groupData: Partial<DHCPGroup> = {
+      name: data.name,
+      firewall: (await getRepository(Firewall).findOne(
+        data.firewallId,
+      )) as unknown as Firewall,
+      style: data.style,
+    };
+
+    const group: DHCPGroup = await this._repository.save(groupData);
+    return this._repository.findOne(group.id);
+  }
+
+  async update(id: number, data: IUpdateDHCPGroup): Promise<DHCPGroup> {
+    const group: DHCPGroup | undefined = await this._repository.findOne(id);
+
+    if (!group) {
+      throw new Error("DHCPGroup not found");
     }
+
+    Object.assign(group, data);
+    await this._repository.save(group);
+
+    return group;
+  }
+
+  async remove(path: IFindOneDHCPGPath): Promise<DHCPGroup> {
+    const group: DHCPGroup = await this.findOneInPath(path);
+    if (!group) {
+      throw new Error("DHCPGroup not found");
+    }
+    if (group.rules && group.rules.length > 0) {
+      await getRepository(DHCPRule).update(
+        group.rules.map((rule) => rule.id),
+        {
+          group: null,
+        },
+      );
+    }
+    await this._repository.remove(group);
+    return group;
+  }
 }

@@ -27,78 +27,89 @@ import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { QueryRunner, getRepository } from "typeorm";
 import { before } from "mocha";
 
-describe(describeName('IdManager Unit tests'), () => {
-    let queryRunner: QueryRunner;
+describe(describeName("IdManager Unit tests"), () => {
+  let queryRunner: QueryRunner;
 
-    before(async () => {
-        const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
-        await dbService.emptyDatabase();
-        
-        await testSuite.resetDatabaseData();
-        
+  before(async () => {
+    const dbService: DatabaseService =
+      await testSuite.app.getService<DatabaseService>(DatabaseService.name);
+    await dbService.emptyDatabase();
+
+    await testSuite.resetDatabaseData();
+  });
+
+  beforeEach(async () => {
+    const dbService: DatabaseService =
+      await testSuite.app.getService<DatabaseService>(DatabaseService.name);
+    queryRunner = dbService.connection.createQueryRunner();
+  });
+
+  afterEach(async () => {
+    await queryRunner.release();
+  });
+
+  describe("make()", () => {
+    it("should set the next id = 1 if the table is empty", async () => {
+      const idManger: IdManager = await IdManager.make(queryRunner, [
+        "fwcloud",
+      ]);
+
+      expect(idManger["_ids"]).to.be.deep.equal({
+        fwcloud: {
+          id: 1,
+        },
+      });
     });
 
-    beforeEach(async() => {
-        const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
-        queryRunner = dbService.connection.createQueryRunner();
+    it("should set the next id = MAX()+1 if the table is not empty", async () => {
+      await getRepository(FwCloud).save({ id: 100, name: "test" });
+
+      const idManger: IdManager = await IdManager.make(queryRunner, [
+        "fwcloud",
+      ]);
+
+      expect(idManger["_ids"]).to.be.deep.equal({
+        fwcloud: {
+          id: 101,
+        },
+      });
     });
 
-    afterEach(async() => {
-        await queryRunner.release();
+    it("should ignore tables without entity", async () => {
+      // tableWithoutEntitiy does not exists thus there is not an entity for this table
+      const idManger: IdManager = await IdManager.make(queryRunner, [
+        "tableWithoutEntity",
+      ]);
+
+      expect(idManger["_ids"]).to.be.deep.equal({});
     });
-    
-    describe('make()', () => {
-        it('should set the next id = 1 if the table is empty', async () => {
-            const idManger: IdManager = await IdManager.make(queryRunner, ['fwcloud']);
+  });
 
-            expect(idManger["_ids"]).to.be.deep.equal({
-                'fwcloud': {
-                    id: 1
-                }
-            });
-        });
+  describe("getNewId()", () => {
+    it("should return the new id", async () => {
+      await getRepository(FwCloud).save({ id: 100, name: "test" });
 
-        it('should set the next id = MAX()+1 if the table is not empty', async () => {
-            await getRepository(FwCloud).save({ id: 100, name: 'test' });
+      const idManger: IdManager = await IdManager.make(queryRunner, [
+        "fwcloud",
+      ]);
 
-            const idManger: IdManager = await IdManager.make(queryRunner, ['fwcloud']);
-
-            expect(idManger["_ids"]).to.be.deep.equal({
-                'fwcloud': {
-                    id: 101
-                }
-            });
-        });
-
-        it('should ignore tables without entity', async () => {
-            // tableWithoutEntitiy does not exists thus there is not an entity for this table
-            const idManger: IdManager = await IdManager.make(queryRunner, ['tableWithoutEntity']);
-
-            expect(idManger["_ids"]).to.be.deep.equal({});
-        });
+      expect(idManger.getNewId("fwcloud", "id")).to.be.deep.equal(101);
     });
 
-    describe('getNewId()', () => {
-        it('should return the new id', async () => {
-            await  getRepository(FwCloud).save({ id: 100, name: 'test' });
+    it("should increment the id", async () => {
+      await getRepository(FwCloud).save({ id: 100, name: "test" });
 
-            const idManger: IdManager = await IdManager.make(queryRunner, ['fwcloud']);
+      const idManger: IdManager = await IdManager.make(queryRunner, [
+        "fwcloud",
+      ]);
 
-            expect(idManger.getNewId('fwcloud', 'id')).to.be.deep.equal(101);
-        });
+      idManger.getNewId("fwcloud", "id");
 
-        it('should increment the id', async () => {
-            await getRepository(FwCloud).save({ id: 100, name: 'test' });
-
-            const idManger: IdManager = await IdManager.make(queryRunner, ['fwcloud']);
-
-            idManger.getNewId('fwcloud', 'id');
-
-            expect(idManger["_ids"]).to.be.deep.equal({
-                'fwcloud': {
-                    id: 102
-                }
-            });
-        });
+      expect(idManger["_ids"]).to.be.deep.equal({
+        fwcloud: {
+          id: 102,
+        },
+      });
     });
-})
+  });
+});

@@ -27,7 +27,7 @@ import { Mark } from "../ipobj/Mark";
 import { OpenVPN } from "../vpn/openvpn/OpenVPN";
 import { OpenVPNPrefix } from "../vpn/openvpn/OpenVPNPrefix";
 
-export type AvailableDestinations = 'grid' | 'compiler';
+export type AvailableDestinations = "grid" | "compiler";
 
 export type ItemForGrid = {
   entityId: number;
@@ -40,7 +40,7 @@ export type ItemForGrid = {
   cluster_name: string;
   host_id?: number;
   host_name?: string;
-}
+};
 
 export type RouteItemForCompiler = {
   entityId: number;
@@ -49,7 +49,7 @@ export type RouteItemForCompiler = {
   netmask: string;
   range_start: string;
   range_end: string;
-}
+};
 
 export type RoutingRuleItemForCompiler = {
   entityId: number;
@@ -59,18 +59,25 @@ export type RoutingRuleItemForCompiler = {
   range_start: string;
   range_end: string;
   mark_code: number;
-}
+};
 
 export class RoutingUtils {
-  public static async mapEntityData<T extends ItemForGrid | RouteItemForCompiler | RoutingRuleItemForCompiler>(sql: SelectQueryBuilder<IPObj|IPObjGroup|OpenVPN|OpenVPNPrefix|Mark>, ItemsArrayMap: Map<number, T[]>): Promise<void> {
+  public static async mapEntityData<
+    T extends ItemForGrid | RouteItemForCompiler | RoutingRuleItemForCompiler,
+  >(
+    sql: SelectQueryBuilder<
+      IPObj | IPObjGroup | OpenVPN | OpenVPNPrefix | Mark
+    >,
+    ItemsArrayMap: Map<number, T[]>,
+  ): Promise<void> {
     //console.log(sql.getQueryAndParameters());
-    const data: T[] = await sql.getRawMany() as T[];
+    const data: T[] = (await sql.getRawMany()) as T[];
 
-    for (let i=0; i<data.length; i++) {
-        const items: T[] = ItemsArrayMap.get(data[i].entityId);
-        items?.push(data[i]);
+    for (let i = 0; i < data.length; i++) {
+      const items: T[] = ItemsArrayMap.get(data[i].entityId);
+      items?.push(data[i]);
     }
 
     return;
-  }    
+  }
 }

@@ -35,77 +35,85 @@ chai.use(ChaiJsonSchema);
 
 export const expect = chai.expect;
 
-export const playgroundPath: string = path.join(process.cwd(), 'tests', 'playground');
+export const playgroundPath: string = path.join(
+  process.cwd(),
+  "tests",
+  "playground",
+);
 
 export class TestSuite {
-    public app: Application;
+  public app: Application;
 
-    public async runApplication(): Promise<Application> {
-        if (this.app) {
-            await this.app.close();
-        }
-
-        this.app = await Application.run();
-        return this.app;
+  public async runApplication(): Promise<Application> {
+    if (this.app) {
+      await this.app.close();
     }
 
-    public async resetDatabaseData(): Promise<void> {
-        if (this.app === null) {
-            await this.runApplication();
-        }
+    this.app = await Application.run();
+    return this.app;
+  }
 
-        if (this.app) {
-            const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
-
-            await dbService.resetMigrations();
-            await dbService.runMigrations();
-            //await dbService.removeData();
-            await dbService.feedDefaultData();
-        }
+  public async resetDatabaseData(): Promise<void> {
+    if (this.app === null) {
+      await this.runApplication();
     }
 
-    public async closeApplication(): Promise<void> {
-        if (this.app) {
-            await this.app.close();
-            this.app = null;
-        }
+    if (this.app) {
+      const dbService: DatabaseService =
+        await testSuite.app.getService<DatabaseService>(DatabaseService.name);
+
+      await dbService.resetMigrations();
+      await dbService.runMigrations();
+      //await dbService.removeData();
+      await dbService.feedDefaultData();
     }
+  }
+
+  public async closeApplication(): Promise<void> {
+    if (this.app) {
+      await this.app.close();
+      this.app = null;
+    }
+  }
 }
 
 export const testSuite: TestSuite = new TestSuite();
 
 export const describeName = (comment?: string): string => {
-    return comment ? _getCallerFile() + ' - ' + comment : _getCallerFile();
+  return comment ? _getCallerFile() + " - " + comment : _getCallerFile();
 };
 
 function _getCallerFile(): string {
-    try {
-        const e = new Error();
-        const regex = /\((.*):(\d+):(\d+)\)$/
-        const match = regex.exec(e.stack.split("\n")[3]);
-        const relative_path: string = StringHelper.after(path.join(process.cwd(), "dist" , "/"), match[1]);
-        return relative_path;
-    } catch (err) { }
-    
+  try {
+    const e = new Error();
+    const regex = /\((.*):(\d+):(\d+)\)$/;
+    const match = regex.exec(e.stack.split("\n")[3]);
+    const relative_path: string = StringHelper.after(
+      path.join(process.cwd(), "dist", "/"),
+      match[1],
+    );
+    return relative_path;
+  } catch (err) {
     return "undefined";
+  }
 }
 
-
 before(async () => {
-    await testSuite.runApplication();
+  await testSuite.runApplication();
 
-    const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
-    await dbService.emptyDatabase();
-    
-    await testSuite.resetDatabaseData();
+  const dbService: DatabaseService =
+    await testSuite.app.getService<DatabaseService>(DatabaseService.name);
+  await dbService.emptyDatabase();
+
+  await testSuite.resetDatabaseData();
 });
 
 beforeEach(async () => {
-    fse.removeSync(playgroundPath);
-    fse.mkdirSync(playgroundPath);
-    testSuite.app.generateDirectories();
-})
+  fse.removeSync(playgroundPath);
+  fse.mkdirSync(playgroundPath);
+  testSuite.app.generateDirectories();
+});
 
 after(async () => {
-    await testSuite.closeApplication();
+  await testSuite.closeApplication();
 });

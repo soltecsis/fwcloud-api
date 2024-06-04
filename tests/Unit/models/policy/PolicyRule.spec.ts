@@ -25,8 +25,8 @@ import { AbstractApplication } from "../../../../src/fonaments/abstract-applicat
 
 let app: AbstractApplication;
 
-describe.skip(describeName('PolicyRule tests'), () => {
-    before(async () => {
-        app = testSuite.app;
-    })
+describe.skip(describeName("PolicyRule tests"), () => {
+  before(async () => {
+    app = testSuite.app;
+  });
 });

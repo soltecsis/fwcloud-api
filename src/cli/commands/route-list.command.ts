@@ -20,47 +20,54 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { RouterService, HttpMethod } from "../../fonaments/http/router/router.service";
-import { PathParams } from "express-serve-static-core"
+import {
+  RouterService,
+  HttpMethod,
+} from "../../fonaments/http/router/router.service";
+import { PathParams } from "express-serve-static-core";
 import { Gate } from "../../fonaments/http/router/gate";
 import { Route } from "../../fonaments/http/router/route";
 import { Command } from "../command";
 import yargs from "yargs";
 
 interface RouteRow {
-    httpMethod: HttpMethod,
-    pathParams: PathParams,
-    handler: string,
-    name: string,
-    gates: Array<string>
+  httpMethod: HttpMethod;
+  pathParams: PathParams;
+  handler: string;
+  name: string;
+  gates: Array<string>;
 }
-
 
 /**
  * Runs migration command.
  */
 export class RouteListCommand extends Command {
-    
-    public name: string = "route:list";
-    public description: string = "List all routes";
+  public name: string = "route:list";
+  public description: string = "List all routes";
 
-    async handle(args: yargs.Arguments) {
-        const routerService: RouterService = await this._app.getService<RouterService>(RouterService.name);
-        const routes: Route[] = routerService.getRoutes();
-        const rows: Array<RouteRow> = [];
+  async handle(args: yargs.Arguments) {
+    const routerService: RouterService =
+      await this._app.getService<RouterService>(RouterService.name);
+    const routes: Route[] = routerService.getRoutes();
+    const rows: Array<RouteRow> = [];
 
-        for (let i = 0; i < routes.length; i++) {
-            const route: Route = routes[i];
-            rows.push({
-                httpMethod: route.httpMethod,
-                pathParams: route.pathParams,
-                handler: route.isControllerHandler() ? route.controllerSignature.controller.name + '@' + route.controllerSignature.method : 'callback',
-                name: route.name,
-                gates: route.gates.map((gate: typeof Gate) => { return gate.name })
-            });
-        }
-
-        console.table(rows);
+    for (let i = 0; i < routes.length; i++) {
+      const route: Route = routes[i];
+      rows.push({
+        httpMethod: route.httpMethod,
+        pathParams: route.pathParams,
+        handler: route.isControllerHandler()
+          ? route.controllerSignature.controller.name +
+            "@" +
+            route.controllerSignature.method
+          : "callback",
+        name: route.name,
+        gates: route.gates.map((gate: typeof Gate) => {
+          return gate.name;
+        }),
+      });
     }
 
+    console.table(rows);
+  }
 }

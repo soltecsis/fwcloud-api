@@ -29,23 +29,34 @@ import { IPObjExporter } from "./ipobj.exporter";
 import { TableExporter } from "./table-exporter";
 
 export class DHCPRuleToIPObjExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return DHCPRuleToIPObj;
-    }
+  protected getEntity(): typeof Model {
+    return DHCPRuleToIPObj;
+  }
 
-    public getFilterBuilder(qb: any, alias: string, fwCloudId: number): any {
-        return qb
-            .where((qb: any) => {
-                const subquery = qb.subQuery().from(DHCPRule, 'dhcp_r').select('dhcp_r.id');
+  public getFilterBuilder(qb: any, alias: string, fwCloudId: number): any {
+    return qb
+      .where((qb: any) => {
+        const subquery = qb
+          .subQuery()
+          .from(DHCPRule, "dhcp_r")
+          .select("dhcp_r.id");
 
-                return `${alias}.dhcpRuleId IN ` + new DHCPRuleExporter()
-                    .getFilterBuilder(subquery, 'dhcp_r', fwCloudId).getQuery()
-            })
-            .orWhere((qb: any) => {
-                const subquery = qb.subQuery().from(IPObj, 'ipobj').select('ipobj.id');
+        return (
+          `${alias}.dhcpRuleId IN ` +
+          new DHCPRuleExporter()
+            .getFilterBuilder(subquery, "dhcp_r", fwCloudId)
+            .getQuery()
+        );
+      })
+      .orWhere((qb: any) => {
+        const subquery = qb.subQuery().from(IPObj, "ipobj").select("ipobj.id");
 
-                return `${alias}.ipObjId IN ` + new IPObjExporter()
-                    .getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery()
-            });
-    }
+        return (
+          `${alias}.ipObjId IN ` +
+          new IPObjExporter()
+            .getFilterBuilder(subquery, "ipobj", fwCloudId)
+            .getQuery()
+        );
+      });
+  }
 }

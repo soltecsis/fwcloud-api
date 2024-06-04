@@ -31,48 +31,58 @@ import { getCustomRepository } from "typeorm";
 let policyGroupRepository: PolicyGroupRepository;
 let app: AbstractApplication;
 
-describe(describeName('PolicyGroupRepository tests'), () => {
+describe(describeName("PolicyGroupRepository tests"), () => {
+  beforeEach(async () => {
+    app = testSuite.app;
+    policyGroupRepository = getCustomRepository(PolicyGroupRepository);
+  });
 
-    beforeEach(async () => {
-        app = testSuite.app;
-        policyGroupRepository = getCustomRepository(PolicyGroupRepository);
+  describe(describeName("PolicyGroupRepository deleteIfEmpty"), () => {
+    describe("deleteIfEmpty()", () => {
+      it("should delete a policyGroup if it is empty", async () => {
+        const policyGroup: PolicyGroup = await PolicyGroup.save(
+          PolicyGroup.create({
+            name: "group",
+            firewall: await Firewall.save(
+              Firewall.create({
+                name: "firewall",
+              }),
+            ),
+          }),
+        );
+
+        await policyGroupRepository.deleteIfEmpty(policyGroup);
+
+        expect(await policyGroupRepository.findOne(policyGroup.id)).to.be
+          .undefined;
+      });
+
+      it("should not delete a policyGroup if it is not empty", async () => {
+        const policyGroup: PolicyGroup = await PolicyGroup.save(
+          PolicyGroup.create({
+            name: "group",
+            firewall: await Firewall.save(
+              Firewall.create({
+                name: "firewall",
+              }),
+            ),
+            policyRules: [
+              await PolicyRule.save(
+                PolicyRule.create({
+                  rule_order: 0,
+                  action: 0,
+                }),
+              ),
+            ],
+          }),
+        );
+
+        await policyGroupRepository.deleteIfEmpty(policyGroup);
+
+        expect(await PolicyGroup.findOne(policyGroup.id)).to.be.instanceOf(
+          PolicyGroup,
+        );
+      });
     });
-
-    describe(describeName('PolicyGroupRepository deleteIfEmpty'), () => {
-
-        describe('deleteIfEmpty()', () => {
-            it('should delete a policyGroup if it is empty', async () => {
-                const policyGroup: PolicyGroup = await PolicyGroup.save(PolicyGroup.create({
-                    name: 'group',
-                    firewall: await Firewall.save(Firewall.create({
-                        name: 'firewall'
-                    }))
-                }));
-
-                await policyGroupRepository.deleteIfEmpty(policyGroup);
-
-                expect(await policyGroupRepository.findOne(policyGroup.id)).to.be.undefined;
-            });
-
-            it('should not delete a policyGroup if it is not empty', async () => {
-                const policyGroup: PolicyGroup = await PolicyGroup.save(PolicyGroup.create({
-                    name: 'group',
-                    firewall: await Firewall.save(Firewall.create({
-                        name: 'firewall'
-                    })),
-                    policyRules: [
-                        await PolicyRule.save(PolicyRule.create({
-                            rule_order: 0,
-                            action: 0
-                        }))
-                    ]
-                }));
-
-                await policyGroupRepository.deleteIfEmpty(policyGroup);
-
-                expect(await PolicyGroup.findOne(policyGroup.id)).to.be.instanceOf(PolicyGroup);
-            });
-
-        });
-    });
+  });
 });

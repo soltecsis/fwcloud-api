@@ -20,61 +20,70 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { Type } from "class-transformer";
-import { IsBoolean, IsOptional, IsNumber, IsString, Max, Min, IsArray, ValidateNested } from "class-validator";
+import {
+  IsBoolean,
+  IsOptional,
+  IsNumber,
+  IsString,
+  Max,
+  Min,
+  IsArray,
+  ValidateNested,
+} from "class-validator";
 import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
 
 export class DHCPRuleUpdateDto {
-    @IsBoolean()
-    @IsOptional()
-    active?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  active?: boolean;
 
-    @IsNumber()
-    @IsOptional()
-    group?: number;
+  @IsNumber()
+  @IsOptional()
+  group?: number;
 
-    @IsNumber()
-    @IsOptional()
-    firewallId?: number;
+  @IsNumber()
+  @IsOptional()
+  firewallId?: number;
 
-    @IsString()
-    @IsOptional()
-    style?: string;
+  @IsString()
+  @IsOptional()
+  style?: string;
 
-    @IsNumber()
-    @IsOptional()
-    networkId?: number;
+  @IsNumber()
+  @IsOptional()
+  networkId?: number;
 
-    @IsNumber()
-    @IsOptional()
-    rangeId?: number;
+  @IsNumber()
+  @IsOptional()
+  rangeId?: number;
 
-    @IsNumber()
-    @IsOptional()
-    routerId?: number;
+  @IsNumber()
+  @IsOptional()
+  routerId?: number;
 
-    @IsNumber()
-    @IsOptional()
-    interfaceId?: number;
+  @IsNumber()
+  @IsOptional()
+  interfaceId?: number;
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    ipObjIds?: PositionalEntityDto[]
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipObjIds?: PositionalEntityDto[];
 
-    @IsNumber()
-    @IsOptional()
-    @Min(0)
-    @Max(999999)
-    max_lease?: number;
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(999999)
+  max_lease?: number;
 
-    @IsString()
-    @IsOptional()
-    cfg_text?: string;
+  @IsString()
+  @IsOptional()
+  cfg_text?: string;
 
-    @IsString()
-    @IsOptional()
-    comment?: string;
+  @IsString()
+  @IsOptional()
+  comment?: string;
 }

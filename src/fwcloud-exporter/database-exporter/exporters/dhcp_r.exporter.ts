@@ -30,22 +30,40 @@ import { FirewallExporter } from "./firewall.exporter";
 import { DHCPGroupExporter } from "./dhcp_g.exporter";
 
 export class DHCPRuleExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return DHCPRule;
-    }
+  protected getEntity(): typeof Model {
+    return DHCPRule;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-            .where((qb) => {
-                const query = qb.subQuery().from(DHCPGroup, 'dhcp_g').select('dhcp_g.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb
+      .where((qb) => {
+        const query = qb
+          .subQuery()
+          .from(DHCPGroup, "dhcp_g")
+          .select("dhcp_g.id");
 
-                return `${alias}.dhcpGroupId IN ` + new DHCPGroupExporter()
-                    .getFilterBuilder(query, 'dhcp_g', fwCloudId).getQuery()
-            })
-            .where((qb) => {
-                const query = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
-                return `${alias}.firewallId IN ` + new FirewallExporter()
-                    .getFilterBuilder(query, 'firewall', fwCloudId).getQuery()
-            })
-    }
+        return (
+          `${alias}.dhcpGroupId IN ` +
+          new DHCPGroupExporter()
+            .getFilterBuilder(query, "dhcp_g", fwCloudId)
+            .getQuery()
+        );
+      })
+      .where((qb) => {
+        const query = qb
+          .subQuery()
+          .from(Firewall, "firewall")
+          .select("firewall.id");
+        return (
+          `${alias}.firewallId IN ` +
+          new FirewallExporter()
+            .getFilterBuilder(query, "firewall", fwCloudId)
+            .getQuery()
+        );
+      });
+  }
 }

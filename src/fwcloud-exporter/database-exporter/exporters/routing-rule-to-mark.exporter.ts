@@ -28,17 +28,27 @@ import { RoutingRuleExporter } from "./routing-rule.exporter";
 import { RoutingRuleToMark } from "../../../models/routing/routing-rule/routing-rule-to-mark.model";
 
 export class RoutingRuleToMarkExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return RoutingRuleToMark;
-    }
+  protected getEntity(): typeof Model {
+    return RoutingRuleToMark;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where((qb) => {
-            const subquery = qb.subQuery().from(RoutingRule, 'rule').select('rule.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where((qb) => {
+      const subquery = qb
+        .subQuery()
+        .from(RoutingRule, "rule")
+        .select("rule.id");
 
-            return `${alias}.routingRuleId IN` + new RoutingRuleExporter()
-                .getFilterBuilder(subquery, 'rule', fwCloudId).getQuery()
-        });
-    }
+      return (
+        `${alias}.routingRuleId IN` +
+        new RoutingRuleExporter()
+          .getFilterBuilder(subquery, "rule", fwCloudId)
+          .getQuery()
+      );
+    });
+  }
 }

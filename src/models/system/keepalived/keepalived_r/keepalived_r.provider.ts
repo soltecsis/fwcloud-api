@@ -20,15 +20,16 @@ import { AbstractApplication } from "../../../../fonaments/abstract-application"
 import { KeepalivedRuleService } from "./keepalived_r.service";
 
 export class KeepalivedRuleServiceProvider extends ServiceProvider {
+  public register(serviceContainer: ServiceContainer) {
+    return serviceContainer.singleton(
+      KeepalivedRuleService.name,
+      async (app): Promise<KeepalivedRuleService> => {
+        return KeepalivedRuleService.make(app);
+      },
+    );
+  }
 
-    public register(serviceContainer: ServiceContainer) {
-        return serviceContainer.singleton(KeepalivedRuleService.name, async(app): Promise<KeepalivedRuleService> => {
-            return KeepalivedRuleService.make(app);
-        });
-    }
-
-    public async bootstrap(app: AbstractApplication) {
-        await app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
-    }
-
+  public async bootstrap(app: AbstractApplication) {
+    await app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
+  }
 }

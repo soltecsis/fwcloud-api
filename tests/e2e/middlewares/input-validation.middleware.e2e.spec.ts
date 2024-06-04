@@ -27,32 +27,32 @@ import { FwCloudFactory, FwCloudProduct } from "../../utils/fwcloud-factory";
 import { attachSession, createUser, generateSession } from "../../utils/utils";
 import { User } from "../../../src/models/user/User";
 
-describe(describeName('InputValidation Middleware E2E test'), () => {
-    let app: Application;
-    let fwcProduct: FwCloudProduct;
-    let adminUser: User;
-    let session: string;
+describe(describeName("InputValidation Middleware E2E test"), () => {
+  let app: Application;
+  let fwcProduct: FwCloudProduct;
+  let adminUser: User;
+  let session: string;
 
-    beforeEach(async () => {
-        await testSuite.resetDatabaseData();
-        app = testSuite.app;
-        fwcProduct = await new FwCloudFactory().make();
-        adminUser = await createUser({role: 1});
-        session = generateSession(adminUser);
-    });
+  beforeEach(async () => {
+    await testSuite.resetDatabaseData();
+    app = testSuite.app;
+    fwcProduct = await new FwCloudFactory().make();
+    adminUser = await createUser({ role: 1 });
+    session = generateSession(adminUser);
+  });
 
-    it('should remove _object from the validation error', async() => {
-        app.config.set('confirmation_token', false);
+  it("should remove _object from the validation error", async () => {
+    app.config.set("confirmation_token", false);
 
-        await request(app.express)
-            .post("/firewall")
-            .set('Cookie', [attachSession(session)])
-            .send({
-                fwcloud: fwcProduct.fwcloud.id
-            })
-            .expect(400)
-            .expect((response) => {
-                expect(response.body._object).to.be.undefined;
-            });
-    });
-})
+    await request(app.express)
+      .post("/firewall")
+      .set("Cookie", [attachSession(session)])
+      .send({
+        fwcloud: fwcProduct.fwcloud.id,
+      })
+      .expect(400)
+      .expect((response) => {
+        expect(response.body._object).to.be.undefined;
+      });
+  });
+});

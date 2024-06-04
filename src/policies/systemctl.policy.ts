@@ -27,13 +27,21 @@ import { getRepository } from "typeorm";
 import { FwCloud } from "../models/fwcloud/FwCloud";
 
 export class SystemctlPolicy extends Policy {
-    
-    static async communicate(user: User, fwCloud: FwCloud, firewall: Firewall,): Promise<Authorization> {
-        if (user.role === 1) {
-            return Authorization.grant();
-        }
-        
-        user = await User.findOne({where: {id: user.id}, relations: ['fwClouds', 'firewalls']})
-        return user.fwClouds.findIndex(item => item.id === fwCloud.id) >= 0 ? Authorization.grant() : Authorization.revoke();
+  static async communicate(
+    user: User,
+    fwCloud: FwCloud,
+    firewall: Firewall,
+  ): Promise<Authorization> {
+    if (user.role === 1) {
+      return Authorization.grant();
     }
+
+    user = await User.findOne({
+      where: { id: user.id },
+      relations: ["fwClouds", "firewalls"],
+    });
+    return user.fwClouds.findIndex((item) => item.id === fwCloud.id) >= 0
+      ? Authorization.grant()
+      : Authorization.revoke();
+  }
 }

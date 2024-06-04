@@ -25,19 +25,36 @@ import { IPObj } from "../../../models/ipobj/IPObj";
 import { IPObjExporter } from "./ipobj.exporter";
 
 export class KeepalivedRuleToIPObjExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return KeepalivedToIPObj;
-    }
+  protected getEntity(): typeof Model {
+    return KeepalivedToIPObj;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-            .where((qb) => {
-                const subquery = qb.subQuery().from(KeepalivedRule, 'keepalived_r').select('keepalived_r.id');
-                return `${alias}.rule IN ` + new KeepalivedRuleExporter().getFilterBuilder(subquery, 'keepalived_r', fwCloudId).getQuery();
-            })
-            .orWhere((qb) => {
-                const subquery = qb.subQuery().from(IPObj, 'ipobj').select('ipobj.id');
-                return `${alias}.ipobj IN ` + new IPObjExporter().getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery();
-            })
-    }
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb
+      .where((qb) => {
+        const subquery = qb
+          .subQuery()
+          .from(KeepalivedRule, "keepalived_r")
+          .select("keepalived_r.id");
+        return (
+          `${alias}.rule IN ` +
+          new KeepalivedRuleExporter()
+            .getFilterBuilder(subquery, "keepalived_r", fwCloudId)
+            .getQuery()
+        );
+      })
+      .orWhere((qb) => {
+        const subquery = qb.subQuery().from(IPObj, "ipobj").select("ipobj.id");
+        return (
+          `${alias}.ipobj IN ` +
+          new IPObjExporter()
+            .getFilterBuilder(subquery, "ipobj", fwCloudId)
+            .getQuery()
+        );
+      });
+  }
 }

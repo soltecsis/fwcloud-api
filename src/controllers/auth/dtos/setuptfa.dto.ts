@@ -1,9 +1,9 @@
 import { IsNumber, IsString } from "class-validator";
 
-export class SetupTfaDto{
-    @IsString()
-    username: string;
+export class SetupTfaDto {
+  @IsString()
+  username: string;
 
-    @IsNumber()
-    user: number;
+  @IsNumber()
+  user: number;
 }

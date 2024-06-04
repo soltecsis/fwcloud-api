@@ -20,7 +20,7 @@ import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { KeepalivedGroup } from "../../../models/system/keepalived/keepalived_g/keepalived_g.model";
 import { KeepalivedGroupService } from "../../../models/system/keepalived/keepalived_g/keepalived_g.service";
-import { Request } from 'express';
+import { Request } from "express";
 import { KeepalivedGroupPolicy } from "../../../policies/keepalived-group.policy";
 import { Validate } from "../../../decorators/validate.decorator";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
@@ -38,36 +38,51 @@ export class KeepalivedGroupController extends Controller {
 
   /**
    * Makes a request to create a keepalived group.
-   * 
+   *
    * @param request - The request object.
    * @returns A promise that resolves to void.
    */
   public async make(request: Request): Promise<void> {
-    this._keepalivedGroupService = await this._app.getService<KeepalivedGroupService>(KeepalivedGroupService.name);
-    this._keepalivedRuleService = await this._app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
+    this._keepalivedGroupService =
+      await this._app.getService<KeepalivedGroupService>(
+        KeepalivedGroupService.name,
+      );
+    this._keepalivedRuleService =
+      await this._app.getService<KeepalivedRuleService>(
+        KeepalivedRuleService.name,
+      );
 
     if (request.params.keepalivedgroup) {
-      this._keepalivedGroup = await this._keepalivedGroupService.findOneInPath({ id: parseInt(request.params.keepalivedgroup) });
+      this._keepalivedGroup = await this._keepalivedGroupService.findOneInPath({
+        id: parseInt(request.params.keepalivedgroup),
+      });
     }
 
-    this._firewall = await getRepository(Firewall).findOneOrFail(request.params.firewall);
-    this._fwCloud = await getRepository(FwCloud).findOneOrFail(request.params.fwcloud);
+    this._firewall = await getRepository(Firewall).findOneOrFail(
+      request.params.firewall,
+    );
+    this._fwCloud = await getRepository(FwCloud).findOneOrFail(
+      request.params.fwcloud,
+    );
   }
 
   @Validate()
   /**
    * Retrieves a list of Keepalived groups.
-   * 
+   *
    * @param req - The request object.
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   async index(req: Request): Promise<ResponseBuilder> {
-    (await KeepalivedGroupPolicy.index(this._firewall, req.session.user)).authorize();
+    (
+      await KeepalivedGroupPolicy.index(this._firewall, req.session.user)
+    ).authorize();
 
-    const groups: KeepalivedGroup[] = await this._keepalivedGroupService.findManyInPath({
-      firewallId: this._firewall.id,
-      fwcloudId: this._fwCloud.id,
-    }) as unknown as KeepalivedGroup[];
+    const groups: KeepalivedGroup[] =
+      (await this._keepalivedGroupService.findManyInPath({
+        firewallId: this._firewall.id,
+        fwcloudId: this._fwCloud.id,
+      })) as unknown as KeepalivedGroup[];
 
     return ResponseBuilder.buildResponse().status(200).body(groups);
   }
@@ -75,22 +90,27 @@ export class KeepalivedGroupController extends Controller {
   @Validate(KeepalivedGroupControllerCreateDto)
   /**
    * Creates a new KeepalivedGroup.
-   * 
+   *
    * @param req - The request object.
    * @returns A Promise that resolves to a ResponseBuilder.
    */
   async create(req: Request): Promise<ResponseBuilder> {
-    (await KeepalivedGroupPolicy.create(this._firewall, req.session.user)).authorize();
+    (
+      await KeepalivedGroupPolicy.create(this._firewall, req.session.user)
+    ).authorize();
 
     const group: KeepalivedGroup = await this._keepalivedGroupService.create({
       firewallId: this._firewall.id,
       name: req.body.name,
       style: req.body.style,
-      rules: req.inputs.get<number[]>('rules')?.map((id) => ({ id })),
+      rules: req.inputs.get<number[]>("rules")?.map((id) => ({ id })),
     });
 
-    if (req.inputs.get<number[]>('rules')) {
-      await this._keepalivedRuleService.bulkUpdate(req.inputs.get<number[]>('rules')?.map((id) => id), { group: group.id });
+    if (req.inputs.get<number[]>("rules")) {
+      await this._keepalivedRuleService.bulkUpdate(
+        req.inputs.get<number[]>("rules")?.map((id) => id),
+        { group: group.id },
+      );
     }
 
     return ResponseBuilder.buildResponse().status(201).body(group);
@@ -99,27 +119,39 @@ export class KeepalivedGroupController extends Controller {
   @Validate()
   /**
    * Retrieves the keepalived group information.
-   * 
+   *
    * @param req - The request object.
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   async show(req: Request): Promise<ResponseBuilder> {
-    (await KeepalivedGroupPolicy.show(this._keepalivedGroup, req.session.user)).authorize();
+    (
+      await KeepalivedGroupPolicy.show(this._keepalivedGroup, req.session.user)
+    ).authorize();
 
-    return ResponseBuilder.buildResponse().status(200).body(this._keepalivedGroup);
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(this._keepalivedGroup);
   }
 
   @Validate(KeepalivedGroupUpdateDto)
   /**
    * Updates the keepalived group.
-   * 
+   *
    * @param req - The request object.
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   async update(req: Request): Promise<ResponseBuilder> {
-    (await KeepalivedGroupPolicy.update(this._keepalivedGroup, req.session.user)).authorize();
+    (
+      await KeepalivedGroupPolicy.update(
+        this._keepalivedGroup,
+        req.session.user,
+      )
+    ).authorize();
 
-    const result = await this._keepalivedGroupService.update(this._keepalivedGroup.id, req.inputs.all());
+    const result = await this._keepalivedGroupService.update(
+      this._keepalivedGroup.id,
+      req.inputs.all(),
+    );
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
@@ -127,18 +159,25 @@ export class KeepalivedGroupController extends Controller {
   @Validate()
   /**
    * Removes the keepalived group.
-   * 
+   *
    * @param req - The request object.
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   async remove(req: Request): Promise<ResponseBuilder> {
-    (await KeepalivedGroupPolicy.remove(this._keepalivedGroup, req.session.user)).authorize();
+    (
+      await KeepalivedGroupPolicy.remove(
+        this._keepalivedGroup,
+        req.session.user,
+      )
+    ).authorize();
 
     await this._keepalivedGroupService.remove({
       id: this._keepalivedGroup.id,
       firewallId: this._firewall.id,
       fwcloudId: this._fwCloud.id,
     });
-    return ResponseBuilder.buildResponse().status(200).body(this._keepalivedGroup);
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body(this._keepalivedGroup);
   }
 }

@@ -22,39 +22,43 @@
 
 import { Controller } from "../../fonaments/http/controller";
 import { IptablesSaveService } from "../../iptables-save/iptables-save.service";
-import { IptablesSaveStats } from '../../iptables-save/iptables-save.data';
+import { IptablesSaveStats } from "../../iptables-save/iptables-save.data";
 import { Request } from "express";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { app } from "../../fonaments/abstract-application";
 
 export class IptablesSaveController extends Controller {
-    protected _iptablesSaveService: IptablesSaveService;
+  protected _iptablesSaveService: IptablesSaveService;
 
-    async make() {
-        this._iptablesSaveService = await app().getService<IptablesSaveService>(IptablesSaveService.name);
-    }
+  async make() {
+    this._iptablesSaveService = await app().getService<IptablesSaveService>(
+      IptablesSaveService.name,
+    );
+  }
 
-    // WARNING: We are validating input wit Joi middleware, ignore this validation.
-    //@Validate()
-    public async import(request: Request): Promise<ResponseBuilder> {
-        // If request.body.fwcloud and request.body.firewall exists, we have already checked in the access control middleware 
-        // that the user has access to the indicated fwcloud and firewall.
+  // WARNING: We are validating input wit Joi middleware, ignore this validation.
+  //@Validate()
+  public async import(request: Request): Promise<ResponseBuilder> {
+    // If request.body.fwcloud and request.body.firewall exists, we have already checked in the access control middleware
+    // that the user has access to the indicated fwcloud and firewall.
 
-        let result: IptablesSaveStats;
+    let result: IptablesSaveStats;
 
-        if (request.body.type === 'data')
-            result = await this._iptablesSaveService.import(request);
-        else // ssh
-            result = await this._iptablesSaveService.importThroughCommunication(request);
+    if (request.body.type === "data")
+      result = await this._iptablesSaveService.import(request);
+    // ssh
+    else
+      result =
+        await this._iptablesSaveService.importThroughCommunication(request);
 
-        return ResponseBuilder.buildResponse().status(200).body(result);
-    }
+    return ResponseBuilder.buildResponse().status(200).body(result);
+  }
 
-    // WARNING: We are validating input wit Joi middleware, ignore this validation.
-    //@Validate()
-    public async export(request: Request): Promise<ResponseBuilder> {
-        const result = await this._iptablesSaveService.export(request);
+  // WARNING: We are validating input wit Joi middleware, ignore this validation.
+  //@Validate()
+  public async export(request: Request): Promise<ResponseBuilder> {
+    const result = await this._iptablesSaveService.export(request);
 
-        return ResponseBuilder.buildResponse().status(200).body(result);
-    }
+    return ResponseBuilder.buildResponse().status(200).body(result);
+  }
 }

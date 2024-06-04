@@ -28,17 +28,27 @@ import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
 import { OpenVPNExporter } from "./openvpn.exporter";
 
 export class OpenVPNPrefixExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return OpenVPNPrefix;
-    }
+  protected getEntity(): typeof Model {
+    return OpenVPNPrefix;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where((qb) => {
-            const subquery = qb.subQuery().from(OpenVPN, 'openvpn').select('openvpn.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where((qb) => {
+      const subquery = qb
+        .subQuery()
+        .from(OpenVPN, "openvpn")
+        .select("openvpn.id");
 
-            return `${alias}.openVPNId IN ` + new OpenVPNExporter()
-                .getFilterBuilder(subquery, 'openvpn', fwCloudId).getQuery()
-        });
-    }
+      return (
+        `${alias}.openVPNId IN ` +
+        new OpenVPNExporter()
+          .getFilterBuilder(subquery, "openvpn", fwCloudId)
+          .getQuery()
+      );
+    });
+  }
 }

@@ -72,67 +72,67 @@ import { DHCPGroupExporter } from "./exporters/dhcp_g.exporter";
 import { DHCPRuleToIPObjExporter } from "./exporters/dhcp_r-to-ipobj.exporter";
 
 const EXPORTERS = [
-    new CaExporter(),
-    new CaPrefixExporter(),
-    new ClusterExporter(),
-    new CrtExporter(),
-    new FirewallExporter(),
-    new FwCloudExporter(),
-    new InterfaceToIPObjExporter(),
-    new InterfaceExporter(),
-    new IPObjGroupExporter(),
-    new IPObjToIPObjGroupExporter(),
-    new IPObjExporter(),
-    new MarkExporter(),
-    new OpenVPNOptionExporter(),
-    new OpenVPNPrefixExporter(),
-    new OpenVPNExporter(),
-    new OpenVPNPrefixToIPObjGroupExporter(),
-    new PolicyGroupExporter(),
-    new PolicyRuleToInterfaceExporter(),
-    new PolicyRuleToIPObjExporter(),
-    new PolicyRuleToOpenVPNPrefixExporter(),
-    new PolicyRuleToOpenVPNExporter(),
-    new PolicyRuleExporter(),
-    new RoutingTableExporter(),
-    new RoutingGroupExporter(),
-    new RoutingRuleExporter(),
-    new RoutingRuleToIPObjExporter(),
-    new RoutingRuleToIPObjGroupExporter(),
-    new RoutingRuleToOpenVPNExporter(),
-    new RoutingRuleToOpenVPNPrefixExporter(),
-    new RoutingRuleToMarkExporter(),
-    new RouteExporter(),
-    new RouteToIPObjExporter(),
-    new RouteToIPObjGroupExporter(),
-    new RouteToOpenVPNExporter(),
-    new RouteToOpenVPNPrefixExporter(),
-    new RouteGroupExporter(),
-    new HAProxyRuleExporter(),
-    new HAProxyRuleToIPObjExporter(),
-    new HAProxyGroupExporter(),
-    new DHCPRuleExporter(),
-    new DHCPRuleToIPObjExporter(),
-    new DHCPGroupExporter(),
-    new OpenVPNToIPObjGroupExporter(),
-    new FwcTreeExporter(),
+  new CaExporter(),
+  new CaPrefixExporter(),
+  new ClusterExporter(),
+  new CrtExporter(),
+  new FirewallExporter(),
+  new FwCloudExporter(),
+  new InterfaceToIPObjExporter(),
+  new InterfaceExporter(),
+  new IPObjGroupExporter(),
+  new IPObjToIPObjGroupExporter(),
+  new IPObjExporter(),
+  new MarkExporter(),
+  new OpenVPNOptionExporter(),
+  new OpenVPNPrefixExporter(),
+  new OpenVPNExporter(),
+  new OpenVPNPrefixToIPObjGroupExporter(),
+  new PolicyGroupExporter(),
+  new PolicyRuleToInterfaceExporter(),
+  new PolicyRuleToIPObjExporter(),
+  new PolicyRuleToOpenVPNPrefixExporter(),
+  new PolicyRuleToOpenVPNExporter(),
+  new PolicyRuleExporter(),
+  new RoutingTableExporter(),
+  new RoutingGroupExporter(),
+  new RoutingRuleExporter(),
+  new RoutingRuleToIPObjExporter(),
+  new RoutingRuleToIPObjGroupExporter(),
+  new RoutingRuleToOpenVPNExporter(),
+  new RoutingRuleToOpenVPNPrefixExporter(),
+  new RoutingRuleToMarkExporter(),
+  new RouteExporter(),
+  new RouteToIPObjExporter(),
+  new RouteToIPObjGroupExporter(),
+  new RouteToOpenVPNExporter(),
+  new RouteToOpenVPNPrefixExporter(),
+  new RouteGroupExporter(),
+  new HAProxyRuleExporter(),
+  new HAProxyRuleToIPObjExporter(),
+  new HAProxyGroupExporter(),
+  new DHCPRuleExporter(),
+  new DHCPRuleToIPObjExporter(),
+  new DHCPGroupExporter(),
+  new OpenVPNToIPObjGroupExporter(),
+  new FwcTreeExporter(),
 ];
 
 export class DatabaseExporter {
-    protected _result: ExporterResult;
+  protected _result: ExporterResult;
 
-    public async export(fwcloudId: number): Promise<ExporterResult> {
-        const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
-        const connection: Connection = databaseService.connection;
-        this._result = new ExporterResult();
+  public async export(fwcloudId: number): Promise<ExporterResult> {
+    const databaseService: DatabaseService =
+      await app().getService<DatabaseService>(DatabaseService.name);
+    const connection: Connection = databaseService.connection;
+    this._result = new ExporterResult();
 
-        for(let i = 0; i < EXPORTERS.length; i++) {
-            const exporter: TableExporter = EXPORTERS[i];
-            await exporter.bootstrap(connection, fwcloudId);
-            await exporter.export(this._result, connection, fwcloudId);
-        }
-
-
-        return this._result;
+    for (let i = 0; i < EXPORTERS.length; i++) {
+      const exporter: TableExporter = EXPORTERS[i];
+      await exporter.bootstrap(connection, fwcloudId);
+      await exporter.export(this._result, connection, fwcloudId);
     }
+
+    return this._result;
+  }
 }

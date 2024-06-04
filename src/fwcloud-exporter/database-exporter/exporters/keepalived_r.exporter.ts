@@ -24,20 +24,40 @@ import { FirewallExporter } from "./firewall.exporter";
 import { KeepalivedGroupExporter } from "./keepalived_g.exporter";
 
 export class KeepalivedRuleExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return KeepalivedRule;
-    }
+  protected getEntity(): typeof Model {
+    return KeepalivedRule;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-            .where((qb) => {
-                const query = qb.subQuery().from(KeepalivedGroup, 'keepalived_g').select('keepalived_g.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb
+      .where((qb) => {
+        const query = qb
+          .subQuery()
+          .from(KeepalivedGroup, "keepalived_g")
+          .select("keepalived_g.id");
 
-                return `${alias}.keepalivedGroupId IN ` + new KeepalivedGroupExporter().getFilterBuilder(query, 'keepalived_g', fwCloudId).getQuery();
-            })
-            .where((qb) => {
-                const query = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
-                return `${alias}.firewallId IN ` + new FirewallExporter().getFilterBuilder(query, 'firewall', fwCloudId).getQuery();
-            });
-    }
+        return (
+          `${alias}.keepalivedGroupId IN ` +
+          new KeepalivedGroupExporter()
+            .getFilterBuilder(query, "keepalived_g", fwCloudId)
+            .getQuery()
+        );
+      })
+      .where((qb) => {
+        const query = qb
+          .subQuery()
+          .from(Firewall, "firewall")
+          .select("firewall.id");
+        return (
+          `${alias}.firewallId IN ` +
+          new FirewallExporter()
+            .getFilterBuilder(query, "firewall", fwCloudId)
+            .getQuery()
+        );
+      });
+  }
 }

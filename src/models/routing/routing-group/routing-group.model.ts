@@ -20,48 +20,53 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import { Firewall } from "../../firewall/Firewall";
 import Model from "../../Model";
 import { RoutingRule } from "../routing-rule/routing-rule.model";
 
-const tableName: string = 'routing_g';
+const tableName: string = "routing_g";
 
 @Entity(tableName)
 export class RoutingGroup extends Model {
-    
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    name: string;
+  @Column()
+  name: string;
 
-    @Column()
-    comment: string;
+  @Column()
+  comment: string;
 
-    @Column()
-    style: string
+  @Column()
+  style: string;
 
-    @Column({name: 'firewall'})
-    firewallId: number;
+  @Column({ name: "firewall" })
+  firewallId: number;
 
-    @ManyToOne(type => Firewall, firewall => firewall.routingGroups)
-    @JoinColumn({
-        name: 'firewall'
-    })
-    firewall: Firewall;
+  @ManyToOne((type) => Firewall, (firewall) => firewall.routingGroups)
+  @JoinColumn({
+    name: "firewall",
+  })
+  firewall: Firewall;
 
-    @OneToMany(type => RoutingRule, routingRule => routingRule.routingGroup, {
-        eager: true
-    })
-	routingRules: RoutingRule[];
+  @OneToMany((type) => RoutingRule, (routingRule) => routingRule.routingGroup, {
+    eager: true,
+  })
+  routingRules: RoutingRule[];
 
-    public getTableName(): string {
-        return tableName;
-    }
+  public getTableName(): string {
+    return tableName;
+  }
 
-    toJSON(): any {
-        return this;
-    }
-
+  toJSON(): any {
+    return this;
+  }
 }

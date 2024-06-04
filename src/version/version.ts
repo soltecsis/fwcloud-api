@@ -23,18 +23,18 @@
 import { Responsable } from "../fonaments/contracts/responsable";
 
 export class Version implements Responsable {
-    tag: string;
-    schema: string;
-    
-    constructor() {
-        this.tag = null;
-        this.schema = null;
-    }
+  tag: string;
+  schema: string;
 
-    toResponse(): object {
-        return {
-            version: this.tag,
-            schema: this.schema,
-        }
-    }
+  constructor() {
+    this.tag = null;
+    this.schema = null;
+  }
+
+  toResponse(): object {
+    return {
+      version: this.tag,
+      schema: this.schema,
+    };
+  }
 }

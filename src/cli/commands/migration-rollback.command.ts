@@ -30,23 +30,30 @@ import { Command, Option } from "../command";
  * Runs migration command.
  */
 export class MigrationRollbackCommand extends Command {
-    
-    public name: string = "migration:rollback";
-    public description: string = "Rollback migrations";
+  public name: string = "migration:rollback";
+  public description: string = "Rollback migrations";
 
-    async handle(args: yargs.Arguments) {
-        const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
-        const connection: Connection = await databaseService.getConnection({name: 'cli'});
+  async handle(args: yargs.Arguments) {
+    const databaseService: DatabaseService =
+      await this._app.getService<DatabaseService>(DatabaseService.name);
+    const connection: Connection = await databaseService.getConnection({
+      name: "cli",
+    });
 
-        await databaseService.rollbackMigrations(args.steps as number, connection);
+    await databaseService.rollbackMigrations(args.steps as number, connection);
 
-        this.output.success(`Rollback ${args.steps as number} migration(s).`)
-    }
+    this.output.success(`Rollback ${args.steps as number} migration(s).`);
+  }
 
-    public getOptions(): Option[] {
-        return [
-            { name: 'steps', alias: 's', description: 'Rollback steps', required: false, default: 1 }
-        ]
-    }
-
+  public getOptions(): Option[] {
+    return [
+      {
+        name: "steps",
+        alias: "s",
+        description: "Rollback steps",
+        required: false,
+        default: 1,
+      },
+    ];
+  }
 }

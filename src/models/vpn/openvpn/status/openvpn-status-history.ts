@@ -1,57 +1,61 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import Model from "../../../Model";
 import { OpenVPN } from "../OpenVPN";
 
-const tableName: string = 'openvpn_status_history';
+const tableName: string = "openvpn_status_history";
 
 @Entity(tableName)
 export class OpenVPNStatusHistory extends Model {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @PrimaryGeneratedColumn()
-    id: number;
+  @Column()
+  name: string;
 
-    @Column()
-    name: string;
+  @Column()
+  address: string;
 
-    @Column()
-    address: string;
+  @Column({
+    name: "bytes_received",
+  })
+  bytesReceived: string;
 
-    @Column({
-        name: 'bytes_received',
-    })
-    bytesReceived: string;
+  @Column({
+    name: "bytes_sent",
+  })
+  bytesSent: string;
 
-    @Column({
-        name: 'bytes_sent',
-    })
-    bytesSent: string;
+  @Column({
+    name: "connected_at_timestamp",
+  })
+  connectedAtTimestampInSeconds: number;
 
-    @Column({
-        name: 'connected_at_timestamp',
-    })
-    connectedAtTimestampInSeconds: number;
+  @Column({
+    name: "disconnected_at_timestamp",
+  })
+  disconnectedAtTimestampInSeconds: number;
 
-    @Column({
-        name: 'disconnected_at_timestamp',
-    })
-    disconnectedAtTimestampInSeconds: number;
+  @Column({
+    name: "timestamp",
+  })
+  timestampInSeconds: number;
 
-    @Column({
-        name: 'timestamp'
-    })
-    timestampInSeconds: number;
+  @Column({ name: "openvpn_server_id" })
+  openVPNServerId: number;
 
-    @Column({name: 'openvpn_server_id'})
-    openVPNServerId: number;
+  @ManyToOne(() => OpenVPN, (model) => model.historyRecords)
+  @JoinColumn({
+    name: "openvpn_server_id",
+  })
+  openVPNServer: OpenVPN;
 
-    @ManyToOne(() => OpenVPN, model => model.historyRecords)
-    @JoinColumn({
-        name: 'openvpn_server_id'
-    })
-    openVPNServer: OpenVPN;
-
-    public getTableName(): string {
-        return tableName;
-    }
-    
+  public getTableName(): string {
+    return tableName;
+  }
 }

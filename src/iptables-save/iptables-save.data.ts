@@ -21,27 +21,27 @@
 */
 
 export const NetFilterTables = new Set<string>([
-  'nat',
-  'raw',
-  'mangle',
-  'filter'
+  "nat",
+  "raw",
+  "mangle",
+  "filter",
 ]);
 
 export const StdChains = new Set<string>([
-  'INPUT',
-  'OUTPUT',
-  'FORWARD',
-  'PREROUTING',
-  'POSTROUTING'
+  "INPUT",
+  "OUTPUT",
+  "FORWARD",
+  "PREROUTING",
+  "POSTROUTING",
 ]);
 
 export const TcpFlags = new Map<string, number>([
-  ['URG', 1],
-  ['ACK', 2],
-  ['PSH', 4],
-  ['RST', 8],
-  ['SYN', 16],
-  ['FIN', 32]
+  ["URG", 1],
+  ["ACK", 2],
+  ["PSH", 4],
+  ["RST", 8],
+  ["SYN", 16],
+  ["FIN", 32],
 ]);
 
 /*
@@ -63,11 +63,11 @@ mysql> select * from policy_type;
 +----+------+--------------+------------+-------------+
 */
 export const NetfilterTablePolicyTypeMap = new Map<string, number>([
-  ['filter:INPUT', 1],
-  ['filter:OUTPUT', 2],
-  ['filter:FORWARD', 3],
-  ['nat:POSTROUTING', 4], // SNAT
-  ['nat:PREROUTING', 5], // DNAT
+  ["filter:INPUT", 1],
+  ["filter:OUTPUT", 2],
+  ["filter:FORWARD", 3],
+  ["nat:POSTROUTING", 4], // SNAT
+  ["nat:PREROUTING", 5], // DNAT
 ]);
 
 /*
@@ -106,105 +106,248 @@ mysql> select * from policy_type;
 +----+------+--------------+------------+-------------+
 */
 export const PositionMap = new Map<string, number>([
-  ['filter:INPUT:-i', 20],
-  ['filter:INPUT:-s', 1], ['filter:INPUT:--src-range', 1],
-  ['filter:INPUT:-d', 2], ['filter:INPUT:--dst-range', 2],
-  ['filter:INPUT:-p', 3], ['filter:INPUT:srvc', 3],
-  ['filter:INPUT:--sport', 3], ['filter:INPUT:--sports', 3],
-  ['filter:INPUT:--dport', 3], ['filter:INPUT:--dports', 3],
-  ['filter:INPUT:--tcp-flags', 3], ['filter:INPUT:--icmp-type', 3],
+  ["filter:INPUT:-i", 20],
+  ["filter:INPUT:-s", 1],
+  ["filter:INPUT:--src-range", 1],
+  ["filter:INPUT:-d", 2],
+  ["filter:INPUT:--dst-range", 2],
+  ["filter:INPUT:-p", 3],
+  ["filter:INPUT:srvc", 3],
+  ["filter:INPUT:--sport", 3],
+  ["filter:INPUT:--sports", 3],
+  ["filter:INPUT:--dport", 3],
+  ["filter:INPUT:--dports", 3],
+  ["filter:INPUT:--tcp-flags", 3],
+  ["filter:INPUT:--icmp-type", 3],
 
-  ['filter:OUTPUT:-o', 21],
-  ['filter:OUTPUT:-s', 4], ['filter:OUTPUT:--src-range', 4],
-  ['filter:OUTPUT:-d', 5], ['filter:OUTPUT:--dst-range', 5],
-  ['filter:OUTPUT:-p', 6], ['filter:OUTPUT:srvc', 6],
-  ['filter:OUTPUT:--sport', 6], ['filter:OUTPUT:--sports', 6],
-  ['filter:OUTPUT:--dport', 6], ['filter:OUTPUT:--dports', 6],
-  ['filter:OUTPUT:--tcp-flags', 6], ['filter:OUTPUT:--icmp-type', 6],
+  ["filter:OUTPUT:-o", 21],
+  ["filter:OUTPUT:-s", 4],
+  ["filter:OUTPUT:--src-range", 4],
+  ["filter:OUTPUT:-d", 5],
+  ["filter:OUTPUT:--dst-range", 5],
+  ["filter:OUTPUT:-p", 6],
+  ["filter:OUTPUT:srvc", 6],
+  ["filter:OUTPUT:--sport", 6],
+  ["filter:OUTPUT:--sports", 6],
+  ["filter:OUTPUT:--dport", 6],
+  ["filter:OUTPUT:--dports", 6],
+  ["filter:OUTPUT:--tcp-flags", 6],
+  ["filter:OUTPUT:--icmp-type", 6],
 
-  ['filter:FORWARD:-i', 22],
-  ['filter:FORWARD:-o', 25],
-  ['filter:FORWARD:-s', 7], ['filter:FORWARD:--src-range', 7],
-  ['filter:FORWARD:-d', 8], ['filter:FORWARD:--dst-range', 8],
-  ['filter:FORWARD:-p', 9], ['filter:FORWARD:srvc', 9],
-  ['filter:FORWARD:--sport', 9], ['filter:FORWARD:--sports', 9],
-  ['filter:FORWARD:--dport', 9], ['filter:FORWARD:--dports', 9],
-  ['filter:FORWARD:--tcp-flags', 9], ['filter:FORWARD:--icmp-type', 9],
+  ["filter:FORWARD:-i", 22],
+  ["filter:FORWARD:-o", 25],
+  ["filter:FORWARD:-s", 7],
+  ["filter:FORWARD:--src-range", 7],
+  ["filter:FORWARD:-d", 8],
+  ["filter:FORWARD:--dst-range", 8],
+  ["filter:FORWARD:-p", 9],
+  ["filter:FORWARD:srvc", 9],
+  ["filter:FORWARD:--sport", 9],
+  ["filter:FORWARD:--sports", 9],
+  ["filter:FORWARD:--dport", 9],
+  ["filter:FORWARD:--dports", 9],
+  ["filter:FORWARD:--tcp-flags", 9],
+  ["filter:FORWARD:--icmp-type", 9],
 
-  ['nat:POSTROUTING:-o', 24], // SNAT
-  ['nat:POSTROUTING:-s', 11], ['nat:POSTROUTING:--src-range', 11],
-  ['nat:POSTROUTING:-d', 12], ['nat:POSTROUTING:--dst-range', 12],
-  ['nat:POSTROUTING:-p', 13], ['nat:POSTROUTING:srvc', 13],
-  ['nat:POSTROUTING:--sport', 13], ['nat:POSTROUTING:--sports', 13],
-  ['nat:POSTROUTING:--dport', 13], ['nat:POSTROUTING:--dports', 13],
-  ['nat:POSTROUTING:--tcp-flags', 13], ['nat:POSTROUTING:--icmp-type', 13],
-  ['nat:POSTROUTING:--to-source_ip', 14],
-  ['nat:POSTROUTING:--to-source_port', 16], ['nat:POSTROUTING:--to-ports', 16],
+  ["nat:POSTROUTING:-o", 24], // SNAT
+  ["nat:POSTROUTING:-s", 11],
+  ["nat:POSTROUTING:--src-range", 11],
+  ["nat:POSTROUTING:-d", 12],
+  ["nat:POSTROUTING:--dst-range", 12],
+  ["nat:POSTROUTING:-p", 13],
+  ["nat:POSTROUTING:srvc", 13],
+  ["nat:POSTROUTING:--sport", 13],
+  ["nat:POSTROUTING:--sports", 13],
+  ["nat:POSTROUTING:--dport", 13],
+  ["nat:POSTROUTING:--dports", 13],
+  ["nat:POSTROUTING:--tcp-flags", 13],
+  ["nat:POSTROUTING:--icmp-type", 13],
+  ["nat:POSTROUTING:--to-source_ip", 14],
+  ["nat:POSTROUTING:--to-source_port", 16],
+  ["nat:POSTROUTING:--to-ports", 16],
 
-  ['nat:PREROUTING:-i', 36], // DNAT
-  ['nat:PREROUTING:-s', 30], ['nat:PREROUTING:--src-range', 30],
-  ['nat:PREROUTING:-d', 31], ['nat:PREROUTING:--dst-range', 31],
-  ['nat:PREROUTING:-p', 32], ['nat:PREROUTING:srvc', 32],
-  ['nat:PREROUTING:--sport', 32], ['nat:PREROUTING:--sports', 32],
-  ['nat:PREROUTING:--dport', 32], ['nat:PREROUTING:--dports', 32],
-  ['nat:PREROUTING:--tcp-flags', 32], ['nat:PREROUTING:--icmp-type', 13],
-  ['nat:PREROUTING:--to-destination_ip', 34],
-  ['nat:PREROUTING:--to-destination_port', 35],
+  ["nat:PREROUTING:-i", 36], // DNAT
+  ["nat:PREROUTING:-s", 30],
+  ["nat:PREROUTING:--src-range", 30],
+  ["nat:PREROUTING:-d", 31],
+  ["nat:PREROUTING:--dst-range", 31],
+  ["nat:PREROUTING:-p", 32],
+  ["nat:PREROUTING:srvc", 32],
+  ["nat:PREROUTING:--sport", 32],
+  ["nat:PREROUTING:--sports", 32],
+  ["nat:PREROUTING:--dport", 32],
+  ["nat:PREROUTING:--dports", 32],
+  ["nat:PREROUTING:--tcp-flags", 32],
+  ["nat:PREROUTING:--icmp-type", 13],
+  ["nat:PREROUTING:--to-destination_ip", 34],
+  ["nat:PREROUTING:--to-destination_port", 35],
 ]);
 
 export const GroupablePositionMap = new Map<string, number[]>([
-  ['filter:INPUT', [1,2,3]],
-  ['filter:OUTPUT', [4,5,6]],
-  ['filter:FORWARD', [7,8,9]],
-  ['nat:POSTROUTING', [11,12,13]], // SNAT
-  ['nat:PREROUTING', [30,31,32]] // DNAT
+  ["filter:INPUT", [1, 2, 3]],
+  ["filter:OUTPUT", [4, 5, 6]],
+  ["filter:FORWARD", [7, 8, 9]],
+  ["nat:POSTROUTING", [11, 12, 13]], // SNAT
+  ["nat:PREROUTING", [30, 31, 32]], // DNAT
 ]);
 
 // For each module to ignore, one array of strings arrays.
-// The fisrt string array for options with no parameters, 
+// The fisrt string array for options with no parameters,
 // the second for options with one parameter, and so on ...
 export const ModulesIgnoreMap = new Map<string, string[][]>([
-  ['account', [['--ashort'], ['--aaddr','--aname']]],
-  ['addrtype', [[], ['--src-type', '--dst-type']]],
-  ['ah', [[], ['--ahspi']]],
-  ['childlevel', [[], ['--childlevel']]],
-  ['condition', [[], ['--condition']]],
-  ['connbytes', [[], ['--connbytes','--connbytes-dir','--connbytes-mode']]],
-  ['connlimit', [[], ['--connlimit-above','--connlimit-mask']]],
-  ['connmark', [[], ['--mark']]],
-  ['connrate', [[], ['--connrate']]],
-  ['dccp', [[], ['--source-port','--sport','--destination-port','--dport','--dccp-types','--dccp-option']]],
-  ['dscp', [[], ['--dscp','--dscp-class']]],
-  ['dstlimit', [[], ['--dstlimit','--dstlimit-mode','--dstlimit-name','--dstlimit-burst','--dstlimit-htable-size','--dstlimit-htable-max','--dstlimit-htable-gcinterval','--dstlimit-htable-expire']]],
-  ['ecn', [['--ecn-tcp-cwr','--ecn-tcp-ece'], ['--ecn-ip-ect']]],
-  ['esp', [[], ['--espspi']]],
-  ['fuzzy', [[], ['--lower-limit','--upper-limit']]],
-  ['hashlimit', [[], ['--hashlimit','--hashlimit-burst','--hashlimit-mode','--hashlimit-name','--hashlimit-htable-size','--hashlimit-htable-max','--hashlimit-htable-expire','--hashlimit-htable-gcinterval']]],
-  ['helper', [[], ['--helper']]],
-  ['ipv4options', [['--ssrr','--lsrr','--no-srr','--rr','--ts','--ra','--any-opt'], []]],
-  ['length', [[], ['--length']]],
-  ['limit', [[], ['--limit','--limit-burst']]],
-  ['mac', [[], ['--mac-source']]],
-  ['mark', [[], ['--mark']]],
-  ['nth', [[], ['--every','--counter','--start','--packet']]],
-  ['osf', [['--smart','--netlink',], ['--log','--genre']]],
-  ['owner', [[], ['--uid-owner','--gid-owner','--pid-owner','--sid-owner','--cmd-owner']]],
-  ['physdev', [['--physdev-is-in','--physdev-is-out','--physdev-is-bridged'], ['--physdev-in','--physdev-out']]],
-  ['pkttype', [[], ['--pkt-type']]],
-  ['policy', [['--strict','--next'], ['--dir','--pol','--reqid','--spi','--proto','--mode','--tunnel-src','--tunnel-dst']]],
-  ['psd', [[], ['--psd-weight-threshold','--psd-delay-threshold','--psd-lo-ports-weight','--psd-hi-ports-weight']]],
-  ['quota', [[], ['--quota']]],
-  ['random', [[], ['--average']]],
-  ['recent', [['--set','--rcheck','--update','--remove','--rttl'], ['--name','--seconds','--hitcount']]],
-  ['sctp', [[], ['--source-port','--sport','--destination-port','--dport'], ['--chunk-types']]],
-  ['set', [[], [], ['--set']]],
-  ['string', [[], ['--algo','--from','--to','--string']]],
-  ['tcpmss', [[], ['--mss']]],
-  ['time', [[], ['--timestart','--timestop','--days','--datestart','--datestop']]],
-  ['tos', [[], ['--tos']]],
-  ['ttl', [[], ['--ttl-eq','--ttl-gt','--ttl-lt']]],
-  ['u32', [[], []]],
-  ['unclean', [[], []]],
+  ["account", [["--ashort"], ["--aaddr", "--aname"]]],
+  ["addrtype", [[], ["--src-type", "--dst-type"]]],
+  ["ah", [[], ["--ahspi"]]],
+  ["childlevel", [[], ["--childlevel"]]],
+  ["condition", [[], ["--condition"]]],
+  ["connbytes", [[], ["--connbytes", "--connbytes-dir", "--connbytes-mode"]]],
+  ["connlimit", [[], ["--connlimit-above", "--connlimit-mask"]]],
+  ["connmark", [[], ["--mark"]]],
+  ["connrate", [[], ["--connrate"]]],
+  [
+    "dccp",
+    [
+      [],
+      [
+        "--source-port",
+        "--sport",
+        "--destination-port",
+        "--dport",
+        "--dccp-types",
+        "--dccp-option",
+      ],
+    ],
+  ],
+  ["dscp", [[], ["--dscp", "--dscp-class"]]],
+  [
+    "dstlimit",
+    [
+      [],
+      [
+        "--dstlimit",
+        "--dstlimit-mode",
+        "--dstlimit-name",
+        "--dstlimit-burst",
+        "--dstlimit-htable-size",
+        "--dstlimit-htable-max",
+        "--dstlimit-htable-gcinterval",
+        "--dstlimit-htable-expire",
+      ],
+    ],
+  ],
+  ["ecn", [["--ecn-tcp-cwr", "--ecn-tcp-ece"], ["--ecn-ip-ect"]]],
+  ["esp", [[], ["--espspi"]]],
+  ["fuzzy", [[], ["--lower-limit", "--upper-limit"]]],
+  [
+    "hashlimit",
+    [
+      [],
+      [
+        "--hashlimit",
+        "--hashlimit-burst",
+        "--hashlimit-mode",
+        "--hashlimit-name",
+        "--hashlimit-htable-size",
+        "--hashlimit-htable-max",
+        "--hashlimit-htable-expire",
+        "--hashlimit-htable-gcinterval",
+      ],
+    ],
+  ],
+  ["helper", [[], ["--helper"]]],
+  [
+    "ipv4options",
+    [["--ssrr", "--lsrr", "--no-srr", "--rr", "--ts", "--ra", "--any-opt"], []],
+  ],
+  ["length", [[], ["--length"]]],
+  ["limit", [[], ["--limit", "--limit-burst"]]],
+  ["mac", [[], ["--mac-source"]]],
+  ["mark", [[], ["--mark"]]],
+  ["nth", [[], ["--every", "--counter", "--start", "--packet"]]],
+  [
+    "osf",
+    [
+      ["--smart", "--netlink"],
+      ["--log", "--genre"],
+    ],
+  ],
+  [
+    "owner",
+    [
+      [],
+      [
+        "--uid-owner",
+        "--gid-owner",
+        "--pid-owner",
+        "--sid-owner",
+        "--cmd-owner",
+      ],
+    ],
+  ],
+  [
+    "physdev",
+    [
+      ["--physdev-is-in", "--physdev-is-out", "--physdev-is-bridged"],
+      ["--physdev-in", "--physdev-out"],
+    ],
+  ],
+  ["pkttype", [[], ["--pkt-type"]]],
+  [
+    "policy",
+    [
+      ["--strict", "--next"],
+      [
+        "--dir",
+        "--pol",
+        "--reqid",
+        "--spi",
+        "--proto",
+        "--mode",
+        "--tunnel-src",
+        "--tunnel-dst",
+      ],
+    ],
+  ],
+  [
+    "psd",
+    [
+      [],
+      [
+        "--psd-weight-threshold",
+        "--psd-delay-threshold",
+        "--psd-lo-ports-weight",
+        "--psd-hi-ports-weight",
+      ],
+    ],
+  ],
+  ["quota", [[], ["--quota"]]],
+  ["random", [[], ["--average"]]],
+  [
+    "recent",
+    [
+      ["--set", "--rcheck", "--update", "--remove", "--rttl"],
+      ["--name", "--seconds", "--hitcount"],
+    ],
+  ],
+  [
+    "sctp",
+    [
+      [],
+      ["--source-port", "--sport", "--destination-port", "--dport"],
+      ["--chunk-types"],
+    ],
+  ],
+  ["set", [[], [], ["--set"]]],
+  ["string", [[], ["--algo", "--from", "--to", "--string"]]],
+  ["tcpmss", [[], ["--mss"]]],
+  [
+    "time",
+    [[], ["--timestart", "--timestop", "--days", "--datestart", "--datestop"]],
+  ],
+  ["tos", [[], ["--tos"]]],
+  ["ttl", [[], ["--ttl-eq", "--ttl-gt", "--ttl-lt"]]],
+  ["u32", [[], []]],
+  ["unclean", [[], []]],
 ]);
 
 export type IptablesSaveStats = {
@@ -212,4 +355,4 @@ export type IptablesSaveStats = {
   interfaces: number;
   ipObjs: number;
   modulesIgnored: string[];
-}
+};

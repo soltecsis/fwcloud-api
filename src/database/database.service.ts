@@ -21,7 +21,14 @@
 */
 
 import { Service } from "../fonaments/services/service";
-import { Connection, QueryRunner, Migration, getConnectionManager, ConnectionOptions, MigrationExecutor } from "typeorm";
+import {
+  Connection,
+  QueryRunner,
+  Migration,
+  getConnectionManager,
+  ConnectionOptions,
+  MigrationExecutor,
+} from "typeorm";
 import * as path from "path";
 import * as fs from "fs";
 import moment from "moment";
@@ -85,309 +92,351 @@ import { KeepalivedGroup } from "../models/system/keepalived/keepalived_g/keepal
 import { KeepalivedToIPObj } from "../models/system/keepalived/keepalived_r/keepalived_r-to-ipobj";
 
 export interface DatabaseConfig {
-    host: string,
-    user: string,
-    port: number,
-    pass: string,
-    name: string,
-    migrations: Array<string>,
-    migration_directory: string,
-    debug: boolean
+  host: string;
+  user: string;
+  port: number;
+  pass: string;
+  name: string;
+  migrations: Array<string>;
+  migration_directory: string;
+  debug: boolean;
 }
 
 export class DatabaseService extends Service {
-    protected _id: number;
-    protected _connection: Connection;
-    protected _config: DatabaseConfig;
+  protected _id: number;
+  protected _connection: Connection;
+  protected _config: DatabaseConfig;
 
-    public async build(): Promise<DatabaseService> {
-        this._config = this._app.config.get('db');
-        this._connection = null;
-        this._id = moment().valueOf();
+  public async build(): Promise<DatabaseService> {
+    this._config = this._app.config.get("db");
+    this._connection = null;
+    this._id = moment().valueOf();
 
-        this._connection = await this.getConnection({name: 'default'});
-        
-        return this;
+    this._connection = await this.getConnection({ name: "default" });
+
+    return this;
+  }
+
+  public async close(): Promise<void> {
+    const connections: Array<Connection> = getConnectionManager().connections;
+
+    for (let i = 0; i < connections.length; i++) {
+      if (connections[i].isConnected) {
+        await connections[i].close();
+      }
+    }
+  }
+
+  get config(): any {
+    return this._config;
+  }
+
+  get connection(): Connection {
+    return this._connection;
+  }
+
+  public async getConnection(
+    options: Partial<ConnectionOptions>,
+  ): Promise<Connection> {
+    const connectionOptions: ConnectionOptions = <ConnectionOptions>(
+      ObjectHelpers.merge(this.getDefaultConnectionConfiguration(), options)
+    );
+
+    const connection: Connection = getConnectionManager().has(options.name)
+      ? getConnectionManager().get(options.name)
+      : getConnectionManager().create(connectionOptions);
+
+    if (!connection.isConnected) {
+      await connection.connect();
     }
 
-    public async close(): Promise<void> {
-        const connections: Array<Connection> = getConnectionManager().connections;
+    return connection;
+  }
 
-        for(let i = 0; i < connections.length; i++) {
-            if (connections[i].isConnected) {
-                await connections[i].close();
-            }
+  public async emptyDatabase(connection: Connection = null): Promise<void> {
+    connection = connection ? connection : this._connection;
+    const queryRunner: QueryRunner = connection.createQueryRunner();
+    await queryRunner.startTransaction();
+
+    try {
+      const tables: Array<string> = await this.getTables(connection);
+
+      let query = "SET FOREIGN_KEY_CHECKS=0;";
+      for (let i = 0; i < tables.length; i++)
+        query += `DROP TABLE ${tables[i]};`;
+      query += "SET FOREIGN_KEY_CHECKS=1;";
+
+      await queryRunner.query(query);
+      await queryRunner.commitTransaction();
+      await queryRunner.release();
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      await queryRunner.release();
+      throw e;
+    }
+  }
+
+  public async isDatabaseEmpty(
+    connection: Connection = null,
+  ): Promise<boolean> {
+    connection = connection ? connection : this._connection;
+
+    const queryRunner: QueryRunner = connection.createQueryRunner();
+    const result: Array<any> = await queryRunner.query(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema=?",
+      [this._config.name],
+    );
+    await queryRunner.release();
+    return result.length === 0;
+  }
+
+  public async runMigrations(
+    connection: Connection = null,
+  ): Promise<Migration[]> {
+    connection = connection ? connection : this._connection;
+
+    return await connection.runMigrations();
+  }
+
+  public async getExecutedMigrations(
+    connection?: Connection,
+  ): Promise<Migration[]> {
+    connection = connection ?? this._connection;
+    const queryRunner: QueryRunner = connection.createQueryRunner();
+
+    const migrationExecutor: MigrationExecutor = new MigrationExecutor(
+      connection,
+      queryRunner,
+    );
+    const migrations: Migration[] =
+      await migrationExecutor.getExecutedMigrations();
+
+    await queryRunner.release();
+
+    return migrations;
+  }
+
+  public async resetMigrations(connection: Connection = null): Promise<void> {
+    connection = connection ? connection : this._connection;
+
+    return await this.emptyDatabase(connection);
+  }
+
+  public async rollbackMigrations(
+    steps: number = 1,
+    connection?: Connection,
+  ): Promise<void> {
+    connection = connection ?? this._connection;
+
+    for (let i = 0; i < steps; i++) {
+      await connection.undoLastMigration();
+    }
+
+    return;
+  }
+
+  public async feedDefaultData(connection: Connection = null): Promise<void> {
+    connection = connection ? connection : this._connection;
+
+    await this.importSQLFile(
+      path.join(process.cwd(), "config", "seeds", "default.sql"),
+      connection,
+    );
+    await this.importSQLFile(
+      path.join(process.cwd(), "config", "seeds", "ipobj_std.sql"),
+      connection,
+    );
+  }
+
+  public async removeData(connection: Connection = null): Promise<void> {
+    connection = connection ? connection : this._connection;
+
+    const queryRunner: QueryRunner = connection.createQueryRunner();
+
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.query("SET FOREIGN_KEY_CHECKS = 0");
+
+      const tables: Array<string> = await this.getTables(connection);
+
+      for (let i = 0; i < tables.length; i++) {
+        if (tables[i] !== "migrations") {
+          await queryRunner.query(`TRUNCATE TABLE ${tables[i]}`);
         }
+      }
+
+      await queryRunner.query("SET FOREIGN_KEY_CHECKS = 1");
+      await queryRunner.commitTransaction();
+      await queryRunner.release();
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      await queryRunner.release();
+      throw e;
     }
 
-    get config(): any {
-        return this._config;
+    return;
+  }
+
+  public async getSchemaVersion(): Promise<string> {
+    let version: string = "0.0.0";
+
+    const directories: Array<string> = await FSHelper.directories(
+      this._config.migration_directory,
+    );
+    for (let i = 0; i < directories.length; i++) {
+      const directoryName: string = path.basename(directories[i]);
+      if (semver.valid(directoryName) && semver.gte(directoryName, version)) {
+        version = directoryName;
+      }
     }
 
-    get connection(): Connection {
-        return this._connection;
-    }
+    return version;
+  }
 
-    public async getConnection(options: Partial<ConnectionOptions>): Promise<Connection> {
-        const connectionOptions: ConnectionOptions = <ConnectionOptions>ObjectHelpers.merge(this.getDefaultConnectionConfiguration(), options);
-        let connection: Connection;
+  protected getDefaultConnectionConfiguration(): ConnectionOptions {
+    const loggerOptions: ("error" | "query")[] = this._app.config.get(
+      "log.queries",
+    )
+      ? ["error", "query"]
+      : ["error"];
 
-        connection = getConnectionManager().has(options.name) ? getConnectionManager().get(options.name) : getConnectionManager().create(connectionOptions);
-        
-        if(!connection.isConnected) {
-            await connection.connect();
+    return {
+      type: "mysql",
+      host: this._config.host,
+      port: this._config.port,
+      database: this._config.name,
+      username: this._config.user,
+      password: this._config.pass,
+      subscribers: [],
+      synchronize: false,
+      migrationsRun: false,
+      dropSchema: false,
+      multipleStatements: true, // For optimization purposes. For example, in emptyDatabase() method.
+      logger: new DatabaseLogger(loggerOptions),
+      migrations: this._config.migrations,
+      cli: {
+        migrationsDir: this._config.migration_directory,
+      },
+      entities: [
+        Cluster,
+        Firewall,
+        FwCloud,
+        Interface,
+        InterfaceIPObj,
+        IPObj,
+        IPObjGroup,
+        IPObjToIPObjGroup,
+        IPObjType,
+        IPObjTypeToPolicyPosition,
+        Mark,
+        PolicyGroup,
+        PolicyPosition,
+        PolicyRule,
+        PolicyRuleToInterface,
+        PolicyRuleToIPObj,
+        PolicyRuleToOpenVPN,
+        PolicyRuleToOpenVPNPrefix,
+        PolicyType,
+        RouteToIPObjGroup,
+        RouteToIPObj,
+        RouteToOpenVPNPrefix,
+        RouteToOpenVPN,
+        Route,
+        RouteGroup,
+        RoutingGroup,
+        RoutingRuleToIPObjGroup,
+        RoutingRuleToIPObj,
+        RoutingRuleToMark,
+        RoutingRuleToOpenVPNPrefix,
+        RoutingRuleToOpenVPN,
+        RoutingRule,
+        RoutingRuleToInterface,
+        RoutingTable,
+        FwcTree,
+        Customer,
+        User,
+        OpenVPNOption,
+        OpenVPN,
+        OpenVPNPrefix,
+        OpenVPNStatusHistory,
+        Ca,
+        CaPrefix,
+        Crt,
+        Tfa,
+        HAProxyRule,
+        HAProxyGroup,
+        HAProxyRuleToIPObj,
+        DHCPRule,
+        DHCPGroup,
+        DHCPRuleToIPObj,
+        KeepalivedRule,
+        KeepalivedGroup,
+        KeepalivedToIPObj,
+      ],
+    };
+  }
+
+  protected async importSQLFile(
+    path: string,
+    connection: Connection = null,
+  ): Promise<void> {
+    connection = connection ? connection : this._connection;
+    const queryRunner: QueryRunner = connection.createQueryRunner();
+    const queries = fs
+      .readFileSync(path, { encoding: "utf-8" })
+      .replace(new RegExp("'", "gm"), '"')
+      .replace(new RegExp("^--.*\n", "gm"), "")
+      .replace(/(\r\n|\n|\r)/gm, " ")
+      .replace(/\s+/g, " ")
+      .split(";");
+
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.query("SET FOREIGN_KEY_CHECKS = 0");
+
+      for (let i = 0; i < queries.length; i++) {
+        const query = queries[i].trim();
+
+        if (query !== "") {
+          await queryRunner.query(query);
         }
-        
-        return connection;
+      }
+
+      await queryRunner.query("SET FOREIGN_KEY_CHECKS = 1");
+      await queryRunner.commitTransaction();
+      await queryRunner.release();
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      await queryRunner.release();
+      throw e;
     }
+  }
 
-    public async emptyDatabase(connection: Connection = null): Promise<void> {
-        connection = connection ? connection : this._connection;
-        const queryRunner: QueryRunner = connection.createQueryRunner();
-        await queryRunner.startTransaction();
+  protected async getTables(
+    connection: Connection = null,
+  ): Promise<Array<string>> {
+    connection = connection ? connection : this._connection;
+    const queryRunner: QueryRunner = connection.createQueryRunner();
 
-        try {
-            const tables: Array<string> = await this.getTables(connection);
+    const result: Array<any> = await queryRunner.query(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema=?",
+      [this._config.name],
+    );
 
-            let query = 'SET FOREIGN_KEY_CHECKS=0;'
-            for (let i = 0; i < tables.length; i++)
-                query += `DROP TABLE ${tables[i]};`;
-            query += 'SET FOREIGN_KEY_CHECKS=1;';
+    const tables: Array<string> = result.map((row) => {
+      if (row.hasOwnProperty("table_name")) {
+        return row.table_name;
+      }
 
-            await queryRunner.query(query);
-            await queryRunner.commitTransaction();
-            await queryRunner.release();
-        } catch (e) {
-            await queryRunner.rollbackTransaction();
-            await queryRunner.release();
-            throw e;
-        }
-    }
+      if (row.hasOwnProperty("TABLE_NAME")) {
+        return row.TABLE_NAME;
+      }
+    });
 
-    public async isDatabaseEmpty(connection: Connection = null): Promise<boolean> {
-        connection = connection ? connection : this._connection;
-        
-        const queryRunner: QueryRunner = connection.createQueryRunner();
-        const result: Array<any> = await queryRunner.query('SELECT table_name FROM information_schema.tables WHERE table_schema=?', [this._config.name]);
-        await queryRunner.release();
-        return result.length === 0;
-    }
+    await queryRunner.release();
 
-    public async runMigrations(connection: Connection = null): Promise<Migration[]> {
-        connection = connection ? connection : this._connection;
-        
-        return await connection.runMigrations();
-    }
-
-    public async getExecutedMigrations(connection?: Connection): Promise<Migration[]> {
-        connection = connection ?? this._connection;
-        const queryRunner: QueryRunner = connection.createQueryRunner();
-
-        const migrationExecutor: MigrationExecutor = new MigrationExecutor(connection, queryRunner);
-        const migrations: Migration[] = await migrationExecutor.getExecutedMigrations();
-        
-        await queryRunner.release();
-        
-        return migrations;
-    }
-
-    public async resetMigrations(connection: Connection = null): Promise<void> {
-        connection = connection ? connection : this._connection;
-        
-        return await this.emptyDatabase(connection);
-    }
-
-    public async rollbackMigrations(steps: number = 1, connection?: Connection): Promise<void> {
-        connection = connection ?? this._connection;
-
-        for(let i = 0; i < steps; i++) {
-            await connection.undoLastMigration();
-        }
-
-        return;
-    }
-
-    public async feedDefaultData(connection: Connection = null): Promise<void> {
-        connection = connection ? connection : this._connection;
-
-        await this.importSQLFile(path.join(process.cwd(), 'config', 'seeds', 'default.sql'), connection);
-        await this.importSQLFile(path.join(process.cwd(), 'config', 'seeds', 'ipobj_std.sql'), connection);
-    }
-
-    public async removeData(connection: Connection = null): Promise<void> {
-        connection = connection ? connection : this._connection;
-        
-        const queryRunner: QueryRunner = connection.createQueryRunner();
-        
-        await queryRunner.startTransaction();
-
-        try {
-            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
-
-            const tables: Array<string> = await this.getTables(connection);
-
-            for (let i = 0; i < tables.length; i++) {
-                if (tables[i] !== 'migrations') {
-                    await queryRunner.query(`TRUNCATE TABLE ${tables[i]}`);
-                }
-            }
-
-            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
-            await queryRunner.commitTransaction();
-            await queryRunner.release();
-        } catch (e) {
-            await queryRunner.rollbackTransaction();
-            await queryRunner.release();
-            throw e;
-        }
-
-        return;
-    }
-
-    public async getSchemaVersion(): Promise<string> {
-        let version: string = '0.0.0';
-
-        const directories: Array<string> = await FSHelper.directories(this._config.migration_directory);
-        for(let i = 0; i < directories.length; i++) {
-            const directoryName: string = path.basename(directories[i]);
-            if(semver.valid(directoryName) && semver.gte(directoryName, version)) {
-                version = directoryName;
-            }
-        }
-
-        return version;
-    }
-
-    protected getDefaultConnectionConfiguration(): ConnectionOptions {
-        const loggerOptions: ("error" | "query")[] = this._app.config.get('log.queries') ? ['error', 'query'] : ['error'];
-
-        return {
-            type: 'mysql',
-            host: this._config.host,
-            port: this._config.port,
-            database: this._config.name,
-            username: this._config.user,
-            password: this._config.pass,
-            subscribers: [],
-            synchronize: false,
-            migrationsRun: false,
-            dropSchema: false,
-            multipleStatements: true, // For optimization purposes. For example, in emptyDatabase() method.
-            logger: new DatabaseLogger(loggerOptions),
-            migrations: this._config.migrations,
-            cli: {
-                migrationsDir: this._config.migration_directory
-            },
-            entities: [
-                Cluster,
-                Firewall,
-                FwCloud,
-                Interface,
-                InterfaceIPObj,
-                IPObj,
-                IPObjGroup,
-                IPObjToIPObjGroup,
-                IPObjType,
-                IPObjTypeToPolicyPosition,
-                Mark,
-                PolicyGroup,
-                PolicyPosition,
-                PolicyRule,
-                PolicyRuleToInterface,
-                PolicyRuleToIPObj,
-                PolicyRuleToOpenVPN,
-                PolicyRuleToOpenVPNPrefix,
-                PolicyType,
-                RouteToIPObjGroup,
-                RouteToIPObj,
-                RouteToOpenVPNPrefix,
-                RouteToOpenVPN,
-                Route,
-                RouteGroup,
-                RoutingGroup,
-                RoutingRuleToIPObjGroup,
-                RoutingRuleToIPObj,
-                RoutingRuleToMark,
-                RoutingRuleToOpenVPNPrefix,
-                RoutingRuleToOpenVPN,
-                RoutingRule,
-                RoutingRuleToInterface,
-                RoutingTable,
-                FwcTree,
-                Customer,
-                User,
-                OpenVPNOption,
-                OpenVPN,
-                OpenVPNPrefix,
-                OpenVPNStatusHistory,
-                Ca,
-                CaPrefix,
-                Crt,
-                Tfa,
-                HAProxyRule,
-                HAProxyGroup,
-                HAProxyRuleToIPObj,
-                DHCPRule,
-                DHCPGroup,
-                DHCPRuleToIPObj,
-                KeepalivedRule,
-                KeepalivedGroup,
-                KeepalivedToIPObj
-            ]
-        }
-    }
-
-    protected async importSQLFile(path: string, connection: Connection = null): Promise<void> {
-        connection = connection ? connection : this._connection;
-        const queryRunner: QueryRunner = connection.createQueryRunner();
-        const queries = fs.readFileSync(path, { encoding: 'utf-8' })
-            .replace(new RegExp('\'', 'gm'), '"')
-            .replace(new RegExp('^--.*\n', 'gm'), '')
-            .replace(/(\r\n|\n|\r)/gm, " ")
-            .replace(/\s+/g, ' ')
-            .split(';');
-
-        await queryRunner.startTransaction();
-
-        try {
-            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
-            
-            for (let i = 0; i < queries.length; i++) {
-                const query = queries[i].trim();
-    
-                if (query !== '') {
-                    await queryRunner.query(query);
-                }
-            }
-            
-            await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
-            await queryRunner.commitTransaction();
-            await queryRunner.release();
-        } catch (e) {
-            await queryRunner.rollbackTransaction();
-            await queryRunner.release();
-            throw e;
-        }
-    }
-
-    protected async getTables(connection: Connection = null): Promise<Array<string>> {
-        connection = connection ? connection : this._connection;
-        const queryRunner: QueryRunner = connection.createQueryRunner();
-
-        const result: Array<any> = await queryRunner.query('SELECT table_name FROM information_schema.tables WHERE table_schema=?', [this._config.name]);
-
-        const tables: Array<string> = result.map((row) => {
-            if (row.hasOwnProperty('table_name')) {
-                return row.table_name;
-            }
-
-            if (row.hasOwnProperty('TABLE_NAME')) {
-                return row.TABLE_NAME;
-            }
-        })
-
-        await queryRunner.release();
-
-        return tables;
-    }
+    return tables;
+  }
 }

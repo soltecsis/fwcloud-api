@@ -4,45 +4,42 @@ import { IPObjGroup } from "../../ipobj/IPObjGroup";
 import Model from "../../Model";
 import { Route } from "./route.model";
 
-const tableName: string = 'route__ipobj';
+const tableName: string = "route__ipobj";
 
 @Entity(tableName)
 export class RouteToIPObj extends Model {
-    
-    @PrimaryColumn({
-        name: 'route'
-    })
-    routeId: number;
+  @PrimaryColumn({
+    name: "route",
+  })
+  routeId: number;
 
-    @PrimaryColumn({
-        name: 'ipobj'
-    })
-    ipObjId: number;
-    
-    @Column({
-        type: Number
-    })
-    order: number;
+  @PrimaryColumn({
+    name: "ipobj",
+  })
+  ipObjId: number;
 
-    @ManyToOne(() => Route, model => model.routeToIPObjs, {
-        orphanedRowAction: 'delete'
-    })
-    @JoinColumn({
-        name: 'route'
-    })
-    route: Route;
+  @Column({
+    type: Number,
+  })
+  order: number;
 
-    @ManyToOne(() => IPObj, model => model.routeToIPObjs, {
-        orphanedRowAction: 'delete'
-    })
-    @JoinColumn({
-        name: 'ipobj'
-    })
-    ipObj: IPObj;
+  @ManyToOne(() => Route, (model) => model.routeToIPObjs, {
+    orphanedRowAction: "delete",
+  })
+  @JoinColumn({
+    name: "route",
+  })
+  route: Route;
 
-    
-    public getTableName(): string {
-        return tableName;
-    }
+  @ManyToOne(() => IPObj, (model) => model.routeToIPObjs, {
+    orphanedRowAction: "delete",
+  })
+  @JoinColumn({
+    name: "ipobj",
+  })
+  ipObj: IPObj;
 
+  public getTableName(): string {
+    return tableName;
+  }
 }

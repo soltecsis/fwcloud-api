@@ -23,15 +23,26 @@ import { Firewall } from "../../../models/firewall/Firewall";
 import { FirewallExporter } from "./firewall.exporter";
 
 export class KeepalivedGroupExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return KeepalivedGroup;
-    }
+  protected getEntity(): typeof Model {
+    return KeepalivedGroup;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-            .where(qb => {
-                const query = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
-                return `${alias}.firewallId IN ` + new FirewallExporter().getFilterBuilder(query, 'firewall', fwCloudId).getQuery();
-            });
-    }
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where((qb) => {
+      const query = qb
+        .subQuery()
+        .from(Firewall, "firewall")
+        .select("firewall.id");
+      return (
+        `${alias}.firewallId IN ` +
+        new FirewallExporter()
+          .getFilterBuilder(query, "firewall", fwCloudId)
+          .getQuery()
+      );
+    });
+  }
 }

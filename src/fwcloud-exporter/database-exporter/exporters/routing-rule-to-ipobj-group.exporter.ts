@@ -28,17 +28,27 @@ import { RoutingRuleExporter } from "./routing-rule.exporter";
 import { RoutingRuleToIPObjGroup } from "../../../models/routing/routing-rule/routing-rule-to-ipobj-group.model";
 
 export class RoutingRuleToIPObjGroupExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return RoutingRuleToIPObjGroup;
-    }
+  protected getEntity(): typeof Model {
+    return RoutingRuleToIPObjGroup;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where((qb) => {
-            const subquery = qb.subQuery().from(RoutingRule, 'rule').select('rule.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where((qb) => {
+      const subquery = qb
+        .subQuery()
+        .from(RoutingRule, "rule")
+        .select("rule.id");
 
-            return `${alias}.routingRuleId IN` + new RoutingRuleExporter()
-                .getFilterBuilder(subquery, 'rule', fwCloudId).getQuery()
-        });
-    }
+      return (
+        `${alias}.routingRuleId IN` +
+        new RoutingRuleExporter()
+          .getFilterBuilder(subquery, "rule", fwCloudId)
+          .getQuery()
+      );
+    });
+  }
 }

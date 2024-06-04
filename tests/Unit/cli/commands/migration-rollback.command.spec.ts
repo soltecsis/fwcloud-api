@@ -27,39 +27,44 @@ import { QueryRunner } from "typeorm";
 import { MigrationRollbackCommand } from "../../../../src/cli/commands/migration-rollback.command";
 import { runCLICommandIsolated } from "../../../utils/utils";
 
-describe(describeName('MigrationRollbackCommand tests'), () => {
+describe(describeName("MigrationRollbackCommand tests"), () => {
+  after(async () => {
+    await testSuite.resetDatabaseData();
+  });
 
-    after(async() => {
-        await testSuite.resetDatabaseData();
+  it("should rollback multiple migrations", async () => {
+    const app: AbstractApplication = testSuite.app;
+    const databaseService: DatabaseService =
+      await app.getService<DatabaseService>(DatabaseService.name);
+
+    //First, we need to remove default data.
+    await databaseService.emptyDatabase();
+    await databaseService.runMigrations();
+
+    let queryRunner: QueryRunner =
+      databaseService.connection.createQueryRunner();
+    const migration = await queryRunner.query(
+      "SELECT count(*) FROM migrations",
+    );
+    await queryRunner.release();
+
+    await runCLICommandIsolated(testSuite, async () => {
+      return new MigrationRollbackCommand().safeHandle({
+        $0: "migration:rollback",
+        steps: 3,
+        s: 3,
+        _: [],
+      });
     });
 
+    queryRunner = databaseService.connection.createQueryRunner();
+    const afterMigration = await queryRunner.query(
+      "SELECT count(*) FROM migrations",
+    );
+    await queryRunner.release();
 
-    it('should rollback multiple migrations', async () => {
-        const app: AbstractApplication = testSuite.app;
-        const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
-
-        //First, we need to remove default data.
-        await databaseService.emptyDatabase();
-        await databaseService.runMigrations();
-
-        let queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
-        const migration = await queryRunner.query('SELECT count(*) FROM migrations');
-        await queryRunner.release();
-        
-        await runCLICommandIsolated(testSuite, async () => {
-            return new MigrationRollbackCommand().safeHandle({
-                $0: "migration:rollback",
-                steps: 3,
-                s: 3,
-                _: []
-            })
-        });
-
-        
-        queryRunner  = databaseService.connection.createQueryRunner();
-        const afterMigration = await queryRunner.query('SELECT count(*) FROM migrations');
-        await queryRunner.release();
-        
-        expect(parseInt(afterMigration[0]['count(*)'])).to.be.deep.eq(migration[0]['count(*)'] - 3);
-    })
+    expect(parseInt(afterMigration[0]["count(*)"])).to.be.deep.eq(
+      migration[0]["count(*)"] - 3,
+    );
+  });
 });

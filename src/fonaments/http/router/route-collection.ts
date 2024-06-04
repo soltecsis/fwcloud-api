@@ -26,12 +26,10 @@ export type RouteCollectionClass = typeof RouteCollection;
 
 export interface RouteCollectionable extends RouteCollectionClass {}
 
-
 export abstract class RouteCollection {
+  public parse(router: RouterParser): void {
+    return this.routes(router);
+  }
 
-    public parse(router: RouterParser): void {
-        return this.routes(router);
-    }
-    
-    public abstract routes(router: RouterParser): void;
+  public abstract routes(router: RouterParser): void;
 }

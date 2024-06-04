@@ -20,8 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
-import yargs = require('yargs');
+import yargs = require("yargs");
 import { MigrationResetCommand } from "./commands/migration-reset-command";
 import { MigrationRunCommand } from "./commands/migration-run.command";
 import { MigrationCreateCommand } from "./commands/migration-create.command";
@@ -30,91 +29,98 @@ import { MigrationImportDataCommand } from "./commands/migration-import-data.com
 import { RouteListCommand } from "./commands/route-list.command";
 import { KeysGenerateCommand } from "./commands/keys-generate.command";
 import { Argument, Command, Option } from "./command";
-import { BackupCreateCommand } from './commands/backup-create.command';
-import { BackupRestoreCommand } from './commands/backup-restore.command';
-import { StandardServicesAddCommand } from './commands/standard-services-add.command';
+import { BackupCreateCommand } from "./commands/backup-create.command";
+import { BackupRestoreCommand } from "./commands/backup-restore.command";
+import { StandardServicesAddCommand } from "./commands/standard-services-add.command";
 
-const commands: typeof Command[] = [
-    MigrationResetCommand,
-    MigrationRollbackCommand,
-    MigrationRunCommand,
-    MigrationCreateCommand,
-    MigrationImportDataCommand,
-    RouteListCommand,
-    KeysGenerateCommand,
-    BackupCreateCommand,
-    BackupRestoreCommand,
-    StandardServicesAddCommand
+const commands: (typeof Command)[] = [
+  MigrationResetCommand,
+  MigrationRollbackCommand,
+  MigrationRunCommand,
+  MigrationCreateCommand,
+  MigrationImportDataCommand,
+  RouteListCommand,
+  KeysGenerateCommand,
+  BackupCreateCommand,
+  BackupRestoreCommand,
+  StandardServicesAddCommand,
 ];
 
 class CLI {
-    public load()
-    {
-        let cli: yargs.Argv = yargs.usage("Usage: $0 <command> [options]");
+  public load(): yargs.Argv {
+    let cli: yargs.Argv = yargs.usage("Usage: $0 <command> [options]");
 
-        cli = this.parseCommands(cli, commands);
+    cli = this.parseCommands(cli, commands);
 
-        cli.recommendCommands()
-            .demandCommand(1)
-            .strict()
-            .help()
-            .alias("h", "help")
-            .alias("v", "version")
-            .argv;
+    cli
+      .recommendCommands()
+      .demandCommand(1)
+      .strict()
+      .help()
+      .alias("h", "help")
+      .alias("v", "version").argv;
 
-        return cli;
-    }
+    return cli;
+  }
 
-    protected parseCommands(cli: yargs.Argv, commands: typeof Command[]): yargs.Argv {
-        commands.forEach((commmand: typeof Command) => {
-            // @ts-ignore: command is not abstract
-            const instance: Command = new commmand();
-            const name: string = instance.name;
-            const description: string = instance.description;
-            const options: Option[] = instance.getOptions();
-            const args: Argument[] = instance.getArguments();
+  protected parseCommands(
+    cli: yargs.Argv,
+    commands: (typeof Command)[],
+  ): yargs.Argv {
+    commands.forEach((commmand: typeof Command) => {
+      // @ts-ignore: command is not abstract
+      const instance: Command = new commmand();
+      const name: string = instance.name;
+      const description: string = instance.description;
+      const options: Option[] = instance.getOptions();
+      const args: Argument[] = instance.getArguments();
 
-            cli.command(this.generateName(name, args), description, (yargs: yargs.Argv) => {
-                options.forEach((option: Option) => {
-                    yargs.option(option.name, {
-                        alias: option.alias ?? undefined,
-                        type: option.type ?? undefined,
-                        describe: option.description,
-                        demandOption: option.required ?? false,
-                        default: option.default ?? undefined
-                    });
-                });
-
-                args.forEach((arg: Argument) => {
-                    yargs.positional(arg.name, {
-                        describe: arg.description
-                    });
-                });
-                
-                return yargs;
-            }, async (yargs) => {
-                const returnCode: number = await instance.safeHandle(yargs);
-                
-                process.exit(returnCode);
+      cli.command(
+        this.generateName(name, args),
+        description,
+        (yargs: yargs.Argv) => {
+          options.forEach((option: Option) => {
+            yargs.option(option.name, {
+              alias: option.alias ?? undefined,
+              type: option.type ?? undefined,
+              describe: option.description,
+              demandOption: option.required ?? false,
+              default: option.default ?? undefined,
             });
-        });
-        
-        return cli;
+          });
+
+          args.forEach((arg: Argument) => {
+            yargs.positional(arg.name, {
+              describe: arg.description,
+            });
+          });
+
+          return yargs;
+        },
+        async (yargs) => {
+          const returnCode: number = await instance.safeHandle(yargs);
+
+          process.exit(returnCode);
+        },
+      );
+    });
+
+    return cli;
+  }
+
+  protected generateName(name: string, args: Argument[]): string {
+    let result: string = name;
+
+    for (let i = 0; i < args.length; i++) {
+      if (args[i].required) {
+        result = `${result} <${args[i].name}>`;
+      } else {
+        result = `${result} [${args[i].name}]`;
+      }
     }
 
-    protected generateName(name: string, args: Argument[]): string {
-        let result: string = name;
-
-        for (let i = 0; i < args.length; i++) {
-            if (args[i].required) {
-                result = `${result} <${args[i].name}>`
-            } else {
-                result = `${result} [${args[i].name}]`
-            }
-        }
-
-        return result;
-    }
+    return result;
+  }
 }
 
 const cli = new CLI();

@@ -21,42 +21,46 @@
 */
 
 import { Table, Connection, QueryRunner } from "typeorm";
-import { MigrationResetCommand } from "../../../../src/cli/commands/migration-reset-command"
+import { MigrationResetCommand } from "../../../../src/cli/commands/migration-reset-command";
 import { Application } from "../../../../src/Application";
 import { expect, testSuite, describeName } from "../../../mocha/global-setup";
 import { DatabaseService } from "../../../../src/database/database.service";
 import { runCLICommandIsolated } from "../../../utils/utils";
 
-describe(describeName('MigrationResetCommand tests'), () => {
-    let app: Application;
-    
-    before(async () => {
-        app = testSuite.app;
+describe(describeName("MigrationResetCommand tests"), () => {
+  let app: Application;
+
+  before(async () => {
+    app = testSuite.app;
+  });
+
+  after(async () => {
+    await testSuite.resetDatabaseData();
+  });
+
+  it("should reset the database", async () => {
+    let connection: Connection = (
+      await app.getService<DatabaseService>(DatabaseService.name)
+    ).connection;
+    let queryRunner: QueryRunner = connection.createQueryRunner();
+
+    expect(await queryRunner.getTable("ca")).to.be.instanceOf(Table);
+    expect(await queryRunner.getTable("user__fwcloud")).to.be.instanceOf(Table);
+
+    await runCLICommandIsolated(testSuite, async () => {
+      return new MigrationResetCommand().safeHandle({
+        $0: "migration:run",
+        _: [],
+      });
     });
 
-    after(async() => {
-        await testSuite.resetDatabaseData();
-    });
+    connection = (await app.getService<DatabaseService>(DatabaseService.name))
+      .connection;
+    queryRunner = connection.createQueryRunner();
 
-    it('should reset the database', async() => {
-        let connection: Connection = (await app.getService<DatabaseService>(DatabaseService.name)).connection;
-        let queryRunner: QueryRunner = connection.createQueryRunner();
+    expect(await queryRunner.getTable("ca")).to.be.undefined;
+    expect(await queryRunner.getTable("user__fwcloud")).to.be.undefined;
 
-        expect(await queryRunner.getTable('ca')).to.be.instanceOf(Table);
-        expect(await queryRunner.getTable('user__fwcloud')).to.be.instanceOf(Table);
-
-        await runCLICommandIsolated(testSuite, async () => {
-            return new MigrationResetCommand().safeHandle({
-            $0: "migration:run",
-            _: []
-        })});
-
-        connection = (await app.getService<DatabaseService>(DatabaseService.name)).connection;
-        queryRunner = connection.createQueryRunner();
-        
-        expect(await queryRunner.getTable('ca')).to.be.undefined;
-        expect(await queryRunner.getTable('user__fwcloud')).to.be.undefined;
-
-        await queryRunner.release();
-    });
+    await queryRunner.release();
+  });
 });

@@ -26,23 +26,22 @@ import { Responsable } from "../../contracts/responsable";
 import { app } from "../../abstract-application";
 
 export class HttpException extends FwCloudError implements Responsable {
-    
-    public status: number;
-    
-    constructor(message: string = null, status: number = 500, stack?: string) {
-        super(message, stack);
-        this.status = status;
+  public status: number;
+
+  constructor(message: string = null, status: number = 500, stack?: string) {
+    super(message, stack);
+    this.status = status;
+  }
+
+  public toResponse(): ErrorPayload {
+    const response: ErrorPayload = {
+      message: this.message,
+    };
+
+    if (app().config.get("env") !== "prod") {
+      response.stack = this.stackToArray();
     }
 
-    public toResponse(): ErrorPayload {
-        const response: ErrorPayload = {
-            message: this.message,
-        };
-
-        if (app().config.get('env') !== 'prod') {
-            response.stack = this.stackToArray()
-        }
-
-        return response;
-    }
+    return response;
+  }
 }

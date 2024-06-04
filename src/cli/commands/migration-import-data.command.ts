@@ -30,25 +30,32 @@ import { IPObj } from "../../models/ipobj/IPObj";
  * Runs migration command.
  */
 export class MigrationImportDataCommand extends Command {
-    public name: string = "migration:data";
-    public description: string = "Import default data";
+  public name: string = "migration:data";
+  public description: string = "Import default data";
 
-    async handle(args: yargs.Arguments) {
-        const forceFlag: boolean = (args.force ?? false) as boolean;
-        const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
+  async handle(args: yargs.Arguments) {
+    const forceFlag: boolean = (args.force ?? false) as boolean;
+    const databaseService: DatabaseService =
+      await this._app.getService<DatabaseService>(DatabaseService.name);
 
-        // If at least a standard object already exists means data have been imported
-        if (forceFlag || !await getRepository(IPObj).findOne(10000)) {
-            await databaseService.feedDefaultData();
-            this.output.success(`Default data imported.`);
-        } else {
-            this.output.warn(`Default data already imported.`);
-        }
+    // If at least a standard object already exists means data have been imported
+    if (forceFlag || !(await getRepository(IPObj).findOne(10000))) {
+      await databaseService.feedDefaultData();
+      this.output.success(`Default data imported.`);
+    } else {
+      this.output.warn(`Default data already imported.`);
     }
+  }
 
-    public getOptions(): Option[] {
-        return [
-            { name: 'force', alias: null, type: "boolean", description: 'Force key generation even when they are already defined', required: false },
-        ]
-    }
+  public getOptions(): Option[] {
+    return [
+      {
+        name: "force",
+        alias: null,
+        type: "boolean",
+        description: "Force key generation even when they are already defined",
+        required: false,
+      },
+    ];
+  }
 }

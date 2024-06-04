@@ -29,17 +29,27 @@ import { RoutingRuleToOpenVPN } from "../../../models/routing/routing-rule/routi
 import { RoutingRuleToOpenVPNPrefix } from "../../../models/routing/routing-rule/routing-rule-to-openvpn-prefix.model";
 
 export class RoutingRuleToOpenVPNPrefixExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return RoutingRuleToOpenVPNPrefix;
-    }
+  protected getEntity(): typeof Model {
+    return RoutingRuleToOpenVPNPrefix;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where((qb) => {
-            const subquery = qb.subQuery().from(RoutingRule, 'rule').select('rule.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where((qb) => {
+      const subquery = qb
+        .subQuery()
+        .from(RoutingRule, "rule")
+        .select("rule.id");
 
-            return `${alias}.routingRuleId IN` + new RoutingRuleExporter()
-                .getFilterBuilder(subquery, 'rule', fwCloudId).getQuery()
-        });
-    }
+      return (
+        `${alias}.routingRuleId IN` +
+        new RoutingRuleExporter()
+          .getFilterBuilder(subquery, "rule", fwCloudId)
+          .getQuery()
+      );
+    });
+  }
 }

@@ -20,54 +20,62 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinTable, ManyToMany, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Entity,
+  PrimaryColumn,
+  Column,
+  ManyToOne,
+  JoinTable,
+  ManyToMany,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import Model from "../../Model";
 import { IPObj } from "../../ipobj/IPObj";
 import { OpenVPN } from "./OpenVPN";
 
-const tableName: string = 'openvpn_opt';
+const tableName: string = "openvpn_opt";
 
 @Entity(tableName)
 export class OpenVPNOption extends Model {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @PrimaryGeneratedColumn()
-    id: number;
-    
-    @Column({name: 'openvpn'})
-    openVPNId: number;
+  @Column({ name: "openvpn" })
+  openVPNId: number;
 
-    @Column({name: 'ipobj'})
-    ipObjId: number;
+  @Column({ name: "ipobj" })
+  ipObjId: number;
 
-    @Column()
-    name: string;
+  @Column()
+  name: string;
 
-    @ManyToOne(type => OpenVPN, openVPN => openVPN.openVPNOptions)
-    @JoinColumn({
-        name: 'openvpn'
-    })
-    openVPN: OpenVPN;
+  @ManyToOne((type) => OpenVPN, (openVPN) => openVPN.openVPNOptions)
+  @JoinColumn({
+    name: "openvpn",
+  })
+  openVPN: OpenVPN;
 
-    @ManyToOne(type => IPObj, ipObj => ipObj.optionsList)
-    @JoinColumn({
-        name: 'ipobj'
-    })
-    ipObj: IPObj;
+  @ManyToOne((type) => IPObj, (ipObj) => ipObj.optionsList)
+  @JoinColumn({
+    name: "ipobj",
+  })
+  ipObj: IPObj;
 
-    @Column()
-    arg: string
+  @Column()
+  arg: string;
 
-    @Column()
-    order: number;
+  @Column()
+  order: number;
 
-    @Column()
-    scope: number;
+  @Column()
+  scope: number;
 
-    @Column()
-    comment: string
+  @Column()
+  comment: string;
 
-    public getTableName(): string {
-        return tableName;
-    }
-
+  public getTableName(): string {
+    return tableName;
+  }
 }

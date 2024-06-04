@@ -30,23 +30,38 @@ import { IPObj } from "../../../models/ipobj/IPObj";
 import { IPObjExporter } from "./ipobj.exporter";
 
 export class OpenVPNOptionExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return OpenVPNOption;
-    }
+  protected getEntity(): typeof Model {
+    return OpenVPNOption;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where((qb) => {
-            const subquery = qb.subQuery().from(OpenVPN, 'openvpn').select('openvpn.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb
+      .where((qb) => {
+        const subquery = qb
+          .subQuery()
+          .from(OpenVPN, "openvpn")
+          .select("openvpn.id");
 
-            return `${alias}.openVPNId IN ` + new OpenVPNExporter()
-                .getFilterBuilder(subquery, 'openvpn', fwCloudId).getQuery()
-        })
-        .orWhere((qb) => {
-            const subquery = qb.subQuery().from(IPObj, 'ipobj').select('ipobj.id');
+        return (
+          `${alias}.openVPNId IN ` +
+          new OpenVPNExporter()
+            .getFilterBuilder(subquery, "openvpn", fwCloudId)
+            .getQuery()
+        );
+      })
+      .orWhere((qb) => {
+        const subquery = qb.subQuery().from(IPObj, "ipobj").select("ipobj.id");
 
-            return `${alias}.ipObjId IN ` + new IPObjExporter()
-                .getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery()
-        });
-    }
+        return (
+          `${alias}.ipObjId IN ` +
+          new IPObjExporter()
+            .getFilterBuilder(subquery, "ipobj", fwCloudId)
+            .getQuery()
+        );
+      });
+  }
 }

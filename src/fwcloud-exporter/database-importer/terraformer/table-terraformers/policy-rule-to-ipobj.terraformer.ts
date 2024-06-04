@@ -20,7 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableTerraformer, TerraformHandlerCollection } from "../table-terraformer";
+import {
+  TableTerraformer,
+  TerraformHandlerCollection,
+} from "../table-terraformer";
 import { ImportMapping } from "../mapper/import-mapping";
 import { Interface } from "../../../../models/interface/Interface";
 import { IPObj } from "../../../../models/ipobj/IPObj";
@@ -28,31 +31,42 @@ import { IPObjGroup } from "../../../../models/ipobj/IPObjGroup";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 
 export class PolicyRuleToIpObjTerraformer extends TableTerraformer {
-    
-    public static async make(mapper: ImportMapping, eventEmitter: EventEmitter = new EventEmitter()): Promise<PolicyRuleToIpObjTerraformer> {
-        const terraformer: PolicyRuleToIpObjTerraformer = new PolicyRuleToIpObjTerraformer(mapper, eventEmitter);
-        return terraformer;
-    }
-    
-    /**
-     * The following attributes should be a foreign keys but they are missing thus, this handler
-     * maps the value as it was a foreign key
-     */
-    protected getCustomHandlers(): TerraformHandlerCollection {
-        const result = {};
+  public static async make(
+    mapper: ImportMapping,
+    eventEmitter: EventEmitter = new EventEmitter(),
+  ): Promise<PolicyRuleToIpObjTerraformer> {
+    const terraformer: PolicyRuleToIpObjTerraformer =
+      new PolicyRuleToIpObjTerraformer(mapper, eventEmitter);
+    return terraformer;
+  }
 
-        result['interfaceId'] = (mapper: ImportMapping, row: object, value: number) => {
-            return mapper.getMappedId(Interface._getTableName(), 'id', value);
-        };
+  /**
+   * The following attributes should be a foreign keys but they are missing thus, this handler
+   * maps the value as it was a foreign key
+   */
+  protected getCustomHandlers(): TerraformHandlerCollection {
+    const result = {};
 
-        result['ipObjId'] = (mapper: ImportMapping, row: object, value: number) => {
-            return mapper.getMappedId(IPObj._getTableName(), 'id', value);
-        };
+    result["interfaceId"] = (
+      mapper: ImportMapping,
+      row: object,
+      value: number,
+    ) => {
+      return mapper.getMappedId(Interface._getTableName(), "id", value);
+    };
 
-        result['ipObjGroupId'] = (mapper: ImportMapping, row: object, value: number) => {
-            return mapper.getMappedId(IPObjGroup._getTableName(), 'id', value);
-        };
+    result["ipObjId"] = (mapper: ImportMapping, row: object, value: number) => {
+      return mapper.getMappedId(IPObj._getTableName(), "id", value);
+    };
 
-        return result;
-    }
+    result["ipObjGroupId"] = (
+      mapper: ImportMapping,
+      row: object,
+      value: number,
+    ) => {
+      return mapper.getMappedId(IPObjGroup._getTableName(), "id", value);
+    };
+
+    return result;
+  }
 }

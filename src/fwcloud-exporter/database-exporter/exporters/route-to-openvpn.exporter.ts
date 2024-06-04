@@ -29,17 +29,24 @@ import { RouteToOpenVPN } from "../../../models/routing/route/route-to-openvpn.m
 import { Route } from "../../../models/routing/route/route.model";
 
 export class RouteToOpenVPNExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return RouteToOpenVPN;
-    }
+  protected getEntity(): typeof Model {
+    return RouteToOpenVPN;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where((qb) => {
-            const subquery = qb.subQuery().from(Route, 'route').select('route.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where((qb) => {
+      const subquery = qb.subQuery().from(Route, "route").select("route.id");
 
-            return `${alias}.routeId IN` + new RoutingRuleExporter()
-                .getFilterBuilder(subquery, 'route', fwCloudId).getQuery()
-        });
-    }
+      return (
+        `${alias}.routeId IN` +
+        new RoutingRuleExporter()
+          .getFilterBuilder(subquery, "route", fwCloudId)
+          .getQuery()
+      );
+    });
+  }
 }

@@ -25,135 +25,163 @@ import { HAProxyRule } from "../../../../../src/models/system/haproxy/haproxy_r/
 import StringHelper from "../../../../../src/utils/string.helper";
 import { testSuite } from "../../../../mocha/global-setup";
 import sinon from "sinon";
-import { Request } from 'express';
+import { Request } from "express";
 import { expect } from "chai";
 
 describe(HAProxyController.name, () => {
-    let firewall: Firewall;
-    let fwCloud: FwCloud;
-    let haproxygroup: HAProxyGroup;
-    let haproxyrule: HAProxyRule;
+  let firewall: Firewall;
+  let fwCloud: FwCloud;
+  let haproxygroup: HAProxyGroup;
+  let haproxyrule: HAProxyRule;
 
-    let controller: HAProxyController;
-    let app: Application;
+  let controller: HAProxyController;
+  let app: Application;
 
-    beforeEach(async () => {
-        app = testSuite.app;
-        await testSuite.resetDatabaseData();
+  beforeEach(async () => {
+    app = testSuite.app;
+    await testSuite.resetDatabaseData();
 
-        controller = new HAProxyController(app);
+    controller = new HAProxyController(app);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
-            name: StringHelper.randomize(10)
-        }));
+    fwCloud = await getRepository(FwCloud).save(
+      getRepository(FwCloud).create({
+        name: StringHelper.randomize(10),
+      }),
+    );
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
-            name: StringHelper.randomize(10),
-            fwCloudId: fwCloud.id
-        }));
+    firewall = await getRepository(Firewall).save(
+      getRepository(Firewall).create({
+        name: StringHelper.randomize(10),
+        fwCloudId: fwCloud.id,
+      }),
+    );
 
-        haproxygroup = await getRepository(HAProxyGroup).save(getRepository(HAProxyGroup).create({
-            name: StringHelper.randomize(10),
-            firewallId: firewall.id
-        }));
+    haproxygroup = await getRepository(HAProxyGroup).save(
+      getRepository(HAProxyGroup).create({
+        name: StringHelper.randomize(10),
+        firewallId: firewall.id,
+      }),
+    );
 
-        haproxyrule = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
-            rule_order: 1,
-            rule_type: 1,
-            firewall: firewall,
-            group: haproxygroup,
-        }));
+    haproxyrule = await getRepository(HAProxyRule).save(
+      getRepository(HAProxyRule).create({
+        rule_order: 1,
+        rule_type: 1,
+        firewall: firewall,
+        group: haproxygroup,
+      }),
+    );
+  });
+
+  afterEach(async () => {
+    sinon.restore();
+  });
+
+  describe("make", () => {
+    it("should fetch HAProxyRule and HAProxyGroup when dhcp param is present", async () => {
+      const requestMock = {
+        params: {
+          haproxy: haproxyrule.id,
+          firewall: firewall.id,
+          fwcloud: fwCloud.id,
+        },
+      } as unknown as Request;
+
+      const haproxyruleStub = sinon
+        .stub(getRepository(HAProxyRule), "findOneOrFail")
+        .resolves(haproxyrule);
+      const firewallStub = sinon
+        .stub(getRepository(Firewall), "findOneOrFail")
+        .resolves(firewall);
+      const fwCloudStub = sinon
+        .stub(getRepository(FwCloud), "findOneOrFail")
+        .resolves(fwCloud);
+
+      await controller.make(requestMock);
+
+      expect(haproxyruleStub.calledOnce).to.be.true;
+      expect(firewallStub.calledOnce).to.be.true;
+      expect(fwCloudStub.calledOnce).to.be.true;
+
+      haproxyruleStub.restore();
+      firewallStub.restore();
+      fwCloudStub.restore();
     });
 
-    afterEach(async () => {
-        sinon.restore();
+    it("should not fetch HAPRoxyRule and HAProxyGroup when haproxy param is not present", async () => {
+      const requestMock = {
+        params: {
+          firewall: firewall.id,
+          fwcloud: fwCloud.id,
+        },
+      } as unknown as Request;
+
+      const dhcpruleStub = sinon.stub(
+        getRepository(HAProxyRule),
+        "findOneOrFail",
+      );
+      const dhcpgroupStub = sinon.stub(
+        getRepository(HAProxyGroup),
+        "findOneOrFail",
+      );
+      const firewallStub = sinon.stub(getRepository(Firewall), "findOneOrFail");
+      const fwCloudStub = sinon.stub(getRepository(FwCloud), "findOneOrFail");
+
+      await controller.make(requestMock);
+
+      expect(dhcpruleStub.called).to.be.false;
+      expect(dhcpgroupStub.called).to.be.false;
+      expect(firewallStub.calledOnce).to.be.true;
+      expect(fwCloudStub.calledOnce).to.be.true;
+
+      dhcpruleStub.restore();
+      dhcpgroupStub.restore();
+      firewallStub.restore();
+      fwCloudStub.restore();
     });
 
-    describe('make', () => {
-        it('should fetch HAProxyRule and HAProxyGroup when dhcp param is present', async () => {
-            const requestMock = {
-                params: {
-                    haproxy: haproxyrule.id,
-                    firewall: firewall.id,
-                    fwcloud: fwCloud.id,
-                }
-            } as unknown as Request;
+    it("should handle errors when entities are not found", async () => {
+      const requestMock = {
+        params: {
+          haproxy: 999, // non-existent haproxy id
+          firewall: firewall.id,
+          fwcloud: fwCloud.id,
+        },
+      } as unknown as Request;
 
-            const haproxyruleStub = sinon.stub(getRepository(HAProxyRule), 'findOneOrFail').resolves(haproxyrule);
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail').resolves(firewall);
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
+      const dhcpruleStub = sinon
+        .stub(getRepository(HAProxyRule), "findOneOrFail")
+        .throws(new Error("HAPRoxyRule not found"));
 
-            await controller.make(requestMock);
+      await expect(controller.make(requestMock)).to.be.rejectedWith(
+        "HAPRoxyRule not found",
+      );
 
-            expect(haproxyruleStub.calledOnce).to.be.true;
-            expect(firewallStub.calledOnce).to.be.true;
-            expect(fwCloudStub.calledOnce).to.be.true;
-
-            haproxyruleStub.restore();
-            firewallStub.restore();
-            fwCloudStub.restore();
-        });
-
-        it('should not fetch HAPRoxyRule and HAProxyGroup when haproxy param is not present', async () => {
-            const requestMock = {
-                params: {
-                    firewall: firewall.id,
-                    fwcloud: fwCloud.id
-                }
-            } as unknown as Request;
-
-            const dhcpruleStub = sinon.stub(getRepository(HAProxyRule), 'findOneOrFail');
-            const dhcpgroupStub = sinon.stub(getRepository(HAProxyGroup), 'findOneOrFail');
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail');
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail');
-
-            await controller.make(requestMock);
-
-            expect(dhcpruleStub.called).to.be.false;
-            expect(dhcpgroupStub.called).to.be.false;
-            expect(firewallStub.calledOnce).to.be.true;
-            expect(fwCloudStub.calledOnce).to.be.true;
-
-            dhcpruleStub.restore();
-            dhcpgroupStub.restore();
-            firewallStub.restore();
-            fwCloudStub.restore();
-        });
-
-        it('should handle errors when entities are not found', async () => {
-            const requestMock = {
-                params: {
-                    haproxy: 999, // non-existent haproxy id
-                    firewall: firewall.id,
-                    fwcloud: fwCloud.id
-                }
-            } as unknown as Request;
-
-            const dhcpruleStub = sinon.stub(getRepository(HAProxyRule), 'findOneOrFail').throws(new Error('HAPRoxyRule not found'));
-
-            await expect(controller.make(requestMock)).to.be.rejectedWith('HAPRoxyRule not found');
-
-            dhcpruleStub.restore();
-        });
-
-        it('should fetch Firewall and FwCloud', async () => {
-            const requestMock = {
-                params: {
-                    firewall: firewall.id,
-                    fwcloud: fwCloud.id
-                }
-            } as unknown as Request;
-
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail').resolves(firewall);
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
-
-            await controller.make(requestMock);
-
-            expect(firewallStub.calledOnce).to.be.true;
-            expect(fwCloudStub.calledOnce).to.be.true;
-
-            firewallStub.restore();
-            fwCloudStub.restore();
-        });
+      dhcpruleStub.restore();
     });
+
+    it("should fetch Firewall and FwCloud", async () => {
+      const requestMock = {
+        params: {
+          firewall: firewall.id,
+          fwcloud: fwCloud.id,
+        },
+      } as unknown as Request;
+
+      const firewallStub = sinon
+        .stub(getRepository(Firewall), "findOneOrFail")
+        .resolves(firewall);
+      const fwCloudStub = sinon
+        .stub(getRepository(FwCloud), "findOneOrFail")
+        .resolves(fwCloud);
+
+      await controller.make(requestMock);
+
+      expect(firewallStub.calledOnce).to.be.true;
+      expect(fwCloudStub.calledOnce).to.be.true;
+
+      firewallStub.restore();
+      fwCloudStub.restore();
+    });
+  });
 });
