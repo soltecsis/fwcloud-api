@@ -1,22 +1,22 @@
-import { FwCloud } from "../models/fwcloud/FwCloud";
-import * as uuid from "uuid";
-import * as path from "path";
-import * as fs from "fs";
-import { FSHelper } from "../utils/fs-helper";
-import { Snapshot } from "../snapshots/snapshot";
-import archiver from "archiver";
-import yauzl from "yauzl";
-import { DatabaseImporter } from "./database-importer/database-importer";
-import moment from "moment";
-import { User } from "../models/user/User";
-import { Responsable } from "../fonaments/contracts/responsable";
-import { SnapshotNotCompatibleException } from "../snapshots/exceptions/snapshot-not-compatible.exception";
-import { Zip } from "../utils/zip";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+import { FwCloud } from '../models/fwcloud/FwCloud';
+import * as uuid from 'uuid';
+import * as path from 'path';
+import * as fs from 'fs';
+import { FSHelper } from '../utils/fs-helper';
+import { Snapshot } from '../snapshots/snapshot';
+import archiver from 'archiver';
+import yauzl from 'yauzl';
+import { DatabaseImporter } from './database-importer/database-importer';
+import moment from 'moment';
+import { User } from '../models/user/User';
+import { Responsable } from '../fonaments/contracts/responsable';
+import { SnapshotNotCompatibleException } from '../snapshots/exceptions/snapshot-not-compatible.exception';
+import { Zip } from '../utils/zip';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
 
 export class FwCloudExport implements Responsable {
-  static FWCLOUD_DATA_DIRECTORY = "fwcloud";
-  static SNAPSHOTS_DIRECTORY = "snapshots";
+  static FWCLOUD_DATA_DIRECTORY = 'fwcloud';
+  static SNAPSHOTS_DIRECTORY = 'snapshots';
 
   protected _id: string;
   protected _path: string;
@@ -130,7 +130,7 @@ export class FwCloudExport implements Responsable {
     return new Promise<FwCloudExport>((resolve, reject) => {
       const destinationPath: string = path.join(
         path.dirname(compressedFilePath),
-        path.basename(compressedFilePath.replace(".fwcloud", "")),
+        path.basename(compressedFilePath.replace('.fwcloud', '')),
       );
 
       Zip.unzip(compressedFilePath, destinationPath)

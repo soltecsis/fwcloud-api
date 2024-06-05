@@ -15,10 +15,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { HAProxyRulesData } from "../../../models/system/haproxy/haproxy_r/haproxy_r.service";
-import { HAProxyRuleItemForCompiler } from "../../../models/system/haproxy/shared";
-import { ProgressNoticePayload } from "../../../sockets/messages/socket-message";
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { HAProxyRulesData } from '../../../models/system/haproxy/haproxy_r/haproxy_r.service';
+import { HAProxyRuleItemForCompiler } from '../../../models/system/haproxy/shared';
+import { ProgressNoticePayload } from '../../../sockets/messages/socket-message';
 
 export type HAProxyCompiled = {
   id: number;
@@ -30,11 +30,11 @@ export class HAProxyCompiler {
   public ruleCompile(
     ruleData: HAProxyRulesData<HAProxyRuleItemForCompiler>,
   ): string {
-    let cs = "";
+    let cs = '';
 
     switch (ruleData.rule_type) {
       case 2:
-        cs = ruleData.cfg_text ? ruleData.cfg_text : "";
+        cs = ruleData.cfg_text ? ruleData.cfg_text : '';
         break;
       default:
         if (ruleData.comment) {
@@ -48,7 +48,7 @@ export class HAProxyCompiler {
         cs += `\tuse_backend\tback_${ruleData.frontendIp.name}\n`;
         cs += `\n`;
         cs += `backend\tback_${ruleData.frontendIp.name}\n`;
-        cs += `\tmode\t${ruleData.frontendPort.protocol == 6 ? "tcp" : "udp"}\n`;
+        cs += `\tmode\t${ruleData.frontendPort.protocol == 6 ? 'tcp' : 'udp'}\n`;
         cs += `\ttimeout\tconnect 30s\n`;
         cs += `\ttimeout\tserver 86400s\n`;
         cs += `\tbalance\tleastconn\n`;
@@ -74,9 +74,9 @@ export class HAProxyCompiler {
     for (let i = 0; i < data.length; i++) {
       if (eventEmitter) {
         eventEmitter.emit(
-          "progress",
+          'progress',
           new ProgressNoticePayload(
-            `Compiling HAProxy rule ${i} (ID: ${data[i].id})${!data[i].active ? " [DISABLED]" : ""}`,
+            `Compiling HAProxy rule ${i} (ID: ${data[i].id})${!data[i].active ? ' [DISABLED]' : ''}`,
           ),
         );
       }
@@ -89,7 +89,7 @@ export class HAProxyCompiler {
             ? this.ruleCompile(
                 data[i] as HAProxyRulesData<HAProxyRuleItemForCompiler>,
               )
-            : "",
+            : '',
       });
     }
 

@@ -1,21 +1,21 @@
-import { getRepository, QueryFailedError } from "typeorm";
-import { Application } from "../../../../src/Application";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { RoutingTableService } from "../../../../src/models/routing/routing-table/routing-table.service";
-import StringHelper from "../../../../src/utils/string.helper";
-import { expect, testSuite } from "../../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
-import { Request } from "express";
-import Sinon from "sinon";
-import { Tree } from "../../../../src/models/tree/Tree";
-import { Authorization } from "../../../../src/fonaments/authorization/policy";
-import { RouteGroupController } from "../../../../src/controllers/routing/route-group/route-group.controller";
-import { RouteService } from "../../../../src/models/routing/route/route.service";
-import { RouteGroup } from "../../../../src/models/routing/route-group/route-group.model";
-import { RouteGroupService } from "../../../../src/models/routing/route-group/route-group.service";
-import { RouteGroupPolicy } from "../../../../src/policies/route-group.policy";
-import { RequestInputs } from "../../../../src/fonaments/http/request-inputs";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
+import { getRepository, QueryFailedError } from 'typeorm';
+import { Application } from '../../../../src/Application';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { RoutingTableService } from '../../../../src/models/routing/routing-table/routing-table.service';
+import StringHelper from '../../../../src/utils/string.helper';
+import { expect, testSuite } from '../../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
+import { Request } from 'express';
+import Sinon from 'sinon';
+import { Tree } from '../../../../src/models/tree/Tree';
+import { Authorization } from '../../../../src/fonaments/authorization/policy';
+import { RouteGroupController } from '../../../../src/controllers/routing/route-group/route-group.controller';
+import { RouteService } from '../../../../src/models/routing/route/route.service';
+import { RouteGroup } from '../../../../src/models/routing/route-group/route-group.model';
+import { RouteGroupService } from '../../../../src/models/routing/route-group/route-group.service';
+import { RouteGroupPolicy } from '../../../../src/policies/route-group.policy';
+import { RequestInputs } from '../../../../src/fonaments/http/request-inputs';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 
 describe(RouteGroupController.name, () => {
   let controller: RouteGroupController;
@@ -50,8 +50,8 @@ describe(RouteGroupController.name, () => {
     await Tree.createAllTreeCloud(fwcProduct.fwcloud);
     const node: { id: number } = (await Tree.getNodeByNameAndType(
       fwcProduct.fwcloud.id,
-      "FIREWALLS",
-      "FDF",
+      'FIREWALLS',
+      'FDF',
     )) as { id: number };
     await Tree.insertFwc_Tree_New_firewall(
       fwcProduct.fwcloud.id,
@@ -62,17 +62,17 @@ describe(RouteGroupController.name, () => {
     controller = new RouteGroupController(app);
   });
 
-  describe("make", () => {
+  describe('make', () => {
     let group: RouteGroup;
 
     beforeEach(async () => {
       group = await getRepository(RouteGroup).save({
         firewallId: firewall.id,
-        name: "group",
+        name: 'group',
       });
     });
 
-    it("should throw an error if the group does not belongs to the firewall", async () => {
+    it('should throw an error if the group does not belongs to the firewall', async () => {
       const newFirewall: Firewall = await getRepository(Firewall).save({
         name: StringHelper.randomize(10),
         fwCloudId: fwcloud.id,
@@ -89,7 +89,7 @@ describe(RouteGroupController.name, () => {
       ).rejected;
     });
 
-    it("should throw an error if the firewall does not belongs to the fwcloud", async () => {
+    it('should throw an error if the firewall does not belongs to the fwcloud', async () => {
       const newfwcloud = await getRepository(FwCloud).save({
         name: StringHelper.randomize(10),
       });
@@ -105,7 +105,7 @@ describe(RouteGroupController.name, () => {
       ).rejected;
     });
 
-    it("should throw error if the fwcloud does not exist", async () => {
+    it('should throw error if the fwcloud does not exist', async () => {
       await expect(
         controller.make({
           params: {
@@ -117,7 +117,7 @@ describe(RouteGroupController.name, () => {
       ).rejected;
     });
 
-    it("should throw error if the firewall does not exist", async () => {
+    it('should throw error if the firewall does not exist', async () => {
       await expect(
         controller.make({
           params: {
@@ -129,7 +129,7 @@ describe(RouteGroupController.name, () => {
       ).rejected;
     });
 
-    it("should throw error if the group does not exist", async () => {
+    it('should throw error if the group does not exist', async () => {
       await expect(
         controller.make({
           params: {
@@ -141,7 +141,7 @@ describe(RouteGroupController.name, () => {
       ).rejected;
     });
 
-    it("should not throw error if params are valid", async () => {
+    it('should not throw error if params are valid', async () => {
       expect(
         await controller.make({
           params: {
@@ -154,19 +154,19 @@ describe(RouteGroupController.name, () => {
     });
   });
 
-  describe("update", () => {
+  describe('update', () => {
     let group: RouteGroup;
 
     beforeEach(async () => {
       group = await routeGroupService.create({
-        name: "group",
-        routes: [fwcProduct.routes.get("route1")],
+        name: 'group',
+        routes: [fwcProduct.routes.get('route1')],
         firewallId: firewall.id,
       });
 
       const spy: Sinon.SinonSpy = Sinon.stub(
         RouteGroupPolicy,
-        "update",
+        'update',
       ).resolves(Authorization.grant());
 
       await controller.make({
@@ -178,7 +178,7 @@ describe(RouteGroupController.name, () => {
       } as unknown as Request);
     });
 
-    it("should handle updates without changing routes", async () => {
+    it('should handle updates without changing routes', async () => {
       await controller.update({
         params: {
           routeGroup: group.id,
@@ -188,7 +188,7 @@ describe(RouteGroupController.name, () => {
         },
         inputs: new RequestInputs({
           body: {
-            style: "#E6EE9C",
+            style: '#E6EE9C',
           },
           query: {},
         } as unknown as Request),
@@ -200,7 +200,7 @@ describe(RouteGroupController.name, () => {
             id: group.id,
           })
         ).style,
-      ).to.be.eq("#E6EE9C");
+      ).to.be.eq('#E6EE9C');
 
       expect(
         (
@@ -208,7 +208,7 @@ describe(RouteGroupController.name, () => {
             {
               id: group.id,
             },
-            { relations: ["routes"] },
+            { relations: ['routes'] },
           )
         ).routes,
       ).to.have.length(1);

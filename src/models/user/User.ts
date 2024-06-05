@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import db from "../../database/database-manager";
-import Model from "../Model";
+import db from '../../database/database-manager';
+import Model from '../Model';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -32,18 +32,18 @@ import {
   JoinColumn,
   OneToOne,
   getRepository,
-} from "typeorm";
-import { FwCloud } from "../fwcloud/FwCloud";
-import { Ca } from "../vpn/pki/Ca";
-import { Customer } from "./Customer";
-import { Tfa } from "./Tfa";
-import { resolve } from "path";
+} from 'typeorm';
+import { FwCloud } from '../fwcloud/FwCloud';
+import { Ca } from '../vpn/pki/Ca';
+import { Customer } from './Customer';
+import { Tfa } from './Tfa';
+import { resolve } from 'path';
 
-const fwcError = require("../../utils/error_table");
+const fwcError = require('../../utils/error_table');
 
-const bcrypt = require("bcryptjs");
+const bcrypt = require('bcryptjs');
 
-const tableName: string = "user";
+const tableName: string = 'user';
 
 @Entity(tableName)
 export class User extends Model {
@@ -98,12 +98,12 @@ export class User extends Model {
   @OneToMany((type) => Ca, (ca) => ca.updated_by)
   updated_cas: Array<Ca>;
 
-  @Column({ name: "customer" })
+  @Column({ name: 'customer' })
   customerId: number;
 
   @ManyToOne((type) => Customer, (customer) => customer.users)
   @JoinColumn({
-    name: "customer",
+    name: 'customer',
   })
   customer: Customer;
 
@@ -121,10 +121,10 @@ export class User extends Model {
         if (error) return reject(error);
 
         const sql =
-          "SELECT * FROM user " +
-          "WHERE customer=" +
+          'SELECT * FROM user ' +
+          'WHERE customer=' +
           connection.escape(customer) +
-          " AND username =" +
+          ' AND username =' +
           connection.escape(username);
 
         connection.query(sql, (error, row) => {
@@ -255,7 +255,7 @@ export class User extends Model {
 
   public static _update(req): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      let crypt_pass = "";
+      let crypt_pass = '';
       if (req.body.password) {
         const salt = bcrypt.genSaltSync(10);
         crypt_pass = bcrypt.hashSync(
@@ -300,7 +300,7 @@ export class User extends Model {
 
   public static get(req) {
     return new Promise(async (resolve, reject) => {
-      let sql = "";
+      let sql = '';
 
       if (req.body.user)
         sql = `select id,customer,name,email,username,enabled,role,allowed_from,last_login from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`;

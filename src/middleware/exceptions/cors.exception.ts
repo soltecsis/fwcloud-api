@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { HttpException } from "../../fonaments/exceptions/http/http-exception";
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 
 export class CorsException extends HttpException {
   constructor(origin: string) {
-    super("Not allowed by CORS: " + origin, 400);
+    super('Not allowed by CORS: ' + origin, 400);
   }
 }

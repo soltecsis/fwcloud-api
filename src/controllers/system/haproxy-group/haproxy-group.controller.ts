@@ -15,19 +15,19 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
-import { Controller } from "../../../fonaments/http/controller";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { HAProxyGroup } from "../../../models/system/haproxy/haproxy_g/haproxy_g.model";
-import { HAProxyGroupService } from "../../../models/system/haproxy/haproxy_g/haproxy_g.service";
-import { HAProxyRuleService } from "../../../models/system/haproxy/haproxy_r/haproxy_r.service";
-import { Request } from "express";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { HAProxyGroupPolicy } from "../../../policies/haproxy-group.policy";
-import { Validate } from "../../../decorators/validate.decorator";
-import { DHCPGroupControllerCreateDto } from "./dto/create.dto";
-import { DHCPGroupControllerUpdateDto } from "./dto/update.dto";
+import { getRepository } from 'typeorm';
+import { Controller } from '../../../fonaments/http/controller';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
+import { HAProxyGroup } from '../../../models/system/haproxy/haproxy_g/haproxy_g.model';
+import { HAProxyGroupService } from '../../../models/system/haproxy/haproxy_g/haproxy_g.service';
+import { HAProxyRuleService } from '../../../models/system/haproxy/haproxy_r/haproxy_r.service';
+import { Request } from 'express';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
+import { HAProxyGroupPolicy } from '../../../policies/haproxy-group.policy';
+import { Validate } from '../../../decorators/validate.decorator';
+import { DHCPGroupControllerCreateDto } from './dto/create.dto';
+import { DHCPGroupControllerUpdateDto } from './dto/update.dto';
 
 export class HAProxyGroupController extends Controller {
   protected _haproxyGroupService: HAProxyGroupService;
@@ -85,13 +85,13 @@ export class HAProxyGroupController extends Controller {
       name: request.body.name,
       style: request.body.style,
       rules: request.inputs
-        .get<number[]>("rules")
+        .get<number[]>('rules')
         ?.map((id: number): { id: number } => ({ id })),
     });
 
-    if (request.inputs.get<number[]>("rules")) {
+    if (request.inputs.get<number[]>('rules')) {
       await this._haproxyRuleService.bulkUpdate(
-        request.inputs.get<number[]>("rules"),
+        request.inputs.get<number[]>('rules'),
         { group: group.id },
       );
     }

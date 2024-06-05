@@ -1,19 +1,19 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
-import { Mark } from "../../ipobj/Mark";
-import Model from "../../Model";
-import { RoutingRule } from "./routing-rule.model";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Mark } from '../../ipobj/Mark';
+import Model from '../../Model';
+import { RoutingRule } from './routing-rule.model';
 
-const tableName: string = "routing_r__mark";
+const tableName: string = 'routing_r__mark';
 
 @Entity(tableName)
 export class RoutingRuleToMark extends Model {
   @PrimaryColumn({
-    name: "rule",
+    name: 'rule',
   })
   routingRuleId: number;
 
   @PrimaryColumn({
-    name: "mark",
+    name: 'mark',
   })
   markId: number;
 
@@ -23,18 +23,18 @@ export class RoutingRuleToMark extends Model {
   order: number;
 
   @ManyToOne(() => RoutingRule, (model) => model.routingRuleToMarks, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "rule",
+    name: 'rule',
   })
   routingRule: RoutingRule;
 
   @ManyToOne(() => Mark, (model) => model.routingRuleToMarks, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "mark",
+    name: 'mark',
   })
   mark: Mark;
 

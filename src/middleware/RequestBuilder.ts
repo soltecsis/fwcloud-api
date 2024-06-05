@@ -20,16 +20,16 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
-import { Request, Response, NextFunction } from "express";
-import { RequestInputs } from "../fonaments/http/request-inputs";
-import Busboy from "busboy";
-import * as fs from "fs";
-import * as uuid from "uuid";
-import path from "path";
-import { FSHelper } from "../utils/fs-helper";
-import { EventEmitter } from "events";
-import { FileInfo } from "../fonaments/http/files/file-info";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
+import { Request, Response, NextFunction } from 'express';
+import { RequestInputs } from '../fonaments/http/request-inputs';
+import Busboy from 'busboy';
+import * as fs from 'fs';
+import * as uuid from 'uuid';
+import path from 'path';
+import { FSHelper } from '../utils/fs-helper';
+import { EventEmitter } from 'events';
+import { FileInfo } from '../fonaments/http/files/file-info';
 
 export class RequestBuilder extends Middleware {
   /**
@@ -51,8 +51,8 @@ export class RequestBuilder extends Middleware {
     req.inputs = new RequestInputs(req);
 
     if (
-      !req.headers["content-type"] ||
-      !new RegExp(/^multipart\/form-data;/i).test(req.headers["content-type"])
+      !req.headers['content-type'] ||
+      !new RegExp(/^multipart\/form-data;/i).test(req.headers['content-type'])
     ) {
       return next();
     }
@@ -61,13 +61,13 @@ export class RequestBuilder extends Middleware {
       const busboy = Busboy({ headers: req.headers });
 
       busboy.on(
-        "file",
+        'file',
         (input: string, file: NodeJS.ReadableStream, filename: any) => {
           filesProcessing++;
           const id: string = uuid.v4();
           const uploadFile: NodeJS.ReadableStream = file;
           const destinationPath: string = path.join(
-            this.app.config.get("tmp.directory"),
+            this.app.config.get('tmp.directory'),
             id,
             filename.filename,
           );
@@ -77,7 +77,7 @@ export class RequestBuilder extends Middleware {
           const destinationStream: fs.WriteStream =
             fs.createWriteStream(destinationPath);
 
-          destinationStream.on("close", () => {
+          destinationStream.on('close', () => {
             req.body[input] = new FileInfo(destinationPath);
             setTimeout(() => {
               if (FSHelper.directoryExistsSync(destinationDirectory)) {
@@ -88,22 +88,22 @@ export class RequestBuilder extends Middleware {
             filesProcessing =
               filesProcessing - 1 >= 0 ? filesProcessing - 1 : 0;
 
-            eventEmitter.emit("file:done");
+            eventEmitter.emit('file:done');
           });
 
           uploadFile.pipe(destinationStream);
         },
       );
 
-      busboy.on("finish", () => {
-        eventEmitter.on("file:done", () => {
+      busboy.on('finish', () => {
+        eventEmitter.on('file:done', () => {
           if (filesProcessing <= 0) {
             eventEmitter.removeAllListeners();
             return next();
           }
         });
 
-        eventEmitter.emit("file:done");
+        eventEmitter.emit('file:done');
       });
 
       req.pipe(busboy);

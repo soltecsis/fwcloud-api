@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Table, Connection, QueryRunner } from "typeorm";
-import { MigrationResetCommand } from "../../../../src/cli/commands/migration-reset-command";
-import { Application } from "../../../../src/Application";
-import { expect, testSuite, describeName } from "../../../mocha/global-setup";
-import { DatabaseService } from "../../../../src/database/database.service";
-import { runCLICommandIsolated } from "../../../utils/utils";
+import { Table, Connection, QueryRunner } from 'typeorm';
+import { MigrationResetCommand } from '../../../../src/cli/commands/migration-reset-command';
+import { Application } from '../../../../src/Application';
+import { expect, testSuite, describeName } from '../../../mocha/global-setup';
+import { DatabaseService } from '../../../../src/database/database.service';
+import { runCLICommandIsolated } from '../../../utils/utils';
 
-describe(describeName("MigrationResetCommand tests"), () => {
+describe(describeName('MigrationResetCommand tests'), () => {
   let app: Application;
 
   before(async () => {
@@ -38,18 +38,18 @@ describe(describeName("MigrationResetCommand tests"), () => {
     await testSuite.resetDatabaseData();
   });
 
-  it("should reset the database", async () => {
+  it('should reset the database', async () => {
     let connection: Connection = (
       await app.getService<DatabaseService>(DatabaseService.name)
     ).connection;
     let queryRunner: QueryRunner = connection.createQueryRunner();
 
-    expect(await queryRunner.getTable("ca")).to.be.instanceOf(Table);
-    expect(await queryRunner.getTable("user__fwcloud")).to.be.instanceOf(Table);
+    expect(await queryRunner.getTable('ca')).to.be.instanceOf(Table);
+    expect(await queryRunner.getTable('user__fwcloud')).to.be.instanceOf(Table);
 
     await runCLICommandIsolated(testSuite, async () => {
       return new MigrationResetCommand().safeHandle({
-        $0: "migration:run",
+        $0: 'migration:run',
         _: [],
       });
     });
@@ -58,8 +58,8 @@ describe(describeName("MigrationResetCommand tests"), () => {
       .connection;
     queryRunner = connection.createQueryRunner();
 
-    expect(await queryRunner.getTable("ca")).to.be.undefined;
-    expect(await queryRunner.getTable("user__fwcloud")).to.be.undefined;
+    expect(await queryRunner.getTable('ca')).to.be.undefined;
+    expect(await queryRunner.getTable('user__fwcloud')).to.be.undefined;
 
     await queryRunner.release();
   });

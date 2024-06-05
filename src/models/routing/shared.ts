@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SelectQueryBuilder } from "typeorm";
-import { IPObj } from "../ipobj/IPObj";
-import { IPObjGroup } from "../ipobj/IPObjGroup";
-import { Mark } from "../ipobj/Mark";
-import { OpenVPN } from "../vpn/openvpn/OpenVPN";
-import { OpenVPNPrefix } from "../vpn/openvpn/OpenVPNPrefix";
+import { SelectQueryBuilder } from 'typeorm';
+import { IPObj } from '../ipobj/IPObj';
+import { IPObjGroup } from '../ipobj/IPObjGroup';
+import { Mark } from '../ipobj/Mark';
+import { OpenVPN } from '../vpn/openvpn/OpenVPN';
+import { OpenVPNPrefix } from '../vpn/openvpn/OpenVPNPrefix';
 
-export type AvailableDestinations = "grid" | "compiler";
+export type AvailableDestinations = 'grid' | 'compiler';
 
 export type ItemForGrid = {
   entityId: number;

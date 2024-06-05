@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../abstract-application";
-import { Request } from "express";
+import { AbstractApplication } from '../abstract-application';
+import { Request } from 'express';
 
 export class Controller {
   constructor(protected _app: AbstractApplication) {}
@@ -30,8 +30,8 @@ export class Controller {
 
   public static methodExists(method: string): boolean {
     return (
-      typeof this[method] === "function" ||
-      typeof this.prototype[method] === "function"
+      typeof this[method] === 'function' ||
+      typeof this.prototype[method] === 'function'
     );
   }
 }

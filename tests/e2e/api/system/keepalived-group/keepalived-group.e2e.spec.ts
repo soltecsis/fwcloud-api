@@ -14,28 +14,28 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { getRepository } from "typeorm";
-import { Application } from "../../../../../src/Application";
-import { KeepalivedGroupController } from "../../../../../src/controllers/system/keepalived-group/keepalived-group.controller";
-import { _URL } from "../../../../../src/fonaments/http/router/router.service";
-import { Firewall } from "../../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
-import { KeepalivedGroup } from "../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.model";
-import { KeepalivedGroupService } from "../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.service";
-import { User } from "../../../../../src/models/user/User";
-import { expect, testSuite } from "../../../../mocha/global-setup";
+import { getRepository } from 'typeorm';
+import { Application } from '../../../../../src/Application';
+import { KeepalivedGroupController } from '../../../../../src/controllers/system/keepalived-group/keepalived-group.controller';
+import { _URL } from '../../../../../src/fonaments/http/router/router.service';
+import { Firewall } from '../../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
+import { KeepalivedGroup } from '../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.model';
+import { KeepalivedGroupService } from '../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.service';
+import { User } from '../../../../../src/models/user/User';
+import { expect, testSuite } from '../../../../mocha/global-setup';
 import {
   FwCloudFactory,
   FwCloudProduct,
-} from "../../../../utils/fwcloud-factory";
+} from '../../../../utils/fwcloud-factory';
 import {
   attachSession,
   createUser,
   generateSession,
-} from "../../../../utils/utils";
-import request = require("supertest");
+} from '../../../../utils/utils';
+import request = require('supertest');
 
-describe("keepalivedGroup E2E Tests", () => {
+describe('keepalivedGroup E2E Tests', () => {
   let app: Application;
   let loggedUser: User;
   let loggedUserSessionId: string;
@@ -71,70 +71,70 @@ describe("keepalivedGroup E2E Tests", () => {
   });
 
   describe(KeepalivedGroupController.name, () => {
-    describe("@index", () => {
+    describe('@index', () => {
       let group: KeepalivedGroup;
 
       beforeEach(async () => {
         group = await getRepository(KeepalivedGroup).save(
           getRepository(KeepalivedGroup).create({
             firewall: firewall,
-            name: "group",
-            style: "style",
+            name: 'group',
+            style: 'style',
           }),
         );
       });
 
-      it("guest user should not be able to list Keepalived groups", async () => {
+      it('guest user should not be able to list Keepalived groups', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.groups.index", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.groups.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which does not belong to the firewall should not be able to list Keepalived groups", async () => {
+      it('regular user which does not belong to the firewall should not be able to list Keepalived groups', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.groups.index", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.groups.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the firewall should be able to list Keepalived groups", async () => {
+      it('regular user which belongs to the firewall should be able to list Keepalived groups', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.groups.index", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.groups.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.have.lengthOf(1);
           });
       });
 
-      it("admin user should be able to list Keepalived groups", async () => {
+      it('admin user should be able to list Keepalived groups', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.groups.index", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.groups.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.have.lengthOf(1);
@@ -142,87 +142,87 @@ describe("keepalivedGroup E2E Tests", () => {
       });
     });
 
-    describe("@create", () => {
-      it("guest user should not be able to create a Keepalived group", async () => {
+    describe('@create', () => {
+      it('guest user should not be able to create a Keepalived group', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.groups.store", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.groups.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
           .send({
-            name: "group",
+            name: 'group',
           })
           .expect(401);
       });
 
-      it("regular user which does not belong to the firewall should not be able to create a Keepalived group", async () => {
+      it('regular user which does not belong to the firewall should not be able to create a Keepalived group', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.groups.store", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.groups.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
-            name: "group",
+            name: 'group',
           })
           .expect(401);
       });
 
-      it("regular user which belongs to the firewall should be able to create a Keepalived group", async () => {
+      it('regular user which belongs to the firewall should be able to create a Keepalived group', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.groups.store", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.groups.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
-            name: "group",
+            name: 'group',
           })
           .expect(201);
       });
 
-      it("admin user should be able to create a Keepalived group", async () => {
+      it('admin user should be able to create a Keepalived group', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.groups.store", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.groups.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
-            name: "group",
+            name: 'group',
           })
           .expect(201);
       });
     });
 
-    describe("@show", () => {
+    describe('@show', () => {
       let keepalivedGroup: KeepalivedGroup;
 
       beforeEach(async () => {
         keepalivedGroup = await getRepository(KeepalivedGroup).save(
           getRepository(KeepalivedGroup).create({
             firewall: firewall,
-            name: "group",
-            style: "style",
+            name: 'group',
+            style: 'style',
           }),
         );
       });
 
-      it("guest user should not be able to show a Keepalived group", async () => {
+      it('guest user should not be able to show a Keepalived group', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.groups.show", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.groups.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalivedgroup: keepalivedGroup.id,
@@ -231,65 +231,65 @@ describe("keepalivedGroup E2E Tests", () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the firewall should not be able to show a Keepalived group", async () => {
+      it('regular user which does not belong to the firewall should not be able to show a Keepalived group', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.groups.show", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.groups.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalivedgroup: keepalivedGroup.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the firewall should be able to show a Keepalived group", async () => {
+      it('regular user which belongs to the firewall should be able to show a Keepalived group', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.groups.show", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.groups.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalivedgroup: keepalivedGroup.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200);
       });
 
-      it("admin user should be able to show a Keepalived group", async () => {
+      it('admin user should be able to show a Keepalived group', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.groups.show", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.groups.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalivedgroup: keepalivedGroup.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200);
       });
     });
 
-    describe("@update", () => {
+    describe('@update', () => {
       let keepalivedGroup: KeepalivedGroup;
 
       beforeEach(async () => {
         keepalivedGroup = await keepalivedGroupService.create({
           firewallId: firewall.id,
-          name: "group",
-          style: "style",
+          name: 'group',
+          style: 'style',
         });
       });
 
-      it("guest user should not be able to update a Keepalived group", async () => {
+      it('guest user should not be able to update a Keepalived group', async () => {
         return await request(app.express)
           .put(
             _URL().getURL(
-              "fwclouds.firewalls.system.keepalived.groups.update",
+              'fwclouds.firewalls.system.keepalived.groups.update',
               {
                 fwcloud: fwCloud.id,
                 firewall: firewall.id,
@@ -298,16 +298,16 @@ describe("keepalivedGroup E2E Tests", () => {
             ),
           )
           .send({
-            name: "group",
+            name: 'group',
           })
           .expect(401);
       });
 
-      it("regular user which does not belong to the firewall should not be able to update a Keepalived group", async () => {
+      it('regular user which does not belong to the firewall should not be able to update a Keepalived group', async () => {
         return await request(app.express)
           .put(
             _URL().getURL(
-              "fwclouds.firewalls.system.keepalived.groups.update",
+              'fwclouds.firewalls.system.keepalived.groups.update',
               {
                 fwcloud: fwCloud.id,
                 firewall: firewall.id,
@@ -315,21 +315,21 @@ describe("keepalivedGroup E2E Tests", () => {
               },
             ),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
-            name: "group1",
+            name: 'group1',
           })
           .expect(401);
       });
 
-      it("regular user which belongs to the firewall should be able to update a Keepalived group", async () => {
+      it('regular user which belongs to the firewall should be able to update a Keepalived group', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .put(
             _URL().getURL(
-              "fwclouds.firewalls.system.keepalived.groups.update",
+              'fwclouds.firewalls.system.keepalived.groups.update',
               {
                 fwcloud: fwCloud.id,
                 firewall: firewall.id,
@@ -337,18 +337,18 @@ describe("keepalivedGroup E2E Tests", () => {
               },
             ),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
-            name: "group1",
+            name: 'group1',
           })
           .expect(200);
       });
 
-      it("admin user should be able to update a Keepalived group", async () => {
+      it('admin user should be able to update a Keepalived group', async () => {
         return await request(app.express)
           .put(
             _URL().getURL(
-              "fwclouds.firewalls.system.keepalived.groups.update",
+              'fwclouds.firewalls.system.keepalived.groups.update',
               {
                 fwcloud: fwCloud.id,
                 firewall: firewall.id,
@@ -356,30 +356,30 @@ describe("keepalivedGroup E2E Tests", () => {
               },
             ),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
-            name: "group1",
+            name: 'group1',
           })
           .expect(200);
       });
     });
 
-    describe("@remove", () => {
+    describe('@remove', () => {
       let keepalivedGroup: KeepalivedGroup;
 
       beforeEach(async () => {
         keepalivedGroup = await keepalivedGroupService.create({
           firewallId: firewall.id,
-          name: "group",
-          style: "style",
+          name: 'group',
+          style: 'style',
         });
       });
 
-      it("guest user should not be able to remove a Keepalived group", async () => {
+      it('guest user should not be able to remove a Keepalived group', async () => {
         return await request(app.express)
           .delete(
             _URL().getURL(
-              "fwclouds.firewalls.system.keepalived.groups.delete",
+              'fwclouds.firewalls.system.keepalived.groups.delete',
               {
                 fwcloud: fwCloud.id,
                 firewall: firewall.id,
@@ -390,11 +390,11 @@ describe("keepalivedGroup E2E Tests", () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the firewall should not be able to remove a Keepalived group", async () => {
+      it('regular user which does not belong to the firewall should not be able to remove a Keepalived group', async () => {
         return await request(app.express)
           .delete(
             _URL().getURL(
-              "fwclouds.firewalls.system.keepalived.groups.delete",
+              'fwclouds.firewalls.system.keepalived.groups.delete',
               {
                 fwcloud: fwCloud.id,
                 firewall: firewall.id,
@@ -402,18 +402,18 @@ describe("keepalivedGroup E2E Tests", () => {
               },
             ),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the firewall should be able to remove a Keepalived group", async () => {
+      it('regular user which belongs to the firewall should be able to remove a Keepalived group', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .delete(
             _URL().getURL(
-              "fwclouds.firewalls.system.keepalived.groups.delete",
+              'fwclouds.firewalls.system.keepalived.groups.delete',
               {
                 fwcloud: fwCloud.id,
                 firewall: firewall.id,
@@ -421,15 +421,15 @@ describe("keepalivedGroup E2E Tests", () => {
               },
             ),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200);
       });
 
-      it("admin user should be able to remove a Keepalived group", async () => {
+      it('admin user should be able to remove a Keepalived group', async () => {
         return await request(app.express)
           .delete(
             _URL().getURL(
-              "fwclouds.firewalls.system.keepalived.groups.delete",
+              'fwclouds.firewalls.system.keepalived.groups.delete',
               {
                 fwcloud: fwCloud.id,
                 firewall: firewall.id,
@@ -437,7 +437,7 @@ describe("keepalivedGroup E2E Tests", () => {
               },
             ),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200);
       });
     });

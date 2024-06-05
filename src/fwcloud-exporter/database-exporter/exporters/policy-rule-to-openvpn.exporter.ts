@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { PolicyRuleToOpenVPN } from "../../../models/policy/PolicyRuleToOpenVPN";
-import { SelectQueryBuilder } from "typeorm";
-import { PolicyRule } from "../../../models/policy/PolicyRule";
-import { PolicyRuleExporter } from "./policy-rule.exporter";
-import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
-import { OpenVPNExporter } from "./openvpn.exporter";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
+import { SelectQueryBuilder } from 'typeorm';
+import { PolicyRule } from '../../../models/policy/PolicyRule';
+import { PolicyRuleExporter } from './policy-rule.exporter';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
+import { OpenVPNExporter } from './openvpn.exporter';
 
 export class PolicyRuleToOpenVPNExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -43,26 +43,26 @@ export class PolicyRuleToOpenVPNExporter extends TableExporter {
       .where((qb) => {
         const subquery = qb
           .subQuery()
-          .from(PolicyRule, "policy_r")
-          .select("policy_r.id");
+          .from(PolicyRule, 'policy_r')
+          .select('policy_r.id');
 
         return (
           `${alias}.policyRuleId IN` +
           new PolicyRuleExporter()
-            .getFilterBuilder(subquery, "policy_r", fwCloudId)
+            .getFilterBuilder(subquery, 'policy_r', fwCloudId)
             .getQuery()
         );
       })
       .orWhere((qb) => {
         const subquery = qb
           .subQuery()
-          .from(OpenVPN, "openvpn")
-          .select("openvpn.id");
+          .from(OpenVPN, 'openvpn')
+          .select('openvpn.id');
 
         return (
           `${alias}.openVPNId IN` +
           new OpenVPNExporter()
-            .getFilterBuilder(subquery, "openvpn", fwCloudId)
+            .getFilterBuilder(subquery, 'openvpn', fwCloudId)
             .getQuery()
         );
       });

@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as uuid from "uuid";
-import { TasksEventEmitter } from "./progress";
-import { EventEmitter } from "events";
+import * as uuid from 'uuid';
+import { TasksEventEmitter } from './progress';
+import { EventEmitter } from 'events';
 
 export type TaskDescription = (
   eventEmitter: InternalTaskEventEmitter,
@@ -30,8 +30,8 @@ export type TaskDescription = (
 export type GroupDescription = (task: Task) => void;
 
 export interface InternalTaskEventEmitter extends EventEmitter {
-  emit(event: "info", ...args: any[]): boolean;
-  on(event: "info", listener: (...args: any[]) => void): this;
+  emit(event: 'info', ...args: any[]): boolean;
+  on(event: 'info', listener: (...args: any[]) => void): this;
 }
 
 export interface ITask {
@@ -71,17 +71,17 @@ export class Task implements ITask {
     finishedText: string = null,
     stepable: boolean = true,
   ): void {
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
   parallel(fn: GroupDescription, finishedText: string = null): void {
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
   sequence(fn: GroupDescription, finishedText: string = null): void {
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 
   public async run(): Promise<any> {
-    this._internalEmitter.on("info", (message: string) => {
+    this._internalEmitter.on('info', (message: string) => {
       this.emitInfoTask(this, message);
     });
 
@@ -97,18 +97,18 @@ export class Task implements ITask {
   }
 
   protected emitInfoTask(task: Task, message: string): void {
-    this._eventEmitter.emit("info", task, message);
+    this._eventEmitter.emit('info', task, message);
   }
 
   protected emitStartedTask(task: Task): void {
-    this._eventEmitter.emit("start", task);
+    this._eventEmitter.emit('start', task);
   }
 
   protected emitFinishedTask(task: Task): void {
-    this._eventEmitter.emit("end", task);
+    this._eventEmitter.emit('end', task);
   }
 
   protected emitErrorTask(task: Task, error: Error): void {
-    this._eventEmitter.emit("error", task, error);
+    this._eventEmitter.emit('error', task, error);
   }
 }

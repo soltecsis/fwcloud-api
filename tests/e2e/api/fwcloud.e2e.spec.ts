@@ -1,14 +1,14 @@
-import { describeName, testSuite, expect } from "../../mocha/global-setup";
+import { describeName, testSuite, expect } from '../../mocha/global-setup';
 
-import request = require("supertest");
-import { Application } from "../../../src/Application";
-import { _URL } from "../../../src/fonaments/http/router/router.service";
-import { User } from "../../../src/models/user/User";
-import { createUser, generateSession, attachSession } from "../../utils/utils";
-import StringHelper from "../../../src/utils/string.helper";
-import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
+import request = require('supertest');
+import { Application } from '../../../src/Application';
+import { _URL } from '../../../src/fonaments/http/router/router.service';
+import { User } from '../../../src/models/user/User';
+import { createUser, generateSession, attachSession } from '../../utils/utils';
+import StringHelper from '../../../src/utils/string.helper';
+import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
 
-describe(describeName("FwCloud E2E Tests"), () => {
+describe(describeName('FwCloud E2E Tests'), () => {
   let app: Application;
   let regularUser: User;
   let adminUser: User;
@@ -26,40 +26,40 @@ describe(describeName("FwCloud E2E Tests"), () => {
     adminUserSessionId = generateSession(adminUser);
   });
 
-  describe("FwCloudController", () => {
-    describe("FwCloudController@store()", () => {
-      it("guest user should not reach the controller", async () => {
+  describe('FwCloudController', () => {
+    describe('FwCloudController@store()', () => {
+      it('guest user should not reach the controller', async () => {
         return await request(app.express)
-          .post(_URL().getURL("fwclouds.store"))
+          .post(_URL().getURL('fwclouds.store'))
           .expect(401);
       });
 
-      it("regular user should not create a fwcloud", async () => {
+      it('regular user should not create a fwcloud', async () => {
         return await request(app.express)
-          .post(_URL().getURL("fwclouds.store"))
-          .set("Cookie", [attachSession(regularUserSessionId)])
+          .post(_URL().getURL('fwclouds.store'))
+          .set('Cookie', [attachSession(regularUserSessionId)])
           .send({
             name: StringHelper.randomize(10),
           })
           .expect(401);
       });
 
-      it("admin user should create a fwcloud", async () => {
+      it('admin user should create a fwcloud', async () => {
         return await request(app.express)
-          .post(_URL().getURL("fwclouds.store"))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .post(_URL().getURL('fwclouds.store'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             name: StringHelper.randomize(10),
           })
           .expect(201);
       });
 
-      it("should create a fwcloud", async () => {
+      it('should create a fwcloud', async () => {
         const count: number = (await FwCloud.find()).length;
 
         return await request(app.express)
-          .post(_URL().getURL("fwclouds.store"))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .post(_URL().getURL('fwclouds.store'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             name: StringHelper.randomize(10),
           })
@@ -69,12 +69,12 @@ describe(describeName("FwCloud E2E Tests"), () => {
           });
       });
 
-      it("should return the created fwcloud", async () => {
+      it('should return the created fwcloud', async () => {
         const name: string = StringHelper.randomize(10);
         const comment: string = StringHelper.randomize(10);
         return await request(app.express)
-          .post(_URL().getURL("fwclouds.store"))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .post(_URL().getURL('fwclouds.store'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             name: name,
             comment: comment,
@@ -90,7 +90,7 @@ describe(describeName("FwCloud E2E Tests"), () => {
       });
     });
 
-    describe("FwCloudController@update", () => {
+    describe('FwCloudController@update', () => {
       let fwCloud: FwCloud;
 
       beforeEach(async () => {
@@ -98,16 +98,16 @@ describe(describeName("FwCloud E2E Tests"), () => {
         await fwCloud.save();
       });
 
-      it("guest user should not update a fwcloud", async () => {
+      it('guest user should not update a fwcloud', async () => {
         return await request(app.express)
-          .put(_URL().getURL("fwclouds.update", { fwcloud: fwCloud.id }))
+          .put(_URL().getURL('fwclouds.update', { fwcloud: fwCloud.id }))
           .expect(401);
       });
 
-      it("regular user should not update a fwcloud", async () => {
+      it('regular user should not update a fwcloud', async () => {
         return await request(app.express)
-          .put(_URL().getURL("fwclouds.update", { fwcloud: fwCloud.id }))
-          .set("Cookie", [attachSession(regularUserSessionId)])
+          .put(_URL().getURL('fwclouds.update', { fwcloud: fwCloud.id }))
+          .set('Cookie', [attachSession(regularUserSessionId)])
           .send({
             name: StringHelper.randomize(10),
             comment: StringHelper.randomize(10),
@@ -115,10 +115,10 @@ describe(describeName("FwCloud E2E Tests"), () => {
           .expect(401);
       });
 
-      it("admin user should create a fwcloud", async () => {
+      it('admin user should create a fwcloud', async () => {
         return await request(app.express)
-          .put(_URL().getURL("fwclouds.update", { fwcloud: fwCloud.id }))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .put(_URL().getURL('fwclouds.update', { fwcloud: fwCloud.id }))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             name: StringHelper.randomize(10),
             comment: StringHelper.randomize(10),
@@ -126,12 +126,12 @@ describe(describeName("FwCloud E2E Tests"), () => {
           .expect(200);
       });
 
-      it("should update the fwcloud", async () => {
+      it('should update the fwcloud', async () => {
         const name: string = StringHelper.randomize(10);
         const comment: string = StringHelper.randomize(10);
         return await request(app.express)
-          .put(_URL().getURL("fwclouds.update", { fwcloud: fwCloud.id }))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .put(_URL().getURL('fwclouds.update', { fwcloud: fwCloud.id }))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             name: name,
             comment: comment,
@@ -144,10 +144,10 @@ describe(describeName("FwCloud E2E Tests"), () => {
           });
       });
 
-      it("should return the updated fwcloud", async () => {
+      it('should return the updated fwcloud', async () => {
         return await request(app.express)
-          .put(_URL().getURL("fwclouds.update", { fwcloud: fwCloud.id }))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .put(_URL().getURL('fwclouds.update', { fwcloud: fwCloud.id }))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             name: StringHelper.randomize(10),
             image: StringHelper.randomize(10),
@@ -165,7 +165,7 @@ describe(describeName("FwCloud E2E Tests"), () => {
       });
     });
 
-    describe("FwCloudController@colors()", () => {
+    describe('FwCloudController@colors()', () => {
       let fwCloud: FwCloud;
 
       beforeEach(async () => {
@@ -173,33 +173,33 @@ describe(describeName("FwCloud E2E Tests"), () => {
         await fwCloud.save();
       });
 
-      it("guest user should not reach the fwcloud colors", async () => {
+      it('guest user should not reach the fwcloud colors', async () => {
         return await request(app.express)
-          .get(_URL().getURL("fwclouds.colors", { fwcloud: fwCloud.id }))
+          .get(_URL().getURL('fwclouds.colors', { fwcloud: fwCloud.id }))
           .expect(401);
       });
 
-      it("users who does not belong to the fwcloud should not reach the fwcloud colors", async () => {
+      it('users who does not belong to the fwcloud should not reach the fwcloud colors', async () => {
         return await request(app.express)
-          .get(_URL().getURL("fwclouds.colors", { fwcloud: fwCloud.id }))
-          .set("Cookie", [attachSession(regularUserSessionId)])
+          .get(_URL().getURL('fwclouds.colors', { fwcloud: fwCloud.id }))
+          .set('Cookie', [attachSession(regularUserSessionId)])
           .expect(401);
       });
 
-      it("user which belongs to the fwcloud should get the fwcloud colors", async () => {
+      it('user which belongs to the fwcloud should get the fwcloud colors', async () => {
         regularUser.fwClouds = [fwCloud];
         await regularUser.save();
 
         return await request(app.express)
-          .get(_URL().getURL("fwclouds.colors", { fwcloud: fwCloud.id }))
-          .set("Cookie", [attachSession(regularUserSessionId)])
+          .get(_URL().getURL('fwclouds.colors', { fwcloud: fwCloud.id }))
+          .set('Cookie', [attachSession(regularUserSessionId)])
           .expect(200);
       });
 
-      it("admin user should get the fwcloud colors", async () => {
+      it('admin user should get the fwcloud colors', async () => {
         return await request(app.express)
-          .get(_URL().getURL("fwclouds.colors", { fwcloud: fwCloud.id }))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .get(_URL().getURL('fwclouds.colors', { fwcloud: fwCloud.id }))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200);
       });
     });

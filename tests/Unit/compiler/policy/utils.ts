@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { PolicyRuleToIPObj } from "../../../../src/models/policy/PolicyRuleToIPObj";
+import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
 
 export function positionsEmpty(data: any): boolean {
   if (!data || !data.positions) return false;

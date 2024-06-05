@@ -1,8 +1,8 @@
-import { SelectQueryBuilder } from "typeorm";
-import { IPObj } from "../../ipobj/IPObj";
-import { IPObjGroup } from "../../ipobj/IPObjGroup";
+import { SelectQueryBuilder } from 'typeorm';
+import { IPObj } from '../../ipobj/IPObj';
+import { IPObjGroup } from '../../ipobj/IPObjGroup';
 
-export type AvailableDestinations = "compiler" | "keepalived_grid";
+export type AvailableDestinations = 'compiler' | 'keepalived_grid';
 
 export type ItemForGrid = {
   entityId: number;

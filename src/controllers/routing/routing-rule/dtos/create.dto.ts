@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Type } from "class-transformer";
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -30,12 +30,12 @@ import {
   IsPositive,
   IsString,
   ValidateNested,
-} from "class-validator";
-import { IpObjBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation";
-import { IpObjGroupBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-group-belongs-to-types.validation";
-import { IsClientOpenVPN } from "../../../../fonaments/validation/rules/is-client-openvpn.validation";
-import { Offset } from "../../../../offset";
-import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
+} from 'class-validator';
+import { IpObjBelongsToTypes } from '../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation';
+import { IpObjGroupBelongsToTypes } from '../../../../fonaments/validation/rules/ipobj-group-belongs-to-types.validation';
+import { IsClientOpenVPN } from '../../../../fonaments/validation/rules/is-client-openvpn.validation';
+import { Offset } from '../../../../offset';
+import { PositionalEntityDto } from '../../../dtos/positional-entity.dto';
 
 export class RoutingRuleControllerCreateDto {
   @IsNumber()

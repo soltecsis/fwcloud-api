@@ -26,30 +26,30 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
-} from "typeorm";
-import { Firewall } from "../../../firewall/Firewall";
-import { DHCPRule } from "../dhcp_r/dhcp_r.model";
-import Model from "../../../Model";
+} from 'typeorm';
+import { Firewall } from '../../../firewall/Firewall';
+import { DHCPRule } from '../dhcp_r/dhcp_r.model';
+import Model from '../../../Model';
 
-const tableName: string = "dhcp_g";
+const tableName: string = 'dhcp_g';
 @Entity(tableName)
 export class DHCPGroup extends Model {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: "varchar", length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  @Column({ name: "firewall" })
+  @Column({ name: 'firewall' })
   firewallId: number;
 
   @ManyToOne((type) => Firewall, (firewall) => firewall.dhcpGroups)
   @JoinColumn({
-    name: "firewall",
+    name: 'firewall',
   })
   firewall: Firewall;
 
-  @Column({ type: "varchar", length: 50 })
+  @Column({ type: 'varchar', length: 50 })
   style: string;
 
   @OneToMany((type) => DHCPRule, (model) => model.group, {
@@ -68,7 +68,7 @@ export class DHCPGroup extends Model {
     return DHCPGroup.createQueryBuilder()
       .update()
       .set({ firewallId: dst_firewall })
-      .where("firewall = :src_firewall", { src_firewall })
+      .where('firewall = :src_firewall', { src_firewall })
       .execute();
   }
 }

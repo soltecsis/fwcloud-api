@@ -1,6 +1,6 @@
-import { getRepository } from "typeorm";
-import { Service } from "../../fonaments/services/service";
-import { Tfa } from "./Tfa";
+import { getRepository } from 'typeorm';
+import { Service } from '../../fonaments/services/service';
+import { Tfa } from './Tfa';
 
 export class AuthService extends Service {
   public static async UpdateTfa(
@@ -23,18 +23,18 @@ export class AuthService extends Service {
 
   public static async UpdateTfaSecret(tempSecret: string) {
     await getRepository(Tfa)
-      .createQueryBuilder("tfa")
+      .createQueryBuilder('tfa')
       .update()
       .set({ secret: tempSecret })
-      .where("tempSecret = :tempSecret", { tempSecret: tempSecret })
+      .where('tempSecret = :tempSecret', { tempSecret: tempSecret })
       .execute();
   }
 
   public static async GetTfa(userId: number) {
     const pet = await getRepository(Tfa)
-      .createQueryBuilder("tfa")
+      .createQueryBuilder('tfa')
       .select()
-      .where("tfa.userId = :id", { id: userId })
+      .where('tfa.userId = :id', { id: userId })
       .getOne();
 
     return pet;
@@ -42,10 +42,10 @@ export class AuthService extends Service {
 
   public static async deleteTfa(userId: number) {
     await getRepository(Tfa)
-      .createQueryBuilder("tfa")
+      .createQueryBuilder('tfa')
       .delete()
-      .from("tfa")
-      .where("user = :id", { id: userId })
+      .from('tfa')
+      .where('user = :id', { id: userId })
       .execute();
   }
 }

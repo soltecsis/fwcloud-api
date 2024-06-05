@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../../../models/Model";
-import { Connection, SelectQueryBuilder } from "typeorm";
-import { ExporterResult } from "../exporter-result";
+import Model from '../../../models/Model';
+import { Connection, SelectQueryBuilder } from 'typeorm';
+import { ExporterResult } from '../exporter-result';
 
 export class TableExporter {
   protected _entity: typeof Model;
@@ -40,7 +40,7 @@ export class TableExporter {
 
   public getTableName(): string {
     if (this._entity === null) {
-      throw new Error("getTableName with custom table not implemented");
+      throw new Error('getTableName with custom table not implemented');
     }
 
     const instance: Model = new (<any>this._entity)();
@@ -52,7 +52,7 @@ export class TableExporter {
   }
 
   protected getEntity(): typeof Model {
-    throw new Error("getEntity() not implemented for " + this.constructor.name);
+    throw new Error('getEntity() not implemented for ' + this.constructor.name);
   }
 
   public async export(
@@ -88,6 +88,6 @@ export class TableExporter {
     alias: string,
     fwCloudId: number,
   ): SelectQueryBuilder<any> {
-    throw new Error("QueryBuilder not implemented");
+    throw new Error('QueryBuilder not implemented');
   }
 }

@@ -1,6 +1,6 @@
-import { FileLogger, QueryRunner } from "typeorm";
-import { logger } from "../fonaments/abstract-application";
-import { LoggerOptions } from "typeorm/logger/LoggerOptions";
+import { FileLogger, QueryRunner } from 'typeorm';
+import { logger } from '../fonaments/abstract-application';
+import { LoggerOptions } from 'typeorm/logger/LoggerOptions';
 
 export class DatabaseLogger extends FileLogger {
   constructor(protected _options?: LoggerOptions) {
@@ -16,15 +16,15 @@ export class DatabaseLogger extends FileLogger {
     queryRunner?: QueryRunner,
   ): void {
     if (
-      this._options === "all" ||
+      this._options === 'all' ||
       this._options === true ||
-      (Array.isArray(this._options) && this._options.indexOf("error") !== -1)
+      (Array.isArray(this._options) && this._options.indexOf('error') !== -1)
     ) {
       const sql =
         query +
         (parameters && parameters.length
-          ? " -- PARAMETERS: " + this.stringifyParams(parameters).toString()
-          : "");
+          ? ' -- PARAMETERS: ' + this.stringifyParams(parameters).toString()
+          : '');
       this.writeError([`[FAILED QUERY]: ${sql}`, `[QUERY ERROR]: ${error}`]);
     }
   }
@@ -33,7 +33,7 @@ export class DatabaseLogger extends FileLogger {
     strings = Array.isArray(strings) ? strings : [strings];
 
     for (let i = 0; i < strings.length; i++) {
-      logger("query").info(strings[i]);
+      logger('query').info(strings[i]);
     }
   }
 
@@ -41,7 +41,7 @@ export class DatabaseLogger extends FileLogger {
     strings = Array.isArray(strings) ? strings : [strings];
 
     for (let i = 0; i < strings.length; i++) {
-      logger("query").debug(strings[i]);
+      logger('query').debug(strings[i]);
       logger().error(strings[i]);
     }
   }

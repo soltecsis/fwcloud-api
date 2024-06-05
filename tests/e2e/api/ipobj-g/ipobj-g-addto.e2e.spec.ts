@@ -1,28 +1,28 @@
-import { getRepository } from "typeorm";
-import { Application } from "../../../../src/Application";
-import { IPObj } from "../../../../src/models/ipobj/IPObj";
-import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
-import { IPObjToIPObjGroup } from "../../../../src/models/ipobj/IPObjToIPObjGroup";
-import { RoutingRule } from "../../../../src/models/routing/routing-rule/routing-rule.model";
-import { User } from "../../../../src/models/user/User";
-import { describeName, expect, testSuite } from "../../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
+import { getRepository } from 'typeorm';
+import { Application } from '../../../../src/Application';
+import { IPObj } from '../../../../src/models/ipobj/IPObj';
+import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';
+import { IPObjToIPObjGroup } from '../../../../src/models/ipobj/IPObjToIPObjGroup';
+import { RoutingRule } from '../../../../src/models/routing/routing-rule/routing-rule.model';
+import { User } from '../../../../src/models/user/User';
+import { describeName, expect, testSuite } from '../../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import {
   attachSession,
   createUser,
   generateSession,
-} from "../../../utils/utils";
-import request = require("supertest");
-import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
-import { RouteService } from "../../../../src/models/routing/route/route.service";
-import { PolicyRuleToIPObj } from "../../../../src/models/policy/PolicyRuleToIPObj";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
-import { Route } from "../../../../src/models/routing/route/route.model";
-import { OpenVPN } from "../../../../src/models/vpn/openvpn/OpenVPN";
-import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
+} from '../../../utils/utils';
+import request = require('supertest');
+import { RoutingRuleService } from '../../../../src/models/routing/routing-rule/routing-rule.service';
+import { RouteService } from '../../../../src/models/routing/route/route.service';
+import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import { Route } from '../../../../src/models/routing/route/route.model';
+import { OpenVPN } from '../../../../src/models/vpn/openvpn/OpenVPN';
+import { OpenVPNPrefix } from '../../../../src/models/vpn/openvpn/OpenVPNPrefix';
 
-describe(describeName("Ipobj group delfrom E2E Tests"), () => {
+describe(describeName('Ipobj group delfrom E2E Tests'), () => {
   let app: Application;
   let fwcProduct: FwCloudProduct;
   let adminUser: User;
@@ -42,7 +42,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
 
     firewall = await getRepository(Firewall).findOneOrFail(
       fwcProduct.firewall.id,
-      { relations: ["policyRules"] },
+      { relations: ['policyRules'] },
     );
 
     adminUser.fwClouds = [fwcProduct.fwcloud];
@@ -50,7 +50,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
     await getRepository(User).save(adminUser);
 
     group = await getRepository(IPObjGroup).save({
-      name: "group",
+      name: 'group',
       type: 20,
       fwCloudId: fwcProduct.fwcloud.id,
     });
@@ -61,10 +61,10 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
     };
   });
 
-  it("should throw an exception if the ipObj to attach is an empty host", async () => {
+  it('should throw an exception if the ipObj to attach is an empty host', async () => {
     const host = await getRepository(IPObj).save(
       getRepository(IPObj).create({
-        name: "test",
+        name: 'test',
         ipObjTypeId: 8,
       }),
     );
@@ -72,11 +72,11 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
     requestData.ipobj = host.id;
     requestData.node_parent = 1;
     requestData.node_order = 1;
-    requestData.node_type = "OIH";
+    requestData.node_type = 'OIH';
 
     return await request(app.express)
-      .put("/ipobj/group/addto")
-      .set("Cookie", [attachSession(session)])
+      .put('/ipobj/group/addto')
+      .set('Cookie', [attachSession(session)])
       .send(requestData)
       .expect(400);
   });

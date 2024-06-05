@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ServiceContainer, ServiceBound } from "./service-container";
-import { AbstractApplication } from "../abstract-application";
+import { ServiceContainer, ServiceBound } from './service-container';
+import { AbstractApplication } from '../abstract-application';
 
 export abstract class ServiceProvider {
   protected app: AbstractApplication;

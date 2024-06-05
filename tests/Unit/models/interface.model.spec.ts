@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Interface } from "../../../src/models/interface/Interface";
-import { expect } from "../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../utils/fwcloud-factory";
+import { Interface } from '../../../src/models/interface/Interface';
+import { expect } from '../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../utils/fwcloud-factory';
 
 describe(Interface.name, () => {
   let fwcloudProduct: FwCloudProduct;
@@ -31,11 +31,11 @@ describe(Interface.name, () => {
     fwcloudProduct = await new FwCloudFactory().make();
   });
 
-  describe("searchInterfaceUsage", () => {
-    describe("route", () => {
-      it("should detect usages", async () => {
+  describe('searchInterfaceUsage', () => {
+    describe('route', () => {
+      it('should detect usages', async () => {
         const whereUsed: any = await Interface.searchInterfaceUsage(
-          fwcloudProduct.interfaces.get("firewall-interface1").id,
+          fwcloudProduct.interfaces.get('firewall-interface1').id,
           10,
           fwcloudProduct.fwcloud.id,
           null,
@@ -45,7 +45,7 @@ describe(Interface.name, () => {
           whereUsed.restrictions.InterfaceInRoute.map(
             (route) => route.interface_id,
           ),
-        ).to.contains(fwcloudProduct.interfaces.get("firewall-interface1").id);
+        ).to.contains(fwcloudProduct.interfaces.get('firewall-interface1').id);
       });
     });
   });

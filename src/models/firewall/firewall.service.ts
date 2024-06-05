@@ -1,45 +1,45 @@
-import { Service } from "../../fonaments/services/service";
-import { Firewall } from "./Firewall";
-import { FSHelper } from "../../utils/fs-helper";
-import * as path from "path";
-import * as fs from "fs";
-import { Compiler } from "./compiler";
-import { Installer } from "./installer";
-import ObjectHelpers from "../../utils/object-helpers";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import db from "../../database/database-manager";
-import { IPObj } from "../ipobj/IPObj";
-import { getCustomRepository, getRepository, In } from "typeorm";
-import { FirewallRepository } from "./firewall.repository";
-import { AbstractApplication, app } from "../../fonaments/abstract-application";
-import { PolicyRule } from "../policy/PolicyRule";
-import { PolicyGroup } from "../policy/PolicyGroup";
-import { Interface } from "../interface/Interface";
-import { OpenVPN } from "../vpn/openvpn/OpenVPN";
-import { Tree } from "../tree/Tree";
-import { RoutingTable } from "../routing/routing-table/routing-table.model";
-import { RoutingTableService } from "../routing/routing-table/routing-table.service";
-import { Route } from "../routing/route/route.model";
-import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
-import { RoutingRuleToIPObj } from "../routing/routing-rule/routing-rule-to-ipobj.model";
-import { RouteToIPObj } from "../routing/route/route-to-ipobj.model";
-import { RouteToIPObjGroup } from "../routing/route/route-to-ipobj-group.model";
-import { RouteToOpenVPN } from "../routing/route/route-to-openvpn.model";
-import { RoutingRuleToIPObjGroup } from "../routing/routing-rule/routing-rule-to-ipobj-group.model";
-import { RoutingRuleToOpenVPN } from "../routing/routing-rule/routing-rule-to-openvpn.model";
-import { RoutingRuleToOpenVPNPrefix } from "../routing/routing-rule/routing-rule-to-openvpn-prefix.model";
-import { RoutingRuleToMark } from "../routing/routing-rule/routing-rule-to-mark.model";
-import { RoutingRuleService } from "../routing/routing-rule/routing-rule.service";
-import { HAProxyRule } from "../system/haproxy/haproxy_r/haproxy_r.model";
-import { HAProxyRuleService } from "../system/haproxy/haproxy_r/haproxy_r.service";
-import { DHCPRuleService } from "../system/dhcp/dhcp_r/dhcp_r.service";
-import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
-import { DHCPGroup } from "../system/dhcp/dhcp_g/dhcp_g.model";
-import { KeepalivedRuleService } from "../system/keepalived/keepalived_r/keepalived_r.service";
-import { KeepalivedGroup } from "../system/keepalived/keepalived_g/keepalived_g.model";
-import { KeepalivedRule } from "../system/keepalived/keepalived_r/keepalived_r.model";
-const fwcError = require("../../utils/error_table");
-const utilsModel = require("../../utils/utils.js");
+import { Service } from '../../fonaments/services/service';
+import { Firewall } from './Firewall';
+import { FSHelper } from '../../utils/fs-helper';
+import * as path from 'path';
+import * as fs from 'fs';
+import { Compiler } from './compiler';
+import { Installer } from './installer';
+import ObjectHelpers from '../../utils/object-helpers';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import db from '../../database/database-manager';
+import { IPObj } from '../ipobj/IPObj';
+import { getCustomRepository, getRepository, In } from 'typeorm';
+import { FirewallRepository } from './firewall.repository';
+import { AbstractApplication, app } from '../../fonaments/abstract-application';
+import { PolicyRule } from '../policy/PolicyRule';
+import { PolicyGroup } from '../policy/PolicyGroup';
+import { Interface } from '../interface/Interface';
+import { OpenVPN } from '../vpn/openvpn/OpenVPN';
+import { Tree } from '../tree/Tree';
+import { RoutingTable } from '../routing/routing-table/routing-table.model';
+import { RoutingTableService } from '../routing/routing-table/routing-table.service';
+import { Route } from '../routing/route/route.model';
+import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
+import { RoutingRuleToIPObj } from '../routing/routing-rule/routing-rule-to-ipobj.model';
+import { RouteToIPObj } from '../routing/route/route-to-ipobj.model';
+import { RouteToIPObjGroup } from '../routing/route/route-to-ipobj-group.model';
+import { RouteToOpenVPN } from '../routing/route/route-to-openvpn.model';
+import { RoutingRuleToIPObjGroup } from '../routing/routing-rule/routing-rule-to-ipobj-group.model';
+import { RoutingRuleToOpenVPN } from '../routing/routing-rule/routing-rule-to-openvpn.model';
+import { RoutingRuleToOpenVPNPrefix } from '../routing/routing-rule/routing-rule-to-openvpn-prefix.model';
+import { RoutingRuleToMark } from '../routing/routing-rule/routing-rule-to-mark.model';
+import { RoutingRuleService } from '../routing/routing-rule/routing-rule.service';
+import { HAProxyRule } from '../system/haproxy/haproxy_r/haproxy_r.model';
+import { HAProxyRuleService } from '../system/haproxy/haproxy_r/haproxy_r.service';
+import { DHCPRuleService } from '../system/dhcp/dhcp_r/dhcp_r.service';
+import { DHCPRule } from '../system/dhcp/dhcp_r/dhcp_r.model';
+import { DHCPGroup } from '../system/dhcp/dhcp_g/dhcp_g.model';
+import { KeepalivedRuleService } from '../system/keepalived/keepalived_r/keepalived_r.service';
+import { KeepalivedGroup } from '../system/keepalived/keepalived_g/keepalived_g.model';
+import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
+const fwcError = require('../../utils/error_table');
+const utilsModel = require('../../utils/utils.js');
 
 export type SSHConfig = {
   host: string;
@@ -62,10 +62,10 @@ export class FirewallService extends Service {
   }
 
   public async build(): Promise<FirewallService> {
-    this._dataDir = this._app.config.get("policy").data_dir;
-    this._scriptFilename = this._app.config.get("policy").script_name;
-    this._headerPath = this._app.config.get("policy").header_file;
-    this._footerPath = this._app.config.get("policy").footer_file;
+    this._dataDir = this._app.config.get('policy').data_dir;
+    this._scriptFilename = this._app.config.get('policy').script_name;
+    this._headerPath = this._app.config.get('policy').header_file;
+    this._footerPath = this._app.config.get('policy').footer_file;
 
     return this;
   }
@@ -80,7 +80,7 @@ export class FirewallService extends Service {
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<Firewall> {
     if (firewall.fwCloudId === undefined || firewall.fwCloudId === null) {
-      throw new Error("Firewall does not belong to a fwcloud");
+      throw new Error('Firewall does not belong to a fwcloud');
     }
 
     await this.createFirewallPolicyDirectory(firewall);
@@ -113,7 +113,7 @@ export class FirewallService extends Service {
     );
 
     await new Installer(firewall).install(sshConfig, eventEmitter);
-    await Firewall.updateFirewallStatus(firewall.fwCloudId, firewall.id, "&~2");
+    await Firewall.updateFirewallStatus(firewall.fwCloudId, firewall.id, '&~2');
     await Firewall.updateFirewallInstallDate(firewall.fwCloudId, firewall.id);
 
     return firewall;
@@ -144,30 +144,30 @@ export class FirewallService extends Service {
     dataI: { id_org: number; id_clon: number }[],
   ): Promise<void> {
     const routingTables: RoutingTable[] = await getRepository(RoutingTable)
-      .createQueryBuilder("table")
-      .where("table.firewallId = :originalId", { originalId })
-      .leftJoinAndSelect("table.routes", "route")
-      .leftJoinAndSelect("table.routingRules", "rule")
+      .createQueryBuilder('table')
+      .where('table.firewallId = :originalId', { originalId })
+      .leftJoinAndSelect('table.routes', 'route')
+      .leftJoinAndSelect('table.routingRules', 'rule')
 
-      .leftJoinAndSelect("route.routeToIPObjs", "routeToIPObjs")
-      .leftJoinAndSelect("route.routeToIPObjGroups", "routeToIPObjGroups")
-      .leftJoinAndSelect("route.routeToOpenVPNs", "routeToOpenVPNs")
+      .leftJoinAndSelect('route.routeToIPObjs', 'routeToIPObjs')
+      .leftJoinAndSelect('route.routeToIPObjGroups', 'routeToIPObjGroups')
+      .leftJoinAndSelect('route.routeToOpenVPNs', 'routeToOpenVPNs')
       .leftJoinAndSelect(
-        "route.routeToOpenVPNPrefixes",
-        "routeToOpenVPNPrefixes",
+        'route.routeToOpenVPNPrefixes',
+        'routeToOpenVPNPrefixes',
       )
 
-      .leftJoinAndSelect("rule.routingRuleToOpenVPNs", "routingRuleToOpenVPNs")
+      .leftJoinAndSelect('rule.routingRuleToOpenVPNs', 'routingRuleToOpenVPNs')
       .leftJoinAndSelect(
-        "rule.routingRuleToOpenVPNPrefixes",
-        "routingRuleToOpenVPNPrefixes",
+        'rule.routingRuleToOpenVPNPrefixes',
+        'routingRuleToOpenVPNPrefixes',
       )
       .leftJoinAndSelect(
-        "rule.routingRuleToIPObjGroups",
-        "routingRuleToIPObjGroups",
+        'rule.routingRuleToIPObjGroups',
+        'routingRuleToIPObjGroups',
       )
-      .leftJoinAndSelect("rule.routingRuleToIPObjs", "routingRuleToIPObjs")
-      .leftJoinAndSelect("rule.routingRuleToMarks", "routingRuleToMarks")
+      .leftJoinAndSelect('rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
+      .leftJoinAndSelect('rule.routingRuleToMarks', 'routingRuleToMarks')
       .getMany();
 
     for (const table of routingTables) {
@@ -230,11 +230,11 @@ export class FirewallService extends Service {
       Firewall,
     ).findOneOrFail(firewallId, {
       relations: [
-        "routingTables",
-        "routingTables.routingRules",
-        "dhcpRules",
-        "keepalivedRules",
-        "haproxyRules",
+        'routingTables',
+        'routingTables.routingRules',
+        'dhcpRules',
+        'keepalivedRules',
+        'haproxyRules',
       ],
     });
     for (const table of firewallEntity.routingTables) {
@@ -280,7 +280,7 @@ export class FirewallService extends Service {
     }
 
     FSHelper.mkdirSync(directoryPath);
-    fs.writeFileSync(path.join(directoryPath, this._scriptFilename), "");
+    fs.writeFileSync(path.join(directoryPath, this._scriptFilename), '');
   }
 
   public deleteFirewallFromCluster(

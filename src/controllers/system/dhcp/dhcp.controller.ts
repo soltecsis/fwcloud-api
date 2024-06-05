@@ -19,41 +19,41 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Request } from "express";
-import { Controller } from "../../../fonaments/http/controller";
+import { Request } from 'express';
+import { Controller } from '../../../fonaments/http/controller';
 import {
   Validate,
   ValidateQuery,
-} from "../../../decorators/validate.decorator";
-import { DhcpPolicy } from "../../../policies/dhcp.policy";
-import { DHCPRule } from "../../../models/system/dhcp/dhcp_r/dhcp_r.model";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { DHCPGroup } from "../../../models/system/dhcp/dhcp_g/dhcp_g.model";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { getRepository, SelectQueryBuilder } from "typeorm";
+} from '../../../decorators/validate.decorator';
+import { DhcpPolicy } from '../../../policies/dhcp.policy';
+import { DHCPRule } from '../../../models/system/dhcp/dhcp_r/dhcp_r.model';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
+import { DHCPGroup } from '../../../models/system/dhcp/dhcp_g/dhcp_g.model';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
+import { getRepository, SelectQueryBuilder } from 'typeorm';
 import {
   DHCPRuleService,
   DHCPRulesData,
   ICreateDHCPRule,
   IUpdateDHCPRule,
-} from "../../../models/system/dhcp/dhcp_r/dhcp_r.service";
-import { DHCPRuleCreateDto } from "./dto/create.dto";
-import { Offset } from "../../../offset";
-import { DHCPRuleCopyDto } from "./dto/copy.dto";
-import { DHCPRuleUpdateDto } from "./dto/update.dto";
-import { DhcpRuleBulkUpdateDto } from "./dto/bulk-update.dto";
-import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
-import { DhcpRuleBulkRemoveDto } from "./dto/bulk-remove.dto";
+} from '../../../models/system/dhcp/dhcp_r/dhcp_r.service';
+import { DHCPRuleCreateDto } from './dto/create.dto';
+import { Offset } from '../../../offset';
+import { DHCPRuleCopyDto } from './dto/copy.dto';
+import { DHCPRuleUpdateDto } from './dto/update.dto';
+import { DhcpRuleBulkUpdateDto } from './dto/bulk-update.dto';
+import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
+import { DhcpRuleBulkRemoveDto } from './dto/bulk-remove.dto';
 import {
   AvailableDestinations,
   DHCPRuleItemForCompiler,
-} from "../../../models/system/dhcp/shared";
-import { DHCPCompiler } from "../../../compiler/system/dhcp/DHCPCompiler";
-import { Channel } from "../../../sockets/channels/channel";
-import { ProgressPayload } from "../../../sockets/messages/socket-message";
-import { Communication } from "../../../communications/communication";
-import { DHCPRuleMoveFromDto } from "./dto/move-from.dto";
+} from '../../../models/system/dhcp/shared';
+import { DHCPCompiler } from '../../../compiler/system/dhcp/DHCPCompiler';
+import { Channel } from '../../../sockets/channels/channel';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
+import { Communication } from '../../../communications/communication';
+import { DHCPRuleMoveFromDto } from './dto/move-from.dto';
 
 export class DhcpController extends Controller {
   protected _dhcpRuleService: DHCPRuleService;
@@ -102,7 +102,7 @@ export class DhcpController extends Controller {
     (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
 
     const dhcpG: DHCPRule[] = await this._dhcpRuleService.getDHCPRulesData(
-      "compiler",
+      'compiler',
       this._fwCloud.id,
       this._firewall.id,
     );
@@ -121,13 +121,13 @@ export class DhcpController extends Controller {
     if (![1, 2].includes(parseInt(req.params.set))) {
       return ResponseBuilder.buildResponse()
         .status(400)
-        .body({ message: "Invalid set parameter" });
+        .body({ message: 'Invalid set parameter' });
     }
 
     (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
 
     const dst: AvailableDestinations =
-      parseInt(req.params.set) === 1 ? "regular_grid" : "fixed_grid";
+      parseInt(req.params.set) === 1 ? 'regular_grid' : 'fixed_grid';
 
     const grid: DHCPRule[] = await this._dhcpRuleService.getDHCPRulesData(
       dst,
@@ -171,7 +171,7 @@ export class DhcpController extends Controller {
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   public async copy(req: Request): Promise<ResponseBuilder> {
-    const ids: number[] = req.inputs.get("rules");
+    const ids: number[] = req.inputs.get('rules');
     for (const id of ids) {
       const rule: DHCPRule = await getRepository(DHCPRule).findOneOrFail(id);
       (await DhcpPolicy.copy(rule, req.session.user)).authorize();
@@ -179,8 +179,8 @@ export class DhcpController extends Controller {
 
     const created: DHCPRule[] = await this._dhcpRuleService.copy(
       ids,
-      parseInt(req.inputs.get("to")),
-      req.inputs.get<Offset>("offset"),
+      parseInt(req.inputs.get('to')),
+      req.inputs.get<Offset>('offset'),
     );
     return ResponseBuilder.buildResponse().status(201).body(created);
   }
@@ -252,16 +252,16 @@ export class DhcpController extends Controller {
 
     const rules: DHCPRule[] = await getRepository(DHCPRule).find({
       join: {
-        alias: "rule",
+        alias: 'rule',
         innerJoin: {
-          firewall: "rule.firewall",
-          fwcloud: "firewall.fwCloud",
+          firewall: 'rule.firewall',
+          fwcloud: 'firewall.fwCloud',
         },
       },
       where: (qb: SelectQueryBuilder<DHCPRule>): void => {
-        qb.whereInIds(req.inputs.get("rules"))
-          .andWhere("firewall.id = :firewall", { firewall: this._firewall.id })
-          .andWhere("firewall.fwCloudId = :fwcloud", {
+        qb.whereInIds(req.inputs.get('rules'))
+          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+          .andWhere('firewall.fwCloudId = :fwcloud', {
             fwcloud: this._fwCloud.id,
           });
       },
@@ -269,8 +269,8 @@ export class DhcpController extends Controller {
 
     const result: DHCPRule[] = await this._dhcpRuleService.move(
       rules.map((item) => item.id),
-      parseInt(req.inputs.get("to")),
-      req.inputs.get<Offset>("offset"),
+      parseInt(req.inputs.get('to')),
+      req.inputs.get<Offset>('offset'),
     );
 
     return ResponseBuilder.buildResponse().status(200).body(result);
@@ -281,8 +281,8 @@ export class DhcpController extends Controller {
     (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
 
     const result: DHCPRule[] = await this._dhcpRuleService.moveFrom(
-      parseInt(req.inputs.get("fromId")),
-      parseInt(req.inputs.get("toId")),
+      parseInt(req.inputs.get('fromId')),
+      parseInt(req.inputs.get('toId')),
       req.inputs.all(),
     );
 
@@ -301,7 +301,7 @@ export class DhcpController extends Controller {
 
     const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] =
       await this._dhcpRuleService.getDHCPRulesData(
-        "compiler",
+        'compiler',
         this._fwCloud.id,
         this._firewall.id,
         [this._dhcprule.id],
@@ -329,11 +329,11 @@ export class DhcpController extends Controller {
     if (firewall.clusterId) {
       firewallId = (
         await getRepository(Firewall)
-          .createQueryBuilder("firewall")
-          .where("firewall.clusterId = :clusterId", {
+          .createQueryBuilder('firewall')
+          .where('firewall.clusterId = :clusterId', {
             clusterId: firewall.clusterId,
           })
-          .andWhere("firewall.fwmaster = 1")
+          .andWhere('firewall.fwmaster = 1')
           .getOneOrFail()
       ).id;
     } else {
@@ -342,7 +342,7 @@ export class DhcpController extends Controller {
 
     const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] =
       await this._dhcpRuleService.getDHCPRulesData(
-        "compiler",
+        'compiler',
         this._fwCloud.id,
         firewallId,
       );
@@ -350,25 +350,25 @@ export class DhcpController extends Controller {
     const content: string = new DHCPCompiler()
       .compile(rules, channel)
       .map((item) => item.cs)
-      .join("\n");
+      .join('\n');
 
     const communication: Communication<unknown> =
       await firewall.getCommunication();
 
     channel.emit(
-      "message",
-      new ProgressPayload("start", false, `Installing DHCP`),
+      'message',
+      new ProgressPayload('start', false, `Installing DHCP`),
     );
 
     await communication.installDHCPConfigs(
-      "/etc/dhcp",
-      [{ name: "dhcpd.conf", content: content }],
+      '/etc/dhcp',
+      [{ name: 'dhcpd.conf', content: content }],
       channel,
     );
 
     channel.emit(
-      "message",
-      new ProgressPayload("end", false, `Installing DHCP`),
+      'message',
+      new ProgressPayload('end', false, `Installing DHCP`),
     );
 
     return ResponseBuilder.buildResponse().status(200).body(null);

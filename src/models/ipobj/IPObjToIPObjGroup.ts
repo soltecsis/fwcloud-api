@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
-import db from "../../database/database-manager";
+import Model from '../Model';
+import db from '../../database/database-manager';
 import {
   PrimaryGeneratedColumn,
   Column,
@@ -31,22 +31,22 @@ import {
   ManyToOne,
   JoinTable,
   JoinColumn,
-} from "typeorm";
-import { IPObjGroup } from "./IPObjGroup";
-import { app } from "../../fonaments/abstract-application";
-import { IPObj } from "./IPObj";
+} from 'typeorm';
+import { IPObjGroup } from './IPObjGroup';
+import { app } from '../../fonaments/abstract-application';
+import { IPObj } from './IPObj';
 
-const tableName: string = "ipobj__ipobjg";
+const tableName: string = 'ipobj__ipobjg';
 
 @Entity(tableName)
 export class IPObjToIPObjGroup extends Model {
-  @PrimaryGeneratedColumn({ name: "id_gi" })
+  @PrimaryGeneratedColumn({ name: 'id_gi' })
   id: number;
 
-  @Column({ name: "ipobj_g" })
+  @Column({ name: 'ipobj_g' })
   ipObjGroupId: number;
 
-  @Column({ name: "ipobj" })
+  @Column({ name: 'ipobj' })
   ipObjId: number;
 
   @Column()
@@ -63,7 +63,7 @@ export class IPObjToIPObjGroup extends Model {
 
   @ManyToOne((type) => IPObj, (ipObj) => ipObj.ipObjToIPObjGroups)
   @JoinColumn({
-    name: "ipobj",
+    name: 'ipobj',
   })
   ipObj!: IPObj;
 
@@ -72,7 +72,7 @@ export class IPObjToIPObjGroup extends Model {
     (ipObjGroup) => ipObjGroup.ipObjToIPObjGroups,
   )
   @JoinColumn({
-    name: "ipobj_g",
+    name: 'ipobj_g',
   })
   ipObjGroup!: IPObjGroup;
 

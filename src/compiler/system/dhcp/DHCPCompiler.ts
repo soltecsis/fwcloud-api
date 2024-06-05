@@ -19,11 +19,11 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { DHCPRulesData } from "../../../models/system/dhcp/dhcp_r/dhcp_r.service";
-import { DHCPRuleItemForCompiler } from "../../../models/system/dhcp/shared";
-import ip from "ip";
-import { ProgressNoticePayload } from "../../../sockets/messages/socket-message";
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { DHCPRulesData } from '../../../models/system/dhcp/dhcp_r/dhcp_r.service';
+import { DHCPRuleItemForCompiler } from '../../../models/system/dhcp/shared';
+import ip from 'ip';
+import { ProgressNoticePayload } from '../../../sockets/messages/socket-message';
 
 export type DHCPCompiled = {
   id: number;
@@ -33,7 +33,7 @@ export type DHCPCompiled = {
 
 export class DHCPCompiler {
   public ruleCompile(ruleData: DHCPRulesData<DHCPRuleItemForCompiler>): string {
-    let cs: string = "";
+    let cs: string = '';
 
     switch (ruleData.rule_type) {
       case 1:
@@ -79,7 +79,7 @@ export class DHCPCompiler {
         break;
       }
       case 3: {
-        cs = ruleData.cfg_text ? ruleData.cfg_text : "";
+        cs = ruleData.cfg_text ? ruleData.cfg_text : '';
         break;
       }
     }
@@ -100,9 +100,9 @@ export class DHCPCompiler {
     for (let i: number = 0; i < data.length; i++) {
       if (eventEmitter) {
         eventEmitter.emit(
-          "progress",
+          'progress',
           new ProgressNoticePayload(
-            `Compiling DHCP rule ${i} (ID: ${data[i].id})${!data[i].active ? " [DISABLED]" : ""}`,
+            `Compiling DHCP rule ${i} (ID: ${data[i].id})${!data[i].active ? ' [DISABLED]' : ''}`,
           ),
         );
       }
@@ -115,7 +115,7 @@ export class DHCPCompiler {
             ? this.ruleCompile(
                 data[i] as DHCPRulesData<DHCPRuleItemForCompiler>,
               )
-            : "",
+            : '',
       });
     }
 
@@ -123,10 +123,10 @@ export class DHCPCompiler {
   }
 
   private convertToNetmask(mask: string): string {
-    if (mask.includes(".")) {
+    if (mask.includes('.')) {
       return mask;
-    } else if (mask.includes("/")) {
-      return ip.fromPrefixLen(parseInt(mask.split("/")[1], 10)) as string;
+    } else if (mask.includes('/')) {
+      return ip.fromPrefixLen(parseInt(mask.split('/')[1], 10)) as string;
     }
   }
 }

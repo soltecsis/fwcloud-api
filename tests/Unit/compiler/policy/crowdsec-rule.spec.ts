@@ -20,23 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, expect } from "../../../mocha/global-setup";
+import { describeName, expect } from '../../../mocha/global-setup';
 import {
   PolicyRule,
   SpecialPolicyRules,
-} from "../../../../src/models/policy/PolicyRule";
-import db from "../../../../src/database/database-manager";
-import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
-import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
-import { populateRule } from "./utils";
+} from '../../../../src/models/policy/PolicyRule';
+import db from '../../../../src/database/database-manager';
+import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
+import { RulePositionsMap } from '../../../../src/models/policy/PolicyPosition';
+import { populateRule } from './utils';
 import {
   AvailablePolicyCompilers,
   PolicyCompiler,
-} from "../../../../src/compiler/policy/PolicyCompiler";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
+} from '../../../../src/compiler/policy/PolicyCompiler';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 
 describe(
-  describeName("Policy Compiler Unit Tests - CrowdSec special rule"),
+  describeName('Policy Compiler Unit Tests - CrowdSec special rule'),
   () => {
     let fwcProduct: FwCloudProduct;
     let dbCon: any;
@@ -44,7 +44,7 @@ describe(
     let compiler: AvailablePolicyCompilers;
     let chain: string;
 
-    const comment = "CrowdSec firewall bouncer support";
+    const comment = 'CrowdSec firewall bouncer support';
 
     const ruleData = {
       firewall: 0,
@@ -75,7 +75,7 @@ describe(
           ); // 50010 = Standard VRRP IP
 
         const rulesData: any = await PolicyRule.getPolicyData(
-          "compiler",
+          'compiler',
           dbCon,
           fwcProduct.fwcloud.id,
           ruleData.firewall,
@@ -89,19 +89,19 @@ describe(
       }
 
       const cs =
-        compiler === "IPTables"
-          ? `$IP${IPv === "IPv4" ? "" : "6"}TABLES -A ${chain} -m comment --comment '${comment}' -m set --match-set crowdsec${IPv === "IPv4" ? "" : "6"}-blacklists src -j ACCEPT\n`
-          : `$NFT add rule ip${IPv === "IPv4" ? "" : "6"} filter ${chain} ip saddr . ip daddr vmap @crowdsec${IPv === "IPv4" ? "" : "6"}-blacklists counter accept comment \\"CrowdSec firewall bouncer support\\"\n`;
+        compiler === 'IPTables'
+          ? `$IP${IPv === 'IPv4' ? '' : '6'}TABLES -A ${chain} -m comment --comment '${comment}' -m set --match-set crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists src -j ACCEPT\n`
+          : `$NFT add rule ip${IPv === 'IPv4' ? '' : '6'} filter ${chain} ip saddr . ip daddr vmap @crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists counter accept comment \\"CrowdSec firewall bouncer support\\"\n`;
 
       if (
-        ruleData.type != PolicyTypesMap.get("IPv4:INPUT") &&
-        ruleData.type != PolicyTypesMap.get("IPv4:FORWARD") &&
-        ruleData.type != PolicyTypesMap.get("IPv6:INPUT") &&
-        ruleData.type != PolicyTypesMap.get("IPv6:FORWARD")
+        ruleData.type != PolicyTypesMap.get('IPv4:INPUT') &&
+        ruleData.type != PolicyTypesMap.get('IPv4:FORWARD') &&
+        ruleData.type != PolicyTypesMap.get('IPv6:INPUT') &&
+        ruleData.type != PolicyTypesMap.get('IPv6:FORWARD')
       ) {
         expect(error).to.eql({
           fwcErr: 999999,
-          msg: "Invalid chain for CrowdSec special rule",
+          msg: 'Invalid chain for CrowdSec special rule',
         });
       } else {
         expect(result).to.eql([
@@ -109,7 +109,7 @@ describe(
             id: rule,
             active: ruleData.active,
             comment: comment,
-            cs: `${ruleData.fw_apply_to ? `if [ "$HOSTNAME" = "${fwcProduct.firewall.name}" ]; then\n` : ""}${cs}${ruleData.fw_apply_to ? "fi\n" : ""}`,
+            cs: `${ruleData.fw_apply_to ? `if [ "$HOSTNAME" = "${fwcProduct.firewall.name}" ]; then\n` : ''}${cs}${ruleData.fw_apply_to ? 'fi\n' : ''}`,
           },
         ]);
       }
@@ -121,301 +121,301 @@ describe(
       ruleData.firewall = fwcProduct.firewall.id;
     });
 
-    describe("IPv4", () => {
+    describe('IPv4', () => {
       before(() => {
-        IPv = "IPv4";
+        IPv = 'IPv4';
       });
 
-      describe("CrowdSec special rule compilation (IPTables, INPUT chain)", () => {
+      describe('CrowdSec special rule compilation (IPTables, INPUT chain)', () => {
         before(() => {
-          compiler = "IPTables";
-          chain = "INPUT";
+          compiler = 'IPTables';
+          chain = 'INPUT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
           ruleData.fw_apply_to = null;
         });
 
-        it("should compile as expected", async () => {
+        it('should compile as expected', async () => {
           await runTest();
         });
 
-        it("should compile with firewall apply to", async () => {
+        it('should compile with firewall apply to', async () => {
           ruleData.fw_apply_to = fwcProduct.firewall.id;
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (NFTables, INPUT chain)", () => {
+      describe('CrowdSec special rule compilation (NFTables, INPUT chain)', () => {
         before(() => {
-          compiler = "NFTables";
-          chain = "INPUT";
+          compiler = 'NFTables';
+          chain = 'INPUT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
           ruleData.fw_apply_to = null;
         });
 
-        it("should compile as expected", async () => {
+        it('should compile as expected', async () => {
           await runTest();
         });
 
-        it("should compile with firewall apply to", async () => {
+        it('should compile with firewall apply to', async () => {
           ruleData.fw_apply_to = fwcProduct.firewall.id;
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (IPTables, OUTPUT chain)", () => {
+      describe('CrowdSec special rule compilation (IPTables, OUTPUT chain)', () => {
         before(() => {
-          compiler = "IPTables";
-          chain = "OUTPUT";
+          compiler = 'IPTables';
+          chain = 'OUTPUT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         });
 
-        it("should throw invalid chain exception", async () => {
+        it('should throw invalid chain exception', async () => {
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (NFTables, OUTPUT chain)", () => {
+      describe('CrowdSec special rule compilation (NFTables, OUTPUT chain)', () => {
         before(() => {
-          compiler = "NFTables";
-          chain = "OUTPUT";
+          compiler = 'NFTables';
+          chain = 'OUTPUT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         });
 
-        it("should throw invalid chain exception", async () => {
+        it('should throw invalid chain exception', async () => {
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (IPTables, FORWARD chain)", () => {
+      describe('CrowdSec special rule compilation (IPTables, FORWARD chain)', () => {
         before(() => {
-          compiler = "IPTables";
-          chain = "FORWARD";
+          compiler = 'IPTables';
+          chain = 'FORWARD';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
           ruleData.fw_apply_to = null;
         });
 
-        it("should compile as expected", async () => {
+        it('should compile as expected', async () => {
           await runTest();
         });
 
-        it("should compile with firewall apply to", async () => {
+        it('should compile with firewall apply to', async () => {
           ruleData.fw_apply_to = fwcProduct.firewall.id;
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (NFTables, FORWARD chain)", () => {
+      describe('CrowdSec special rule compilation (NFTables, FORWARD chain)', () => {
         before(() => {
-          compiler = "NFTables";
-          chain = "FORWARD";
+          compiler = 'NFTables';
+          chain = 'FORWARD';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
           ruleData.fw_apply_to = null;
         });
 
-        it("should compile as expected", async () => {
+        it('should compile as expected', async () => {
           await runTest();
         });
 
-        it("should compile with firewall apply to", async () => {
+        it('should compile with firewall apply to', async () => {
           ruleData.fw_apply_to = fwcProduct.firewall.id;
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (IPTables, SNAT chain)", () => {
+      describe('CrowdSec special rule compilation (IPTables, SNAT chain)', () => {
         before(() => {
-          compiler = "IPTables";
-          chain = "SNAT";
+          compiler = 'IPTables';
+          chain = 'SNAT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         });
 
-        it("should throw invalid chain exception", async () => {
+        it('should throw invalid chain exception', async () => {
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (NFTables, SNAT chain)", () => {
+      describe('CrowdSec special rule compilation (NFTables, SNAT chain)', () => {
         before(() => {
-          compiler = "NFTables";
-          chain = "SNAT";
+          compiler = 'NFTables';
+          chain = 'SNAT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         });
 
-        it("should throw invalid chain exception", async () => {
+        it('should throw invalid chain exception', async () => {
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (IPTables, DNAT chain)", () => {
+      describe('CrowdSec special rule compilation (IPTables, DNAT chain)', () => {
         before(() => {
-          compiler = "IPTables";
-          chain = "DNAT";
+          compiler = 'IPTables';
+          chain = 'DNAT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         });
 
-        it("should throw invalid chain exception", async () => {
+        it('should throw invalid chain exception', async () => {
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (NFTables, DNAT chain)", () => {
+      describe('CrowdSec special rule compilation (NFTables, DNAT chain)', () => {
         before(() => {
-          compiler = "NFTables";
-          chain = "DNAT";
+          compiler = 'NFTables';
+          chain = 'DNAT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         });
 
-        it("should throw invalid chain exception", async () => {
+        it('should throw invalid chain exception', async () => {
           await runTest();
         });
       });
     });
 
-    describe("IPv6", () => {
+    describe('IPv6', () => {
       before(() => {
-        IPv = "IPv6";
+        IPv = 'IPv6';
       });
 
-      describe("CrowdSec special rule compilation (IPTables, INPUT chain)", () => {
+      describe('CrowdSec special rule compilation (IPTables, INPUT chain)', () => {
         before(() => {
-          compiler = "IPTables";
-          chain = "INPUT";
+          compiler = 'IPTables';
+          chain = 'INPUT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
           ruleData.fw_apply_to = null;
         });
 
-        it("should compile as expected", async () => {
+        it('should compile as expected', async () => {
           await runTest();
         });
 
-        it("should compile with firewall apply to", async () => {
+        it('should compile with firewall apply to', async () => {
           ruleData.fw_apply_to = fwcProduct.firewall.id;
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (NFTables, INPUT chain)", () => {
+      describe('CrowdSec special rule compilation (NFTables, INPUT chain)', () => {
         before(() => {
-          compiler = "NFTables";
-          chain = "INPUT";
+          compiler = 'NFTables';
+          chain = 'INPUT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
           ruleData.fw_apply_to = null;
         });
 
-        it("should compile as expected", async () => {
+        it('should compile as expected', async () => {
           await runTest();
         });
 
-        it("should compile with firewall apply to", async () => {
+        it('should compile with firewall apply to', async () => {
           ruleData.fw_apply_to = fwcProduct.firewall.id;
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (IPTables, OUTPUT chain)", () => {
+      describe('CrowdSec special rule compilation (IPTables, OUTPUT chain)', () => {
         before(() => {
-          compiler = "IPTables";
-          chain = "OUTPUT";
+          compiler = 'IPTables';
+          chain = 'OUTPUT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         });
 
-        it("should throw invalid chain exception", async () => {
+        it('should throw invalid chain exception', async () => {
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (NFTables, OUTPUT chain)", () => {
+      describe('CrowdSec special rule compilation (NFTables, OUTPUT chain)', () => {
         before(() => {
-          compiler = "NFTables";
-          chain = "OUTPUT";
+          compiler = 'NFTables';
+          chain = 'OUTPUT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         });
 
-        it("should throw invalid chain exception", async () => {
+        it('should throw invalid chain exception', async () => {
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (IPTables, FORWARD chain)", () => {
+      describe('CrowdSec special rule compilation (IPTables, FORWARD chain)', () => {
         before(() => {
-          compiler = "IPTables";
-          chain = "FORWARD";
+          compiler = 'IPTables';
+          chain = 'FORWARD';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
           ruleData.fw_apply_to = null;
         });
 
-        it("should compile as expected", async () => {
+        it('should compile as expected', async () => {
           await runTest();
         });
 
-        it("should compile with firewall apply to", async () => {
+        it('should compile with firewall apply to', async () => {
           ruleData.fw_apply_to = fwcProduct.firewall.id;
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (NFTables, FORWARD chain)", () => {
+      describe('CrowdSec special rule compilation (NFTables, FORWARD chain)', () => {
         before(() => {
-          compiler = "NFTables";
-          chain = "FORWARD";
+          compiler = 'NFTables';
+          chain = 'FORWARD';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
           ruleData.fw_apply_to = null;
         });
 
-        it("should compile as expected", async () => {
+        it('should compile as expected', async () => {
           await runTest();
         });
 
-        it("should compile with firewall apply to", async () => {
+        it('should compile with firewall apply to', async () => {
           ruleData.fw_apply_to = fwcProduct.firewall.id;
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (IPTables, SNAT chain)", () => {
+      describe('CrowdSec special rule compilation (IPTables, SNAT chain)', () => {
         before(() => {
-          compiler = "IPTables";
-          chain = "SNAT";
+          compiler = 'IPTables';
+          chain = 'SNAT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         });
 
-        it("should throw invalid chain exception", async () => {
+        it('should throw invalid chain exception', async () => {
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (NFTables, SNAT chain)", () => {
+      describe('CrowdSec special rule compilation (NFTables, SNAT chain)', () => {
         before(() => {
-          compiler = "NFTables";
-          chain = "SNAT";
+          compiler = 'NFTables';
+          chain = 'SNAT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         });
 
-        it("should throw invalid chain exception", async () => {
+        it('should throw invalid chain exception', async () => {
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (IPTables, DNAT chain)", () => {
+      describe('CrowdSec special rule compilation (IPTables, DNAT chain)', () => {
         before(() => {
-          compiler = "IPTables";
-          chain = "DNAT";
+          compiler = 'IPTables';
+          chain = 'DNAT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         });
 
-        it("should throw invalid chain exception", async () => {
+        it('should throw invalid chain exception', async () => {
           await runTest();
         });
       });
 
-      describe("CrowdSec special rule compilation (NFTables, DNAT chain)", () => {
+      describe('CrowdSec special rule compilation (NFTables, DNAT chain)', () => {
         before(() => {
-          compiler = "NFTables";
-          chain = "DNAT";
+          compiler = 'NFTables';
+          chain = 'DNAT';
           ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         });
 
-        it("should throw invalid chain exception", async () => {
+        it('should throw invalid chain exception', async () => {
           await runTest();
         });
       });

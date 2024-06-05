@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Task, GroupDescription, TaskDescription } from "./task";
-import { SequencedTask } from "./sequenced-task";
-import { TasksEventEmitter } from "./progress";
+import { Task, GroupDescription, TaskDescription } from './task';
+import { SequencedTask } from './sequenced-task';
+import { TasksEventEmitter } from './progress';
 
 export class ParalellizedTask extends Task {
   constructor(eventEmitter: TasksEventEmitter, fn: GroupDescription) {

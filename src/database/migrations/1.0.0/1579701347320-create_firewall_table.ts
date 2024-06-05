@@ -20,143 +20,143 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MigrationInterface, QueryRunner, Table } from "typeorm";
+import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class createFirewallTable1579701347320 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<any> {
     //firewall
     await queryRunner.createTable(
       new Table({
-        name: "firewall",
+        name: 'firewall',
         columns: [
           {
-            name: "id",
-            type: "int",
+            name: 'id',
+            type: 'int',
             isPrimary: true,
             isGenerated: true,
-            generationStrategy: "increment",
+            generationStrategy: 'increment',
           },
           {
-            name: "cluster",
-            type: "int",
+            name: 'cluster',
+            type: 'int',
             isNullable: true,
             default: null,
           },
           {
-            name: "fwcloud",
-            type: "int",
+            name: 'fwcloud',
+            type: 'int',
             isNullable: true,
             default: null,
           },
           {
-            name: "name",
-            type: "varchar",
+            name: 'name',
+            type: 'varchar',
             isNullable: false,
           },
           {
-            name: "comment",
-            type: "longtext",
+            name: 'comment',
+            type: 'longtext',
             isNullable: true,
           },
           {
-            name: "created_at",
-            type: "datetime",
+            name: 'created_at',
+            type: 'datetime',
             isNullable: false,
-            default: "CURRENT_TIMESTAMP",
+            default: 'CURRENT_TIMESTAMP',
           },
           {
-            name: "updated_at",
-            type: "datetime",
+            name: 'updated_at',
+            type: 'datetime',
             isNullable: false,
-            default: "CURRENT_TIMESTAMP",
-            onUpdate: "CURRENT_TIMESTAMP",
+            default: 'CURRENT_TIMESTAMP',
+            onUpdate: 'CURRENT_TIMESTAMP',
           },
           {
-            name: "compiled_at",
-            type: "datetime",
-            isNullable: true,
-            default: null,
-          },
-          {
-            name: "installed_at",
-            type: "datetime",
+            name: 'compiled_at',
+            type: 'datetime',
             isNullable: true,
             default: null,
           },
           {
-            name: "by_user",
-            type: "int",
-            isNullable: false,
-            default: 0,
+            name: 'installed_at',
+            type: 'datetime',
+            isNullable: true,
+            default: null,
           },
           {
-            name: "status",
-            type: "tinyint",
-            length: "1",
+            name: 'by_user',
+            type: 'int',
             isNullable: false,
             default: 0,
           },
           {
-            name: "install_user",
-            type: "varchar",
-            length: "250",
+            name: 'status',
+            type: 'tinyint',
+            length: '1',
+            isNullable: false,
+            default: 0,
+          },
+          {
+            name: 'install_user',
+            type: 'varchar',
+            length: '250',
             isNullable: true,
             default: null,
           },
           {
-            name: "install_pass",
-            type: "varchar",
-            length: "250",
+            name: 'install_pass',
+            type: 'varchar',
+            length: '250',
             isNullable: true,
             default: null,
           },
           {
-            name: "save_user_pass",
-            type: "tinyint",
-            length: "1",
+            name: 'save_user_pass',
+            type: 'tinyint',
+            length: '1',
             isNullable: false,
             default: 1,
           },
           {
-            name: "install_interface",
-            type: "int",
-            length: "11",
+            name: 'install_interface',
+            type: 'int',
+            length: '11',
             isNullable: true,
             default: null,
           },
           {
-            name: "install_ipobj",
-            type: "int",
-            length: "11",
+            name: 'install_ipobj',
+            type: 'int',
+            length: '11',
             isNullable: true,
             default: null,
           },
           {
-            name: "fwmaster",
-            type: "tinyint",
-            length: "1",
+            name: 'fwmaster',
+            type: 'tinyint',
+            length: '1',
             isNullable: false,
             default: 0,
           },
           {
-            name: "install_port",
-            type: "int",
+            name: 'install_port',
+            type: 'int',
             isNullable: false,
             default: 22,
           },
           {
-            name: "options",
-            type: "smallint",
-            length: "2",
+            name: 'options',
+            type: 'smallint',
+            length: '2',
             isNullable: false,
             default: 0,
           },
         ],
         foreignKeys: [
           {
-            columnNames: ["cluster"],
-            referencedTableName: "cluster",
-            referencedColumnNames: ["id"],
+            columnNames: ['cluster'],
+            referencedTableName: 'cluster',
+            referencedColumnNames: ['id'],
           },
         ],
       }),
@@ -165,6 +165,6 @@ export class createFirewallTable1579701347320 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<any> {
-    await queryRunner.dropTable("firewall", true);
+    await queryRunner.dropTable('firewall', true);
   }
 }

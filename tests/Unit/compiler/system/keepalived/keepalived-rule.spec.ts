@@ -15,25 +15,25 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import sinon from "sinon";
-import { DeepPartial, getRepository } from "typeorm";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+import sinon from 'sinon';
+import { DeepPartial, getRepository } from 'typeorm';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import {
   KeepalivedCompiled,
   KeepalivedCompiler,
-} from "../../../../../src/compiler/system/keepalived/KeepalivedCompiler";
-import { IPObj } from "../../../../../src/models/ipobj/IPObj";
-import { KeepalivedRule } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model";
+} from '../../../../../src/compiler/system/keepalived/KeepalivedCompiler';
+import { IPObj } from '../../../../../src/models/ipobj/IPObj';
+import { KeepalivedRule } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model';
 import {
   KeepalivedRuleService,
   KeepalivedRulesData,
-} from "../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service";
-import { KeepalivedRuleItemForCompiler } from "../../../../../src/models/system/keepalived/shared";
-import { expect, testSuite } from "../../../../mocha/global-setup";
+} from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service';
+import { KeepalivedRuleItemForCompiler } from '../../../../../src/models/system/keepalived/shared';
+import { expect, testSuite } from '../../../../mocha/global-setup';
 import {
   FwCloudFactory,
   FwCloudProduct,
-} from "../../../../utils/fwcloud-factory";
+} from '../../../../utils/fwcloud-factory';
 
 describe(KeepalivedCompiler.name, () => {
   let fwc: FwCloudProduct;
@@ -72,28 +72,28 @@ describe(KeepalivedCompiler.name, () => {
 
     rules =
       await keepalivedRuleService.getKeepalivedRulesData<KeepalivedRuleItemForCompiler>(
-        "compiler",
+        'compiler',
         fwc.fwcloud.id,
         fwc.firewall.id,
       );
   });
 
-  describe("compile", () => {
-    it("should return an empty array when no data is provided", () => {
-      expect(compiler.compile([])).to.be.an("array").that.is.empty;
+  describe('compile', () => {
+    it('should return an empty array when no data is provided', () => {
+      expect(compiler.compile([])).to.be.an('array').that.is.empty;
     });
 
-    it("should return an array with compiled data for an active rule", async (): Promise<void> => {
-      expect(compiler.compile(rules)).to.be.an("array").that.is.not.empty;
+    it('should return an array with compiled data for an active rule', async (): Promise<void> => {
+      expect(compiler.compile(rules)).to.be.an('array').that.is.not.empty;
     });
 
-    it("should return an array with compiled data for an inactive rule", async (): Promise<void> => {
+    it('should return an array with compiled data for an inactive rule', async (): Promise<void> => {
       rules.forEach((element) => {
         element.active = false;
       });
 
       const result: KeepalivedCompiled[] = compiler.compile(rules);
-      expect(result).to.be.an("array").that.is.not.empty;
+      expect(result).to.be.an('array').that.is.not.empty;
 
       result.forEach((element) => {
         expect(element.active).to.be.false;
@@ -101,11 +101,11 @@ describe(KeepalivedCompiler.name, () => {
       });
     });
 
-    it("should emit a progress event for each rule", async () => {
+    it('should emit a progress event for each rule', async () => {
       const eventEmitter: EventEmitter = new EventEmitter();
 
       const progressHandler: sinon.SinonStub<any[], any> = sinon.stub();
-      eventEmitter.on("progress", progressHandler);
+      eventEmitter.on('progress', progressHandler);
 
       compiler.compile(rules, eventEmitter);
 
@@ -117,7 +117,7 @@ describe(KeepalivedCompiler.name, () => {
           expect(
             progressHandler.calledWith(
               sinon.match({
-                message: `Compiling Keepalived rule ${index} (ID: ${rule.id})${!rule.active ? " [DISABLED]" : ""}`,
+                message: `Compiling Keepalived rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}`,
               }),
             ),
           ).to.be.true;

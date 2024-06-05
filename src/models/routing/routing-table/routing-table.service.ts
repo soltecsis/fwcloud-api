@@ -27,34 +27,34 @@ import {
   getRepository,
   Repository,
   SelectQueryBuilder,
-} from "typeorm";
-import { Application } from "../../../Application";
-import db from "../../../database/database-manager";
-import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
-import { Service } from "../../../fonaments/services/service";
-import { ErrorBag } from "../../../fonaments/validation/validator";
-import { Firewall } from "../../firewall/Firewall";
-import { FirewallService } from "../../firewall/firewall.service";
-import { IPObj } from "../../ipobj/IPObj";
-import { IPObjRepository } from "../../ipobj/IPObj.repository";
-import { IPObjGroup } from "../../ipobj/IPObjGroup";
-import { IPObjGroupRepository } from "../../ipobj/IPObjGroup.repository";
-import { Tree } from "../../tree/Tree";
-import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
-import { OpenVPNRepository } from "../../vpn/openvpn/openvpn-repository";
-import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
-import { OpenVPNPrefixRepository } from "../../vpn/openvpn/OpenVPNPrefix.repository";
-import { Route } from "../route/route.model";
-import { RouteRepository } from "../route/route.repository";
-import { RouteService } from "../route/route.service";
+} from 'typeorm';
+import { Application } from '../../../Application';
+import db from '../../../database/database-manager';
+import { ValidationException } from '../../../fonaments/exceptions/validation-exception';
+import { Service } from '../../../fonaments/services/service';
+import { ErrorBag } from '../../../fonaments/validation/validator';
+import { Firewall } from '../../firewall/Firewall';
+import { FirewallService } from '../../firewall/firewall.service';
+import { IPObj } from '../../ipobj/IPObj';
+import { IPObjRepository } from '../../ipobj/IPObj.repository';
+import { IPObjGroup } from '../../ipobj/IPObjGroup';
+import { IPObjGroupRepository } from '../../ipobj/IPObjGroup.repository';
+import { Tree } from '../../tree/Tree';
+import { OpenVPN } from '../../vpn/openvpn/OpenVPN';
+import { OpenVPNRepository } from '../../vpn/openvpn/openvpn-repository';
+import { OpenVPNPrefix } from '../../vpn/openvpn/OpenVPNPrefix';
+import { OpenVPNPrefixRepository } from '../../vpn/openvpn/OpenVPNPrefix.repository';
+import { Route } from '../route/route.model';
+import { RouteRepository } from '../route/route.repository';
+import { RouteService } from '../route/route.service';
 import {
   AvailableDestinations,
   ItemForGrid,
   RouteItemForCompiler,
   RoutingRuleItemForCompiler,
   RoutingUtils,
-} from "../shared";
-import { RoutingTable } from "./routing-table.model";
+} from '../shared';
+import { RoutingTable } from './routing-table.model';
 
 interface IFindManyRoutingTablePath {
   firewallId?: number;
@@ -137,22 +137,22 @@ export class RoutingTableService extends Service {
 
     const firewall: Firewall = await getRepository(Firewall).findOne(
       routingTable.firewallId,
-      { relations: ["fwCloud"] },
+      { relations: ['fwCloud'] },
     );
 
     const node: { id: number } = (await Tree.getNodeUnderFirewall(
       db.getQuery(),
       firewall.fwCloud.id,
       firewall.id,
-      "RTS",
+      'RTS',
     )) as { id: number };
-    if (node && Object.prototype.hasOwnProperty.call(node, "id")) {
+    if (node && Object.prototype.hasOwnProperty.call(node, 'id')) {
       await Tree.newNode(
         db.getQuery(),
         firewall.fwCloud.id,
         routingTable.name,
         node.id,
-        "RT",
+        'RT',
         routingTable.id,
         null,
       );
@@ -179,12 +179,12 @@ export class RoutingTableService extends Service {
     const table: RoutingTable = await this.findOneInPath(path);
     const tableWithRules: RoutingTable = await this._repository.findOne(
       table.id,
-      { relations: ["routingRules", "routes", "firewall"] },
+      { relations: ['routingRules', 'routes', 'firewall'] },
     );
 
     if (tableWithRules.routingRules.length > 0) {
-      throw new ValidationException("Routing table cannot be removed", {
-        id: ["Cannot remove a routing table used in a routing rule"],
+      throw new ValidationException('Routing table cannot be removed', {
+        id: ['Cannot remove a routing table used in a routing rule'],
       });
     }
 
@@ -199,7 +199,7 @@ export class RoutingTableService extends Service {
     const nodes: any[] = (await Tree.getNodeInfo(
       db.getQuery(),
       tableWithRules.firewall.fwCloudId,
-      "RT",
+      'RT',
       tableWithRules.id,
     )) as any[];
     if (nodes.length > 0) {
@@ -222,25 +222,25 @@ export class RoutingTableService extends Service {
   ): FindOneOptions<RoutingTable> | FindManyOptions<RoutingTable> {
     return {
       join: {
-        alias: "table",
+        alias: 'table',
         innerJoin: {
-          firewall: "table.firewall",
-          fwcloud: "firewall.fwCloud",
+          firewall: 'table.firewall',
+          fwcloud: 'firewall.fwCloud',
         },
       },
       where: (qb: SelectQueryBuilder<RoutingTable>) => {
         if (path.firewallId) {
-          qb.andWhere("firewall.id = :firewall", { firewall: path.firewallId });
+          qb.andWhere('firewall.id = :firewall', { firewall: path.firewallId });
         }
 
         if (path.fwCloudId) {
-          qb.andWhere("firewall.fwCloudId = :fwcloud", {
+          qb.andWhere('firewall.fwCloudId = :fwcloud', {
             fwcloud: path.fwCloudId,
           });
         }
 
         if (path.id) {
-          qb.andWhere("table.id = :id", { id: path.id });
+          qb.andWhere('table.id = :id', { id: path.id });
         }
       },
     };
@@ -285,7 +285,7 @@ export class RoutingTableService extends Service {
     }
 
     const sqls =
-      dst === "grid"
+      dst === 'grid'
         ? this.buildSQLsForGrid(fwcloud, firewall, routingTable)
         : this.buildSQLsForCompiler(fwcloud, firewall, routingTable, routes);
     await Promise.all(
@@ -330,8 +330,8 @@ export class RoutingTableService extends Service {
       return;
     }
 
-    errors["number"] = ["number already used"];
-    throw new ValidationException("The given data was invalid", errors);
+    errors['number'] = ['number already used'];
+    throw new ValidationException('The given data was invalid', errors);
   }
 
   /**
@@ -364,56 +364,56 @@ export class RoutingTableService extends Service {
   ): SelectQueryBuilder<IPObj>[] {
     return [
       this._ipobjRepository.getIpobjsInRouting_excludeHosts(
-        "route",
+        'route',
         fwcloud,
         firewall,
         routingTable,
         routes,
       ),
       this._ipobjRepository.getIpobjsInRouting_onlyHosts(
-        "route",
+        'route',
         fwcloud,
         firewall,
         routingTable,
         routes,
       ),
       this._ipobjRepository.getIpobjsInGroupsInRouting_excludeHosts(
-        "route",
+        'route',
         fwcloud,
         firewall,
         routingTable,
         routes,
       ),
       this._ipobjRepository.getIpobjsInGroupsInRouting_onlyHosts(
-        "route",
+        'route',
         fwcloud,
         firewall,
         routingTable,
         routes,
       ),
       this._ipobjRepository.getIpobjsInOpenVPNInRouting(
-        "route",
+        'route',
         fwcloud,
         firewall,
         routingTable,
         routes,
       ),
       this._ipobjRepository.getIpobjsInOpenVPNInGroupsInRouting(
-        "route",
+        'route',
         fwcloud,
         firewall,
         routingTable,
         routes,
       ),
       this._ipobjRepository.getIpobjsInOpenVPNPrefixesInRouting(
-        "route",
+        'route',
         fwcloud,
         firewall,
         routingTable,
         routes,
       ),
       this._ipobjRepository.getIpobjsInOpenVPNPrefixesInGroupsInRouting(
-        "route",
+        'route',
         fwcloud,
         firewall,
         routingTable,
@@ -429,25 +429,25 @@ export class RoutingTableService extends Service {
   ): SelectQueryBuilder<IPObj | IPObjGroup | OpenVPN | OpenVPNPrefix>[] {
     return [
       this._ipobjRepository.getIpobjsInRouting_ForGrid(
-        "route",
+        'route',
         fwcloud,
         firewall,
         routingTable,
       ),
       this._ipobjGroupRepository.getIpobjGroupsInRouting_ForGrid(
-        "route",
+        'route',
         fwcloud,
         firewall,
         routingTable,
       ),
       this._openvpnRepository.getOpenVPNInRouting_ForGrid(
-        "route",
+        'route',
         fwcloud,
         firewall,
         routingTable,
       ),
       this._openvpnPrefixRepository.getOpenVPNPrefixInRouting_ForGrid(
-        "route",
+        'route',
         fwcloud,
         firewall,
         routingTable,

@@ -14,18 +14,18 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { expect } from "chai";
-import { Application } from "../../../../../src/Application";
-import { getRepository } from "typeorm";
-import { KeepalivedController } from "../../../../../src/controllers/system/keepalived/keepalived.controller";
-import { Firewall } from "../../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
-import { KeepalivedGroup } from "../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.model";
-import { KeepalivedRule } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model";
-import { testSuite } from "../../../../mocha/global-setup";
-import { Request } from "express";
-import StringHelper from "../../../../../src/utils/string.helper";
-import sinon from "sinon";
+import { expect } from 'chai';
+import { Application } from '../../../../../src/Application';
+import { getRepository } from 'typeorm';
+import { KeepalivedController } from '../../../../../src/controllers/system/keepalived/keepalived.controller';
+import { Firewall } from '../../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
+import { KeepalivedGroup } from '../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.model';
+import { KeepalivedRule } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model';
+import { testSuite } from '../../../../mocha/global-setup';
+import { Request } from 'express';
+import StringHelper from '../../../../../src/utils/string.helper';
+import sinon from 'sinon';
 
 describe(KeepalivedController.name, () => {
   let firewall: Firewall;
@@ -65,7 +65,7 @@ describe(KeepalivedController.name, () => {
         id: 1,
         group: await getRepository(KeepalivedGroup).save(
           getRepository(KeepalivedGroup).create({
-            name: "group",
+            name: 'group',
             firewall: firewall,
           }),
         ),
@@ -80,8 +80,8 @@ describe(KeepalivedController.name, () => {
     sinon.restore();
   });
 
-  describe("make", () => {
-    it("should fetch KeepalivedRule and KeepalivedGroup when Keepalived param is present", async () => {
+  describe('make', () => {
+    it('should fetch KeepalivedRule and KeepalivedGroup when Keepalived param is present', async () => {
       const requestMock = {
         params: {
           keepalived: Keepalivedrule.id,
@@ -91,13 +91,13 @@ describe(KeepalivedController.name, () => {
       } as unknown as Request;
 
       const KeepalivedruleStub = sinon
-        .stub(getRepository(KeepalivedRule), "findOneOrFail")
+        .stub(getRepository(KeepalivedRule), 'findOneOrFail')
         .resolves(Keepalivedrule);
       const firewallStub = sinon
-        .stub(getRepository(Firewall), "findOneOrFail")
+        .stub(getRepository(Firewall), 'findOneOrFail')
         .resolves(firewall);
       const fwCloudStub = sinon
-        .stub(getRepository(FwCloud), "findOneOrFail")
+        .stub(getRepository(FwCloud), 'findOneOrFail')
         .resolves(fwCloud);
 
       await controller.make(requestMock);
@@ -111,7 +111,7 @@ describe(KeepalivedController.name, () => {
       fwCloudStub.restore();
     });
 
-    it("should not fetch KeepalivedRule and KeepalivedGroup when Keepalived param is not present", async () => {
+    it('should not fetch KeepalivedRule and KeepalivedGroup when Keepalived param is not present', async () => {
       const requestMock = {
         params: {
           firewall: firewall.id,
@@ -121,14 +121,14 @@ describe(KeepalivedController.name, () => {
 
       const KeepalivedruleStub = sinon.stub(
         getRepository(KeepalivedRule),
-        "findOneOrFail",
+        'findOneOrFail',
       );
       const KeepalivedgroupStub = sinon.stub(
         getRepository(KeepalivedGroup),
-        "findOneOrFail",
+        'findOneOrFail',
       );
-      const firewallStub = sinon.stub(getRepository(Firewall), "findOneOrFail");
-      const fwCloudStub = sinon.stub(getRepository(FwCloud), "findOneOrFail");
+      const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail');
+      const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail');
 
       await controller.make(requestMock);
 
@@ -143,7 +143,7 @@ describe(KeepalivedController.name, () => {
       fwCloudStub.restore();
     });
 
-    it("should handle errors when entities are not found", async () => {
+    it('should handle errors when entities are not found', async () => {
       const requestMock = {
         params: {
           keepalived: 999, // non-existent Keepalived id
@@ -153,17 +153,17 @@ describe(KeepalivedController.name, () => {
       } as unknown as Request;
 
       const KeepalivedruleStub = sinon
-        .stub(getRepository(KeepalivedRule), "findOneOrFail")
-        .throws(new Error("KeepalivedRule not found"));
+        .stub(getRepository(KeepalivedRule), 'findOneOrFail')
+        .throws(new Error('KeepalivedRule not found'));
 
       await expect(controller.make(requestMock)).to.be.rejectedWith(
-        "KeepalivedRule not found",
+        'KeepalivedRule not found',
       );
 
       KeepalivedruleStub.restore();
     });
 
-    it("should fetch Firewall and FwCloud", async () => {
+    it('should fetch Firewall and FwCloud', async () => {
       const requestMock = {
         params: {
           firewall: firewall.id,
@@ -172,10 +172,10 @@ describe(KeepalivedController.name, () => {
       } as unknown as Request;
 
       const firewallStub = sinon
-        .stub(getRepository(Firewall), "findOneOrFail")
+        .stub(getRepository(Firewall), 'findOneOrFail')
         .resolves(firewall);
       const fwCloudStub = sinon
-        .stub(getRepository(FwCloud), "findOneOrFail")
+        .stub(getRepository(FwCloud), 'findOneOrFail')
         .resolves(fwCloud);
 
       await controller.make(requestMock);

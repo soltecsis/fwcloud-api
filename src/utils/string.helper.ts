@@ -27,7 +27,7 @@ export default class StringHelper {
    * @param words Collection of string to be CamelCased
    */
   public static toCamelCase(...words: string[]): string {
-    let result = words.length >= 1 ? words.shift() : "";
+    let result = words.length >= 1 ? words.shift() : '';
 
     if (words.length > 0) {
       words.forEach((element: string) => {
@@ -54,9 +54,9 @@ export default class StringHelper {
   }
 
   public static randomize(length: number = 50): string {
-    let result = "";
+    let result = '';
     const characters =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;
     for (let i = 0; i < length; i++) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));

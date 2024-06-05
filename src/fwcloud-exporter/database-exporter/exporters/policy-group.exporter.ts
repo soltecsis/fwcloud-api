@@ -20,12 +20,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { PolicyGroup } from "../../../models/policy/PolicyGroup";
-import { SelectQueryBuilder } from "typeorm";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FirewallExporter } from "./firewall.exporter";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { PolicyGroup } from '../../../models/policy/PolicyGroup';
+import { SelectQueryBuilder } from 'typeorm';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FirewallExporter } from './firewall.exporter';
 
 export class PolicyGroupExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -40,13 +40,13 @@ export class PolicyGroupExporter extends TableExporter {
     return qb.where((qb) => {
       const subquery = qb
         .subQuery()
-        .from(Firewall, "firewall")
-        .select("firewall.id");
+        .from(Firewall, 'firewall')
+        .select('firewall.id');
 
       return (
         `${alias}.firewallId IN ` +
         new FirewallExporter()
-          .getFilterBuilder(subquery, "firewall", fwCloudId)
+          .getFilterBuilder(subquery, 'firewall', fwCloudId)
           .getQuery()
       );
     });

@@ -20,11 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import {
   FirewallInstallCommunication,
   FirewallInstallProtocol,
-} from "../../../models/firewall/Firewall";
+} from '../../../models/firewall/Firewall';
 
 export class PingDto {
   @IsEnum(FirewallInstallCommunication)

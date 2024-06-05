@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Type } from "class-transformer";
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -28,9 +28,9 @@ import {
   IsOptional,
   IsString,
   ValidateNested,
-} from "class-validator";
-import { IpObjBelongsToTypes } from "../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation";
-import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
+} from 'class-validator';
+import { IpObjBelongsToTypes } from '../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation';
+import { PositionalEntityDto } from '../../../dtos/positional-entity.dto';
 
 export class RouteControllerUpdateDto {
   @IsNumber()

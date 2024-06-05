@@ -1,19 +1,19 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
-import { IPObj } from "../../ipobj/IPObj";
-import Model from "../../Model";
-import { RoutingRule } from "./routing-rule.model";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { IPObj } from '../../ipobj/IPObj';
+import Model from '../../Model';
+import { RoutingRule } from './routing-rule.model';
 
-const tableName: string = "routing_r__ipobj";
+const tableName: string = 'routing_r__ipobj';
 
 @Entity(tableName)
 export class RoutingRuleToIPObj extends Model {
   @PrimaryColumn({
-    name: "rule",
+    name: 'rule',
   })
   routingRuleId: number;
 
   @PrimaryColumn({
-    name: "ipobj",
+    name: 'ipobj',
   })
   ipObjId: number;
 
@@ -23,18 +23,18 @@ export class RoutingRuleToIPObj extends Model {
   order: number;
 
   @ManyToOne(() => RoutingRule, (model) => model.routingRuleToIPObjs, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "rule",
+    name: 'rule',
   })
   routingRule: RoutingRule;
 
   @ManyToOne(() => IPObj, (model) => model.routingRuleToIPObjs, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "ipobj",
+    name: 'ipobj',
   })
   ipObj: IPObj;
 

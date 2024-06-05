@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class SystemServicesNode1696782681632 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -23,22 +23,22 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
     );
 
     let nodes = await queryRunner.query(
-      "SELECT `id`, `id_obj`, `node_type`, `fwcloud`\n" +
-        "FROM `fwc_tree` t\n" +
+      'SELECT `id`, `id_obj`, `node_type`, `fwcloud`\n' +
+        'FROM `fwc_tree` t\n' +
         "WHERE `node_type` IN ('FW', 'CL')\n" +
-        "AND ( \n" +
+        'AND ( \n' +
         "  `node_type` != 'FW' OR \n" +
-        "  `id_parent` IS NULL OR \n" +
+        '  `id_parent` IS NULL OR \n' +
         "  `id_parent` NOT IN (SELECT `id` FROM `fwc_tree` WHERE `node_type` = 'FCF')\n" +
-        ")\n" +
-        "AND NOT EXISTS (" +
+        ')\n' +
+        'AND NOT EXISTS (' +
         "SELECT 1 FROM `fwc_tree` c WHERE c.`id_parent` = t.`id` AND c.`node_type` = 'SYS'" +
-        ");",
+        ');',
     );
 
     for (const node of nodes) {
       let idObj = node.id_obj;
-      if (node.node_type === "CL") {
+      if (node.node_type === 'CL') {
         const masterFirewall = await queryRunner.query(
           "SELECT `id` FROM `firewall` WHERE `fwmaster` = '1' AND `cluster` = ?",
           [node.id_obj],
@@ -54,15 +54,15 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
     }
 
     nodes = await queryRunner.query(
-      "SELECT `id`, `id_obj` ,`fwcloud`\n" +
-        "FROM `fwc_tree` t\n" +
+      'SELECT `id`, `id_obj` ,`fwcloud`\n' +
+        'FROM `fwc_tree` t\n' +
         "WHERE `node_type` = 'SYS'\n" +
-        "AND NOT EXISTS (\n" +
-        "    SELECT 1\n" +
-        "    FROM `fwc_tree` c\n" +
-        "    WHERE c.`id_parent` = t.`id`\n" +
+        'AND NOT EXISTS (\n' +
+        '    SELECT 1\n' +
+        '    FROM `fwc_tree` c\n' +
+        '    WHERE c.`id_parent` = t.`id`\n' +
         "    AND c.`node_type` IN ('S01', 'S02', 'S03')\n" +
-        ");",
+        ');',
     );
 
     for (const node of nodes) {
@@ -83,15 +83,15 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
     }
 
     nodes = await queryRunner.query(
-      "SELECT `id`, `id_obj`, `fwcloud`\n" +
-        "FROM `fwc_tree` t\n" +
+      'SELECT `id`, `id_obj`, `fwcloud`\n' +
+        'FROM `fwc_tree` t\n' +
         "WHERE `node_type` = 'S01'\n" +
-        "AND NOT EXISTS (\n" +
-        "    SELECT 1\n" +
-        "    FROM `fwc_tree` c\n" +
-        "    WHERE c.`id_parent` = t.`id`\n" +
+        'AND NOT EXISTS (\n' +
+        '    SELECT 1\n' +
+        '    FROM `fwc_tree` c\n' +
+        '    WHERE c.`id_parent` = t.`id`\n' +
         "    AND c.`node_type` IN ('S04')\n" +
-        ");",
+        ');',
     );
 
     for (const node of nodes) {

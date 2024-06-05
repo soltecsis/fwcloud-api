@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { HttpException } from "./http/http-exception";
+import { HttpException } from './http/http-exception';
 
 export class NotFoundException extends HttpException {
   public status: number = 404;

@@ -20,20 +20,20 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, expect } from "../../../../mocha/global-setup";
-import { SequencedTask } from "../../../../../src/fonaments/http/progress/sequenced-task";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { Task } from "../../../../../src/fonaments/http/progress/task";
+import { describeName, expect } from '../../../../mocha/global-setup';
+import { SequencedTask } from '../../../../../src/fonaments/http/progress/sequenced-task';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { Task } from '../../../../../src/fonaments/http/progress/task';
 
 let eventEmitter: EventEmitter;
 
-describe(describeName("Sequence Task tests"), () => {
+describe(describeName('Sequence Task tests'), () => {
   beforeEach(async () => {
     eventEmitter = new EventEmitter();
   });
 
-  describe("getTasks()", () => {
-    it("should return parallel task added as a task", () => {
+  describe('getTasks()', () => {
+    it('should return parallel task added as a task', () => {
       const task = new SequencedTask(eventEmitter, (task: Task) => {
         task.parallel((task) => {});
       });
@@ -41,7 +41,7 @@ describe(describeName("Sequence Task tests"), () => {
       expect(task.getTasks()).to.have.length(1);
     });
 
-    it("should return sequence task added as a task", () => {
+    it('should return sequence task added as a task', () => {
       const task = new SequencedTask(eventEmitter, (task: Task) => {
         task.sequence((task) => {});
       });
@@ -49,7 +49,7 @@ describe(describeName("Sequence Task tests"), () => {
       expect(task.getTasks()).to.have.length(1);
     });
 
-    it("should return task added as a task", () => {
+    it('should return task added as a task', () => {
       const task = new SequencedTask(eventEmitter, (task: Task) => {
         task.addTask(() => {
           return null;

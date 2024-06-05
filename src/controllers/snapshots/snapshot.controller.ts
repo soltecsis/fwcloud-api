@@ -20,19 +20,19 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../fonaments/http/controller";
-import { SnapshotService } from "../../snapshots/snapshot.service";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { Snapshot } from "../../snapshots/snapshot";
-import { SnapshotPolicy } from "../../policies/snapshot.policy";
-import { Request } from "express";
-import { NotFoundException } from "../../fonaments/exceptions/not-found-exception";
-import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { Channel } from "../../sockets/channels/channel";
-import { Validate } from "../../decorators/validate.decorator";
-import { SnapshotControllerStoreDto } from "./dtos/store.dto";
-import { SnapshotControllerUpdateDto } from "./dtos/update.dto";
-import { SnapshotControllerRestoreDto } from "./dtos/restore.dto";
+import { Controller } from '../../fonaments/http/controller';
+import { SnapshotService } from '../../snapshots/snapshot.service';
+import { ResponseBuilder } from '../../fonaments/http/response-builder';
+import { Snapshot } from '../../snapshots/snapshot';
+import { SnapshotPolicy } from '../../policies/snapshot.policy';
+import { Request } from 'express';
+import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
+import { FwCloud } from '../../models/fwcloud/FwCloud';
+import { Channel } from '../../sockets/channels/channel';
+import { Validate } from '../../decorators/validate.decorator';
+import { SnapshotControllerStoreDto } from './dtos/store.dto';
+import { SnapshotControllerUpdateDto } from './dtos/update.dto';
+import { SnapshotControllerRestoreDto } from './dtos/restore.dto';
 
 export class SnapshotController extends Controller {
   protected _snapshotService: SnapshotService;
@@ -89,8 +89,8 @@ export class SnapshotController extends Controller {
     const channel: Channel = await Channel.fromRequest(request);
 
     const snapshot: Snapshot = await this._snapshotService.store(
-      request.inputs.get("name"),
-      request.inputs.get("comment", null),
+      request.inputs.get('name'),
+      request.inputs.get('comment', null),
       this._fwCloud,
       channel,
     );
@@ -108,8 +108,8 @@ export class SnapshotController extends Controller {
     (await SnapshotPolicy.update(snapshot, request.session.user)).authorize();
 
     snapshot = await this._snapshotService.update(snapshot, {
-      name: request.inputs.get("name"),
-      comment: request.inputs.get("comment"),
+      name: request.inputs.get('name'),
+      comment: request.inputs.get('comment'),
     });
 
     return ResponseBuilder.buildResponse().status(200).body(snapshot);

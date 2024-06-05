@@ -14,33 +14,33 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Application } from "../../../../../src/Application";
-import { Firewall } from "../../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
-import { KeepalivedRule } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model";
-import { User } from "../../../../../src/models/user/User";
-import { expect, testSuite } from "../../../../mocha/global-setup";
+import { Application } from '../../../../../src/Application';
+import { Firewall } from '../../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
+import { KeepalivedRule } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model';
+import { User } from '../../../../../src/models/user/User';
+import { expect, testSuite } from '../../../../mocha/global-setup';
 import {
   attachSession,
   createUser,
   generateSession,
-} from "../../../../utils/utils";
-import { KeepalivedRuleService } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service";
+} from '../../../../utils/utils';
+import { KeepalivedRuleService } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service';
 import {
   FwCloudFactory,
   FwCloudProduct,
-} from "../../../../utils/fwcloud-factory";
-import { KeepalivedController } from "../../../../../src/controllers/system/keepalived/keepalived.controller";
-import request = require("supertest");
-import { _URL } from "../../../../../src/fonaments/http/router/router.service";
-import { KeepalivedGroup } from "../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.model";
-import { getCustomRepository, getRepository } from "typeorm";
-import { KeepalivedRuleCopyDto } from "../../../../../src/controllers/system/keepalived/dto/copy.dto";
-import { KeepalivedRepository } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived.repository";
-import { Offset } from "../../../../../src/offset";
-import { KeepalivedRuleBulkUpdateDto } from "../../../../../src/controllers/system/keepalived/dto/bulk-update.dto";
+} from '../../../../utils/fwcloud-factory';
+import { KeepalivedController } from '../../../../../src/controllers/system/keepalived/keepalived.controller';
+import request = require('supertest');
+import { _URL } from '../../../../../src/fonaments/http/router/router.service';
+import { KeepalivedGroup } from '../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.model';
+import { getCustomRepository, getRepository } from 'typeorm';
+import { KeepalivedRuleCopyDto } from '../../../../../src/controllers/system/keepalived/dto/copy.dto';
+import { KeepalivedRepository } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived.repository';
+import { Offset } from '../../../../../src/offset';
+import { KeepalivedRuleBulkUpdateDto } from '../../../../../src/controllers/system/keepalived/dto/bulk-update.dto';
 
-describe("KeepalivedRule E2E Tests", () => {
+describe('KeepalivedRule E2E Tests', () => {
   let app: Application;
   let loggedUser: User;
   let loggedUserSessionId: string;
@@ -77,14 +77,14 @@ describe("KeepalivedRule E2E Tests", () => {
 
     group = await getRepository(KeepalivedGroup).save(
       getRepository(KeepalivedGroup).create({
-        name: "group",
+        name: 'group',
         firewall: firewall,
       }),
     );
   });
 
   describe(KeepalivedController.name, () => {
-    describe("@index", () => {
+    describe('@index', () => {
       let KeepalivedRule: KeepalivedRule;
 
       beforeEach(async () => {
@@ -92,62 +92,62 @@ describe("KeepalivedRule E2E Tests", () => {
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 1,
         });
       });
 
-      it("guest user should not see Keepalived rules", async () => {
+      it('guest user should not see Keepalived rules', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.index", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not see Keepalived rules", async () => {
+      it('regular user which does not belong to the fwcloud should not see Keepalived rules', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.index", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should see Keepalived rules", async () => {
+      it('regular user which belongs to the fwcloud should see Keepalived rules', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.index", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.have.length(1);
           });
       });
 
-      it("admin user should see Keepalived rules", async () => {
+      it('admin user should see Keepalived rules', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.index", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.have.length(1);
@@ -155,7 +155,7 @@ describe("KeepalivedRule E2E Tests", () => {
       });
     });
 
-    describe("@grid", () => {
+    describe('@grid', () => {
       let KeepalivedRule: KeepalivedRule;
 
       beforeEach(async () => {
@@ -163,62 +163,62 @@ describe("KeepalivedRule E2E Tests", () => {
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 1,
         });
       });
 
-      it("guest user should not see Keepalived rules grid", async () => {
+      it('guest user should not see Keepalived rules grid', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.grid", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.grid', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not see Keepalived rules grid", async () => {
+      it('regular user which does not belong to the fwcloud should not see Keepalived rules grid', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.grid", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.grid', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should see Keepalived rules grid", async () => {
+      it('regular user which belongs to the fwcloud should see Keepalived rules grid', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.grid", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.grid', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data[0].id).to.deep.equal(KeepalivedRule.id);
           });
       });
 
-      it("admin user should see Keepalived rules grid", async () => {
+      it('admin user should see Keepalived rules grid', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.grid", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.grid', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data[0].id).to.deep.equal(KeepalivedRule.id);
@@ -226,11 +226,11 @@ describe("KeepalivedRule E2E Tests", () => {
       });
     });
 
-    describe("@create", () => {
-      it("guest user should not create a Keepalived rule", async () => {
+    describe('@create', () => {
+      it('guest user should not create a Keepalived rule', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.store", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
@@ -239,80 +239,80 @@ describe("KeepalivedRule E2E Tests", () => {
             active: true,
             groupId: group.id,
             firewallId: firewall.id,
-            cfg_text: "cfg_text",
-            comment: "comment",
+            cfg_text: 'cfg_text',
+            comment: 'comment',
           })
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not create a Keepalived rule", async () => {
+      it('regular user which does not belong to the fwcloud should not create a Keepalived rule', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.store", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
             active: true,
             groupId: group.id,
             firewallId: firewall.id,
-            cfg_text: "cfg_text",
-            comment: "comment",
+            cfg_text: 'cfg_text',
+            comment: 'comment',
           })
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should create a Keepalived rule", async () => {
+      it('regular user which belongs to the fwcloud should create a Keepalived rule', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.store", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
             active: true,
             groupId: group.id,
             firewallId: firewall.id,
-            cfg_text: "cfg_text",
-            comment: "comment",
+            cfg_text: 'cfg_text',
+            comment: 'comment',
           })
           .expect(201)
           .then((response) => {
-            expect(response.body.data).to.have.property("id");
+            expect(response.body.data).to.have.property('id');
           });
       });
 
-      it("admin user should create a Keepalived rule", async () => {
+      it('admin user should create a Keepalived rule', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.store", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             active: true,
             groupId: group.id,
             firewallId: firewall.id,
-            cfg_text: "cfg_text",
-            comment: "comment",
+            cfg_text: 'cfg_text',
+            comment: 'comment',
           })
           .expect(201)
           .then((response) => {
-            expect(response.body.data).to.have.property("id");
+            expect(response.body.data).to.have.property('id');
           });
       });
     });
 
-    describe("@copy", () => {
+    describe('@copy', () => {
       let KeepalivedRule1: KeepalivedRule;
       let KeepalivedRule2: KeepalivedRule;
       let data: KeepalivedRuleCopyDto;
@@ -322,14 +322,14 @@ describe("KeepalivedRule E2E Tests", () => {
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 1,
         });
         KeepalivedRule2 = await keepalivedRuleServiceInstance.store({
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 2,
         });
         data = {
@@ -339,10 +339,10 @@ describe("KeepalivedRule E2E Tests", () => {
         } as KeepalivedRuleCopyDto;
       });
 
-      it("guest user should not copy a Keepalived rule", async () => {
+      it('guest user should not copy a Keepalived rule', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.copy", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.copy', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
@@ -351,56 +351,56 @@ describe("KeepalivedRule E2E Tests", () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not copy a Keepalived rule", async () => {
+      it('regular user which does not belong to the fwcloud should not copy a Keepalived rule', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.copy", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.copy', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send(data)
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should copy a Keepalived rule", async () => {
+      it('regular user which belongs to the fwcloud should copy a Keepalived rule', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.copy", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.copy', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
-          .send(data)
-          .expect(201)
-          .then((response) => {
-            expect(response.body.data).to.have.length(2);
-          });
-      });
-
-      it("admin user should copy a Keepalived rule", async () => {
-        return await request(app.express)
-          .post(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.copy", {
-              fwcloud: fwCloud.id,
-              firewall: firewall.id,
-            }),
-          )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send(data)
           .expect(201)
           .then((response) => {
             expect(response.body.data).to.have.length(2);
           });
       });
+
+      it('admin user should copy a Keepalived rule', async () => {
+        return await request(app.express)
+          .post(
+            _URL().getURL('fwclouds.firewalls.system.keepalived.copy', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+            }),
+          )
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .send(data)
+          .expect(201)
+          .then((response) => {
+            expect(response.body.data).to.have.length(2);
+          });
+      });
     });
 
-    describe("@update", () => {
+    describe('@update', () => {
       let keepalivedRule: KeepalivedRule;
 
       beforeEach(async () => {
@@ -408,15 +408,15 @@ describe("KeepalivedRule E2E Tests", () => {
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 1,
         });
       });
 
-      it("guest user should not update a Keepalived rule", async () => {
+      it('guest user should not update a Keepalived rule', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.update", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.update', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalived: keepalivedRule.id,
@@ -424,77 +424,77 @@ describe("KeepalivedRule E2E Tests", () => {
           )
           .send({
             active: false,
-            cfg_text: "cfg_text",
-            comment: "comment",
+            cfg_text: 'cfg_text',
+            comment: 'comment',
           })
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not update a Keepalived rule", async () => {
+      it('regular user which does not belong to the fwcloud should not update a Keepalived rule', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.update", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.update', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalived: keepalivedRule.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
             active: false,
-            cfg_text: "cfg_text",
-            comment: "comment",
+            cfg_text: 'cfg_text',
+            comment: 'comment',
           })
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should update a Keepalived rule", async () => {
+      it('regular user which belongs to the fwcloud should update a Keepalived rule', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.update", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.update', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalived: keepalivedRule.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
             active: false,
-            cfg_text: "cfg_text",
-            comment: "comment",
+            cfg_text: 'cfg_text',
+            comment: 'comment',
           })
           .expect(200)
           .then((response) => {
-            expect(response.body.data).to.have.property("id");
+            expect(response.body.data).to.have.property('id');
           });
       });
 
-      it("admin user should update a Keepalived rule", async () => {
+      it('admin user should update a Keepalived rule', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.update", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.update', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalived: keepalivedRule.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             active: false,
-            cfg_text: "cfg_text",
-            comment: "comment",
+            cfg_text: 'cfg_text',
+            comment: 'comment',
           })
           .expect(200)
           .then((response) => {
-            expect(response.body.data).to.have.property("id");
+            expect(response.body.data).to.have.property('id');
           });
       });
     });
 
-    describe("@remove", () => {
+    describe('@remove', () => {
       let keepalivedRule: KeepalivedRule;
 
       beforeEach(async () => {
@@ -502,15 +502,15 @@ describe("KeepalivedRule E2E Tests", () => {
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 1,
         });
       });
 
-      it("guest user should not remove a Keepalived rule", async () => {
+      it('guest user should not remove a Keepalived rule', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.delete", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.delete', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalived: keepalivedRule.id,
@@ -519,56 +519,56 @@ describe("KeepalivedRule E2E Tests", () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not remove a Keepalived rule", async () => {
+      it('regular user which does not belong to the fwcloud should not remove a Keepalived rule', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.delete", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.delete', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalived: keepalivedRule.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should remove a Keepalived rule", async () => {
+      it('regular user which belongs to the fwcloud should remove a Keepalived rule', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.delete", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.delete', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalived: keepalivedRule.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then((response) => {
-            expect(response.body.data).to.have.property("id");
+            expect(response.body.data).to.have.property('id');
           });
       });
 
-      it("admin user should remove a Keepalived rule", async () => {
+      it('admin user should remove a Keepalived rule', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.delete", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.delete', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalived: keepalivedRule.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
-            expect(response.body.data).to.have.property("id");
+            expect(response.body.data).to.have.property('id');
           });
       });
     });
 
-    describe("@show", () => {
+    describe('@show', () => {
       let keepalivedRule: KeepalivedRule;
 
       beforeEach(async () => {
@@ -576,15 +576,15 @@ describe("KeepalivedRule E2E Tests", () => {
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 1,
         });
       });
 
-      it("guest user should not see a Keepalived rule", async () => {
+      it('guest user should not see a Keepalived rule', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.show", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalived: keepalivedRule.id,
@@ -593,56 +593,56 @@ describe("KeepalivedRule E2E Tests", () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not see a Keepalived rule", async () => {
+      it('regular user which does not belong to the fwcloud should not see a Keepalived rule', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.show", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalived: keepalivedRule.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should see a Keepalived rule", async () => {
+      it('regular user which belongs to the fwcloud should see a Keepalived rule', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.show", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalived: keepalivedRule.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then((response) => {
-            expect(response.body.data).to.have.property("id");
+            expect(response.body.data).to.have.property('id');
           });
       });
 
-      it("admin user should see a Keepalived rule", async () => {
+      it('admin user should see a Keepalived rule', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.show", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               keepalived: keepalivedRule.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
-            expect(response.body.data).to.have.property("id");
+            expect(response.body.data).to.have.property('id');
           });
       });
     });
 
-    describe("@move", () => {
+    describe('@move', () => {
       let KeepalivedRule1: KeepalivedRule;
       let KeepalivedRule2: KeepalivedRule;
       let KeepalivedRule3: KeepalivedRule;
@@ -654,28 +654,28 @@ describe("KeepalivedRule E2E Tests", () => {
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 1,
         });
         KeepalivedRule2 = await keepalivedRuleServiceInstance.store({
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 2,
         });
         KeepalivedRule3 = await keepalivedRuleServiceInstance.store({
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 3,
         });
         KeepalivedRule4 = await keepalivedRuleServiceInstance.store({
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 4,
         });
         data = {
@@ -685,10 +685,10 @@ describe("KeepalivedRule E2E Tests", () => {
         } as KeepalivedRuleCopyDto;
       });
 
-      it("guest user should not move a Keepalived rule", async () => {
+      it('guest user should not move a Keepalived rule', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.move", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.move', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
@@ -697,31 +697,31 @@ describe("KeepalivedRule E2E Tests", () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not move a Keepalived rule", async () => {
+      it('regular user which does not belong to the fwcloud should not move a Keepalived rule', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.move", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.move', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send(data)
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should move a Keepalived rule", async () => {
+      it('regular user which belongs to the fwcloud should move a Keepalived rule', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.move", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.move', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send(data)
           .expect(200)
           .then((response) => {
@@ -758,15 +758,15 @@ describe("KeepalivedRule E2E Tests", () => {
         ).to.equal(4);
       });
 
-      it("admin user should move a Keepalived rule", async () => {
+      it('admin user should move a Keepalived rule', async () => {
         await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.move", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.move', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send(data)
           .expect(200)
           .then((response) => {
@@ -804,12 +804,12 @@ describe("KeepalivedRule E2E Tests", () => {
       });
     });
 
-    describe("@bulkUpdate", () => {
+    describe('@bulkUpdate', () => {
       let rule1: KeepalivedRule;
       let rule2: KeepalivedRule;
       const data: KeepalivedRuleBulkUpdateDto = {
         active: false,
-        style: "style",
+        style: 'style',
       };
 
       beforeEach(async () => {
@@ -817,22 +817,22 @@ describe("KeepalivedRule E2E Tests", () => {
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 1,
         });
         rule2 = await keepalivedRuleServiceInstance.store({
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 2,
         });
       });
 
-      it("guest user should not bulk update a Keepalived rule", async () => {
+      it('guest user should not bulk update a Keepalived rule', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.bulkUpdate", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.bulkUpdate', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
@@ -844,15 +844,15 @@ describe("KeepalivedRule E2E Tests", () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not bulk update a Keepalived rule", async () => {
+      it('regular user which does not belong to the fwcloud should not bulk update a Keepalived rule', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.bulkUpdate", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.bulkUpdate', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .query({
             rules: [rule1.id, rule2.id],
           })
@@ -860,18 +860,18 @@ describe("KeepalivedRule E2E Tests", () => {
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should bulk update a Keepalived rule", async () => {
+      it('regular user which belongs to the fwcloud should bulk update a Keepalived rule', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.bulkUpdate", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.bulkUpdate', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .query({
             rules: [rule1.id, rule2.id],
           })
@@ -889,15 +889,15 @@ describe("KeepalivedRule E2E Tests", () => {
         ).to.equal(false);
       });
 
-      it("admin user should bulk update a Keepalived rule", async () => {
+      it('admin user should bulk update a Keepalived rule', async () => {
         await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.bulkUpdate", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.bulkUpdate', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .query({
             rules: [rule1.id, rule2.id],
           })
@@ -916,7 +916,7 @@ describe("KeepalivedRule E2E Tests", () => {
       });
     });
 
-    describe("@bulkRemove", () => {
+    describe('@bulkRemove', () => {
       let rule1: KeepalivedRule;
       let rule2: KeepalivedRule;
 
@@ -925,22 +925,22 @@ describe("KeepalivedRule E2E Tests", () => {
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 1,
         });
         rule2 = await keepalivedRuleServiceInstance.store({
           active: true,
           group: group.id,
           firewallId: firewall.id,
-          comment: "comment",
+          comment: 'comment',
           rule_order: 2,
         });
       });
 
-      it("guest user should not bulk remove a Keepalived rule", async () => {
+      it('guest user should not bulk remove a Keepalived rule', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.bulkRemove", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.bulkRemove', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
@@ -951,33 +951,33 @@ describe("KeepalivedRule E2E Tests", () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not bulk remove a Keepalived rule", async () => {
+      it('regular user which does not belong to the fwcloud should not bulk remove a Keepalived rule', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.bulkRemove", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.bulkRemove', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .query({
             rules: [rule1.id, rule2.id],
           })
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should bulk remove a Keepalived rule", async () => {
+      it('regular user which belongs to the fwcloud should bulk remove a Keepalived rule', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.bulkRemove", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.bulkRemove', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .query({
             rules: [rule1.id, rule2.id],
           })
@@ -992,15 +992,15 @@ describe("KeepalivedRule E2E Tests", () => {
           .undefined;
       });
 
-      it("admin user should bulk remove a Keepalived rule", async () => {
+      it('admin user should bulk remove a Keepalived rule', async () => {
         await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.system.keepalived.bulkRemove", {
+            _URL().getURL('fwclouds.firewalls.system.keepalived.bulkRemove', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .query({
             rules: [rule1.id, rule2.id],
           })

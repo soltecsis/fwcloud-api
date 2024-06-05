@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Service } from "./service";
-import { AbstractApplication } from "../abstract-application";
+import { Service } from './service';
+import { AbstractApplication } from '../abstract-application';
 
 export interface ServiceBound {
   singleton: boolean;
@@ -57,7 +57,7 @@ export class ServiceContainer {
     target: (app: AbstractApplication) => Promise<T>,
   ): ServiceBound {
     if (this.isBound(name)) {
-      throw new Error("Service " + name + "has been already bound");
+      throw new Error('Service ' + name + 'has been already bound');
     }
 
     const bound: ServiceBound = {
@@ -77,7 +77,7 @@ export class ServiceContainer {
     target: (app: AbstractApplication) => Promise<T>,
   ): ServiceBound {
     if (this.isBound(name)) {
-      throw new Error("Service " + name + "has been already bound");
+      throw new Error('Service ' + name + 'has been already bound');
     }
 
     const bound: ServiceBound = {

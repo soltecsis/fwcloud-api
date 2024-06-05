@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Service } from "../services/service";
-import { AbstractApplication } from "../abstract-application";
-import { Request, Response, NextFunction } from "express";
-import { AuthorizationException } from "../exceptions/authorization-exception";
+import { Service } from '../services/service';
+import { AbstractApplication } from '../abstract-application';
+import { Request, Response, NextFunction } from 'express';
+import { AuthorizationException } from '../exceptions/authorization-exception';
 
 export class AuthorizationService extends Service {
   protected _policies: Array<any>;

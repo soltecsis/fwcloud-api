@@ -4,8 +4,8 @@ import {
   IsNumber,
   IsPositive,
   IsString,
-} from "class-validator";
-import { Offset } from "../../../../offset";
+} from 'class-validator';
+import { Offset } from '../../../../offset';
 
 export class RouteControllerMoveDto {
   @IsNumber()

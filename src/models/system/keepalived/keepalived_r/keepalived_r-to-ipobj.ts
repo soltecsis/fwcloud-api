@@ -5,22 +5,22 @@ import {
   ManyToMany,
   JoinColumn,
   ManyToOne,
-} from "typeorm";
-import Model from "../../../Model";
-import { KeepalivedRule } from "./keepalived_r.model";
-import { IPObj } from "../../../ipobj/IPObj";
+} from 'typeorm';
+import Model from '../../../Model';
+import { KeepalivedRule } from './keepalived_r.model';
+import { IPObj } from '../../../ipobj/IPObj';
 
-const tableName: string = "keepalived_r__ipobj";
+const tableName: string = 'keepalived_r__ipobj';
 
 @Entity(tableName)
 export class KeepalivedToIPObj extends Model {
   @PrimaryColumn({
-    name: "rule",
+    name: 'rule',
   })
   keepalivedRuleId: number;
 
   @PrimaryColumn({
-    name: "ipobj",
+    name: 'ipobj',
   })
   ipObjId: number;
 
@@ -31,16 +31,16 @@ export class KeepalivedToIPObj extends Model {
     () => KeepalivedRule,
     (keepalivedRule) => keepalivedRule.virtualIps,
     {
-      orphanedRowAction: "delete",
+      orphanedRowAction: 'delete',
     },
   )
-  @JoinColumn({ name: "rule" })
+  @JoinColumn({ name: 'rule' })
   keepalivedRule: KeepalivedRule;
 
   @ManyToOne(() => IPObj, (ipObj) => ipObj.keepalivedRuleToIPObjs, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
-  @JoinColumn({ name: "ipobj" })
+  @JoinColumn({ name: 'ipobj' })
   ipObj: IPObj;
 
   public getTableName(): string {

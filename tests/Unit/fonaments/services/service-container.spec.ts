@@ -20,12 +20,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ServiceContainer } from "../../../../src/fonaments/services/service-container";
-import { Application } from "../../../../src/Application";
-import { Service } from "../../../../src/fonaments/services/service";
-import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
-import { testSuite, expect, describeName } from "../../../mocha/global-setup";
-import StringHelper from "../../../../src/utils/string.helper";
+import { ServiceContainer } from '../../../../src/fonaments/services/service-container';
+import { Application } from '../../../../src/Application';
+import { Service } from '../../../../src/fonaments/services/service';
+import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
+import { testSuite, expect, describeName } from '../../../mocha/global-setup';
+import StringHelper from '../../../../src/utils/string.helper';
 
 let app: Application;
 before(async () => {
@@ -36,9 +36,9 @@ class TestService extends Service {
   public tag: string;
 }
 
-describe(describeName("Service container tests"), () => {
-  describe("bind()", () => {
-    it("should include a service reference into the services array", async () => {
+describe(describeName('Service container tests'), () => {
+  describe('bind()', () => {
+    it('should include a service reference into the services array', async () => {
       const sc = new ServiceContainer(app);
 
       sc.bind(TestService.name, null);
@@ -46,7 +46,7 @@ describe(describeName("Service container tests"), () => {
       expect(sc.services).to.be.deep.equal([
         {
           singleton: false,
-          name: "TestService",
+          name: 'TestService',
           target: null,
           instance: null,
         },
@@ -54,8 +54,8 @@ describe(describeName("Service container tests"), () => {
     });
   });
 
-  describe("singleton()", () => {
-    it("should include a service reference with an instance", async () => {
+  describe('singleton()', () => {
+    it('should include a service reference with an instance', async () => {
       const sc = new ServiceContainer(app);
       sc.singleton<TestService>(
         TestService.name,
@@ -64,14 +64,14 @@ describe(describeName("Service container tests"), () => {
         },
       );
 
-      expect(await sc.get<TestService>("TestService")).to.be.deep.equal(
+      expect(await sc.get<TestService>('TestService')).to.be.deep.equal(
         await TestService.make(app),
       );
     });
   });
 
-  describe("get()", () => {
-    it("should return an instance of the service if the service has been registered using bind", async () => {
+  describe('get()', () => {
+    it('should return an instance of the service if the service has been registered using bind', async () => {
       const sc = new ServiceContainer(app);
       sc.bind(
         TestService.name,
@@ -83,7 +83,7 @@ describe(describeName("Service container tests"), () => {
       );
     });
 
-    it("should return the instance of the service if the service has been registered using singleton", async () => {
+    it('should return the instance of the service if the service has been registered using singleton', async () => {
       const sc = new ServiceContainer(app);
 
       sc.singleton(TestService.name, async (app: AbstractApplication) => {
@@ -97,7 +97,7 @@ describe(describeName("Service container tests"), () => {
       ).to.be.deep.equal((await sc.get<TestService>(TestService.name)).tag);
     });
 
-    it("should return a new instance of the service if the service is not singleton", async () => {
+    it('should return a new instance of the service if the service is not singleton', async () => {
       const sc = new ServiceContainer(app);
 
       sc.bind(TestService.name, async (app: AbstractApplication) => {

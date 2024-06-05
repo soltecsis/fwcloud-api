@@ -3,26 +3,26 @@ import {
   testSuite,
   playgroundPath,
   expect,
-} from "../../mocha/global-setup";
-import { Application } from "../../../src/Application";
-import * as path from "path";
-import * as fs from "fs";
-import { FwCloudExport } from "../../../src/fwcloud-exporter/fwcloud-export";
-import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { getRepository } from "typeorm";
-import StringHelper from "../../../src/utils/string.helper";
-import { FSHelper } from "../../../src/utils/fs-helper";
-import { Snapshot, SnapshotMetadata } from "../../../src/snapshots/snapshot";
-import { SnapshotService } from "../../../src/snapshots/snapshot.service";
-import { User } from "../../../src/models/user/User";
-import { createUser } from "../../utils/utils";
-import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
-import Sinon from "sinon";
-import { DatabaseService } from "../../../src/database/database.service";
-import sinon from "sinon";
-import { Firewall } from "../../../src/models/firewall/Firewall";
+} from '../../mocha/global-setup';
+import { Application } from '../../../src/Application';
+import * as path from 'path';
+import * as fs from 'fs';
+import { FwCloudExport } from '../../../src/fwcloud-exporter/fwcloud-export';
+import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
+import { getRepository } from 'typeorm';
+import StringHelper from '../../../src/utils/string.helper';
+import { FSHelper } from '../../../src/utils/fs-helper';
+import { Snapshot, SnapshotMetadata } from '../../../src/snapshots/snapshot';
+import { SnapshotService } from '../../../src/snapshots/snapshot.service';
+import { User } from '../../../src/models/user/User';
+import { createUser } from '../../utils/utils';
+import { SnapshotNotCompatibleException } from '../../../src/snapshots/exceptions/snapshot-not-compatible.exception';
+import Sinon from 'sinon';
+import { DatabaseService } from '../../../src/database/database.service';
+import sinon from 'sinon';
+import { Firewall } from '../../../src/models/firewall/Firewall';
 
-describe(describeName("FwCloudExport Unit Tests"), () => {
+describe(describeName('FwCloudExport Unit Tests'), () => {
   let app: Application;
   let fwCloud: FwCloud;
   let directory: string;
@@ -48,8 +48,8 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
     directory = path.join(playgroundPath, StringHelper.randomize(10));
   });
 
-  describe("create()", () => {
-    it("should create the directory where the exportation is going to be created", async () => {
+  describe('create()', () => {
+    it('should create the directory where the exportation is going to be created', async () => {
       const fwcloudExport: FwCloudExport = await FwCloudExport.create(
         directory,
         fwCloud,
@@ -59,7 +59,7 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
       expect(FSHelper.directoryExistsSync(directory)).to.be.true;
     });
 
-    it("should create the export directory within the directory defined", async () => {
+    it('should create the export directory within the directory defined', async () => {
       const fwCloudExport: FwCloudExport = await FwCloudExport.create(
         directory,
         fwCloud,
@@ -71,7 +71,7 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
       ).to.be.true;
     });
 
-    it("should create a fwcloud snapshot data in the fwcloud directory within export directory", async () => {
+    it('should create a fwcloud snapshot data in the fwcloud directory within export directory', async () => {
       const fwCloudExport: FwCloudExport = await FwCloudExport.create(
         directory,
         fwCloud,
@@ -94,12 +94,12 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
       ).to.be.true;
     });
 
-    it("should copy snapshot data directories if the fwcloud snapshot contains it", async () => {
+    it('should copy snapshot data directories if the fwcloud snapshot contains it', async () => {
       FSHelper.mkdirSync(fwCloud.getPkiDirectoryPath());
       FSHelper.mkdirSync(fwCloud.getPolicyDirectoryPath());
 
-      fs.writeFileSync(path.join(fwCloud.getPkiDirectoryPath(), "test"), "");
-      fs.writeFileSync(path.join(fwCloud.getPolicyDirectoryPath(), "test"), "");
+      fs.writeFileSync(path.join(fwCloud.getPkiDirectoryPath(), 'test'), '');
+      fs.writeFileSync(path.join(fwCloud.getPolicyDirectoryPath(), 'test'), '');
 
       const fwCloudExport: FwCloudExport = await FwCloudExport.create(
         directory,
@@ -118,7 +118,7 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
       ).to.be.true;
     });
 
-    it("should copy fwcloud snapshots within fwcloud export directory", async () => {
+    it('should copy fwcloud snapshots within fwcloud export directory', async () => {
       const snapshot1: Snapshot = await Snapshot.create(
         snapshotService.config.data_dir,
         fwCloud,
@@ -155,8 +155,8 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
     });
   });
 
-  describe("compress()", () => {
-    it("should generate a compress file", async () => {
+  describe('compress()', () => {
+    it('should generate a compress file', async () => {
       const fwCloudExport: FwCloudExport = await FwCloudExport.create(
         directory,
         fwCloud,
@@ -166,19 +166,19 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
 
       expect(FSHelper.fileExistsSync(fwCloudExport.exportPath)).to.be.true;
       expect(fwCloudExport.exportPath).to.be.deep.eq(
-        fwCloudExport.path + ".fwcloud",
+        fwCloudExport.path + '.fwcloud',
       );
     });
   });
 
-  describe("load()", () => {
+  describe('load()', () => {
     let fwCloudExporter: FwCloudExport;
 
     beforeEach(async () => {
       fwCloudExporter = await FwCloudExport.create(directory, fwCloud, user);
     });
 
-    it("should load the export directory", async () => {
+    it('should load the export directory', async () => {
       fwCloudExporter = await FwCloudExport.load(fwCloudExporter.path);
 
       expect(fwCloudExporter).to.be.instanceOf(FwCloudExport);
@@ -186,7 +186,7 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
     });
   });
 
-  describe("loadCompressed()", () => {
+  describe('loadCompressed()', () => {
     let fwCloudExport: FwCloudExport;
 
     beforeEach(async () => {
@@ -195,7 +195,7 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
       await FSHelper.remove(fwCloudExport.path);
     });
 
-    it("should unzip the file", async () => {
+    it('should unzip the file', async () => {
       await FwCloudExport.loadCompressed(fwCloudExport.exportPath);
 
       expect(FSHelper.directoryExistsSync(fwCloudExport.path)).to.be.true;
@@ -207,7 +207,7 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
     });
   });
 
-  describe("import()", () => {
+  describe('import()', () => {
     let fwCloudExporter: FwCloudExport;
     let snapshot: Snapshot;
 
@@ -219,14 +219,14 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
       fwCloudExporter = await FwCloudExport.create(directory, fwCloud, user);
     });
 
-    it("should import the fwcloud as a new fwcloud", async () => {
+    it('should import the fwcloud as a new fwcloud', async () => {
       const restoredFwCloud: FwCloud = await fwCloudExporter.import();
 
       expect(fwCloud).to.be.instanceOf(FwCloud);
       expect(restoredFwCloud.id).to.be.deep.eq(fwCloud.id + 1);
     });
 
-    it("should copy snapshots", async () => {
+    it('should copy snapshots', async () => {
       const restoredFwCloud: FwCloud = await fwCloudExporter.import();
 
       expect(
@@ -244,10 +244,10 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
       ).to.be.true;
     });
 
-    it("should throw an exception if the export is not compatible", async () => {
+    it('should throw an exception if the export is not compatible', async () => {
       fwCloudExporter = await FwCloudExport.create(directory, fwCloud, user);
 
-      const stub = Sinon.stub(Snapshot.prototype, "compatible").get(
+      const stub = Sinon.stub(Snapshot.prototype, 'compatible').get(
         () => false,
       );
 
@@ -259,14 +259,14 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
       stub.restore();
     });
 
-    it("should remove encrypted data if export snapshot hash is not equal", async () => {
+    it('should remove encrypted data if export snapshot hash is not equal', async () => {
       let firewall: Firewall = await Firewall.save(
         Firewall.create({
-          name: "firewall_test",
+          name: 'firewall_test',
           status: 1,
           fwCloudId: fwCloud.id,
-          install_user: "test",
-          install_pass: "test",
+          install_user: 'test',
+          install_pass: 'test',
         }),
       );
 
@@ -283,7 +283,7 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
           )
           .toString(),
       );
-      snapshotMetadata.hash = "test";
+      snapshotMetadata.hash = 'test';
       fs.writeFileSync(
         path.join(
           fwCloudExporter.path,
@@ -302,8 +302,8 @@ describe(describeName("FwCloudExport Unit Tests"), () => {
     });
   });
 
-  describe("toResponse()", () => {
-    it("should return the response object", async () => {
+  describe('toResponse()', () => {
+    it('should return the response object', async () => {
       const fwCloudExport: FwCloudExport = await FwCloudExport.create(
         directory,
         fwCloud,

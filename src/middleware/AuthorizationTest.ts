@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
-import { Request, Response, NextFunction } from "express";
-import { AuthorizationException } from "../fonaments/exceptions/authorization-exception";
-import * as fs from "fs";
-import * as path from "path";
-import { app, logger } from "../fonaments/abstract-application";
-import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
+import { Request, Response, NextFunction } from 'express';
+import { AuthorizationException } from '../fonaments/exceptions/authorization-exception';
+import * as fs from 'fs';
+import * as path from 'path';
+import { app, logger } from '../fonaments/abstract-application';
+import { User } from '../models/user/User';
+import { getRepository } from 'typeorm';
 
 type SessionData = {
   user_id: number;
@@ -42,7 +42,7 @@ export class AuthorizationTest extends Middleware {
     next: NextFunction,
   ): Promise<void> {
     // Exclude the login route.
-    if (req.method === "POST" && req.path === "/user/login") {
+    if (req.method === 'POST' && req.path === '/user/login') {
       return next();
     }
 
@@ -56,8 +56,8 @@ export class AuthorizationTest extends Middleware {
 
         const id: string = this.getSessionIdFromCookie(fwcloudCookie);
         const session_path: string = path.join(
-          this.app.config.get("session").files_path,
-          id + ".json",
+          this.app.config.get('session').files_path,
+          id + '.json',
         );
         if (!fs.existsSync(session_path)) {
           throw new AuthorizationException();
@@ -76,13 +76,13 @@ export class AuthorizationTest extends Middleware {
 
         // If we arrive here, then the session is correct.
         logger().debug(
-          "USER AUTHORIZED (customer_id: " +
+          'USER AUTHORIZED (customer_id: ' +
             req.session.customer_id +
-            ", user_id: " +
+            ', user_id: ' +
             req.session.user_id +
-            ", username: " +
+            ', username: ' +
             req.session.username +
-            ")",
+            ')',
         );
         return next();
       }
@@ -94,17 +94,17 @@ export class AuthorizationTest extends Middleware {
   }
 
   protected getFwCloudCookie(cookie: string): string {
-    const cookies = cookie.split(";").map((item) => {
+    const cookies = cookie.split(';').map((item) => {
       return item.trim();
     });
 
     for (let i = 0; i < cookies.length; i++) {
       if (
-        new RegExp("^" + this.app.config.get("session").name + "=").test(
+        new RegExp('^' + this.app.config.get('session').name + '=').test(
           cookies[i],
         )
       ) {
-        return cookies[i].split(this.app.config.get("session").name + "=")[1];
+        return cookies[i].split(this.app.config.get('session').name + '=')[1];
       }
     }
 
@@ -112,6 +112,6 @@ export class AuthorizationTest extends Middleware {
   }
 
   protected getSessionIdFromCookie(cookie: string): string {
-    return cookie.split(".")[0];
+    return cookie.split('.')[0];
   }
 }

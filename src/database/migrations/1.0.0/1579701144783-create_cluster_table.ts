@@ -20,60 +20,60 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MigrationInterface, QueryRunner, Table } from "typeorm";
+import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class createClusterTable1579701144783 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<any> {
     // cluster
     await queryRunner.createTable(
       new Table({
-        name: "cluster",
+        name: 'cluster',
         columns: [
           {
-            name: "id",
-            type: "int",
+            name: 'id',
+            type: 'int',
             isPrimary: true,
             isGenerated: true,
-            generationStrategy: "increment",
+            generationStrategy: 'increment',
           },
           {
-            name: "fwcloud",
-            type: "int",
+            name: 'fwcloud',
+            type: 'int',
             isNullable: false,
           },
           {
-            name: "name",
-            type: "varchar",
+            name: 'name',
+            type: 'varchar',
             isNullable: false,
           },
           {
-            name: "comment",
-            type: "varchar",
+            name: 'comment',
+            type: 'varchar',
             isNullable: true,
             default: null,
           },
           {
-            name: "created_at",
-            type: "datetime",
+            name: 'created_at',
+            type: 'datetime',
             isNullable: false,
-            default: "CURRENT_TIMESTAMP",
+            default: 'CURRENT_TIMESTAMP',
           },
           {
-            name: "updated_at",
-            type: "datetime",
+            name: 'updated_at',
+            type: 'datetime',
             isNullable: false,
-            default: "CURRENT_TIMESTAMP",
-            onUpdate: "CURRENT_TIMESTAMP",
+            default: 'CURRENT_TIMESTAMP',
+            onUpdate: 'CURRENT_TIMESTAMP',
           },
           {
-            name: "created_by",
-            type: "int",
+            name: 'created_by',
+            type: 'int',
             isNullable: false,
             default: 0,
           },
           {
-            name: "updated_by",
-            type: "int",
+            name: 'updated_by',
+            type: 'int',
             isNullable: false,
             default: 0,
           },
@@ -84,6 +84,6 @@ export class createClusterTable1579701144783 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<any> {
-    await queryRunner.dropTable("cluster", true);
+    await queryRunner.dropTable('cluster', true);
   }
 }

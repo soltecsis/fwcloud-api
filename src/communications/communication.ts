@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EventEmitter } from "events";
-import { HttpException } from "../fonaments/exceptions/http/http-exception";
-import { ProgressErrorPayload } from "../sockets/messages/socket-message";
+import { EventEmitter } from 'events';
+import { HttpException } from '../fonaments/exceptions/http/http-exception';
+import { ProgressErrorPayload } from '../sockets/messages/socket-message';
 
 export type CCDHash = {
   filename: string;
@@ -56,7 +56,7 @@ type ErrorWithCode = {
 } & Error;
 
 function errorHasCode(error: Error): error is ErrorWithCode {
-  return Object.prototype.hasOwnProperty.call(error, "code");
+  return Object.prototype.hasOwnProperty.call(error, 'code');
 }
 
 export abstract class Communication<ConnectionData> {
@@ -114,25 +114,25 @@ export abstract class Communication<ConnectionData> {
 
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
     if (errorHasCode(error)) {
-      if (error.code === "ECONNREFUSED") {
+      if (error.code === 'ECONNREFUSED') {
         eventEmitter?.emit(
-          "message",
+          'message',
           new ProgressErrorPayload(`ECONNREFUSED: Port is not valid\n`),
         );
         throw new HttpException(`ECONNREFUSED: Port is not valid`, 400);
       }
 
-      if (error.code === "ETIMEDOUT") {
+      if (error.code === 'ETIMEDOUT') {
         eventEmitter?.emit(
-          "message",
+          'message',
           new ProgressErrorPayload(`ETIMEDOUT: Host is not valid\n`),
         );
         throw new HttpException(`ETIMEDOUT: IP is not valid`, 400);
       }
 
-      if (error.code === "ECONNRESET") {
+      if (error.code === 'ECONNRESET') {
         eventEmitter?.emit(
-          "message",
+          'message',
           new ProgressErrorPayload(
             `ECONNRESET: Port or protocol might not be valid\n`,
           ),
@@ -143,9 +143,9 @@ export abstract class Communication<ConnectionData> {
         );
       }
 
-      if (error.code === "EPROTO") {
+      if (error.code === 'EPROTO') {
         eventEmitter?.emit(
-          "message",
+          'message',
           new ProgressErrorPayload(`EPROTO: Protocol error\n`),
         );
         throw new HttpException(`EPROTO: Protocol error`, 400);

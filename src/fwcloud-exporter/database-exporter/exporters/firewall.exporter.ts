@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { SelectQueryBuilder } from "typeorm";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { SelectQueryBuilder } from 'typeorm';
 
 export class FirewallExporter extends TableExporter {
   protected getEntity(): typeof Model {

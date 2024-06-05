@@ -4,7 +4,7 @@ import {
   ValidationOptions,
   ValidatorConstraint,
   ValidatorConstraintInterface,
-} from "class-validator";
+} from 'class-validator';
 
 @ValidatorConstraint({ async: true })
 export class IsRoutingTableNumberConstraint
@@ -18,7 +18,7 @@ export class IsRoutingTableNumberConstraint
 export function IsRoutingTableNumber(validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string) {
     registerDecorator({
-      name: "isRoutingTableNumber",
+      name: 'isRoutingTableNumber',
       target: object.constructor,
       propertyName: propertyName,
       constraints: [],

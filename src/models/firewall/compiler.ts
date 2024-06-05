@@ -1,6 +1,6 @@
-import { Firewall } from "./Firewall";
-import * as fs from "fs";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+import { Firewall } from './Firewall';
+import * as fs from 'fs';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
 
 export class Compiler {
   protected _firewall: Firewall;

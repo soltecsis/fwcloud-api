@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Application } from "./Application";
-import https from "https";
-import http from "http";
-import * as fs from "fs";
-import io from "socket.io";
-import { ConfigurationErrorException } from "./config/exceptions/configuration-error.exception";
-import { logger } from "./fonaments/abstract-application";
+import { Application } from './Application';
+import https from 'https';
+import http from 'http';
+import * as fs from 'fs';
+import io from 'socket.io';
+import { ConfigurationErrorException } from './config/exceptions/configuration-error.exception';
+import { logger } from './fonaments/abstract-application';
 
 export class Server {
   private _application: Application;
@@ -42,19 +42,19 @@ export class Server {
     try {
       this.validateApplicationConfiguration();
 
-      if (this._config.get("api_server").enabled) {
+      if (this._config.get('api_server').enabled) {
         this._server = this.isHttps()
           ? this.startHttpsServer()
           : this.startHttpServer();
         this.bootstrapEvents();
         await this.bootstrapSocketIO();
-      } else logger().info("API server not started because it is not enabled.");
+      } else logger().info('API server not started because it is not enabled.');
     } catch (error) {
-      logger().error("ERROR CREATING HTTP/HTTPS SERVER: ", error);
+      logger().error('ERROR CREATING HTTP/HTTPS SERVER: ', error);
       process.exit(1);
     }
 
-    fs.writeFileSync(".pid", `${process.pid}`);
+    fs.writeFileSync('.pid', `${process.pid}`);
 
     return this;
   }
@@ -65,10 +65,10 @@ export class Server {
       cert: string;
       ca: string | null;
     } = {
-      key: fs.readFileSync(this._config.get("api_server").key).toString(),
-      cert: fs.readFileSync(this._config.get("api_server").cert).toString(),
-      ca: this._config.get("api_server").ca_bundle
-        ? fs.readFileSync(this._config.get("api_server").ca_bundle).toString()
+      key: fs.readFileSync(this._config.get('api_server').key).toString(),
+      cert: fs.readFileSync(this._config.get('api_server').cert).toString(),
+      ca: this._config.get('api_server').ca_bundle
+        ? fs.readFileSync(this._config.get('api_server').ca_bundle).toString()
         : null,
     };
 
@@ -81,20 +81,20 @@ export class Server {
 
   private bootstrapEvents() {
     this._server.listen(
-      this._config.get("api_server").port,
-      this._config.get("api_server").ip,
+      this._config.get('api_server').port,
+      this._config.get('api_server').ip,
     );
 
-    this._server.on("error", (error: Error) => {
+    this._server.on('error', (error: Error) => {
       throw error;
     });
 
-    this._server.on("listening", () => {
+    this._server.on('listening', () => {
       logger().info(`Listening on ${this.getFullURL()}`);
 
       // In prod mode, log messages are not shown in terminal. As a result, user doesn't know when application has started.
       // So, we print out the message directly
-      if (this._config.get("env") === "prod") {
+      if (this._config.get('env') === 'prod') {
         console.log(`Listening on ${this.getFullURL()}`);
       }
     });
@@ -102,50 +102,50 @@ export class Server {
 
   private async bootstrapSocketIO() {
     const _io: io.Server = new io.Server(this._server, {
-      pingInterval: this._config.get("socket_io").pingInterval,
-      pingTimeout: this._config.get("socket_io").pingTimeout,
+      pingInterval: this._config.get('socket_io').pingInterval,
+      pingTimeout: this._config.get('socket_io').pingTimeout,
     });
     await (<Application>this._application).setSocketIO(_io);
   }
 
   protected validateApplicationConfiguration() {
-    if (!this._application.config.get("session").secret) {
+    if (!this._application.config.get('session').secret) {
       throw new ConfigurationErrorException(
-        "Configuration Error: Session secret must be defined in .env",
+        'Configuration Error: Session secret must be defined in .env',
       );
     }
 
-    if (!this._application.config.get("db").pass) {
+    if (!this._application.config.get('db').pass) {
       throw new ConfigurationErrorException(
-        "Configuration Error: Database password must be defined in .env",
+        'Configuration Error: Database password must be defined in .env',
       );
     }
 
-    if (!this._application.config.get("crypt").secret) {
+    if (!this._application.config.get('crypt').secret) {
       throw new ConfigurationErrorException(
-        "Configuration Error: Encryption secret must be defined in .env",
+        'Configuration Error: Encryption secret must be defined in .env',
       );
     }
 
     if (process.env.CORS_WHITELIST) {
       this._application.config.set(
-        "CORS.whitelist",
-        process.env.CORS_WHITELIST.replace(/ +/g, "").split(","),
+        'CORS.whitelist',
+        process.env.CORS_WHITELIST.replace(/ +/g, '').split(','),
       );
     }
   }
 
   public isHttps(): boolean {
-    return this._config.get("api_server").https as boolean;
+    return this._config.get('api_server').https as boolean;
   }
 
   protected getFullURL(): string {
     return (
-      (this.isHttps() ? "https" : "http") +
-      "://" +
-      this._application.config.get("api_server").ip +
-      ":" +
-      this._application.config.get("api_server").port
+      (this.isHttps() ? 'https' : 'http') +
+      '://' +
+      this._application.config.get('api_server').ip +
+      ':' +
+      this._application.config.get('api_server').port
     );
   }
 

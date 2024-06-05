@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
-import db from "../../database/database-manager";
+import Model from '../Model';
+import db from '../../database/database-manager';
 import {
   PrimaryColumn,
   Column,
@@ -29,13 +29,13 @@ import {
   OneToMany,
   JoinTable,
   ManyToMany,
-} from "typeorm";
-import { FwcTree } from "../tree/fwc-tree.model";
-import { IPObj } from "./IPObj";
-import { PolicyPosition } from "../policy/PolicyPosition";
-import { IPObjTypeToPolicyPosition } from "./IPObjTypeToPolicyPosition";
+} from 'typeorm';
+import { FwcTree } from '../tree/fwc-tree.model';
+import { IPObj } from './IPObj';
+import { PolicyPosition } from '../policy/PolicyPosition';
+import { IPObjTypeToPolicyPosition } from './IPObjTypeToPolicyPosition';
 
-const tableName: string = "ipobj_type";
+const tableName: string = 'ipobj_type';
 
 @Entity(tableName)
 export class IPObjType extends Model {
@@ -59,12 +59,12 @@ export class IPObjType extends Model {
     (policyPosition) => policyPosition.ipObjTypes,
   )
   @JoinTable({
-    name: "ipobj_type__policy_position",
+    name: 'ipobj_type__policy_position',
     joinColumn: {
-      name: "type",
+      name: 'type',
     },
     inverseJoinColumn: {
-      name: "position",
+      name: 'position',
     },
   })
   policyPositions: Array<PolicyPosition>;
@@ -81,7 +81,7 @@ export class IPObjType extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query(
-        "SELECT * FROM " + tableName + " ORDER BY id",
+        'SELECT * FROM ' + tableName + ' ORDER BY id',
         (error, rows) => {
           if (error) callback(error, null);
           else callback(null, rows);

@@ -20,27 +20,27 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as process from "process";
-import * as yargs from "yargs";
+import * as process from 'process';
+import * as yargs from 'yargs';
 import {
   Connection,
   ConnectionOptionsReader,
   createConnection,
   MigrationExecutor,
   QueryRunner,
-} from "typeorm";
-import * as config from "../../config/config";
-import { Application } from "../Application";
-import { DatabaseService } from "../../database/database.service";
-import { logger } from "../../fonaments/abstract-application";
-import { Command } from "../command";
+} from 'typeorm';
+import * as config from '../../config/config';
+import { Application } from '../Application';
+import { DatabaseService } from '../../database/database.service';
+import { logger } from '../../fonaments/abstract-application';
+import { Command } from '../command';
 
 /**
  * Command for add new standard services.
  */
 export class StandardServicesAddCommand extends Command {
-  public name: string = "standard:services:add";
-  public description: string = "Add new standard services";
+  public name: string = 'standard:services:add';
+  public description: string = 'Add new standard services';
 
   private TCP_services: {
     id: number;
@@ -48,29 +48,29 @@ export class StandardServicesAddCommand extends Command {
     port: number;
     comment: string;
   }[] = [
-    { id: 20091, name: "fwcloud-api", port: 3131, comment: "FWCloud API" },
+    { id: 20091, name: 'fwcloud-api', port: 3131, comment: 'FWCloud API' },
     {
       id: 20092,
-      name: "fwcloud-ui",
+      name: 'fwcloud-ui',
       port: 3030,
-      comment: "FWCloud user interface",
+      comment: 'FWCloud user interface',
     },
-    { id: 20093, name: "fwcloud-agent", port: 33033, comment: "FWCloud-Agent" },
-    { id: 20094, name: "elasticsearch", port: 9200, comment: "Elasticsearch" },
-    { id: 20095, name: "kibana", port: 5601, comment: "Kibana" },
-    { id: 20096, name: "ntopng", port: 3000, comment: "NtopNG" },
-    { id: 20097, name: "influxdb", port: 8086, comment: "InfluxDB" },
+    { id: 20093, name: 'fwcloud-agent', port: 33033, comment: 'FWCloud-Agent' },
+    { id: 20094, name: 'elasticsearch', port: 9200, comment: 'Elasticsearch' },
+    { id: 20095, name: 'kibana', port: 5601, comment: 'Kibana' },
+    { id: 20096, name: 'ntopng', port: 3000, comment: 'NtopNG' },
+    { id: 20097, name: 'influxdb', port: 8086, comment: 'InfluxDB' },
     {
       id: 20098,
-      name: "websafety-ui",
+      name: 'websafety-ui',
       port: 8095,
-      comment: "Web Safety Proxy user interface",
+      comment: 'Web Safety Proxy user interface',
     },
     {
       id: 20099,
-      name: "dnssafety-ui",
+      name: 'dnssafety-ui',
       port: 8096,
-      comment: "DNS Safety user interface",
+      comment: 'DNS Safety user interface',
     },
   ];
 
@@ -132,7 +132,7 @@ export class StandardServicesAddCommand extends Command {
   async handle(args: yargs.Arguments) {
     const databaseService: DatabaseService =
       await this._app.getService<DatabaseService>(DatabaseService.name);
-    this.connection = await databaseService.getConnection({ name: "cli" });
+    this.connection = await databaseService.getConnection({ name: 'cli' });
 
     await this.addStandardTCPServices();
   }

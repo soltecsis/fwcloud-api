@@ -1,11 +1,11 @@
-import { Service } from "../fonaments/services/service";
-import { FSHelper } from "../utils/fs-helper";
-import { FwCloudExport } from "./fwcloud-export";
-import { FwCloud } from "../models/fwcloud/FwCloud";
-import { User } from "../models/user/User";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { Progress } from "../fonaments/http/progress/progress";
-import { ProgressPayload } from "../sockets/messages/socket-message";
+import { Service } from '../fonaments/services/service';
+import { FSHelper } from '../utils/fs-helper';
+import { FwCloudExport } from './fwcloud-export';
+import { FwCloud } from '../models/fwcloud/FwCloud';
+import { User } from '../models/user/User';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { Progress } from '../fonaments/http/progress/progress';
+import { ProgressPayload } from '../sockets/messages/socket-message';
 
 export type ExporterConfig = {
   data_dir: string;
@@ -14,7 +14,7 @@ export type ExporterConfig = {
 
 export class FwCloudExportService extends Service {
   get config(): ExporterConfig {
-    return this._app.config.get("exporter");
+    return this._app.config.get('exporter');
   }
 
   public async build(): Promise<Service> {
@@ -40,8 +40,8 @@ export class FwCloudExportService extends Service {
     try {
       heartbeatInerval = setInterval(() => {
         eventEmitter.emit(
-          "message",
-          new ProgressPayload("heartbeat", null, null),
+          'message',
+          new ProgressPayload('heartbeat', null, null),
         );
       }, 20000);
 
@@ -84,7 +84,7 @@ export class FwCloudExportService extends Service {
 
     user = await User.findOne({
       where: { id: user.id },
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
     user.fwClouds.push(fwCloud);
     await user.save();

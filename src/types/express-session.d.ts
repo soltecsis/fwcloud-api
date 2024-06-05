@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { User } from "../models/user/User";
+import { User } from '../models/user/User';
 
-declare module "express-session" {
+declare module 'express-session' {
   interface SessionData {
     customer_id: number;
     user_id: number;

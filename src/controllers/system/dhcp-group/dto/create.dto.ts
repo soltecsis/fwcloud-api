@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { ArrayMinSize, IsNumber, IsOptional, IsString } from "class-validator";
+import { ArrayMinSize, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class DHCPGroupControllerCreateDto {
   @IsString()

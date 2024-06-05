@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FwCloudError } from "../error";
-import { ErrorPayload } from "../../http/response-builder";
-import { Responsable } from "../../contracts/responsable";
-import { app } from "../../abstract-application";
+import { FwCloudError } from '../error';
+import { ErrorPayload } from '../../http/response-builder';
+import { Responsable } from '../../contracts/responsable';
+import { app } from '../../abstract-application';
 
 export class HttpException extends FwCloudError implements Responsable {
   public status: number;
@@ -38,7 +38,7 @@ export class HttpException extends FwCloudError implements Responsable {
       message: this.message,
     };
 
-    if (app().config.get("env") !== "prod") {
+    if (app().config.get('env') !== 'prod') {
       response.stack = this.stackToArray();
     }
 

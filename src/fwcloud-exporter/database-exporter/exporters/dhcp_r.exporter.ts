@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SelectQueryBuilder } from "typeorm";
-import Model from "../../../models/Model";
-import { DHCPRule } from "../../../models/system/dhcp/dhcp_r/dhcp_r.model";
-import { TableExporter } from "./table-exporter";
-import { DHCPGroup } from "../../../models/system/dhcp/dhcp_g/dhcp_g.model";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FirewallExporter } from "./firewall.exporter";
-import { DHCPGroupExporter } from "./dhcp_g.exporter";
+import { SelectQueryBuilder } from 'typeorm';
+import Model from '../../../models/Model';
+import { DHCPRule } from '../../../models/system/dhcp/dhcp_r/dhcp_r.model';
+import { TableExporter } from './table-exporter';
+import { DHCPGroup } from '../../../models/system/dhcp/dhcp_g/dhcp_g.model';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FirewallExporter } from './firewall.exporter';
+import { DHCPGroupExporter } from './dhcp_g.exporter';
 
 export class DHCPRuleExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -43,25 +43,25 @@ export class DHCPRuleExporter extends TableExporter {
       .where((qb) => {
         const query = qb
           .subQuery()
-          .from(DHCPGroup, "dhcp_g")
-          .select("dhcp_g.id");
+          .from(DHCPGroup, 'dhcp_g')
+          .select('dhcp_g.id');
 
         return (
           `${alias}.dhcpGroupId IN ` +
           new DHCPGroupExporter()
-            .getFilterBuilder(query, "dhcp_g", fwCloudId)
+            .getFilterBuilder(query, 'dhcp_g', fwCloudId)
             .getQuery()
         );
       })
       .where((qb) => {
         const query = qb
           .subQuery()
-          .from(Firewall, "firewall")
-          .select("firewall.id");
+          .from(Firewall, 'firewall')
+          .select('firewall.id');
         return (
           `${alias}.firewallId IN ` +
           new FirewallExporter()
-            .getFilterBuilder(query, "firewall", fwCloudId)
+            .getFilterBuilder(query, 'firewall', fwCloudId)
             .getQuery()
         );
       });

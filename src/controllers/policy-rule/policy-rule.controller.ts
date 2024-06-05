@@ -1,14 +1,14 @@
-import { NotFoundException } from "./../../fonaments/exceptions/not-found-exception";
-import { getRepository } from "typeorm";
-import { Validate } from "../../decorators/validate.decorator";
-import { app } from "../../fonaments/abstract-application";
-import { Controller } from "../../fonaments/http/controller";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { Firewall } from "../../models/firewall/Firewall";
-import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { PolicyRuleService } from "../../policy-rule/policy-rule.service";
-import { Request } from "express";
-import { PolicyRulePolicy } from "../../policies/policy-rule.policy";
+import { NotFoundException } from './../../fonaments/exceptions/not-found-exception';
+import { getRepository } from 'typeorm';
+import { Validate } from '../../decorators/validate.decorator';
+import { app } from '../../fonaments/abstract-application';
+import { Controller } from '../../fonaments/http/controller';
+import { ResponseBuilder } from '../../fonaments/http/response-builder';
+import { Firewall } from '../../models/firewall/Firewall';
+import { FwCloud } from '../../models/fwcloud/FwCloud';
+import { PolicyRuleService } from '../../policy-rule/policy-rule.service';
+import { Request } from 'express';
+import { PolicyRulePolicy } from '../../policies/policy-rule.policy';
 
 export class PolicyRuleController extends Controller {
   protected _PolicyRuleService: PolicyRuleService;
@@ -21,17 +21,17 @@ export class PolicyRuleController extends Controller {
     );
 
     const firewallQueryBuilder = getRepository(Firewall)
-      .createQueryBuilder("firewall")
-      .where("firewall.id = :id", { id: parseInt(req.params.firewall) });
+      .createQueryBuilder('firewall')
+      .where('firewall.id = :id', { id: parseInt(req.params.firewall) });
 
     this._firewall = await firewallQueryBuilder.getOneOrFail();
 
     this._fwCloud = await getRepository(FwCloud)
-      .createQueryBuilder("fwcloud")
-      .innerJoin("fwcloud.firewalls", "firewall", "firewall.id = :firewallId", {
+      .createQueryBuilder('fwcloud')
+      .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
         firewallId: parseInt(req.params.firewall),
       })
-      .where("fwcloud.id = :id", { id: parseInt(req.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(req.params.fwcloud) })
       .getOneOrFail();
   }
 
@@ -47,8 +47,8 @@ export class PolicyRuleController extends Controller {
       );
       return ResponseBuilder.buildResponse().status(200).body(content);
     } catch (error) {
-      if (error.code === "ENOENT") {
-        throw new NotFoundException("script not found");
+      if (error.code === 'ENOENT') {
+        throw new NotFoundException('script not found');
       }
       throw error;
     }

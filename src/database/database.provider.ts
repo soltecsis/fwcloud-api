@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ServiceProvider } from "../fonaments/services/service-provider";
+import { ServiceProvider } from '../fonaments/services/service-provider';
 import {
   ServiceContainer,
   ServiceBound,
-} from "../fonaments/services/service-container";
-import { DatabaseService } from "./database.service";
-import { AbstractApplication } from "../fonaments/abstract-application";
+} from '../fonaments/services/service-container';
+import { DatabaseService } from './database.service';
+import { AbstractApplication } from '../fonaments/abstract-application';
 
 export class DatabaseServiceProvider extends ServiceProvider {
   public register(serviceContainer: ServiceContainer): ServiceBound {

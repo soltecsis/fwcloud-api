@@ -20,16 +20,16 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
+import Model from '../Model';
 
-import db from "../../database/database-manager";
+import db from '../../database/database-manager';
 
-import { PolicyRuleToOpenVPN } from "../../models/policy/PolicyRuleToOpenVPN";
-import { PolicyRuleToOpenVPNPrefix } from "../../models/policy/PolicyRuleToOpenVPNPrefix";
-import { PolicyPosition, PositionNode } from "./PolicyPosition";
-import { PolicyGroup } from "./PolicyGroup";
-import { PolicyRuleToInterface } from "../../models/policy/PolicyRuleToInterface";
-import { PolicyRuleToIPObj } from "../../models/policy/PolicyRuleToIPObj";
+import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
+import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
+import { PolicyPosition, PositionNode } from './PolicyPosition';
+import { PolicyGroup } from './PolicyGroup';
+import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
+import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import {
   Column,
   Entity,
@@ -37,15 +37,15 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
-} from "typeorm";
-import { logger } from "../../fonaments/abstract-application";
-import { PolicyType } from "./PolicyType";
-import { Firewall, FireWallOptMask } from "../firewall/Firewall";
-import { Mark } from "../ipobj/Mark";
-import { PolicyTypesMap } from "../../models/policy/PolicyType";
-const fwcError = require("../../utils/error_table");
+} from 'typeorm';
+import { logger } from '../../fonaments/abstract-application';
+import { PolicyType } from './PolicyType';
+import { Firewall, FireWallOptMask } from '../firewall/Firewall';
+import { Mark } from '../ipobj/Mark';
+import { PolicyTypesMap } from '../../models/policy/PolicyType';
+const fwcError = require('../../utils/error_table');
 
-const tableName: string = "policy_r";
+const tableName: string = 'policy_r';
 
 // Special rules codes.
 export enum SpecialPolicyRules {
@@ -133,39 +133,39 @@ export class PolicyRule extends Model {
   @Column()
   updated_by: number;
 
-  @Column({ name: "idgroup" })
+  @Column({ name: 'idgroup' })
   policyGroupId: number;
 
   @ManyToOne((type) => PolicyGroup, (policyGroup) => policyGroup.policyRules)
   @JoinColumn({
-    name: "idgroup",
+    name: 'idgroup',
   })
   policyGroup: PolicyGroup;
 
-  @Column({ name: "firewall" })
+  @Column({ name: 'firewall' })
   firewallId: number;
 
   @ManyToOne((type) => Firewall, (firewall) => firewall.policyRules)
   @JoinColumn({
-    name: "firewall",
+    name: 'firewall',
   })
   firewall: Firewall;
 
-  @Column({ name: "mark" })
+  @Column({ name: 'mark' })
   markId: number;
 
   @ManyToOne((type) => Mark, (mark) => mark.policyRules)
   @JoinColumn({
-    name: "mark",
+    name: 'mark',
   })
   mark: Mark;
 
-  @Column({ name: "type" })
+  @Column({ name: 'type' })
   policyTypeId: number;
 
   @ManyToOne((type) => PolicyType, (policyType) => policyType.policyRules)
   @JoinColumn({
-    name: "type",
+    name: 'type',
   })
   policyType: PolicyType;
 
@@ -203,17 +203,17 @@ export class PolicyRule extends Model {
   public static getPolicy_rs(idfirewall, idgroup, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      let whereGroup = "";
-      if (idgroup !== "") {
-        whereGroup = " AND idgroup=" + connection.escape(idgroup);
+      let whereGroup = '';
+      if (idgroup !== '') {
+        whereGroup = ' AND idgroup=' + connection.escape(idgroup);
       }
       const sql =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " WHERE firewall=" +
+        ' WHERE firewall=' +
         connection.escape(idfirewall) +
         whereGroup +
-        " ORDER BY rule_order";
+        ' ORDER BY rule_order';
       connection.query(sql, (error, rows) => {
         if (error) callback(error, null);
         else callback(null, rows);
@@ -307,7 +307,7 @@ export class PolicyRule extends Model {
             inner join ipobj O on O.id=R.ipobj 
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type} and O.type<>8
-            ${rules ? ` and PR.id IN (${rules.join(",")})` : ``}`,
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
 
       // All ipobj under host (type=8).
       `select R.rule,R.position,OIF.* from policy_r__ipobj R 
@@ -317,7 +317,7 @@ export class PolicyRule extends Model {
             inner join ipobj OIF on OIF.interface=I.id 
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type} and O.type=8
-            ${rules ? ` and PR.id IN (${rules.join(",")})` : ``}`,
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
 
       // All ipobj under group excluding hosts (type=8)
       `select R.rule,R.position,O.* from policy_r__ipobj R 
@@ -325,7 +325,7 @@ export class PolicyRule extends Model {
             inner join ipobj O on O.id=G.ipobj
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type} and O.type<>8
-            ${rules ? ` and PR.id IN (${rules.join(",")})` : ``}`,
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
 
       // All ipobj under host (type=8) included in IP objects groups
       `select R.rule,R.position,OIF.* from policy_r__ipobj R 
@@ -336,14 +336,14 @@ export class PolicyRule extends Model {
             inner join ipobj OIF on OIF.interface=I.id
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type} and O.type=8
-            ${rules ? ` and PR.id IN (${rules.join(",")})` : ``}`,
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
 
       // All interfaces in positions I
       `select R.rule,R.position,I.* from policy_r__interface R 
             inner join interface I on I.id=R.interface 
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type}
-            ${rules ? ` and PR.id IN (${rules.join(",")})` : ``}`,
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
 
       // All ipobj under interfaces in position O
       `select R.rule,R.position,O.* from policy_r__ipobj R 
@@ -351,7 +351,7 @@ export class PolicyRule extends Model {
             inner join ipobj O on O.interface=I.id
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type}
-            ${rules ? ` and PR.id IN (${rules.join(",")})` : ``}`,
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
 
       // All ipobj under OpenVPNs in type O positions
       `select R.rule,R.position,O.* from policy_r__openvpn R 
@@ -360,7 +360,7 @@ export class PolicyRule extends Model {
             inner join ipobj O on O.id=OPT.ipobj
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type} and OPT.name='ifconfig-push'
-            ${rules ? ` and PR.id IN (${rules.join(",")})` : ``}`,
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
 
       // All ipobj under OpenVPNs in groups into type O positions
       `select R.rule,R.position,O.* from policy_r__ipobj R
@@ -370,7 +370,7 @@ export class PolicyRule extends Model {
             inner join ipobj O on O.id=OPT.ipobj
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type} and OPT.name='ifconfig-push'
-            ${rules ? ` and PR.id IN (${rules.join(",")})` : ``}`,
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
 
       // All ipobj under OpenVPN prefix in groups into type O positions
       `select R.rule,R.position,O.* from policy_r__ipobj R
@@ -383,7 +383,7 @@ export class PolicyRule extends Model {
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type} 
             and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%') and OPT.name='ifconfig-push'
-            ${rules ? ` and PR.id IN (${rules.join(",")})` : ``}`,
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
 
       // All ipobj under OpenVPN prefix into type O positions
       `select R.rule,R.position,O.* from policy_r__openvpn_prefix R 
@@ -395,7 +395,7 @@ export class PolicyRule extends Model {
             inner join policy_r PR on PR.id=R.rule 
             where PR.firewall=${firewall} and PR.type=${type} 
             and CRT.type=1 and CRT.cn like CONCAT(PRE.name,'%') and OPT.name='ifconfig-push'
-            ${rules ? ` and PR.id IN (${rules.join(",")})` : ``}`,
+            ${rules ? ` and PR.id IN (${rules.join(',')})` : ``}`,
     ];
   }
 
@@ -426,7 +426,7 @@ export class PolicyRule extends Model {
 
   // Get all the policy data necessary for the compilation process.
   public static getPolicyData(
-    dst: "grid" | "compiler",
+    dst: 'grid' | 'compiler',
     dbCon: any,
     fwcloud: number,
     firewall: number,
@@ -444,8 +444,8 @@ export class PolicyRule extends Model {
                 LEFT JOIN policy_g G ON G.id=P.idgroup
                 LEFT JOIN firewall F ON F.id=(IF((P.fw_apply_to is NULL),${firewall},P.fw_apply_to))
                 WHERE P.firewall=${firewall} AND P.type=${type}
-                ${rules ? ` AND P.id IN (${rules.join(",")})` : ""}
-                ${idgroup ? ` AND P.idgroup=${idgroup}` : ""} 
+                ${rules ? ` AND P.id IN (${rules.join(',')})` : ''}
+                ${idgroup ? ` AND P.idgroup=${idgroup}` : ''} 
                 ORDER BY P.rule_order`;
 
       dbCon.query(sql, async (error, rulesData) => {
@@ -484,7 +484,7 @@ export class PolicyRule extends Model {
           }
 
           const sqls =
-            dst === "compiler"
+            dst === 'compiler'
               ? this.buildSQLsForCompiler(firewall, type, rules)
               : this.buildSQLsForGrid(firewall, type, rules);
           await Promise.all(
@@ -521,10 +521,10 @@ export class PolicyRule extends Model {
       if (error) callback(error, null);
 
       const sql =
-        "SELECT P.*, F.fwcloud " +
-        " FROM " +
+        'SELECT P.*, F.fwcloud ' +
+        ' FROM ' +
         tableName +
-        " P INNER JOIN firewall F on F.id=P.firewall  WHERE P.id = " +
+        ' P INNER JOIN firewall F on F.id=P.firewall  WHERE P.id = ' +
         connection.escape(id);
 
       connection.query(sql, (error, row) => {
@@ -564,7 +564,7 @@ export class PolicyRule extends Model {
         const policy_type = result[0].type;
         if (policy_type >= 1 && policy_type <= 5) resolve(4);
         else if (policy_type >= 61 && policy_type <= 65) resolve(6);
-        else reject(fwcError.other("Bad policy type"));
+        else reject(fwcError.other('Bad policy type'));
       });
     });
   }
@@ -595,21 +595,21 @@ export class PolicyRule extends Model {
 
       if (error) return callback(error, null);
 
-      if (offset > 0) nextRuleStr = " > ";
-      else nextRuleStr = " < ";
+      if (offset > 0) nextRuleStr = ' > ';
+      else nextRuleStr = ' < ';
 
       const sql =
-        "SELECT id, idgroup, rule_order " +
-        " FROM " +
+        'SELECT id, idgroup, rule_order ' +
+        ' FROM ' +
         tableName +
-        "  WHERE rule_order " +
+        '  WHERE rule_order ' +
         nextRuleStr +
         connection.escape(order) +
-        " AND type= " +
+        ' AND type= ' +
         connection.escape(type) +
-        " AND firewall=" +
+        ' AND firewall=' +
         connection.escape(idfirewall) +
-        " LIMIT 1";
+        ' LIMIT 1';
       connection.query(sql, (error, row) => {
         if (error) {
           logger().debug(error);
@@ -623,17 +623,17 @@ export class PolicyRule extends Model {
   public static getPolicy_rName(idfirewall, idgroup, name, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      const namesql = "%" + name + "%";
-      let whereGroup = "";
-      if (idgroup !== "") {
-        whereGroup = " AND group=" + connection.escape(idgroup);
+      const namesql = '%' + name + '%';
+      let whereGroup = '';
+      if (idgroup !== '') {
+        whereGroup = ' AND group=' + connection.escape(idgroup);
       }
       const sql =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " WHERE name like  " +
+        ' WHERE name like  ' +
         connection.escape(namesql) +
-        " AND firewall=" +
+        ' AND firewall=' +
         connection.escape(idfirewall) +
         whereGroup;
       logger().debug(sql);
@@ -660,7 +660,7 @@ export class PolicyRule extends Model {
         time_end: null,
         active: 1,
         options: 0,
-        comment: "",
+        comment: '',
         type: 0,
         special: 0,
         style: null,
@@ -691,7 +691,7 @@ export class PolicyRule extends Model {
         if (options & FireWallOptMask.STATEFUL) {
           // Statefull firewall
           policy_rData.special = 1;
-          policy_rData.comment = "Stateful firewall rule.";
+          policy_rData.comment = 'Stateful firewall rule.';
           policy_rData.type = 1; // INPUT IPv4
           await this.insertPolicy_r(policy_rData);
           policy_rData.type = 61; // INPUT IPv6
@@ -702,7 +702,7 @@ export class PolicyRule extends Model {
           // Allow all incoming traffic from self host.
           policy_rData.special = 0;
           policy_rData.rule_order = 2;
-          policy_rData.comment = "Allow all incoming traffic from self host.";
+          policy_rData.comment = 'Allow all incoming traffic from self host.';
           policy_rData.type = 1; // INPUT IPv4
           policy_r__interfaceData.rule =
             await this.insertPolicy_r(policy_rData);
@@ -722,7 +722,7 @@ export class PolicyRule extends Model {
 
           // Allow useful ICMP traffic.
           policy_rData.rule_order = 3;
-          policy_rData.comment = "Allow useful ICMP.";
+          policy_rData.comment = 'Allow useful ICMP.';
           policy_rData.type = 1; // INPUT IPv4
           policy_r__ipobjData.rule = await this.insertPolicy_r(policy_rData);
           policy_r__ipobjData.position = 3;
@@ -737,7 +737,7 @@ export class PolicyRule extends Model {
         policy_rData.action = 2;
         policy_rData.rule_order = 4;
         policy_rData.special = 2;
-        policy_rData.comment = "Catch-all rule.";
+        policy_rData.comment = 'Catch-all rule.';
         policy_rData.type = 1; // INPUT IPv4
         await this.insertPolicy_r(policy_rData);
         policy_rData.type = 61; // INPUT IPv6
@@ -752,7 +752,7 @@ export class PolicyRule extends Model {
           policy_rData.special = 1;
           policy_rData.rule_order = 1;
           policy_rData.action = 1;
-          policy_rData.comment = "Stateful firewall rule.";
+          policy_rData.comment = 'Stateful firewall rule.';
           policy_rData.type = 3; // FORWARD IPv4
           await this.insertPolicy_r(policy_rData);
           policy_rData.type = 63; // FORWARD IPv6
@@ -763,7 +763,7 @@ export class PolicyRule extends Model {
         policy_rData.rule_order = 2;
         policy_rData.action = 2;
         policy_rData.special = 2;
-        policy_rData.comment = "Catch-all rule.";
+        policy_rData.comment = 'Catch-all rule.';
         policy_rData.type = 3; // FORWARD IPv4
         await this.insertPolicy_r(policy_rData);
         policy_rData.type = 63; // FORWARD IPv6
@@ -779,7 +779,7 @@ export class PolicyRule extends Model {
           // Statefull firewall
           policy_rData.special = 1;
           policy_rData.rule_order = 1;
-          policy_rData.comment = "Stateful firewall rule.";
+          policy_rData.comment = 'Stateful firewall rule.';
           policy_rData.type = 2; // OUTPUT IPv4
           await this.insertPolicy_r(policy_rData);
           policy_rData.type = 62; // OUTPUT IPv6
@@ -790,7 +790,7 @@ export class PolicyRule extends Model {
         policy_rData.rule_order = 2;
         policy_rData.special = 2;
         policy_rData.options = 2; // Make the default output rule stateless.
-        policy_rData.comment = "Catch-all rule.";
+        policy_rData.comment = 'Catch-all rule.';
         policy_rData.type = 2; // OUTPUT IPv4
         await this.insertPolicy_r(policy_rData);
         policy_rData.type = 62; // OUTPUT IPv6
@@ -811,7 +811,7 @@ export class PolicyRule extends Model {
         if (error) return reject(error);
 
         connection.query(
-          "INSERT INTO " + tableName + " SET ?",
+          'INSERT INTO ' + tableName + ' SET ?',
           policy_rData,
           (error, result) => {
             if (error) return reject(error);
@@ -1008,32 +1008,32 @@ export class PolicyRule extends Model {
   //Update policy_r from user
   public static updatePolicy_r(dbCon, policy_rData): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql = "UPDATE " + tableName + " SET ";
-      if (typeof policy_rData.idgroup !== "undefined")
-        sql += "idgroup=" + policy_rData.idgroup + ",";
+      let sql = 'UPDATE ' + tableName + ' SET ';
+      if (typeof policy_rData.idgroup !== 'undefined')
+        sql += 'idgroup=' + policy_rData.idgroup + ',';
       if (policy_rData.rule_order)
-        sql += "rule_order=" + policy_rData.rule_order + ",";
-      if (policy_rData.action) sql += "action=" + policy_rData.action + ",";
+        sql += 'rule_order=' + policy_rData.rule_order + ',';
+      if (policy_rData.action) sql += 'action=' + policy_rData.action + ',';
       if (policy_rData.time_start)
-        sql += "time_start=" + policy_rData.time_start + ",";
+        sql += 'time_start=' + policy_rData.time_start + ',';
       if (policy_rData.time_end)
-        sql += "time_end=" + policy_rData.time_end + ",";
-      if (typeof policy_rData.options !== "undefined")
-        sql += "options=" + policy_rData.options + ",";
-      if (policy_rData.active) sql += "active=" + policy_rData.active + ",";
+        sql += 'time_end=' + policy_rData.time_end + ',';
+      if (typeof policy_rData.options !== 'undefined')
+        sql += 'options=' + policy_rData.options + ',';
+      if (policy_rData.active) sql += 'active=' + policy_rData.active + ',';
       if (policy_rData.comment !== undefined && policy_rData.comment !== null)
-        sql += "comment=" + dbCon.escape(policy_rData.comment) + ",";
+        sql += 'comment=' + dbCon.escape(policy_rData.comment) + ',';
       if (policy_rData.style)
-        sql += "style=" + dbCon.escape(policy_rData.style) + ",";
-      if (typeof policy_rData.mark !== "undefined")
-        sql += "mark=" + policy_rData.mark + ",";
-      if (typeof policy_rData.fw_apply_to !== "undefined")
-        sql += "fw_apply_to=" + policy_rData.fw_apply_to + ",";
-      if (typeof policy_rData.run_before !== "undefined")
-        sql += "run_before=" + dbCon.escape(policy_rData.run_before) + ",";
-      if (typeof policy_rData.run_after !== "undefined")
-        sql += "run_after=" + dbCon.escape(policy_rData.run_after) + ",";
-      sql = sql.slice(0, -1) + " WHERE id=" + policy_rData.id;
+        sql += 'style=' + dbCon.escape(policy_rData.style) + ',';
+      if (typeof policy_rData.mark !== 'undefined')
+        sql += 'mark=' + policy_rData.mark + ',';
+      if (typeof policy_rData.fw_apply_to !== 'undefined')
+        sql += 'fw_apply_to=' + policy_rData.fw_apply_to + ',';
+      if (typeof policy_rData.run_before !== 'undefined')
+        sql += 'run_before=' + dbCon.escape(policy_rData.run_before) + ',';
+      if (typeof policy_rData.run_after !== 'undefined')
+        sql += 'run_after=' + dbCon.escape(policy_rData.run_after) + ',';
+      sql = sql.slice(0, -1) + ' WHERE id=' + policy_rData.id;
 
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
@@ -1048,39 +1048,39 @@ export class PolicyRule extends Model {
         if (error) return reject(error);
 
         let sql =
-          "SELECT rule_order FROM " +
+          'SELECT rule_order FROM ' +
           tableName +
-          " WHERE firewall=" +
+          ' WHERE firewall=' +
           firewall +
-          " AND type=" +
+          ' AND type=' +
           type +
-          " AND rule_order<(select rule_order from " +
+          ' AND rule_order<(select rule_order from ' +
           tableName +
-          " where id=" +
+          ' where id=' +
           rule +
-          ") ORDER BY rule_order DESC LIMIT 1";
+          ') ORDER BY rule_order DESC LIMIT 1';
         connection.query(sql, (error, result) => {
           if (error) return reject(error);
 
           let free_rule_order;
-          let cond = "";
+          let cond = '';
           if (result.length === 1) {
             free_rule_order = result[0].rule_order + 1;
-            cond = ">" + result[0].rule_order;
+            cond = '>' + result[0].rule_order;
           } else {
             free_rule_order = 1;
-            cond = ">0";
+            cond = '>0';
           }
 
           sql =
-            "UPDATE " +
+            'UPDATE ' +
             tableName +
-            " SET rule_order=rule_order+1" +
-            " WHERE firewall=" +
+            ' SET rule_order=rule_order+1' +
+            ' WHERE firewall=' +
             firewall +
-            " AND type=" +
+            ' AND type=' +
             type +
-            " AND rule_order" +
+            ' AND rule_order' +
             cond;
           connection.query(sql, async (error, result) => {
             if (error) return reject(error);
@@ -1097,13 +1097,13 @@ export class PolicyRule extends Model {
         if (error) return reject(error);
 
         let sql =
-          "SELECT rule_order FROM " +
+          'SELECT rule_order FROM ' +
           tableName +
-          " WHERE firewall=" +
+          ' WHERE firewall=' +
           firewall +
-          " AND type=" +
+          ' AND type=' +
           type +
-          " AND id=" +
+          ' AND id=' +
           rule;
         connection.query(sql, (error, result) => {
           if (error) return reject(error);
@@ -1112,20 +1112,20 @@ export class PolicyRule extends Model {
             const result_rule_order = result[0].rule_order;
             const free_rule_order = result[0].rule_order + 1;
             sql =
-              "UPDATE " +
+              'UPDATE ' +
               tableName +
-              " SET rule_order=rule_order+1" +
-              " WHERE firewall=" +
+              ' SET rule_order=rule_order+1' +
+              ' WHERE firewall=' +
               firewall +
-              " AND type=" +
+              ' AND type=' +
               type +
-              " AND rule_order>" +
+              ' AND rule_order>' +
               result[0].rule_order;
             connection.query(sql, async (error, result) => {
               if (error) return reject(error);
               resolve(free_rule_order);
             });
-          } else return reject(fwcError.other("Rule not found"));
+          } else return reject(fwcError.other('Rule not found'));
         });
       });
     });
@@ -1139,14 +1139,14 @@ export class PolicyRule extends Model {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
-        "UPDATE " +
+        'UPDATE ' +
         tableName +
-        " SET rule_order=rule_order+1" +
-        " WHERE firewall=" +
+        ' SET rule_order=rule_order+1' +
+        ' WHERE firewall=' +
         firewall +
-        " AND type=" +
+        ' AND type=' +
         type +
-        " AND rule_order>=" +
+        ' AND rule_order>=' +
         rule_order;
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
@@ -1162,12 +1162,12 @@ export class PolicyRule extends Model {
         if (error) return reject(error);
 
         const sql =
-          "SELECT  I.*   FROM " +
+          'SELECT  I.*   FROM ' +
           tableName +
-          " I " +
-          " WHERE (I.firewall=" +
+          ' I ' +
+          ' WHERE (I.firewall=' +
           connection.escape(idfirewall) +
-          ") ";
+          ') ';
         connection.query(sql, async (error, rows) => {
           if (error) return reject(error);
           //Bucle por reglas
@@ -1223,8 +1223,8 @@ export class PolicyRule extends Model {
                   if (error) return reject(error);
 
                   if (result.affectedRows > 0) {
-                    resolve({ result: true, msg: "deleted" });
-                  } else resolve({ result: false, msg: "notExist" });
+                    resolve({ result: true, msg: 'deleted' });
+                  } else resolve({ result: false, msg: 'notExist' });
                 },
               );
             },
@@ -1239,9 +1239,9 @@ export class PolicyRule extends Model {
       if (error) callback(error);
 
       const sql =
-        "UPDATE " +
+        'UPDATE ' +
         tableName +
-        " SET fw_apply_to=null WHERE firewall=" +
+        ' SET fw_apply_to=null WHERE firewall=' +
         connection.escape(idfirewall);
       connection.query(sql, async (error, result) => {
         if (error) {
@@ -1259,15 +1259,15 @@ export class PolicyRule extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
         const sql =
-          "select P.id,P.fw_apply_to,(select name from firewall where id=P.fw_apply_to) as name," +
+          'select P.id,P.fw_apply_to,(select name from firewall where id=P.fw_apply_to) as name,' +
           clusterNew +
-          " as clusterNew FROM " +
+          ' as clusterNew FROM ' +
           tableName +
-          " P" +
-          " INNER JOIN firewall F on F.id=P.firewall" +
-          " WHERE P.fw_apply_to is not NULL AND P.firewall=" +
+          ' P' +
+          ' INNER JOIN firewall F on F.id=P.firewall' +
+          ' WHERE P.fw_apply_to is not NULL AND P.firewall=' +
           connection.escape(fwNewMaster) +
-          " AND F.cluster=" +
+          ' AND F.cluster=' +
           connection.escape(clusterNew);
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
@@ -1286,28 +1286,28 @@ export class PolicyRule extends Model {
         if (error) return reject(error);
 
         let sql =
-          "select id FROM firewall" +
-          " WHERE cluster=" +
+          'select id FROM firewall' +
+          ' WHERE cluster=' +
           connection.escape(rowData.clusterNew) +
-          " AND name=" +
+          ' AND name=' +
           connection.escape(rowData.name);
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
 
           if (rows.length === 1)
             sql =
-              "UPDATE " +
+              'UPDATE ' +
               tableName +
-              " set fw_apply_to=" +
+              ' set fw_apply_to=' +
               connection.escape(rows[0].id) +
-              " WHERE id=" +
+              ' WHERE id=' +
               connection.escape(rowData.id);
           // We have not found the node in the new cluster.
           else
             sql =
-              "UPDATE " +
+              'UPDATE ' +
               tableName +
-              " set fw_apply_to=NULL WHERE id=" +
+              ' set fw_apply_to=NULL WHERE id=' +
               connection.escape(rowData.id);
 
           connection.query(sql, async (error, rows1) => {
@@ -1331,13 +1331,13 @@ export class PolicyRule extends Model {
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         if (result.length !== 1)
-          return reject(fwcError.other("Firewall rule not found"));
+          return reject(fwcError.other('Firewall rule not found'));
 
         let negate;
         if (!result[0].negate) negate = `${position}`;
         else {
           const negate_position_list = result[0].negate
-            .split(" ")
+            .split(' ')
             .map((val) => {
               return parseInt(val);
             });
@@ -1369,12 +1369,12 @@ export class PolicyRule extends Model {
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         if (result.length !== 1)
-          return reject(fwcError.other("Firewall rule not found"));
+          return reject(fwcError.other('Firewall rule not found'));
 
         // Rule position negated list is empty.
         if (!result[0].negate) return resolve();
 
-        const negate_position_list = result[0].negate.split(" ").map((val) => {
+        const negate_position_list = result[0].negate.split(' ').map((val) => {
           return parseInt(val);
         });
         const new_negate_position_list = [];
@@ -1384,7 +1384,7 @@ export class PolicyRule extends Model {
         const negate =
           new_negate_position_list.length === 0
             ? null
-            : new_negate_position_list.join(" ");
+            : new_negate_position_list.join(' ');
 
         sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
         dbCon.query(sql, async (error, result) => {
@@ -1406,7 +1406,7 @@ export class PolicyRule extends Model {
           req.body.rule,
         );
         const data = await this.getPolicyData(
-          "grid",
+          'grid',
           req.dbCon,
           req.body.fwcloud,
           req.body.firewall,
@@ -1477,7 +1477,7 @@ export class PolicyRule extends Model {
         time_end: null,
         active: 1,
         options: 0,
-        comment: "Catch-all rule.",
+        comment: 'Catch-all rule.',
         type: null,
         special: SpecialPolicyRules.CATCHALL,
         style: null,
@@ -1555,7 +1555,7 @@ export class PolicyRule extends Model {
     type?: number,
   ): Promise<number> {
     return new Promise((resolve, reject) => {
-      const sql = `select id from ${tableName} where firewall=${firewall} ${type ? `and type=${type}` : ""} and special=${specialRule}`;
+      const sql = `select id from ${tableName} where firewall=${firewall} ${type ? `and type=${type}` : ''} and special=${specialRule}`;
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
         resolve(result.length > 0 ? result[0].id : 0);
@@ -1579,7 +1579,7 @@ export class PolicyRule extends Model {
         time_end: null,
         active: 1,
         options: 0,
-        comment: "",
+        comment: '',
         type: 1,
         special: specialRule,
         style: null,
@@ -1591,14 +1591,14 @@ export class PolicyRule extends Model {
       try {
         switch (specialRule) {
           case SpecialPolicyRules.STATEFUL:
-            policy_rData.comment = "Stateful firewall rule.";
+            policy_rData.comment = 'Stateful firewall rule.';
             policyType = [
-              PolicyTypesMap.get("IPv4:INPUT"),
-              PolicyTypesMap.get("IPv4:OUTPUT"),
-              PolicyTypesMap.get("IPv4:FORWARD"),
-              PolicyTypesMap.get("IPv6:INPUT"),
-              PolicyTypesMap.get("IPv6:OUTPUT"),
-              PolicyTypesMap.get("IPv6:FORWARD"),
+              PolicyTypesMap.get('IPv4:INPUT'),
+              PolicyTypesMap.get('IPv4:OUTPUT'),
+              PolicyTypesMap.get('IPv4:FORWARD'),
+              PolicyTypesMap.get('IPv6:INPUT'),
+              PolicyTypesMap.get('IPv6:OUTPUT'),
+              PolicyTypesMap.get('IPv6:FORWARD'),
             ];
             break;
 
@@ -1608,20 +1608,20 @@ export class PolicyRule extends Model {
             break;
 
           case SpecialPolicyRules.CROWDSEC:
-            policy_rData.comment = "CrowdSec firewall bouncer compatibility.";
+            policy_rData.comment = 'CrowdSec firewall bouncer compatibility.';
             policy_rData.action = 2;
             policyType = [
-              PolicyTypesMap.get("IPv4:INPUT"),
-              PolicyTypesMap.get("IPv4:FORWARD"),
-              PolicyTypesMap.get("IPv6:INPUT"),
-              PolicyTypesMap.get("IPv6:FORWARD"),
+              PolicyTypesMap.get('IPv4:INPUT'),
+              PolicyTypesMap.get('IPv4:FORWARD'),
+              PolicyTypesMap.get('IPv6:INPUT'),
+              PolicyTypesMap.get('IPv6:FORWARD'),
             ];
             break;
 
           case SpecialPolicyRules.FAIL2BAN:
-            policy_rData.comment = "Fail2Ban compatibility.";
-            policy_rData.run_before = "systemctl restart fail2ban";
-            policyType = [PolicyTypesMap.get("IPv4:INPUT")];
+            policy_rData.comment = 'Fail2Ban compatibility.';
+            policy_rData.run_before = 'systemctl restart fail2ban';
+            policyType = [PolicyTypesMap.get('IPv4:INPUT')];
             break;
         }
 

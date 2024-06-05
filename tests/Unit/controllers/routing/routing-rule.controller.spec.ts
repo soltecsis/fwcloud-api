@@ -1,22 +1,22 @@
-import { getRepository, QueryFailedError } from "typeorm";
-import { Application } from "../../../../src/Application";
-import { RoutingRuleController } from "../../../../src/controllers/routing/routing-rule/routing-rule.controller";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { FirewallService } from "../../../../src/models/firewall/firewall.service";
-import { RoutingRule } from "../../../../src/models/routing/routing-rule/routing-rule.model";
-import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
-import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
-import { RoutingTableService } from "../../../../src/models/routing/routing-table/routing-table.service";
-import StringHelper from "../../../../src/utils/string.helper";
-import { expect, testSuite } from "../../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
-import { Request } from "express";
-import Sinon from "sinon";
-import { RoutingRulePolicy } from "../../../../src/policies/routing-rule.policy";
-import { Tree } from "../../../../src/models/tree/Tree";
-import { Authorization } from "../../../../src/fonaments/authorization/policy";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { Mark } from "../../../../src/models/ipobj/Mark";
+import { getRepository, QueryFailedError } from 'typeorm';
+import { Application } from '../../../../src/Application';
+import { RoutingRuleController } from '../../../../src/controllers/routing/routing-rule/routing-rule.controller';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { FirewallService } from '../../../../src/models/firewall/firewall.service';
+import { RoutingRule } from '../../../../src/models/routing/routing-rule/routing-rule.model';
+import { RoutingRuleService } from '../../../../src/models/routing/routing-rule/routing-rule.service';
+import { RoutingTable } from '../../../../src/models/routing/routing-table/routing-table.model';
+import { RoutingTableService } from '../../../../src/models/routing/routing-table/routing-table.service';
+import StringHelper from '../../../../src/utils/string.helper';
+import { expect, testSuite } from '../../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
+import { Request } from 'express';
+import Sinon from 'sinon';
+import { RoutingRulePolicy } from '../../../../src/policies/routing-rule.policy';
+import { Tree } from '../../../../src/models/tree/Tree';
+import { Authorization } from '../../../../src/fonaments/authorization/policy';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { Mark } from '../../../../src/models/ipobj/Mark';
 
 describe(RoutingRuleController.name, () => {
   let controller: RoutingRuleController;
@@ -42,21 +42,21 @@ describe(RoutingRuleController.name, () => {
 
     mark = await getRepository(Mark).save({
       code: 1,
-      name: "test",
+      name: 'test',
       fwCloudId: fwcProduct.fwcloud.id,
     });
 
     mark2 = await getRepository(Mark).save({
       code: 2,
-      name: "test",
+      name: 'test',
       fwCloudId: fwcProduct.fwcloud.id,
     });
 
     await Tree.createAllTreeCloud(fwcProduct.fwcloud);
     const node: { id: number } = (await Tree.getNodeByNameAndType(
       fwcProduct.fwcloud.id,
-      "FIREWALLS",
-      "FDF",
+      'FIREWALLS',
+      'FDF',
     )) as { id: number };
     await Tree.insertFwc_Tree_New_firewall(
       fwcProduct.fwcloud.id,
@@ -73,7 +73,7 @@ describe(RoutingRuleController.name, () => {
     } as unknown as Request);
   });
 
-  describe("make", () => {
+  describe('make', () => {
     let rule: RoutingRule;
 
     beforeEach(async () => {
@@ -83,7 +83,7 @@ describe(RoutingRuleController.name, () => {
       });
     });
 
-    it("should throw an error if the firewall does not belongs to the fwcloud", async () => {
+    it('should throw an error if the firewall does not belongs to the fwcloud', async () => {
       const newFwcloud: FwCloud = await getRepository(FwCloud).save({
         name: StringHelper.randomize(10),
       });
@@ -102,14 +102,14 @@ describe(RoutingRuleController.name, () => {
       ).rejected;
     });
 
-    it("should throw an error if the rule does not belongs to a table which belongs to the firewall", async () => {
+    it('should throw an error if the rule does not belongs to a table which belongs to the firewall', async () => {
       const newFirewall: Firewall = await getRepository(Firewall).save({
-        name: "firewall",
+        name: 'firewall',
         fwCloudId: fwcProduct.fwcloud.id,
       });
 
       const newTable: RoutingTable = await getRepository(RoutingTable).save({
-        name: "table",
+        name: 'table',
         number: 1,
         firewallId: newFirewall.id,
       });
@@ -130,7 +130,7 @@ describe(RoutingRuleController.name, () => {
       ).rejected;
     });
 
-    it("should not throw an error if the params are valid", async () => {
+    it('should not throw an error if the params are valid', async () => {
       const rule: RoutingRule = await getRepository(RoutingRule).save({
         routingTableId: fwcProduct.routingTable.id,
         rule_order: 1,
@@ -157,24 +157,24 @@ describe(RoutingRuleController.name, () => {
     });
   });
 
-  describe("bulkRemove", () => {
+  describe('bulkRemove', () => {
     beforeEach(() => {
       const spy: Sinon.SinonSpy = Sinon.stub(
         RoutingRulePolicy,
-        "delete",
+        'delete',
       ).resolves(Authorization.grant());
     });
 
-    it("should remove rules from different table which belongs to the same firewall", async () => {
+    it('should remove rules from different table which belongs to the same firewall', async () => {
       const table1: RoutingTable = await tableService.create({
         firewallId: firewall.id,
-        name: "table1",
+        name: 'table1',
         number: 1,
       });
 
       const table2: RoutingTable = await tableService.create({
         firewallId: firewall.id,
-        name: "table2",
+        name: 'table2',
         number: 2,
       });
 

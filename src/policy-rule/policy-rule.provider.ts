@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ServiceProvider } from "../fonaments/services/service-provider";
+import { ServiceProvider } from '../fonaments/services/service-provider';
 import {
   ServiceContainer,
   ServiceBound,
-} from "../fonaments/services/service-container";
-import { AbstractApplication } from "../fonaments/abstract-application";
-import { PolicyRuleService } from "./policy-rule.service";
+} from '../fonaments/services/service-container';
+import { AbstractApplication } from '../fonaments/abstract-application';
+import { PolicyRuleService } from './policy-rule.service';
 
 export class PolicyRuleServiceProvider extends ServiceProvider {
   public register(serviceContainer: ServiceContainer): ServiceBound {

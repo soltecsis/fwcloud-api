@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository } from "../../database/repository";
-import { Firewall } from "./Firewall";
-import { isArray } from "util";
-import { In, EntityRepository } from "typeorm";
+import { Repository } from '../../database/repository';
+import { Firewall } from './Firewall';
+import { isArray } from 'util';
+import { In, EntityRepository } from 'typeorm';
 
 @EntityRepository(Firewall)
 export class FirewallRepository extends Repository<Firewall> {

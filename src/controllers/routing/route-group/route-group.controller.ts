@@ -20,18 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Validate } from "../../../decorators/validate.decorator";
-import { Controller } from "../../../fonaments/http/controller";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { Request } from "express";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { RouteGroupPolicy } from "../../../policies/route-group.policy";
-import { RouteGroupService } from "../../../models/routing/route-group/route-group.service";
-import { RouteGroup } from "../../../models/routing/route-group/route-group.model";
-import { RouteGroupControllerCreateDto } from "./dtos/create.dto";
-import { RouteGroupControllerUpdateDto } from "./dtos/update.dto";
-import { getRepository } from "typeorm";
+import { Validate } from '../../../decorators/validate.decorator';
+import { Controller } from '../../../fonaments/http/controller';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
+import { Request } from 'express';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
+import { RouteGroupPolicy } from '../../../policies/route-group.policy';
+import { RouteGroupService } from '../../../models/routing/route-group/route-group.service';
+import { RouteGroup } from '../../../models/routing/route-group/route-group.model';
+import { RouteGroupControllerCreateDto } from './dtos/create.dto';
+import { RouteGroupControllerUpdateDto } from './dtos/update.dto';
+import { getRepository } from 'typeorm';
 
 export class RouteGroupController extends Controller {
   protected _routeGroupService: RouteGroupService;
@@ -53,13 +53,13 @@ export class RouteGroupController extends Controller {
 
     //Get the firewall from the URL which contains the route group
     const firewallQueryBuilder = getRepository(Firewall)
-      .createQueryBuilder("firewall")
-      .where("firewall.id = :id", { id: parseInt(request.params.firewall) });
+      .createQueryBuilder('firewall')
+      .where('firewall.id = :id', { id: parseInt(request.params.firewall) });
     if (request.params.routeGroup) {
       firewallQueryBuilder.innerJoin(
-        "firewall.routeGroups",
-        "group",
-        "group.id = :groupId",
+        'firewall.routeGroups',
+        'group',
+        'group.id = :groupId',
         { groupId: parseInt(request.params.routeGroup) },
       );
     }
@@ -67,11 +67,11 @@ export class RouteGroupController extends Controller {
 
     //Get the fwcloud from the URL which contains the firewall
     this._fwCloud = await getRepository(FwCloud)
-      .createQueryBuilder("fwcloud")
-      .innerJoin("fwcloud.firewalls", "firewall", "firewall.id = :firewallId", {
+      .createQueryBuilder('fwcloud')
+      .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
         firewallId: this._firewall.id,
       })
-      .where("fwcloud.id = :id", { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
       .getOneOrFail();
   }
 
@@ -105,10 +105,10 @@ export class RouteGroupController extends Controller {
     ).authorize();
 
     const group: RouteGroup = await this._routeGroupService.create({
-      name: request.inputs.get("name"),
-      comment: request.inputs.get("comment"),
+      name: request.inputs.get('name'),
+      comment: request.inputs.get('comment'),
       firewallId: this._firewall.id,
-      routes: request.inputs.get<number[]>("routes").map((id) => ({ id })),
+      routes: request.inputs.get<number[]>('routes').map((id) => ({ id })),
     });
 
     return ResponseBuilder.buildResponse().status(201).body(group);

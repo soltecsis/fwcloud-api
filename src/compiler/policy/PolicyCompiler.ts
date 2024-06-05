@@ -20,15 +20,15 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IPTablesCompiler } from "./iptables/iptables-compiler";
-import { NFTablesCompiler } from "./nftables/nftables-compiler";
-import { RuleCompilationResult } from "./PolicyCompilerTools";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { ProgressNoticePayload } from "../../sockets/messages/socket-message";
-import { PolicyRule } from "../../models/policy/PolicyRule";
+import { IPTablesCompiler } from './iptables/iptables-compiler';
+import { NFTablesCompiler } from './nftables/nftables-compiler';
+import { RuleCompilationResult } from './PolicyCompilerTools';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
+import { PolicyRule } from '../../models/policy/PolicyRule';
 
 export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler;
-export type AvailablePolicyCompilers = "IPTables" | "NFTables";
+export type AvailablePolicyCompilers = 'IPTables' | 'NFTables';
 
 export class PolicyCompiler {
   public static compile(
@@ -45,15 +45,15 @@ export class PolicyCompiler {
         for (let i = 0; i < rulesData.length; i++) {
           if (eventEmitter)
             eventEmitter.emit(
-              "message",
+              'message',
               new ProgressNoticePayload(
-                `Rule ${i + 1} (ID: ${rulesData[i].id})${!rulesData[i].active ? " [DISABLED]" : ""}`,
+                `Rule ${i + 1} (ID: ${rulesData[i].id})${!rulesData[i].active ? ' [DISABLED]' : ''}`,
               ),
             );
 
           let compiler: PolicyCompilerClasses;
 
-          if (compileFor == "IPTables")
+          if (compileFor == 'IPTables')
             compiler = new IPTablesCompiler(rulesData[i]);
           // NFTables
           else compiler = new NFTablesCompiler(rulesData[i]);
@@ -65,7 +65,7 @@ export class PolicyCompiler {
             cs:
               rulesData[i].active || rulesData.length === 1
                 ? compiler.ruleCompile()
-                : "",
+                : '',
           });
         }
 

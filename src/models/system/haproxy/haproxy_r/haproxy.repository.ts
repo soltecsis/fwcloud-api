@@ -24,10 +24,10 @@ import {
   Repository,
   SelectQueryBuilder,
   getRepository,
-} from "typeorm";
-import { HAProxyRule } from "./haproxy_r.model";
-import { Offset } from "../../../../offset";
-import { Firewall } from "../../../firewall/Firewall";
+} from 'typeorm';
+import { HAProxyRule } from './haproxy_r.model';
+import { Offset } from '../../../../offset';
+import { Firewall } from '../../../firewall/Firewall';
 
 interface IFindManyHAProxyRPath {
   fwcloudId?: number;
@@ -58,9 +58,9 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
         id: In(ids),
       },
       order: {
-        rule_order: "ASC",
+        rule_order: 'ASC',
       },
-      relations: ["firewall", "group"],
+      relations: ['firewall', 'group'],
     });
 
     let affectedHAProxies: HAProxyRule[] = await this.findManyInPath({
@@ -211,30 +211,30 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
     return (
       Object.assign({
         join: {
-          alias: "haproxy",
+          alias: 'haproxy',
           innerJoin: {
-            firewall: "haproxy.firewall",
-            fwcloud: "firewall.fwCloud",
+            firewall: 'haproxy.firewall',
+            fwcloud: 'firewall.fwCloud',
           },
         },
         where: (qb) => {
           if (path.fwcloudId) {
-            qb.andWhere("firewall.fwCloudId = :fwcloudId", {
+            qb.andWhere('firewall.fwCloudId = :fwcloudId', {
               fwcloudId: path.fwcloudId,
             });
           }
           if (path.firewallId) {
-            qb.andWhere("firewall.id = :firewallId", {
+            qb.andWhere('firewall.id = :firewallId', {
               firewallId: path.firewallId,
             });
           }
           if (path.haproxyGroupId) {
-            qb.andWhere("group.id = :haproxyGroupId", {
+            qb.andWhere('group.id = :haproxyGroupId', {
               haproxyGroupId: path.haproxyGroupId,
             });
           }
           if (path.id) {
-            qb.andWhere("haproxy.id = :id", { id: path.id });
+            qb.andWhere('haproxy.id = :id', { id: path.id });
           }
         },
       }),
@@ -255,14 +255,14 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
     }
 
     await this.query(
-      `SET @a:=0; UPDATE ${HAProxyRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map((item) => item.id).join(",")}) ORDER BY rule_order`,
+      `SET @a:=0; UPDATE ${HAProxyRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map((item) => item.id).join(',')}) ORDER BY rule_order`,
     );
   }
 
   async getLastHAProxyRuleInFirewall(firewall: number): Promise<HAProxyRule> {
-    return this.createQueryBuilder("rule")
-      .where("rule.firewall = :firewall", { firewall })
-      .orderBy("rule.rule_order", "DESC")
+    return this.createQueryBuilder('rule')
+      .where('rule.firewall = :firewall', { firewall })
+      .orderBy('rule.rule_order', 'DESC')
       .take(1)
       .getOne();
   }
@@ -274,35 +274,35 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
     forCompilation: boolean = false,
   ): Promise<HAProxyRule[]> {
     const query: SelectQueryBuilder<HAProxyRule> = this.createQueryBuilder(
-      "haproxy",
+      'haproxy',
     )
-      .leftJoinAndSelect("haproxy.group", "group")
-      .leftJoinAndSelect("haproxy.frontendIp", "frontendIp")
-      .leftJoinAndSelect("haproxy.frontendPort", "frontendPort")
-      .leftJoinAndSelect("haproxy.backendIps", "backendIps")
-      .leftJoinAndSelect("haproxy.backendPort", "backendPort")
-      .leftJoinAndSelect("frontendIp.interface", "frontendIpInterface")
-      .leftJoinAndSelect("frontendIpInterface.firewall", "frontendIpFirewall")
+      .leftJoinAndSelect('haproxy.group', 'group')
+      .leftJoinAndSelect('haproxy.frontendIp', 'frontendIp')
+      .leftJoinAndSelect('haproxy.frontendPort', 'frontendPort')
+      .leftJoinAndSelect('haproxy.backendIps', 'backendIps')
+      .leftJoinAndSelect('haproxy.backendPort', 'backendPort')
+      .leftJoinAndSelect('frontendIp.interface', 'frontendIpInterface')
+      .leftJoinAndSelect('frontendIpInterface.firewall', 'frontendIpFirewall')
       .leftJoinAndSelect(
-        "frontendIpInterface.hosts",
-        "frontendIpInterfaceHosts",
+        'frontendIpInterface.hosts',
+        'frontendIpInterfaceHosts',
       )
       .leftJoinAndSelect(
-        "frontendIpInterfaceHosts.hostIPObj",
-        "frontendIpInterfaceHostIPObj",
+        'frontendIpInterfaceHosts.hostIPObj',
+        'frontendIpInterfaceHostIPObj',
       )
-      .leftJoinAndSelect("frontendIpFirewall.cluster", "frontendIpCluster")
-      .leftJoinAndSelect("haproxy.firewall", "firewall")
-      .leftJoinAndSelect("firewall.fwCloud", "fwCloud")
-      .where("firewall.id = :firewall", { firewall: firewall })
-      .andWhere("fwCloud.id = :fwCloud", { fwCloud: FwCloud });
+      .leftJoinAndSelect('frontendIpFirewall.cluster', 'frontendIpCluster')
+      .leftJoinAndSelect('haproxy.firewall', 'firewall')
+      .leftJoinAndSelect('firewall.fwCloud', 'fwCloud')
+      .where('firewall.id = :firewall', { firewall: firewall })
+      .andWhere('fwCloud.id = :fwCloud', { fwCloud: FwCloud });
 
     if (rules) {
-      query.andWhere("haproxy.id IN (:...rules)", { rules });
+      query.andWhere('haproxy.id IN (:...rules)', { rules });
     }
 
     const haproxyRules: HAProxyRule[] = await query
-      .orderBy("haproxy.rule_order", "ASC")
+      .orderBy('haproxy.rule_order', 'ASC')
       .getMany();
 
     if (forCompilation) {

@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { IsNumber, IsOptional } from "class-validator";
+import { IsNumber, IsOptional } from 'class-validator';
 
 export class DHCPRuleMoveFromDto {
   @IsNumber()

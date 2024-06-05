@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsBoolean, IsOptional, IsString, IsNumber } from "class-validator";
+import { IsBoolean, IsOptional, IsString, IsNumber } from 'class-validator';
 
 export class DhcpRuleBulkUpdateDto {
   @IsBoolean()

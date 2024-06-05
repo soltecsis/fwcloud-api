@@ -20,20 +20,20 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
-import { OpenVPN } from "../../models/vpn/openvpn/OpenVPN";
-import { PolicyRule } from "../../models/policy/PolicyRule";
-import { Tree } from "../tree/Tree";
-import { PrimaryColumn, Column } from "typeorm";
-import Query from "../../database/Query";
-import { ProgressNoticePayload } from "../../sockets/messages/socket-message";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-const fwcError = require("../../utils/error_table");
+import Model from '../Model';
+import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
+import { PolicyRule } from '../../models/policy/PolicyRule';
+import { Tree } from '../tree/Tree';
+import { PrimaryColumn, Column } from 'typeorm';
+import Query from '../../database/Query';
+import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+const fwcError = require('../../utils/error_table');
 
 let dbCon;
 let fwcloud;
 
-const tableName: string = "fwc_tree";
+const tableName: string = 'fwc_tree';
 
 export class Repair extends Model {
   @PrimaryColumn()
@@ -79,11 +79,11 @@ export class Repair extends Model {
   ) {
     return new Promise((resolve, reject) => {
       let sql =
-        "SELECT id,name,node_type,id_obj,obj_type FROM " +
+        'SELECT id,name,node_type,id_obj,obj_type FROM ' +
         tableName +
-        " WHERE fwcloud=" +
+        ' WHERE fwcloud=' +
         dbCon.escape(fwcloud) +
-        " AND id_parent is null";
+        ' AND id_parent is null';
       dbCon.query(sql, async (error, nodes) => {
         if (error) return reject(error);
 
@@ -95,33 +95,33 @@ export class Repair extends Model {
         let services_found = 0;
         let ca_found = 0;
         for (const node of nodes) {
-          if (node.name === "FIREWALLS" && node.node_type === "FDF") {
+          if (node.name === 'FIREWALLS' && node.node_type === 'FDF') {
             channel.emit(
-              "message",
+              'message',
               new ProgressNoticePayload(`Root node found: ${node.id} \n`),
             );
             firewalls_found = 1;
-          } else if (node.name === "OBJECTS" && node.node_type === "FDO") {
+          } else if (node.name === 'OBJECTS' && node.node_type === 'FDO') {
             channel.emit(
-              "message",
+              'message',
               new ProgressNoticePayload(`Root node found: ${node.id} \n`),
             );
             objects_found = 1;
-          } else if (node.name === "SERVICES" && node.node_type === "FDS") {
+          } else if (node.name === 'SERVICES' && node.node_type === 'FDS') {
             channel.emit(
-              "message",
+              'message',
               new ProgressNoticePayload(`Root node found: ${node.id} \n`),
             );
             services_found = 1;
-          } else if (node.name === "CA" && node.node_type === "FCA") {
+          } else if (node.name === 'CA' && node.node_type === 'FCA') {
             channel.emit(
-              "message",
+              'message',
               new ProgressNoticePayload(`Root node found: ${node.id} \n`),
             );
             ca_found = 1;
           } else {
             channel.emit(
-              "message",
+              'message',
               new ProgressNoticePayload(
                 `Deleting invalid root node: ${node.id}\n`,
               ),
@@ -140,23 +140,23 @@ export class Repair extends Model {
 
         // Verify that we have found all nodes.
         if (!firewalls_found || !objects_found || !services_found || !ca_found)
-          return reject(fwcError.other("Not found all root nodes"));
+          return reject(fwcError.other('Not found all root nodes'));
 
         // The properties id_obj and obj_type must be null. If not we can repair it.
         if (update_obj_to_null) {
           channel.emit(
-            "message",
+            'message',
             new ProgressNoticePayload(
               `Repairing root nodes (setting id_obj and obj_type to null).\n`,
             ),
           );
           sql =
-            "update " +
+            'update ' +
             tableName +
-            " set id_obj=NULL,obj_type=NULL" +
-            " WHERE fwcloud=" +
+            ' set id_obj=NULL,obj_type=NULL' +
+            ' WHERE fwcloud=' +
             dbCon.escape(fwcloud) +
-            " AND id_parent is null";
+            ' AND id_parent is null';
           dbCon.query(sql, (error, result) => {
             if (error) return reject(error);
             resolve(nodes);
@@ -169,7 +169,7 @@ export class Repair extends Model {
   // Resolve with the parent id of a tree node.
   public static getParentId(id) {
     return new Promise((resolve, reject) => {
-      const sql = "SELECT id_parent FROM " + tableName + " WHERE id=" + id;
+      const sql = 'SELECT id_parent FROM ' + tableName + ' WHERE id=' + id;
       dbCon.query(sql, (error, nodes) => {
         if (error) return reject(error);
         if (nodes.length !== 1) return resolve(-1);
@@ -185,11 +185,11 @@ export class Repair extends Model {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
-        "SELECT id,id_parent,name,node_type,id_obj,obj_type FROM " +
+        'SELECT id,id_parent,name,node_type,id_obj,obj_type FROM ' +
         tableName +
-        " WHERE fwcloud=" +
+        ' WHERE fwcloud=' +
         fwcloud +
-        " AND id_parent is not null";
+        ' AND id_parent is not null';
       dbCon.query(sql, async (error, nodes) => {
         if (error) return reject(error);
 
@@ -211,21 +211,21 @@ export class Repair extends Model {
               ) {
                 if (id_ancestor === -1) {
                   channel.emit(
-                    "message",
+                    'message',
                     new ProgressNoticePayload(
                       `Ancestor not found, deleting node: ${node.id}\n`,
                     ),
                   );
                 } else if (id_ancestor === node.id) {
                   channel.emit(
-                    "message",
+                    'message',
                     new ProgressNoticePayload(
                       `Deleting node in a loop: ${node.id}\n`,
                     ),
                   );
                 } else if (deep > 100) {
                   channel.emit(
-                    "message",
+                    'message',
                     new ProgressNoticePayload(
                       `Deleting a too much deep node: ${node.id}\n`,
                     ),
@@ -250,7 +250,7 @@ export class Repair extends Model {
             }
             if (!root_node_found) {
               channel.emit(
-                "message",
+                'message',
                 new ProgressNoticePayload(
                   `Root node for this node is not correct. Deleting node: ${node.id}\n'`,
                 ),
@@ -279,11 +279,11 @@ export class Repair extends Model {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
-        "SELECT T1.id,T1.id_parent,T2.node_type as parent_node_type FROM fwc_tree T1" +
-        " INNER JOIN fwc_tree T2 on T2.id=T1.id_parent " +
-        " WHERE T1.fwcloud=" +
+        'SELECT T1.id,T1.id_parent,T2.node_type as parent_node_type FROM fwc_tree T1' +
+        ' INNER JOIN fwc_tree T2 on T2.id=T1.id_parent ' +
+        ' WHERE T1.fwcloud=' +
         fwcloud +
-        " AND T1.id_obj=" +
+        ' AND T1.id_obj=' +
         firewall.id +
         ' AND T1.node_type="FW"';
       dbCon.query(sql, async (error, nodes) => {
@@ -295,7 +295,7 @@ export class Repair extends Model {
           if (nodes.length === 0) {
             // No node found for this firewall.
             channel.emit(
-              "message",
+              'message',
               new ProgressNoticePayload(
                 `No node found for firewall: ${JSON.stringify(firewall)}\n`,
               ),
@@ -304,14 +304,14 @@ export class Repair extends Model {
             if (nodes.length === 1) {
               // The common case, firewall referenced by only one node three.
               if (
-                nodes[0].parent_node_type === "FDF" ||
-                nodes[0].parent_node_type === "FD"
+                nodes[0].parent_node_type === 'FDF' ||
+                nodes[0].parent_node_type === 'FD'
               ) {
                 nodeId = nodes[0].id_parent;
               }
             } else if (nodes.length !== 1) {
               channel.emit(
-                "message",
+                'message',
                 new ProgressNoticePayload(
                   `Found several nodes for firewall: ${JSON.stringify(firewall)}\n`,
                 ),
@@ -328,7 +328,7 @@ export class Repair extends Model {
 
           // Regenerate the tree.
           channel.emit(
-            "message",
+            'message',
             new ProgressNoticePayload(
               `Regenerating tree for firewall: ${firewall.id} \n`,
             ),
@@ -349,7 +349,7 @@ export class Repair extends Model {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
-        "SELECT id,name,options FROM firewall WHERE cluster is null AND fwcloud=" +
+        'SELECT id,name,options FROM firewall WHERE cluster is null AND fwcloud=' +
         dbCon.escape(fwcloud);
       dbCon.query(sql, async (error, firewalls) => {
         if (error) return reject(error);
@@ -379,11 +379,11 @@ export class Repair extends Model {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
-        "SELECT T1.id,T1.id_parent,T2.node_type as parent_node_type FROM fwc_tree T1" +
-        " INNER JOIN fwc_tree T2 on T2.id=T1.id_parent " +
-        " WHERE T1.fwcloud=" +
+        'SELECT T1.id,T1.id_parent,T2.node_type as parent_node_type FROM fwc_tree T1' +
+        ' INNER JOIN fwc_tree T2 on T2.id=T1.id_parent ' +
+        ' WHERE T1.fwcloud=' +
         dbCon.escape(fwcloud) +
-        " AND T1.id_obj=" +
+        ' AND T1.id_obj=' +
         dbCon.escape(cluster.id) +
         ' AND T1.node_type="CL"';
       dbCon.query(sql, async (error, nodes) => {
@@ -395,7 +395,7 @@ export class Repair extends Model {
           if (nodes.length === 0) {
             // No node found for this cluster.
             channel.emit(
-              "message",
+              'message',
               new ProgressNoticePayload(
                 `No node found for cluster: ${JSON.stringify(cluster)}\n`,
               ),
@@ -404,14 +404,14 @@ export class Repair extends Model {
             if (nodes.length === 1) {
               // The common case, cluster referenced by only one node three.
               if (
-                nodes[0].parent_node_type === "FDF" ||
-                nodes[0].parent_node_type === "FD"
+                nodes[0].parent_node_type === 'FDF' ||
+                nodes[0].parent_node_type === 'FD'
               ) {
                 nodeId = nodes[0].id_parent;
               }
             } else if (nodes.length !== 1) {
               channel.emit(
-                "message",
+                'message',
                 new ProgressNoticePayload(
                   `Found several nodes for cluster: ${JSON.stringify(cluster)}\n`,
                 ),
@@ -428,7 +428,7 @@ export class Repair extends Model {
           }
           // Regenerate the tree.
           channel.emit(
-            "message",
+            'message',
             new ProgressNoticePayload(
               `Regenerating tree for cluster: ${cluster.id} \n`,
             ),
@@ -449,11 +449,11 @@ export class Repair extends Model {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
-        "SELECT C.id,C.name,F.id as fwmaster_id,F.options FROM cluster C " +
-        " INNER JOIN firewall F on F.cluster=C.id " +
-        " WHERE C.fwcloud=" +
+        'SELECT C.id,C.name,F.id as fwmaster_id,F.options FROM cluster C ' +
+        ' INNER JOIN firewall F on F.cluster=C.id ' +
+        ' WHERE C.fwcloud=' +
         dbCon.escape(fwcloud) +
-        " AND F.fwmaster=1";
+        ' AND F.fwmaster=1';
       dbCon.query(sql, async (error, clusters) => {
         if (error) return reject(error);
         try {
@@ -478,12 +478,12 @@ export class Repair extends Model {
   public static checkNode(node, channel: EventEmitter = new EventEmitter()) {
     return new Promise(async (resolve, reject) => {
       try {
-        let sql = "";
-        if (node.node_type === "FW") {
+        let sql = '';
+        if (node.node_type === 'FW') {
           if (node.obj_type !== 0) {
             // Verify that object type is correct.
             channel.emit(
-              "message",
+              'message',
               new ProgressNoticePayload(
                 `Deleting node with bad obj_type: ${JSON.stringify(node)}\n`,
               ),
@@ -495,16 +495,16 @@ export class Repair extends Model {
             return resolve(false);
           }
           sql =
-            "SELECT id FROM firewall WHERE fwcloud=" +
+            'SELECT id FROM firewall WHERE fwcloud=' +
             dbCon.escape(fwcloud) +
-            " AND id=" +
+            ' AND id=' +
             dbCon.escape(node.id_obj) +
-            " AND cluster is null";
-        } else if (node.node_type === "CL") {
+            ' AND cluster is null';
+        } else if (node.node_type === 'CL') {
           if (node.obj_type !== 100) {
             // Verify that object type is correct.
             channel.emit(
-              "message",
+              'message',
               new ProgressNoticePayload(
                 `Deleting node with bad obj_type: ${JSON.stringify(node)}\n`,
               ),
@@ -516,9 +516,9 @@ export class Repair extends Model {
             return resolve(false);
           }
           sql =
-            "SELECT id FROM cluster WHERE fwcloud=" +
+            'SELECT id FROM cluster WHERE fwcloud=' +
             dbCon.escape(fwcloud) +
-            " AND id=" +
+            ' AND id=' +
             dbCon.escape(node.id_obj);
         } else return resolve(true);
 
@@ -528,7 +528,7 @@ export class Repair extends Model {
 
           if (rows.length !== 1) {
             channel.emit(
-              "message",
+              'message',
               new ProgressNoticePayload(
                 `Referenced object not found. Deleting node: ${JSON.stringify(node)}\n`,
               ),
@@ -553,11 +553,11 @@ export class Repair extends Model {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
-        "SELECT id,node_type,id_obj,obj_type FROM " +
+        'SELECT id,node_type,id_obj,obj_type FROM ' +
         tableName +
-        " WHERE fwcloud=" +
+        ' WHERE fwcloud=' +
         dbCon.escape(fwcloud) +
-        " AND id_parent=" +
+        ' AND id_parent=' +
         dbCon.escape(rootNode.id);
       dbCon.query(sql, async (error, nodes) => {
         if (error) return reject(error);
@@ -566,12 +566,12 @@ export class Repair extends Model {
           for (const node of nodes) {
             // Into a folder we can have only more folders, firewalls or clusters.
             if (
-              node.node_type !== "FD" &&
-              node.node_type !== "FW" &&
-              node.node_type !== "CL"
+              node.node_type !== 'FD' &&
+              node.node_type !== 'FW' &&
+              node.node_type !== 'CL'
             ) {
               channel.emit(
-                "message",
+                'message',
                 new ProgressNoticePayload(
                   `This node type can not be into a folder. Deleting it: ${JSON.stringify(node)}\n`,
                 ),
@@ -583,12 +583,12 @@ export class Repair extends Model {
             }
 
             // Check that the firewall or cluster pointed by the node exists.
-            if (node.node_type === "FW" || node.node_type === "CL")
+            if (node.node_type === 'FW' || node.node_type === 'CL')
               await this.checkNode(node, channel);
             else {
               // Recursively check the folders nodes.
               channel.emit(
-                "message",
+                'message',
                 new ProgressNoticePayload(
                   `Checking folder node: ${JSON.stringify(node)} \n`,
                 ),
@@ -613,11 +613,11 @@ export class Repair extends Model {
           fwcloud,
           host.name,
           hostsNode.id,
-          "OIH",
+          'OIH',
           host.id,
           8,
         );
-        await Tree.interfacesTree(dbCon, fwcloud, newId, host.id, "HOST");
+        await Tree.interfacesTree(dbCon, fwcloud, newId, host.id, 'HOST');
       } catch (error) {
         reject(error);
       }
@@ -630,25 +630,25 @@ export class Repair extends Model {
     return new Promise((resolve, reject) => {
       // Verify that we have only one Hosts node.
       let sql =
-        "SELECT id FROM " +
+        'SELECT id FROM ' +
         tableName +
-        " WHERE fwcloud=" +
+        ' WHERE fwcloud=' +
         dbCon.escape(fwcloud) +
-        " AND id_parent=" +
+        ' AND id_parent=' +
         dbCon.escape(rootNode.id) +
         ' AND node_type="OIH" AND id_obj IS NULL and obj_type=8';
       dbCon.query(sql, (error, nodes) => {
         if (error) return reject(error);
         if (nodes.length !== 1)
-          return reject(fwcError.other("Hosts node not found"));
+          return reject(fwcError.other('Hosts node not found'));
 
         // Clear the hosts node removing all child nodes.
         sql =
-          "SELECT id FROM " +
+          'SELECT id FROM ' +
           tableName +
-          " WHERE fwcloud=" +
+          ' WHERE fwcloud=' +
           dbCon.escape(fwcloud) +
-          " AND id_parent=" +
+          ' AND id_parent=' +
           dbCon.escape(nodes[0].id);
         dbCon.query(sql, async (error, childs) => {
           if (error) return reject(error);
@@ -664,10 +664,10 @@ export class Repair extends Model {
 
           // Search for all the hosts in the selected cloud.
           sql =
-            "SELECT id,name FROM ipobj" +
-            " WHERE fwcloud=" +
+            'SELECT id,name FROM ipobj' +
+            ' WHERE fwcloud=' +
             dbCon.escape(fwcloud) +
-            " AND type=8";
+            ' AND type=8';
           dbCon.query(sql, async (error, hosts) => {
             if (error) return reject(error);
             try {
@@ -690,7 +690,7 @@ export class Repair extends Model {
     ipobj_type,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql = "";
+      let sql = '';
       if (ipobj_type === 30)
         // Iptables marks
         sql = `SELECT id,name FROM mark WHERE fwcloud=${fwcloud}`;
@@ -708,7 +708,7 @@ export class Repair extends Model {
                 await OpenVPN.searchIPObjInOpenvpnOpt(
                   dbCon,
                   ipobj.id,
-                  "ifconfig-push",
+                  'ifconfig-push',
                 )
               )
                 continue;
@@ -783,7 +783,7 @@ export class Repair extends Model {
         // If wee have orphan nodes, remove them.
         if (result && result.length > 0) {
           channel.emit(
-            "message",
+            'message',
             new ProgressNoticePayload(
               `Removing ${result.length} orphan nodes.\n`,
             ),

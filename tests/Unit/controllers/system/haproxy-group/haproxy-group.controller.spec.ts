@@ -15,17 +15,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
-import { Application } from "../../../../../src/Application";
-import { HAProxyGroupController } from "../../../../../src/controllers/system/haproxy-group/haproxy-group.controller";
-import { Firewall } from "../../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
-import { HAProxyGroup } from "../../../../../src/models/system/haproxy/haproxy_g/haproxy_g.model";
-import { expect, testSuite } from "../../../../mocha/global-setup";
-import StringHelper from "../../../../../src/utils/string.helper";
-import sinon from "sinon";
-import { HAProxyGroupService } from "../../../../../src/models/system/haproxy/haproxy_g/haproxy_g.service";
-import { Request } from "express";
+import { getRepository } from 'typeorm';
+import { Application } from '../../../../../src/Application';
+import { HAProxyGroupController } from '../../../../../src/controllers/system/haproxy-group/haproxy-group.controller';
+import { Firewall } from '../../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
+import { HAProxyGroup } from '../../../../../src/models/system/haproxy/haproxy_g/haproxy_g.model';
+import { expect, testSuite } from '../../../../mocha/global-setup';
+import StringHelper from '../../../../../src/utils/string.helper';
+import sinon from 'sinon';
+import { HAProxyGroupService } from '../../../../../src/models/system/haproxy/haproxy_g/haproxy_g.service';
+import { Request } from 'express';
 
 describe(HAProxyGroupController.name, () => {
   let firewall: Firewall;
@@ -66,8 +66,8 @@ describe(HAProxyGroupController.name, () => {
     sinon.restore();
   });
 
-  describe("make", () => {
-    it("should fetch HAProxyGroup when haproxyGroup param is present", async () => {
+  describe('make', () => {
+    it('should fetch HAProxyGroup when haproxyGroup param is present', async () => {
       const requestMock = {
         params: {
           haproxygroup: haproxyGroup.id,
@@ -77,13 +77,13 @@ describe(HAProxyGroupController.name, () => {
       } as unknown as Request;
 
       const dhcpGroupServiceStub = sinon
-        .stub(HAProxyGroupService.prototype, "findOneInPath")
+        .stub(HAProxyGroupService.prototype, 'findOneInPath')
         .resolves(haproxyGroup);
       const firewallStub = sinon
-        .stub(getRepository(Firewall), "findOneOrFail")
+        .stub(getRepository(Firewall), 'findOneOrFail')
         .resolves(firewall);
       const fwCloudStub = sinon
-        .stub(getRepository(FwCloud), "findOneOrFail")
+        .stub(getRepository(FwCloud), 'findOneOrFail')
         .resolves(fwCloud);
 
       await controller.make(requestMock);
@@ -97,7 +97,7 @@ describe(HAProxyGroupController.name, () => {
       fwCloudStub.restore();
     });
 
-    it("should fetch Firewall and FwCloud when haproxyGroup param is not present", async () => {
+    it('should fetch Firewall and FwCloud when haproxyGroup param is not present', async () => {
       const requestMock = {
         params: {
           firewall: firewall.id,
@@ -107,10 +107,10 @@ describe(HAProxyGroupController.name, () => {
 
       const dhcpGroupServiceStub = sinon.stub(
         HAProxyGroupService.prototype,
-        "findOneInPath",
+        'findOneInPath',
       );
-      const firewallStub = sinon.stub(getRepository(Firewall), "findOneOrFail");
-      const fwCloudStub = sinon.stub(getRepository(FwCloud), "findOneOrFail");
+      const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail');
+      const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail');
 
       await controller.make(requestMock);
 
@@ -123,7 +123,7 @@ describe(HAProxyGroupController.name, () => {
       fwCloudStub.restore();
     });
 
-    it("should handle errors when entities are not found", async () => {
+    it('should handle errors when entities are not found', async () => {
       const requestMock = {
         params: {
           haproxygroup: 9999,
@@ -133,11 +133,11 @@ describe(HAProxyGroupController.name, () => {
       } as unknown as Request;
 
       const dhcpGroupServiceStub = sinon
-        .stub(HAProxyGroupService.prototype, "findOneInPath")
-        .throws(new Error("HAProxy Group not found"));
+        .stub(HAProxyGroupService.prototype, 'findOneInPath')
+        .throws(new Error('HAProxy Group not found'));
 
       await expect(controller.make(requestMock)).to.be.rejectedWith(
-        "HAProxy Group not found",
+        'HAProxy Group not found',
       );
 
       dhcpGroupServiceStub.restore();

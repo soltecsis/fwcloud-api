@@ -20,18 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { before } from "mocha";
+import { before } from 'mocha';
 import {
   RoutingCompiled,
   RoutingCompiler,
-} from "../../../../src/compiler/routing/RoutingCompiler";
-import { RoutingTableService } from "../../../../src/models/routing/routing-table/routing-table.service";
-import { RouteItemForCompiler } from "../../../../src/models/routing/shared";
-import { expect, testSuite } from "../../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
-import ip from "ip";
+} from '../../../../src/compiler/routing/RoutingCompiler';
+import { RoutingTableService } from '../../../../src/models/routing/routing-table/routing-table.service';
+import { RouteItemForCompiler } from '../../../../src/models/routing/shared';
+import { expect, testSuite } from '../../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
+import ip from 'ip';
 
-describe("Routing route compiler", async () => {
+describe('Routing route compiler', async () => {
   let fwc: FwCloudProduct;
   let routingTableService: RoutingTableService;
 
@@ -44,350 +44,350 @@ describe("Routing route compiler", async () => {
   let cs: string;
   let cs_start: string;
   let cs_end: string;
-  const head = "$IP route add";
+  const head = '$IP route add';
   let tail: string;
 
   before(async () => {
     await testSuite.resetDatabaseData();
 
     fwc = await new FwCloudFactory().make();
-    gw = fwc.ipobjs.get("gateway").address;
-    dev = fwc.interfaces.get("firewall-interface1").name;
+    gw = fwc.ipobjs.get('gateway').address;
+    dev = fwc.interfaces.get('firewall-interface1').name;
     rtn = fwc.routingTable.number;
 
     cs_start = `if [ "$HOSTNAME" = "${fwc.firewall.name}" ]; then\n`;
-    cs_end = "\nfi\n";
+    cs_end = '\nfi\n';
 
     routingTableService = await testSuite.app.getService<RoutingTableService>(
       RoutingTableService.name,
     );
     const routes =
       await routingTableService.getRoutingTableData<RouteItemForCompiler>(
-        "compiler",
+        'compiler',
         fwc.fwcloud.id,
         fwc.firewall.id,
         fwc.routingTable.id,
       );
-    compilation = compiler.compile("Route", routes);
+    compilation = compiler.compile('Route', routes);
   });
 
-  describe("Compilation of empty route", () => {
+  describe('Compilation of empty route', () => {
     before(() => {
       tail = `table ${rtn}\n`; // The first route has interface.
     });
 
-    it("should include default route without interface", () => {
+    it('should include default route without interface', () => {
       expect(compilation[2].cs).to.equal(`${head} default via ${gw} ${tail}`);
     });
 
-    it("should include default route with interface", () => {
+    it('should include default route with interface', () => {
       expect(compilation[3].cs).to.equal(
         `${head} default via ${gw} dev ${dev} ${tail}`,
       );
     });
 
-    it("should include default route with interface and firewall apply to code", () => {
+    it('should include default route with interface and firewall apply to code', () => {
       expect(compilation[4].cs).to.equal(
         `if [ "$HOSTNAME" = "${fwc.firewall.name}" ]; then\n${head} default via ${gw} dev ${dev} ${tail}fi\n`,
       );
     });
   });
 
-  describe("Compilation of route with objects", () => {
+  describe('Compilation of route with objects', () => {
     before(() => {
       cs = compilation[0].cs;
       tail = `via ${gw} dev ${dev} table ${rtn}\n`; // The first route has interface.
     });
 
-    it("should include address data", () => {
+    it('should include address data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("address").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('address').address} ${tail}`,
       );
     });
 
-    it("should include network data", () => {
+    it('should include network data', () => {
       const net = ip.subnet(
-        fwc.ipobjs.get("networkNoCIDR").address,
-        fwc.ipobjs.get("networkNoCIDR").netmask,
+        fwc.ipobjs.get('networkNoCIDR').address,
+        fwc.ipobjs.get('networkNoCIDR').netmask,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("network").address}${fwc.ipobjs.get("network").netmask} ${tail}`,
+        `${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("networkNoCIDR").address}/${net.subnetMaskLength} ${tail}`,
+        `${head} ${fwc.ipobjs.get('networkNoCIDR').address}/${net.subnetMaskLength} ${tail}`,
       );
     });
 
-    it("should include address range data", () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get("addressRange").range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get("addressRange").range_end);
+    it('should include address range data', () => {
+      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
       for (let current = firstLong; current <= lastLong; current++)
         expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
     });
 
-    it("should include host data", () => {
+    it('should include host data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("host-eth2-addr1").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('host-eth2-addr1').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("host-eth3-addr1").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('host-eth3-addr1').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("host-eth3-addr2").address} ${tail}`,
-      );
-    });
-
-    it("should include OpenVPN data", () => {
-      expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli1-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('host-eth3-addr2').address} ${tail}`,
       );
     });
 
-    it("should include OpenVPN prefix data", () => {
+    it('should include OpenVPN data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli1-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`,
+      );
+    });
+
+    it('should include OpenVPN prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli2-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('openvpn-cli2-addr').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli3-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`,
       );
     });
   });
 
-  describe("Compilation of route with objects and firewall apply to", () => {
+  describe('Compilation of route with objects and firewall apply to', () => {
     before(() => {
       cs = compilation[5].cs;
       tail = `via ${gw} dev ${dev} table ${rtn}\n`; // The first route has interface.
     });
 
-    it("should include address data", () => {
+    it('should include address data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("address").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('address').address} ${tail}`,
       );
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
 
-    it("should include network data", () => {
+    it('should include network data', () => {
       const net = ip.subnet(
-        fwc.ipobjs.get("networkNoCIDR").address,
-        fwc.ipobjs.get("networkNoCIDR").netmask,
+        fwc.ipobjs.get('networkNoCIDR').address,
+        fwc.ipobjs.get('networkNoCIDR').netmask,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("network").address}${fwc.ipobjs.get("network").netmask} ${tail}`,
+        `${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("networkNoCIDR").address}/${net.subnetMaskLength} ${tail}`,
+        `${head} ${fwc.ipobjs.get('networkNoCIDR').address}/${net.subnetMaskLength} ${tail}`,
       );
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
 
-    it("should include address range data", () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get("addressRange").range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get("addressRange").range_end);
+    it('should include address range data', () => {
+      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
       for (let current = firstLong; current <= lastLong; current++)
         expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
 
-    it("should include host data", () => {
+    it('should include host data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("host-eth2-addr1").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('host-eth2-addr1').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("host-eth3-addr1").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('host-eth3-addr1').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("host-eth3-addr2").address} ${tail}`,
-      );
-      expect(cs.startsWith(cs_start)).to.be.true;
-      expect(cs.endsWith(cs_end)).to.be.true;
-    });
-
-    it("should include OpenVPN data", () => {
-      expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli1-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('host-eth3-addr2').address} ${tail}`,
       );
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
 
-    it("should include OpenVPN prefix data", () => {
+    it('should include OpenVPN data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli1-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`,
+      );
+      expect(cs.startsWith(cs_start)).to.be.true;
+      expect(cs.endsWith(cs_end)).to.be.true;
+    });
+
+    it('should include OpenVPN prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli2-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('openvpn-cli2-addr').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli3-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`,
       );
       expect(cs.startsWith(cs_start)).to.be.true;
       expect(cs.endsWith(cs_end)).to.be.true;
     });
   });
 
-  describe("Compilation of route with objects group", () => {
+  describe('Compilation of route with objects group', () => {
     before(() => {
       cs = compilation[1].cs;
       tail = `via ${gw} table ${rtn}\n`; // The second route has no interface.
     });
 
-    it("should include address data", () => {
+    it('should include address data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("address").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('address').address} ${tail}`,
       );
     });
 
-    it("should include network data", () => {
+    it('should include network data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("network").address}${fwc.ipobjs.get("network").netmask} ${tail}`,
+        `${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`,
       );
     });
 
-    it("should include address range data", () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get("addressRange").range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get("addressRange").range_end);
+    it('should include address range data', () => {
+      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
       for (let current = firstLong; current <= lastLong; current++)
         expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
     });
 
-    it("should include host data", () => {
+    it('should include host data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("host-eth2-addr1").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('host-eth2-addr1').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("host-eth3-addr1").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('host-eth3-addr1').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("host-eth3-addr2").address} ${tail}`,
-      );
-    });
-
-    it("should include OpenVPN data", () => {
-      expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli1-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('host-eth3-addr2').address} ${tail}`,
       );
     });
 
-    it("should include OpenVPN prefix data", () => {
+    it('should include OpenVPN data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli1-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`,
+      );
+    });
+
+    it('should include OpenVPN prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli2-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('openvpn-cli2-addr').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli3-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`,
       );
     });
   });
 
-  describe("Compilation of route with objects group and firewall apply to", () => {
+  describe('Compilation of route with objects group and firewall apply to', () => {
     before(() => {
       cs = compilation[6].cs;
       tail = `via ${gw} table ${rtn}\n`; // The second route has no interface.
     });
 
-    it("should include address data", () => {
+    it('should include address data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("address").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('address').address} ${tail}`,
       );
     });
 
-    it("should include network data", () => {
+    it('should include network data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("network").address}${fwc.ipobjs.get("network").netmask} ${tail}`,
+        `${head} ${fwc.ipobjs.get('network').address}${fwc.ipobjs.get('network').netmask} ${tail}`,
       );
     });
 
-    it("should include address range data", () => {
-      const firstLong = ip.toLong(fwc.ipobjs.get("addressRange").range_start);
-      const lastLong = ip.toLong(fwc.ipobjs.get("addressRange").range_end);
+    it('should include address range data', () => {
+      const firstLong = ip.toLong(fwc.ipobjs.get('addressRange').range_start);
+      const lastLong = ip.toLong(fwc.ipobjs.get('addressRange').range_end);
       for (let current = firstLong; current <= lastLong; current++)
         expect(cs).to.deep.include(`${head} ${ip.fromLong(current)} ${tail}`);
     });
 
-    it("should include host data", () => {
+    it('should include host data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("host-eth2-addr1").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('host-eth2-addr1').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("host-eth3-addr1").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('host-eth3-addr1').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("host-eth3-addr2").address} ${tail}`,
-      );
-    });
-
-    it("should include OpenVPN data", () => {
-      expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli1-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('host-eth3-addr2').address} ${tail}`,
       );
     });
 
-    it("should include OpenVPN prefix data", () => {
+    it('should include OpenVPN data', () => {
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli1-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`,
+      );
+    });
+
+    it('should include OpenVPN prefix data', () => {
+      expect(cs).to.deep.include(
+        `${head} ${fwc.ipobjs.get('openvpn-cli1-addr').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli2-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('openvpn-cli2-addr').address} ${tail}`,
       );
       expect(cs).to.deep.include(
-        `${head} ${fwc.ipobjs.get("openvpn-cli3-addr").address} ${tail}`,
+        `${head} ${fwc.ipobjs.get('openvpn-cli3-addr').address} ${tail}`,
       );
     });
   });
 
-  describe("Compile only some routes", () => {
-    it("should compile only route 2", async () => {
-      const ids = [fwc.routes.get("route2").id];
+  describe('Compile only some routes', () => {
+    it('should compile only route 2', async () => {
+      const ids = [fwc.routes.get('route2').id];
       const routes =
         await routingTableService.getRoutingTableData<RouteItemForCompiler>(
-          "compiler",
+          'compiler',
           fwc.fwcloud.id,
           fwc.firewall.id,
           fwc.routingTable.id,
           ids,
         );
-      const compilation = compiler.compile("Route", routes);
+      const compilation = compiler.compile('Route', routes);
 
       expect(compilation.length).to.equal(1);
       expect(compilation[0].id).to.equal(ids[0]);
     });
 
-    it("should compile only routes 1 and 3", async () => {
-      const ids = [fwc.routes.get("route1").id, fwc.routes.get("route3").id];
+    it('should compile only routes 1 and 3', async () => {
+      const ids = [fwc.routes.get('route1').id, fwc.routes.get('route3').id];
       const routes =
         await routingTableService.getRoutingTableData<RouteItemForCompiler>(
-          "compiler",
+          'compiler',
           fwc.fwcloud.id,
           fwc.firewall.id,
           fwc.routingTable.id,
           ids,
         );
-      const compilation = compiler.compile("Route", routes);
+      const compilation = compiler.compile('Route', routes);
 
       expect(compilation.length).to.equal(2);
       expect(compilation[0].id).to.equal(ids[0]);
       expect(compilation[1].id).to.equal(ids[1]);
     });
 
-    it("should compile only routes 2 and 4", async () => {
-      const ids = [fwc.routes.get("route2").id, fwc.routes.get("route4").id];
+    it('should compile only routes 2 and 4', async () => {
+      const ids = [fwc.routes.get('route2').id, fwc.routes.get('route4').id];
       const routes =
         await routingTableService.getRoutingTableData<RouteItemForCompiler>(
-          "compiler",
+          'compiler',
           fwc.fwcloud.id,
           fwc.firewall.id,
           fwc.routingTable.id,
           ids,
         );
-      const compilation = compiler.compile("Route", routes);
+      const compilation = compiler.compile('Route', routes);
 
       expect(compilation.length).to.equal(2);
       expect(compilation[0].id).to.equal(ids[0]);

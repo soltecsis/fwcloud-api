@@ -20,49 +20,49 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-const logger = require("../fonaments/abstract-application").logger;
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { ProgressSSHCmdPayload } from "../sockets/messages/socket-message";
+const logger = require('../fonaments/abstract-application').logger;
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { ProgressSSHCmdPayload } from '../sockets/messages/socket-message';
 
 export default class sshTools {
   public static uploadFile(SSHconn, srcFile, dstFile) {
-    const Client = require("ssh2").Client;
+    const Client = require('ssh2').Client;
     const conn = new Client();
 
-    logger().debug("SSH Upload File: ", srcFile, dstFile);
+    logger().debug('SSH Upload File: ', srcFile, dstFile);
 
     return new Promise((resolve, reject) => {
       conn
-        .on("ready", () => {
+        .on('ready', () => {
           conn.sftp((err, sftp) => {
             if (err) return reject(err);
 
-            const fs = require("fs"); // Use node filesystem
+            const fs = require('fs'); // Use node filesystem
             const readStream = fs
               .createReadStream(srcFile)
-              .on("error", (error) => {
+              .on('error', (error) => {
                 conn.end();
                 reject(error);
               });
             const writeStream = sftp
               .createWriteStream(dstFile)
-              .on("error", (error) => {
+              .on('error', (error) => {
                 conn.end();
                 reject(error);
               });
 
             writeStream
-              .on("close", () => resolve("File transferred succesfully"))
-              .on("end", () => {
+              .on('close', () => resolve('File transferred succesfully'))
+              .on('end', () => {
                 conn.close();
-                reject("sftp connection closed");
+                reject('sftp connection closed');
               });
 
             // initiate transfer of file
             readStream.pipe(writeStream);
           });
         })
-        .on("error", (error) => {
+        .on('error', (error) => {
           if (error.message)
             error.message = `SSH_ERROR(${error.level}): ${error.message}`;
           reject(error);
@@ -72,27 +72,27 @@ export default class sshTools {
   }
 
   public static uploadStringToFile(SSHconn, str, dstFile) {
-    const Client = require("ssh2").Client;
+    const Client = require('ssh2').Client;
     const conn = new Client();
 
     return new Promise((resolve, reject) => {
       conn
-        .on("ready", () => {
+        .on('ready', () => {
           conn.sftp((err, sftp) => {
             if (err) return reject(err);
 
             const writeStream = sftp
               .createWriteStream(dstFile)
-              .on("error", (error) => {
+              .on('error', (error) => {
                 conn.end();
                 reject(error);
               });
 
             writeStream
-              .on("close", () => resolve("File transferred succesfully"))
-              .on("end", () => {
+              .on('close', () => resolve('File transferred succesfully'))
+              .on('end', () => {
                 conn.close();
-                reject("sftp connection closed");
+                reject('sftp connection closed');
               });
 
             writeStream.write(str, (error) => {
@@ -101,7 +101,7 @@ export default class sshTools {
             });
           });
         })
-        .on("error", (error) => {
+        .on('error', (error) => {
           if (error.message)
             error.message = `SSH_ERROR(${error.level}): ${error.message}`;
           reject(error);
@@ -115,52 +115,52 @@ export default class sshTools {
     cmd,
     eventEmitter?: EventEmitter,
   ): Promise<string> {
-    const Client = require("ssh2").Client;
+    const Client = require('ssh2').Client;
     const conn = new Client();
-    let stdout_log = "";
-    let stderr_log = "";
-    let sudo_pass_sent = cmd.trim().substr(0, 5) === "sudo " ? false : true;
+    let stdout_log = '';
+    let stderr_log = '';
+    let sudo_pass_sent = cmd.trim().substr(0, 5) === 'sudo ' ? false : true;
     const regex = new RegExp(`\\[sudo\\] .* ${SSHconn.username}: `);
 
     return new Promise((resolve, reject) => {
       conn
-        .on("ready", () => {
+        .on('ready', () => {
           conn.exec(cmd, { pty: true }, (err, stream) => {
             if (err) return reject(err);
 
-            let prevStr = "";
+            let prevStr = '';
 
             stream
-              .on("close", (code, signal) => {
+              .on('close', (code, signal) => {
                 //console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
                 conn.end();
                 if (code === 0) resolve(stdout_log);
                 else
                   reject(
                     new Error(
-                      "STDOUT: \n" + stdout_log + "\n\nSTDERR: \n" + stderr_log,
+                      'STDOUT: \n' + stdout_log + '\n\nSTDERR: \n' + stderr_log,
                     ),
                   );
               })
-              .on("data", (data) => {
+              .on('data', (data) => {
                 //console.log('STDOUT: ' + data);
-                const str = "" + data;
+                const str = '' + data;
 
                 if (!sudo_pass_sent && str.match(regex)) {
-                  stream.write(SSHconn.password + "\n");
+                  stream.write(SSHconn.password + '\n');
                   sudo_pass_sent = true;
                 } else {
                   stdout_log += data;
                   if (eventEmitter) {
-                    if (prevStr === "\r\n" && str === "\r\n")
+                    if (prevStr === '\r\n' && str === '\r\n')
                       // Blanc line
                       eventEmitter.emit(
-                        "message",
-                        new ProgressSSHCmdPayload("\r\n"),
+                        'message',
+                        new ProgressSSHCmdPayload('\r\n'),
                       );
-                    else if (str != "\r\n")
+                    else if (str != '\r\n')
                       eventEmitter.emit(
-                        "message",
+                        'message',
                         new ProgressSSHCmdPayload(str),
                       );
 
@@ -168,13 +168,13 @@ export default class sshTools {
                   }
                 }
               })
-              .stderr.on("data", (data) => {
+              .stderr.on('data', (data) => {
                 //console.log('STDERR: ' + data);
                 stderr_log += data;
               });
           });
         })
-        .on("error", (error) => {
+        .on('error', (error) => {
           if (error.message)
             error.message = `SSH_ERROR(${error.level}): ${error.message}`;
           reject(error);

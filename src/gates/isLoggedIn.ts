@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Gate } from "../fonaments/http/router/gate";
-import { Request } from "express";
+import { Gate } from '../fonaments/http/router/gate';
+import { Request } from 'express';
 
 export class isLoggedIn extends Gate {
   public async grant(request: Request): Promise<boolean> {

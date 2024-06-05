@@ -20,25 +20,25 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { PolicyRuleRepository } from "../../../../src/models/policy/policy-rule.repository";
-import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
-import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
-import { PolicyGroup } from "../../../../src/models/policy/PolicyGroup";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { getCustomRepository } from "typeorm";
+import { describeName, testSuite, expect } from '../../../mocha/global-setup';
+import { PolicyRuleRepository } from '../../../../src/models/policy/policy-rule.repository';
+import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
+import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import { PolicyGroup } from '../../../../src/models/policy/PolicyGroup';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { getCustomRepository } from 'typeorm';
 
 let policyRuleRepository: PolicyRuleRepository;
 let app: AbstractApplication;
 
-describe(describeName("PolicyRuleRepository Unit tests"), () => {
+describe(describeName('PolicyRuleRepository Unit tests'), () => {
   before(async () => {
     app = testSuite.app;
     policyRuleRepository = getCustomRepository(PolicyRuleRepository);
   });
 
-  describe("updateActive()", () => {
-    it("should update the policyRule active flag", async () => {
+  describe('updateActive()', () => {
+    it('should update the policyRule active flag', async () => {
       let policyRule: PolicyRule = await PolicyRule.save(
         PolicyRule.create({
           rule_order: 1,
@@ -59,7 +59,7 @@ describe(describeName("PolicyRuleRepository Unit tests"), () => {
       expect(policyRule.active).to.be.deep.eq(1);
     });
 
-    it("should update multiple policyRule active flag", async () => {
+    it('should update multiple policyRule active flag', async () => {
       const policyRules: Array<PolicyRule> = [
         await PolicyRule.save(
           PolicyRule.create({
@@ -88,7 +88,7 @@ describe(describeName("PolicyRuleRepository Unit tests"), () => {
       expect(result[1].active).to.be.deep.eq(1);
     });
 
-    it("should not update a policyRule active flag if is an special rule", async () => {
+    it('should not update a policyRule active flag if is an special rule', async () => {
       const policyRule: PolicyRule = await PolicyRule.save(
         PolicyRule.create({
           rule_order: 1,
@@ -107,21 +107,21 @@ describe(describeName("PolicyRuleRepository Unit tests"), () => {
     });
   });
 
-  describe("assignGroup()", () => {
-    it("should change the policy rule group", async () => {
+  describe('assignGroup()', () => {
+    it('should change the policy rule group', async () => {
       const policyGroupOld: PolicyGroup = await PolicyGroup.save(
         PolicyGroup.create({
-          name: "groupOld",
+          name: 'groupOld',
           firewall: await Firewall.save(
             Firewall.create({
-              name: "firewall",
+              name: 'firewall',
             }),
           ),
         }),
       );
       const policyGroupNew: PolicyGroup = await PolicyGroup.save(
         PolicyGroup.create({
-          name: "groupNew",
+          name: 'groupNew',
           firewall: policyGroupOld.firewall,
         }),
       );
@@ -148,20 +148,20 @@ describe(describeName("PolicyRuleRepository Unit tests"), () => {
       expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupNew.id);
     });
 
-    it("should change multiple policy rule group", async () => {
+    it('should change multiple policy rule group', async () => {
       const policyGroupOld: PolicyGroup = await PolicyGroup.save(
         PolicyGroup.create({
-          name: "groupOld",
+          name: 'groupOld',
           firewall: await Firewall.save(
             Firewall.create({
-              name: "firewall",
+              name: 'firewall',
             }),
           ),
         }),
       );
       const policyGroupNew: PolicyGroup = await PolicyGroup.save(
         PolicyGroup.create({
-          name: "groupNew",
+          name: 'groupNew',
           firewall: policyGroupOld.firewall,
         }),
       );
@@ -196,13 +196,13 @@ describe(describeName("PolicyRuleRepository Unit tests"), () => {
       expect(policyRule2.policyGroupId).to.be.deep.eq(policyGroupNew.id);
     });
 
-    it("should not change a group if the rule firewall is not the same as the group firewall", async () => {
+    it('should not change a group if the rule firewall is not the same as the group firewall', async () => {
       const policyGroupOld: PolicyGroup = await PolicyGroup.save(
         PolicyGroup.create({
-          name: "groupOld",
+          name: 'groupOld',
           firewall: await Firewall.save(
             Firewall.create({
-              name: "firewall",
+              name: 'firewall',
             }),
           ),
         }),
@@ -210,10 +210,10 @@ describe(describeName("PolicyRuleRepository Unit tests"), () => {
 
       const policyGroupNew: PolicyGroup = await PolicyGroup.save(
         PolicyGroup.create({
-          name: "groupNew",
+          name: 'groupNew',
           firewall: await Firewall.save(
             Firewall.create({
-              name: "firewall",
+              name: 'firewall',
             }),
           ),
         }),
@@ -235,13 +235,13 @@ describe(describeName("PolicyRuleRepository Unit tests"), () => {
       expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupOld.id);
     });
 
-    it("should unassign the group if is called with null", async () => {
+    it('should unassign the group if is called with null', async () => {
       const policyGroupOld: PolicyGroup = await PolicyGroup.save(
         PolicyGroup.create({
-          name: "groupOld",
+          name: 'groupOld',
           firewall: await Firewall.save(
             Firewall.create({
-              name: "firewall",
+              name: 'firewall',
             }),
           ),
         }),
@@ -263,34 +263,34 @@ describe(describeName("PolicyRuleRepository Unit tests"), () => {
     });
   });
 
-  describe("updateStyle()", () => {
-    it("should update the style", async () => {
+  describe('updateStyle()', () => {
+    it('should update the style', async () => {
       const policyRule: PolicyRule = await PolicyRule.save(
         PolicyRule.create({
           rule_order: 1,
           action: 1,
-          style: "oldStyle",
+          style: 'oldStyle',
         }),
       );
 
       const result = await policyRuleRepository.updateStyle(
         policyRule,
-        "newStyle",
+        'newStyle',
       );
 
       await policyRule.reload();
 
       expect(result).to.be.instanceOf(PolicyRule);
-      expect(policyRule.style).to.be.deep.eq("newStyle");
+      expect(policyRule.style).to.be.deep.eq('newStyle');
     });
 
-    it("should update multiple policyRule styles", async () => {
+    it('should update multiple policyRule styles', async () => {
       const policyRules: Array<PolicyRule> = [
         await PolicyRule.save(
           PolicyRule.create({
             rule_order: 1,
             action: 1,
-            style: "oldStyle",
+            style: 'oldStyle',
           }),
           { reload: true },
         ),
@@ -298,7 +298,7 @@ describe(describeName("PolicyRuleRepository Unit tests"), () => {
           PolicyRule.create({
             rule_order: 1,
             action: 1,
-            style: "oldStyle",
+            style: 'oldStyle',
           }),
           { reload: true },
         ),
@@ -306,12 +306,12 @@ describe(describeName("PolicyRuleRepository Unit tests"), () => {
 
       const result = await policyRuleRepository.updateStyle(
         policyRules,
-        "newStyle",
+        'newStyle',
       );
 
       expect(result).to.have.length(2);
-      expect(result[0].style).to.be.deep.eq("newStyle");
-      expect(result[1].style).to.be.deep.eq("newStyle");
+      expect(result[0].style).to.be.deep.eq('newStyle');
+      expect(result[1].style).to.be.deep.eq('newStyle');
     });
   });
 });

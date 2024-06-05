@@ -20,17 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Policy, Authorization } from "../fonaments/authorization/policy";
-import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
-import { Firewall } from "../models/firewall/Firewall";
-import { RouteGroup } from "../models/routing/route-group/route-group.model";
+import { Policy, Authorization } from '../fonaments/authorization/policy';
+import { User } from '../models/user/User';
+import { getRepository } from 'typeorm';
+import { Firewall } from '../models/firewall/Firewall';
+import { RouteGroup } from '../models/routing/route-group/route-group.model';
 
 export class RouteGroupPolicy extends Policy {
   static async create(firewall: Firewall, user: User): Promise<Authorization> {
     user = await this.getUser(user.id);
     firewall = await getRepository(Firewall).findOne(firewall.id, {
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
     if (user.role === 1) {
       return Authorization.grant();
@@ -46,7 +46,7 @@ export class RouteGroupPolicy extends Policy {
   static async index(firewall: Firewall, user: User): Promise<Authorization> {
     user = await this.getUser(user.id);
     firewall = await getRepository(Firewall).findOne(firewall.id, {
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
     if (user.role === 1) {
       return Authorization.grant();
@@ -106,13 +106,13 @@ export class RouteGroupPolicy extends Policy {
 
   protected static getGroup(groupId: number): Promise<RouteGroup> {
     return getRepository(RouteGroup).findOne(groupId, {
-      relations: ["firewall", "firewall.fwCloud"],
+      relations: ['firewall', 'firewall.fwCloud'],
     });
   }
 
   protected static getUser(userId: number): Promise<User> {
     return getRepository(User).findOneOrFail(userId, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
   }
 }

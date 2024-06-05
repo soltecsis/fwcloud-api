@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
+import Model from '../Model';
 import {
   PrimaryGeneratedColumn,
   Column,
@@ -30,15 +30,15 @@ import {
   JoinColumn,
   OneToMany,
   ManyToMany,
-} from "typeorm";
-import { FwCloud } from "../fwcloud/FwCloud";
-import { PolicyRule } from "../policy/PolicyRule";
-import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
-import { RoutingRuleToMark } from "../routing/routing-rule/routing-rule-to-mark.model";
+} from 'typeorm';
+import { FwCloud } from '../fwcloud/FwCloud';
+import { PolicyRule } from '../policy/PolicyRule';
+import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
+import { RoutingRuleToMark } from '../routing/routing-rule/routing-rule-to-mark.model';
 
-const fwcError = require("../../utils/error_table");
+const fwcError = require('../../utils/error_table');
 
-const tableName: string = "mark";
+const tableName: string = 'mark';
 
 @Entity(tableName)
 export class Mark extends Model {
@@ -66,12 +66,12 @@ export class Mark extends Model {
   @Column()
   updated_by: number;
 
-  @Column({ name: "fwcloud" })
+  @Column({ name: 'fwcloud' })
   fwCloudId: number;
 
   @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.marks)
   @JoinColumn({
-    name: "fwcloud",
+    name: 'fwcloud',
   })
   fwCloud: FwCloud;
 
@@ -189,18 +189,18 @@ export class Mark extends Model {
         );
 
         search.restrictions.MarkInRoutingRule = await getRepository(RoutingRule)
-          .createQueryBuilder("routing_rule")
-          .addSelect("firewall.id", "firewall_id")
-          .addSelect("firewall.name", "firewall_name")
-          .addSelect("cluster.id", "cluster_id")
-          .addSelect("cluster.name", "cluster_name")
-          .innerJoin("routing_rule.routingRuleToMarks", "routingRuleToMarks")
-          .innerJoin("routingRuleToMarks.mark", "mark", "mark.id = :mark", {
+          .createQueryBuilder('routing_rule')
+          .addSelect('firewall.id', 'firewall_id')
+          .addSelect('firewall.name', 'firewall_name')
+          .addSelect('cluster.id', 'cluster_id')
+          .addSelect('cluster.name', 'cluster_name')
+          .innerJoin('routing_rule.routingRuleToMarks', 'routingRuleToMarks')
+          .innerJoin('routingRuleToMarks.mark', 'mark', 'mark.id = :mark', {
             mark: mark,
           })
-          .innerJoin("routing_rule.routingTable", "table")
-          .innerJoin("table.firewall", "firewall")
-          .leftJoin("firewall.cluster", "cluster")
+          .innerJoin('routing_rule.routingTable', 'table')
+          .innerJoin('table.firewall', 'firewall')
+          .leftJoin('firewall.cluster', 'cluster')
           .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
           .getRawMany();
 

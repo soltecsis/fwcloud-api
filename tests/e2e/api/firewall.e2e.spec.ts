@@ -1,30 +1,30 @@
-import { describeName, expect, testSuite } from "../../mocha/global-setup";
-import { Application } from "../../../src/Application";
-import { User } from "../../../src/models/user/User";
-import request = require("supertest");
-import { createUser, generateSession, attachSession } from "../../utils/utils";
-import { _URL } from "../../../src/fonaments/http/router/router.service";
-import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { getRepository } from "typeorm";
-import StringHelper from "../../../src/utils/string.helper";
+import { describeName, expect, testSuite } from '../../mocha/global-setup';
+import { Application } from '../../../src/Application';
+import { User } from '../../../src/models/user/User';
+import request = require('supertest');
+import { createUser, generateSession, attachSession } from '../../utils/utils';
+import { _URL } from '../../../src/fonaments/http/router/router.service';
+import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
+import { getRepository } from 'typeorm';
+import StringHelper from '../../../src/utils/string.helper';
 import {
   Firewall,
   FirewallInstallCommunication,
-} from "../../../src/models/firewall/Firewall";
-import { IPObj } from "../../../src/models/ipobj/IPObj";
-import sinon from "sinon";
-import sshTools from "../../../src/utils/ssh";
-import { FwCloudFactory, FwCloudProduct } from "../../utils/fwcloud-factory";
-import { RoutingTable } from "../../../src/models/routing/routing-table/routing-table.model";
-import { RoutingRule } from "../../../src/models/routing/routing-rule/routing-rule.model";
-import { RoutingRuleService } from "../../../src/models/routing/routing-rule/routing-rule.service";
-import { Mark } from "../../../src/models/ipobj/Mark";
-import { Tree, TreeNode } from "../../../src/models/tree/Tree";
-import db from "../../../src/database/database-manager";
-import { DHCPRule } from "../../../src/models/system/dhcp/dhcp_r/dhcp_r.model";
-import { HAProxyRule } from "../../../src/models/system/haproxy/haproxy_r/haproxy_r.model";
+} from '../../../src/models/firewall/Firewall';
+import { IPObj } from '../../../src/models/ipobj/IPObj';
+import sinon from 'sinon';
+import sshTools from '../../../src/utils/ssh';
+import { FwCloudFactory, FwCloudProduct } from '../../utils/fwcloud-factory';
+import { RoutingTable } from '../../../src/models/routing/routing-table/routing-table.model';
+import { RoutingRule } from '../../../src/models/routing/routing-rule/routing-rule.model';
+import { RoutingRuleService } from '../../../src/models/routing/routing-rule/routing-rule.service';
+import { Mark } from '../../../src/models/ipobj/Mark';
+import { Tree, TreeNode } from '../../../src/models/tree/Tree';
+import db from '../../../src/database/database-manager';
+import { DHCPRule } from '../../../src/models/system/dhcp/dhcp_r/dhcp_r.model';
+import { HAProxyRule } from '../../../src/models/system/haproxy/haproxy_r/haproxy_r.model';
 
-describe(describeName("Firewall E2E Tests"), () => {
+describe(describeName('Firewall E2E Tests'), () => {
   let app: Application;
   let loggedUser: User;
   let loggedUserSessionId: string;
@@ -49,8 +49,8 @@ describe(describeName("Firewall E2E Tests"), () => {
     );
     const ipObj: IPObj = await getRepository(IPObj).save(
       getRepository(IPObj).create({
-        name: "test",
-        address: "0.0.0.0",
+        name: 'test',
+        address: '0.0.0.0',
         ipObjTypeId: 0,
       }),
     );
@@ -63,11 +63,11 @@ describe(describeName("Firewall E2E Tests"), () => {
     );
   });
 
-  describe.skip("FirewallController@compile", () => {
-    it("guest user should not compile a firewall", async () => {
+  describe.skip('FirewallController@compile', () => {
+    it('guest user should not compile a firewall', async () => {
       return await request(app.express)
         .post(
-          _URL().getURL("firewalls.compile", {
+          _URL().getURL('firewalls.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
@@ -75,52 +75,52 @@ describe(describeName("Firewall E2E Tests"), () => {
         .expect(401);
     });
 
-    it("regular user should not compile a firewall if it does not belong to the fwcloud", async () => {
+    it('regular user should not compile a firewall if it does not belong to the fwcloud', async () => {
       return await request(app.express)
         .post(
-          _URL().getURL("firewalls.compile", {
+          _URL().getURL('firewalls.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(loggedUserSessionId)])
+        .set('Cookie', [attachSession(loggedUserSessionId)])
         .expect(401);
     });
 
-    it("regular user should compile a firewall if it does belong to the fwcloud", async () => {
+    it('regular user should compile a firewall if it does belong to the fwcloud', async () => {
       loggedUser.fwClouds = [fwCloud];
       await getRepository(User).save(loggedUser);
 
       return await request(app.express)
         .post(
-          _URL().getURL("firewalls.compile", {
+          _URL().getURL('firewalls.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(loggedUserSessionId)])
+        .set('Cookie', [attachSession(loggedUserSessionId)])
         .expect(201);
     });
 
-    it("admin user should compile a firewall", async () => {
+    it('admin user should compile a firewall', async () => {
       return await request(app.express)
         .post(
-          _URL().getURL("firewalls.compile", {
+          _URL().getURL('firewalls.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(201);
     });
   });
 
-  describe.skip("FirewallController@install", () => {
+  describe.skip('FirewallController@install', () => {
     let sshRunCommandStub: sinon.SinonStub;
     let sshUploadFileStub: sinon.SinonStub;
     before(async () => {
-      sshRunCommandStub = sinon.stub(sshTools, "runCommand").resolves("done");
-      sshUploadFileStub = sinon.stub(sshTools, "uploadFile").resolves("done");
+      sshRunCommandStub = sinon.stub(sshTools, 'runCommand').resolves('done');
+      sshUploadFileStub = sinon.stub(sshTools, 'uploadFile').resolves('done');
     });
 
     after(async () => {
@@ -128,10 +128,10 @@ describe(describeName("Firewall E2E Tests"), () => {
       sshUploadFileStub.restore();
     });
 
-    it("guest user should not compile a firewall", async () => {
+    it('guest user should not compile a firewall', async () => {
       return await request(app.express)
         .post(
-          _URL().getURL("firewalls.install", {
+          _URL().getURL('firewalls.install', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
@@ -139,52 +139,52 @@ describe(describeName("Firewall E2E Tests"), () => {
         .expect(401);
     });
 
-    it("regular user should not install a firewall if it does not belong to the fwcloud", async () => {
+    it('regular user should not install a firewall if it does not belong to the fwcloud', async () => {
       return await request(app.express)
         .post(
-          _URL().getURL("firewalls.install", {
+          _URL().getURL('firewalls.install', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(loggedUserSessionId)])
+        .set('Cookie', [attachSession(loggedUserSessionId)])
         .expect(401);
     });
 
-    it("regular user should install a firewall if it does belong to the fwcloud", async () => {
+    it('regular user should install a firewall if it does belong to the fwcloud', async () => {
       loggedUser.fwClouds = [fwCloud];
       await getRepository(User).save(loggedUser);
 
       return await request(app.express)
         .post(
-          _URL().getURL("firewalls.install", {
+          _URL().getURL('firewalls.install', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(loggedUserSessionId)])
+        .set('Cookie', [attachSession(loggedUserSessionId)])
         .expect(201);
     });
 
-    it("admin user should install a firewall if user belongs to the fwcloud", async () => {
+    it('admin user should install a firewall if user belongs to the fwcloud', async () => {
       adminUser.fwClouds = [fwCloud];
       await getRepository(User).save(adminUser);
 
       return await request(app.express)
         .post(
-          _URL().getURL("firewalls.install", {
+          _URL().getURL('firewalls.install', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(201);
     });
 
-    it.skip("should use custom credentials if they are provided", () => {});
+    it.skip('should use custom credentials if they are provided', () => {});
   });
 
-  describe("@compileRoutingRules", () => {
+  describe('@compileRoutingRules', () => {
     let fwcProduct: FwCloudProduct;
     let table: RoutingTable;
     let rule1: RoutingRule;
@@ -206,7 +206,7 @@ describe(describeName("Firewall E2E Tests"), () => {
             id: (
               await getRepository(Mark).save({
                 code: 1,
-                name: "test",
+                name: 'test',
                 fwCloudId: fwCloud.id,
               })
             ).id,
@@ -222,7 +222,7 @@ describe(describeName("Firewall E2E Tests"), () => {
             id: (
               await getRepository(Mark).save({
                 code: 2,
-                name: "test",
+                name: 'test',
                 fwCloudId: fwCloud.id,
               })
             ).id,
@@ -232,10 +232,10 @@ describe(describeName("Firewall E2E Tests"), () => {
       });
     });
 
-    it("guest user should not routing compile a firewall", async () => {
+    it('guest user should not routing compile a firewall', async () => {
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.routing.compile", {
+          _URL().getURL('fwclouds.firewalls.routing.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
@@ -243,49 +243,49 @@ describe(describeName("Firewall E2E Tests"), () => {
         .expect(401);
     });
 
-    it("regular user should not routing compile a firewall if it does not belong to the fwcloud", async () => {
+    it('regular user should not routing compile a firewall if it does not belong to the fwcloud', async () => {
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.routing.compile", {
+          _URL().getURL('fwclouds.firewalls.routing.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(loggedUserSessionId)])
+        .set('Cookie', [attachSession(loggedUserSessionId)])
         .expect(401);
     });
 
-    it("regular user should routing compile a firewall if it does belong to the fwcloud", async () => {
+    it('regular user should routing compile a firewall if it does belong to the fwcloud', async () => {
       loggedUser.fwClouds = [fwcProduct.fwcloud];
       await getRepository(User).save(loggedUser);
 
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.routing.compile", {
+          _URL().getURL('fwclouds.firewalls.routing.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(loggedUserSessionId)])
+        .set('Cookie', [attachSession(loggedUserSessionId)])
         .expect(200);
     });
 
-    it("admin user should routing compile a firewall", async () => {
+    it('admin user should routing compile a firewall', async () => {
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.routing.compile", {
+          _URL().getURL('fwclouds.firewalls.routing.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200);
     });
 
-    it("should compile a list of routes", async () => {
+    it('should compile a list of routes', async () => {
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.routing.compile", {
+          _URL().getURL('fwclouds.firewalls.routing.compile', {
             fwcloud: fwCloud.id,
             firewall: firewall.id,
           }),
@@ -293,7 +293,7 @@ describe(describeName("Firewall E2E Tests"), () => {
         .query({
           rules: [rule1.id, rule2.id],
         })
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .expect((response) => {
           expect(response.body.data).to.have.length(2);
@@ -301,7 +301,7 @@ describe(describeName("Firewall E2E Tests"), () => {
     });
   });
 
-  describe("@compileDhcpRules", () => {
+  describe('@compileDhcpRules', () => {
     let fwcProduct: FwCloudProduct;
     let rule1: DHCPRule;
     let rule2: DHCPRule;
@@ -320,27 +320,27 @@ describe(describeName("Firewall E2E Tests"), () => {
           max_lease: 5,
           network: await getRepository(IPObj).save(
             getRepository(IPObj).create({
-              name: "test",
-              address: "0.0.0.0",
+              name: 'test',
+              address: '0.0.0.0',
               ipObjTypeId: 0,
-              netmask: "/24",
+              netmask: '/24',
             }),
           ),
           range: await getRepository(IPObj).save(
             getRepository(IPObj).create({
-              name: "test",
-              address: "0.0.0.0",
+              name: 'test',
+              address: '0.0.0.0',
               ipObjTypeId: 0,
-              range_start: "1",
-              range_end: "2",
+              range_start: '1',
+              range_end: '2',
             }),
           ),
           router: await getRepository(IPObj).save(
             getRepository(IPObj).create({
-              name: "test",
-              address: "0.0.0.0",
+              name: 'test',
+              address: '0.0.0.0',
               ipObjTypeId: 0,
-              netmask: "/24",
+              netmask: '/24',
             }),
           ),
         }),
@@ -355,37 +355,37 @@ describe(describeName("Firewall E2E Tests"), () => {
           max_lease: 5,
           network: await getRepository(IPObj).save(
             getRepository(IPObj).create({
-              name: "test",
-              address: "0.0.0.0",
+              name: 'test',
+              address: '0.0.0.0',
               ipObjTypeId: 0,
-              netmask: "/24",
+              netmask: '/24',
             }),
           ),
           range: await getRepository(IPObj).save(
             getRepository(IPObj).create({
-              name: "test",
-              address: "0.0.0.0",
+              name: 'test',
+              address: '0.0.0.0',
               ipObjTypeId: 0,
-              range_start: "1",
-              range_end: "2",
+              range_start: '1',
+              range_end: '2',
             }),
           ),
           router: await getRepository(IPObj).save(
             getRepository(IPObj).create({
-              name: "test",
-              address: "0.0.0.0",
+              name: 'test',
+              address: '0.0.0.0',
               ipObjTypeId: 0,
-              netmask: "/24",
+              netmask: '/24',
             }),
           ),
         }),
       );
     });
 
-    it("guest user should not dhcp compile a firewall", async () => {
+    it('guest user should not dhcp compile a firewall', async () => {
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.system.dhcp.compile", {
+          _URL().getURL('fwclouds.firewalls.system.dhcp.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
@@ -393,49 +393,49 @@ describe(describeName("Firewall E2E Tests"), () => {
         .expect(401);
     });
 
-    it("regular user should not dhcp compile a firewall if it does not belong to the fwcloud", async () => {
+    it('regular user should not dhcp compile a firewall if it does not belong to the fwcloud', async () => {
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.system.dhcp.compile", {
+          _URL().getURL('fwclouds.firewalls.system.dhcp.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(loggedUserSessionId)])
+        .set('Cookie', [attachSession(loggedUserSessionId)])
         .expect(401);
     });
 
-    it("regular user should dhcp compile a firewall if it does belong to the fwcloud", async () => {
+    it('regular user should dhcp compile a firewall if it does belong to the fwcloud', async () => {
       loggedUser.fwClouds = [fwcProduct.fwcloud];
       await getRepository(User).save(loggedUser);
 
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.system.dhcp.compile", {
+          _URL().getURL('fwclouds.firewalls.system.dhcp.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(loggedUserSessionId)])
+        .set('Cookie', [attachSession(loggedUserSessionId)])
         .expect(200);
     });
 
-    it("admin user should dhcp compile a firewall", async () => {
+    it('admin user should dhcp compile a firewall', async () => {
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.system.dhcp.compile", {
+          _URL().getURL('fwclouds.firewalls.system.dhcp.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200);
     });
 
-    it("should compile a list of dhcp rules", async () => {
+    it('should compile a list of dhcp rules', async () => {
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.system.dhcp.compile", {
+          _URL().getURL('fwclouds.firewalls.system.dhcp.compile', {
             fwcloud: fwCloud.id,
             firewall: firewall.id,
           }),
@@ -443,7 +443,7 @@ describe(describeName("Firewall E2E Tests"), () => {
         .query({
           rules: [rule1.id, rule2.id],
         })
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200)
         .expect((response) => {
           expect(response.body.data).to.have.length(2);
@@ -451,7 +451,7 @@ describe(describeName("Firewall E2E Tests"), () => {
     });
   });
 
-  describe("@compileHAProxyRules", () => {
+  describe('@compileHAProxyRules', () => {
     let fwcProduct: FwCloudProduct;
     let rule1: HAProxyRule;
     let rule2: HAProxyRule;
@@ -470,7 +470,7 @@ describe(describeName("Firewall E2E Tests"), () => {
               address: `192.168.1.1`,
               destination_port_start: 80,
               destination_port_end: 80,
-              name: "test",
+              name: 'test',
               ipObjTypeId: 0,
             }),
           ),
@@ -478,7 +478,7 @@ describe(describeName("Firewall E2E Tests"), () => {
             getRepository(IPObj).create({
               destination_port_start: 80,
               destination_port_end: 80,
-              name: "test",
+              name: 'test',
               ipObjTypeId: 0,
             }),
           ),
@@ -494,7 +494,7 @@ describe(describeName("Firewall E2E Tests"), () => {
               address: `192.168.1.1`,
               destination_port_start: 80,
               destination_port_end: 80,
-              name: "test",
+              name: 'test',
               ipObjTypeId: 0,
             }),
           ),
@@ -502,7 +502,7 @@ describe(describeName("Firewall E2E Tests"), () => {
             getRepository(IPObj).create({
               destination_port_start: 80,
               destination_port_end: 80,
-              name: "test",
+              name: 'test',
               ipObjTypeId: 0,
             }),
           ),
@@ -511,10 +511,10 @@ describe(describeName("Firewall E2E Tests"), () => {
       );
     });
 
-    it("guest user should not haproxy compile a firewall", async () => {
+    it('guest user should not haproxy compile a firewall', async () => {
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.system.haproxy.compile", {
+          _URL().getURL('fwclouds.firewalls.system.haproxy.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
@@ -522,72 +522,72 @@ describe(describeName("Firewall E2E Tests"), () => {
         .expect(401);
     });
 
-    it("regular user should not haproxy compile a firewall if it does not belong to the fwcloud", async () => {
+    it('regular user should not haproxy compile a firewall if it does not belong to the fwcloud', async () => {
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.system.haproxy.compile", {
+          _URL().getURL('fwclouds.firewalls.system.haproxy.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(loggedUserSessionId)])
+        .set('Cookie', [attachSession(loggedUserSessionId)])
         .expect(401);
     });
 
-    it("regular user should haproxy compile a firewall if it does belong to the fwcloud", async () => {
+    it('regular user should haproxy compile a firewall if it does belong to the fwcloud', async () => {
       loggedUser.fwClouds = [fwcProduct.fwcloud];
       await getRepository(User).save(loggedUser);
 
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.system.haproxy.compile", {
+          _URL().getURL('fwclouds.firewalls.system.haproxy.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(loggedUserSessionId)])
+        .set('Cookie', [attachSession(loggedUserSessionId)])
         .expect(200);
     });
 
-    it("admin user should haproxy compile a firewall", async () => {
+    it('admin user should haproxy compile a firewall', async () => {
       return await request(app.express)
         .get(
-          _URL().getURL("fwclouds.firewalls.system.haproxy.compile", {
+          _URL().getURL('fwclouds.firewalls.system.haproxy.compile', {
             fwcloud: firewall.fwCloudId,
             firewall: firewall.id,
           }),
         )
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200);
     });
   });
 
-  describe("FirewallController@limits", () => {
+  describe('FirewallController@limits', () => {
     let tree: TreeNode;
     beforeEach(async () => {
       const response = await request(app.express)
-        .post(_URL().getURL("fwclouds.store"))
+        .post(_URL().getURL('fwclouds.store'))
         .send({
           name: StringHelper.randomize(10),
-          image: "",
-          comment: "",
+          image: '',
+          comment: '',
         })
-        .set("Cookie", [attachSession(adminUserSessionId)]);
+        .set('Cookie', [attachSession(adminUserSessionId)]);
 
       fwCloud = response.body.data;
-      tree = await Tree.dumpTree(db.getQuery(), "FIREWALLS", fwCloud.id);
+      tree = await Tree.dumpTree(db.getQuery(), 'FIREWALLS', fwCloud.id);
     });
 
-    it("the limit is greater than the number of firewalls", async () => {
+    it('the limit is greater than the number of firewalls', async () => {
       let numberFirewalls: number;
 
       await request(app.express)
-        .post("/firewall")
+        .post('/firewall')
         .send({
           name: StringHelper.randomize(10),
           fwcloud: fwCloud.id,
-          install_communication: "agent",
-          install_protocol: "http",
+          install_communication: 'agent',
+          install_protocol: 'http',
           install_apikey: null,
           install_port: 33033,
           save_user_pass: 0,
@@ -596,14 +596,14 @@ describe(describeName("Firewall E2E Tests"), () => {
           plugins: 0,
           node_id: tree.id,
         })
-        .set("Cookie", [attachSession(adminUserSessionId)]);
+        .set('Cookie', [attachSession(adminUserSessionId)]);
       await request(app.express)
-        .post("/firewall")
+        .post('/firewall')
         .send({
           name: StringHelper.randomize(10),
           fwcloud: fwCloud.id,
-          install_communication: "agent",
-          install_protocol: "http",
+          install_communication: 'agent',
+          install_protocol: 'http',
           install_apikey: null,
           install_port: 33033,
           save_user_pass: 0,
@@ -612,25 +612,25 @@ describe(describeName("Firewall E2E Tests"), () => {
           plugins: 0,
           node_id: tree.id,
         })
-        .set("Cookie", [attachSession(adminUserSessionId)]);
+        .set('Cookie', [attachSession(adminUserSessionId)]);
 
       await request(app.express)
-        .put("/firewall/cloud/get")
+        .put('/firewall/cloud/get')
         .send({ fwcloud: fwCloud.id })
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .then((response) => {
           numberFirewalls = response.body.length ? response.body.length : 0;
         });
 
-      app.config.set("limits.firewalls", numberFirewalls + 1);
+      app.config.set('limits.firewalls', numberFirewalls + 1);
 
       return await request(app.express)
-        .post("/firewall")
+        .post('/firewall')
         .send({
           name: StringHelper.randomize(10),
           fwcloud: fwCloud.id,
-          install_communication: "agent",
-          install_protocol: "http",
+          install_communication: 'agent',
+          install_protocol: 'http',
           install_apikey: null,
           install_port: 33033,
           save_user_pass: 0,
@@ -639,20 +639,20 @@ describe(describeName("Firewall E2E Tests"), () => {
           plugins: 0,
           node_id: tree.id,
         })
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200);
     });
 
-    it("the limit is equals than the number of firewalls", async () => {
+    it('the limit is equals than the number of firewalls', async () => {
       let numberFirewalls: number;
 
       await request(app.express)
-        .post("/firewall")
+        .post('/firewall')
         .send({
           name: StringHelper.randomize(10),
           fwcloud: fwCloud.id,
-          install_communication: "agent",
-          install_protocol: "http",
+          install_communication: 'agent',
+          install_protocol: 'http',
           install_apikey: null,
           install_port: 33033,
           save_user_pass: 0,
@@ -661,14 +661,14 @@ describe(describeName("Firewall E2E Tests"), () => {
           plugins: 0,
           node_id: tree.id,
         })
-        .set("Cookie", [attachSession(adminUserSessionId)]);
+        .set('Cookie', [attachSession(adminUserSessionId)]);
       await request(app.express)
-        .post("/firewall")
+        .post('/firewall')
         .send({
           name: StringHelper.randomize(10),
           fwcloud: fwCloud.id,
-          install_communication: "agent",
-          install_protocol: "http",
+          install_communication: 'agent',
+          install_protocol: 'http',
           install_apikey: null,
           install_port: 33033,
           save_user_pass: 0,
@@ -677,25 +677,25 @@ describe(describeName("Firewall E2E Tests"), () => {
           plugins: 0,
           node_id: tree.id,
         })
-        .set("Cookie", [attachSession(adminUserSessionId)]);
+        .set('Cookie', [attachSession(adminUserSessionId)]);
 
       await request(app.express)
-        .put("/firewall/cloud/get")
+        .put('/firewall/cloud/get')
         .send({ fwcloud: fwCloud.id })
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .then((response) => {
           numberFirewalls = response.body.length ? response.body.length : 0;
         });
 
-      app.config.set("limits.firewalls", numberFirewalls);
+      app.config.set('limits.firewalls', numberFirewalls);
 
       return await request(app.express)
-        .post("/firewall")
+        .post('/firewall')
         .send({
           name: StringHelper.randomize(10),
           fwcloud: fwCloud.id,
-          install_communication: "agent",
-          install_protocol: "http",
+          install_communication: 'agent',
+          install_protocol: 'http',
           install_apikey: null,
           install_port: 33033,
           save_user_pass: 0,
@@ -704,23 +704,23 @@ describe(describeName("Firewall E2E Tests"), () => {
           plugins: 0,
           node_id: tree.id,
         })
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(400, {
           fwcErr: 8001,
-          msg: "The maximum of available Firewalls has been reached",
+          msg: 'The maximum of available Firewalls has been reached',
         });
     });
 
-    it("the limit is less than the number of firewalls", async () => {
+    it('the limit is less than the number of firewalls', async () => {
       let numberFirewalls: number;
 
       await request(app.express)
-        .post("/firewall")
+        .post('/firewall')
         .send({
           name: StringHelper.randomize(10),
           fwcloud: fwCloud.id,
-          install_communication: "agent",
-          install_protocol: "http",
+          install_communication: 'agent',
+          install_protocol: 'http',
           install_apikey: null,
           install_port: 33033,
           save_user_pass: 0,
@@ -729,14 +729,14 @@ describe(describeName("Firewall E2E Tests"), () => {
           plugins: 0,
           node_id: tree.id,
         })
-        .set("Cookie", [attachSession(adminUserSessionId)]);
+        .set('Cookie', [attachSession(adminUserSessionId)]);
       await request(app.express)
-        .post("/firewall")
+        .post('/firewall')
         .send({
           name: StringHelper.randomize(10),
           fwcloud: fwCloud.id,
-          install_communication: "agent",
-          install_protocol: "http",
+          install_communication: 'agent',
+          install_protocol: 'http',
           install_apikey: null,
           install_port: 33033,
           save_user_pass: 0,
@@ -745,24 +745,24 @@ describe(describeName("Firewall E2E Tests"), () => {
           plugins: 0,
           node_id: tree.id,
         })
-        .set("Cookie", [attachSession(adminUserSessionId)]);
+        .set('Cookie', [attachSession(adminUserSessionId)]);
 
       await request(app.express)
-        .put("/firewall/cloud/get")
+        .put('/firewall/cloud/get')
         .send({ fwcloud: fwCloud.id })
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .then((response) => {
           numberFirewalls = response.body.length ? response.body.length : 0;
         });
-      app.config.set("limits.firewalls", numberFirewalls - 1);
+      app.config.set('limits.firewalls', numberFirewalls - 1);
 
       return await request(app.express)
-        .post("/firewall")
+        .post('/firewall')
         .send({
           name: StringHelper.randomize(10),
           fwcloud: fwCloud.id,
-          install_communication: "agent",
-          install_protocol: "http",
+          install_communication: 'agent',
+          install_protocol: 'http',
           install_apikey: null,
           install_port: 33033,
           save_user_pass: 0,
@@ -771,10 +771,10 @@ describe(describeName("Firewall E2E Tests"), () => {
           plugins: 0,
           node_id: tree.id,
         })
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(400, {
           fwcErr: 8001,
-          msg: "The maximum of available Firewalls has been reached",
+          msg: 'The maximum of available Firewalls has been reached',
         });
     });
   });

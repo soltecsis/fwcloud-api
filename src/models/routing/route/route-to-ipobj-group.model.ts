@@ -1,19 +1,19 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
-import { IPObjGroup } from "../../ipobj/IPObjGroup";
-import Model from "../../Model";
-import { Route } from "./route.model";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { IPObjGroup } from '../../ipobj/IPObjGroup';
+import Model from '../../Model';
+import { Route } from './route.model';
 
-const tableName: string = "route__ipobj_g";
+const tableName: string = 'route__ipobj_g';
 
 @Entity(tableName)
 export class RouteToIPObjGroup extends Model {
   @PrimaryColumn({
-    name: "route",
+    name: 'route',
   })
   routeId: number;
 
   @PrimaryColumn({
-    name: "ipobj_g",
+    name: 'ipobj_g',
   })
   ipObjGroupId: number;
 
@@ -23,18 +23,18 @@ export class RouteToIPObjGroup extends Model {
   order: number;
 
   @ManyToOne(() => Route, (model) => model.routeToIPObjGroups, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "route",
+    name: 'route',
   })
   route: Route;
 
   @ManyToOne(() => IPObjGroup, (model) => model.routeToIPObjGroups, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "ipobj_g",
+    name: 'ipobj_g',
   })
   ipObjGroup: IPObjGroup;
 

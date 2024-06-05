@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import db from "../../database/database-manager";
-import { PolicyRuleToIPObj } from "../../models/policy/PolicyRuleToIPObj";
-import { IPObjGroup } from "./IPObjGroup";
-import { InterfaceIPObj } from "../../models/interface/InterfaceIPObj";
-import { IPObjToIPObjGroup } from "../../models/ipobj/IPObjToIPObjGroup";
-import { Interface } from "../../models/interface/Interface";
-import Model from "../Model";
+import db from '../../database/database-manager';
+import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
+import { IPObjGroup } from './IPObjGroup';
+import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
+import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
+import { Interface } from '../../models/interface/Interface';
+import Model from '../Model';
 import {
   Column,
   Entity,
@@ -35,31 +35,31 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-} from "typeorm";
-import { FwCloud } from "../fwcloud/FwCloud";
-import { logger } from "../../fonaments/abstract-application";
-import { IPObjType } from "./IPObjType";
-import { OpenVPNOption } from "../vpn/openvpn/openvpn-option.model";
-import { Route } from "../routing/route/route.model";
-import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
-import { RouteToIPObj } from "../routing/route/route-to-ipobj.model";
-import { RoutingRuleToIPObj } from "../routing/routing-rule/routing-rule-to-ipobj.model";
-import { DHCPRuleToIPObj } from "../system/dhcp/dhcp_r/dhcp_r-to-ipobj.model";
-import { HAProxyRuleToIPObj } from "../system/haproxy/haproxy_r/haproxy_r-to_ipobj.model";
-import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
-import { KeepalivedToIPObj } from "../system/keepalived/keepalived_r/keepalived_r-to-ipobj";
-import { KeepalivedRule } from "../system/keepalived/keepalived_r/keepalived_r.model";
-import { HAProxyRule } from "../system/haproxy/haproxy_r/haproxy_r.model";
+} from 'typeorm';
+import { FwCloud } from '../fwcloud/FwCloud';
+import { logger } from '../../fonaments/abstract-application';
+import { IPObjType } from './IPObjType';
+import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
+import { Route } from '../routing/route/route.model';
+import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
+import { RouteToIPObj } from '../routing/route/route-to-ipobj.model';
+import { RoutingRuleToIPObj } from '../routing/routing-rule/routing-rule-to-ipobj.model';
+import { DHCPRuleToIPObj } from '../system/dhcp/dhcp_r/dhcp_r-to-ipobj.model';
+import { HAProxyRuleToIPObj } from '../system/haproxy/haproxy_r/haproxy_r-to_ipobj.model';
+import { DHCPRule } from '../system/dhcp/dhcp_r/dhcp_r.model';
+import { KeepalivedToIPObj } from '../system/keepalived/keepalived_r/keepalived_r-to-ipobj';
+import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
+import { HAProxyRule } from '../system/haproxy/haproxy_r/haproxy_r.model';
 
-const ip = require("ip");
-const asyncMod = require("async");
-const host_Data = require("../../models/data/data_ipobj_host");
-const interface_Data = require("../../models/data/data_interface");
-const ipobj_Data = require("../../models/data/data_ipobj");
-const data_policy_position_ipobjs = require("../../models/data/data_policy_position_ipobjs");
-const fwcError = require("../../utils/error_table");
+const ip = require('ip');
+const asyncMod = require('async');
+const host_Data = require('../../models/data/data_ipobj_host');
+const interface_Data = require('../../models/data/data_interface');
+const ipobj_Data = require('../../models/data/data_ipobj');
+const data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
+const fwcError = require('../../utils/error_table');
 
-const tableName: string = "ipobj";
+const tableName: string = 'ipobj';
 
 @Entity(tableName)
 export class IPObj extends Model {
@@ -132,30 +132,30 @@ export class IPObj extends Model {
   @Column()
   updated_by: number;
 
-  @Column({ name: "fwcloud" })
+  @Column({ name: 'fwcloud' })
   fwCloudId: number;
 
   @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.ipObjs)
   @JoinColumn({
-    name: "fwcloud",
+    name: 'fwcloud',
   })
   fwCloud: FwCloud;
 
-  @Column({ name: "type" })
+  @Column({ name: 'type' })
   ipObjTypeId: number;
 
   @ManyToOne((type) => IPObjType, (ipObjType) => ipObjType.ipObjs)
   @JoinColumn({
-    name: "type",
+    name: 'type',
   })
   ipObjType: IPObjType;
 
-  @Column({ name: "interface" })
+  @Column({ name: 'interface' })
   interfaceId: number;
 
   @ManyToOne((type) => Interface, (_interface) => _interface.ipObjs)
   @JoinColumn({
-    name: "interface",
+    name: 'interface',
   })
   interface: Interface;
 
@@ -258,19 +258,19 @@ export class IPObj extends Model {
   public static addressParentsData(connection, addr) {
     return new Promise((resolve, reject) => {
       const sql =
-        "select I.name" +
-        " ,case when I.firewall is not null then F.id end as firewall_id" +
-        " ,case when I.firewall is not null then F.name end as firewall_name" +
-        " ,case when C.id is not null then C.id end as cluster_id" +
-        " ,case when C.name is not null then C.name end as cluster_name" +
-        " ,case when OBJ.id is not null then OBJ.id end as host_id" +
-        " ,case when OBJ.name is not null then OBJ.name end as host_name" +
-        " from interface I" +
-        " left join firewall F on F.id=I.firewall" +
-        " left join cluster C on C.id=F.cluster" +
-        " left join interface__ipobj II on II.interface=I.id" +
-        " left join ipobj OBJ on OBJ.id=II.ipobj" +
-        " where I.id=" +
+        'select I.name' +
+        ' ,case when I.firewall is not null then F.id end as firewall_id' +
+        ' ,case when I.firewall is not null then F.name end as firewall_name' +
+        ' ,case when C.id is not null then C.id end as cluster_id' +
+        ' ,case when C.name is not null then C.name end as cluster_name' +
+        ' ,case when OBJ.id is not null then OBJ.id end as host_id' +
+        ' ,case when OBJ.name is not null then OBJ.name end as host_name' +
+        ' from interface I' +
+        ' left join firewall F on F.id=I.firewall' +
+        ' left join cluster C on C.id=F.cluster' +
+        ' left join interface__ipobj II on II.interface=I.id' +
+        ' left join ipobj OBJ on OBJ.id=II.ipobj' +
+        ' where I.id=' +
         connection.escape(addr.interface);
       connection.query(sql, (error, rows) => {
         if (error) return reject(error);
@@ -313,21 +313,21 @@ export class IPObj extends Model {
 
         //SELECT IPOBJ DATA UNDER POSITION
         const sql =
-          "SELECT I.*, T.id id_node, T.id_parent id_parent_node " +
-          " FROM " +
+          'SELECT I.*, T.id id_node, T.id_parent id_parent_node ' +
+          ' FROM ' +
           tableName +
-          " I " +
-          " inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=" +
+          ' I ' +
+          ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' +
           connection.escape(position_ipobj.fwcloud) +
-          " OR T.fwcloud IS NULL)" +
-          " inner join fwc_tree P on P.id=T.id_parent " + //  and P.obj_type<>20 and P.obj_type<>21' +
-          " WHERE I.id = " +
+          ' OR T.fwcloud IS NULL)' +
+          ' inner join fwc_tree P on P.id=T.id_parent ' + //  and P.obj_type<>20 and P.obj_type<>21' +
+          ' WHERE I.id = ' +
           connection.escape(position_ipobj.ipobj) +
-          " AND (I.fwcloud=" +
+          ' AND (I.fwcloud=' +
           connection.escape(position_ipobj.fwcloud) +
-          " OR I.fwcloud IS NULL)";
+          ' OR I.fwcloud IS NULL)';
 
-        logger().debug("getIpobjPro -> ", sql);
+        logger().debug('getIpobjPro -> ', sql);
         connection.query(sql, (error, row) => {
           if (error) {
             reject(error);
@@ -336,7 +336,7 @@ export class IPObj extends Model {
               //CHECK IF IPOBJ IS a HOST
               if (row[0].type === 8) {
                 logger().debug(
-                  "======== > ENCONTRADO HOST: " + position_ipobj.ipobj,
+                  '======== > ENCONTRADO HOST: ' + position_ipobj.ipobj,
                 );
                 //GET ALL HOST INTERFACES
                 Interface.getInterfacesHost_Full_Pro(
@@ -348,7 +348,7 @@ export class IPObj extends Model {
                     const hostdata = new data_policy_position_ipobjs(
                       row[0],
                       position_ipobj.position_order,
-                      "O",
+                      'O',
                     );
                     hostdata.interfaces = interfacesHost;
 
@@ -362,12 +362,12 @@ export class IPObj extends Model {
                 const ipobj = new data_policy_position_ipobjs(
                   row[0],
                   position_ipobj.position_order,
-                  "O",
+                  'O',
                 );
                 //logger().debug("------------------- > ENCONTRADO IPOBJ: " + position_ipobj.ipobj + "  EN POSITION: " + position_ipobj.position);
                 resolve(ipobj);
               }
-            } else if (position_ipobj.type === "I") {
+            } else if (position_ipobj.type === 'I') {
               //SEARCH INTERFACE DATA
               Interface.getInterfaceFullPro(
                 position_ipobj.firewall,
@@ -376,9 +376,9 @@ export class IPObj extends Model {
               )
                 .then((dataInt) => {
                   logger().debug(
-                    "------- > ENCONTRADA INTERFACE: " +
+                    '------- > ENCONTRADA INTERFACE: ' +
                       position_ipobj.ipobj +
-                      "  EN POSITION: " +
+                      '  EN POSITION: ' +
                       position_ipobj.position,
                   );
                   //var ipobj = new data_policy_position_ipobjs(dataInt[0], position_ipobj.position_order, 'I');
@@ -387,11 +387,11 @@ export class IPObj extends Model {
                 })
                 .catch(() => resolve({}));
             } else if (
-              position_ipobj.type === "O" &&
+              position_ipobj.type === 'O' &&
               position_ipobj.ipobj_g > 0
             ) {
               logger().debug(
-                "======== > ENCONTRADO GROUP: " + position_ipobj.ipobj_g,
+                '======== > ENCONTRADO GROUP: ' + position_ipobj.ipobj_g,
               );
               //GET ALL GROUP's IPOBJS
               IPObjGroup.getIpobj_g_Full_Pro(
@@ -400,15 +400,15 @@ export class IPObj extends Model {
               )
                 .then((ipobjsGroup) => {
                   logger().debug(
-                    "-------------------------> FINAL de GROUP : " +
+                    '-------------------------> FINAL de GROUP : ' +
                       position_ipobj.ipobj_g +
-                      " ----",
+                      ' ----',
                   );
                   //RETURN IPOBJ GROUP DATA
                   const groupdata = new data_policy_position_ipobjs(
                     position_ipobj,
                     position_ipobj.position_order,
-                    "G",
+                    'G',
                   );
                   groupdata.ipobjs = ipobjsGroup;
                   resolve(groupdata);
@@ -445,19 +445,19 @@ export class IPObj extends Model {
     db.get((error, connection) => {
       if (error) AllDone(error, null);
 
-      let sqlId = "";
-      if (id !== "") sqlId = " AND G.id = " + connection.escape(id);
+      let sqlId = '';
+      if (id !== '') sqlId = ' AND G.id = ' + connection.escape(id);
       const sql =
-        "SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM " +
+        'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' +
         tableName +
-        " G " +
-        "inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=" +
+        ' G ' +
+        'inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=' +
         connection.escape(fwcloud) +
-        " OR T.fwcloud IS NULL) " +
+        ' OR T.fwcloud IS NULL) ' +
         'inner join fwc_tree ParentNode ON ParentNode.id = T.id_parent AND ParentNode.node_type = "OIH"' +
-        " WHERE  (G.fwcloud= " +
+        ' WHERE  (G.fwcloud= ' +
         connection.escape(fwcloud) +
-        " OR G.fwcloud is null) " +
+        ' OR G.fwcloud is null) ' +
         sqlId;
       logger().debug(sql);
       connection.query(sql, (error, rows) => {
@@ -471,7 +471,7 @@ export class IPObj extends Model {
               const host_node = new host_Data(row);
 
               logger().debug(
-                " ---> DENTRO de HOST: " + row.id + " NAME: " + row.name,
+                ' ---> DENTRO de HOST: ' + row.id + ' NAME: ' + row.name,
               );
               const idhost = row.id;
               host_node.interfaces = [];
@@ -489,11 +489,11 @@ export class IPObj extends Model {
                       (data_interface, callback2) => {
                         //GET INTERFACES
                         logger().debug(
-                          "--> DENTRO de INTERFACE id:" +
+                          '--> DENTRO de INTERFACE id:' +
                             data_interface.id +
-                            "  Name:" +
+                            '  Name:' +
                             data_interface.name +
-                            "  Type:" +
+                            '  Type:' +
                             data_interface.interface_type,
                         );
 
@@ -517,11 +517,11 @@ export class IPObj extends Model {
                                 (data_ipobj, callback2) => {
                                   //GET OBJECTS
                                   logger().debug(
-                                    "--> DENTRO de OBJECT id:" +
+                                    '--> DENTRO de OBJECT id:' +
                                       data_ipobj.id +
-                                      "  Name:" +
+                                      '  Name:' +
                                       data_ipobj.name +
-                                      "  Type:" +
+                                      '  Type:' +
                                       data_ipobj.type,
                                   );
 
@@ -589,7 +589,7 @@ export class IPObj extends Model {
             },
           );
         } else {
-          AllDone("", null);
+          AllDone('', null);
         }
       });
     });
@@ -610,15 +610,15 @@ export class IPObj extends Model {
       if (error) callback(error, null);
 
       const sql =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " I " +
-        " INNER JOIN ipobj__ipobjg G on G.ipobj=I.id " +
-        " WHERE  G.ipobj_g=" +
+        ' I ' +
+        ' INNER JOIN ipobj__ipobjg G on G.ipobj=I.id ' +
+        ' WHERE  G.ipobj_g=' +
         idgroup +
-        " AND (I.fwcloud=" +
+        ' AND (I.fwcloud=' +
         fwcloud +
-        " OR I.fwcloud IS NULL) ORDER BY G.id_gi";
+        ' OR I.fwcloud IS NULL) ORDER BY G.id_gi';
       //var sql = 'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' + tableModel + ' I ' +
       //	' INNER JOIN ipobj__ipobjg G on G.ipobj=I.id ' +
       //	' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' + fwcloud + ' OR T.fwcloud IS NULL)' +
@@ -648,19 +648,19 @@ export class IPObj extends Model {
       if (error) callback(error, null);
 
       const sql =
-        "SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM " +
+        'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' +
         tableName +
-        " I " +
-        " inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=" +
+        ' I ' +
+        ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' +
         connection.escape(fwcloud) +
-        ")" +
-        " inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21" +
-        " WHERE I.interface=" +
+        ')' +
+        ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
+        ' WHERE I.interface=' +
         connection.escape(idinterface) +
-        " AND (I.fwcloud=" +
+        ' AND (I.fwcloud=' +
         connection.escape(fwcloud) +
-        " OR I.fwcloud IS NULL)" +
-        " ORDER BY I.id";
+        ' OR I.fwcloud IS NULL)' +
+        ' ORDER BY I.id';
       logger().debug(sql);
 
       connection.query(sql, (error, rows) => {
@@ -688,19 +688,19 @@ export class IPObj extends Model {
         if (error) return reject(error);
 
         const sql =
-          "SELECT I.id as ipobj, I.*, T.id id_node, T.id_parent id_parent_node  FROM " +
+          'SELECT I.id as ipobj, I.*, T.id id_node, T.id_parent id_parent_node  FROM ' +
           tableName +
-          " I " +
-          " inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=" +
+          ' I ' +
+          ' inner join fwc_tree T on T.id_obj=I.id and T.obj_type=I.type AND (T.fwcloud=' +
           connection.escape(fwcloud) +
-          " )" +
-          " inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21" +
-          " WHERE I.interface=" +
+          ' )' +
+          ' inner join fwc_tree P on P.id=T.id_parent  and P.obj_type<>20 and P.obj_type<>21' +
+          ' WHERE I.interface=' +
           connection.escape(data.id) +
-          " AND (I.fwcloud=" +
+          ' AND (I.fwcloud=' +
           connection.escape(fwcloud) +
-          " OR I.fwcloud IS NULL)" +
-          " ORDER BY I.id";
+          ' OR I.fwcloud IS NULL)' +
+          ' ORDER BY I.id';
         //logger().debug("getAllIpobjsInterfacePro -> ", sql);
         const _interface = new interface_Data(data);
         connection.query(sql, (error, rows) => {
@@ -726,7 +726,7 @@ export class IPObj extends Model {
   public static getIpobjInfo(dbCon, fwcloud, ipobj) {
     return new Promise((resolve, reject) => {
       const sql =
-        "SELECT * FROM ipobj WHERE fwcloud=" + fwcloud + " AND id=" + ipobj;
+        'SELECT * FROM ipobj WHERE fwcloud=' + fwcloud + ' AND id=' + ipobj;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         if (result.length < 1) return reject(fwcError.NOT_FOUND);
@@ -804,7 +804,7 @@ export class IPObj extends Model {
           comment: ipobjDataclone.comment,
         };
         connection.query(
-          "INSERT INTO " + tableName + " SET ?",
+          'INSERT INTO ' + tableName + ' SET ?',
           ipobjData as any,
           (error, result) => {
             if (error) return reject(error);
@@ -833,75 +833,75 @@ export class IPObj extends Model {
   public static updateIpobj(req, ipobjData): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
-        "UPDATE " +
+        'UPDATE ' +
         tableName +
-        " SET " +
-        "fwcloud = " +
+        ' SET ' +
+        'fwcloud = ' +
         ipobjData.fwcloud +
-        "," +
-        "interface = " +
+        ',' +
+        'interface = ' +
         req.dbCon.escape(ipobjData.interface) +
-        "," +
-        "name = " +
+        ',' +
+        'name = ' +
         req.dbCon.escape(ipobjData.name) +
-        "," +
-        "type = " +
+        ',' +
+        'type = ' +
         req.dbCon.escape(ipobjData.type) +
-        "," +
-        "protocol = " +
+        ',' +
+        'protocol = ' +
         req.dbCon.escape(ipobjData.protocol) +
-        "," +
-        "address = " +
+        ',' +
+        'address = ' +
         req.dbCon.escape(ipobjData.address) +
-        "," +
-        "netmask = " +
+        ',' +
+        'netmask = ' +
         req.dbCon.escape(ipobjData.netmask) +
-        "," +
-        "diff_serv = " +
+        ',' +
+        'diff_serv = ' +
         req.dbCon.escape(ipobjData.diff_serv) +
-        "," +
-        "ip_version = " +
+        ',' +
+        'ip_version = ' +
         req.dbCon.escape(ipobjData.ip_version) +
-        "," +
-        "icmp_code = " +
+        ',' +
+        'icmp_code = ' +
         req.dbCon.escape(ipobjData.icmp_code) +
-        "," +
-        "icmp_type = " +
+        ',' +
+        'icmp_type = ' +
         req.dbCon.escape(ipobjData.icmp_type) +
-        "," +
-        "tcp_flags_mask = " +
+        ',' +
+        'tcp_flags_mask = ' +
         req.dbCon.escape(ipobjData.tcp_flags_mask) +
-        "," +
-        "tcp_flags_settings = " +
+        ',' +
+        'tcp_flags_settings = ' +
         req.dbCon.escape(ipobjData.tcp_flags_settings) +
-        "," +
-        "range_start = " +
+        ',' +
+        'range_start = ' +
         req.dbCon.escape(ipobjData.range_start) +
-        "," +
-        "range_end = " +
+        ',' +
+        'range_end = ' +
         req.dbCon.escape(ipobjData.range_end) +
-        "," +
-        "source_port_start = " +
+        ',' +
+        'source_port_start = ' +
         req.dbCon.escape(ipobjData.source_port_start) +
-        "," +
-        "source_port_end = " +
+        ',' +
+        'source_port_end = ' +
         req.dbCon.escape(ipobjData.source_port_end) +
-        "," +
-        "destination_port_start = " +
+        ',' +
+        'destination_port_start = ' +
         req.dbCon.escape(ipobjData.destination_port_start) +
-        "," +
-        "destination_port_end = " +
+        ',' +
+        'destination_port_end = ' +
         req.dbCon.escape(ipobjData.destination_port_end) +
-        "," +
-        "options = " +
+        ',' +
+        'options = ' +
         req.dbCon.escape(ipobjData.options) +
-        "," +
-        "comment = " +
+        ',' +
+        'comment = ' +
         req.dbCon.escape(ipobjData.comment) +
-        " " +
-        " WHERE id = " +
+        ' ' +
+        ' WHERE id = ' +
         ipobjData.id +
-        " AND fwcloud=" +
+        ' AND fwcloud=' +
         ipobjData.fwcloud;
       req.dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
@@ -941,8 +941,8 @@ export class IPObj extends Model {
           if (error) return reject(error);
 
           if (result.affectedRows > 0)
-            resolve({ result: true, msg: "deleted" });
-          else resolve({ result: false, msg: "notExist" });
+            resolve({ result: true, msg: 'deleted' });
+          else resolve({ result: false, msg: 'notExist' });
         },
       );
     });
@@ -988,8 +988,8 @@ export class IPObj extends Model {
           if (error) return reject(error);
 
           if (result.affectedRows > 0)
-            resolve({ result: true, msg: "deleted" });
-          else resolve({ result: false, msg: "notExist" });
+            resolve({ result: true, msg: 'deleted' });
+          else resolve({ result: false, msg: 'notExist' });
         },
       );
     });
@@ -1001,12 +1001,12 @@ export class IPObj extends Model {
       db.get((error, connection) => {
         if (error) reject(error);
         const sql =
-          "UPDATE ipobj H  " +
-          "inner join interface__ipobj II on II.ipobj=H.id " +
-          "inner join interface I on I.id=II.interface " +
-          "inner join ipobj O on O.interface= I.id " +
-          "set H.updated_at= CURRENT_TIMESTAMP " +
-          " WHERE O.id = " +
+          'UPDATE ipobj H  ' +
+          'inner join interface__ipobj II on II.ipobj=H.id ' +
+          'inner join interface I on I.id=II.interface ' +
+          'inner join ipobj O on O.interface= I.id ' +
+          'set H.updated_at= CURRENT_TIMESTAMP ' +
+          ' WHERE O.id = ' +
           connection.escape(id);
         logger().debug(sql);
         connection.query(sql, async (error, result) => {
@@ -1031,10 +1031,10 @@ export class IPObj extends Model {
       db.get((error, connection) => {
         if (error) reject(error);
         const sql =
-          "UPDATE interface I  " +
-          "inner join ipobj O on O.interface= I.id " +
-          "set I.updated_at= CURRENT_TIMESTAMP " +
-          " WHERE O.id = " +
+          'UPDATE interface I  ' +
+          'inner join ipobj O on O.interface= I.id ' +
+          'set I.updated_at= CURRENT_TIMESTAMP ' +
+          ' WHERE O.id = ' +
           connection.escape(id);
         logger().debug(sql);
         connection.query(sql, async (error, result) => {
@@ -1075,24 +1075,24 @@ export class IPObj extends Model {
    * */
   public static checkIpobjInGroup(ipobj, type, fwcloud, callback) {
     logger().debug(
-      "CHECK DELETING FROM GROUP ipobj:" +
+      'CHECK DELETING FROM GROUP ipobj:' +
         ipobj +
-        " Type:" +
+        ' Type:' +
         type +
-        "  fwcloud:" +
+        '  fwcloud:' +
         fwcloud,
     );
     db.get((error, connection) => {
       const sql =
-        "SELECT count(*) as n FROM " +
+        'SELECT count(*) as n FROM ' +
         tableName +
-        " I " +
-        " INNER JOIN ipobj__ipobjg G on G.ipobj=I.id " +
-        " WHERE I.id=" +
+        ' I ' +
+        ' INNER JOIN ipobj__ipobjg G on G.ipobj=I.id ' +
+        ' WHERE I.id=' +
         connection.escape(ipobj) +
-        " AND I.type=" +
+        ' AND I.type=' +
         connection.escape(type) +
-        " AND I.fwcloud=" +
+        ' AND I.fwcloud=' +
         connection.escape(fwcloud);
       logger().debug(sql);
       connection.query(sql, (error, rows) => {
@@ -1100,15 +1100,15 @@ export class IPObj extends Model {
           if (rows.length > 0) {
             if (rows[0].n > 0) {
               logger().debug(
-                "ALERT DELETING ipobj IN GROUP:" +
+                'ALERT DELETING ipobj IN GROUP:' +
                   ipobj +
-                  " type: " +
+                  ' type: ' +
                   type +
-                  " fwcloud:" +
+                  ' fwcloud:' +
                   fwcloud +
-                  " --> FOUND IN " +
+                  ' --> FOUND IN ' +
                   rows[0].n +
-                  " GROUPS",
+                  ' GROUPS',
               );
               callback(null, { result: true });
             } else {
@@ -1296,20 +1296,20 @@ export class IPObj extends Model {
     fwcloud: number,
   ): Promise<any> {
     return await getRepository(Route)
-      .createQueryBuilder("route")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .addSelect("ipObj.id", "ipobj_id")
-      .addSelect("ipObj.type", "ipobj_type")
-      .innerJoin("route.routeToIPObjs", "routeToIPObjs")
-      .innerJoin("routeToIPObjs.ipObj", "ipObj", "ipObj.id = :ipobj", {
+      .createQueryBuilder('route')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .addSelect('ipObj.id', 'ipobj_id')
+      .addSelect('ipObj.type', 'ipobj_type')
+      .innerJoin('route.routeToIPObjs', 'routeToIPObjs')
+      .innerJoin('routeToIPObjs.ipObj', 'ipObj', 'ipObj.id = :ipobj', {
         ipobj: ipobj,
       })
-      .innerJoinAndSelect("route.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoinAndSelect('route.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }
@@ -1319,19 +1319,19 @@ export class IPObj extends Model {
     fwcloud: number,
   ): Promise<any> {
     return await getRepository(Route)
-      .createQueryBuilder("route")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .addSelect("gateway.id", "gateway_id")
-      .addSelect("gateway.type", "gateway_type")
-      .innerJoin("route.gateway", "gateway", "gateway.id = :ipobj", {
+      .createQueryBuilder('route')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .addSelect('gateway.id', 'gateway_id')
+      .addSelect('gateway.type', 'gateway_type')
+      .innerJoin('route.gateway', 'gateway', 'gateway.id = :ipobj', {
         ipobj: ipobj,
       })
-      .innerJoinAndSelect("route.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoinAndSelect('route.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }
@@ -1341,18 +1341,18 @@ export class IPObj extends Model {
     fwcloud: number,
   ): Promise<any> {
     return await getRepository(RoutingRule)
-      .createQueryBuilder("routing_rule")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .innerJoin("routing_rule.routingRuleToIPObjs", "routingRuleToIPObjs")
-      .innerJoin("routingRuleToIPObjs.ipObj", "ipObj", "ipObj.id = :ipobj", {
+      .createQueryBuilder('routing_rule')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoin('routing_rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
+      .innerJoin('routingRuleToIPObjs.ipObj', 'ipObj', 'ipObj.id = :ipobj', {
         ipobj: ipobj,
       })
-      .innerJoin("routing_rule.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoin('routing_rule.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }
@@ -1362,56 +1362,56 @@ export class IPObj extends Model {
     FWCloud: number,
   ): Promise<any> {
     const resultAsRouter = await getRepository(DHCPRule)
-      .createQueryBuilder("dhcp_rule")
-      .addSelect("network.id", "network_id")
-      .addSelect("network.name", "network_name")
-      .addSelect("range.id", "range_id")
-      .addSelect("range.name", "range_name")
-      .addSelect("router.id", "router_id")
-      .addSelect("router.name", "router_name")
-      .addSelect("dhcp_rule.range", "dhcp_range")
-      .addSelect("dhcp_rule.router", "dhcp_router")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .leftJoin("dhcp_rule.network", "network", "network.id = :IPObj", {
+      .createQueryBuilder('dhcp_rule')
+      .addSelect('network.id', 'network_id')
+      .addSelect('network.name', 'network_name')
+      .addSelect('range.id', 'range_id')
+      .addSelect('range.name', 'range_name')
+      .addSelect('router.id', 'router_id')
+      .addSelect('router.name', 'router_name')
+      .addSelect('dhcp_rule.range', 'dhcp_range')
+      .addSelect('dhcp_rule.router', 'dhcp_router')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .leftJoin('dhcp_rule.network', 'network', 'network.id = :IPObj', {
         IPObj: IPObj,
       })
-      .leftJoin("dhcp_rule.range", "range", "range.id = :IPObj")
-      .leftJoin("dhcp_rule.router", "router", "router.id = :IPObj")
-      .innerJoin("dhcp_rule.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .leftJoin('dhcp_rule.range', 'range', 'range.id = :IPObj')
+      .leftJoin('dhcp_rule.router', 'router', 'router.id = :IPObj')
+      .innerJoin('dhcp_rule.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(
         `firewall.fwCloudId = :FWCloud AND (network.id IS NOT NULL OR range.id IS NOT NULL OR router.id IS NOT NULL)`,
         { FWCloud: FWCloud },
       )
       .getRawMany();
     const resultAsIpObj = await getRepository(DHCPRule)
-      .createQueryBuilder("dhcp_rule")
-      .addSelect("network.id", "network_id")
-      .addSelect("network.name", "network_name")
-      .addSelect("ipObj.id", "ipObj_id")
-      .addSelect("ipObj.name", "ipObj_name")
-      .addSelect("range.id", "range_id")
-      .addSelect("range.name", "range_name")
-      .addSelect("dhcp_rule.range", "dhcp_range")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .leftJoin("dhcp_rule.network", "network", "network.id = :IPObj", {
+      .createQueryBuilder('dhcp_rule')
+      .addSelect('network.id', 'network_id')
+      .addSelect('network.name', 'network_name')
+      .addSelect('ipObj.id', 'ipObj_id')
+      .addSelect('ipObj.name', 'ipObj_name')
+      .addSelect('range.id', 'range_id')
+      .addSelect('range.name', 'range_name')
+      .addSelect('dhcp_rule.range', 'dhcp_range')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .leftJoin('dhcp_rule.network', 'network', 'network.id = :IPObj', {
         IPObj: IPObj,
       })
-      .leftJoin("dhcp_rule.range", "range", "range.id = :IPObj")
+      .leftJoin('dhcp_rule.range', 'range', 'range.id = :IPObj')
       .leftJoin(
-        "dhcp_rule.dhcpRuleToIPObjs",
-        "dhcpRuleToIPObjs",
-        "dhcpRuleToIPObjs.ipObj = :IPObj",
+        'dhcp_rule.dhcpRuleToIPObjs',
+        'dhcpRuleToIPObjs',
+        'dhcpRuleToIPObjs.ipObj = :IPObj',
       )
-      .leftJoin("dhcpRuleToIPObjs.ipObj", "ipObj")
-      .innerJoin("dhcp_rule.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .leftJoin('dhcpRuleToIPObjs.ipObj', 'ipObj')
+      .innerJoin('dhcp_rule.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(
         `firewall.fwCloudId = :FWCloud AND (network.id IS NOT NULL OR range.id IS NOT NULL OR ipObj.id IS NOT NULL)`,
         { FWCloud: FWCloud },
@@ -1428,15 +1428,15 @@ export class IPObj extends Model {
     fwcloud: number,
   ): Promise<any> {
     return await getRepository(KeepalivedRule)
-      .createQueryBuilder("keepalived_rule")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .leftJoin("keepalived_rule.virtualIps", "virtualIps")
-      .leftJoin("virtualIps.ipObj", "ipObj", "ipObj.id = :id", { id: id })
-      .innerJoin("keepalived_rule.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .createQueryBuilder('keepalived_rule')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .leftJoin('keepalived_rule.virtualIps', 'virtualIps')
+      .leftJoin('virtualIps.ipObj', 'ipObj', 'ipObj.id = :id', { id: id })
+      .innerJoin('keepalived_rule.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud AND (ipObj.id IS NOT NULL)`, {
         fwcloud: fwcloud,
       })
@@ -1448,29 +1448,29 @@ export class IPObj extends Model {
     fwcloud: number,
   ): Promise<any> {
     const resultAsFrontendIpAndPort = await getRepository(HAProxyRule)
-      .createQueryBuilder("haproxy_rule")
-      .addSelect("frontendIp.id", "frontendIp_id")
-      .addSelect("frontendIp.name", "frontendIp_name")
-      .addSelect("frontendPort.id", "frontendPort_id")
-      .addSelect("frontendPort.name", "frontendPort_name")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
+      .createQueryBuilder('haproxy_rule')
+      .addSelect('frontendIp.id', 'frontendIp_id')
+      .addSelect('frontendIp.name', 'frontendIp_name')
+      .addSelect('frontendPort.id', 'frontendPort_id')
+      .addSelect('frontendPort.name', 'frontendPort_name')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
       .leftJoin(
-        "haproxy_rule.frontendIp",
-        "frontendIp",
-        "frontendIp.id = :id",
+        'haproxy_rule.frontendIp',
+        'frontendIp',
+        'frontendIp.id = :id',
         { id: id },
       )
       .leftJoin(
-        "haproxy_rule.frontendPort",
-        "frontendPort",
-        "frontendPort.id = :id",
+        'haproxy_rule.frontendPort',
+        'frontendPort',
+        'frontendPort.id = :id',
         { id: id },
       )
-      .innerJoin("haproxy_rule.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoin('haproxy_rule.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(
         `firewall.fwCloudId = :fwcloud AND ( frontendIp.id IS NOT NULL OR frontendPort.id IS NOT NULL)`,
         { fwcloud: fwcloud },
@@ -1478,36 +1478,36 @@ export class IPObj extends Model {
       .getRawMany();
 
     const resultAsBackendIpAndPort = await getRepository(HAProxyRule)
-      .createQueryBuilder("haproxy_rule")
-      .addSelect("backendPort.id", "backendPort_id")
-      .addSelect("backendPort.name", "backendPort_name")
-      .addSelect("ipObj.id", "backendIps_id")
-      .addSelect("ipObj.name", "backendIps_name")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
+      .createQueryBuilder('haproxy_rule')
+      .addSelect('backendPort.id', 'backendPort_id')
+      .addSelect('backendPort.name', 'backendPort_name')
+      .addSelect('ipObj.id', 'backendIps_id')
+      .addSelect('ipObj.name', 'backendIps_name')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
       .leftJoin(
-        "haproxy_rule.frontendPort",
-        "frontendPort",
-        "frontendPort.id = :id",
+        'haproxy_rule.frontendPort',
+        'frontendPort',
+        'frontendPort.id = :id',
         { id: id },
       )
       .leftJoin(
-        "haproxy_rule.backendPort",
-        "backendPort",
-        "backendPort.id = :id",
+        'haproxy_rule.backendPort',
+        'backendPort',
+        'backendPort.id = :id',
         { id: id },
       )
       .leftJoin(
-        "haproxy_rule.backendIps",
-        "backendIps",
-        "backendIps.ipObj = :id",
+        'haproxy_rule.backendIps',
+        'backendIps',
+        'backendIps.ipObj = :id',
         { id: id },
       )
-      .leftJoin("backendIps.ipObj", "ipObj")
-      .innerJoin("haproxy_rule.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .leftJoin('backendIps.ipObj', 'ipObj')
+      .innerJoin('haproxy_rule.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(
         `firewall.fwCloudId = :fwcloud AND (backendPort.id IS NOT NULL OR ipObj.id IS NOT NULL)`,
         { fwcloud: fwcloud },
@@ -1523,22 +1523,22 @@ export class IPObj extends Model {
     fwcloud: number,
   ): Promise<any> {
     return await getRepository(Route)
-      .createQueryBuilder("route")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .innerJoinAndSelect("route.routingTable", "table")
-      .innerJoin("route.routeToIPObjGroups", "routeToIPObjGroups")
-      .innerJoin("routeToIPObjGroups.ipObjGroup", "ipObjGroup")
+      .createQueryBuilder('route')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoinAndSelect('route.routingTable', 'table')
+      .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+      .innerJoin('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
       .innerJoin(
-        "ipObjGroup.ipObjToIPObjGroups",
-        "ipObjToIPObjGroups",
-        "ipObjToIPObjGroups.ipobj = :ipobj",
+        'ipObjGroup.ipObjToIPObjGroups',
+        'ipObjToIPObjGroups',
+        'ipObjToIPObjGroups.ipobj = :ipobj',
         { ipobj: ipobj },
       )
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }
@@ -1548,25 +1548,25 @@ export class IPObj extends Model {
     fwcloud: number,
   ): Promise<any> {
     return await getRepository(RoutingRule)
-      .createQueryBuilder("routing_rule")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
+      .createQueryBuilder('routing_rule')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
       .innerJoin(
-        "routing_rule.routingRuleToIPObjGroups",
-        "routingRuleToIPObjGroups",
+        'routing_rule.routingRuleToIPObjGroups',
+        'routingRuleToIPObjGroups',
       )
-      .innerJoin("routingRuleToIPObjGroups.ipObjGroup", "ipObjGroup")
+      .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
       .innerJoin(
-        "ipObjGroup.ipObjToIPObjGroups",
-        "ipObjToIPObjGroups",
-        "ipObjToIPObjGroups.ipobj = :ipobj",
+        'ipObjGroup.ipObjToIPObjGroups',
+        'ipObjToIPObjGroups',
+        'ipObjToIPObjGroups.ipobj = :ipobj',
         { ipobj: ipobj },
       )
-      .innerJoin("routing_rule.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoin('routing_rule.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }
@@ -1635,7 +1635,7 @@ export class IPObj extends Model {
 				INNER JOIN firewall F on F.id=VPN.firewall
 				inner join fwcloud C on C.id=F.fwcloud
 				WHERE OBJ.interface=${_interface} AND (OBJ.fwcloud=${fwcloud} OR OBJ.fwcloud IS NULL)
-				${diff_firewall ? `AND F.id<>${diff_firewall}` : ""}`;
+				${diff_firewall ? `AND F.id<>${diff_firewall}` : ''}`;
 
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
@@ -1672,24 +1672,24 @@ export class IPObj extends Model {
     id: number,
   ): Promise<any> {
     return await getRepository(DHCPRule)
-      .createQueryBuilder("dhcp_rule")
-      .addSelect("dhcp_rule.id", "dhcp_rule_id")
-      .addSelect("dhcp_rule.rule_type", "dhcp_rule_type")
-      .addSelect("interface.id", "interface_id")
-      .addSelect("interface.name", "interface_name")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .innerJoin("dhcp_rule.interface", "interface")
-      .innerJoin("interface.hosts", "hosts")
-      .innerJoin("hosts.hostIPObj", "ipObj", "ipObj.id = :id", { id })
-      .innerJoin("dhcp_rule.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
-      .where("firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL", {
+      .createQueryBuilder('dhcp_rule')
+      .addSelect('dhcp_rule.id', 'dhcp_rule_id')
+      .addSelect('dhcp_rule.rule_type', 'dhcp_rule_type')
+      .addSelect('interface.id', 'interface_id')
+      .addSelect('interface.name', 'interface_name')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoin('dhcp_rule.interface', 'interface')
+      .innerJoin('interface.hosts', 'hosts')
+      .innerJoin('hosts.hostIPObj', 'ipObj', 'ipObj.id = :id', { id })
+      .innerJoin('dhcp_rule.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
+      .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', {
         fwcloud,
       })
-      .orderBy("dhcp_rule.rule_type", "ASC")
+      .orderBy('dhcp_rule.rule_type', 'ASC')
       .getRawMany();
   }
 
@@ -1699,13 +1699,13 @@ export class IPObj extends Model {
     id: number,
   ) {
     return await getRepository(KeepalivedRule)
-      .createQueryBuilder("keepalived_rule")
-      .innerJoin("keepalived_rule.interface", "interface")
-      .innerJoin("interface.hosts", "hosts")
-      .innerJoin("hosts.hostIPObj", "ipObj", "ipObj.id = :id", { id })
-      .innerJoin("keepalived_rule.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
-      .where("firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL", {
+      .createQueryBuilder('keepalived_rule')
+      .innerJoin('keepalived_rule.interface', 'interface')
+      .innerJoin('interface.hosts', 'hosts')
+      .innerJoin('hosts.hostIPObj', 'ipObj', 'ipObj.id = :id', { id })
+      .innerJoin('keepalived_rule.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
+      .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', {
         fwcloid,
       })
       .getRawMany();
@@ -1717,54 +1717,54 @@ export class IPObj extends Model {
     ipObjId: number,
   ): Promise<any> {
     return await getRepository(HAProxyRule)
-      .createQueryBuilder("haproxy_rule")
-      .addSelect("haproxy_rule.id", "haproxy_rule_id")
-      .addSelect("haproxy_rule.rule_type", "haproxy_rule_type")
-      .addSelect("haproxy_rule.rule_order", "haproxy_rule_order")
-      .addSelect("haproxy_rule.active", "haproxy_rule_active")
-      .addSelect("haproxy_rule.style", "haproxy_rule_style")
-      .addSelect("haproxy_rule.cfg_text", "haproxy_rule_cfg_text")
-      .addSelect("haproxy_rule.comment", "haproxy_rule_comment")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("frontend_ip.id", "frontend_ip_id")
-      .addSelect("frontend_ip.name", "frontend_ip_name")
-      .addSelect("frontend_port.id", "frontend_port_id")
-      .addSelect("frontend_port.name", "frontend_port_name")
-      .addSelect("backend_port.id", "backend_port_id")
-      .addSelect("backend_port.name", "backend_port_name")
+      .createQueryBuilder('haproxy_rule')
+      .addSelect('haproxy_rule.id', 'haproxy_rule_id')
+      .addSelect('haproxy_rule.rule_type', 'haproxy_rule_type')
+      .addSelect('haproxy_rule.rule_order', 'haproxy_rule_order')
+      .addSelect('haproxy_rule.active', 'haproxy_rule_active')
+      .addSelect('haproxy_rule.style', 'haproxy_rule_style')
+      .addSelect('haproxy_rule.cfg_text', 'haproxy_rule_cfg_text')
+      .addSelect('haproxy_rule.comment', 'haproxy_rule_comment')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('frontend_ip.id', 'frontend_ip_id')
+      .addSelect('frontend_ip.name', 'frontend_ip_name')
+      .addSelect('frontend_port.id', 'frontend_port_id')
+      .addSelect('frontend_port.name', 'frontend_port_name')
+      .addSelect('backend_port.id', 'backend_port_id')
+      .addSelect('backend_port.name', 'backend_port_name')
       .innerJoin(
-        "haproxy_rule.frontendIp",
-        "frontend_ip",
-        "frontend_ip.id = :ipObjId",
+        'haproxy_rule.frontendIp',
+        'frontend_ip',
+        'frontend_ip.id = :ipObjId',
         { ipObjId },
       )
       .innerJoin(
-        "haproxy_rule.frontendPort",
-        "frontend_port",
-        "frontend_port.id = :ipObjId",
+        'haproxy_rule.frontendPort',
+        'frontend_port',
+        'frontend_port.id = :ipObjId',
         { ipObjId },
       )
       .innerJoin(
-        "haproxy_rule.backendPort",
-        "backend_port",
-        "backend_port.id = :ipObjId",
+        'haproxy_rule.backendPort',
+        'backend_port',
+        'backend_port.id = :ipObjId',
         { ipObjId },
       )
       .innerJoin(
-        "haproxy_rule.firewall",
-        "firewall",
-        "firewall.fwCloudId = :fwcloud",
+        'haproxy_rule.firewall',
+        'firewall',
+        'firewall.fwCloudId = :fwcloud',
         { fwcloud },
       )
-      .leftJoin("haproxy_rule.group", "group")
-      .leftJoin("haproxy_rule.backendIps", "backend_ips")
-      .leftJoin("backend_ips.ipObj", "backend_ip")
+      .leftJoin('haproxy_rule.group', 'group')
+      .leftJoin('haproxy_rule.backendIps', 'backend_ips')
+      .leftJoin('backend_ips.ipObj', 'backend_ip')
       .where(
-        "firewall.fwCloudId = :fwcloud AND (frontend_ip.id = :ipObjId OR frontend_port.id = :ipObjId OR backend_port.id = :ipObjId)",
+        'firewall.fwCloudId = :fwcloud AND (frontend_ip.id = :ipObjId OR frontend_port.id = :ipObjId OR backend_port.id = :ipObjId)',
         { fwcloud, ipObjId },
       )
-      .orderBy("haproxy_rule.rule_order", "ASC")
+      .orderBy('haproxy_rule.rule_order', 'ASC')
       .getRawMany();
   }
 
@@ -1848,7 +1848,7 @@ export class IPObj extends Model {
         let net2: any = {};
         for (const row of rows) {
           net2 =
-            row.netmask[0] === "/"
+            row.netmask[0] === '/'
               ? ip.cidrSubnet(`${row.address}${row.netmask}`)
               : ip.subnet(row.address, row.netmask);
           if (net1.subnetMaskLength === net2.subnetMaskLength) resolve(row.id);
@@ -1886,7 +1886,7 @@ export class IPObj extends Model {
       dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
 
-        resolve(rows.length === 0 ? "" : rows[0].id);
+        resolve(rows.length === 0 ? '' : rows[0].id);
       });
     });
   }
@@ -1904,7 +1904,7 @@ export class IPObj extends Model {
       dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
 
-        resolve(rows.length === 0 ? "" : rows[0].id);
+        resolve(rows.length === 0 ? '' : rows[0].id);
       });
     });
   }
@@ -1921,7 +1921,7 @@ export class IPObj extends Model {
   ) {
     return new Promise((resolve, reject) => {
       let sql = `select id from ipobj 
-            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=${protocol === "tcp" ? 6 : 17}
+            where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=${protocol === 'tcp' ? 6 : 17}
             AND source_port_start=${scrPorts[0]} AND source_port_end=${scrPorts[1]}
             AND destination_port_start=${dstPorts[0]} AND destination_port_end=${dstPorts[1]}`;
 

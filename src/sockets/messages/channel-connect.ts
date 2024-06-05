@@ -1,6 +1,6 @@
-import { Channel } from "../channels/channel";
-import { SocketMessage } from "./socket-message";
-import { Payload } from "../web-socket.service";
+import { Channel } from '../channels/channel';
+import { SocketMessage } from './socket-message';
+import { Payload } from '../web-socket.service';
 
 export class ChannelConnectRequest extends SocketMessage {
   payload: {

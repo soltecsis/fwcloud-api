@@ -15,14 +15,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { KeepalivedToIPObj } from "../../../models/system/keepalived/keepalived_r/keepalived_r-to-ipobj";
-import { SelectQueryBuilder } from "typeorm";
-import { KeepalivedRule } from "../../../models/system/keepalived/keepalived_r/keepalived_r.model";
-import { KeepalivedRuleExporter } from "./keepalived_r.exporter";
-import { IPObj } from "../../../models/ipobj/IPObj";
-import { IPObjExporter } from "./ipobj.exporter";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { KeepalivedToIPObj } from '../../../models/system/keepalived/keepalived_r/keepalived_r-to-ipobj';
+import { SelectQueryBuilder } from 'typeorm';
+import { KeepalivedRule } from '../../../models/system/keepalived/keepalived_r/keepalived_r.model';
+import { KeepalivedRuleExporter } from './keepalived_r.exporter';
+import { IPObj } from '../../../models/ipobj/IPObj';
+import { IPObjExporter } from './ipobj.exporter';
 
 export class KeepalivedRuleToIPObjExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -38,21 +38,21 @@ export class KeepalivedRuleToIPObjExporter extends TableExporter {
       .where((qb) => {
         const subquery = qb
           .subQuery()
-          .from(KeepalivedRule, "keepalived_r")
-          .select("keepalived_r.id");
+          .from(KeepalivedRule, 'keepalived_r')
+          .select('keepalived_r.id');
         return (
           `${alias}.rule IN ` +
           new KeepalivedRuleExporter()
-            .getFilterBuilder(subquery, "keepalived_r", fwCloudId)
+            .getFilterBuilder(subquery, 'keepalived_r', fwCloudId)
             .getQuery()
         );
       })
       .orWhere((qb) => {
-        const subquery = qb.subQuery().from(IPObj, "ipobj").select("ipobj.id");
+        const subquery = qb.subQuery().from(IPObj, 'ipobj').select('ipobj.id');
         return (
           `${alias}.ipobj IN ` +
           new IPObjExporter()
-            .getFilterBuilder(subquery, "ipobj", fwCloudId)
+            .getFilterBuilder(subquery, 'ipobj', fwCloudId)
             .getQuery()
         );
       });

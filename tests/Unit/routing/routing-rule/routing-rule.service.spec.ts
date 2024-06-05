@@ -1,26 +1,26 @@
-import { getRepository, SimpleConsoleLogger } from "typeorm";
-import db from "../../../../src/database/database-manager";
-import { ValidationException } from "../../../../src/fonaments/exceptions/validation-exception";
-import { Cluster } from "../../../../src/models/firewall/Cluster";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { Interface } from "../../../../src/models/interface/Interface";
-import { InterfaceIPObj } from "../../../../src/models/interface/InterfaceIPObj";
-import { IPObj } from "../../../../src/models/ipobj/IPObj";
-import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
-import { IPObjToIPObjGroup } from "../../../../src/models/ipobj/IPObjToIPObjGroup";
-import { Mark } from "../../../../src/models/ipobj/Mark";
-import { RoutingRule } from "../../../../src/models/routing/routing-rule/routing-rule.model";
-import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
-import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
-import { OpenVPN } from "../../../../src/models/vpn/openvpn/OpenVPN";
-import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
-import { Ca } from "../../../../src/models/vpn/pki/Ca";
-import { Crt } from "../../../../src/models/vpn/pki/Crt";
-import { Offset } from "../../../../src/offset";
-import StringHelper from "../../../../src/utils/string.helper";
-import { expect, testSuite } from "../../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
+import { getRepository, SimpleConsoleLogger } from 'typeorm';
+import db from '../../../../src/database/database-manager';
+import { ValidationException } from '../../../../src/fonaments/exceptions/validation-exception';
+import { Cluster } from '../../../../src/models/firewall/Cluster';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { Interface } from '../../../../src/models/interface/Interface';
+import { InterfaceIPObj } from '../../../../src/models/interface/InterfaceIPObj';
+import { IPObj } from '../../../../src/models/ipobj/IPObj';
+import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';
+import { IPObjToIPObjGroup } from '../../../../src/models/ipobj/IPObjToIPObjGroup';
+import { Mark } from '../../../../src/models/ipobj/Mark';
+import { RoutingRule } from '../../../../src/models/routing/routing-rule/routing-rule.model';
+import { RoutingRuleService } from '../../../../src/models/routing/routing-rule/routing-rule.service';
+import { RoutingTable } from '../../../../src/models/routing/routing-table/routing-table.model';
+import { OpenVPN } from '../../../../src/models/vpn/openvpn/OpenVPN';
+import { OpenVPNPrefix } from '../../../../src/models/vpn/openvpn/OpenVPNPrefix';
+import { Ca } from '../../../../src/models/vpn/pki/Ca';
+import { Crt } from '../../../../src/models/vpn/pki/Crt';
+import { Offset } from '../../../../src/offset';
+import StringHelper from '../../../../src/utils/string.helper';
+import { expect, testSuite } from '../../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 
 describe(RoutingRuleService.name, () => {
   let service: RoutingRuleService;
@@ -63,7 +63,7 @@ describe(RoutingRuleService.name, () => {
       routingTableId: table.id,
       ipObjIds: [
         {
-          id: fwcProduct.ipobjs.get("address").id,
+          id: fwcProduct.ipobjs.get('address').id,
           order: 1,
         },
       ],
@@ -76,8 +76,8 @@ describe(RoutingRuleService.name, () => {
     });
   });
 
-  describe("create", () => {
-    it("should reset firewall compiled flag", async () => {
+  describe('create', () => {
+    it('should reset firewall compiled flag', async () => {
       await getRepository(Firewall).update(firewall.id, {
         status: 1,
       });
@@ -99,7 +99,7 @@ describe(RoutingRuleService.name, () => {
       expect(firewall.status).to.eq(3);
     });
 
-    describe("rule_order", () => {
+    describe('rule_order', () => {
       let ruleOrder1: RoutingRule;
       let ruleOrder2: RoutingRule;
       let ruleOrder3: RoutingRule;
@@ -147,11 +147,11 @@ describe(RoutingRuleService.name, () => {
         table2 = await getRepository(RoutingTable).save({
           firewallId: firewall.id,
           number: 2,
-          name: "2",
+          name: '2',
         });
       });
 
-      it("should set last position if rule_order is not defined", async () => {
+      it('should set last position if rule_order is not defined', async () => {
         rule = await service.create({
           routingTableId: table2.id,
           markIds: [
@@ -167,8 +167,8 @@ describe(RoutingRuleService.name, () => {
       });
     });
 
-    describe("FirewallApplyToId", () => {
-      it("should attach firewallApplyToId", async () => {
+    describe('FirewallApplyToId', () => {
+      it('should attach firewallApplyToId', async () => {
         rule = await service.create({
           routingTableId: table.id,
           firewallApplyToId: firewall.id,
@@ -181,12 +181,12 @@ describe(RoutingRuleService.name, () => {
         });
 
         rule = await getRepository(RoutingRule).findOne(rule.id, {
-          relations: ["firewallApplyTo"],
+          relations: ['firewallApplyTo'],
         });
 
         expect(rule.firewallApplyTo.id).to.eq(firewall.id);
       });
-      it("should firewallApplyToId set null to default when does not have any firewall", async () => {
+      it('should firewallApplyToId set null to default when does not have any firewall', async () => {
         rule = await service.create({
           routingTableId: table.id,
           markIds: [
@@ -198,12 +198,12 @@ describe(RoutingRuleService.name, () => {
         });
 
         rule = await getRepository(RoutingRule).findOne(rule.id, {
-          relations: ["firewallApplyTo"],
+          relations: ['firewallApplyTo'],
         });
 
         expect(rule.firewallApplyToId).to.eq(null);
       });
-      it("should throw exception if the attachment is a firewall that does not belong to the cluster", async () => {
+      it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
         const fw1: Firewall = await getRepository(Firewall).save(
           getRepository(Firewall).create({
             name: StringHelper.randomize(10),
@@ -237,15 +237,15 @@ describe(RoutingRuleService.name, () => {
       });
     });
 
-    describe("IpObjs", () => {
+    describe('IpObjs', () => {
       let ipobj1: IPObj;
       let ipobj2: IPObj;
 
       beforeEach(async () => {
         ipobj1 = await getRepository(IPObj).save(
           getRepository(IPObj).create({
-            name: "test",
-            address: "0.0.0.0",
+            name: 'test',
+            address: '0.0.0.0',
             ipObjTypeId: 0,
             interfaceId: null,
             fwCloudId: fwCloud.id,
@@ -254,8 +254,8 @@ describe(RoutingRuleService.name, () => {
 
         ipobj2 = await getRepository(IPObj).save(
           getRepository(IPObj).create({
-            name: "test",
-            address: "0.0.0.0",
+            name: 'test',
+            address: '0.0.0.0',
             ipObjTypeId: 0,
             interfaceId: null,
             fwCloudId: fwCloud.id,
@@ -263,7 +263,7 @@ describe(RoutingRuleService.name, () => {
         );
       });
 
-      it("should attach ipobjs", async () => {
+      it('should attach ipobjs', async () => {
         rule = await service.create({
           routingTableId: table.id,
           ipObjIds: [
@@ -275,13 +275,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToIPObjs"],
+              relations: ['routingRuleToIPObjs'],
             })
           ).routingRuleToIPObjs.map((item) => item.ipObjId),
         ).to.deep.eq([ipobj1.id, ipobj2.id]);
       });
 
-      it("should attach standard ipobj", async () => {
+      it('should attach standard ipobj', async () => {
         const standards: IPObj[] = await getRepository(IPObj).find({
           where: {
             fwCloudId: null,
@@ -297,14 +297,14 @@ describe(RoutingRuleService.name, () => {
         });
 
         rule = await getRepository(RoutingRule).findOne(rule.id, {
-          relations: ["routingRuleToIPObjs"],
+          relations: ['routingRuleToIPObjs'],
         });
 
         expect(rule.routingRuleToIPObjs).to.have.length(standards.length);
       });
     });
 
-    describe("IpObjGroups", () => {
+    describe('IpObjGroups', () => {
       let group1: IPObjGroup;
       let group2: IPObjGroup;
 
@@ -319,16 +319,16 @@ describe(RoutingRuleService.name, () => {
 
         const _interface: Interface = await getRepository(Interface).save(
           getRepository(Interface).create({
-            name: "eth1",
-            type: "11",
-            interface_type: "11",
+            name: 'eth1',
+            type: '11',
+            interface_type: '11',
           }),
         );
 
         const host = await getRepository(IPObj).save(
           getRepository(IPObj).create({
-            name: "test",
-            address: "0.0.0.0",
+            name: 'test',
+            address: '0.0.0.0',
             ipObjTypeId: 8,
             interfaceId: _interface.id,
           }),
@@ -338,7 +338,7 @@ describe(RoutingRuleService.name, () => {
           getRepository(InterfaceIPObj).create({
             interfaceId: _interface.id,
             ipObjId: host.id,
-            interface_order: "1",
+            interface_order: '1',
           }),
         );
 
@@ -366,7 +366,7 @@ describe(RoutingRuleService.name, () => {
           },
         });
       });
-      it("should attach ipObjGroups", async () => {
+      it('should attach ipObjGroups', async () => {
         const rule: RoutingRule = await service.create({
           routingTableId: table.id,
           ipObjGroupIds: [
@@ -378,14 +378,14 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToIPObjGroups"],
+              relations: ['routingRuleToIPObjGroups'],
             })
           ).routingRuleToIPObjGroups.map((item) => item.ipObjGroupId),
         ).to.deep.eq([group1.id, group2.id]);
       });
     });
 
-    describe("OpenVPNs", () => {
+    describe('OpenVPNs', () => {
       let openVPN1: OpenVPN;
       let openVPN2: OpenVPN;
 
@@ -432,7 +432,7 @@ describe(RoutingRuleService.name, () => {
           }),
         );
       });
-      it("should attach openVPNs", async () => {
+      it('should attach openVPNs', async () => {
         const rule: RoutingRule = await service.create({
           routingTableId: table.id,
           openVPNIds: [
@@ -444,14 +444,14 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToOpenVPNs"],
+              relations: ['routingRuleToOpenVPNs'],
             })
           ).routingRuleToOpenVPNs.map((item) => item.openVPNId),
         ).to.deep.eq([openVPN1.id, openVPN2.id]);
       });
     });
 
-    describe("OpenVPNPrefixes", () => {
+    describe('OpenVPNPrefixes', () => {
       let openVPNPrefix: OpenVPNPrefix;
       let openVPNPrefix2: OpenVPNPrefix;
 
@@ -506,7 +506,7 @@ describe(RoutingRuleService.name, () => {
           }),
         );
       });
-      it("should attach openVPNPrefixes", async () => {
+      it('should attach openVPNPrefixes', async () => {
         const rule: RoutingRule = await service.create({
           routingTableId: table.id,
           openVPNPrefixIds: [
@@ -518,14 +518,14 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToOpenVPNPrefixes"],
+              relations: ['routingRuleToOpenVPNPrefixes'],
             })
           ).routingRuleToOpenVPNPrefixes.map((item) => item.openVPNPrefixId),
         ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id]);
       });
     });
 
-    describe("marks", () => {
+    describe('marks', () => {
       let mark1: Mark;
       let mark2: Mark;
 
@@ -534,7 +534,7 @@ describe(RoutingRuleService.name, () => {
           getRepository(Mark).create({
             fwCloudId: fwCloud.id,
             code: 1,
-            name: "1",
+            name: '1',
           }),
         );
 
@@ -542,12 +542,12 @@ describe(RoutingRuleService.name, () => {
           getRepository(Mark).create({
             fwCloudId: fwCloud.id,
             code: 2,
-            name: "2",
+            name: '2',
           }),
         );
       });
 
-      it("should attach marks", async () => {
+      it('should attach marks', async () => {
         const rule: RoutingRule = await service.create({
           routingTableId: table.id,
           markIds: [
@@ -559,7 +559,7 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToMarks"],
+              relations: ['routingRuleToMarks'],
             })
           ).routingRuleToMarks.map((item) => item.markId),
         ).to.deep.eq([mark1.id, mark2.id]);
@@ -567,13 +567,13 @@ describe(RoutingRuleService.name, () => {
     });
   });
 
-  describe("copy", () => {
+  describe('copy', () => {
     let ruleOrder1: RoutingRule;
     let ruleOrder2: RoutingRule;
 
     beforeEach(async () => {
       ruleOrder1 = await service.create({
-        comment: "rule1",
+        comment: 'rule1',
         routingTableId: table.id,
         markIds: [
           {
@@ -583,7 +583,7 @@ describe(RoutingRuleService.name, () => {
         ],
       });
       ruleOrder2 = await service.create({
-        comment: "rule2",
+        comment: 'rule2',
         routingTableId: table.id,
         markIds: [
           {
@@ -594,7 +594,7 @@ describe(RoutingRuleService.name, () => {
       });
     });
 
-    it("should copy routes", async () => {
+    it('should copy routes', async () => {
       const copied: RoutingRule[] = await service.copy(
         [ruleOrder1.id, ruleOrder2.id],
         ruleOrder1.id,
@@ -610,7 +610,7 @@ describe(RoutingRuleService.name, () => {
       expect(copied[1].rule_order).to.eq(ruleOrder1.rule_order - 1);
     });
 
-    it("should reset firewall compiled flag", async () => {
+    it('should reset firewall compiled flag', async () => {
       await getRepository(Firewall).update(firewall.id, {
         status: 1,
       });
@@ -628,8 +628,8 @@ describe(RoutingRuleService.name, () => {
     });
   });
 
-  describe("update", () => {
-    it("should reset firewall compiled flag", async () => {
+  describe('update', () => {
+    it('should reset firewall compiled flag', async () => {
       await getRepository(Firewall).update(firewall.id, {
         status: 1,
       });
@@ -644,7 +644,7 @@ describe(RoutingRuleService.name, () => {
       expect(firewall.status).to.eq(3);
     });
 
-    it("should fail if from is empty", async () => {
+    it('should fail if from is empty', async () => {
       expect(
         service.update(rule.id, {
           ipObjIds: [],
@@ -656,8 +656,8 @@ describe(RoutingRuleService.name, () => {
       ).rejectedWith(ValidationException);
     });
 
-    describe("FirewallApplyToId", () => {
-      it("should attach firewallApplyToId", async () => {
+    describe('FirewallApplyToId', () => {
+      it('should attach firewallApplyToId', async () => {
         await service.update(rule.id, {
           firewallApplyToId: firewall.id,
           markIds: [
@@ -671,13 +671,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["firewallApplyTo"],
+              relations: ['firewallApplyTo'],
             })
           ).firewallApplyTo.id,
         ).to.eq(firewall.id);
       });
 
-      it("should remove firewallApplyToId when remove a firewall attached", async () => {
+      it('should remove firewallApplyToId when remove a firewall attached', async () => {
         await service.update(rule.id, {
           firewallApplyToId: firewall.id,
           markIds: [
@@ -701,13 +701,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["firewallApplyTo"],
+              relations: ['firewallApplyTo'],
             })
           ).firewallApplyToId,
         ).to.eq(null);
       });
 
-      it("should firewallApplyToId null default when does not have any firewall", async () => {
+      it('should firewallApplyToId null default when does not have any firewall', async () => {
         await service.update(rule.id, {
           markIds: [
             {
@@ -720,13 +720,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["firewallApplyTo"],
+              relations: ['firewallApplyTo'],
             })
           ).firewallApplyToId,
         ).to.eq(null);
       });
 
-      it("should throw exception if the attachment is a firewall that does not belong to the cluster", async () => {
+      it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
         const fw1: Firewall = await getRepository(Firewall).save(
           getRepository(Firewall).create({
             name: StringHelper.randomize(10),
@@ -748,15 +748,15 @@ describe(RoutingRuleService.name, () => {
       });
     });
 
-    describe("IpObjs", () => {
+    describe('IpObjs', () => {
       let ipobj1: IPObj;
       let ipobj2: IPObj;
 
       beforeEach(async () => {
         ipobj1 = await getRepository(IPObj).save(
           getRepository(IPObj).create({
-            name: "test",
-            address: "0.0.0.0",
+            name: 'test',
+            address: '0.0.0.0',
             ipObjTypeId: 0,
             interfaceId: null,
             fwCloudId: fwCloud.id,
@@ -765,8 +765,8 @@ describe(RoutingRuleService.name, () => {
 
         ipobj2 = await getRepository(IPObj).save(
           getRepository(IPObj).create({
-            name: "test",
-            address: "0.0.0.0",
+            name: 'test',
+            address: '0.0.0.0',
             ipObjTypeId: 0,
             interfaceId: null,
             fwCloudId: fwCloud.id,
@@ -774,7 +774,7 @@ describe(RoutingRuleService.name, () => {
         );
       });
 
-      it("should attach ipbojs", async () => {
+      it('should attach ipbojs', async () => {
         await service.update(rule.id, {
           ipObjIds: [
             { id: ipobj1.id, order: 1 },
@@ -785,13 +785,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToIPObjs"],
+              relations: ['routingRuleToIPObjs'],
             })
           ).routingRuleToIPObjs.map((item) => item.ipObjId),
         ).to.deep.eq([ipobj1.id, ipobj2.id]);
       });
 
-      it("should remove ipobjs attachment", async () => {
+      it('should remove ipobjs attachment', async () => {
         await service.update(rule.id, {
           ipObjIds: [
             { id: ipobj1.id, order: 1 },
@@ -806,13 +806,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToIPObjs"],
+              relations: ['routingRuleToIPObjs'],
             })
           ).routingRuleToIPObjs.map((item) => item.ipObjId),
         ).to.deep.eq([ipobj2.id]);
       });
 
-      it("should remove all ipobjs attachment", async () => {
+      it('should remove all ipobjs attachment', async () => {
         await service.update(rule.id, {
           ipObjIds: [
             { id: ipobj1.id, order: 1 },
@@ -827,15 +827,15 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToIPObjs"],
+              relations: ['routingRuleToIPObjs'],
             })
           ).routingRuleToIPObjs.map((item) => item.ipObjId),
         ).to.deep.eq([]);
       });
 
-      it("should throw exception if the attachment is a host and is empty", async () => {
+      it('should throw exception if the attachment is a host and is empty', async () => {
         const host = await getRepository(IPObj).save({
-          name: "host",
+          name: 'host',
           ipObjTypeId: 8,
         });
 
@@ -847,7 +847,7 @@ describe(RoutingRuleService.name, () => {
       });
     });
 
-    describe("IpObjGroups", () => {
+    describe('IpObjGroups', () => {
       let group1: IPObjGroup;
       let group2: IPObjGroup;
 
@@ -862,16 +862,16 @@ describe(RoutingRuleService.name, () => {
 
         const _interface: Interface = await getRepository(Interface).save(
           getRepository(Interface).create({
-            name: "eth1",
-            type: "11",
-            interface_type: "11",
+            name: 'eth1',
+            type: '11',
+            interface_type: '11',
           }),
         );
 
         const host = await getRepository(IPObj).save(
           getRepository(IPObj).create({
-            name: "test",
-            address: "0.0.0.0",
+            name: 'test',
+            address: '0.0.0.0',
             ipObjTypeId: 8,
             interfaceId: _interface.id,
           }),
@@ -881,7 +881,7 @@ describe(RoutingRuleService.name, () => {
           getRepository(InterfaceIPObj).create({
             interfaceId: _interface.id,
             ipObjId: host.id,
-            interface_order: "1",
+            interface_order: '1',
           }),
         );
 
@@ -910,7 +910,7 @@ describe(RoutingRuleService.name, () => {
         });
       });
 
-      it("should attach ipObjGroups", async () => {
+      it('should attach ipObjGroups', async () => {
         await service.update(rule.id, {
           ipObjGroupIds: [
             { id: group1.id, order: 1 },
@@ -921,13 +921,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToIPObjGroups"],
+              relations: ['routingRuleToIPObjGroups'],
             })
           ).routingRuleToIPObjGroups.map((item) => item.ipObjGroupId),
         ).to.deep.eq([group1.id, group2.id]);
       });
 
-      it("should remove ipObjGroups attachment", async () => {
+      it('should remove ipObjGroups attachment', async () => {
         await service.update(rule.id, {
           ipObjGroupIds: [
             { id: group1.id, order: 1 },
@@ -942,13 +942,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToIPObjGroups"],
+              relations: ['routingRuleToIPObjGroups'],
             })
           ).routingRuleToIPObjGroups.map((item) => item.ipObjGroupId),
         ).to.deep.eq([group2.id]);
       });
 
-      it("should remove all ipObjGroups attachment", async () => {
+      it('should remove all ipObjGroups attachment', async () => {
         await service.update(rule.id, {
           ipObjGroupIds: [
             { id: group1.id, order: 1 },
@@ -963,13 +963,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToIPObjGroups"],
+              relations: ['routingRuleToIPObjGroups'],
             })
           ).routingRuleToIPObjGroups.map((item) => item.ipObjGroupId),
         ).to.deep.eq([]);
       });
 
-      it("should throw an exception if the group is empty", async () => {
+      it('should throw an exception if the group is empty', async () => {
         group1 = await getRepository(IPObjGroup).save(
           getRepository(IPObjGroup).create({
             name: StringHelper.randomize(10),
@@ -988,11 +988,11 @@ describe(RoutingRuleService.name, () => {
         ).to.rejectedWith(ValidationException);
       });
 
-      it("should not allow attach a service group", async () => {
+      it('should not allow attach a service group', async () => {
         const _service = await getRepository(IPObj).findOneOrFail(10040);
 
         const group = await getRepository(IPObjGroup).save({
-          name: "group",
+          name: 'group',
           type: 21,
           fwCloudId: fwcProduct.fwcloud.id,
         });
@@ -1010,7 +1010,7 @@ describe(RoutingRuleService.name, () => {
       });
     });
 
-    describe("OpenVPNs", () => {
+    describe('OpenVPNs', () => {
       let openVPN1: OpenVPN;
       let openVPN2: OpenVPN;
 
@@ -1057,7 +1057,7 @@ describe(RoutingRuleService.name, () => {
           }),
         );
       });
-      it("should attach openVPNs", async () => {
+      it('should attach openVPNs', async () => {
         await service.update(rule.id, {
           openVPNIds: [
             { id: openVPN1.id, order: 1 },
@@ -1068,13 +1068,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToOpenVPNs"],
+              relations: ['routingRuleToOpenVPNs'],
             })
           ).routingRuleToOpenVPNs.map((item) => item.openVPNId),
         ).to.deep.eq([openVPN1.id, openVPN2.id]);
       });
 
-      it("should remove openVPNs attachment", async () => {
+      it('should remove openVPNs attachment', async () => {
         await service.update(rule.id, {
           openVPNIds: [
             { id: openVPN1.id, order: 1 },
@@ -1089,13 +1089,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToOpenVPNs"],
+              relations: ['routingRuleToOpenVPNs'],
             })
           ).routingRuleToOpenVPNs.map((item) => item.openVPNId),
         ).to.deep.eq([openVPN2.id]);
       });
 
-      it("should remove all openVPNs attachment", async () => {
+      it('should remove all openVPNs attachment', async () => {
         await service.update(rule.id, {
           openVPNIds: [
             { id: openVPN1.id, order: 1 },
@@ -1110,14 +1110,14 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToOpenVPNs"],
+              relations: ['routingRuleToOpenVPNs'],
             })
           ).routingRuleToOpenVPNs.map((item) => item.openVPNId),
         ).to.deep.eq([]);
       });
     });
 
-    describe("OpenVPNPrefixes", () => {
+    describe('OpenVPNPrefixes', () => {
       let openVPNPrefix: OpenVPNPrefix;
       let openVPNPrefix2: OpenVPNPrefix;
 
@@ -1172,7 +1172,7 @@ describe(RoutingRuleService.name, () => {
           }),
         );
       });
-      it("should attach openVPNPrefixes", async () => {
+      it('should attach openVPNPrefixes', async () => {
         await service.update(rule.id, {
           openVPNPrefixIds: [
             { id: openVPNPrefix.id, order: 1 },
@@ -1183,13 +1183,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToOpenVPNPrefixes"],
+              relations: ['routingRuleToOpenVPNPrefixes'],
             })
           ).routingRuleToOpenVPNPrefixes.map((item) => item.openVPNPrefixId),
         ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id]);
       });
 
-      it("should remove openVPNPrefixes attachment", async () => {
+      it('should remove openVPNPrefixes attachment', async () => {
         await service.update(rule.id, {
           openVPNPrefixIds: [
             { id: openVPNPrefix.id, order: 1 },
@@ -1204,13 +1204,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToOpenVPNPrefixes"],
+              relations: ['routingRuleToOpenVPNPrefixes'],
             })
           ).routingRuleToOpenVPNPrefixes.map((item) => item.openVPNPrefixId),
         ).to.deep.eq([openVPNPrefix2.id]);
       });
 
-      it("should remove all openVPNPrefixes attachment", async () => {
+      it('should remove all openVPNPrefixes attachment', async () => {
         await service.update(rule.id, {
           openVPNPrefixIds: [
             { id: openVPNPrefix.id, order: 1 },
@@ -1225,14 +1225,14 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToOpenVPNPrefixes"],
+              relations: ['routingRuleToOpenVPNPrefixes'],
             })
           ).routingRuleToOpenVPNPrefixes.map((item) => item.openVPNPrefixId),
         ).to.deep.eq([]);
       });
     });
 
-    describe("marks", () => {
+    describe('marks', () => {
       let mark1: Mark;
       let mark2: Mark;
 
@@ -1241,7 +1241,7 @@ describe(RoutingRuleService.name, () => {
           getRepository(Mark).create({
             fwCloudId: fwCloud.id,
             code: 1,
-            name: "1",
+            name: '1',
           }),
         );
 
@@ -1249,12 +1249,12 @@ describe(RoutingRuleService.name, () => {
           getRepository(Mark).create({
             fwCloudId: fwCloud.id,
             code: 2,
-            name: "2",
+            name: '2',
           }),
         );
       });
 
-      it("should attach marks", async () => {
+      it('should attach marks', async () => {
         await service.update(rule.id, {
           markIds: [
             { id: mark1.id, order: 1 },
@@ -1265,13 +1265,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToMarks"],
+              relations: ['routingRuleToMarks'],
             })
           ).routingRuleToMarks.map((item) => item.markId),
         ).to.deep.eq([mark1.id, mark2.id]);
       });
 
-      it("should remove marks attachment", async () => {
+      it('should remove marks attachment', async () => {
         await service.update(rule.id, {
           markIds: [
             { id: mark1.id, order: 1 },
@@ -1286,13 +1286,13 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToMarks"],
+              relations: ['routingRuleToMarks'],
             })
           ).routingRuleToMarks.map((item) => item.markId),
         ).to.deep.eq([mark2.id]);
       });
 
-      it("should remove all marks attachment", async () => {
+      it('should remove all marks attachment', async () => {
         await service.update(rule.id, {
           markIds: [
             { id: mark1.id, order: 1 },
@@ -1307,7 +1307,7 @@ describe(RoutingRuleService.name, () => {
         expect(
           (
             await getRepository(RoutingRule).findOne(rule.id, {
-              relations: ["routingRuleToMarks"],
+              relations: ['routingRuleToMarks'],
             })
           ).routingRuleToMarks.map((item) => item.markId),
         ).to.deep.eq([]);
@@ -1315,7 +1315,7 @@ describe(RoutingRuleService.name, () => {
     });
   });
 
-  describe("remove", () => {
+  describe('remove', () => {
     let ipobj1: IPObj;
     let group1: IPObjGroup;
     let openVPN1: OpenVPN;
@@ -1324,8 +1324,8 @@ describe(RoutingRuleService.name, () => {
     beforeEach(async () => {
       ipobj1 = await getRepository(IPObj).save(
         getRepository(IPObj).create({
-          name: "test",
-          address: "0.0.0.0",
+          name: 'test',
+          address: '0.0.0.0',
           ipObjTypeId: 0,
           interfaceId: null,
           fwCloudId: fwCloud.id,
@@ -1394,7 +1394,7 @@ describe(RoutingRuleService.name, () => {
       });
     });
 
-    it("should remove rule", async () => {
+    it('should remove rule', async () => {
       const removedRule: RoutingRule = await service.remove({
         fwCloudId: fwCloud.id,
         firewallId: firewall.id,
@@ -1404,7 +1404,7 @@ describe(RoutingRuleService.name, () => {
       expect(await getRepository(RoutingRule).findOne(rule.id)).to.be.undefined;
     });
 
-    it("should reset firewall compiled flag", async () => {
+    it('should reset firewall compiled flag', async () => {
       await getRepository(Firewall).update(firewall.id, {
         status: 1,
       });
@@ -1418,8 +1418,8 @@ describe(RoutingRuleService.name, () => {
     });
   });
 
-  describe("bulkUpdate", () => {
-    it("should reset firewall compiled flag", async () => {
+  describe('bulkUpdate', () => {
+    it('should reset firewall compiled flag', async () => {
       await getRepository(Firewall).update(firewall.id, {
         status: 1,
       });
@@ -1435,8 +1435,8 @@ describe(RoutingRuleService.name, () => {
     });
   });
 
-  describe("move", () => {
-    it("should reset firewall compiled flag", async () => {
+  describe('move', () => {
+    it('should reset firewall compiled flag', async () => {
       await getRepository(Firewall).update(firewall.id, {
         status: 1,
       });
@@ -1450,7 +1450,7 @@ describe(RoutingRuleService.name, () => {
     });
   });
 
-  describe("moveFrom", () => {
+  describe('moveFrom', () => {
     let rule1: RoutingRule;
     let rule2: RoutingRule;
     let mark2: Mark;
@@ -1458,7 +1458,7 @@ describe(RoutingRuleService.name, () => {
     beforeEach(async () => {
       mark2 = await getRepository(Mark).save({
         code: 2,
-        name: "test",
+        name: 'test',
         fwCloudId: fwcProduct.fwcloud.id,
       });
 
@@ -1487,12 +1487,12 @@ describe(RoutingRuleService.name, () => {
       });
     });
 
-    describe("ipObj", () => {
-      it("should move ipObj", async () => {
+    describe('ipObj', () => {
+      it('should move ipObj', async () => {
         await service.update(rule1.id, {
           ipObjIds: [
             {
-              id: fwcProduct.ipobjs.get("address").id,
+              id: fwcProduct.ipobjs.get('address').id,
               order: 1,
             },
           ],
@@ -1501,23 +1501,23 @@ describe(RoutingRuleService.name, () => {
         await service.moveFrom(rule1.id, rule2.id, {
           fromId: rule1.id,
           toId: rule2.id,
-          ipObjId: fwcProduct.ipobjs.get("address").id,
+          ipObjId: fwcProduct.ipobjs.get('address').id,
         });
 
         const refreshedRule1: RoutingRule = await getRepository(
           RoutingRule,
-        ).findOne(rule1.id, { relations: ["routingRuleToIPObjs"] });
+        ).findOne(rule1.id, { relations: ['routingRuleToIPObjs'] });
         const refreshedRule2: RoutingRule = await getRepository(
           RoutingRule,
-        ).findOne(rule2.id, { relations: ["routingRuleToIPObjs"] });
+        ).findOne(rule2.id, { relations: ['routingRuleToIPObjs'] });
 
         expect(refreshedRule1.routingRuleToIPObjs).length(0);
         expect(refreshedRule2.routingRuleToIPObjs).length(1);
       });
     });
 
-    describe("ipObjGroups", () => {
-      it("should move ipObjGroup", async () => {
+    describe('ipObjGroups', () => {
+      it('should move ipObjGroup', async () => {
         await service.update(rule1.id, {
           ipObjGroupIds: [
             {
@@ -1535,22 +1535,22 @@ describe(RoutingRuleService.name, () => {
 
         const refreshedRule1: RoutingRule = await getRepository(
           RoutingRule,
-        ).findOne(rule1.id, { relations: ["routingRuleToIPObjGroups"] });
+        ).findOne(rule1.id, { relations: ['routingRuleToIPObjGroups'] });
         const refreshedRule2: RoutingRule = await getRepository(
           RoutingRule,
-        ).findOne(rule2.id, { relations: ["routingRuleToIPObjGroups"] });
+        ).findOne(rule2.id, { relations: ['routingRuleToIPObjGroups'] });
 
         expect(refreshedRule1.routingRuleToIPObjGroups).length(0);
         expect(refreshedRule2.routingRuleToIPObjGroups).length(1);
       });
     });
 
-    describe("openVPN", () => {
-      it("should move openVPN", async () => {
+    describe('openVPN', () => {
+      it('should move openVPN', async () => {
         await service.update(rule1.id, {
           openVPNIds: [
             {
-              id: fwcProduct.openvpnClients.get("OpenVPN-Cli-1").id,
+              id: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
               order: 1,
             },
           ],
@@ -1559,23 +1559,23 @@ describe(RoutingRuleService.name, () => {
         await service.moveFrom(rule1.id, rule2.id, {
           fromId: rule1.id,
           toId: rule2.id,
-          openVPNId: fwcProduct.openvpnClients.get("OpenVPN-Cli-1").id,
+          openVPNId: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
         });
 
         const refreshedRule1: RoutingRule = await getRepository(
           RoutingRule,
-        ).findOne(rule1.id, { relations: ["routingRuleToOpenVPNs"] });
+        ).findOne(rule1.id, { relations: ['routingRuleToOpenVPNs'] });
         const refreshedRule2: RoutingRule = await getRepository(
           RoutingRule,
-        ).findOne(rule2.id, { relations: ["routingRuleToOpenVPNs"] });
+        ).findOne(rule2.id, { relations: ['routingRuleToOpenVPNs'] });
 
         expect(refreshedRule1.routingRuleToOpenVPNs).length(0);
         expect(refreshedRule2.routingRuleToOpenVPNs).length(1);
       });
     });
 
-    describe("openVPNPrefix", () => {
-      it("should move openVPNPrefix", async () => {
+    describe('openVPNPrefix', () => {
+      it('should move openVPNPrefix', async () => {
         await service.update(rule1.id, {
           openVPNPrefixIds: [
             {
@@ -1593,18 +1593,18 @@ describe(RoutingRuleService.name, () => {
 
         const refreshedRule1: RoutingRule = await getRepository(
           RoutingRule,
-        ).findOne(rule1.id, { relations: ["routingRuleToOpenVPNPrefixes"] });
+        ).findOne(rule1.id, { relations: ['routingRuleToOpenVPNPrefixes'] });
         const refreshedRule2: RoutingRule = await getRepository(
           RoutingRule,
-        ).findOne(rule2.id, { relations: ["routingRuleToOpenVPNPrefixes"] });
+        ).findOne(rule2.id, { relations: ['routingRuleToOpenVPNPrefixes'] });
 
         expect(refreshedRule1.routingRuleToOpenVPNPrefixes).length(0);
         expect(refreshedRule2.routingRuleToOpenVPNPrefixes).length(1);
       });
     });
 
-    describe("mark", () => {
-      it("should move marks", async () => {
+    describe('mark', () => {
+      it('should move marks', async () => {
         await service.moveFrom(rule1.id, rule2.id, {
           fromId: rule1.id,
           toId: rule2.id,
@@ -1613,10 +1613,10 @@ describe(RoutingRuleService.name, () => {
 
         const refreshedRule1: RoutingRule = await getRepository(
           RoutingRule,
-        ).findOne(rule1.id, { relations: ["routingRuleToMarks"] });
+        ).findOne(rule1.id, { relations: ['routingRuleToMarks'] });
         const refreshedRule2: RoutingRule = await getRepository(
           RoutingRule,
-        ).findOne(rule2.id, { relations: ["routingRuleToMarks"] });
+        ).findOne(rule2.id, { relations: ['routingRuleToMarks'] });
 
         expect(refreshedRule1.routingRuleToMarks).length(1);
         expect(refreshedRule2.routingRuleToMarks).length(2);
@@ -1624,8 +1624,8 @@ describe(RoutingRuleService.name, () => {
     });
   });
 
-  describe("bulkRemove", () => {
-    it("should remove route", async () => {
+  describe('bulkRemove', () => {
+    it('should remove route', async () => {
       await service.bulkRemove([rule.id]);
 
       expect(
@@ -1637,7 +1637,7 @@ describe(RoutingRuleService.name, () => {
       ).to.be.undefined;
     });
 
-    it("should reset firewall compiled flag", async () => {
+    it('should reset firewall compiled flag', async () => {
       await getRepository(Firewall).update(firewall.id, {
         status: 1,
       });

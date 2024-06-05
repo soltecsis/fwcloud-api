@@ -1,7 +1,7 @@
-import { Middleware } from "../fonaments/http/middleware/Middleware";
-import { Request, Response, NextFunction } from "express";
-import { logger } from "../fonaments/abstract-application";
-import moment from "moment";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
+import { Request, Response, NextFunction } from 'express';
+import { logger } from '../fonaments/abstract-application';
+import moment from 'moment';
 
 export class LogRequestMiddleware extends Middleware {
   public async handle(
@@ -9,8 +9,8 @@ export class LogRequestMiddleware extends Middleware {
     res: Response,
     next: NextFunction,
   ): Promise<void> {
-    logger("http").log(
-      "entry",
+    logger('http').log(
+      'entry',
       `${req.ip}|HTTP/${req.httpVersion}|${req.method.toUpperCase()}|${req.url}`,
     );
     next();

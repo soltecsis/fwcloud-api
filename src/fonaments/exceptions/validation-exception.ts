@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { HttpException } from "./http/http-exception";
-import { ErrorPayload } from "../http/response-builder";
-import { ErrorBag } from "../validation/validator";
+import { HttpException } from './http/http-exception';
+import { ErrorPayload } from '../http/response-builder';
+import { ErrorBag } from '../validation/validator';
 
 export class ValidationException extends HttpException {
   constructor(
-    message: string = "The given data was invalid",
+    message: string = 'The given data was invalid',
     protected readonly _errors: ErrorBag,
   ) {
     super(message, 422);

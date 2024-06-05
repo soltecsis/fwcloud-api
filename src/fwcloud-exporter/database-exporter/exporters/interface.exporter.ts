@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { SelectQueryBuilder } from "typeorm";
-import { Interface } from "../../../models/interface/Interface";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { SelectQueryBuilder } from 'typeorm';
+import { Interface } from '../../../models/interface/Interface';
 
 export class InterfaceExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -36,12 +36,12 @@ export class InterfaceExporter extends TableExporter {
     fwCloudId: number,
   ): SelectQueryBuilder<any> {
     return qb
-      .leftJoin(`${alias}.firewall`, "firewall")
-      .leftJoin(`${alias}.ipObjs`, "ipobj")
-      .where("firewall.fwCloudId = :id", {
+      .leftJoin(`${alias}.firewall`, 'firewall')
+      .leftJoin(`${alias}.ipObjs`, 'ipobj')
+      .where('firewall.fwCloudId = :id', {
         id: fwCloudId,
       })
-      .orWhere("ipobj.fwCloudId = :id", {
+      .orWhere('ipobj.fwCloudId = :id', {
         id: fwCloudId,
       });
   }

@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Responsable } from "../fonaments/contracts/responsable";
+import { Responsable } from '../fonaments/contracts/responsable';
 
 export class Version implements Responsable {
   tag: string;

@@ -19,28 +19,28 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { getRepository } from "typeorm";
-import { Application } from "../../../../../src/Application";
-import { DhcpGroupController } from "../../../../../src/controllers/system/dhcp-group/dhcp-group.controller";
-import { _URL } from "../../../../../src/fonaments/http/router/router.service";
-import { Firewall } from "../../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
-import { DHCPGroup } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model";
-import { DHCPGroupService } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.service";
-import { User } from "../../../../../src/models/user/User";
-import { expect, testSuite } from "../../../../mocha/global-setup";
+import { getRepository } from 'typeorm';
+import { Application } from '../../../../../src/Application';
+import { DhcpGroupController } from '../../../../../src/controllers/system/dhcp-group/dhcp-group.controller';
+import { _URL } from '../../../../../src/fonaments/http/router/router.service';
+import { Firewall } from '../../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
+import { DHCPGroup } from '../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model';
+import { DHCPGroupService } from '../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.service';
+import { User } from '../../../../../src/models/user/User';
+import { expect, testSuite } from '../../../../mocha/global-setup';
 import {
   FwCloudFactory,
   FwCloudProduct,
-} from "../../../../utils/fwcloud-factory";
+} from '../../../../utils/fwcloud-factory';
 import {
   attachSession,
   createUser,
   generateSession,
-} from "../../../../utils/utils";
-import request = require("supertest");
+} from '../../../../utils/utils';
+import request = require('supertest');
 
-describe("DHCPGroup E2E Tests", () => {
+describe('DHCPGroup E2E Tests', () => {
   let app: Application;
   let loggedUser: User;
   let loggedUserSessionId: string;
@@ -76,70 +76,70 @@ describe("DHCPGroup E2E Tests", () => {
   });
 
   describe(DhcpGroupController.name, () => {
-    describe("@index", () => {
+    describe('@index', () => {
       let group: DHCPGroup;
 
       beforeEach(async () => {
         group = await getRepository(DHCPGroup).save(
           getRepository(DHCPGroup).create({
             firewall: firewall,
-            name: "group",
-            style: "style",
+            name: 'group',
+            style: 'style',
           }),
         );
       });
 
-      it("guest user should not be able to list DHCP groups", async () => {
+      it('guest user should not be able to list DHCP groups', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.index", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which does not belong to the firewall should not be able to list DHCP groups", async () => {
+      it('regular user which does not belong to the firewall should not be able to list DHCP groups', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.index", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the firewall should be able to list DHCP groups", async () => {
+      it('regular user which belongs to the firewall should be able to list DHCP groups', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.index", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.have.lengthOf(1);
           });
       });
 
-      it("admin user should be able to list DHCP groups", async () => {
+      it('admin user should be able to list DHCP groups', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.index", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.have.lengthOf(1);
@@ -147,87 +147,87 @@ describe("DHCPGroup E2E Tests", () => {
       });
     });
 
-    describe("@create", () => {
-      it("guest user should not be able to create a DHCP group", async () => {
+    describe('@create', () => {
+      it('guest user should not be able to create a DHCP group', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.store", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
           .send({
-            name: "group",
+            name: 'group',
           })
           .expect(401);
       });
 
-      it("regular user which does not belong to the firewall should not be able to create a DHCP group", async () => {
+      it('regular user which does not belong to the firewall should not be able to create a DHCP group', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.store", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
-            name: "group",
+            name: 'group',
           })
           .expect(401);
       });
 
-      it("regular user which belongs to the firewall should be able to create a DHCP group", async () => {
+      it('regular user which belongs to the firewall should be able to create a DHCP group', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.store", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
-            name: "group",
+            name: 'group',
           })
           .expect(201);
       });
 
-      it("admin user should be able to create a DHCP group", async () => {
+      it('admin user should be able to create a DHCP group', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.store", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
-            name: "group",
+            name: 'group',
           })
           .expect(201);
       });
     });
 
-    describe("@show", () => {
+    describe('@show', () => {
       let dhcpGroup: DHCPGroup;
 
       beforeEach(async () => {
         dhcpGroup = await getRepository(DHCPGroup).save(
           getRepository(DHCPGroup).create({
             firewall: firewall,
-            name: "group",
-            style: "style",
+            name: 'group',
+            style: 'style',
           }),
         );
       });
 
-      it("guest user should not be able to show a DHCP group", async () => {
+      it('guest user should not be able to show a DHCP group', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.show", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               dhcpgroup: dhcpGroup.id,
@@ -236,142 +236,142 @@ describe("DHCPGroup E2E Tests", () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the firewall should not be able to show a DHCP group", async () => {
+      it('regular user which does not belong to the firewall should not be able to show a DHCP group', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.show", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               dhcpgroup: dhcpGroup.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the firewall should be able to show a DHCP group", async () => {
+      it('regular user which belongs to the firewall should be able to show a DHCP group', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.show", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               dhcpgroup: dhcpGroup.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200);
       });
 
-      it("admin user should be able to show a DHCP group", async () => {
+      it('admin user should be able to show a DHCP group', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.show", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               dhcpgroup: dhcpGroup.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200);
       });
     });
 
-    describe("@update", () => {
+    describe('@update', () => {
       let dhcpGroup: DHCPGroup;
 
       beforeEach(async () => {
         dhcpGroup = await dhcpGroupService.create({
           firewallId: firewall.id,
-          name: "group",
-          style: "style",
+          name: 'group',
+          style: 'style',
         });
       });
 
-      it("guest user should not be able to update a DHCP group", async () => {
+      it('guest user should not be able to update a DHCP group', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.update", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.update', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               dhcpgroup: dhcpGroup.id,
             }),
           )
           .send({
-            name: "group",
+            name: 'group',
           })
           .expect(401);
       });
 
-      it("regular user which does not belong to the firewall should not be able to update a DHCP group", async () => {
+      it('regular user which does not belong to the firewall should not be able to update a DHCP group', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.update", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.update', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               dhcpgroup: dhcpGroup.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
-            name: "group1",
+            name: 'group1',
           })
           .expect(401);
       });
 
-      it("regular user which belongs to the firewall should be able to update a DHCP group", async () => {
+      it('regular user which belongs to the firewall should be able to update a DHCP group', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.update", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.update', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               dhcpgroup: dhcpGroup.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .send({
-            name: "group1",
+            name: 'group1',
           })
           .expect(200);
       });
 
-      it("admin user should be able to update a DHCP group", async () => {
+      it('admin user should be able to update a DHCP group', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.update", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.update', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               dhcpgroup: dhcpGroup.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
-            name: "group1",
+            name: 'group1',
           })
           .expect(200);
       });
     });
 
-    describe("@remove", () => {
+    describe('@remove', () => {
       let dhcpGroup: DHCPGroup;
 
       beforeEach(async () => {
         dhcpGroup = await dhcpGroupService.create({
           firewallId: firewall.id,
-          name: "group",
-          style: "style",
+          name: 'group',
+          style: 'style',
         });
       });
 
-      it("guest user should not be able to remove a DHCP group", async () => {
+      it('guest user should not be able to remove a DHCP group', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.delete", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.delete', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               dhcpgroup: dhcpGroup.id,
@@ -380,45 +380,45 @@ describe("DHCPGroup E2E Tests", () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the firewall should not be able to remove a DHCP group", async () => {
+      it('regular user which does not belong to the firewall should not be able to remove a DHCP group', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.delete", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.delete', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               dhcpgroup: dhcpGroup.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the firewall should be able to remove a DHCP group", async () => {
+      it('regular user which belongs to the firewall should be able to remove a DHCP group', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.delete", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.delete', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               dhcpgroup: dhcpGroup.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200);
       });
 
-      it("admin user should be able to remove a DHCP group", async () => {
+      it('admin user should be able to remove a DHCP group', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.system.dhcp.groups.delete", {
+            _URL().getURL('fwclouds.firewalls.system.dhcp.groups.delete', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               dhcpgroup: dhcpGroup.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200);
       });
     });

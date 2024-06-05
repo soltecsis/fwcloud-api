@@ -21,30 +21,30 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
-} from "typeorm";
-import { Firewall } from "../../../firewall/Firewall";
-import { KeepalivedRule } from "../keepalived_r/keepalived_r.model";
-import Model from "../../../Model";
+} from 'typeorm';
+import { Firewall } from '../../../firewall/Firewall';
+import { KeepalivedRule } from '../keepalived_r/keepalived_r.model';
+import Model from '../../../Model';
 
-const tableName: string = "keepalived_g";
+const tableName: string = 'keepalived_g';
 @Entity(tableName)
 export class KeepalivedGroup extends Model {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: "varchar", length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  @Column({ name: "firewall" })
+  @Column({ name: 'firewall' })
   firewallId: number;
 
   @ManyToOne((type) => Firewall, (firewall) => firewall.keepalivedGroups)
   @JoinColumn({
-    name: "firewall",
+    name: 'firewall',
   })
   firewall: Firewall;
 
-  @Column({ type: "varchar", length: 50 })
+  @Column({ type: 'varchar', length: 50 })
   style: string;
 
   @OneToMany((type) => KeepalivedRule, (model) => model.group, {
@@ -63,7 +63,7 @@ export class KeepalivedGroup extends Model {
     return KeepalivedGroup.createQueryBuilder()
       .update()
       .set({ firewallId: dst_firewall })
-      .where("firewallId = :src_firewall", { src_firewall })
+      .where('firewallId = :src_firewall', { src_firewall })
       .execute();
   }
 }

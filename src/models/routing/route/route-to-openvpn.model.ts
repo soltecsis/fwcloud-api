@@ -1,19 +1,19 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
-import Model from "../../Model";
-import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
-import { Route } from "./route.model";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import Model from '../../Model';
+import { OpenVPN } from '../../vpn/openvpn/OpenVPN';
+import { Route } from './route.model';
 
-const tableName: string = "route__openvpn";
+const tableName: string = 'route__openvpn';
 
 @Entity(tableName)
 export class RouteToOpenVPN extends Model {
   @PrimaryColumn({
-    name: "route",
+    name: 'route',
   })
   routeId: number;
 
   @PrimaryColumn({
-    name: "openvpn",
+    name: 'openvpn',
   })
   openVPNId: number;
 
@@ -23,18 +23,18 @@ export class RouteToOpenVPN extends Model {
   order: number;
 
   @ManyToOne(() => Route, (model) => model.routeToOpenVPNs, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "route",
+    name: 'route',
   })
   route: Route;
 
   @ManyToOne(() => OpenVPN, (model) => model.routeToOpenVPNs, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "openvpn",
+    name: 'openvpn',
   })
   openVPN: OpenVPN;
 

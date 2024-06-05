@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { SequencedTask } from "./sequenced-task";
-import { GroupDescription, Task } from "./task";
-import { Channel } from "../../../sockets/channels/channel";
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { SequencedTask } from './sequenced-task';
+import { GroupDescription, Task } from './task';
+import { Channel } from '../../../sockets/channels/channel';
 import {
   StartTaskPayload,
   InfoTaskPayload,
@@ -31,16 +31,16 @@ import {
   ErrorTaskPayload,
   StartProgressPayload,
   EndProgressPayload,
-} from "./messages/progress-messages";
-import * as uuid from "uuid";
-import { ProgressPayload } from "../../../sockets/messages/socket-message";
+} from './messages/progress-messages';
+import * as uuid from 'uuid';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
 
-export type taskEventName = "start" | "end" | "info" | "error";
+export type taskEventName = 'start' | 'end' | 'info' | 'error';
 
-export type progressEventName = "start" | "end";
+export type progressEventName = 'start' | 'end';
 
 export interface ExternalEventEmitter extends EventEmitter {
-  emit(event: "message", ...args: any[]): boolean;
+  emit(event: 'message', ...args: any[]): boolean;
 }
 
 export interface TasksEventEmitter extends EventEmitter {
@@ -107,16 +107,16 @@ export class Progress {
 
       const heartbeatInterval: NodeJS.Timeout = setInterval(() => {
         this._externalEmitter.emit(
-          "message",
-          new ProgressPayload("heartbeat", false, "", this._id),
+          'message',
+          new ProgressPayload('heartbeat', false, '', this._id),
         );
       }, 20000);
 
-      this._progressEvents.emit("start");
+      this._progressEvents.emit('start');
       this._startTask
         .run()
         .then(() => {
-          this._progressEvents.emit("end");
+          this._progressEvents.emit('end');
           clearInterval(heartbeatInterval);
           return resolve();
         })
@@ -128,29 +128,29 @@ export class Progress {
   }
 
   protected bindEvents(): void {
-    this._progressEvents.on("start", () => {
+    this._progressEvents.on('start', () => {
       const message: ProgressPayload = new StartProgressPayload(this);
-      this._externalEmitter.emit("message", message);
+      this._externalEmitter.emit('message', message);
     });
 
-    this._progressEvents.on("end", async () => {
-      this._externalEmitter.emit("message", new EndProgressPayload(this));
+    this._progressEvents.on('end', async () => {
+      this._externalEmitter.emit('message', new EndProgressPayload(this));
     });
 
-    this._taskEvents.on("start", (task: Task) => {
-      this._externalEmitter.emit("message", new StartTaskPayload(task));
+    this._taskEvents.on('start', (task: Task) => {
+      this._externalEmitter.emit('message', new StartTaskPayload(task));
     });
 
-    this._taskEvents.on("info", (task: Task, info: string) => {
-      this._externalEmitter.emit("message", new InfoTaskPayload(task, info));
+    this._taskEvents.on('info', (task: Task, info: string) => {
+      this._externalEmitter.emit('message', new InfoTaskPayload(task, info));
     });
 
-    this._taskEvents.on("end", (task: Task) => {
-      this._externalEmitter.emit("message", new EndTaskPayload(task));
+    this._taskEvents.on('end', (task: Task) => {
+      this._externalEmitter.emit('message', new EndTaskPayload(task));
     });
 
-    this._taskEvents.on("error", (task: Task, error: Error) => {
-      this._externalEmitter.emit("message", new ErrorTaskPayload(task, error));
+    this._taskEvents.on('error', (task: Task, error: Error) => {
+      this._externalEmitter.emit('message', new ErrorTaskPayload(task, error));
     });
   }
 }

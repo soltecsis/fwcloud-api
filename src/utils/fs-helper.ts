@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as fs from "fs";
-import * as fse from "fs-extra";
-import * as path from "path";
+import * as fs from 'fs';
+import * as fse from 'fs-extra';
+import * as path from 'path';
 
 export class FSHelper {
   public static async directoryExists(

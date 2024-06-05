@@ -1,9 +1,9 @@
-import { describeName, expect } from "../../../../mocha/global-setup";
-import { Validator } from "../../../../../src/fonaments/validation/validator";
-import { IsNumber, IsString } from "class-validator";
-import { ValidationException } from "../../../../../src/fonaments/exceptions/validation-exception";
+import { describeName, expect } from '../../../../mocha/global-setup';
+import { Validator } from '../../../../../src/fonaments/validation/validator';
+import { IsNumber, IsString } from 'class-validator';
+import { ValidationException } from '../../../../../src/fonaments/exceptions/validation-exception';
 
-describe(describeName("Validator Unit Test"), () => {
+describe(describeName('Validator Unit Test'), () => {
   class ValidDto {
     @IsString()
     input: string;
@@ -14,10 +14,10 @@ describe(describeName("Validator Unit Test"), () => {
     input: number;
   }
 
-  describe("validate()", () => {
-    it("should throw an exception if validation fails", async () => {
+  describe('validate()', () => {
+    it('should throw an exception if validation fails', async () => {
       const validator: Validator = new Validator(
-        { input: "value" },
+        { input: 'value' },
         InvalidDto,
       );
 
@@ -28,8 +28,8 @@ describe(describeName("Validator Unit Test"), () => {
       }
     });
 
-    it("should not throw an exception if the data is valid", async () => {
-      const validator: Validator = new Validator({ input: "value" }, ValidDto);
+    it('should not throw an exception if the data is valid', async () => {
+      const validator: Validator = new Validator({ input: 'value' }, ValidDto);
 
       expect(await validator.validate()).to.be.undefined;
     });

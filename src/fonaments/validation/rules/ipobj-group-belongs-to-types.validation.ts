@@ -4,9 +4,9 @@ import {
   ValidationOptions,
   ValidatorConstraint,
   ValidatorConstraintInterface,
-} from "class-validator";
-import { getRepository, In } from "typeorm";
-import { IPObjGroup } from "../../../models/ipobj/IPObjGroup";
+} from 'class-validator';
+import { getRepository, In } from 'typeorm';
+import { IPObjGroup } from '../../../models/ipobj/IPObjGroup';
 
 export function IpObjGroupBelongsToTypes(
   typeIds: number[],
@@ -14,7 +14,7 @@ export function IpObjGroupBelongsToTypes(
 ) {
   return function (object: object, propertyName: string) {
     registerDecorator({
-      name: "ipObjBelongsToTypes",
+      name: 'ipObjBelongsToTypes',
       target: object.constructor,
       propertyName: propertyName,
       constraints: [typeIds],

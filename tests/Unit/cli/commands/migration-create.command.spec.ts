@@ -20,21 +20,21 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MigrationCreateCommand } from "../../../../src/cli/commands/migration-create.command";
-import * as path from "path";
-import * as fs from "fs";
+import { MigrationCreateCommand } from '../../../../src/cli/commands/migration-create.command';
+import * as path from 'path';
+import * as fs from 'fs';
 import {
   expect,
   describeName,
   testSuite,
   playgroundPath,
-} from "../../../mocha/global-setup";
-import { FSHelper } from "../../../../src/utils/fs-helper";
-import { runCLICommandIsolated } from "../../../utils/utils";
+} from '../../../mocha/global-setup';
+import { FSHelper } from '../../../../src/utils/fs-helper';
+import { runCLICommandIsolated } from '../../../utils/utils';
 
-describe(describeName("MigrationCreateCommand tests"), () => {
-  const version: string = "x.y.z";
-  const migrationDirectory = path.join(playgroundPath, ".tmp");
+describe(describeName('MigrationCreateCommand tests'), () => {
+  const version: string = 'x.y.z';
+  const migrationDirectory = path.join(playgroundPath, '.tmp');
 
   beforeEach(() => {
     try {
@@ -53,12 +53,12 @@ describe(describeName("MigrationCreateCommand tests"), () => {
     await FSHelper.rmDirectory(tmpDir);
   });
 
-  it.skip("should create a migration file in the version migration directory", async () => {
+  it.skip('should create a migration file in the version migration directory', async () => {
     await runCLICommandIsolated(testSuite, async () => {
       return new MigrationCreateCommand().safeHandle({
-        $0: "migration:create",
-        n: "migration_test",
-        name: "migration_test",
+        $0: 'migration:create',
+        n: 'migration_test',
+        name: 'migration_test',
         t: version,
         tag: version,
         d: migrationDirectory,
@@ -72,7 +72,7 @@ describe(describeName("MigrationCreateCommand tests"), () => {
     );
 
     files.filter((item: string) => {
-      new RegExp("w{13}-migration_test", "g").test(item);
+      new RegExp('w{13}-migration_test', 'g').test(item);
     });
 
     expect(files.length).to.be.equal(1);

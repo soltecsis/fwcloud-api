@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table } from "typeorm";
+import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class createOpenvpnStatusHistory1633524573701
   implements MigrationInterface
@@ -6,70 +6,70 @@ export class createOpenvpnStatusHistory1633524573701
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
       new Table({
-        name: "openvpn_status_history",
+        name: 'openvpn_status_history',
         columns: [
           {
-            name: "id",
-            type: "int",
+            name: 'id',
+            type: 'int',
             unsigned: true,
             isPrimary: true,
             isGenerated: true,
-            generationStrategy: "increment",
+            generationStrategy: 'increment',
           },
           {
-            name: "name",
-            type: "varchar",
-            length: "255",
+            name: 'name',
+            type: 'varchar',
+            length: '255',
             isNullable: false,
           },
           {
-            name: "address",
-            type: "varchar",
-            length: "255",
+            name: 'address',
+            type: 'varchar',
+            length: '255',
             isNullable: false,
           },
           {
-            name: "bytes_received",
-            type: "bigint",
+            name: 'bytes_received',
+            type: 'bigint',
             unsigned: true,
             isNullable: false,
           },
           {
-            name: "bytes_sent",
-            type: "bigint",
+            name: 'bytes_sent',
+            type: 'bigint',
             unsigned: true,
             isNullable: false,
           },
           {
-            name: "connected_at_timestamp",
-            type: "int",
+            name: 'connected_at_timestamp',
+            type: 'int',
             unsigned: true,
             isNullable: false,
           },
           {
-            name: "disconnected_at_timestamp",
-            type: "int",
+            name: 'disconnected_at_timestamp',
+            type: 'int',
             unsigned: true,
             isNullable: true,
           },
           {
-            name: "timestamp",
-            type: "int",
+            name: 'timestamp',
+            type: 'int',
             unsigned: true,
             isNullable: false,
           },
           {
-            name: "openvpn_server_id",
-            type: "int",
+            name: 'openvpn_server_id',
+            type: 'int',
             isNullable: true,
           },
         ],
         foreignKeys: [
           {
-            columnNames: ["openvpn_server_id"],
-            referencedTableName: "openvpn",
-            referencedColumnNames: ["id"],
-            onDelete: "set null",
+            columnNames: ['openvpn_server_id'],
+            referencedTableName: 'openvpn',
+            referencedColumnNames: ['id'],
+            onDelete: 'set null',
           },
         ],
       }),
@@ -78,6 +78,6 @@ export class createOpenvpnStatusHistory1633524573701
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropTable("openvpn_status_history", true);
+    await queryRunner.dropTable('openvpn_status_history', true);
   }
 }

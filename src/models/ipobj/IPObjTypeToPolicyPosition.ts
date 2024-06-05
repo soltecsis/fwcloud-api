@@ -20,27 +20,27 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
-import db from "../../database/database-manager";
-import { Entity, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
-import { IPObjType } from "./IPObjType";
-import { PolicyPosition } from "../policy/PolicyPosition";
-import { logger } from "../../fonaments/abstract-application";
+import Model from '../Model';
+import db from '../../database/database-manager';
+import { Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { IPObjType } from './IPObjType';
+import { PolicyPosition } from '../policy/PolicyPosition';
+import { logger } from '../../fonaments/abstract-application';
 
-const tableName: string = "ipobj_type__policy_position";
+const tableName: string = 'ipobj_type__policy_position';
 
 @Entity(tableName)
 export class IPObjTypeToPolicyPosition extends Model {
-  @PrimaryColumn({ name: "type" })
+  @PrimaryColumn({ name: 'type' })
   ipObjTypeId: number;
 
   @ManyToOne((type) => IPObjType, (model) => model.ipObjTypeToPolicyPositions)
   @JoinColumn({
-    name: "type",
+    name: 'type',
   })
   ipObjType: IPObjType;
 
-  @PrimaryColumn({ name: "position" })
+  @PrimaryColumn({ name: 'position' })
   policyPositionId: number;
 
   @ManyToOne(
@@ -48,7 +48,7 @@ export class IPObjTypeToPolicyPosition extends Model {
     (model) => model.ipObjTypeToPolicyPositions,
   )
   @JoinColumn({
-    name: "position",
+    name: 'position',
   })
   policyPosition: PolicyPosition;
 
@@ -75,11 +75,11 @@ export class IPObjTypeToPolicyPosition extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "SELECT type, position, allowed FROM " +
+        'SELECT type, position, allowed FROM ' +
         tableName +
-        " WHERE type = " +
+        ' WHERE type = ' +
         connection.escape(type) +
-        "AND  position = " +
+        'AND  position = ' +
         connection.escape(position);
       logger().debug(sql);
       connection.query(sql, (error, row) => {
@@ -97,14 +97,14 @@ export class IPObjTypeToPolicyPosition extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query(
-        "INSERT INTO " + tableName + " SET ?",
+        'INSERT INTO ' + tableName + ' SET ?',
         ipobj_type__policy_positionData,
         (error, result) => {
           if (error) {
             callback(error, null);
           } else {
             //devolvemos la última id insertada
-            callback(null, { insertId: "success" });
+            callback(null, { insertId: 'success' });
           }
         },
       );
@@ -119,14 +119,14 @@ export class IPObjTypeToPolicyPosition extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "UPDATE " +
+        'UPDATE ' +
         tableName +
-        " SET type = " +
+        ' SET type = ' +
         connection.escape(ipobj_type__policy_positionData.type) +
-        " " +
-        " WHERE type = " +
+        ' ' +
+        ' WHERE type = ' +
         connection.escape(ipobj_type__policy_positionData.type) +
-        " position = " +
+        ' position = ' +
         connection.escape(ipobj_type__policy_positionData.position);
       connection.query(sql, (error, result) => {
         if (error) {
@@ -143,22 +143,22 @@ export class IPObjTypeToPolicyPosition extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " WHERE type = " +
+        ' WHERE type = ' +
         connection.escape(type) +
-        " position = " +
+        ' position = ' +
         connection.escape(position);
       connection.query(sqlExists, (error, row) => {
         //If exists Id from ipobj_type__policy_position to remove
         if (row) {
           db.get((error, connection) => {
             const sql =
-              "DELETE FROM " +
+              'DELETE FROM ' +
               tableName +
-              " WHERE type = " +
+              ' WHERE type = ' +
               connection.escape(type) +
-              " position = " +
+              ' position = ' +
               connection.escape(position);
             connection.query(sql, (error, result) => {
               if (error) {

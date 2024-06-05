@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { Connection, QueryRunner } from "typeorm";
-import { OpenVPNPrefix } from "../../../models/vpn/openvpn/OpenVPNPrefix";
-import { OpenVPNPrefixExporter } from "./openvpn-prefix.exporter";
-import { IPObjGroupExporter } from "./ipobj-group.exporter";
-import { IPObjGroup } from "../../../models/ipobj/IPObjGroup";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { Connection, QueryRunner } from 'typeorm';
+import { OpenVPNPrefix } from '../../../models/vpn/openvpn/OpenVPNPrefix';
+import { OpenVPNPrefixExporter } from './openvpn-prefix.exporter';
+import { IPObjGroupExporter } from './ipobj-group.exporter';
+import { IPObjGroup } from '../../../models/ipobj/IPObjGroup';
 
 export class OpenVPNPrefixToIPObjGroupExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -34,7 +34,7 @@ export class OpenVPNPrefixToIPObjGroupExporter extends TableExporter {
   }
 
   public getTableName(): string {
-    return "openvpn_prefix__ipobj_g";
+    return 'openvpn_prefix__ipobj_g';
   }
 
   protected async getRows(
@@ -64,10 +64,10 @@ export class OpenVPNPrefixToIPObjGroupExporter extends TableExporter {
     const subquery = connection
       .createQueryBuilder()
       .subQuery()
-      .from(OpenVPNPrefix, "openvpn_prefix")
-      .select("openvpn_prefix.id");
+      .from(OpenVPNPrefix, 'openvpn_prefix')
+      .select('openvpn_prefix.id');
     return new OpenVPNPrefixExporter()
-      .getFilterBuilder(subquery, "openvpn_prefix", fwCloudId)
+      .getFilterBuilder(subquery, 'openvpn_prefix', fwCloudId)
       .getQueryAndParameters();
   }
 
@@ -78,10 +78,10 @@ export class OpenVPNPrefixToIPObjGroupExporter extends TableExporter {
     const subquery = connection
       .createQueryBuilder()
       .subQuery()
-      .from(IPObjGroup, "ipobj_g")
-      .select("ipobj_g.id");
+      .from(IPObjGroup, 'ipobj_g')
+      .select('ipobj_g.id');
     return new IPObjGroupExporter()
-      .getFilterBuilder(subquery, "ipobj_g", fwCloudId)
+      .getFilterBuilder(subquery, 'ipobj_g', fwCloudId)
       .getQueryAndParameters();
   }
 }

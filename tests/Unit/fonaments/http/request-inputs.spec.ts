@@ -20,29 +20,29 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { RequestInputs } from "../../../../src/fonaments/http/request-inputs";
-import { expect, describeName } from "../../../mocha/global-setup";
+import { RequestInputs } from '../../../../src/fonaments/http/request-inputs';
+import { expect, describeName } from '../../../mocha/global-setup';
 
-describe(describeName("Request tests"), () => {
-  describe("all()", () => {
-    it("All inputs from req.body should be listed in the inputs", async () => {
+describe(describeName('Request tests'), () => {
+  describe('all()', () => {
+    it('All inputs from req.body should be listed in the inputs', async () => {
       const req: any = {
         body: {
-          testInput: "testInput",
-          testInput2: "testInput2",
+          testInput: 'testInput',
+          testInput2: 'testInput2',
         },
       };
 
       const request = new RequestInputs(req);
       expect(request.all()).to.be.deep.equal({
-        testInput: "testInput",
-        testInput2: "testInput2",
+        testInput: 'testInput',
+        testInput2: 'testInput2',
       });
     });
   });
 
-  describe("has()", () => {
-    it("should return false if an input does not exist", async () => {
+  describe('has()', () => {
+    it('should return false if an input does not exist', async () => {
       const req: any = {
         body: {},
         query: {},
@@ -50,53 +50,53 @@ describe(describeName("Request tests"), () => {
 
       const request = new RequestInputs(req);
 
-      expect(request.has("testInput2")).to.be.false;
+      expect(request.has('testInput2')).to.be.false;
     });
 
-    it("should return true if an input does exist", async () => {
+    it('should return true if an input does exist', async () => {
       const req: any = {
         body: {
-          testInput: "testInput",
+          testInput: 'testInput',
         },
         query: {},
       };
 
       const request = new RequestInputs(req);
 
-      expect(request.has("testInput")).to.be.true;
+      expect(request.has('testInput')).to.be.true;
     });
 
-    it("should return true if the query parameter exists", async () => {
+    it('should return true if the query parameter exists', async () => {
       const req: any = {
         query: {
-          testInput2: "testInput2",
+          testInput2: 'testInput2',
         },
         body: {
-          testInput: "testInput",
+          testInput: 'testInput',
         },
       };
 
       const request = new RequestInputs(req);
 
-      expect(request.has("testInput2")).to.be.true;
+      expect(request.has('testInput2')).to.be.true;
     });
   });
 
-  describe("get()", () => {
-    it("should return the value if the input exists", async () => {
+  describe('get()', () => {
+    it('should return the value if the input exists', async () => {
       const req: any = {
         body: {
-          testInput: "testInput",
+          testInput: 'testInput',
         },
         query: {},
       };
 
       const request = new RequestInputs(req);
 
-      expect(request.get("testInput")).to.be.deep.equal("testInput");
+      expect(request.get('testInput')).to.be.deep.equal('testInput');
     });
 
-    it("should return undefined if the input does not exists", async () => {
+    it('should return undefined if the input does not exists', async () => {
       const req: any = {
         body: {},
         query: {},
@@ -104,10 +104,10 @@ describe(describeName("Request tests"), () => {
 
       const request = new RequestInputs(req);
 
-      expect(request.get("testInput2")).to.be.undefined;
+      expect(request.get('testInput2')).to.be.undefined;
     });
 
-    it("should return a default value if the input does not exists and a default value is provided", async () => {
+    it('should return a default value if the input does not exists and a default value is provided', async () => {
       const req: any = {
         body: {},
         query: {},
@@ -115,8 +115,8 @@ describe(describeName("Request tests"), () => {
 
       const request = new RequestInputs(req);
 
-      expect(request.get("testInput2", "defaultValue")).to.be.deep.equal(
-        "defaultValue",
+      expect(request.get('testInput2', 'defaultValue')).to.be.deep.equal(
+        'defaultValue',
       );
     });
   });

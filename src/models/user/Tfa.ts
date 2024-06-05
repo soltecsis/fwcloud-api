@@ -1,15 +1,15 @@
-import { type } from "os";
+import { type } from 'os';
 import {
   Column,
   Entity,
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
-} from "typeorm";
-import Model from "../Model";
-import { User } from "./User";
+} from 'typeorm';
+import Model from '../Model';
+import { User } from './User';
 
-const tableName: string = "tfa";
+const tableName: string = 'tfa';
 
 @Entity(tableName)
 export class Tfa extends Model {
@@ -28,11 +28,11 @@ export class Tfa extends Model {
   @Column()
   tfaURL: string;
 
-  @Column({ name: "user" })
+  @Column({ name: 'user' })
   userId: number;
 
   @OneToOne(() => User, (user) => user.tfa)
-  @JoinColumn({ name: "user" })
+  @JoinColumn({ name: 'user' })
   user: User;
 
   public getTableName(): string {

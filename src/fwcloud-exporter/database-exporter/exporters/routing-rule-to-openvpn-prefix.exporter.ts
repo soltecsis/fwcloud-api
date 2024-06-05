@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { SelectQueryBuilder } from "typeorm";
-import { RoutingRule } from "../../../models/routing/routing-rule/routing-rule.model";
-import { RoutingRuleExporter } from "./routing-rule.exporter";
-import { RoutingRuleToOpenVPN } from "../../../models/routing/routing-rule/routing-rule-to-openvpn.model";
-import { RoutingRuleToOpenVPNPrefix } from "../../../models/routing/routing-rule/routing-rule-to-openvpn-prefix.model";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { SelectQueryBuilder } from 'typeorm';
+import { RoutingRule } from '../../../models/routing/routing-rule/routing-rule.model';
+import { RoutingRuleExporter } from './routing-rule.exporter';
+import { RoutingRuleToOpenVPN } from '../../../models/routing/routing-rule/routing-rule-to-openvpn.model';
+import { RoutingRuleToOpenVPNPrefix } from '../../../models/routing/routing-rule/routing-rule-to-openvpn-prefix.model';
 
 export class RoutingRuleToOpenVPNPrefixExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -41,13 +41,13 @@ export class RoutingRuleToOpenVPNPrefixExporter extends TableExporter {
     return qb.where((qb) => {
       const subquery = qb
         .subQuery()
-        .from(RoutingRule, "rule")
-        .select("rule.id");
+        .from(RoutingRule, 'rule')
+        .select('rule.id');
 
       return (
         `${alias}.routingRuleId IN` +
         new RoutingRuleExporter()
-          .getFilterBuilder(subquery, "rule", fwCloudId)
+          .getFilterBuilder(subquery, 'rule', fwCloudId)
           .getQuery()
       );
     });

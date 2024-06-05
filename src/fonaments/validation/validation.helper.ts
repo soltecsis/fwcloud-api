@@ -1,5 +1,5 @@
-import { ValidationError } from "class-validator";
-import { ErrorBag } from "./validator";
+import { ValidationError } from 'class-validator';
+import { ErrorBag } from './validator';
 
 /**
  * Transforms ValidationError[] into ErrorBag format (which is used in a Unprocessable Entitiy response)
@@ -15,7 +15,7 @@ export function transformValidationErrorsToErrorBag(
   const result: ErrorBag = {};
 
   errors.forEach((error: ValidationError) => {
-    const attributePath: string = (!path ? "" : path + ".") + error.property;
+    const attributePath: string = (!path ? '' : path + '.') + error.property;
 
     if (error.constraints) {
       result[attributePath] = Object.values(error.constraints);

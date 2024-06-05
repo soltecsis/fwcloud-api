@@ -25,29 +25,29 @@ import {
   SelectQueryBuilder,
   getCustomRepository,
   getRepository,
-} from "typeorm";
-import { DHCPRule } from "./dhcp_r.model";
-import { DHCPRepository } from "./dhcp.repository";
-import { IPObj } from "../../../ipobj/IPObj";
-import { DHCPGroup } from "../dhcp_g/dhcp_g.model";
-import { Interface } from "../../../interface/Interface";
-import { Offset } from "../../../../offset";
-import { Application } from "../../../../Application";
-import { Service } from "../../../../fonaments/services/service";
-import { IPObjRepository } from "../../../ipobj/IPObj.repository";
-import { IPObjGroup } from "../../../ipobj/IPObjGroup";
+} from 'typeorm';
+import { DHCPRule } from './dhcp_r.model';
+import { DHCPRepository } from './dhcp.repository';
+import { IPObj } from '../../../ipobj/IPObj';
+import { DHCPGroup } from '../dhcp_g/dhcp_g.model';
+import { Interface } from '../../../interface/Interface';
+import { Offset } from '../../../../offset';
+import { Application } from '../../../../Application';
+import { Service } from '../../../../fonaments/services/service';
+import { IPObjRepository } from '../../../ipobj/IPObj.repository';
+import { IPObjGroup } from '../../../ipobj/IPObjGroup';
 import {
   AvailableDestinations,
   DHCPRuleItemForCompiler,
   DHCPUtils,
   ItemForGrid,
-} from "../shared";
-import { Firewall } from "../../../firewall/Firewall";
-import { DHCPRuleToIPObj } from "./dhcp_r-to-ipobj.model";
-import { ErrorBag } from "../../../../fonaments/validation/validator";
-import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
-import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
-import { DHCPGroupService } from "../dhcp_g/dhcp_g.service";
+} from '../shared';
+import { Firewall } from '../../../firewall/Firewall';
+import { DHCPRuleToIPObj } from './dhcp_r-to-ipobj.model';
+import { ErrorBag } from '../../../../fonaments/validation/validator';
+import { ValidationException } from '../../../../fonaments/exceptions/validation-exception';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import { DHCPGroupService } from '../dhcp_g/dhcp_g.service';
 
 interface IFindManyDHCPRulePath {
   fwcloudId?: number;
@@ -149,8 +149,8 @@ export class DHCPRuleService extends Service {
       const interfaceData: Interface = (await getRepository(
         Interface,
       ).findOneOrFail(data.interfaceId)) as Interface;
-      if (!interfaceData.mac || interfaceData.mac === "") {
-        throw new Error("Interface mac is not defined");
+      if (!interfaceData.mac || interfaceData.mac === '') {
+        throw new Error('Interface mac is not defined');
       }
       dhcpRuleData.interface = interfaceData;
     }
@@ -166,7 +166,7 @@ export class DHCPRuleService extends Service {
         dhcpRuleData.network?.ip_version !== dhcpRuleData.router?.ip_version ||
         dhcpRuleData.range?.ip_version !== dhcpRuleData.router?.ip_version)
     ) {
-      throw new Error("IP version mismatch");
+      throw new Error('IP version mismatch');
     }
 
     const lastDHCPRule: DHCPRule =
@@ -180,8 +180,8 @@ export class DHCPRuleService extends Service {
       await this._repository.save(dhcpRuleData);
 
     if (
-      Object.prototype.hasOwnProperty.call(data, "to") &&
-      Object.prototype.hasOwnProperty.call(data, "offset")
+      Object.prototype.hasOwnProperty.call(data, 'to') &&
+      Object.prototype.hasOwnProperty.call(data, 'offset')
     ) {
       return (await this.move([persisted.id], data.to, data.offset))[0];
     }
@@ -199,14 +199,14 @@ export class DHCPRuleService extends Service {
         id: In(ids),
       },
       relations: [
-        "group",
-        "firewall",
-        "firewall.fwCloud",
-        "network",
-        "range",
-        "router",
-        "interface",
-        "dhcpRuleToIPObjs",
+        'group',
+        'firewall',
+        'firewall.fwCloud',
+        'network',
+        'range',
+        'router',
+        'interface',
+        'dhcpRuleToIPObjs',
       ],
     });
 
@@ -237,12 +237,12 @@ export class DHCPRuleService extends Service {
     const destinationRule: DHCPRule = await this._repository.findOneOrFail(
       destRule,
       {
-        relations: ["group"],
+        relations: ['group'],
       },
     );
 
     const sourceRules: DHCPRule[] = await this._repository.findByIds(ids, {
-      relations: ["group"],
+      relations: ['group'],
     });
 
     const movedRules = await this._repository.move(ids, destRule, offset);
@@ -264,10 +264,10 @@ export class DHCPRuleService extends Service {
     data: IMoveFromDHCPRule,
   ): Promise<[DHCPRule, DHCPRule]> {
     const fromRule: DHCPRule = await this._repository.findOneOrFail(fromId, {
-      relations: ["firewall", "firewall.fwCloud", "dhcpRuleToIPObjs"],
+      relations: ['firewall', 'firewall.fwCloud', 'dhcpRuleToIPObjs'],
     });
     const toRule: DHCPRule = await this._repository.findOneOrFail(toId, {
-      relations: ["firewall", "firewall.fwCloud", "dhcpRuleToIPObjs"],
+      relations: ['firewall', 'firewall.fwCloud', 'dhcpRuleToIPObjs'],
     });
 
     let lastPosition = 0;
@@ -298,10 +298,10 @@ export class DHCPRuleService extends Service {
 
   async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
     let dhcpRule: DHCPRule | undefined = await this._repository.findOne(id, {
-      relations: ["group", "firewall", "network", "range", "router"],
+      relations: ['group', 'firewall', 'network', 'range', 'router'],
     });
     if (!dhcpRule) {
-      throw new Error("DHCPRule not found");
+      throw new Error('DHCPRule not found');
     }
 
     Object.assign(dhcpRule, {
@@ -334,26 +334,26 @@ export class DHCPRuleService extends Service {
       );
     } else {
       const fieldsToUpdate: string[] = [
-        "networkId",
-        "rangeId",
-        "routerId",
-        "interfaceId",
-        "firewallId",
+        'networkId',
+        'rangeId',
+        'routerId',
+        'interfaceId',
+        'firewallId',
       ];
 
       for (const field of fieldsToUpdate) {
         if (data[field]) {
-          if (field === "interfaceId") {
+          if (field === 'interfaceId') {
             const interfaceData = (await getRepository(Interface).findOneOrFail(
               data[field],
             )) as Interface;
-            if (interfaceData.mac === "" || !interfaceData.mac) {
-              throw new Error("Interface mac is not defined");
+            if (interfaceData.mac === '' || !interfaceData.mac) {
+              throw new Error('Interface mac is not defined');
             }
             dhcpRule[field.slice(0, -2)] = interfaceData;
           } else {
             dhcpRule[field.slice(0, -2)] = (await getRepository(
-              field === "firewallId" ? Firewall : IPObj,
+              field === 'firewallId' ? Firewall : IPObj,
             ).findOneOrFail(data[field])) as Firewall | IPObj;
           }
         }
@@ -366,7 +366,7 @@ export class DHCPRuleService extends Service {
         dhcpRule.network?.ip_version !== dhcpRule.router?.ip_version ||
         dhcpRule.range?.ip_version !== dhcpRule.router?.ip_version)
     ) {
-      throw new Error("IP version mismatch");
+      throw new Error('IP version mismatch');
     }
 
     dhcpRule = await this._repository.save(dhcpRule);
@@ -376,7 +376,7 @@ export class DHCPRuleService extends Service {
 
   async remove(path: IFindOneDHCPRulePath): Promise<DHCPRule> {
     const dhcpRule: DHCPRule = await this._repository.findOne(path.id, {
-      relations: ["group", "firewall"],
+      relations: ['group', 'firewall'],
     });
 
     dhcpRule.dhcpRuleToIPObjs = [];
@@ -408,25 +408,25 @@ export class DHCPRuleService extends Service {
     return Object.assign(
       {
         join: {
-          alias: "dhcp",
+          alias: 'dhcp',
           innerJoinAndSelect: {
-            firewall: "dhcp.firewall",
-            fwcloud: "firewall.fwCloud",
+            firewall: 'dhcp.firewall',
+            fwcloud: 'firewall.fwCloud',
           },
         },
         where: (qb: SelectQueryBuilder<DHCPRule>): void => {
           if (path.firewallId) {
-            qb.andWhere("firewall.id = :firewallId", {
+            qb.andWhere('firewall.id = :firewallId', {
               firewallId: path.firewallId,
             });
           }
           if (path.fwcloudId) {
-            qb.andWhere("fwcloud.id = :fwcloudId", {
+            qb.andWhere('fwcloud.id = :fwcloudId', {
               fwcloudId: path.fwcloudId,
             });
           }
           if (path.id) {
-            qb.andWhere("dhcp.id = :id", { id: path.id });
+            qb.andWhere('dhcp.id = :id', { id: path.id });
           }
         },
       },
@@ -444,7 +444,7 @@ export class DHCPRuleService extends Service {
   ): Promise<DHCPRulesData<T>[]> {
     let rulesData: DHCPRulesData<T>[];
     switch (dst) {
-      case "regular_grid":
+      case 'regular_grid':
         // It passes the value 1 and 3 because it corresponds to the type of regular rules and hook script.
         rulesData = (await this._repository.getDHCPRules(
           fwcloud,
@@ -453,7 +453,7 @@ export class DHCPRuleService extends Service {
           [1, 3],
         )) as DHCPRulesData<T>[];
         break;
-      case "fixed_grid":
+      case 'fixed_grid':
         // It passes the value 2 because it corresponds to the type of fixed ip rules.
         rulesData = (await this._repository.getDHCPRules(
           fwcloud,
@@ -462,7 +462,7 @@ export class DHCPRuleService extends Service {
           [2],
         )) as DHCPRulesData<T>[];
         break;
-      case "compiler":
+      case 'compiler':
         rulesData = (await this._repository.getDHCPRules(
           fwcloud,
           firewall,
@@ -481,7 +481,7 @@ export class DHCPRuleService extends Service {
     }
 
     const sqls: SelectQueryBuilder<IPObj | IPObjGroup>[] =
-      dst === "compiler"
+      dst === 'compiler'
         ? this.buildDHCPRulesCompilerSql(fwcloud, firewall)
         : this.getDHCPRulesGridSql(fwcloud, firewall);
 
@@ -510,7 +510,7 @@ export class DHCPRuleService extends Service {
       );
     } else {
       const group: DHCPGroup = (
-        await this._repository.findOne(ids[0], { relations: ["group"] })
+        await this._repository.findOne(ids[0], { relations: ['group'] })
       ).group;
       if (
         data.group !== undefined &&
@@ -554,7 +554,7 @@ export class DHCPRuleService extends Service {
     firewall: number,
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [
-      this._ipobjRepository.getIPObjsInDhcp_ForGrid("rule", fwcloud, firewall),
+      this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall),
     ];
   }
 
@@ -563,7 +563,7 @@ export class DHCPRuleService extends Service {
     firewall: number,
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [
-      this._ipobjRepository.getIPObjsInDhcp_ForGrid("rule", fwcloud, firewall),
+      this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall),
     ];
   }
 
@@ -582,19 +582,19 @@ export class DHCPRuleService extends Service {
         id: In(data.ipObjIds.map((item) => item.id)),
         ipObjTypeId: 9, // DNS
       },
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
 
     for (let i = 0; i < ipObjs.length; i++) {
       const ipObj: IPObj = ipObjs[i];
 
       if (ipObj.fwCloudId && ipObj.fwCloudId !== firewall.fwCloudId) {
-        errors[`ipObjIds.${i}`] = ["ipObj id must exist"];
+        errors[`ipObjIds.${i}`] = ['ipObj id must exist'];
       }
     }
 
     if (Object.keys(errors).length > 0) {
-      throw new ValidationException("The given data was invalid", errors);
+      throw new ValidationException('The given data was invalid', errors);
     }
   }
 }

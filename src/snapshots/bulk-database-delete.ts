@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DatabaseService } from "../database/database.service";
-import { app } from "../fonaments/abstract-application";
+import { DatabaseService } from '../database/database.service';
+import { app } from '../fonaments/abstract-application';
 import {
   QueryRunner,
   getMetadataArgsStorage,
@@ -29,9 +29,9 @@ import {
   DeleteResult,
   Repository,
   EntityRepository,
-} from "typeorm";
-import Model from "../models/Model";
-import { ExporterResultData } from "../fwcloud-exporter/database-exporter/exporter-result";
+} from 'typeorm';
+import Model from '../models/Model';
+import { ExporterResultData } from '../fwcloud-exporter/database-exporter/exporter-result';
 
 export class BulkDatabaseDelete {
   protected _data: ExporterResultData;
@@ -52,7 +52,7 @@ export class BulkDatabaseDelete {
       await qr.startTransaction();
 
       try {
-        await qr.query("SET FOREIGN_KEY_CHECKS = 0");
+        await qr.query('SET FOREIGN_KEY_CHECKS = 0');
 
         for (const tableName in this._data) {
           const entity: typeof Model = Model.getEntitiyDefinition(tableName);
@@ -65,12 +65,12 @@ export class BulkDatabaseDelete {
           }
         }
 
-        await qr.query("SET FOREIGN_KEY_CHECKS = 1");
+        await qr.query('SET FOREIGN_KEY_CHECKS = 1');
         await qr.commitTransaction();
         await qr.release();
       } catch (e) {
         await qr.rollbackTransaction();
-        await qr.query("SET FOREIGN_KEY_CHECKS = 1");
+        await qr.query('SET FOREIGN_KEY_CHECKS = 1');
         qr.release();
         return reject(e);
       }
@@ -100,7 +100,7 @@ export class BulkDatabaseDelete {
     for (let i = 0; i < rows.length; i++) {
       const row: object = rows[i];
       await queryRunner.manager
-        .createQueryBuilder(table, "table")
+        .createQueryBuilder(table, 'table')
         .delete()
         .where(row)
         .execute();

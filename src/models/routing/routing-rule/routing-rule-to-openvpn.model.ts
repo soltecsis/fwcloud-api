@@ -1,19 +1,19 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
-import Model from "../../Model";
-import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
-import { RoutingRule } from "./routing-rule.model";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import Model from '../../Model';
+import { OpenVPN } from '../../vpn/openvpn/OpenVPN';
+import { RoutingRule } from './routing-rule.model';
 
-const tableName: string = "routing_r__openvpn";
+const tableName: string = 'routing_r__openvpn';
 
 @Entity(tableName)
 export class RoutingRuleToOpenVPN extends Model {
   @PrimaryColumn({
-    name: "rule",
+    name: 'rule',
   })
   routingRuleId: number;
 
   @PrimaryColumn({
-    name: "openvpn",
+    name: 'openvpn',
   })
   openVPNId: number;
 
@@ -23,18 +23,18 @@ export class RoutingRuleToOpenVPN extends Model {
   order: number;
 
   @ManyToOne(() => RoutingRule, (model) => model.routingRuleToOpenVPNs, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "rule",
+    name: 'rule',
   })
   routingRule: RoutingRule;
 
   @ManyToOne(() => OpenVPN, (model) => model.routingRuleToOpenVPNs, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "openvpn",
+    name: 'openvpn',
   })
   openVPN: OpenVPN;
 

@@ -20,18 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Service } from "../fonaments/services/service";
-import { Channel } from "./channels/channel";
-import io from "socket.io";
-import { logger } from "../fonaments/abstract-application";
-import session from "express-session";
-import { Session } from "express-session";
+import { Service } from '../fonaments/services/service';
+import { Channel } from './channels/channel';
+import io from 'socket.io';
+import { logger } from '../fonaments/abstract-application';
+import session from 'express-session';
+import { Session } from 'express-session';
 
 export type Payload = object;
 
-export type MessageEvents = "message:add" | "message:remove";
+export type MessageEvents = 'message:add' | 'message:remove';
 
-declare module "http" {
+declare module 'http' {
   interface IncomingMessage {
     session: Session & Partial<session.SessionData>;
   }
@@ -61,10 +61,10 @@ export class WebSocketService extends Service {
   public setSocketIO(socketIO: io.Server) {
     this._socketIO = socketIO;
 
-    this._socketIO.on("connection", (socket) => {
+    this._socketIO.on('connection', (socket) => {
       // It must exists a session before the socket.io connection.
       if (!socket.request.session) {
-        logger().error("WebSocket: Session not found");
+        logger().error('WebSocket: Session not found');
         socket.disconnect(true);
         return;
       }
@@ -88,7 +88,7 @@ export class WebSocketService extends Service {
           !socket.request.session.username ||
           !socket.request.session.pgp
         ) {
-          logger().error("WebSocket: Bad session data.");
+          logger().error('WebSocket: Bad session data.');
           socket.disconnect(true);
           return;
         }
@@ -106,7 +106,7 @@ export class WebSocketService extends Service {
           `WebSocket: User connected (ID: ${socket.id}, IP: ${socket.handshake.address}, session: ${socket.request.session.id})`,
         );
 
-        socket.on("disconnect", () => {
+        socket.on('disconnect', () => {
           logger().info(
             `WebSocket: User disconnected (ID: ${socket.id}, IP: ${socket.handshake.address}, session: ${socket.request.session.id})`,
           );

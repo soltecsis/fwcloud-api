@@ -25,12 +25,12 @@ import {
   getRepository,
   Repository,
   SelectQueryBuilder,
-} from "typeorm";
-import { Application } from "../../../Application";
-import { Service } from "../../../fonaments/services/service";
-import { Firewall } from "../../firewall/Firewall";
-import { RoutingRule } from "../routing-rule/routing-rule.model";
-import { RoutingGroup } from "./routing-group.model";
+} from 'typeorm';
+import { Application } from '../../../Application';
+import { Service } from '../../../fonaments/services/service';
+import { Firewall } from '../../firewall/Firewall';
+import { RoutingRule } from '../routing-rule/routing-rule.model';
+import { RoutingGroup } from './routing-group.model';
 
 interface IFindManyRoutingGroupPath {
   firewallId?: number;
@@ -126,25 +126,25 @@ export class RoutingGroupService extends Service {
   ): FindOneOptions<RoutingGroup> {
     return {
       join: {
-        alias: "group",
+        alias: 'group',
         innerJoin: {
-          firewall: "group.firewall",
-          fwcloud: "firewall.fwCloud",
+          firewall: 'group.firewall',
+          fwcloud: 'firewall.fwCloud',
         },
       },
       where: (qb: SelectQueryBuilder<RoutingGroup>) => {
         if (path.firewallId) {
-          qb.andWhere("firewall.id = :firewall", { firewall: path.firewallId });
+          qb.andWhere('firewall.id = :firewall', { firewall: path.firewallId });
         }
 
         if (path.fwCloudId) {
-          qb.andWhere("firewall.fwCloudId = :fwcloud", {
+          qb.andWhere('firewall.fwCloudId = :fwcloud', {
             fwcloud: path.fwCloudId,
           });
         }
 
         if (path.id) {
-          qb.andWhere("group.id = :id", { id: path.id });
+          qb.andWhere('group.id = :id', { id: path.id });
         }
       },
     };

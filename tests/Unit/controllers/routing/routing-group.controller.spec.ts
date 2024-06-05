@@ -1,13 +1,13 @@
-import { getRepository, QueryFailedError } from "typeorm";
-import { Application } from "../../../../src/Application";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import StringHelper from "../../../../src/utils/string.helper";
-import { expect, testSuite } from "../../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
-import { Request } from "express";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { RoutingGroupController } from "../../../../src/controllers/routing/routing-group/routing-group.controller";
-import { RoutingGroup } from "../../../../src/models/routing/routing-group/routing-group.model";
+import { getRepository, QueryFailedError } from 'typeorm';
+import { Application } from '../../../../src/Application';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import StringHelper from '../../../../src/utils/string.helper';
+import { expect, testSuite } from '../../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
+import { Request } from 'express';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { RoutingGroupController } from '../../../../src/controllers/routing/routing-group/routing-group.controller';
+import { RoutingGroup } from '../../../../src/models/routing/routing-group/routing-group.model';
 
 describe(RoutingGroupController.name, () => {
   let controller: RoutingGroupController;
@@ -27,14 +27,14 @@ describe(RoutingGroupController.name, () => {
     fwcloud = fwcProduct.fwcloud;
     firewall = fwcProduct.firewall;
     group = getRepository(RoutingGroup).create({
-      name: "",
+      name: '',
       firewallId: firewall.id,
     });
     controller = new RoutingGroupController(app);
   });
 
-  describe("make", () => {
-    it("should throw error if the group does not belongs to the firewall", async () => {
+  describe('make', () => {
+    it('should throw error if the group does not belongs to the firewall', async () => {
       const newFirewall: Firewall = await getRepository(Firewall).save({
         name: StringHelper.randomize(10),
         fwCloudId: fwcloud.id,
@@ -49,7 +49,7 @@ describe(RoutingGroupController.name, () => {
       ).rejected;
     });
 
-    it("should throw an error if the firewall does not belongs to the fwcloud", async () => {
+    it('should throw an error if the firewall does not belongs to the fwcloud', async () => {
       const newfwcloud = await getRepository(FwCloud).save({
         name: StringHelper.randomize(10),
       });
@@ -63,7 +63,7 @@ describe(RoutingGroupController.name, () => {
       ).rejected;
     });
 
-    it("should throw error if the fwcloud does not exist", async () => {
+    it('should throw error if the fwcloud does not exist', async () => {
       await expect(
         controller.make({
           params: {
@@ -75,7 +75,7 @@ describe(RoutingGroupController.name, () => {
       ).rejected;
     });
 
-    it("should throw error if the firewall does not exist", async () => {
+    it('should throw error if the firewall does not exist', async () => {
       await expect(
         controller.make({
           params: {
@@ -87,7 +87,7 @@ describe(RoutingGroupController.name, () => {
       ).rejected;
     });
 
-    it("should throw error if the group does not exist", async () => {
+    it('should throw error if the group does not exist', async () => {
       await expect(
         controller.make({
           params: {
@@ -99,7 +99,7 @@ describe(RoutingGroupController.name, () => {
       ).rejected;
     });
 
-    it("should not throw error if params are valid", async () => {
+    it('should not throw error if params are valid', async () => {
       expect(
         await controller.make({
           params: {

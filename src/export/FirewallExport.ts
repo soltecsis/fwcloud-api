@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import db from "../database/database-manager";
-const fwcError = require("../utils/error_table");
+import db from '../database/database-manager';
+const fwcError = require('../utils/error_table');
 
 export class FirewallExport {
   /**
@@ -33,7 +33,7 @@ export class FirewallExport {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        const sql = "select * from firewall where id=" + connection.escape(id);
+        const sql = 'select * from firewall where id=' + connection.escape(id);
         connection.query(sql, async (error, firewallData) => {
           if (error) return reject(error);
           if (firewallData.length !== 1) return reject(fwcError.NOT_FOUND);
@@ -59,7 +59,7 @@ export class FirewallExport {
       db.get((error, connection) => {
         if (error) return reject(error);
         const sql =
-          "select * from ipobj where interface=" + connection.escape(row.id);
+          'select * from ipobj where interface=' + connection.escape(row.id);
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
           resolve(rows);
@@ -71,7 +71,7 @@ export class FirewallExport {
   private static exportInterfaces(connection, id) {
     return new Promise((resolve, reject) => {
       const sql =
-        "select * from interface where firewall=" + connection.escape(id);
+        'select * from interface where firewall=' + connection.escape(id);
       connection.query(sql, (error, interfaces) => {
         if (error) return reject(error);
 
@@ -92,7 +92,7 @@ export class FirewallExport {
       db.get((error, connection) => {
         if (error) return reject(error);
         const sql =
-          "select * from policy_r__interface where rule=" +
+          'select * from policy_r__interface where rule=' +
           connection.escape(row.id);
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
@@ -119,18 +119,18 @@ export class FirewallExport {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        let sql = "";
+        let sql = '';
         if (ruleIpobj.ipobj !== -1)
           sql =
-            "select * from ipobj where id=" +
+            'select * from ipobj where id=' +
             connection.escape(ruleIpobj.ipobj);
         else if (ruleIpobj.ipobj_g !== -1)
           sql =
-            "select * from ipobj_g where id=" +
+            'select * from ipobj_g where id=' +
             connection.escape(ruleIpobj.ipobj_g);
         else if (ruleIpobj.interface !== -1)
           sql =
-            "select * from interface where id=" +
+            'select * from interface where id=' +
             connection.escape(ruleIpobj.interface);
         connection.query(sql, (error, ipobjDetail) => {
           if (error) return reject(error);
@@ -145,7 +145,7 @@ export class FirewallExport {
       db.get((error, connection) => {
         if (error) return reject(error);
         const sql =
-          "select * from policy_r__ipobj where rule=" +
+          'select * from policy_r__ipobj where rule=' +
           connection.escape(row.id);
         connection.query(sql, (error, ipobjs) => {
           if (error) return reject(error);
@@ -180,7 +180,7 @@ export class FirewallExport {
   private static exportPolicy(connection, id) {
     return new Promise((resolve, reject) => {
       const sql =
-        "select * from policy_r where firewall=" + connection.escape(id);
+        'select * from policy_r where firewall=' + connection.escape(id);
       connection.query(sql, async (error, rules) => {
         if (error) return reject(error);
 

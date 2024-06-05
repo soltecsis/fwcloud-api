@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
-import db from "../../../src/database/database-manager";
-import { Mark } from "../../../src/models/ipobj/Mark";
-import { RouteService } from "../../../src/models/routing/route/route.service";
-import { RoutingRule } from "../../../src/models/routing/routing-rule/routing-rule.model";
-import { RoutingRuleService } from "../../../src/models/routing/routing-rule/routing-rule.service";
-import { expect, testSuite } from "../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../utils/fwcloud-factory";
+import { getRepository } from 'typeorm';
+import db from '../../../src/database/database-manager';
+import { Mark } from '../../../src/models/ipobj/Mark';
+import { RouteService } from '../../../src/models/routing/route/route.service';
+import { RoutingRule } from '../../../src/models/routing/routing-rule/routing-rule.model';
+import { RoutingRuleService } from '../../../src/models/routing/routing-rule/routing-rule.service';
+import { expect, testSuite } from '../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../utils/fwcloud-factory';
 
 describe(Mark.name, () => {
   let fwcloudProduct: FwCloudProduct;
@@ -49,7 +49,7 @@ describe(Mark.name, () => {
     mark = await getRepository(Mark).save(
       getRepository(Mark).create({
         code: 1,
-        name: "mark",
+        name: 'mark',
         fwCloudId: fwcloudProduct.fwcloud.id,
       }),
     );
@@ -60,9 +60,9 @@ describe(Mark.name, () => {
     });
   });
 
-  describe("searchMarkUsage", () => {
-    describe("routingRule", () => {
-      it("should detect usages", async () => {
+  describe('searchMarkUsage', () => {
+    describe('routingRule', () => {
+      it('should detect usages', async () => {
         const whereUsed: any = await Mark.searchMarkUsage(
           db.getQuery(),
           fwcloudProduct.fwcloud.id,

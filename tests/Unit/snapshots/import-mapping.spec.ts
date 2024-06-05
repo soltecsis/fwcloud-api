@@ -20,65 +20,65 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, expect, testSuite } from "../../mocha/global-setup";
-import { ImportMapping } from "../../../src/fwcloud-exporter/database-importer/terraformer/mapper/import-mapping";
-import { IdManager } from "../../../src/fwcloud-exporter/database-importer/terraformer/mapper/id-manager";
-import { DatabaseService } from "../../../src/database/database.service";
-import { ExporterResult } from "../../../src/fwcloud-exporter/database-exporter/exporter-result";
-import { Repository, QueryRunner, SelectQueryBuilder } from "typeorm";
-import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import StringHelper from "../../../src/utils/string.helper";
+import { describeName, expect, testSuite } from '../../mocha/global-setup';
+import { ImportMapping } from '../../../src/fwcloud-exporter/database-importer/terraformer/mapper/import-mapping';
+import { IdManager } from '../../../src/fwcloud-exporter/database-importer/terraformer/mapper/id-manager';
+import { DatabaseService } from '../../../src/database/database.service';
+import { ExporterResult } from '../../../src/fwcloud-exporter/database-exporter/exporter-result';
+import { Repository, QueryRunner, SelectQueryBuilder } from 'typeorm';
+import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
+import StringHelper from '../../../src/utils/string.helper';
 
 let databaseService: DatabaseService;
 
-describe(describeName("Import mapping tests"), () => {
-  describe("newId()", () => {
+describe(describeName('Import mapping tests'), () => {
+  describe('newId()', () => {
     before(async () => {
       databaseService = await testSuite.app.getService<DatabaseService>(
         DatabaseService.name,
       );
     });
 
-    it("should map the old id with a new id", async () => {
+    it('should map the old id with a new id', async () => {
       const queryRunner: QueryRunner =
         databaseService.connection.createQueryRunner();
       const queryBuilder: SelectQueryBuilder<unknown> =
         databaseService.connection
-          .createQueryBuilder("fwcloud", "fwcloud")
-          .select("MAX(id)", "id");
+          .createQueryBuilder('fwcloud', 'fwcloud')
+          .select('MAX(id)', 'id');
 
       await FwCloud.save(FwCloud.create({ name: StringHelper.randomize(10) }));
       const maxId: any = (await queryBuilder.execute())[0].id;
 
       const results: ExporterResult = new ExporterResult();
-      results.addTableData("fwcloud", [{ id: 0 }]);
+      results.addTableData('fwcloud', [{ id: 0 }]);
       const mapper = new ImportMapping(
-        await IdManager.make(queryRunner, ["fwcloud"]),
+        await IdManager.make(queryRunner, ['fwcloud']),
         results,
       );
       await queryRunner.release();
 
-      const newId: number = mapper.getMappedId("fwcloud", "id", 0);
+      const newId: number = mapper.getMappedId('fwcloud', 'id', 0);
 
       expect(newId).to.be.deep.eq(maxId + 1);
     });
 
-    it("should not map a new id if the id is not exported", async () => {
+    it('should not map a new id if the id is not exported', async () => {
       const results: ExporterResult = new ExporterResult();
-      results.addTableData("fwcloud", [{ id: 0 }]);
+      results.addTableData('fwcloud', [{ id: 0 }]);
       const mapper = new ImportMapping(
         await IdManager.make(databaseService.connection.createQueryRunner(), [
-          "fwcloud",
+          'fwcloud',
         ]),
         results,
       );
 
-      const newId: number = mapper.getMappedId("fwcloud", "id", 1);
+      const newId: number = mapper.getMappedId('fwcloud', 'id', 1);
 
       expect(newId).to.be.deep.eq(1);
     });
 
-    it("should not map a new id if the table is not exported", async () => {
+    it('should not map a new id if the table is not exported', async () => {
       const results: ExporterResult = new ExporterResult();
 
       const mapper = new ImportMapping(
@@ -89,7 +89,7 @@ describe(describeName("Import mapping tests"), () => {
         results,
       );
 
-      const newId: number = mapper.getMappedId("fwcloud", "id", 1);
+      const newId: number = mapper.getMappedId('fwcloud', 'id', 1);
 
       expect(newId).to.be.deep.eq(1);
     });

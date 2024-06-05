@@ -23,10 +23,10 @@ import {
   IsEnum,
   IsArray,
   ValidateNested,
-} from "class-validator";
-import { Offset } from "../../../../offset";
-import { Type } from "class-transformer";
-import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
+} from 'class-validator';
+import { Offset } from '../../../../offset';
+import { Type } from 'class-transformer';
+import { PositionalEntityDto } from '../../../dtos/positional-entity.dto';
 
 export class KeepalivedRuleCreateDto {
   @IsBoolean()

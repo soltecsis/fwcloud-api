@@ -20,18 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { Ca } from "../../../../src/models/vpn/pki/Ca";
-import { FSHelper } from "../../../../src/utils/fs-helper";
-import * as path from "path";
-import * as fs from "fs";
-import { Snapshot } from "../../../../src/snapshots/snapshot";
-import { SnapshotService } from "../../../../src/snapshots/snapshot.service";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import StringHelper from "../../../../src/utils/string.helper";
+import { describeName, testSuite, expect } from '../../../mocha/global-setup';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { Ca } from '../../../../src/models/vpn/pki/Ca';
+import { FSHelper } from '../../../../src/utils/fs-helper';
+import * as path from 'path';
+import * as fs from 'fs';
+import { Snapshot } from '../../../../src/snapshots/snapshot';
+import { SnapshotService } from '../../../../src/snapshots/snapshot.service';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import StringHelper from '../../../../src/utils/string.helper';
 
-describe(describeName("Importer tests"), () => {
+describe(describeName('Importer tests'), () => {
   let snapshotService: SnapshotService;
 
   beforeEach(async () => {
@@ -40,8 +40,8 @@ describe(describeName("Importer tests"), () => {
     );
   });
 
-  describe("import()", () => {
-    it("should migrate the pki/CA directories from the snapshot into the DATA directory", async () => {
+  describe('import()', () => {
+    it('should migrate the pki/CA directories from the snapshot into the DATA directory', async () => {
       const fwCloud: FwCloud = await FwCloud.save(
         FwCloud.create({
           name: StringHelper.randomize(10),
@@ -60,8 +60,8 @@ describe(describeName("Importer tests"), () => {
         path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString()),
       );
       fs.writeFileSync(
-        path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString(), "test.txt"),
-        "test",
+        path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString(), 'test.txt'),
+        'test',
       );
 
       const snapshot: Snapshot = await Snapshot.create(
@@ -81,7 +81,7 @@ describe(describeName("Importer tests"), () => {
       ).to.be.true;
     });
 
-    it("should migrate the policy/firewall directories from the snapshot into the DATA directory", async () => {
+    it('should migrate the policy/firewall directories from the snapshot into the DATA directory', async () => {
       const fwCloud: FwCloud = await FwCloud.save(
         FwCloud.create({
           name: StringHelper.randomize(10),
@@ -102,9 +102,9 @@ describe(describeName("Importer tests"), () => {
         path.join(
           fwCloud.getPolicyDirectoryPath(),
           firewall.id.toString(),
-          "test.txt",
+          'test.txt',
         ),
-        "test",
+        'test',
       );
 
       const snapshot: Snapshot = await Snapshot.create(

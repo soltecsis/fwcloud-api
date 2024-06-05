@@ -20,12 +20,12 @@ import {
   Repository,
   SelectQueryBuilder,
   getRepository,
-} from "typeorm";
-import { Service } from "../../../../fonaments/services/service";
-import { KeepalivedRule } from "../keepalived_r/keepalived_r.model";
-import { KeepalivedGroup } from "./keepalived_g.model";
-import { Firewall } from "../../../firewall/Firewall";
-import { Application } from "../../../../Application";
+} from 'typeorm';
+import { Service } from '../../../../fonaments/services/service';
+import { KeepalivedRule } from '../keepalived_r/keepalived_r.model';
+import { KeepalivedGroup } from './keepalived_g.model';
+import { Firewall } from '../../../firewall/Firewall';
+import { Application } from '../../../../Application';
 
 interface IFindManyKeepalivedGPath {
   fwcloudId?: number;
@@ -79,25 +79,25 @@ export class KeepalivedGroupService extends Service {
     return Object.assign(
       {
         join: {
-          alias: "group",
+          alias: 'group',
           innerJoin: {
-            firewall: "group.firewall",
-            fwcloud: "firewall.fwCloud",
+            firewall: 'group.firewall',
+            fwcloud: 'firewall.fwCloud',
           },
         },
         where: (qb: SelectQueryBuilder<KeepalivedGroup>) => {
           if (path.firewallId) {
-            qb.andWhere("firewall.id = :firewallId", {
+            qb.andWhere('firewall.id = :firewallId', {
               firewallId: path.firewallId,
             });
           }
           if (path.fwcloudId) {
-            qb.andWhere("firewall.fwCloudId = :fwcloudId", {
+            qb.andWhere('firewall.fwCloudId = :fwcloudId', {
               fwcloudId: path.fwcloudId,
             });
           }
           if (path.id) {
-            qb.andWhere("group.id = :id", { id: path.id });
+            qb.andWhere('group.id = :id', { id: path.id });
           }
         },
       },
@@ -126,7 +126,7 @@ export class KeepalivedGroupService extends Service {
       await this._repository.findOne(id);
 
     if (!group) {
-      throw new Error("KeepalivedGroup not found");
+      throw new Error('KeepalivedGroup not found');
     }
 
     Object.assign(group, data);
@@ -138,7 +138,7 @@ export class KeepalivedGroupService extends Service {
   async remove(path: IFindOneKeepalivedGPath): Promise<KeepalivedGroup> {
     const group: KeepalivedGroup = await this.findOneInPath(path);
     if (!group) {
-      throw new Error("KeepalivedGroup not found");
+      throw new Error('KeepalivedGroup not found');
     }
     if (group.rules && group.rules.length > 0) {
       await getRepository(KeepalivedRule).update(

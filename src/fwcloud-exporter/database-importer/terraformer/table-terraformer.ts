@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ImportMapping } from "./mapper/import-mapping";
-import Model from "../../../models/Model";
-import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
-import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
-import { getMetadataArgsStorage } from "typeorm";
-import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { ProgressPayload } from "../../../sockets/messages/socket-message";
+import { ImportMapping } from './mapper/import-mapping';
+import Model from '../../../models/Model';
+import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs';
+import { JoinTableMetadataArgs } from 'typeorm/metadata-args/JoinTableMetadataArgs';
+import { getMetadataArgsStorage } from 'typeorm';
+import { RelationMetadataArgs } from 'typeorm/metadata-args/RelationMetadataArgs';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
 
 export type TerraformHandler = (
   mapper: ImportMapping,
@@ -105,8 +105,8 @@ export class TableTerraformer {
 
     let lastHeartbeat = new Date();
     this.eventEmitter.emit(
-      "message",
-      new ProgressPayload("heartbeat", false, "", null),
+      'message',
+      new ProgressPayload('heartbeat', false, '', null),
     );
 
     for (let i = 0; i < rows.length; i++) {
@@ -162,8 +162,8 @@ export class TableTerraformer {
         if (new Date().getTime() - lastHeartbeat.getTime() > 20000) {
           lastHeartbeat = new Date();
           this.eventEmitter.emit(
-            "message",
-            new ProgressPayload("heartbeat", false, "", null),
+            'message',
+            new ProgressPayload('heartbeat', false, '', null),
           );
         }
       }
@@ -210,8 +210,8 @@ export class TableTerraformer {
 
       let lastHeartbeat = new Date();
       this.eventEmitter.emit(
-        "message",
-        new ProgressPayload("heartbeat", false, "", null),
+        'message',
+        new ProgressPayload('heartbeat', false, '', null),
       );
 
       for (let i = 0; i < rows.length; i++) {
@@ -237,8 +237,8 @@ export class TableTerraformer {
           if (new Date().getTime() - lastHeartbeat.getTime() > 20000) {
             lastHeartbeat = new Date();
             this.eventEmitter.emit(
-              "message",
-              new ProgressPayload("heartbeat", false, "", null),
+              'message',
+              new ProgressPayload('heartbeat', false, '', null),
             );
           }
         }
@@ -248,7 +248,7 @@ export class TableTerraformer {
       return result;
     }
 
-    throw new Error("Join table metadata not found for " + tableName);
+    throw new Error('Join table metadata not found for ' + tableName);
   }
 
   /**

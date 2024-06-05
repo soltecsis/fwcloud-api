@@ -20,20 +20,20 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Tree } from "../../../models/tree/Tree";
-import { Crt } from "../../../models/vpn/pki/Crt";
-import Model from "../../Model";
+import { Tree } from '../../../models/tree/Tree';
+import { Crt } from '../../../models/vpn/pki/Crt';
+import Model from '../../Model';
 import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
-} from "typeorm";
-import { Ca } from "./Ca";
-const fwcError = require("../../../utils/error_table");
+} from 'typeorm';
+import { Ca } from './Ca';
+const fwcError = require('../../../utils/error_table');
 
-const tableName: string = "ca_prefix";
+const tableName: string = 'ca_prefix';
 
 @Entity(tableName)
 export class CaPrefix extends Model {
@@ -43,12 +43,12 @@ export class CaPrefix extends Model {
   @Column()
   name: string;
 
-  @Column({ name: "ca" })
+  @Column({ name: 'ca' })
   caId: number;
 
   @ManyToOne((type) => Ca, (ca) => ca.prefixes)
   @JoinColumn({
-    name: "ca",
+    name: 'ca',
   })
   ca: Ca;
 
@@ -119,7 +119,7 @@ export class CaPrefix extends Model {
               fwcloud,
               row.sufix,
               node,
-              "CRT",
+              'CRT',
               row.id,
               row.type === 1 ? 301 : 302,
             );
@@ -145,7 +145,7 @@ export class CaPrefix extends Model {
         const node: any = await Tree.getNodeInfo(
           req.dbCon,
           req.body.fwcloud,
-          "CA",
+          'CA',
           ca,
         );
         if (node.length !== 1)
@@ -163,7 +163,7 @@ export class CaPrefix extends Model {
             req.body.fwcloud,
             crt.cn,
             node_id,
-            "CRT",
+            'CRT',
             crt.id,
             crt.type === 1 ? 301 : 302,
           );
@@ -176,7 +176,7 @@ export class CaPrefix extends Model {
             req.body.fwcloud,
             prefix.name,
             node_id,
-            "PRE",
+            'PRE',
             prefix.id,
             400,
           );

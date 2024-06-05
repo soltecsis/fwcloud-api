@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Route } from "../route";
+import { Route } from '../route';
 
 export class ParamMissingException extends Error {
   constructor(params: Array<string>, route: Route) {

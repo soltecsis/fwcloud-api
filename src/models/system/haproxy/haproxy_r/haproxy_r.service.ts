@@ -21,29 +21,29 @@ import {
   SelectQueryBuilder,
   getCustomRepository,
   getRepository,
-} from "typeorm";
-import { Service } from "../../../../fonaments/services/service";
-import { Offset } from "../../../../offset";
-import { HAProxyRuleRepository } from "./haproxy.repository";
-import { HAProxyRule } from "./haproxy_r.model";
-import { IPObjRepository } from "../../../ipobj/IPObj.repository";
-import { Application } from "../../../../Application";
-import { HAProxyGroup } from "../haproxy_g/haproxy_g.model";
-import { HAProxyRuleToIPObj } from "./haproxy_r-to_ipobj.model";
-import { Firewall } from "../../../firewall/Firewall";
-import { IPObj } from "../../../ipobj/IPObj";
-import { FwCloud } from "../../../fwcloud/FwCloud";
-import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
-import { ErrorBag } from "../../../../fonaments/validation/validator";
-import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
+} from 'typeorm';
+import { Service } from '../../../../fonaments/services/service';
+import { Offset } from '../../../../offset';
+import { HAProxyRuleRepository } from './haproxy.repository';
+import { HAProxyRule } from './haproxy_r.model';
+import { IPObjRepository } from '../../../ipobj/IPObj.repository';
+import { Application } from '../../../../Application';
+import { HAProxyGroup } from '../haproxy_g/haproxy_g.model';
+import { HAProxyRuleToIPObj } from './haproxy_r-to_ipobj.model';
+import { Firewall } from '../../../firewall/Firewall';
+import { IPObj } from '../../../ipobj/IPObj';
+import { FwCloud } from '../../../fwcloud/FwCloud';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import { ErrorBag } from '../../../../fonaments/validation/validator';
+import { ValidationException } from '../../../../fonaments/exceptions/validation-exception';
 import {
   HAProxyRuleItemForCompiler,
   HAProxyUtils,
   ItemForGrid,
-} from "../shared";
-import { HAProxyGroupService } from "../haproxy_g/haproxy_g.service";
-import { IPObjGroup } from "../../../ipobj/IPObjGroup";
-import { AvailableDestinations } from "../../haproxy/shared";
+} from '../shared';
+import { HAProxyGroupService } from '../haproxy_g/haproxy_g.service';
+import { IPObjGroup } from '../../../ipobj/IPObjGroup';
+import { AvailableDestinations } from '../../haproxy/shared';
 
 interface IFindManyHAProxyRPath {
   fwcloudId?: number;
@@ -180,7 +180,7 @@ export class HAProxyRuleService extends Service {
       );
 
       if (!hasMatchingIpVersion) {
-        throw new Error("IP version mismatch");
+        throw new Error('IP version mismatch');
       }
     }
 
@@ -191,7 +191,7 @@ export class HAProxyRuleService extends Service {
       const backendPortProtocol = haProxyRule.backendPort.protocol;
 
       if (frontendPortProtocol !== backendPortProtocol) {
-        throw new Error("Protocol mismatch");
+        throw new Error('Protocol mismatch');
       }
     }
 
@@ -205,8 +205,8 @@ export class HAProxyRuleService extends Service {
     const persisted: HAProxyRule = await this._repository.save(haProxyRule);
 
     if (
-      Object.prototype.hasOwnProperty.call(data, "to") &&
-      Object.prototype.hasOwnProperty.call(data, "offset")
+      Object.prototype.hasOwnProperty.call(data, 'to') &&
+      Object.prototype.hasOwnProperty.call(data, 'offset')
     ) {
       return (await this.move([persisted.id], data.to, data.offset))[0];
     }
@@ -224,13 +224,13 @@ export class HAProxyRuleService extends Service {
         id: In(ids),
       },
       relations: [
-        "group",
-        "firewall",
-        "firewall.fwCloud",
-        "frontendIp",
-        "frontendPort",
-        "backendIps",
-        "backendPort",
+        'group',
+        'firewall',
+        'firewall.fwCloud',
+        'frontendIp',
+        'frontendPort',
+        'backendIps',
+        'backendPort',
       ],
     });
 
@@ -261,12 +261,12 @@ export class HAProxyRuleService extends Service {
     const destinatationRule: HAProxyRule = await this._repository.findOneOrFail(
       destRule,
       {
-        relations: ["group"],
+        relations: ['group'],
       },
     );
 
     const sourceRules: HAProxyRule[] = await this._repository.findByIds(ids, {
-      relations: ["group"],
+      relations: ['group'],
     });
 
     const movedRules = await this._repository.move(ids, destRule, offset);
@@ -288,11 +288,11 @@ export class HAProxyRuleService extends Service {
     data: IMoveFromHaProxyRule,
   ): Promise<[HAProxyRule, HAProxyRule]> {
     const fromRule: HAProxyRule = await this._repository.findOneOrFail(fromId, {
-      relations: ["firewall", "firewall.fwCloud", "backendIps"],
+      relations: ['firewall', 'firewall.fwCloud', 'backendIps'],
     });
 
     const toRule: HAProxyRule = await this._repository.findOneOrFail(toId, {
-      relations: ["firewall", "firewall.fwCloud", "backendIps"],
+      relations: ['firewall', 'firewall.fwCloud', 'backendIps'],
     });
 
     let lastPosition = 0;
@@ -328,16 +328,16 @@ export class HAProxyRuleService extends Service {
     const haProxyRule: HAProxyRule | undefined =
       await this._repository.findOneOrFail(id, {
         relations: [
-          "group",
-          "frontendIp",
-          "frontendPort",
-          "backendIps",
-          "backendPort",
-          "firewall",
+          'group',
+          'frontendIp',
+          'frontendPort',
+          'backendIps',
+          'backendPort',
+          'firewall',
         ],
       });
     if (!haProxyRule) {
-      throw new Error("HAProxy rule not found");
+      throw new Error('HAProxy rule not found');
     }
 
     Object.assign(haProxyRule, {
@@ -375,16 +375,16 @@ export class HAProxyRuleService extends Service {
       );
     } else {
       const fieldsToUpdate: string[] = [
-        "frontendIpId",
-        "frontendPortId",
-        "backendPortId",
-        "firewallId",
+        'frontendIpId',
+        'frontendPortId',
+        'backendPortId',
+        'firewallId',
       ];
 
       for (const field of fieldsToUpdate) {
         if (data[field] !== undefined) {
           haProxyRule[field.slice(0, -2)] = (await getRepository(
-            field === "firewallId" ? Firewall : IPObj,
+            field === 'firewallId' ? Firewall : IPObj,
           ).findOneOrFail(data[field])) as Firewall | IPObj;
         }
       }
@@ -405,7 +405,7 @@ export class HAProxyRuleService extends Service {
       );
 
       if (!hasMatchingIpVersion) {
-        throw new Error("IP version mismatch");
+        throw new Error('IP version mismatch');
       }
     }
 
@@ -415,7 +415,7 @@ export class HAProxyRuleService extends Service {
       const backendPortProtocol = haProxyRule.backendPort.protocol;
 
       if (frontendPortProtocol !== backendPortProtocol) {
-        throw new Error("Protocol mismatch");
+        throw new Error('Protocol mismatch');
       }
     }
 
@@ -424,7 +424,7 @@ export class HAProxyRuleService extends Service {
 
   async remove(path: IFindOneHAProxyRPath): Promise<HAProxyRule> {
     const haProxyRule: HAProxyRule = await this._repository.findOne(path.id, {
-      relations: ["group", "firewall"],
+      relations: ['group', 'firewall'],
     });
 
     haProxyRule.backendIps = [];
@@ -456,25 +456,25 @@ export class HAProxyRuleService extends Service {
     return Object.assign(
       {
         join: {
-          alias: "haproxy",
+          alias: 'haproxy',
           innerJoin: {
-            firewall: "haproxy.firewall",
-            fwcloud: "firewall.fwCloud",
+            firewall: 'haproxy.firewall',
+            fwcloud: 'firewall.fwCloud',
           },
         },
         where: (qb) => {
           if (path.fwcloudId) {
-            qb.andWhere("firewall.fwCloudId = :fwcloudId", {
+            qb.andWhere('firewall.fwCloudId = :fwcloudId', {
               fwcloudId: path.fwcloudId,
             });
           }
           if (path.firewallId) {
-            qb.andWhere("firewall.id = :firewallId", {
+            qb.andWhere('firewall.id = :firewallId', {
               firewallId: path.firewallId,
             });
           }
           if (path.id) {
-            qb.andWhere("haproxy.id = :id", { id: path.id });
+            qb.andWhere('haproxy.id = :id', { id: path.id });
           }
         },
       },
@@ -493,14 +493,14 @@ export class HAProxyRuleService extends Service {
     let rulesData: HAProxyRulesData<T>[];
 
     switch (dst) {
-      case "haproxy_grid":
+      case 'haproxy_grid':
         rulesData = (await this._repository.getHAProxyRules(
           fwcloud,
           firewall,
           rules,
         )) as HAProxyRulesData<T>[];
         break;
-      case "compiler":
+      case 'compiler':
         rulesData = (await this._repository.getHAProxyRules(
           fwcloud,
           firewall,
@@ -517,7 +517,7 @@ export class HAProxyRuleService extends Service {
     }
 
     const sqls: SelectQueryBuilder<IPObj | IPObjGroup>[] =
-      dst === "compiler"
+      dst === 'compiler'
         ? this.buildHAProxyRulesCompilerSql(fwcloud, firewall)
         : this.getHAProxyRulesGridSql(fwcloud, firewall);
 
@@ -546,7 +546,7 @@ export class HAProxyRuleService extends Service {
       );
     } else {
       const group = (
-        await this._repository.findOne(ids[0], { relations: ["group"] })
+        await this._repository.findOne(ids[0], { relations: ['group'] })
       ).group;
       if (
         data.group !== undefined &&
@@ -591,7 +591,7 @@ export class HAProxyRuleService extends Service {
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [
       this._ipobjRepository.getIPObjsInHAProxy_ForGrid(
-        "rule",
+        'rule',
         fwcloud,
         firewall,
       ),
@@ -604,7 +604,7 @@ export class HAProxyRuleService extends Service {
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [
       this._ipobjRepository.getIPObjsInHAProxy_ForGrid(
-        "rule",
+        'rule',
         fwcloud,
         firewall,
       ),
@@ -626,19 +626,19 @@ export class HAProxyRuleService extends Service {
         id: In(data.backendIpsIds.map((item) => item.id)),
         ipObjTypeId: 5,
       },
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
 
     for (let i = 0; i < ipObjs.length; i++) {
       const ipObj: IPObj = ipObjs[i];
 
       if (ipObj.fwCloudId && ipObj.fwCloudId !== firewall.fwCloudId) {
-        errors[`ipObjIds.${i}`] = ["ipObj id must exist"];
+        errors[`ipObjIds.${i}`] = ['ipObj id must exist'];
       }
     }
 
     if (Object.keys(errors).length > 0) {
-      throw new ValidationException("The given data was invalid", errors);
+      throw new ValidationException('The given data was invalid', errors);
     }
   }
 }

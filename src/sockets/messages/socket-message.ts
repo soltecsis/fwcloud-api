@@ -1,5 +1,5 @@
-import moment from "moment";
-import * as uuid from "uuid";
+import moment from 'moment';
+import * as uuid from 'uuid';
 
 export class SocketMessage {
   id: string;
@@ -18,17 +18,17 @@ export class SocketMessage {
 export class SocketMessagePayload {}
 
 export type StatusType =
-  | "start"
-  | "end"
-  | "start_task"
-  | "end_task"
-  | "notice"
-  | "info"
-  | "success"
-  | "warning"
-  | "error"
-  | "heartbeat"
-  | "ssh_cmd_output";
+  | 'start'
+  | 'end'
+  | 'start_task'
+  | 'end_task'
+  | 'notice'
+  | 'info'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'heartbeat'
+  | 'ssh_cmd_output';
 
 export class ProgressPayload extends SocketMessagePayload {
   readonly task_id?: string;
@@ -56,7 +56,7 @@ export class ProgressNoticePayload extends ProgressPayload {
     highlight: boolean = false,
     task_id: string = null,
   ) {
-    super("notice", highlight, message, task_id);
+    super('notice', highlight, message, task_id);
   }
 }
 
@@ -66,7 +66,7 @@ export class ProgressInfoPayload extends ProgressPayload {
     highlight: boolean = false,
     task_id: string = null,
   ) {
-    super("info", highlight, message, task_id);
+    super('info', highlight, message, task_id);
   }
 }
 
@@ -76,7 +76,7 @@ export class ProgressSuccessPayload extends ProgressPayload {
     highlight: boolean = false,
     task_id: string = null,
   ) {
-    super("success", highlight, message, task_id);
+    super('success', highlight, message, task_id);
   }
 }
 
@@ -86,7 +86,7 @@ export class ProgressWarningPayload extends ProgressPayload {
     highlight: boolean = false,
     task_id: string = null,
   ) {
-    super("warning", highlight, message, task_id);
+    super('warning', highlight, message, task_id);
   }
 }
 
@@ -96,7 +96,7 @@ export class ProgressErrorPayload extends ProgressPayload {
     highlight: boolean = false,
     task_id: string = null,
   ) {
-    super("error", highlight, message, task_id);
+    super('error', highlight, message, task_id);
   }
 }
 
@@ -106,6 +106,6 @@ export class ProgressSSHCmdPayload extends ProgressPayload {
     highlight: boolean = false,
     task_id: string = null,
   ) {
-    super("ssh_cmd_output", highlight, message, task_id);
+    super('ssh_cmd_output', highlight, message, task_id);
   }
 }

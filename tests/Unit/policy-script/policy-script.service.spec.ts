@@ -1,17 +1,17 @@
-import { expect } from "chai";
+import { expect } from 'chai';
 import {
   AbstractApplication,
   app,
-} from "../../../src/fonaments/abstract-application";
-import { describeName, testSuite } from "../../mocha/global-setup";
-import { PolicyRuleService } from "../../../src/policy-rule/policy-rule.service";
-import { FwCloudFactory, FwCloudProduct } from "../../utils/fwcloud-factory";
-import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { Firewall } from "../../../src/models/firewall/Firewall";
-import * as path from "path";
-import * as fs from "fs";
+} from '../../../src/fonaments/abstract-application';
+import { describeName, testSuite } from '../../mocha/global-setup';
+import { PolicyRuleService } from '../../../src/policy-rule/policy-rule.service';
+import { FwCloudFactory, FwCloudProduct } from '../../utils/fwcloud-factory';
+import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
+import { Firewall } from '../../../src/models/firewall/Firewall';
+import * as path from 'path';
+import * as fs from 'fs';
 
-describe(describeName("PolicyRuleService Unit tests"), async () => {
+describe(describeName('PolicyRuleService Unit tests'), async () => {
   let app: AbstractApplication;
   let fwcProduct: FwCloudProduct;
   let fwcloud: FwCloud;
@@ -28,31 +28,31 @@ describe(describeName("PolicyRuleService Unit tests"), async () => {
     firewall = fwcProduct.firewall;
 
     filePath = path.join(
-      app.config.get("policy").data_dir,
+      app.config.get('policy').data_dir,
       fwcloud.id.toString(),
       firewall.id.toString(),
-      app.config.get("policy").script_name,
+      app.config.get('policy').script_name,
     );
 
     service = await app.getService<PolicyRuleService>(PolicyRuleService.name);
   });
 
-  describe("Bootstrap", () => {
-    it("service is instantiated in during bootstrap process", async () => {
+  describe('Bootstrap', () => {
+    it('service is instantiated in during bootstrap process', async () => {
       expect(
         await app.getService<PolicyRuleService>(PolicyRuleService.name),
       ).to.be.instanceOf(PolicyRuleService);
     });
   });
 
-  describe("compile()", () => {
-    it("should create script", async () => {
+  describe('compile()', () => {
+    it('should create script', async () => {
       await service.compile(fwcloud.id, firewall.id);
       expect(fs.existsSync(filePath));
     });
   });
 
-  describe("content()", () => {
+  describe('content()', () => {
     beforeEach(() => {
       try {
         // filePath might not exists
@@ -63,16 +63,16 @@ describe(describeName("PolicyRuleService Unit tests"), async () => {
       }
     });
 
-    it("should returns the same content as the script content", async () => {
+    it('should returns the same content as the script content', async () => {
       await service.compile(fwcloud.id, firewall.id);
       const content: string = await service.content(fwcloud.id, firewall.id);
       expect(content).to.eq(fs.readFileSync(filePath).toString());
     });
 
-    it("should throw an exception if the file does not exist", async () => {
+    it('should throw an exception if the file does not exist', async () => {
       await expect(
         service.content(fwcloud.id, firewall.id),
-      ).to.eventually.be.rejected.and.have.property("code", "ENOENT");
+      ).to.eventually.be.rejected.and.have.property('code', 'ENOENT');
     });
   });
 });

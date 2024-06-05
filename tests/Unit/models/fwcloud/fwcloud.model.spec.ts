@@ -20,19 +20,19 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { FSHelper } from "../../../../src/utils/fs-helper";
-import * as fs from "fs";
-import * as path from "path";
-import sinon from "sinon";
-import StringHelper from "../../../../src/utils/string.helper";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
+import { describeName, testSuite, expect } from '../../../mocha/global-setup';
+import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { FSHelper } from '../../../../src/utils/fs-helper';
+import * as fs from 'fs';
+import * as path from 'path';
+import sinon from 'sinon';
+import StringHelper from '../../../../src/utils/string.helper';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 
 let app: AbstractApplication;
 
-describe(describeName("FwCloud Unit Tests"), () => {
+describe(describeName('FwCloud Unit Tests'), () => {
   let fwc: FwCloudProduct;
 
   before(async () => {
@@ -41,16 +41,16 @@ describe(describeName("FwCloud Unit Tests"), () => {
     fwc = await new FwCloudFactory().make();
   });
 
-  describe("removeDataDirectories()", () => {
-    it("should remove fwcloud pki directory if it exists", async () => {
+  describe('removeDataDirectories()', () => {
+    it('should remove fwcloud pki directory if it exists', async () => {
       const fwCloud: FwCloud = await FwCloud.save(
-        FwCloud.create({ name: "test" }),
+        FwCloud.create({ name: 'test' }),
       );
 
       FSHelper.mkdirSync(fwCloud.getPkiDirectoryPath());
       fs.writeFileSync(
-        path.join(fwCloud.getPkiDirectoryPath(), "test"),
-        "test",
+        path.join(fwCloud.getPkiDirectoryPath(), 'test'),
+        'test',
       );
 
       fwCloud.removeDataDirectories();
@@ -59,15 +59,15 @@ describe(describeName("FwCloud Unit Tests"), () => {
         .false;
     });
 
-    it("should remove fwcloud policy directory if it exists", async () => {
+    it('should remove fwcloud policy directory if it exists', async () => {
       const fwCloud: FwCloud = await FwCloud.save(
-        FwCloud.create({ name: "test" }),
+        FwCloud.create({ name: 'test' }),
       );
 
       FSHelper.mkdirSync(fwCloud.getPolicyDirectoryPath());
       fs.writeFileSync(
-        path.join(fwCloud.getPolicyDirectoryPath(), "test"),
-        "test",
+        path.join(fwCloud.getPolicyDirectoryPath(), 'test'),
+        'test',
       );
 
       fwCloud.removeDataDirectories();
@@ -76,9 +76,9 @@ describe(describeName("FwCloud Unit Tests"), () => {
         .be.false;
     });
 
-    it("should not remove data directories if they do not exist", async () => {
+    it('should not remove data directories if they do not exist', async () => {
       const fwCloud: FwCloud = await FwCloud.save(
-        FwCloud.create({ name: "test" }),
+        FwCloud.create({ name: 'test' }),
       );
 
       fwCloud.removeDataDirectories();
@@ -89,12 +89,12 @@ describe(describeName("FwCloud Unit Tests"), () => {
         .false;
     });
 
-    it("should be called before remove", async () => {
+    it('should be called before remove', async () => {
       const fwCloud: FwCloud = await FwCloud.save(
-        FwCloud.create({ name: "test" }),
+        FwCloud.create({ name: 'test' }),
       );
 
-      const spy = sinon.spy(FwCloud.prototype, "removeDataDirectories");
+      const spy = sinon.spy(FwCloud.prototype, 'removeDataDirectories');
 
       await fwCloud.remove();
 
@@ -102,8 +102,8 @@ describe(describeName("FwCloud Unit Tests"), () => {
     });
   });
 
-  describe("remove database data", () => {
-    it("should remove all database data", async () => {
+  describe('remove database data', () => {
+    it('should remove all database data', async () => {
       let fwCloud = await FwCloud.findOne(fwc.fwcloud.id);
 
       expect(fwc.fwcloud.id).to.be.equal(fwCloud.id);
@@ -115,8 +115,8 @@ describe(describeName("FwCloud Unit Tests"), () => {
     });
   });
 
-  describe("create event", () => {
-    it("should create the fwcloud data directories", async () => {
+  describe('create event', () => {
+    it('should create the fwcloud data directories', async () => {
       const fwCloud: FwCloud = await FwCloud.save(
         FwCloud.create({
           name: StringHelper.randomize(10),

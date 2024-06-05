@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class addRelationCountriesIpobjType_policyPosition1653374901932
   implements MigrationInterface

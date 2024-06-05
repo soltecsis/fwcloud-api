@@ -20,20 +20,20 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { generateSession, attachSession, createUser } from "../../utils/utils";
-import "../../mocha/global-setup";
-import { expect, describeName, playgroundPath } from "../../mocha/global-setup";
-import request = require("supertest");
-import { User } from "../../../src/models/user/User";
-import { Backup } from "../../../src/backups/backup";
-import { BackupService } from "../../../src/backups/backup.service";
-import { Application } from "../../../src/Application";
-import moment from "moment";
-import { testSuite } from "../../mocha/global-setup";
-import { _URL } from "../../../src/fonaments/http/router/router.service";
-import Sinon = require("sinon");
-import * as path from "path";
-import { Zip } from "../../../src/utils/zip";
+import { generateSession, attachSession, createUser } from '../../utils/utils';
+import '../../mocha/global-setup';
+import { expect, describeName, playgroundPath } from '../../mocha/global-setup';
+import request = require('supertest');
+import { User } from '../../../src/models/user/User';
+import { Backup } from '../../../src/backups/backup';
+import { BackupService } from '../../../src/backups/backup.service';
+import { Application } from '../../../src/Application';
+import moment from 'moment';
+import { testSuite } from '../../mocha/global-setup';
+import { _URL } from '../../../src/fonaments/http/router/router.service';
+import Sinon = require('sinon');
+import * as path from 'path';
+import { Zip } from '../../../src/utils/zip';
 
 let app: Application;
 let backupService: BackupService;
@@ -42,7 +42,7 @@ let loggedUserSessionId: string;
 let adminUser: User;
 let adminUserSessionId: string;
 
-describe(describeName("Backup E2E tests"), () => {
+describe(describeName('Backup E2E tests'), () => {
   beforeEach(async () => {
     app = testSuite.app;
     backupService = await app.getService<BackupService>(BackupService.name);
@@ -54,22 +54,22 @@ describe(describeName("Backup E2E tests"), () => {
     adminUserSessionId = generateSession(adminUser);
   });
 
-  describe("BackupController", () => {
-    describe("BackupController@index", () => {
-      it("guest user should not see the backup index", async () => {
+  describe('BackupController', () => {
+    describe('BackupController@index', () => {
+      it('guest user should not see the backup index', async () => {
         return await request(app.express)
-          .get(_URL().getURL("backups.index"))
+          .get(_URL().getURL('backups.index'))
           .expect(401);
       });
 
-      it("regular user should not see backup index", async () => {
+      it('regular user should not see backup index', async () => {
         return await request(app.express)
-          .get(_URL().getURL("backups.index"))
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .get(_URL().getURL('backups.index'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("admin user should see backup index", async () => {
+      it('admin user should see backup index', async () => {
         const backupService: BackupService =
           await app.getService<BackupService>(BackupService.name);
 
@@ -81,8 +81,8 @@ describe(describeName("Backup E2E tests"), () => {
         );
 
         return await request(app.express)
-          .get(_URL().getURL("backups.index"))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .get(_URL().getURL('backups.index'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.be.deep.equal(
@@ -94,8 +94,8 @@ describe(describeName("Backup E2E tests"), () => {
       });
     });
 
-    describe("BackupController@show", () => {
-      it("guest user should not see a backup", async () => {
+    describe('BackupController@show', () => {
+      it('guest user should not see a backup', async () => {
         const backupService: BackupService =
           await app.getService<BackupService>(BackupService.name);
         const backup: Backup = await new Backup().create(
@@ -103,11 +103,11 @@ describe(describeName("Backup E2E tests"), () => {
         );
 
         await request(app.express)
-          .get(_URL().getURL("backups.show", { backup: backup.id }))
+          .get(_URL().getURL('backups.show', { backup: backup.id }))
           .expect(401);
       });
 
-      it("regular user should not see a backup", async () => {
+      it('regular user should not see a backup', async () => {
         const backupService: BackupService =
           await app.getService<BackupService>(BackupService.name);
         const backup: Backup = await new Backup().create(
@@ -115,12 +115,12 @@ describe(describeName("Backup E2E tests"), () => {
         );
 
         await request(app.express)
-          .get(_URL().getURL("backups.show", { backup: backup.id }))
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .get(_URL().getURL('backups.show', { backup: backup.id }))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("admin user should see a backup", async () => {
+      it('admin user should see a backup', async () => {
         const backupService: BackupService =
           await app.getService<BackupService>(BackupService.name);
         const backup: Backup = await new Backup().create(
@@ -128,53 +128,53 @@ describe(describeName("Backup E2E tests"), () => {
         );
 
         await request(app.express)
-          .get(_URL().getURL("backups.show", { backup: backup.id }))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .get(_URL().getURL('backups.show', { backup: backup.id }))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
             response.body.data = backup.toResponse();
           });
       });
 
-      it("404 exception should be thrown if a backup does not exist", async () => {
+      it('404 exception should be thrown if a backup does not exist', async () => {
         await request(app.express)
           .get(
-            _URL().getURL("backups.show", {
-              backup: moment().add(2, "d").valueOf().toString(),
+            _URL().getURL('backups.show', {
+              backup: moment().add(2, 'd').valueOf().toString(),
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(404);
       });
     });
 
-    describe("BackupController@store", async () => {
-      it("guest user should not create a backup", async () => {
+    describe('BackupController@store', async () => {
+      it('guest user should not create a backup', async () => {
         await request(app.express)
-          .post(_URL().getURL("backups.store"))
+          .post(_URL().getURL('backups.store'))
           .expect(401);
       });
 
-      it("regular user should not create a backup", async () => {
+      it('regular user should not create a backup', async () => {
         await request(app.express)
-          .post(_URL().getURL("backups.store"))
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .post(_URL().getURL('backups.store'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("admin user should create a backup", async () => {
+      it('admin user should create a backup', async () => {
         const existingBackups: Array<Backup> = await (
           await app.getService<BackupService>(BackupService.name)
         ).getAll();
         await request(app.express)
-          .post(_URL().getURL("backups.store"))
+          .post(_URL().getURL('backups.store'))
           .send({
-            comment: "test comment",
+            comment: 'test comment',
           })
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(201)
           .then(async (response) => {
-            expect(response.body.data.comment).to.be.deep.equal("test comment");
+            expect(response.body.data.comment).to.be.deep.equal('test comment');
           });
 
         expect(
@@ -186,177 +186,177 @@ describe(describeName("Backup E2E tests"), () => {
         ).equal(existingBackups.length + 1);
       });
 
-      it("should throw an exception if process is locked", (done) => {
+      it('should throw an exception if process is locked', (done) => {
         backupService.create().then(() => done());
         request(app.express)
-          .post(_URL().getURL("backups.store"))
+          .post(_URL().getURL('backups.store'))
           .send({
-            comment: "test comment",
+            comment: 'test comment',
           })
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(500)
           .catch((err) => done(err));
       });
     });
 
-    describe("BackupController@restore", async () => {
+    describe('BackupController@restore', async () => {
       let backup: Backup;
 
       beforeEach(async () => {
         backup = await backupService.create();
       });
 
-      it("guest user should not restore a backup", async () => {
+      it('guest user should not restore a backup', async () => {
         await request(app.express)
-          .post(_URL().getURL("backups.restore", { backup: backup.id }))
+          .post(_URL().getURL('backups.restore', { backup: backup.id }))
           .expect(401);
       });
 
-      it("regular user should not restore a backup", async () => {
+      it('regular user should not restore a backup', async () => {
         await request(app.express)
-          .post(_URL().getURL("backups.restore", { backup: backup.id }))
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .post(_URL().getURL('backups.restore', { backup: backup.id }))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("admin user should restore a backup", async () => {
+      it('admin user should restore a backup', async () => {
         await request(app.express)
-          .post(_URL().getURL("backups.restore", { backup: backup.id }))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .post(_URL().getURL('backups.restore', { backup: backup.id }))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(201);
       });
 
-      it("should call change maintenance_mode", async () => {
-        const spy: Sinon.SinonSpy = Sinon.spy(app.config, "set");
+      it('should call change maintenance_mode', async () => {
+        const spy: Sinon.SinonSpy = Sinon.spy(app.config, 'set');
 
         await request(app.express)
-          .post(_URL().getURL("backups.restore", { backup: backup.id }))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .post(_URL().getURL('backups.restore', { backup: backup.id }))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(201);
 
         expect(spy.calledTwice).to.be.true;
-        expect(spy.calledWith("maintenance_mode", true));
-        expect(spy.calledWith("maintenance_mode", false));
+        expect(spy.calledWith('maintenance_mode', true));
+        expect(spy.calledWith('maintenance_mode', false));
       });
     });
 
-    describe("BackupController@destroy", async () => {
+    describe('BackupController@destroy', async () => {
       let backup: Backup;
 
       beforeEach(async () => {
         backup = await new Backup().create(backupService.config.data_dir);
       });
 
-      it("guest user should not destroy a backup", async () => {
+      it('guest user should not destroy a backup', async () => {
         await request(app.express)
-          .delete(_URL().getURL("backups.destroy", { backup: backup.id }))
+          .delete(_URL().getURL('backups.destroy', { backup: backup.id }))
           .expect(401);
       });
 
-      it("regular user should not destroy a backup", async () => {
+      it('regular user should not destroy a backup', async () => {
         await request(app.express)
-          .delete(_URL().getURL("backups.destroy", { backup: backup.id }))
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .delete(_URL().getURL('backups.destroy', { backup: backup.id }))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("admin user should destroy a backup", async () => {
+      it('admin user should destroy a backup', async () => {
         await request(app.express)
-          .delete(_URL().getURL("backups.destroy", { backup: backup.id }))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .delete(_URL().getURL('backups.destroy', { backup: backup.id }))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200);
       });
 
-      it("404 should be returned if the backup does not exist", async () => {
+      it('404 should be returned if the backup does not exist', async () => {
         await request(app.express)
-          .delete(_URL().getURL("backups.destroy", { backup: 0 }))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .delete(_URL().getURL('backups.destroy', { backup: 0 }))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(404);
       });
     });
 
-    describe("BackupController@export", async () => {
+    describe('BackupController@export', async () => {
       let backup: Backup;
 
       beforeEach(async () => {
         backup = await backupService.create();
       });
 
-      it("guest user should not download a backup", async () => {
+      it('guest user should not download a backup', async () => {
         await request(app.express)
-          .get(_URL().getURL("backups.export", { backup: backup.id }))
+          .get(_URL().getURL('backups.export', { backup: backup.id }))
           .expect(401);
       });
 
-      it("regular user should not download a backup", async () => {
+      it('regular user should not download a backup', async () => {
         await request(app.express)
-          .get(_URL().getURL("backups.export", { backup: backup.id }))
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .get(_URL().getURL('backups.export', { backup: backup.id }))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("admin user should download a backup", async () => {
+      it('admin user should download a backup', async () => {
         await request(app.express)
-          .get(_URL().getURL("backups.export", { backup: backup.id }))
-          .set("Cookie", [attachSession(adminUserSessionId)])
-          .expect("Content-Type", /application/)
+          .get(_URL().getURL('backups.export', { backup: backup.id }))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect('Content-Type', /application/)
           .expect(201);
       });
     });
 
-    describe("BackupController@import", async () => {
+    describe('BackupController@import', async () => {
       let backup: Backup;
-      const zippedPath: string = path.join(playgroundPath, "backup.zip");
+      const zippedPath: string = path.join(playgroundPath, 'backup.zip');
 
       beforeEach(async () => {
         backup = await backupService.create();
         await Zip.zip(backup.path, zippedPath);
       });
 
-      it("guest user should not import a backup", async () => {
+      it('guest user should not import a backup', async () => {
         await request(app.express)
-          .post(_URL().getURL("backups.import"))
-          .attach("file", zippedPath)
+          .post(_URL().getURL('backups.import'))
+          .attach('file', zippedPath)
           .expect(401);
       });
 
-      it("regular user should not import a backup", async () => {
+      it('regular user should not import a backup', async () => {
         await request(app.express)
-          .post(_URL().getURL("backups.import"))
-          .set("Cookie", [attachSession(loggedUserSessionId)])
-          .attach("file", zippedPath)
+          .post(_URL().getURL('backups.import'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .attach('file', zippedPath)
           .expect(401);
       });
 
-      it("admin user should import a backup", async () => {
+      it('admin user should import a backup', async () => {
         await request(app.express)
-          .post(_URL().getURL("backups.import"))
-          .set("Cookie", [attachSession(adminUserSessionId)])
-          .attach("file", zippedPath)
+          .post(_URL().getURL('backups.import'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .attach('file', zippedPath)
           .expect(201);
       });
     });
   });
 
-  describe("BackupConfigController", () => {
-    describe("BackupConfigController@show", async () => {
-      it("guest user should not see backup config", async () => {
+  describe('BackupConfigController', () => {
+    describe('BackupConfigController@show', async () => {
+      it('guest user should not see backup config', async () => {
         await request(app.express)
-          .get(_URL().getURL("backups.config.show"))
+          .get(_URL().getURL('backups.config.show'))
           .expect(401);
       });
 
-      it("regular user should not see backup config", async () => {
+      it('regular user should not see backup config', async () => {
         await request(app.express)
-          .get(_URL().getURL("backups.config.show"))
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .get(_URL().getURL('backups.config.show'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("admin user should see backup config", async () => {
+      it('admin user should see backup config', async () => {
         await request(app.express)
-          .get(_URL().getURL("backups.config.show"))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .get(_URL().getURL('backups.config.show'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.be.deep.equal({
@@ -368,24 +368,24 @@ describe(describeName("Backup E2E tests"), () => {
       });
     });
 
-    describe("BackupConfigController@update", async () => {
-      it("guest user should not update backup config", async () => {
+    describe('BackupConfigController@update', async () => {
+      it('guest user should not update backup config', async () => {
         await request(app.express)
-          .put(_URL().getURL("backups.config.update"))
+          .put(_URL().getURL('backups.config.update'))
           .expect(401);
       });
 
-      it("regular user should not update backup config", async () => {
+      it('regular user should not update backup config', async () => {
         await request(app.express)
-          .put(_URL().getURL("backups.config.update"))
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .put(_URL().getURL('backups.config.update'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("admin user should update backup config", async () => {
+      it('admin user should update backup config', async () => {
         await request(app.express)
-          .put(_URL().getURL("backups.config.update"))
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .put(_URL().getURL('backups.config.update'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .send({
             schedule: backupService.config.schedule,
             max_days: 10,

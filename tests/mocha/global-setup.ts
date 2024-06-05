@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as chai from "chai";
-import ChaiAsPromised from "chai-as-promised";
-import ChaiJsonSchema from "chai-json-schema";
-import { Application } from "../../src/Application";
-import { DatabaseService } from "../../src/database/database.service";
-import * as fse from "fs-extra";
-import * as path from "path";
-import StringHelper from "../../src/utils/string.helper";
+import * as chai from 'chai';
+import ChaiAsPromised from 'chai-as-promised';
+import ChaiJsonSchema from 'chai-json-schema';
+import { Application } from '../../src/Application';
+import { DatabaseService } from '../../src/database/database.service';
+import * as fse from 'fs-extra';
+import * as path from 'path';
+import StringHelper from '../../src/utils/string.helper';
 
 chai.should();
 chai.use(ChaiAsPromised);
@@ -37,8 +37,8 @@ export const expect = chai.expect;
 
 export const playgroundPath: string = path.join(
   process.cwd(),
-  "tests",
-  "playground",
+  'tests',
+  'playground',
 );
 
 export class TestSuite {
@@ -80,21 +80,21 @@ export class TestSuite {
 export const testSuite: TestSuite = new TestSuite();
 
 export const describeName = (comment?: string): string => {
-  return comment ? _getCallerFile() + " - " + comment : _getCallerFile();
+  return comment ? _getCallerFile() + ' - ' + comment : _getCallerFile();
 };
 
 function _getCallerFile(): string {
   try {
     const e = new Error();
     const regex = /\((.*):(\d+):(\d+)\)$/;
-    const match = regex.exec(e.stack.split("\n")[3]);
+    const match = regex.exec(e.stack.split('\n')[3]);
     const relative_path: string = StringHelper.after(
-      path.join(process.cwd(), "dist", "/"),
+      path.join(process.cwd(), 'dist', '/'),
       match[1],
     );
     return relative_path;
   } catch (err) {
-    return "undefined";
+    return 'undefined';
   }
 }
 

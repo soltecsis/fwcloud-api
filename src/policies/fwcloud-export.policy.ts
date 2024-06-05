@@ -20,15 +20,15 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Policy, Authorization } from "../fonaments/authorization/policy";
-import { FwCloud } from "../models/fwcloud/FwCloud";
-import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
+import { Policy, Authorization } from '../fonaments/authorization/policy';
+import { FwCloud } from '../models/fwcloud/FwCloud';
+import { User } from '../models/user/User';
+import { getRepository } from 'typeorm';
 
 export class FwCloudExportPolicy extends Policy {
   static async store(fwCloud: FwCloud, user: User): Promise<Authorization> {
     user = await getRepository(User).findOneOrFail(user.id, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
 
     if (user.role === 1) {

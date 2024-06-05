@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../../Model";
+import Model from '../../Model';
 import {
   PrimaryGeneratedColumn,
   Column,
@@ -28,18 +28,18 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
-} from "typeorm";
-import { CaPrefix } from "./CaPrefix";
-import { FwCloud } from "../../fwcloud/FwCloud";
-import { User } from "../../user/User";
-import { Crt } from "./Crt";
-const config = require("../../../config/config");
-const fwcError = require("../../../utils/error_table");
-const spawn = require("child-process-promise").spawn;
-const readline = require("readline");
-const fs = require("fs");
+} from 'typeorm';
+import { CaPrefix } from './CaPrefix';
+import { FwCloud } from '../../fwcloud/FwCloud';
+import { User } from '../../user/User';
+import { Crt } from './Crt';
+const config = require('../../../config/config');
+const fwcError = require('../../../utils/error_table');
+const spawn = require('child-process-promise').spawn;
+const readline = require('readline');
+const fs = require('fs');
 
-const tableName: string = "ca";
+const tableName: string = 'ca';
 
 @Entity(tableName)
 export class Ca extends Model {
@@ -68,22 +68,22 @@ export class Ca extends Model {
 
   @ManyToOne((type) => User, (user) => user.created_cas)
   @JoinColumn({
-    name: "created_by",
+    name: 'created_by',
   })
   created_by: User;
 
   @ManyToOne((type) => User, (user) => user.updated_cas)
   @JoinColumn({
-    name: "updated_by",
+    name: 'updated_by',
   })
   updated_by: User;
 
-  @Column({ name: "fwcloud" })
+  @Column({ name: 'fwcloud' })
   fwCloudId: number;
 
   @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.cas)
   @JoinColumn({
-    name: "fwcloud",
+    name: 'fwcloud',
   })
   fwCloud: FwCloud;
 
@@ -107,7 +107,7 @@ export class Ca extends Model {
         comment: req.body.comment,
         status: 1, // This status variable will be changed to 0 when the DF file generation is completed.
       };
-      req.dbCon.query("insert into ca SET ?", ca, (error, result) => {
+      req.dbCon.query('insert into ca SET ?', ca, (error, result) => {
         if (error) return reject(error);
         resolve(result.insertId);
       });
@@ -119,18 +119,18 @@ export class Ca extends Model {
     return new Promise((resolve, reject) => {
       // Verify that the CA can be deleted.
       req.dbCon.query(
-        "SELECT count(*) AS n FROM crt WHERE ca=" + req.body.ca,
+        'SELECT count(*) AS n FROM crt WHERE ca=' + req.body.ca,
         (error, result) => {
           if (error) return reject(error);
           if (result[0].n > 0)
             return reject(
               fwcError.other(
-                "This CA can not be removed because it still has certificates",
+                'This CA can not be removed because it still has certificates',
               ),
             );
 
           req.dbCon.query(
-            "DELETE FROM ca WHERE id=" + req.body.ca,
+            'DELETE FROM ca WHERE id=' + req.body.ca,
             (error, result) => {
               if (error) return reject(error);
               resolve();
@@ -177,37 +177,37 @@ export class Ca extends Model {
   public static runEasyRsaCmd(req, easyrsaDataCmd) {
     return new Promise((resolve, reject) => {
       const pki_dir =
-        "--pki-dir=" +
-        config.get("pki").data_dir +
-        "/" +
+        '--pki-dir=' +
+        config.get('pki').data_dir +
+        '/' +
         req.body.fwcloud +
-        "/" +
+        '/' +
         req.caId;
-      const argv = ["--batch", pki_dir];
+      const argv = ['--batch', pki_dir];
 
       switch (easyrsaDataCmd) {
-        case "init-pki":
-        case "gen-crl":
-        case "gen-dh":
+        case 'init-pki':
+        case 'gen-crl':
+        case 'gen-dh':
           argv.push(easyrsaDataCmd);
           break;
 
-        case "build-ca":
-          argv.push("--days=" + req.body.days);
-          argv.push("--req-cn=" + req.body.cn);
+        case 'build-ca':
+          argv.push('--days=' + req.body.days);
+          argv.push('--req-cn=' + req.body.cn);
           argv.push(easyrsaDataCmd);
-          if (!req.body.pass) argv.push("nopass");
+          if (!req.body.pass) argv.push('nopass');
           break;
 
-        case "build-server-full":
-        case "build-client-full":
-          argv.push("--days=" + req.body.days);
+        case 'build-server-full':
+        case 'build-client-full':
+          argv.push('--days=' + req.body.days);
           argv.push(easyrsaDataCmd);
           argv.push(req.body.cn);
-          if (!req.body.pass) argv.push("nopass");
+          if (!req.body.pass) argv.push('nopass');
           break;
       }
-      const promise = spawn(config.get("pki").easy_rsa_cmd, argv);
+      const promise = spawn(config.get('pki').easy_rsa_cmd, argv);
       //const childProcess = promise.childProcess;
 
       //if (!req.body.pass)
@@ -224,29 +224,29 @@ export class Ca extends Model {
   // Get certificate serial number.
   public static delFromIndex(dir, cn) {
     return new Promise((resolve, reject) => {
-      let serial = "";
-      const substr = "CN=" + cn + "\n";
-      const src_path = dir + "/index.txt";
-      const dst_path = dir + "/index.txt.TMP";
+      let serial = '';
+      const substr = 'CN=' + cn + '\n';
+      const src_path = dir + '/index.txt';
+      const dst_path = dir + '/index.txt.TMP';
       const rs = fs.createReadStream(src_path);
       const ws = fs.createWriteStream(dst_path);
 
-      rs.on("error", (error) => reject(error));
-      ws.on("error", (error) => reject(error));
+      rs.on('error', (error) => reject(error));
+      ws.on('error', (error) => reject(error));
 
       const rl = readline.createInterface({
         input: rs,
         crlfDelay: Infinity,
       });
 
-      rl.on("line", (line) => {
-        const line2 = line + "\n";
+      rl.on('line', (line) => {
+        const line2 = line + '\n';
         if (line2.indexOf(substr) > -1) {
-          serial = line.split("\t")[3];
+          serial = line.split('\t')[3];
         } else ws.write(line2);
       });
 
-      rl.on("close", () => {
+      rl.on('close', () => {
         ws.close();
         fs.unlink(src_path, (error) => {
           if (error) return reject(error);

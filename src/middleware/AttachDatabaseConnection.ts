@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
-import { Request, Response, NextFunction } from "express";
-import db from "../database/database-manager";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
+import { Request, Response, NextFunction } from 'express';
+import db from '../database/database-manager';
 
 export class AttachDatabaseConnection extends Middleware {
   public async handle(

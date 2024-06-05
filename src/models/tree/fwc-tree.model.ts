@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
+import Model from '../Model';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -28,11 +28,11 @@ import {
   OneToMany,
   ManyToOne,
   JoinColumn,
-} from "typeorm";
-import { FwCloud } from "../fwcloud/FwCloud";
-import { IPObjType } from "../ipobj/IPObjType";
+} from 'typeorm';
+import { FwCloud } from '../fwcloud/FwCloud';
+import { IPObjType } from '../ipobj/IPObjType';
 
-const tableName: string = "fwc_tree";
+const tableName: string = 'fwc_tree';
 
 @Entity(tableName)
 export class FwcTree extends Model {
@@ -48,27 +48,27 @@ export class FwcTree extends Model {
   @Column()
   node_type: string;
 
-  @Column({ name: "id_parent" })
+  @Column({ name: 'id_parent' })
   parentId: number;
 
   @Column()
   id_obj: number;
 
-  @Column({ name: "obj_type" })
+  @Column({ name: 'obj_type' })
   ipObjTypeId: number;
 
-  @Column({ name: "fwcloud" })
+  @Column({ name: 'fwcloud' })
   fwCloudId: number;
 
   @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.fwcTrees)
   @JoinColumn({
-    name: "fwcloud",
+    name: 'fwcloud',
   })
   fwCloud: FwCloud;
 
   @ManyToOne((type) => FwcTree, (fwcTree) => fwcTree.childs)
   @JoinColumn({
-    name: "id_parent",
+    name: 'id_parent',
   })
   parent: FwcTree;
 
@@ -77,7 +77,7 @@ export class FwcTree extends Model {
 
   @ManyToOne((type) => IPObjType, (ipObjType) => ipObjType.fwcTrees)
   @JoinColumn({
-    name: "obj_type",
+    name: 'obj_type',
   })
   ipObjType: IPObjType;
 

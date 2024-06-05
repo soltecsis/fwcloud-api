@@ -20,15 +20,15 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Transform } from "class-transformer";
-import { IsOptional, IsString, Length, Validate } from "class-validator";
-import { FileInfo } from "../../../../fonaments/http/files/file-info";
-import { HasExtension } from "../../../../fonaments/validation/rules/extension.validation";
-import { IsFile } from "../../../../fonaments/validation/rules/file.validation";
+import { Transform } from 'class-transformer';
+import { IsOptional, IsString, Length, Validate } from 'class-validator';
+import { FileInfo } from '../../../../fonaments/http/files/file-info';
+import { HasExtension } from '../../../../fonaments/validation/rules/extension.validation';
+import { IsFile } from '../../../../fonaments/validation/rules/file.validation';
 
 export class FwCloudExportControllerImportDto {
   @Validate(IsFile)
-  @Validate(HasExtension, ["fwcloud"])
+  @Validate(HasExtension, ['fwcloud'])
   @Transform(({ value }) => {
     return new FileInfo((value as FileInfo).filepath);
   })

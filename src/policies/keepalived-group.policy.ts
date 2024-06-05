@@ -1,14 +1,14 @@
-import { getRepository } from "typeorm";
-import { Authorization, Policy } from "../fonaments/authorization/policy";
-import { Firewall } from "../models/firewall/Firewall";
-import { User } from "../models/user/User";
-import { KeepalivedGroup } from "../models/system/keepalived/keepalived_g/keepalived_g.model";
+import { getRepository } from 'typeorm';
+import { Authorization, Policy } from '../fonaments/authorization/policy';
+import { Firewall } from '../models/firewall/Firewall';
+import { User } from '../models/user/User';
+import { KeepalivedGroup } from '../models/system/keepalived/keepalived_g/keepalived_g.model';
 
 export class KeepalivedGroupPolicy extends Policy {
   static async index(firewall: Firewall, user: User): Promise<Authorization> {
     user = await this.getUser(user.id);
     firewall = await getRepository(Firewall).findOne(firewall.id, {
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
     return this.checkAuthorization(user, firewall);
   }
@@ -19,7 +19,7 @@ export class KeepalivedGroupPolicy extends Policy {
   ): Promise<Authorization> {
     user = await this.getUser(user.id);
     const firewall = await getRepository(Firewall).findOne(group.firewallId, {
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
     return this.checkAuthorization(user, firewall);
   }
@@ -27,7 +27,7 @@ export class KeepalivedGroupPolicy extends Policy {
   static async create(firewall: Firewall, user: User): Promise<Authorization> {
     user = await this.getUser(user.id);
     firewall = await getRepository(Firewall).findOne(firewall.id, {
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
     return this.checkAuthorization(user, firewall);
   }
@@ -38,7 +38,7 @@ export class KeepalivedGroupPolicy extends Policy {
   ): Promise<Authorization> {
     user = await this.getUser(user.id);
     const firewall = await getRepository(Firewall).findOne(group.firewallId, {
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
     return this.checkAuthorization(user, firewall);
   }
@@ -49,7 +49,7 @@ export class KeepalivedGroupPolicy extends Policy {
   ): Promise<Authorization> {
     user = await this.getUser(user.id);
     const firewall = await getRepository(Firewall).findOne(group.firewallId, {
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
     return this.checkAuthorization(user, firewall);
   }
@@ -70,6 +70,6 @@ export class KeepalivedGroupPolicy extends Policy {
   }
 
   protected static async getUser(id: number): Promise<User> {
-    return getRepository(User).findOneOrFail(id, { relations: ["fwClouds"] });
+    return getRepository(User).findOneOrFail(id, { relations: ['fwClouds'] });
   }
 }

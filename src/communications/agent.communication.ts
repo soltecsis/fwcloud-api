@@ -20,36 +20,36 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EventEmitter } from "events";
+import { EventEmitter } from 'events';
 import {
   CCDHash,
   Communication,
   FwcAgentInfo,
   OpenVPNHistoryRecord,
   SystemCtlInfo,
-} from "./communication";
+} from './communication';
 import axios, {
   AxiosRequestConfig,
   AxiosResponse,
   CancelTokenSource,
-} from "axios";
+} from 'axios';
 import {
   ProgressErrorPayload,
   ProgressInfoPayload,
   ProgressNoticePayload,
   ProgressPayload,
   ProgressSSHCmdPayload,
-} from "../sockets/messages/socket-message";
-import * as fs from "fs";
-import FormData from "form-data";
-import * as path from "path";
-import * as https from "https";
-import { HttpException } from "../fonaments/exceptions/http/http-exception";
-import { app } from "../fonaments/abstract-application";
-import WebSocket from "ws";
+} from '../sockets/messages/socket-message';
+import * as fs from 'fs';
+import FormData from 'form-data';
+import * as path from 'path';
+import * as https from 'https';
+import { HttpException } from '../fonaments/exceptions/http/http-exception';
+import { app } from '../fonaments/abstract-application';
+import WebSocket from 'ws';
 
 type AgentCommunicationData = {
-  protocol: "https" | "http";
+  protocol: 'https' | 'http';
   host: string;
   port: number;
   apikey: string;
@@ -69,23 +69,23 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     super(connectionData);
 
     if (connectionData.apikey === null || connectionData.apikey === undefined) {
-      throw new Error("Cannot connect to agent without apikey");
+      throw new Error('Cannot connect to agent without apikey');
     }
 
     this.url = `${this.connectionData.protocol}://${this.connectionData.host}:${this.connectionData.port}`;
     this.ws_url = this.url
-      .replace("http://", "ws://")
-      .replace("https://", "wss://");
+      .replace('http://', 'ws://')
+      .replace('https://', 'wss://');
     this.cancel_token = axios.CancelToken.source();
     this.config = {
-      timeout: app().config.get("openvpn.agent.timeout"),
+      timeout: app().config.get('openvpn.agent.timeout'),
       headers: {
-        "X-API-Key": this.connectionData.apikey,
+        'X-API-Key': this.connectionData.apikey,
       },
       cancelToken: this.cancel_token.token,
     };
 
-    if (this.connectionData.protocol === "https") {
+    if (this.connectionData.protocol === 'https') {
       this.config.httpsAgent = new https.Agent({
         rejectUnauthorized: false,
       });
@@ -97,16 +97,16 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<string> {
     try {
-      const pathUrl: string = this.url + "/api/v1/fwcloud_script/upload";
+      const pathUrl: string = this.url + '/api/v1/fwcloud_script/upload';
 
       const form = new FormData();
-      form.append("dst_dir", "./tmp");
-      form.append("perms", 700);
-      form.append("upload", fs.createReadStream(scriptPath));
-      form.append("ws_id", await this.createWebSocket(eventEmitter));
+      form.append('dst_dir', './tmp');
+      form.append('perms', 700);
+      form.append('upload', fs.createReadStream(scriptPath));
+      form.append('ws_id', await this.createWebSocket(eventEmitter));
 
       eventEmitter.emit(
-        "message",
+        'message',
         new ProgressNoticePayload(
           `Uploading firewall policy (${this.connectionData.host})`,
         ),
@@ -126,12 +126,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       );
 
       response.data
-        .split("\n")
+        .split('\n')
         .forEach((item) =>
-          eventEmitter.emit("message", new ProgressSSHCmdPayload(item)),
+          eventEmitter.emit('message', new ProgressSSHCmdPayload(item)),
         );
 
-      return "DONE";
+      return 'DONE';
     } catch (error) {
       this.handleRequestException(error, eventEmitter);
     }
@@ -143,19 +143,19 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     eventEmitter?: EventEmitter,
   ): Promise<void> {
     try {
-      const pathUrl: string = this.url + "/api/v1/openvpn/files/upload";
+      const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
       const form = new FormData();
-      form.append("dst_dir", dir);
-      form.append("perms", 600);
+      form.append('dst_dir', dir);
+      form.append('perms', 600);
 
       configs.forEach((config) => {
         eventEmitter.emit(
-          "message",
+          'message',
           new ProgressNoticePayload(
             `Uploading OpenVPN configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
           ),
         );
-        form.append("data", config.content, config.name);
+        form.append('data', config.content, config.name);
       });
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
@@ -177,7 +177,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<void> {
     try {
-      const pathUrl: string = this.url + "/api/v1/openvpn/files/upload";
+      const pathUrl: string = this.url + '/api/v1/openvpn/files/upload';
       const form = new FormData();
 
       const requestConfig: AxiosRequestConfig = this.obtainRequestConfig(
@@ -201,14 +201,14 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     try {
       files.forEach((file) => {
         eventEmitter.emit(
-          "message",
+          'message',
           new ProgressInfoPayload(
             `Removing OpenVPN configuration file '${dir}/${file}' from: (${this.connectionData.host})\n`,
           ),
         );
       });
 
-      const pathUrl: string = this.url + "/api/v1/openvpn/files/remove";
+      const pathUrl: string = this.url + '/api/v1/openvpn/files/remove';
 
       const config: AxiosRequestConfig = Object.assign({}, this.config);
       config.data = {
@@ -224,7 +224,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
   async getFirewallInterfaces(): Promise<string> {
     try {
-      const pathUrl: string = this.url + "/api/v1/interfaces/info";
+      const pathUrl: string = this.url + '/api/v1/interfaces/info';
 
       const response: AxiosResponse<string> = await axios.get(
         pathUrl,
@@ -235,7 +235,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         return response.data;
       }
 
-      throw new Error("Unexpected getInterfaces response");
+      throw new Error('Unexpected getInterfaces response');
     } catch (error) {
       this.handleRequestException(error);
     }
@@ -243,7 +243,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
   async getFirewallIptablesSave(): Promise<string[]> {
     try {
-      const pathUrl: string = this.url + "/api/v1/iptables-save/data";
+      const pathUrl: string = this.url + '/api/v1/iptables-save/data';
 
       const response: AxiosResponse<string> = await axios.get(
         pathUrl,
@@ -251,10 +251,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       );
 
       if (response.status === 200) {
-        return response.data.split("\n");
+        return response.data.split('\n');
       }
 
-      throw new Error("Unexpected getInterfaces response");
+      throw new Error('Unexpected getInterfaces response');
     } catch (error) {
       this.handleRequestException(error);
     }
@@ -262,10 +262,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
   async ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]> {
     try {
-      const pathUrl: string = this.url + "/api/v1/openvpn/files/sha256";
+      const pathUrl: string = this.url + '/api/v1/openvpn/files/sha256';
 
       const config: AxiosRequestConfig = Object.assign({}, this.config);
-      config.headers["Content-Type"] = "application/json";
+      config.headers['Content-Type'] = 'application/json';
 
       const response: AxiosResponse<string> = await axios.put(
         pathUrl,
@@ -278,16 +278,16 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       if (response.status === 200) {
         return response.data
-          .split("\n")
-          .filter((item) => item !== "")
+          .split('\n')
+          .filter((item) => item !== '')
           .slice(1)
           .map((item) => ({
-            filename: item.split(",")[0],
-            hash: item.split(",")[1],
+            filename: item.split(',')[0],
+            hash: item.split(',')[1],
           }));
       }
 
-      throw new Error("Unexpected ccdHashList response");
+      throw new Error('Unexpected ccdHashList response');
     } catch (error) {
       this.handleRequestException(error);
     }
@@ -295,9 +295,9 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
   async ping(): Promise<void> {
     try {
-      const pathUrl: string = this.url + "/api/v1/ping";
+      const pathUrl: string = this.url + '/api/v1/ping';
 
-      await axios.put(pathUrl, "", this.config);
+      await axios.put(pathUrl, '', this.config);
 
       return;
     } catch (error) {
@@ -307,7 +307,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
   async info(): Promise<FwcAgentInfo> {
     try {
-      const pathUrl: string = this.url + "/api/v1/info";
+      const pathUrl: string = this.url + '/api/v1/info';
 
       const response: AxiosResponse<FwcAgentInfo> = await axios.get(
         pathUrl,
@@ -318,7 +318,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         return response.data;
       }
 
-      throw new Error("Unexpected FWCloud-Agent info response");
+      throw new Error('Unexpected FWCloud-Agent info response');
     } catch (error) {
       this.handleRequestException(error);
     }
@@ -330,14 +330,14 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<string> {
     try {
-      const pathUrl: string = this.url + "/api/v1/plugin";
+      const pathUrl: string = this.url + '/api/v1/plugin';
 
       const config: AxiosRequestConfig = Object.assign({}, this.config);
-      config.headers["Content-Type"] = "application/json";
+      config.headers['Content-Type'] = 'application/json';
 
       const params = {
         name: name,
-        action: enabled ? "enable" : "disable",
+        action: enabled ? 'enable' : 'disable',
         ws_id: await this.createWebSocket(eventEmitter),
       };
 
@@ -350,29 +350,29 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         .post(pathUrl, params, requestConfig)
         .then((_) => {
           const endMessage: ProgressPayload = new ProgressPayload(
-            "end",
+            'end',
             false,
-            "Plugin action finished",
+            'Plugin action finished',
           );
 
           this.WSisClosed
-            ? eventEmitter.emit("message", endMessage)
-            : this.eventEmitterWSClose.on("close", () =>
-                eventEmitter.emit("message", endMessage),
+            ? eventEmitter.emit('message', endMessage)
+            : this.eventEmitterWSClose.on('close', () =>
+                eventEmitter.emit('message', endMessage),
               );
         })
         .catch((err) => {
           eventEmitter.emit(
-            "message",
+            'message',
             new ProgressPayload(
-              "error",
+              'error',
               false,
-              "Plugin action failed: " + err.message,
+              'Plugin action failed: ' + err.message,
             ),
           );
         });
 
-      return "";
+      return '';
     } catch (error) {
       this.handleRequestException(error);
     }
@@ -380,10 +380,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
   protected createWebSocket(eventEmitter: EventEmitter): Promise<string> {
     return new Promise((resolve, reject) => {
-      const pathUrl: string = this.ws_url + "/api/v1/ws";
+      const pathUrl: string = this.ws_url + '/api/v1/ws';
       const ws = new WebSocket(pathUrl, {
         headers: {
-          ["X-API-Key"]: this.connectionData.apikey,
+          ['X-API-Key']: this.connectionData.apikey,
         },
         rejectUnauthorized: false,
       });
@@ -392,11 +392,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       const timer = setTimeout(() => {
         // TIMEOUT ERROR
         ws.close();
-        this.cancel_token.cancel("FWCloud-Agent communication timeout");
+        this.cancel_token.cancel('FWCloud-Agent communication timeout');
         //console.log('FWCloud-Agent communication timeout');
-      }, app().config.get("openvpn.agent.plugins_timeout"));
+      }, app().config.get('openvpn.agent.plugins_timeout'));
 
-      ws.on("message", (data) => {
+      ws.on('message', (data) => {
         // Restart timer on each WebSocket message.
         // If we receive a message it means that the process is active, then
         // reset the timer. This way, if the process takes a lot of time, we
@@ -410,21 +410,21 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         } else {
           //console.log('Data: %s', data);
           eventEmitter.emit(
-            "message",
-            new ProgressPayload("ssh_cmd_output", false, `${data}`),
+            'message',
+            new ProgressPayload('ssh_cmd_output', false, `${data}`),
           );
         }
       });
 
-      ws.on("close", () => {
-        this.eventEmitterWSClose.emit("close");
+      ws.on('close', () => {
+        this.eventEmitterWSClose.emit('close');
         this.WSisClosed = true;
         clearTimeout(timer);
         ws.close();
-        resolve("");
+        resolve('');
       });
 
-      ws.on("error", (err) => {
+      ws.on('error', (err) => {
         clearTimeout(timer);
         console.log(`WebSocket error: ${err}`);
         ws.close();
@@ -435,12 +435,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
   async getRealtimeStatus(statusFilepath: string): Promise<string> {
     try {
-      const urlPath: string = this.url + "/api/v1/openvpn/get/status/rt";
+      const urlPath: string = this.url + '/api/v1/openvpn/get/status/rt';
       const dir: string = path.dirname(statusFilepath);
       const filename: string = path.basename(statusFilepath);
 
       const config: AxiosRequestConfig = Object.assign({}, this.config);
-      config.headers["Content-Type"] = "application/json";
+      config.headers['Content-Type'] = 'application/json';
 
       const response: AxiosResponse<string> = await axios.put(
         urlPath,
@@ -455,7 +455,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         return response.data;
       }
 
-      throw new Error("Unexpected getRealtimeStatus response");
+      throw new Error('Unexpected getRealtimeStatus response');
     } catch (error) {
       this.handleRequestException(error);
     }
@@ -467,10 +467,10 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     try {
       const filename: string = path.basename(filepath);
       const dir: string = path.dirname(filepath);
-      const pathUrl: string = this.url + "/api/v1/openvpn/get/status";
+      const pathUrl: string = this.url + '/api/v1/openvpn/get/status';
 
       const config: AxiosRequestConfig = Object.assign({}, this.config);
-      config.headers["Content-Type"] = "application/json";
+      config.headers['Content-Type'] = 'application/json';
 
       const response: AxiosResponse<string> = await axios.put(
         pathUrl,
@@ -483,27 +483,27 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       if (response.status === 200) {
         return response.data
-          .split("\n")
-          .filter((item) => item !== "")
+          .split('\n')
+          .filter((item) => item !== '')
           .slice(1)
           .map((item) => ({
-            timestamp: parseInt(item.split(",")[0]),
-            name: item.split(",")[1],
-            address: item.split(",")[2],
-            bytesReceived: parseInt(item.split(",")[3]),
-            bytesSent: parseInt(item.split(",")[4]),
-            connectedAtTimestampInSeconds: parseInt(item.split(",")[5]),
+            timestamp: parseInt(item.split(',')[0]),
+            name: item.split(',')[1],
+            address: item.split(',')[2],
+            bytesReceived: parseInt(item.split(',')[3]),
+            bytesSent: parseInt(item.split(',')[4]),
+            connectedAtTimestampInSeconds: parseInt(item.split(',')[5]),
           }));
       }
 
-      throw new Error("Unexpected getOpenVPNHistoryFile response");
+      throw new Error('Unexpected getOpenVPNHistoryFile response');
     } catch (error) {
       this.handleRequestException(error);
     }
   }
   async systemctlManagement(command: string, service: string): Promise<string> {
     try {
-      const pathUrl: string = this.url + "/api/v1/systemctl";
+      const pathUrl: string = this.url + '/api/v1/systemctl';
 
       const systemCtlInfo: SystemCtlInfo = {
         command: command,
@@ -517,7 +517,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       if (response.status === 200) {
         return response.data;
       }
-      throw new Error("Unexpected FWCloud-Agent info response");
+      throw new Error('Unexpected FWCloud-Agent info response');
     } catch (error) {
       this.handleRequestException(error);
     }
@@ -526,11 +526,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
     if (axios.isAxiosError(error)) {
       if (
-        error.code === "ECONNABORTED" &&
+        error.code === 'ECONNABORTED' &&
         new RegExp(/timeout/).test(error.message)
       ) {
         eventEmitter?.emit(
-          "message",
+          'message',
           new ProgressErrorPayload(`ERROR: Timeout\n`),
         );
         throw new HttpException(`ECONNABORTED: Timeout`, 400);
@@ -538,27 +538,27 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       if (error.response?.data?.message) {
         eventEmitter?.emit(
-          "message",
+          'message',
           new ProgressErrorPayload(`ERROR: ${error.response.data.message}\n`),
         );
         let message = error.response.data.message;
 
-        if (error.response.data.message === "API key not found") {
+        if (error.response.data.message === 'API key not found') {
           message = `ApiKeyNotFound: ${error.response.data.message}`;
         }
 
-        if (error.response.data.message === "Invalid API key") {
+        if (error.response.data.message === 'Invalid API key') {
           message = `ApiKeyNotValid: ${error.response.data.message}`;
         }
 
         if (
           error.response.data.message ===
-          "Authorization error, access from your IP is not allowed"
+          'Authorization error, access from your IP is not allowed'
         ) {
           message = `NotAllowedIP: ${error.response.data.message}`;
         }
 
-        if (error.response.data.message === "Directory not found") {
+        if (error.response.data.message === 'Directory not found') {
           message = `DirNotFound: ${error.response.data.message}`;
         }
 
@@ -575,7 +575,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<string> {
     try {
-      const pathUrl: string = this.url + "/api/v1/daemon/config/upload";
+      const pathUrl: string = this.url + '/api/v1/daemon/config/upload';
       const form: FormData = new FormData();
 
       const requestConfig: AxiosRequestConfig = this.obtainRequestConfig(
@@ -600,12 +600,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       );
 
       response.data
-        .split("\n")
+        .split('\n')
         .forEach((item) =>
-          eventEmitter.emit("message", new ProgressSSHCmdPayload(item)),
+          eventEmitter.emit('message', new ProgressSSHCmdPayload(item)),
         );
 
-      return "DONE";
+      return 'DONE';
     } catch (error) {
       this.handleRequestException(error, eventEmitter);
     }
@@ -617,7 +617,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<string> {
     try {
-      const pathUrl: string = this.url + "/api/v1/daemon/config/upload";
+      const pathUrl: string = this.url + '/api/v1/daemon/config/upload';
       const form: FormData = new FormData();
 
       const requestConfig: AxiosRequestConfig = this.obtainRequestConfig(
@@ -642,12 +642,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       );
 
       response.data
-        .split("\n")
+        .split('\n')
         .forEach((item) =>
-          eventEmitter.emit("message", new ProgressSSHCmdPayload(item)),
+          eventEmitter.emit('message', new ProgressSSHCmdPayload(item)),
         );
 
-      return "DONE";
+      return 'DONE';
     } catch (error) {
       this.handleRequestException(error, eventEmitter);
     }
@@ -659,7 +659,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     eventEmitter?: EventEmitter,
   ): Promise<string> {
     try {
-      const pathUrl: string = this.url + "/api/v1/daemon/config/upload";
+      const pathUrl: string = this.url + '/api/v1/daemon/config/upload';
 
       const form: FormData = new FormData();
 
@@ -685,12 +685,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       );
 
       response.data
-        .split("\n")
+        .split('\n')
         .forEach((item) =>
-          eventEmitter.emit("message", new ProgressSSHCmdPayload(item)),
+          eventEmitter.emit('message', new ProgressSSHCmdPayload(item)),
         );
 
-      return "DONE";
+      return 'DONE';
     } catch (error) {
       this.handleRequestException(error, eventEmitter);
     }
@@ -705,13 +705,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }[],
     eventEmitter: EventEmitter,
   ) {
-    form.append("dst_dir", dir);
-    form.append("perms", 644);
+    form.append('dst_dir', dir);
+    form.append('perms', 644);
 
     configs.forEach((config) => {
-      form.append("data", config.content, config.name);
+      form.append('data', config.content, config.name);
       eventEmitter.emit(
-        "message",
+        'message',
         new ProgressInfoPayload(
           `Uploading configuration file '${dir}/${config.name}' to: (${this.connectionData.host})\n`,
         ),

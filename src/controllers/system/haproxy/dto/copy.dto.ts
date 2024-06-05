@@ -1,5 +1,5 @@
-import { IsNumber, IsPositive, IsEnum, IsArray } from "class-validator";
-import { Offset } from "../../../../offset";
+import { IsNumber, IsPositive, IsEnum, IsArray } from 'class-validator';
+import { Offset } from '../../../../offset';
 
 export class HAProxyRuleCopyDto {
   @IsNumber()

@@ -20,19 +20,19 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import express from "express";
-import { AbstractApplication } from "./abstract-application";
-import * as DatabaseQuery from "../database/Query";
-import { RequestInputs } from "./http/request-inputs";
-import io from "socket.io";
-import { SocketMiddleware } from "./http/sockets/socket-middleware";
-import { SessionSocketMiddleware } from "../middleware/Session";
-import { WebSocketService } from "../sockets/web-socket.service";
-import { Middleware } from "./http/middleware/Middleware";
-import { RouterService } from "./http/router/router.service";
-import { Routes } from "../routes/routes";
+import express from 'express';
+import { AbstractApplication } from './abstract-application';
+import * as DatabaseQuery from '../database/Query';
+import { RequestInputs } from './http/request-inputs';
+import io from 'socket.io';
+import { SocketMiddleware } from './http/sockets/socket-middleware';
+import { SessionSocketMiddleware } from '../middleware/Session';
+import { WebSocketService } from '../sockets/web-socket.service';
+import { Middleware } from './http/middleware/Middleware';
+import { RouterService } from './http/router/router.service';
+import { Routes } from '../routes/routes';
 
-declare module "express-serve-static-core" {
+declare module 'express-serve-static-core' {
   interface Request {
     dbCon: DatabaseQuery.default;
     inputs: RequestInputs;
@@ -69,9 +69,9 @@ export abstract class HTTPApplication extends AbstractApplication {
             has not changed. ETags can also be used for optimistic concurrency control,[1] as a way to help prevent simultaneous updates of a 
             resource from overwriting each other.
             */
-      this._express.disable("etag");
+      this._express.disable('etag');
     } catch (e) {
-      console.error("Aplication HTTP startup failed: " + e.message);
+      console.error('Aplication HTTP startup failed: ' + e.message);
       process.exit(e);
     }
   }
@@ -87,14 +87,14 @@ export abstract class HTTPApplication extends AbstractApplication {
   public async bootstrap(): Promise<AbstractApplication> {
     await super.bootstrap();
 
-    this.registerMiddlewares("before");
+    this.registerMiddlewares('before');
 
     const routerService: RouterService = await this.getService<RouterService>(
       RouterService.name,
     );
     routerService.registerRoutes();
 
-    this.registerMiddlewares("after");
+    this.registerMiddlewares('after');
 
     return this;
   }
@@ -116,10 +116,10 @@ export abstract class HTTPApplication extends AbstractApplication {
   /**
    * Register all middlewares
    */
-  protected registerMiddlewares(group: "before" | "after"): void {
+  protected registerMiddlewares(group: 'before' | 'after'): void {
     let middlewares: Array<any> = [];
 
-    if (group === "before") {
+    if (group === 'before') {
       middlewares = this.beforeMiddlewares();
       for (let i = 0; i < middlewares.length; i++) {
         const middleware: Middleware = new middlewares[i]();
@@ -127,7 +127,7 @@ export abstract class HTTPApplication extends AbstractApplication {
       }
     }
 
-    if (group === "after") {
+    if (group === 'after') {
       middlewares = this.afterMiddlewares();
       for (let i = 0; i < middlewares.length; i++) {
         const middleware: Middleware = new middlewares[i]();

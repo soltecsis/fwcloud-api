@@ -1,13 +1,13 @@
-import { Validate } from "../../decorators/validate.decorator";
-import { Request } from "express";
-import { Controller } from "../../fonaments/http/controller";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { AuthService } from "../../models/user/auth.service";
-import { VerifyTfaDto } from "./dtos/verifytfa.dto";
-import { SetupTfaDto } from "./dtos/setuptfa.dto";
+import { Validate } from '../../decorators/validate.decorator';
+import { Request } from 'express';
+import { Controller } from '../../fonaments/http/controller';
+import { ResponseBuilder } from '../../fonaments/http/response-builder';
+import { AuthService } from '../../models/user/auth.service';
+import { VerifyTfaDto } from './dtos/verifytfa.dto';
+import { SetupTfaDto } from './dtos/setuptfa.dto';
 
-const speakeasy = require("speakeasy");
-const QRCode = require("qrcode");
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 
 export class TfaController extends Controller {
   protected authService: AuthService;
@@ -22,7 +22,7 @@ export class TfaController extends Controller {
   public async verify(req: Request): Promise<ResponseBuilder> {
     const isVerified = speakeasy.totp.verify({
       secret: req.body.tempSecret,
-      encoding: "base32",
+      encoding: 'base32',
       token: req.body.authCode,
     });
 
@@ -31,11 +31,11 @@ export class TfaController extends Controller {
       await AuthService.UpdateTfaSecret(req.body.tempSecret);
       //res.status(200).json({"secret":req.body.tempSecret})
       return ResponseBuilder.buildResponse().status(200).body({
-        status: "OK",
+        status: 'OK',
       });
     } else {
       return ResponseBuilder.buildResponse().status(401).body({
-        message: "Auth Code error",
+        message: 'Auth Code error',
       });
     }
   }
@@ -45,17 +45,17 @@ export class TfaController extends Controller {
     const secret = speakeasy.generateSecret({
       length: 10,
       name: req.body.username,
-      issuer: "FWCLOUD - SOLTECSIS",
+      issuer: 'FWCLOUD - SOLTECSIS',
     });
     const url = speakeasy.otpauthURL({
       secret: secret.base32,
       label: req.body.username,
-      issuer: "FWCLOUD - SOLTECSIS",
-      encoding: "base32",
+      issuer: 'FWCLOUD - SOLTECSIS',
+      encoding: 'base32',
     });
     QRCode.toDataURL(url, async (err, dataURL) => {
       const tfa = {
-        secret: "",
+        secret: '',
         tempSecret: secret.base32,
         dataURL,
         tfaURL: secret.otpauth_url,

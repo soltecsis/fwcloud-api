@@ -20,19 +20,19 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
-import db from "../../../src/database/database-manager";
-import { Interface } from "../../../src/models/interface/Interface";
-import { InterfaceIPObj } from "../../../src/models/interface/InterfaceIPObj";
-import { IPObj } from "../../../src/models/ipobj/IPObj";
-import { IPObjGroup } from "../../../src/models/ipobj/IPObjGroup";
-import { IPObjToIPObjGroup } from "../../../src/models/ipobj/IPObjToIPObjGroup";
-import { Route } from "../../../src/models/routing/route/route.model";
-import { RouteService } from "../../../src/models/routing/route/route.service";
-import { RoutingRule } from "../../../src/models/routing/routing-rule/routing-rule.model";
-import { RoutingRuleService } from "../../../src/models/routing/routing-rule/routing-rule.service";
-import { expect, testSuite } from "../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../utils/fwcloud-factory";
+import { getRepository } from 'typeorm';
+import db from '../../../src/database/database-manager';
+import { Interface } from '../../../src/models/interface/Interface';
+import { InterfaceIPObj } from '../../../src/models/interface/InterfaceIPObj';
+import { IPObj } from '../../../src/models/ipobj/IPObj';
+import { IPObjGroup } from '../../../src/models/ipobj/IPObjGroup';
+import { IPObjToIPObjGroup } from '../../../src/models/ipobj/IPObjToIPObjGroup';
+import { Route } from '../../../src/models/routing/route/route.model';
+import { RouteService } from '../../../src/models/routing/route/route.service';
+import { RoutingRule } from '../../../src/models/routing/routing-rule/routing-rule.model';
+import { RoutingRuleService } from '../../../src/models/routing/routing-rule/routing-rule.service';
+import { expect, testSuite } from '../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../utils/fwcloud-factory';
 
 describe(IPObjGroup.name, () => {
   let fwcloudProduct: FwCloudProduct;
@@ -54,16 +54,16 @@ describe(IPObjGroup.name, () => {
 
     const _interface: Interface = await getRepository(Interface).save(
       getRepository(Interface).create({
-        name: "eth1",
-        type: "11",
-        interface_type: "11",
+        name: 'eth1',
+        type: '11',
+        interface_type: '11',
       }),
     );
 
     const host = await getRepository(IPObj).save(
       getRepository(IPObj).create({
-        name: "test",
-        address: "0.0.0.0",
+        name: 'test',
+        address: '0.0.0.0',
         ipObjTypeId: 8,
         interfaceId: _interface.id,
       }),
@@ -73,13 +73,13 @@ describe(IPObjGroup.name, () => {
       getRepository(InterfaceIPObj).create({
         interfaceId: _interface.id,
         ipObjId: host.id,
-        interface_order: "1",
+        interface_order: '1',
       }),
     );
 
     ipobjGroup = await getRepository(IPObjGroup).save(
       getRepository(IPObjGroup).create({
-        name: "ipobjs group",
+        name: 'ipobjs group',
         type: 20,
         fwCloudId: fwcloudProduct.fwcloud.id,
       }),
@@ -95,7 +95,7 @@ describe(IPObjGroup.name, () => {
 
     route = await routeService.create({
       routingTableId: fwcloudProduct.routingTable.id,
-      gatewayId: fwcloudProduct.ipobjs.get("gateway").id,
+      gatewayId: fwcloudProduct.ipobjs.get('gateway').id,
     });
 
     route = await routeService.update(route.id, {
@@ -108,9 +108,9 @@ describe(IPObjGroup.name, () => {
     });
   });
 
-  describe("searchGroupUsage", () => {
-    describe("route", () => {
-      it("should detect usages", async () => {
+  describe('searchGroupUsage', () => {
+    describe('route', () => {
+      it('should detect usages', async () => {
         const whereUsed: any = await IPObjGroup.searchGroupUsage(
           ipobjGroup.id,
           fwcloudProduct.fwcloud.id,
@@ -123,8 +123,8 @@ describe(IPObjGroup.name, () => {
       });
     });
 
-    describe("routingRule", () => {
-      it("should detect usages", async () => {
+    describe('routingRule', () => {
+      it('should detect usages', async () => {
         const whereUsed: any = await IPObjGroup.searchGroupUsage(
           ipobjGroup.id,
           fwcloudProduct.fwcloud.id,

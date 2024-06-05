@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository as TypeORMRepository, In } from "typeorm";
-import { isArray } from "util";
+import { Repository as TypeORMRepository, In } from 'typeorm';
+import { isArray } from 'util';
 
 export class Repository<T> extends TypeORMRepository<T> {
   /**

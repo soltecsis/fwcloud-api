@@ -19,13 +19,13 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { ServiceProvider } from "../../../../fonaments/services/service-provider";
+import { ServiceProvider } from '../../../../fonaments/services/service-provider';
 import {
   ServiceBound,
   ServiceContainer,
-} from "../../../../fonaments/services/service-container";
-import { DHCPRuleService } from "./dhcp_r.service";
-import { AbstractApplication } from "../../../../fonaments/abstract-application";
+} from '../../../../fonaments/services/service-container';
+import { DHCPRuleService } from './dhcp_r.service';
+import { AbstractApplication } from '../../../../fonaments/abstract-application';
 
 export class DHCPRuleServiceProvider extends ServiceProvider {
   public register(serviceContainer: ServiceContainer): ServiceBound {

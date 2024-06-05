@@ -20,22 +20,22 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ServiceProvider } from "../fonaments/services/service-provider";
-import { BackupServiceProvider } from "../backups/backup.provider";
-import { CronServiceProvider } from "../backups/cron/cron.provider";
-import { SnapshotServiceProvider } from "../snapshots/snapshot.provider";
-import { DatabaseServiceProvider } from "../database/database.provider";
-import { RepositoryServiceProvider } from "../database/repository.provider";
-import { RouterServiceProvider } from "../fonaments/http/router/router.provider";
-import { AuthorizationServiceProvider } from "../fonaments/authorization/authorization.provider";
-import { WebSocketServiceProvider } from "../sockets/web-socket.provider";
-import { FirewallServiceProvider } from "../models/firewall/firewall.provider";
-import { FwCloudExportServiceProvider } from "../fwcloud-exporter/fwcloud-export.provider";
-import { OpenVPNServiceProvider } from "../models/vpn/openvpn/openvpn.provider";
-import { FwCloudServiceProvider } from "../models/fwcloud/fwcloud.provider";
-import { CLIApplication } from "../fonaments/cli-application";
-import { RouterService } from "../fonaments/http/router/router.service";
-import { Routes } from "../routes/routes";
+import { ServiceProvider } from '../fonaments/services/service-provider';
+import { BackupServiceProvider } from '../backups/backup.provider';
+import { CronServiceProvider } from '../backups/cron/cron.provider';
+import { SnapshotServiceProvider } from '../snapshots/snapshot.provider';
+import { DatabaseServiceProvider } from '../database/database.provider';
+import { RepositoryServiceProvider } from '../database/repository.provider';
+import { RouterServiceProvider } from '../fonaments/http/router/router.provider';
+import { AuthorizationServiceProvider } from '../fonaments/authorization/authorization.provider';
+import { WebSocketServiceProvider } from '../sockets/web-socket.provider';
+import { FirewallServiceProvider } from '../models/firewall/firewall.provider';
+import { FwCloudExportServiceProvider } from '../fwcloud-exporter/fwcloud-export.provider';
+import { OpenVPNServiceProvider } from '../models/vpn/openvpn/openvpn.provider';
+import { FwCloudServiceProvider } from '../models/fwcloud/fwcloud.provider';
+import { CLIApplication } from '../fonaments/cli-application';
+import { RouterService } from '../fonaments/http/router/router.service';
+import { Routes } from '../routes/routes';
 
 export class Application extends CLIApplication {
   public static async run(path?: string): Promise<Application> {
@@ -44,7 +44,7 @@ export class Application extends CLIApplication {
       await app.bootstrap();
       return app;
     } catch (e) {
-      console.error("Application can not start: " + e.message);
+      console.error('Application can not start: ' + e.message);
       console.error(e.stack);
       process.exit(1);
     }
@@ -81,6 +81,6 @@ export class Application extends CLIApplication {
   }
 
   protected setCLIConfiguration() {
-    this.config.set("log.stdout", this._config.get("env") !== "test");
+    this.config.set('log.stdout', this._config.get('env') !== 'test');
   }
 }

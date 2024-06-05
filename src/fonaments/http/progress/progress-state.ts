@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Responsable } from "../../contracts/responsable";
-import { object } from "joi";
+import { Responsable } from '../../contracts/responsable';
+import { object } from 'joi';
 
 export class ProgressState implements Responsable {
   protected _steps: number;

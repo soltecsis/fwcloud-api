@@ -20,19 +20,19 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, testSuite, expect } from "../../mocha/global-setup";
-import { Snapshot } from "../../../src/snapshots/snapshot";
-import { Application } from "../../../src/Application";
-import { SnapshotService } from "../../../src/snapshots/snapshot.service";
-import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { FSHelper } from "../../../src/utils/fs-helper";
+import { describeName, testSuite, expect } from '../../mocha/global-setup';
+import { Snapshot } from '../../../src/snapshots/snapshot';
+import { Application } from '../../../src/Application';
+import { SnapshotService } from '../../../src/snapshots/snapshot.service';
+import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
+import { FSHelper } from '../../../src/utils/fs-helper';
 
 let app: Application;
 let service: SnapshotService;
 let fwCloud: FwCloud;
 let fwCloud2: FwCloud;
 
-describe(describeName("SnapshotService Unit Tests"), () => {
+describe(describeName('SnapshotService Unit Tests'), () => {
   before(async () => {
     app = testSuite.app;
 
@@ -40,19 +40,19 @@ describe(describeName("SnapshotService Unit Tests"), () => {
 
     fwCloud = await FwCloud.save(
       FwCloud.create({
-        name: "testCloud",
+        name: 'testCloud',
       }),
     );
 
     fwCloud2 = await FwCloud.save(
       FwCloud.create({
-        name: "testCloud2",
+        name: 'testCloud2',
       }),
     );
   });
 
-  describe("make()", () => {
-    it("should generate the snapshots directory", async () => {
+  describe('make()', () => {
+    it('should generate the snapshots directory', async () => {
       await FSHelper.rmDirectory(service.config.data_dir);
 
       expect(await FSHelper.directoryExists(service.config.data_dir)).to.be
@@ -65,22 +65,22 @@ describe(describeName("SnapshotService Unit Tests"), () => {
     });
   });
 
-  describe("getAll()", () => {
-    it("should return all created snapshots belonging to the fwcloud", async () => {
+  describe('getAll()', () => {
+    it('should return all created snapshots belonging to the fwcloud', async () => {
       const s1: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
-        "1",
+        '1',
       );
       const s2: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
-        "2",
+        '2',
       );
       const s3: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud2,
-        "3",
+        '3',
       );
 
       const expected = await service.getAll(fwCloud);
@@ -88,47 +88,47 @@ describe(describeName("SnapshotService Unit Tests"), () => {
       expect(await service.getAll(fwCloud)).to.be.deep.equal([s2, s1]);
     });
 
-    it("should return an empty list if the fwcloud snapshot directory does not exists", async () => {
+    it('should return an empty list if the fwcloud snapshot directory does not exists', async () => {
       expect(await service.getAll(fwCloud)).to.be.deep.equal([]);
     });
   });
 
-  describe("findOne()", () => {
-    it("should return a snapshot if the given id exists", async () => {
+  describe('findOne()', () => {
+    it('should return a snapshot if the given id exists', async () => {
       const s1: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
-        "test",
+        'test',
       );
 
       expect(await service.findOne(fwCloud, s1.id)).to.be.deep.eq(s1);
     });
   });
 
-  describe("update()", () => {
-    it("should updated the name and the comment", async () => {
+  describe('update()', () => {
+    it('should updated the name and the comment', async () => {
       const s1: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
-        "test",
+        'test',
       );
 
       expect(
-        (await service.update(s1, { name: "name", comment: "comment" })).name,
+        (await service.update(s1, { name: 'name', comment: 'comment' })).name,
       ).to.be.deep.eq(s1.name);
       expect(
-        (await service.update(s1, { name: "name", comment: "comment" }))
+        (await service.update(s1, { name: 'name', comment: 'comment' }))
           .comment,
       ).to.be.deep.eq(s1.comment);
     });
   });
 
-  describe("remove()", () => {
-    it("should remove the snapshot", async () => {
+  describe('remove()', () => {
+    it('should remove the snapshot', async () => {
       const s1: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
-        "test",
+        'test',
       );
 
       expect((await service.destroy(s1)).exists).to.be.false;

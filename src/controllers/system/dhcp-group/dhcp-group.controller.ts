@@ -19,19 +19,19 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { getRepository } from "typeorm";
-import { Controller } from "../../../fonaments/http/controller";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { DHCPGroup } from "../../../models/system/dhcp/dhcp_g/dhcp_g.model";
-import { DHCPGroupService } from "../../../models/system/dhcp/dhcp_g/dhcp_g.service";
-import { Request } from "express";
-import { DHCPGroupPolicy } from "../../../policies/dhcp-group.policy";
-import { Validate } from "../../../decorators/validate.decorator";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { DHCPGroupControllerCreateDto } from "./dto/create.dto";
-import { DHCPGroupUpdateDto } from "./dto/update.dto";
-import { DHCPRuleService } from "../../../models/system/dhcp/dhcp_r/dhcp_r.service";
+import { getRepository } from 'typeorm';
+import { Controller } from '../../../fonaments/http/controller';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
+import { DHCPGroup } from '../../../models/system/dhcp/dhcp_g/dhcp_g.model';
+import { DHCPGroupService } from '../../../models/system/dhcp/dhcp_g/dhcp_g.service';
+import { Request } from 'express';
+import { DHCPGroupPolicy } from '../../../policies/dhcp-group.policy';
+import { Validate } from '../../../decorators/validate.decorator';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
+import { DHCPGroupControllerCreateDto } from './dto/create.dto';
+import { DHCPGroupUpdateDto } from './dto/update.dto';
+import { DHCPRuleService } from '../../../models/system/dhcp/dhcp_r/dhcp_r.service';
 
 export class DhcpGroupController extends Controller {
   protected _dhcpGroupService: DHCPGroupService;
@@ -86,13 +86,13 @@ export class DhcpGroupController extends Controller {
       name: req.body.name,
       style: req.body.style,
       rules: req.inputs
-        .get<number[]>("rules")
+        .get<number[]>('rules')
         ?.map((id: number): { id: number } => ({ id })),
     });
 
-    if (req.inputs.get<number[]>("rules")) {
+    if (req.inputs.get<number[]>('rules')) {
       await this._dhcpDHCPRuleService.bulkUpdate(
-        req.inputs.get<number[]>("rules")?.map((id: number) => id),
+        req.inputs.get<number[]>('rules')?.map((id: number) => id),
         { group: group.id },
       );
     }

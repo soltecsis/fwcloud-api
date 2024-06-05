@@ -1,21 +1,21 @@
-import { expect } from "chai";
-import { getRepository } from "typeorm";
-import { Application } from "../../../../src/Application";
-import request = require("supertest");
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { IPObj } from "../../../../src/models/ipobj/IPObj";
-import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
-import { IPObjToIPObjGroup } from "../../../../src/models/ipobj/IPObjToIPObjGroup";
-import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
-import { PolicyRuleToIPObj } from "../../../../src/models/policy/PolicyRuleToIPObj";
-import { User } from "../../../../src/models/user/User";
-import { describeName, testSuite } from "../../../mocha/global-setup";
-import { FwCloudProduct, FwCloudFactory } from "../../../utils/fwcloud-factory";
+import { expect } from 'chai';
+import { getRepository } from 'typeorm';
+import { Application } from '../../../../src/Application';
+import request = require('supertest');
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { IPObj } from '../../../../src/models/ipobj/IPObj';
+import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';
+import { IPObjToIPObjGroup } from '../../../../src/models/ipobj/IPObjToIPObjGroup';
+import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
+import { User } from '../../../../src/models/user/User';
+import { describeName, testSuite } from '../../../mocha/global-setup';
+import { FwCloudProduct, FwCloudFactory } from '../../../utils/fwcloud-factory';
 import {
   createUser,
   generateSession,
   attachSession,
-} from "../../../utils/utils";
+} from '../../../utils/utils';
 
 enum PolicyColumn {
   SOURCE = 1,
@@ -31,7 +31,7 @@ enum PolicyTypeId {
   DNAT = 5,
 }
 
-describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
+describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
   let app: Application;
   let fwcProduct: FwCloudProduct;
   let adminUser: User;
@@ -61,7 +61,7 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
 
     await PolicyRule.insertDefaultPolicy(
       fwcProduct.firewall.id,
-      fwcProduct.interfaces.get("firewall-interface1").id,
+      fwcProduct.interfaces.get('firewall-interface1').id,
       {},
     );
     inputRuleId = await PolicyRule.insertPolicy_r({
@@ -109,7 +109,7 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
 
     firewall = await getRepository(Firewall).findOneOrFail(
       fwcProduct.firewall.id,
-      { relations: ["policyRules"] },
+      { relations: ['policyRules'] },
     );
 
     adminUser.fwClouds = [fwcProduct.fwcloud];
@@ -119,7 +119,7 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
     const service = await getRepository(IPObj).findOneOrFail(10040);
 
     group = await getRepository(IPObjGroup).save({
-      name: "group",
+      name: 'group',
       type: 21,
       fwCloudId: fwcProduct.fwcloud.id,
     });
@@ -139,18 +139,18 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
     };
   });
 
-  describe("INPUT", () => {
+  describe('INPUT', () => {
     beforeEach(async () => {
       rule = await getRepository(PolicyRule).findOneOrFail(inputRuleId);
       data.rule = rule.id;
     });
 
-    it("should not attach a service group into source position", async () => {
+    it('should not attach a service group into source position', async () => {
       data.position = PolicyColumn.SOURCE;
 
       return await request(app.express)
-        .post("/policy/ipobj")
-        .set("Cookie", [attachSession(session)])
+        .post('/policy/ipobj')
+        .set('Cookie', [attachSession(session)])
         .send(data)
         .expect(400)
         .then((response) => {
@@ -158,12 +158,12 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
         });
     });
 
-    it("should not attach a service group into source position", async () => {
+    it('should not attach a service group into source position', async () => {
       data.position = PolicyColumn.DESTINATION;
 
       return await request(app.express)
-        .post("/policy/ipobj")
-        .set("Cookie", [attachSession(session)])
+        .post('/policy/ipobj')
+        .set('Cookie', [attachSession(session)])
         .send(data)
         .expect(400)
         .then((response) => {
@@ -172,18 +172,18 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
     });
   });
 
-  describe("OUTPUT", () => {
+  describe('OUTPUT', () => {
     beforeEach(async () => {
       rule = await getRepository(PolicyRule).findOneOrFail(outputRuleId);
       data.rule = rule.id;
     });
 
-    it("should not attach a service group into source position", async () => {
+    it('should not attach a service group into source position', async () => {
       data.position = PolicyColumn.SOURCE;
 
       return await request(app.express)
-        .post("/policy/ipobj")
-        .set("Cookie", [attachSession(session)])
+        .post('/policy/ipobj')
+        .set('Cookie', [attachSession(session)])
         .send(data)
         .expect(400)
         .then((response) => {
@@ -191,12 +191,12 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
         });
     });
 
-    it("should not attach a service group into source position", async () => {
+    it('should not attach a service group into source position', async () => {
       data.position = PolicyColumn.DESTINATION;
 
       return await request(app.express)
-        .post("/policy/ipobj")
-        .set("Cookie", [attachSession(session)])
+        .post('/policy/ipobj')
+        .set('Cookie', [attachSession(session)])
         .send(data)
         .expect(400)
         .then((response) => {
@@ -205,18 +205,18 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
     });
   });
 
-  describe("FORWARD", () => {
+  describe('FORWARD', () => {
     beforeEach(async () => {
       rule = await getRepository(PolicyRule).findOneOrFail(forwardRuleId);
       data.rule = rule.id;
     });
 
-    it("should not attach a service group into source position", async () => {
+    it('should not attach a service group into source position', async () => {
       data.position = PolicyColumn.SOURCE;
 
       return await request(app.express)
-        .post("/policy/ipobj")
-        .set("Cookie", [attachSession(session)])
+        .post('/policy/ipobj')
+        .set('Cookie', [attachSession(session)])
         .send(data)
         .expect(400)
         .then((response) => {
@@ -224,12 +224,12 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
         });
     });
 
-    it("should not attach a service group into source position", async () => {
+    it('should not attach a service group into source position', async () => {
       data.position = PolicyColumn.DESTINATION;
 
       return await request(app.express)
-        .post("/policy/ipobj")
-        .set("Cookie", [attachSession(session)])
+        .post('/policy/ipobj')
+        .set('Cookie', [attachSession(session)])
         .send(data)
         .expect(400)
         .then((response) => {
@@ -238,18 +238,18 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
     });
   });
 
-  describe("SNAT", () => {
+  describe('SNAT', () => {
     beforeEach(async () => {
       rule = await getRepository(PolicyRule).findOneOrFail(snatRuleId);
       data.rule = rule.id;
     });
 
-    it("should not attach a service group into source position", async () => {
+    it('should not attach a service group into source position', async () => {
       data.position = PolicyColumn.SOURCE;
 
       return await request(app.express)
-        .post("/policy/ipobj")
-        .set("Cookie", [attachSession(session)])
+        .post('/policy/ipobj')
+        .set('Cookie', [attachSession(session)])
         .send(data)
         .expect(400)
         .then((response) => {
@@ -257,12 +257,12 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
         });
     });
 
-    it("should not attach a service group into source position", async () => {
+    it('should not attach a service group into source position', async () => {
       data.position = PolicyColumn.DESTINATION;
 
       return await request(app.express)
-        .post("/policy/ipobj")
-        .set("Cookie", [attachSession(session)])
+        .post('/policy/ipobj')
+        .set('Cookie', [attachSession(session)])
         .send(data)
         .expect(400)
         .then((response) => {
@@ -271,18 +271,18 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
     });
   });
 
-  describe("DNAT", () => {
+  describe('DNAT', () => {
     beforeEach(async () => {
       rule = await getRepository(PolicyRule).findOneOrFail(dnatRuleId);
       data.rule = rule.id;
     });
 
-    it("should not attach a service group into source position", async () => {
+    it('should not attach a service group into source position', async () => {
       data.position = PolicyColumn.SOURCE;
 
       return await request(app.express)
-        .post("/policy/ipobj")
-        .set("Cookie", [attachSession(session)])
+        .post('/policy/ipobj')
+        .set('Cookie', [attachSession(session)])
         .send(data)
         .expect(400)
         .then((response) => {
@@ -290,12 +290,12 @@ describe(describeName("Ipobj group policy rule attach E2E Tests"), () => {
         });
     });
 
-    it("should not attach a service group into source position", async () => {
+    it('should not attach a service group into source position', async () => {
       data.position = PolicyColumn.DESTINATION;
 
       return await request(app.express)
-        .post("/policy/ipobj")
-        .set("Cookie", [attachSession(session)])
+        .post('/policy/ipobj')
+        .set('Cookie', [attachSession(session)])
         .send(data)
         .expect(400)
         .then((response) => {

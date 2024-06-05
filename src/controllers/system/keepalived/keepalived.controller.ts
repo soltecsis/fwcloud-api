@@ -14,38 +14,38 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Request } from "express";
-import { Controller } from "../../../fonaments/http/controller";
+import { Request } from 'express';
+import { Controller } from '../../../fonaments/http/controller';
 import {
   Validate,
   ValidateQuery,
-} from "../../../decorators/validate.decorator";
-import { KeepalivedPolicy } from "../../../policies/keepalived.policy";
-import { KeepalivedRule } from "../../../models/system/keepalived/keepalived_r/keepalived_r.model";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { KeepalivedGroup } from "../../../models/system/keepalived/keepalived_g/keepalived_g.model";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { getRepository, SelectQueryBuilder } from "typeorm";
+} from '../../../decorators/validate.decorator';
+import { KeepalivedPolicy } from '../../../policies/keepalived.policy';
+import { KeepalivedRule } from '../../../models/system/keepalived/keepalived_r/keepalived_r.model';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
+import { KeepalivedGroup } from '../../../models/system/keepalived/keepalived_g/keepalived_g.model';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
+import { getRepository, SelectQueryBuilder } from 'typeorm';
 import {
   KeepalivedRuleService,
   KeepalivedRulesData,
   ICreateKeepalivedRule,
   IUpdateKeepalivedRule,
-} from "../../../models/system/keepalived/keepalived_r/keepalived_r.service";
-import { KeepalivedRuleCreateDto } from "./dto/create.dto";
-import { Offset } from "../../../offset";
-import { KeepalivedRuleCopyDto } from "./dto/copy.dto";
-import { KeepalivedRuleUpdateDto } from "./dto/update.dto";
-import { KeepalivedRuleBulkUpdateDto } from "./dto/bulk-update.dto";
-import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
-import { KeepalivedRuleBulkRemoveDto } from "./dto/bulk-remove.dto";
-import { KeepalivedRuleItemForCompiler } from "../../../models/system/keepalived/shared";
-import { KeepalivedMoveFromDto } from "./dto/move-from.dto";
-import { KeepalivedCompiler } from "../../../compiler/system/keepalived/KeepalivedCompiler";
-import { Channel } from "../../../sockets/channels/channel";
-import { Communication } from "../../../communications/communication";
-import { ProgressPayload } from "../../../sockets/messages/socket-message";
+} from '../../../models/system/keepalived/keepalived_r/keepalived_r.service';
+import { KeepalivedRuleCreateDto } from './dto/create.dto';
+import { Offset } from '../../../offset';
+import { KeepalivedRuleCopyDto } from './dto/copy.dto';
+import { KeepalivedRuleUpdateDto } from './dto/update.dto';
+import { KeepalivedRuleBulkUpdateDto } from './dto/bulk-update.dto';
+import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
+import { KeepalivedRuleBulkRemoveDto } from './dto/bulk-remove.dto';
+import { KeepalivedRuleItemForCompiler } from '../../../models/system/keepalived/shared';
+import { KeepalivedMoveFromDto } from './dto/move-from.dto';
+import { KeepalivedCompiler } from '../../../compiler/system/keepalived/KeepalivedCompiler';
+import { Channel } from '../../../sockets/channels/channel';
+import { Communication } from '../../../communications/communication';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
 
 export class KeepalivedController extends Controller {
   protected _keepalivedRuleService: KeepalivedRuleService;
@@ -93,7 +93,7 @@ export class KeepalivedController extends Controller {
 
     const keepalivedRules: KeepalivedRule[] =
       await this._keepalivedRuleService.getKeepalivedRulesData(
-        "compiler",
+        'compiler',
         this._fwCloud.id,
         this._firewall.id,
       );
@@ -115,7 +115,7 @@ export class KeepalivedController extends Controller {
 
     const grid: KeepalivedRule[] =
       await this._keepalivedRuleService.getKeepalivedRulesData(
-        "keepalived_grid",
+        'keepalived_grid',
         this._fwCloud.id,
         this._firewall.id,
       );
@@ -159,7 +159,7 @@ export class KeepalivedController extends Controller {
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   public async copy(req: Request): Promise<ResponseBuilder> {
-    const ids: number[] = req.inputs.get("rules");
+    const ids: number[] = req.inputs.get('rules');
     for (const id of ids) {
       const rule: KeepalivedRule =
         await getRepository(KeepalivedRule).findOneOrFail(id);
@@ -168,8 +168,8 @@ export class KeepalivedController extends Controller {
 
     const created: KeepalivedRule[] = await this._keepalivedRuleService.copy(
       ids,
-      parseInt(req.inputs.get("to")),
-      req.inputs.get<Offset>("offset"),
+      parseInt(req.inputs.get('to')),
+      req.inputs.get<Offset>('offset'),
     );
     return ResponseBuilder.buildResponse().status(201).body(created);
   }
@@ -251,16 +251,16 @@ export class KeepalivedController extends Controller {
 
     const rules: KeepalivedRule[] = await getRepository(KeepalivedRule).find({
       join: {
-        alias: "rule",
+        alias: 'rule',
         innerJoin: {
-          firewall: "rule.firewall",
-          fwcloud: "firewall.fwCloud",
+          firewall: 'rule.firewall',
+          fwcloud: 'firewall.fwCloud',
         },
       },
       where: (qb: SelectQueryBuilder<KeepalivedRule>) => {
-        qb.whereInIds(req.inputs.get("rules"))
-          .andWhere("firewall.id = :firewall", { firewall: this._firewall.id })
-          .andWhere("firewall.fwCloudId = :fwcloud", {
+        qb.whereInIds(req.inputs.get('rules'))
+          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+          .andWhere('firewall.fwCloudId = :fwcloud', {
             fwcloud: this._fwCloud.id,
           });
       },
@@ -268,8 +268,8 @@ export class KeepalivedController extends Controller {
 
     const result: KeepalivedRule[] = await this._keepalivedRuleService.move(
       rules.map((item) => item.id),
-      parseInt(req.inputs.get("to")),
-      req.inputs.get<Offset>("offset"),
+      parseInt(req.inputs.get('to')),
+      req.inputs.get<Offset>('offset'),
     );
 
     return ResponseBuilder.buildResponse().status(200).body(result);
@@ -280,8 +280,8 @@ export class KeepalivedController extends Controller {
     (await KeepalivedPolicy.move(this._firewall, req.session.user)).authorize();
 
     const result: KeepalivedRule[] = await this._keepalivedRuleService.moveFrom(
-      parseInt(req.inputs.get("fromId")),
-      parseInt(req.inputs.get("toId")),
+      parseInt(req.inputs.get('fromId')),
+      parseInt(req.inputs.get('toId')),
       req.inputs.all(),
     );
 
@@ -296,7 +296,7 @@ export class KeepalivedController extends Controller {
 
     const rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] =
       await this._keepalivedRuleService.getKeepalivedRulesData(
-        "compiler",
+        'compiler',
         this._fwCloud.id,
         this._firewall.id,
       );
@@ -317,18 +317,18 @@ export class KeepalivedController extends Controller {
     if (firewall.clusterId) {
       firewallId = (
         await getRepository(Firewall)
-          .createQueryBuilder("firewall")
-          .where("firewall.clusterId = :clusterId", {
+          .createQueryBuilder('firewall')
+          .where('firewall.clusterId = :clusterId', {
             clusterId: firewall.clusterId,
           })
-          .andWhere("firewall.fwmaster = 1")
+          .andWhere('firewall.fwmaster = 1')
           .getOneOrFail()
       ).id;
     }
 
     const rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] =
       await this._keepalivedRuleService.getKeepalivedRulesData(
-        "compiler",
+        'compiler',
         this._fwCloud.id,
         firewallId,
       );
@@ -336,29 +336,29 @@ export class KeepalivedController extends Controller {
     const content: string = new KeepalivedCompiler()
       .compile(rules, channel)
       .map((item) => item.cs)
-      .join("\n");
+      .join('\n');
 
     const communication: Communication<unknown> =
       await firewall.getCommunication();
 
     channel.emit(
-      "message",
+      'message',
       new ProgressPayload(
-        "start",
+        'start',
         false,
         `Installing Keepalived configuration`,
       ),
     );
 
     await communication.installKeepalivedConfigs(
-      "/etc/keepalived",
-      [{ name: "keepalived.conf", content: content }],
+      '/etc/keepalived',
+      [{ name: 'keepalived.conf', content: content }],
       channel,
     );
 
     channel.emit(
-      "message",
-      new ProgressPayload("end", false, `Keepalived configuration installed`),
+      'message',
+      new ProgressPayload('end', false, `Keepalived configuration installed`),
     );
 
     return ResponseBuilder.buildResponse().status(200).body(null);

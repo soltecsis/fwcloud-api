@@ -36,10 +36,10 @@ import {
   RemoveOptions,
   Repository,
   SelectQueryBuilder,
-} from "typeorm";
-import { Offset } from "../../../offset";
-import { Firewall } from "../../firewall/Firewall";
-import { RoutingRule } from "./routing-rule.model";
+} from 'typeorm';
+import { Offset } from '../../../offset';
+import { Firewall } from '../../firewall/Firewall';
+import { RoutingRule } from './routing-rule.model';
 
 export interface IFindManyRoutingRulePath {
   firewallId?: number;
@@ -88,10 +88,10 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
   async getLastRoutingRuleInFirewall(
     firewallId: number,
   ): Promise<RoutingRule | undefined> {
-    return this.createQueryBuilder("rule")
-      .innerJoin("rule.routingTable", "table")
-      .where("table.firewallId = :firewallId", { firewallId })
-      .orderBy("rule.rule_order", "DESC")
+    return this.createQueryBuilder('rule')
+      .innerJoin('rule.routingTable', 'table')
+      .where('table.firewallId = :firewallId', { firewallId })
+      .orderBy('rule.rule_order', 'DESC')
       .take(1)
       .getOne();
   }
@@ -113,9 +113,9 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
         id: In(ids),
       },
       order: {
-        rule_order: "ASC",
+        rule_order: 'ASC',
       },
-      relations: ["routingTable", "routingTable.firewall"],
+      relations: ['routingTable', 'routingTable.firewall'],
     });
 
     let affectedRules: RoutingRule[] = await this.findManyInPath({
@@ -244,7 +244,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
       where: {
         id: In(entityArray.map((item) => item.id)),
       },
-      relations: ["routingTable", "routingTable.firewall"],
+      relations: ['routingTable', 'routingTable.firewall'],
     });
 
     for (const entity of entitiesWithFirewall) {
@@ -291,7 +291,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
     }
 
     await this.query(
-      `SET @a:=0; UPDATE ${RoutingRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map((item) => item.id).join(",")}) ORDER BY rule_order`,
+      `SET @a:=0; UPDATE ${RoutingRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map((item) => item.id).join(',')}) ORDER BY rule_order`,
     );
   }
 
@@ -302,28 +302,28 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
     return Object.assign(
       {
         join: {
-          alias: "rule",
+          alias: 'rule',
           innerJoin: {
-            table: "rule.routingTable",
-            firewall: "table.firewall",
-            fwcloud: "firewall.fwCloud",
+            table: 'rule.routingTable',
+            firewall: 'table.firewall',
+            fwcloud: 'firewall.fwCloud',
           },
         },
         where: (qb: SelectQueryBuilder<RoutingRule>) => {
           if (path.firewallId) {
-            qb.andWhere("firewall.id = :firewall", {
+            qb.andWhere('firewall.id = :firewall', {
               firewall: path.firewallId,
             });
           }
 
           if (path.fwCloudId) {
-            qb.andWhere("firewall.fwCloudId = :fwcloud", {
+            qb.andWhere('firewall.fwCloudId = :fwcloud', {
               fwcloud: path.fwCloudId,
             });
           }
 
           if (path.id) {
-            qb.andWhere("rule.id = :id", { id: path.id });
+            qb.andWhere('rule.id = :id', { id: path.id });
           }
         },
       },
@@ -336,18 +336,18 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
     firewall: number,
     rules?: number[],
   ): Promise<RoutingRule[]> {
-    let query = this.createQueryBuilder("rule")
-      .innerJoinAndSelect("rule.routingTable", "table")
-      .leftJoinAndSelect("rule.routingGroup", "group")
-      .leftJoinAndSelect("rule.firewallApplyTo", "cluster_node")
-      .innerJoin("table.firewall", "firewall")
-      .innerJoin("firewall.fwCloud", "fwcloud")
-      .where("firewall.id = :firewall", { firewall: firewall })
-      .andWhere("fwcloud.id = :fwcloud", { fwcloud: fwcloud });
+    let query = this.createQueryBuilder('rule')
+      .innerJoinAndSelect('rule.routingTable', 'table')
+      .leftJoinAndSelect('rule.routingGroup', 'group')
+      .leftJoinAndSelect('rule.firewallApplyTo', 'cluster_node')
+      .innerJoin('table.firewall', 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwcloud')
+      .where('firewall.id = :firewall', { firewall: firewall })
+      .andWhere('fwcloud.id = :fwcloud', { fwcloud: fwcloud });
 
     if (rules)
-      query = query.andWhere("rule.id IN (:...rules)", { rules: rules });
+      query = query.andWhere('rule.id IN (:...rules)', { rules: rules });
 
-    return query.orderBy("rule.rule_order").getMany();
+    return query.orderBy('rule.rule_order').getMany();
   }
 }

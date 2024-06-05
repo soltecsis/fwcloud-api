@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, expect, testSuite } from "../../mocha/global-setup";
-import { Application } from "../../../src/Application";
-import request = require("supertest");
-import { FwCloudFactory, FwCloudProduct } from "../../utils/fwcloud-factory";
-import { attachSession, createUser, generateSession } from "../../utils/utils";
-import { User } from "../../../src/models/user/User";
+import { describeName, expect, testSuite } from '../../mocha/global-setup';
+import { Application } from '../../../src/Application';
+import request = require('supertest');
+import { FwCloudFactory, FwCloudProduct } from '../../utils/fwcloud-factory';
+import { attachSession, createUser, generateSession } from '../../utils/utils';
+import { User } from '../../../src/models/user/User';
 
-describe(describeName("InputValidation Middleware E2E test"), () => {
+describe(describeName('InputValidation Middleware E2E test'), () => {
   let app: Application;
   let fwcProduct: FwCloudProduct;
   let adminUser: User;
@@ -41,12 +41,12 @@ describe(describeName("InputValidation Middleware E2E test"), () => {
     session = generateSession(adminUser);
   });
 
-  it("should remove _object from the validation error", async () => {
-    app.config.set("confirmation_token", false);
+  it('should remove _object from the validation error', async () => {
+    app.config.set('confirmation_token', false);
 
     await request(app.express)
-      .post("/firewall")
-      .set("Cookie", [attachSession(session)])
+      .post('/firewall')
+      .set('Cookie', [attachSession(session)])
       .send({
         fwcloud: fwcProduct.fwcloud.id,
       })

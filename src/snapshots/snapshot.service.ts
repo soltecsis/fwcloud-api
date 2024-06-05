@@ -20,15 +20,15 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Service } from "../fonaments/services/service";
-import { Snapshot } from "./snapshot";
-import * as fs from "fs";
-import * as path from "path";
-import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
-import { FwCloud } from "../models/fwcloud/FwCloud";
-import { Progress } from "../fonaments/http/progress/progress";
-import { FSHelper } from "../utils/fs-helper";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+import { Service } from '../fonaments/services/service';
+import { Snapshot } from './snapshot';
+import * as fs from 'fs';
+import * as path from 'path';
+import { NotFoundException } from '../fonaments/exceptions/not-found-exception';
+import { FwCloud } from '../models/fwcloud/FwCloud';
+import { Progress } from '../fonaments/http/progress/progress';
+import { FSHelper } from '../utils/fs-helper';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
 
 export type SnapshotConfig = {
   data_dir: string;
@@ -38,7 +38,7 @@ export class SnapshotService extends Service {
   protected _config: SnapshotConfig;
 
   public async build(): Promise<SnapshotService> {
-    this._config = this._app.config.get("snapshot");
+    this._config = this._app.config.get('snapshot');
 
     if (!fs.existsSync(this._config.data_dir)) {
       fs.mkdirSync(this._config.data_dir);

@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { IPObj } from "../../../models/ipobj/IPObj";
-import { SelectQueryBuilder, Brackets } from "typeorm";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { FwCloudExporter } from "./fwcloud.exporter";
-import { Interface } from "../../../models/interface/Interface";
-import { InterfaceExporter } from "./interface.exporter";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { IPObj } from '../../../models/ipobj/IPObj';
+import { SelectQueryBuilder, Brackets } from 'typeorm';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
+import { FwCloudExporter } from './fwcloud.exporter';
+import { Interface } from '../../../models/interface/Interface';
+import { InterfaceExporter } from './interface.exporter';
 
 export class IPObjExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -45,25 +45,25 @@ export class IPObjExporter extends TableExporter {
           qb.where((qb) => {
             const subquery = qb
               .subQuery()
-              .from(FwCloud, "fwcloud")
-              .select("fwcloud.id");
+              .from(FwCloud, 'fwcloud')
+              .select('fwcloud.id');
 
             return (
               `${alias}.fwCloudId IN ` +
               new FwCloudExporter()
-                .getFilterBuilder(subquery, "fwcloud", fwCloudId)
+                .getFilterBuilder(subquery, 'fwcloud', fwCloudId)
                 .getQuery()
             );
           }).orWhere((qb) => {
             const subquery = qb
               .subQuery()
-              .from(Interface, "interface")
-              .select("interface.id");
+              .from(Interface, 'interface')
+              .select('interface.id');
 
             return (
               `${alias}.interfaceId IN ` +
               new InterfaceExporter()
-                .getFilterBuilder(subquery, "interface", fwCloudId)
+                .getFilterBuilder(subquery, 'interface', fwCloudId)
                 .getQuery()
             );
           });

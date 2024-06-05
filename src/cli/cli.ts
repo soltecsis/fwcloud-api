@@ -20,18 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import yargs = require("yargs");
-import { MigrationResetCommand } from "./commands/migration-reset-command";
-import { MigrationRunCommand } from "./commands/migration-run.command";
-import { MigrationCreateCommand } from "./commands/migration-create.command";
-import { MigrationRollbackCommand } from "./commands/migration-rollback.command";
-import { MigrationImportDataCommand } from "./commands/migration-import-data.command";
-import { RouteListCommand } from "./commands/route-list.command";
-import { KeysGenerateCommand } from "./commands/keys-generate.command";
-import { Argument, Command, Option } from "./command";
-import { BackupCreateCommand } from "./commands/backup-create.command";
-import { BackupRestoreCommand } from "./commands/backup-restore.command";
-import { StandardServicesAddCommand } from "./commands/standard-services-add.command";
+import yargs = require('yargs');
+import { MigrationResetCommand } from './commands/migration-reset-command';
+import { MigrationRunCommand } from './commands/migration-run.command';
+import { MigrationCreateCommand } from './commands/migration-create.command';
+import { MigrationRollbackCommand } from './commands/migration-rollback.command';
+import { MigrationImportDataCommand } from './commands/migration-import-data.command';
+import { RouteListCommand } from './commands/route-list.command';
+import { KeysGenerateCommand } from './commands/keys-generate.command';
+import { Argument, Command, Option } from './command';
+import { BackupCreateCommand } from './commands/backup-create.command';
+import { BackupRestoreCommand } from './commands/backup-restore.command';
+import { StandardServicesAddCommand } from './commands/standard-services-add.command';
 
 const commands: (typeof Command)[] = [
   MigrationResetCommand,
@@ -48,7 +48,7 @@ const commands: (typeof Command)[] = [
 
 class CLI {
   public load(): yargs.Argv {
-    let cli: yargs.Argv = yargs.usage("Usage: $0 <command> [options]");
+    let cli: yargs.Argv = yargs.usage('Usage: $0 <command> [options]');
 
     cli = this.parseCommands(cli, commands);
 
@@ -57,8 +57,8 @@ class CLI {
       .demandCommand(1)
       .strict()
       .help()
-      .alias("h", "help")
-      .alias("v", "version").argv;
+      .alias('h', 'help')
+      .alias('v', 'version').argv;
 
     return cli;
   }

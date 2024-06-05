@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
-import bodyParser from "body-parser";
-import { Request, Response, NextFunction } from "express";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
+import bodyParser from 'body-parser';
+import { Request, Response, NextFunction } from 'express';
 
 export class BodyParser extends Middleware {
   public async handle(
@@ -30,6 +30,6 @@ export class BodyParser extends Middleware {
     res: Response,
     next: NextFunction,
   ): Promise<void> {
-    bodyParser.json({ limit: "2mb" })(req, res, next);
+    bodyParser.json({ limit: '2mb' })(req, res, next);
   }
 }

@@ -20,37 +20,37 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../../../../../src/fonaments/abstract-application";
-import { HttpException } from "../../../../../src/fonaments/exceptions/http/http-exception";
+import { AbstractApplication } from '../../../../../src/fonaments/abstract-application';
+import { HttpException } from '../../../../../src/fonaments/exceptions/http/http-exception';
 import {
   expect,
   testSuite,
   describeName,
-} from "../../../../mocha/global-setup";
-import sinon from "sinon";
+} from '../../../../mocha/global-setup';
+import sinon from 'sinon';
 
 let app: AbstractApplication;
 
-describe(describeName("HttpException Unit tests"), () => {
+describe(describeName('HttpException Unit tests'), () => {
   beforeEach(async () => {
     app = testSuite.app;
   });
 
-  describe("toResponse()", () => {
-    it("should return the stack if the app is not in prod mode", () => {
+  describe('toResponse()', () => {
+    it('should return the stack if the app is not in prod mode', () => {
       const error = new HttpException();
 
-      expect(error.toResponse()).to.haveOwnProperty("stack");
+      expect(error.toResponse()).to.haveOwnProperty('stack');
     });
 
-    it("should not return the stack if the app is in prod mode", () => {
+    it('should not return the stack if the app is in prod mode', () => {
       const error = new HttpException();
 
       const stub: sinon.SinonStub = sinon
-        .stub(app.config, "get")
-        .returns("prod");
+        .stub(app.config, 'get')
+        .returns('prod');
 
-      expect(error.toResponse()).not.to.haveOwnProperty("stack");
+      expect(error.toResponse()).not.to.haveOwnProperty('stack');
 
       stub.restore();
     });

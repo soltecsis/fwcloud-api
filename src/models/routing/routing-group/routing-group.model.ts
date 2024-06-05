@@ -27,12 +27,12 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-} from "typeorm";
-import { Firewall } from "../../firewall/Firewall";
-import Model from "../../Model";
-import { RoutingRule } from "../routing-rule/routing-rule.model";
+} from 'typeorm';
+import { Firewall } from '../../firewall/Firewall';
+import Model from '../../Model';
+import { RoutingRule } from '../routing-rule/routing-rule.model';
 
-const tableName: string = "routing_g";
+const tableName: string = 'routing_g';
 
 @Entity(tableName)
 export class RoutingGroup extends Model {
@@ -48,12 +48,12 @@ export class RoutingGroup extends Model {
   @Column()
   style: string;
 
-  @Column({ name: "firewall" })
+  @Column({ name: 'firewall' })
   firewallId: number;
 
   @ManyToOne((type) => Firewall, (firewall) => firewall.routingGroups)
   @JoinColumn({
-    name: "firewall",
+    name: 'firewall',
   })
   firewall: Firewall;
 

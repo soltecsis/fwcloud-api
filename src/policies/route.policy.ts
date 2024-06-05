@@ -20,11 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Policy, Authorization } from "../fonaments/authorization/policy";
-import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
-import { RoutingTable } from "../models/routing/routing-table/routing-table.model";
-import { Route } from "../models/routing/route/route.model";
+import { Policy, Authorization } from '../fonaments/authorization/policy';
+import { User } from '../models/user/User';
+import { getRepository } from 'typeorm';
+import { RoutingTable } from '../models/routing/routing-table/routing-table.model';
+import { Route } from '../models/routing/route/route.model';
 
 export class RoutePolicy extends Policy {
   static async create(table: RoutingTable, user: User): Promise<Authorization> {
@@ -104,7 +104,7 @@ export class RoutePolicy extends Policy {
 
   protected static getUser(userId: number): Promise<User> {
     return getRepository(User).findOneOrFail(userId, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
   }
 
@@ -112,16 +112,16 @@ export class RoutePolicy extends Policy {
     routingTableId: number,
   ): Promise<RoutingTable> {
     return getRepository(RoutingTable).findOne(routingTableId, {
-      relations: ["firewall", "firewall.fwCloud"],
+      relations: ['firewall', 'firewall.fwCloud'],
     });
   }
 
   protected static getRoute(routeId: number): Promise<Route> {
     return getRepository(Route).findOne(routeId, {
       relations: [
-        "routingTable",
-        "routingTable.firewall",
-        "routingTable.firewall.fwCloud",
+        'routingTable',
+        'routingTable.firewall',
+        'routingTable.firewall.fwCloud',
       ],
     });
   }

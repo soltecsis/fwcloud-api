@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Policy, Authorization } from "../fonaments/authorization/policy";
-import { Snapshot } from "../snapshots/snapshot";
-import { User } from "../models/user/User";
-import { FwCloud } from "../models/fwcloud/FwCloud";
+import { Policy, Authorization } from '../fonaments/authorization/policy';
+import { Snapshot } from '../snapshots/snapshot';
+import { User } from '../models/user/User';
+import { FwCloud } from '../models/fwcloud/FwCloud';
 
 export class SnapshotPolicy extends Policy {
   static async read(snapshot: Snapshot, user: User): Promise<Authorization> {
-    user = await User.findOneOrFail(user.id, { relations: ["fwClouds"] });
+    user = await User.findOneOrFail(user.id, { relations: ['fwClouds'] });
 
     if (user.role === 1) {
       return Authorization.grant();
@@ -44,7 +44,7 @@ export class SnapshotPolicy extends Policy {
   }
 
   static async create(fwcloud: FwCloud, user: User): Promise<Authorization> {
-    user = await User.findOneOrFail(user.id, { relations: ["fwClouds"] });
+    user = await User.findOneOrFail(user.id, { relations: ['fwClouds'] });
 
     if (user.role === 1) {
       return Authorization.grant();
@@ -58,7 +58,7 @@ export class SnapshotPolicy extends Policy {
   }
 
   static async update(snapshot: Snapshot, user: User): Promise<Authorization> {
-    user = await User.findOneOrFail(user.id, { relations: ["fwClouds"] });
+    user = await User.findOneOrFail(user.id, { relations: ['fwClouds'] });
 
     if (user.role === 1) {
       return Authorization.grant();
@@ -75,7 +75,7 @@ export class SnapshotPolicy extends Policy {
   }
 
   static async restore(snapshot: Snapshot, user: User): Promise<Authorization> {
-    user = await User.findOneOrFail(user.id, { relations: ["fwClouds"] });
+    user = await User.findOneOrFail(user.id, { relations: ['fwClouds'] });
 
     if (user.role === 1) {
       return Authorization.grant();
@@ -92,7 +92,7 @@ export class SnapshotPolicy extends Policy {
   }
 
   static async destroy(snapshot: Snapshot, user: User): Promise<Authorization> {
-    user = await User.findOneOrFail(user.id, { relations: ["fwClouds"] });
+    user = await User.findOneOrFail(user.id, { relations: ['fwClouds'] });
 
     if (user.role === 1) {
       return Authorization.grant();

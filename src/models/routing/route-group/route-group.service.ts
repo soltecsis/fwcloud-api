@@ -26,11 +26,11 @@ import {
   getRepository,
   Repository,
   SelectQueryBuilder,
-} from "typeorm";
-import { Application } from "../../../Application";
-import { Service } from "../../../fonaments/services/service";
-import { Route } from "../route/route.model";
-import { RouteGroup } from "./route-group.model";
+} from 'typeorm';
+import { Application } from '../../../Application';
+import { Service } from '../../../fonaments/services/service';
+import { Route } from '../route/route.model';
+import { RouteGroup } from './route-group.model';
 
 interface IFindManyRouteGroupPath {
   firewallId?: number;
@@ -122,27 +122,27 @@ export class RouteGroupService extends Service {
     return Object.assign(
       {
         join: {
-          alias: "group",
+          alias: 'group',
           innerJoin: {
-            firewall: "group.firewall",
-            fwcloud: "firewall.fwCloud",
+            firewall: 'group.firewall',
+            fwcloud: 'firewall.fwCloud',
           },
         },
         where: (qb: SelectQueryBuilder<RouteGroup>) => {
           if (path.firewallId) {
-            qb.andWhere("firewall.id = :firewall", {
+            qb.andWhere('firewall.id = :firewall', {
               firewall: path.firewallId,
             });
           }
 
           if (path.fwCloudId) {
-            qb.andWhere("firewall.fwCloudId = :fwcloud", {
+            qb.andWhere('firewall.fwCloudId = :fwcloud', {
               fwcloud: path.fwCloudId,
             });
           }
 
           if (path.id) {
-            qb.andWhere("group.id = :id", { id: path.id });
+            qb.andWhere('group.id = :id', { id: path.id });
           }
         },
       },

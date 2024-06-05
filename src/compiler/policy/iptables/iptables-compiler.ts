@@ -20,39 +20,39 @@
 	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { PolicyTypesMap } from "../../../models/policy/PolicyType";
-import { PolicyCompilerTools } from "../PolicyCompilerTools";
+import { PolicyTypesMap } from '../../../models/policy/PolicyType';
+import { PolicyCompilerTools } from '../PolicyCompilerTools';
 
 export class IPTablesCompiler extends PolicyCompilerTools {
   constructor(ruleData: any) {
     super();
 
-    this._compiler = "IPTables";
+    this._compiler = 'IPTables';
     this._ruleData = ruleData;
     this._policyType = ruleData.type;
     this._cmd =
-      this._policyType < PolicyTypesMap.get("IPv6:INPUT")
-        ? "$IPTABLES"
-        : "$IP6TABLES"; // iptables command variable.
+      this._policyType < PolicyTypesMap.get('IPv6:INPUT')
+        ? '$IPTABLES'
+        : '$IP6TABLES'; // iptables command variable.
     this._cs = `${this._cmd} `; // Compilation string.
     this._comment = this.ruleComment();
   }
 
   private natCheck(): void {
     if (
-      (this._policyType === PolicyTypesMap.get("IPv4:SNAT") ||
-        this._policyType === PolicyTypesMap.get("IPv4:DNAT")) &&
+      (this._policyType === PolicyTypesMap.get('IPv4:SNAT') ||
+        this._policyType === PolicyTypesMap.get('IPv4:DNAT')) &&
       this._ruleData.positions[5].ipobjs.length === 1
     ) {
       // SNAT or DNAT
-      const lines = this._cs.split("\n");
-      this._cs = "";
+      const lines = this._cs.split('\n');
+      this._cs = '';
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i] === "") continue; // Ignore empty lines.
+        if (lines[i] === '') continue; // Ignore empty lines.
         if ((lines[i].match(/ -p tcp /g) || []).length > 1)
-          this._cs += `${this._policyType === PolicyTypesMap.get("IPv4:SNAT") ? lines[i].replace(/ -j SNAT -p tcp /, " -j SNAT ") : lines[i].replace(/ -j DNAT -p tcp /, " -j DNAT ")}\n`;
+          this._cs += `${this._policyType === PolicyTypesMap.get('IPv4:SNAT') ? lines[i].replace(/ -j SNAT -p tcp /, ' -j SNAT ') : lines[i].replace(/ -j DNAT -p tcp /, ' -j DNAT ')}\n`;
         else if ((lines[i].match(/ -p udp /g) || []).length > 1)
-          this._cs += `${this._policyType === PolicyTypesMap.get("IPv4:SNAT") ? lines[i].replace(/ -j SNAT -p udp /, " -j SNAT ") : lines[i].replace(/ -j DNAT -p udp /, " -j DNAT ")}\n`;
+          this._cs += `${this._policyType === PolicyTypesMap.get('IPv4:SNAT') ? lines[i].replace(/ -j SNAT -p udp /, ' -j SNAT ') : lines[i].replace(/ -j DNAT -p udp /, ' -j DNAT ')}\n`;
         else this._cs += `${lines[i]}\n`;
       }
     }

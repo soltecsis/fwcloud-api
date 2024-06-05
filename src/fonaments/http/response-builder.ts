@@ -20,17 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Response } from "express";
-import { isResponsable } from "../../fonaments/contracts/responsable";
-import { InternalServerException } from "../exceptions/internal-server-exception";
-import { HttpException } from "../exceptions/http/http-exception";
-import { AbstractApplication, app } from "../abstract-application";
-import { isArray } from "util";
-import { HttpCodeResponse } from "./http-code-response";
-import ObjectHelpers from "../../utils/object-helpers";
-import { FwCloudError } from "../exceptions/error";
-import { classToPlain } from "class-transformer";
-import * as stream from "stream";
+import { Response } from 'express';
+import { isResponsable } from '../../fonaments/contracts/responsable';
+import { InternalServerException } from '../exceptions/internal-server-exception';
+import { HttpException } from '../exceptions/http/http-exception';
+import { AbstractApplication, app } from '../abstract-application';
+import { isArray } from 'util';
+import { HttpCodeResponse } from './http-code-response';
+import ObjectHelpers from '../../utils/object-helpers';
+import { FwCloudError } from '../exceptions/error';
+import { classToPlain } from 'class-transformer';
+import * as stream from 'stream';
 
 type Attachment = FileAttached | ContentAttached;
 
@@ -60,11 +60,11 @@ interface DataPayload {
 }
 
 function isFileAttached(value: Attachment): value is FileAttached {
-  return Object.prototype.hasOwnProperty.call(value, "path");
+  return Object.prototype.hasOwnProperty.call(value, 'path');
 }
 
 function isContentAttached(value: Attachment): value is ContentAttached {
-  return ObjectHelpers.prototype.hasOwnProperty.call(value, "content");
+  return ObjectHelpers.prototype.hasOwnProperty.call(value, 'content');
 }
 
 export interface ErrorPayload {
@@ -93,7 +93,7 @@ export class ResponseBuilder {
 
   public status(status: number): ResponseBuilder {
     if (this._status) {
-      throw new Error("Status already defined for the given response");
+      throw new Error('Status already defined for the given response');
     }
 
     this._status = status;
@@ -102,7 +102,7 @@ export class ResponseBuilder {
 
   public body(payload: any): ResponseBuilder {
     if (this._payload) {
-      throw new Error("Message already defined for the given response");
+      throw new Error('Message already defined for the given response');
     }
 
     this._payload = payload;
@@ -154,7 +154,7 @@ export class ResponseBuilder {
     this._response = response;
 
     if (!this._status) {
-      throw new Error("Status not defined for the given response");
+      throw new Error('Status not defined for the given response');
     }
 
     this._response.status(this._status);
@@ -180,10 +180,10 @@ export class ResponseBuilder {
       redStream.end(fileContents);
 
       this._response.set(
-        "Content-disposition",
-        "attachment; filename=" + this._attachment.filename ?? "file.text",
+        'Content-disposition',
+        'attachment; filename=' + this._attachment.filename ?? 'file.text',
       );
-      this._response.set("Content-Type", "text/plain");
+      this._response.set('Content-Type', 'text/plain');
 
       redStream.pipe(this._response);
 

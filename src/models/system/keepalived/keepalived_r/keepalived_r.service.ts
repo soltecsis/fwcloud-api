@@ -20,29 +20,29 @@ import {
   SelectQueryBuilder,
   getCustomRepository,
   getRepository,
-} from "typeorm";
-import { KeepalivedRule } from "./keepalived_r.model";
-import { KeepalivedRepository } from "./keepalived.repository";
-import { IPObj } from "../../../ipobj/IPObj";
-import { KeepalivedGroup } from "../keepalived_g/keepalived_g.model";
-import { Interface } from "../../../interface/Interface";
-import { Offset } from "../../../../offset";
-import { Application } from "../../../../Application";
-import { Service } from "../../../../fonaments/services/service";
-import { IPObjRepository } from "../../../ipobj/IPObj.repository";
+} from 'typeorm';
+import { KeepalivedRule } from './keepalived_r.model';
+import { KeepalivedRepository } from './keepalived.repository';
+import { IPObj } from '../../../ipobj/IPObj';
+import { KeepalivedGroup } from '../keepalived_g/keepalived_g.model';
+import { Interface } from '../../../interface/Interface';
+import { Offset } from '../../../../offset';
+import { Application } from '../../../../Application';
+import { Service } from '../../../../fonaments/services/service';
+import { IPObjRepository } from '../../../ipobj/IPObj.repository';
 import {
   AvailableDestinations,
   KeepalivedRuleItemForCompiler,
   KeepalivedUtils,
   ItemForGrid,
-} from "../shared";
-import { Firewall } from "../../../firewall/Firewall";
-import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
-import { KeepalivedToIPObj } from "./keepalived_r-to-ipobj";
-import { ErrorBag } from "../../../../fonaments/validation/validator";
-import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
-import { KeepalivedGroupService } from "../keepalived_g/keepalived_g.service";
-import { IPObjGroup } from "../../../ipobj/IPObjGroup";
+} from '../shared';
+import { Firewall } from '../../../firewall/Firewall';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import { KeepalivedToIPObj } from './keepalived_r-to-ipobj';
+import { ErrorBag } from '../../../../fonaments/validation/validator';
+import { ValidationException } from '../../../../fonaments/exceptions/validation-exception';
+import { KeepalivedGroupService } from '../keepalived_g/keepalived_g.service';
+import { IPObjGroup } from '../../../ipobj/IPObjGroup';
 
 interface IFindManyKeepalivedRulePath {
   fwcloudId?: number;
@@ -123,8 +123,8 @@ export class KeepalivedRuleService extends Service {
       const interfaceData = (await getRepository(Interface).findOneOrFail(
         data.interfaceId,
       )) as Interface;
-      if (!interfaceData.mac || interfaceData.mac === "") {
-        throw new Error("Interface mac is not defined");
+      if (!interfaceData.mac || interfaceData.mac === '') {
+        throw new Error('Interface mac is not defined');
       }
       keepalivedRuleData.interface = interfaceData;
     }
@@ -171,15 +171,15 @@ export class KeepalivedRuleService extends Service {
       );
       if (!hasMatchingIpVersion) {
         this._repository.remove(persisted);
-        throw new Error("IP version mismatch");
+        throw new Error('IP version mismatch');
       }
 
       await this._repository.save(persisted);
     }
 
     if (
-      Object.prototype.hasOwnProperty.call(data, "to") &&
-      Object.prototype.hasOwnProperty.call(data, "offset")
+      Object.prototype.hasOwnProperty.call(data, 'to') &&
+      Object.prototype.hasOwnProperty.call(data, 'offset')
     ) {
       return (await this.move([persisted.id], data.to, data.offset))[0];
     }
@@ -197,12 +197,12 @@ export class KeepalivedRuleService extends Service {
         id: In(ids),
       },
       relations: [
-        "group",
-        "firewall",
-        "firewall.fwCloud",
-        "interface",
-        "virtualIps",
-        "masterNode",
+        'group',
+        'firewall',
+        'firewall.fwCloud',
+        'interface',
+        'virtualIps',
+        'masterNode',
       ],
     });
 
@@ -241,10 +241,10 @@ export class KeepalivedRuleService extends Service {
   ): Promise<[KeepalivedRule, KeepalivedRule]> {
     const fromRule: KeepalivedRule = await this._repository.findOneOrFail(
       fromId,
-      { relations: ["firewall", "firewall.fwCloud", "virtualIps"] },
+      { relations: ['firewall', 'firewall.fwCloud', 'virtualIps'] },
     );
     const toRule: KeepalivedRule = await this._repository.findOneOrFail(toId, {
-      relations: ["firewall", "firewall.fwCloud", "virtualIps"],
+      relations: ['firewall', 'firewall.fwCloud', 'virtualIps'],
     });
 
     let lastPosition = 0;
@@ -280,16 +280,16 @@ export class KeepalivedRuleService extends Service {
     const keepalivedRule: KeepalivedRule | undefined =
       await this._repository.findOne(id, {
         relations: [
-          "group",
-          "firewall",
-          "interface",
-          "virtualIps",
-          "masterNode",
+          'group',
+          'firewall',
+          'interface',
+          'virtualIps',
+          'masterNode',
         ],
       });
 
     if (!keepalivedRule) {
-      throw new Error("keepalivedRule not found");
+      throw new Error('keepalivedRule not found');
     }
 
     Object.assign(keepalivedRule, {
@@ -330,26 +330,26 @@ export class KeepalivedRuleService extends Service {
           ).ip_version,
       );
       if (!hasMatchingIpVersion) {
-        throw new Error("IP version mismatch");
+        throw new Error('IP version mismatch');
       }
     } else {
-      const fieldsToUpdate = ["masterNodeId", "interfaceId", "firewallId"];
+      const fieldsToUpdate = ['masterNodeId', 'interfaceId', 'firewallId'];
 
       for (const field of fieldsToUpdate) {
         if (data[field]) {
-          if (field === "interfaceId") {
+          if (field === 'interfaceId') {
             const interfaceData = (await getRepository(Interface).findOneOrFail(
               data[field],
             )) as Interface;
-            if (!interfaceData.mac || interfaceData.mac === "") {
-              throw new Error("Interface mac is not defined");
+            if (!interfaceData.mac || interfaceData.mac === '') {
+              throw new Error('Interface mac is not defined');
             }
             keepalivedRule[field.slice(0, -2)] = interfaceData;
-          } else if (field === "masterNodeId") {
+          } else if (field === 'masterNodeId') {
             keepalivedRule[field.slice(0, -2)] = (await getRepository(
               Firewall,
             ).findOneOrFail(data[field])) as Firewall;
-          } else if (field === "firewallId") {
+          } else if (field === 'firewallId') {
             keepalivedRule[field.slice(0, -2)] = (await getRepository(
               Firewall,
             ).findOneOrFail(data[field])) as Firewall;
@@ -365,7 +365,7 @@ export class KeepalivedRuleService extends Service {
 
   async remove(path: IFindOneKeepalivedRulePath): Promise<KeepalivedRule> {
     const keepalivedRule: KeepalivedRule = await this.findOneInPath(path, {
-      relations: ["group"],
+      relations: ['group'],
     });
 
     keepalivedRule.virtualIps = [];
@@ -397,25 +397,25 @@ export class KeepalivedRuleService extends Service {
     return Object.assign(
       {
         join: {
-          alias: "keepalived",
+          alias: 'keepalived',
           innerJoin: {
-            firewall: "keepalived.firewall",
-            fwcloud: "firewall.fwCloud",
+            firewall: 'keepalived.firewall',
+            fwcloud: 'firewall.fwCloud',
           },
         },
         where: (qb: SelectQueryBuilder<KeepalivedRule>) => {
           if (path.firewallId) {
-            qb.andWhere("firewall.id = :firewallId", {
+            qb.andWhere('firewall.id = :firewallId', {
               firewallId: path.firewallId,
             });
           }
           if (path.fwcloudId) {
-            qb.andWhere("fwcloud.id = :fwcloudId", {
+            qb.andWhere('fwcloud.id = :fwcloudId', {
               fwcloudId: path.fwcloudId,
             });
           }
           if (path.id) {
-            qb.andWhere("keepalived.id = :id", { id: path.id });
+            qb.andWhere('keepalived.id = :id', { id: path.id });
           }
         },
       },
@@ -433,14 +433,14 @@ export class KeepalivedRuleService extends Service {
   ): Promise<KeepalivedRulesData<T>[]> {
     let rulesData: KeepalivedRulesData<T>[];
     switch (dst) {
-      case "keepalived_grid":
+      case 'keepalived_grid':
         rulesData = (await this._repository.getKeepalivedRules(
           fwcloud,
           firewall,
           rules,
         )) as KeepalivedRulesData<T>[];
         break;
-      case "compiler":
+      case 'compiler':
         rulesData = (await this._repository.getKeepalivedRules(
           fwcloud,
           firewall,
@@ -457,7 +457,7 @@ export class KeepalivedRuleService extends Service {
     }
 
     const sqls: SelectQueryBuilder<IPObj | IPObjGroup>[] =
-      dst === "compiler"
+      dst === 'compiler'
         ? this.buildKeepalivedRulesCompilerSql(fwcloud, firewall, rules)
         : this.getKeepalivedRulesGridSql(fwcloud, firewall, rules);
 
@@ -487,7 +487,7 @@ export class KeepalivedRuleService extends Service {
     } else {
       const group: KeepalivedGroup = (
         (await this._repository.findOne(ids[0], {
-          relations: ["group"],
+          relations: ['group'],
         })) as KeepalivedRule
       ).group;
       if (
@@ -534,7 +534,7 @@ export class KeepalivedRuleService extends Service {
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [
       this._ipobjRepository.getIpobjsInKeepalived_ForGrid(
-        "rule",
+        'rule',
         fwcloud,
         firewall,
       ),
@@ -548,7 +548,7 @@ export class KeepalivedRuleService extends Service {
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
     return [
       this._ipobjRepository.getIpobjsInKeepalived_ForGrid(
-        "rule",
+        'rule',
         fwcloud,
         firewall,
       ),
@@ -570,19 +570,19 @@ export class KeepalivedRuleService extends Service {
         id: In(data.virutalIpsIds.map((item) => item.id)),
         ipObjTypeId: 5, //ADDRESS
       },
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
 
     for (let i = 0; i < virtualIps.length; i++) {
       const ipObj: IPObj = virtualIps[i];
 
       if (ipObj.fwCloud.id && ipObj.fwCloud.id !== firewall.fwCloudId) {
-        errors[`virtualIpsIds.${i}`] = ["ipObj id must exist"];
+        errors[`virtualIpsIds.${i}`] = ['ipObj id must exist'];
       }
     }
 
     if (Object.keys(errors).length > 0) {
-      throw new ValidationException("The given data was invalid", errors);
+      throw new ValidationException('The given data was invalid', errors);
     }
   }
 }

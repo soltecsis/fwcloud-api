@@ -20,31 +20,31 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, expect } from "../../../mocha/global-setup";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { getRepository } from "typeorm";
-import StringHelper from "../../../../src/utils/string.helper";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
-import db from "../../../../src/database/database-manager";
-import { Ca } from "../../../../src/models/vpn/pki/Ca";
-import { Crt } from "../../../../src/models/vpn/pki/Crt";
-import { OpenVPN } from "../../../../src/models/vpn/openvpn/OpenVPN";
-import { IPObj } from "../../../../src/models/ipobj/IPObj";
-import { OpenVPNOption } from "../../../../src/models/vpn/openvpn/openvpn-option.model";
-import { PolicyRuleToOpenVPN } from "../../../../src/models/policy/PolicyRuleToOpenVPN";
-import { PolicyRuleToIPObj } from "../../../../src/models/policy/PolicyRuleToIPObj";
-import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
-import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
-import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
-import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
-import { PolicyRuleToOpenVPNPrefix } from "../../../../src/models/policy/PolicyRuleToOpenVPNPrefix";
+import { describeName, expect } from '../../../mocha/global-setup';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { getRepository } from 'typeorm';
+import StringHelper from '../../../../src/utils/string.helper';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import db from '../../../../src/database/database-manager';
+import { Ca } from '../../../../src/models/vpn/pki/Ca';
+import { Crt } from '../../../../src/models/vpn/pki/Crt';
+import { OpenVPN } from '../../../../src/models/vpn/openvpn/OpenVPN';
+import { IPObj } from '../../../../src/models/ipobj/IPObj';
+import { OpenVPNOption } from '../../../../src/models/vpn/openvpn/openvpn-option.model';
+import { PolicyRuleToOpenVPN } from '../../../../src/models/policy/PolicyRuleToOpenVPN';
+import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
+import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';
+import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
+import { RulePositionsMap } from '../../../../src/models/policy/PolicyPosition';
+import { OpenVPNPrefix } from '../../../../src/models/vpn/openvpn/OpenVPNPrefix';
+import { PolicyRuleToOpenVPNPrefix } from '../../../../src/models/policy/PolicyRuleToOpenVPNPrefix';
 import {
   AvailablePolicyCompilers,
   PolicyCompiler,
-} from "../../../../src/compiler/policy/PolicyCompiler";
+} from '../../../../src/compiler/policy/PolicyCompiler';
 
-describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
+describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
   let dbCon: any;
   let fwcloud: number;
   let vpnSrv: number;
@@ -137,7 +137,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
 
     try {
       const rulesData: any = await PolicyRule.getPolicyData(
-        "compiler",
+        'compiler',
         dbCon,
         fwcloud,
         ruleData.firewall,
@@ -163,7 +163,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
     ) {
       expect(error).to.eql({
         fwcErr: 999999,
-        msg: "Translated fields must contain a maximum of one item",
+        msg: 'Translated fields must contain a maximum of one item',
       });
     } else {
       expect(result).to.eql([
@@ -244,7 +244,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       await getRepository(OpenVPNPrefix).save(
         getRepository(OpenVPNPrefix).create({
           openVPNId: vpnSrv,
-          name: "SOLTECSIS-",
+          name: 'SOLTECSIS-',
         }),
       )
     ).id;
@@ -261,10 +261,10 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       await getRepository(IPObj).save(
         getRepository(IPObj).create({
           fwCloudId: fwcloud,
-          name: "10.20.30.2",
+          name: '10.20.30.2',
           ipObjTypeId: 5,
-          address: "10.20.30.2",
-          netmask: "/32",
+          address: '10.20.30.2',
+          netmask: '/32',
           ip_version: 4,
         }),
       )
@@ -273,7 +273,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       getRepository(OpenVPNOption).create({
         openVPNId: vpnCli1,
         ipObjId: vpnCli1IP,
-        name: "ifconfig-push",
+        name: 'ifconfig-push',
         order: 1,
         scope: 0,
       }),
@@ -282,29 +282,29 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       await getRepository(IPObj).save(
         getRepository(IPObj).create({
           fwCloudId: fwcloud,
-          name: "192.168.0.50",
+          name: '192.168.0.50',
           ipObjTypeId: 5,
-          address: "192.168.0.50",
-          netmask: "/32",
+          address: '192.168.0.50',
+          netmask: '/32',
           ip_version: 4,
         }),
       )
     ).id;
   });
 
-  describe("OpenVPN in policy rule (IPTables)", () => {
+  describe('OpenVPN in policy rule (IPTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "IPTables";
+      IPv = 'IPv4';
+      compiler = 'IPTables';
       useGroup = false;
       usePrefix = false;
     });
 
-    describe("in INPUT chain", () => {
+    describe('in INPUT chain', () => {
       before(() => {
-        policy = "INPUT";
+        policy = 'INPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -312,7 +312,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -321,11 +321,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in OUTPUT chain", () => {
+    describe('in OUTPUT chain', () => {
       before(() => {
-        policy = "OUTPUT";
+        policy = 'OUTPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -333,7 +333,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -342,11 +342,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in FORWARD chain", () => {
+    describe('in FORWARD chain', () => {
       before(() => {
-        policy = "FORWARD";
+        policy = 'FORWARD';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -354,7 +354,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -363,78 +363,78 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in SNAT", () => {
+    describe('in SNAT', () => {
       before(() => {
-        policy = "SNAT";
+        policy = 'SNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n",
+          '$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n",
+          '$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated source)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated source)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          "$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n",
+          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n',
         );
       });
     });
 
-    describe("in DNAT", () => {
+    describe('in DNAT', () => {
       before(() => {
-        policy = "DNAT";
+        policy = 'DNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n",
+          '$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n",
+          '$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated destination)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated destination)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          "$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n",
+          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n',
         );
       });
     });
   });
 
-  describe("OpenVPN in policy rule (NFTables)", () => {
+  describe('OpenVPN in policy rule (NFTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "NFTables";
+      IPv = 'IPv4';
+      compiler = 'NFTables';
       useGroup = false;
       usePrefix = false;
     });
 
-    describe("in INPUT chain", () => {
+    describe('in INPUT chain', () => {
       before(() => {
-        policy = "INPUT";
+        policy = 'INPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -442,7 +442,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -451,11 +451,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in OUTPUT chain", () => {
+    describe('in OUTPUT chain', () => {
       before(() => {
-        policy = "OUTPUT";
+        policy = 'OUTPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -463,7 +463,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -472,11 +472,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in FORWARD chain", () => {
+    describe('in FORWARD chain', () => {
       before(() => {
-        policy = "FORWARD";
+        policy = 'FORWARD';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -484,7 +484,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -493,69 +493,69 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in SNAT", () => {
+    describe('in SNAT', () => {
       before(() => {
-        policy = "SNAT";
+        policy = 'SNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n",
+          '$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n",
+          '$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated source)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated source)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          "$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n",
+          '$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n',
         );
       });
     });
 
-    describe("in DNAT", () => {
+    describe('in DNAT', () => {
       before(() => {
-        policy = "DNAT";
+        policy = 'DNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n",
+          '$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n",
+          '$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated destination)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated destination)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          "$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n",
+          '$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n',
         );
       });
     });
   });
 
-  describe("OpenVPN in group in policy rule (IPTables)", () => {
+  describe('OpenVPN in group in policy rule (IPTables)', () => {
     before(async () => {
-      IPv = "IPv4";
-      compiler = "IPTables";
+      IPv = 'IPv4';
+      compiler = 'IPTables';
       useGroup = true;
       usePrefix = false;
       group = (
@@ -570,11 +570,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       await OpenVPN.addToGroup(dbCon, vpnCli1, group);
     });
 
-    describe("in INPUT chain", () => {
+    describe('in INPUT chain', () => {
       before(() => {
-        policy = "INPUT";
+        policy = 'INPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -582,7 +582,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -591,11 +591,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in OUTPUT chain", () => {
+    describe('in OUTPUT chain', () => {
       before(() => {
-        policy = "OUTPUT";
+        policy = 'OUTPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -603,7 +603,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -612,11 +612,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in FORWARD chain", () => {
+    describe('in FORWARD chain', () => {
       before(() => {
-        policy = "FORWARD";
+        policy = 'FORWARD';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -624,7 +624,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -633,69 +633,69 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in SNAT", () => {
+    describe('in SNAT', () => {
       before(() => {
-        policy = "SNAT";
+        policy = 'SNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n",
+          '$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n",
+          '$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated source)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated source)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          "$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n",
+          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n',
         );
       });
     });
 
-    describe("in DNAT", () => {
+    describe('in DNAT', () => {
       before(() => {
-        policy = "DNAT";
+        policy = 'DNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n",
+          '$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n",
+          '$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated destination)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated destination)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          "$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n",
+          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n',
         );
       });
     });
   });
 
-  describe("OpenVPN in group in policy rule (NFTables)", () => {
+  describe('OpenVPN in group in policy rule (NFTables)', () => {
     before(async () => {
-      IPv = "IPv4";
-      compiler = "NFTables";
+      IPv = 'IPv4';
+      compiler = 'NFTables';
       useGroup = true;
       usePrefix = false;
       group = (
@@ -710,11 +710,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       await OpenVPN.addToGroup(dbCon, vpnCli1, group);
     });
 
-    describe("in INPUT chain", () => {
+    describe('in INPUT chain', () => {
       before(() => {
-        policy = "INPUT";
+        policy = 'INPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -722,7 +722,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -731,11 +731,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in OUTPUT chain", () => {
+    describe('in OUTPUT chain', () => {
       before(() => {
-        policy = "OUTPUT";
+        policy = 'OUTPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -743,7 +743,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -752,11 +752,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in FORWARD chain", () => {
+    describe('in FORWARD chain', () => {
       before(() => {
-        policy = "FORWARD";
+        policy = 'FORWARD';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -764,7 +764,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -773,78 +773,78 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in SNAT", () => {
+    describe('in SNAT', () => {
       before(() => {
-        policy = "SNAT";
+        policy = 'SNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n",
+          '$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n",
+          '$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated source)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated source)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          "$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n",
+          '$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n',
         );
       });
     });
 
-    describe("in DNAT", () => {
+    describe('in DNAT', () => {
       before(() => {
-        policy = "DNAT";
+        policy = 'DNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n",
+          '$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n",
+          '$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated destination)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated destination)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          "$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n",
+          '$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n',
         );
       });
     });
   });
 
-  describe("OpenVPN prefix in policy rule (IPTables)", () => {
+  describe('OpenVPN prefix in policy rule (IPTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "IPTables";
+      IPv = 'IPv4';
+      compiler = 'IPTables';
       useGroup = false;
       usePrefix = true;
     });
 
-    describe("in INPUT chain", () => {
+    describe('in INPUT chain', () => {
       before(() => {
-        policy = "INPUT";
+        policy = 'INPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -852,7 +852,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -861,11 +861,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in OUTPUT chain", () => {
+    describe('in OUTPUT chain', () => {
       before(() => {
-        policy = "OUTPUT";
+        policy = 'OUTPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -873,7 +873,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -882,11 +882,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in FORWARD chain", () => {
+    describe('in FORWARD chain', () => {
       before(() => {
-        policy = "FORWARD";
+        policy = 'FORWARD';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -894,7 +894,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -903,78 +903,78 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in SNAT", () => {
+    describe('in SNAT', () => {
       before(() => {
-        policy = "SNAT";
+        policy = 'SNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n",
+          '$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n",
+          '$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated source)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated source)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          "$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n",
+          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n',
         );
       });
     });
 
-    describe("in DNAT", () => {
+    describe('in DNAT', () => {
       before(() => {
-        policy = "DNAT";
+        policy = 'DNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n",
+          '$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n",
+          '$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated destination)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated destination)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          "$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n",
+          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n',
         );
       });
     });
   });
 
-  describe("OpenVPN prefix in policy rule (NFTables)", () => {
+  describe('OpenVPN prefix in policy rule (NFTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "NFTables";
+      IPv = 'IPv4';
+      compiler = 'NFTables';
       useGroup = false;
       usePrefix = true;
     });
 
-    describe("in INPUT chain", () => {
+    describe('in INPUT chain', () => {
       before(() => {
-        policy = "INPUT";
+        policy = 'INPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -982,7 +982,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -991,11 +991,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in OUTPUT chain", () => {
+    describe('in OUTPUT chain', () => {
       before(() => {
-        policy = "OUTPUT";
+        policy = 'OUTPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1003,7 +1003,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1012,11 +1012,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in FORWARD chain", () => {
+    describe('in FORWARD chain', () => {
       before(() => {
-        policy = "FORWARD";
+        policy = 'FORWARD';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1024,7 +1024,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1033,69 +1033,69 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in SNAT", () => {
+    describe('in SNAT', () => {
       before(() => {
-        policy = "SNAT";
+        policy = 'SNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n",
+          '$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n",
+          '$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated source)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated source)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          "$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n",
+          '$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n',
         );
       });
     });
 
-    describe("in DNAT", () => {
+    describe('in DNAT', () => {
       before(() => {
-        policy = "DNAT";
+        policy = 'DNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n",
+          '$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n",
+          '$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated destination)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated destination)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          "$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n",
+          '$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n',
         );
       });
     });
   });
 
-  describe("OpenVPN in group in policy rule (IPTables)", () => {
+  describe('OpenVPN in group in policy rule (IPTables)', () => {
     before(async () => {
-      IPv = "IPv4";
-      compiler = "IPTables";
+      IPv = 'IPv4';
+      compiler = 'IPTables';
       useGroup = true;
       usePrefix = true;
       group = (
@@ -1110,11 +1110,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       await OpenVPNPrefix.addPrefixToGroup(dbCon, vpnPrefix, group);
     });
 
-    describe("in INPUT chain", () => {
+    describe('in INPUT chain', () => {
       before(() => {
-        policy = "INPUT";
+        policy = 'INPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1122,7 +1122,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1131,11 +1131,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in OUTPUT chain", () => {
+    describe('in OUTPUT chain', () => {
       before(() => {
-        policy = "OUTPUT";
+        policy = 'OUTPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1143,7 +1143,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1152,11 +1152,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in FORWARD chain", () => {
+    describe('in FORWARD chain', () => {
       before(() => {
-        policy = "FORWARD";
+        policy = 'FORWARD';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1164,7 +1164,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1173,69 +1173,69 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in SNAT", () => {
+    describe('in SNAT', () => {
       before(() => {
-        policy = "SNAT";
+        policy = 'SNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n",
+          '$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n",
+          '$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated source)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated source)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          "$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n",
+          '$IPTABLES -t nat -A POSTROUTING -j SNAT --to-source 10.20.30.2\n',
         );
       });
     });
 
-    describe("in DNAT", () => {
+    describe('in DNAT', () => {
       before(() => {
-        policy = "DNAT";
+        policy = 'DNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n",
+          '$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n",
+          '$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated destination)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated destination)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          "$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n",
+          '$IPTABLES -t nat -A PREROUTING -j DNAT --to-destination 10.20.30.2\n',
         );
       });
     });
   });
 
-  describe("OpenVPN in group in policy rule (NFTables)", () => {
+  describe('OpenVPN in group in policy rule (NFTables)', () => {
     before(async () => {
-      IPv = "IPv4";
-      compiler = "NFTables";
+      IPv = 'IPv4';
+      compiler = 'NFTables';
       useGroup = true;
       usePrefix = true;
       group = (
@@ -1250,11 +1250,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       await OpenVPNPrefix.addPrefixToGroup(dbCon, vpnPrefix, group);
     });
 
-    describe("in INPUT chain", () => {
+    describe('in INPUT chain', () => {
       before(() => {
-        policy = "INPUT";
+        policy = 'INPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1262,7 +1262,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1271,11 +1271,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in OUTPUT chain", () => {
+    describe('in OUTPUT chain', () => {
       before(() => {
-        policy = "OUTPUT";
+        policy = 'OUTPUT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1283,7 +1283,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1292,11 +1292,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in FORWARD chain", () => {
+    describe('in FORWARD chain', () => {
       before(() => {
-        policy = "FORWARD";
+        policy = 'FORWARD';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1304,7 +1304,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1313,66 +1313,66 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("in SNAT", () => {
+    describe('in SNAT', () => {
       before(() => {
-        policy = "SNAT";
+        policy = 'SNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n",
+          '$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n",
+          '$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated source)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated source)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
-          "$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n",
+          '$NFT add rule ip nat POSTROUTING counter snat to 10.20.30.2\n',
         );
       });
     });
 
-    describe("in DNAT", () => {
+    describe('in DNAT', () => {
       before(() => {
-        policy = "DNAT";
+        policy = 'DNAT';
       });
-      it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (source position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Source`),
-          "$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n",
+          '$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+      it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-          "$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n",
+          '$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n',
         );
       });
 
-      it("should include the OpenVPN client IP in compilation string (translated destination)", async () => {
+      it('should include the OpenVPN client IP in compilation string (translated destination)', async () => {
         await runTest(
           PolicyTypesMap.get(`${IPv}:${policy}`),
           RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
-          "$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n",
+          '$NFT add rule ip nat PREROUTING counter dnat to 10.20.30.2\n',
         );
       });
     });
   });
 
-  describe("OpenVPN prefix with several IPs", () => {
+  describe('OpenVPN prefix with several IPs', () => {
     before(async () => {
       vpnCli2 = (
         await getRepository(OpenVPN).save(
@@ -1387,10 +1387,10 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         await getRepository(IPObj).save(
           getRepository(IPObj).create({
             fwCloudId: fwcloud,
-            name: "10.20.30.3",
+            name: '10.20.30.3',
             ipObjTypeId: 5,
-            address: "10.20.30.3",
-            netmask: "/32",
+            address: '10.20.30.3',
+            netmask: '/32',
             ip_version: 4,
           }),
         )
@@ -1399,30 +1399,30 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         getRepository(OpenVPNOption).create({
           openVPNId: vpnCli2,
           ipObjId: vpnCli2IP,
-          name: "ifconfig-push",
+          name: 'ifconfig-push',
           order: 1,
           scope: 0,
         }),
       );
     });
 
-    describe("IPTables compiler", () => {
+    describe('IPTables compiler', () => {
       before(() => {
-        compiler = "IPTables";
+        compiler = 'IPTables';
       });
 
-      describe("In policy rule", () => {
+      describe('In policy rule', () => {
         before(() => {
-          IPv = "IPv4";
+          IPv = 'IPv4';
           useGroup = false;
           usePrefix = true;
         });
 
-        describe("in INPUT chain", () => {
+        describe('in INPUT chain', () => {
           before(() => {
-            policy = "INPUT";
+            policy = 'INPUT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1430,7 +1430,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1439,11 +1439,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in OUTPUT chain", () => {
+        describe('in OUTPUT chain', () => {
           before(() => {
-            policy = "OUTPUT";
+            policy = 'OUTPUT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1451,7 +1451,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1460,11 +1460,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in FORWARD chain", () => {
+        describe('in FORWARD chain', () => {
           before(() => {
-            policy = "FORWARD";
+            policy = 'FORWARD';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1472,7 +1472,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1481,27 +1481,27 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in SNAT", () => {
+        describe('in SNAT', () => {
           before(() => {
-            policy = "SNAT";
+            policy = 'SNAT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              "$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -s 10.20.30.3 -j SNAT --to-source 192.168.0.50\n",
+              '$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -s 10.20.30.3 -j SNAT --to-source 192.168.0.50\n',
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              "$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -d 10.20.30.3 -j SNAT --to-source 192.168.0.50\n",
+              '$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -d 10.20.30.3 -j SNAT --to-source 192.168.0.50\n',
             );
           });
 
-          it("should generate error (translated source)", async () => {
+          it('should generate error (translated source)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
@@ -1510,27 +1510,27 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in DNAT", () => {
+        describe('in DNAT', () => {
           before(() => {
-            policy = "DNAT";
+            policy = 'DNAT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              "$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -s 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n",
+              '$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -s 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n',
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              "$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -d 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n",
+              '$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -d 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n',
             );
           });
 
-          it("should generate error (translated destination)", async () => {
+          it('should generate error (translated destination)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
@@ -1540,18 +1540,18 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         });
       });
 
-      describe("In group in policy rule", () => {
+      describe('In group in policy rule', () => {
         before(() => {
-          IPv = "IPv4";
+          IPv = 'IPv4';
           useGroup = true;
           usePrefix = true;
         });
 
-        describe("in INPUT chain", () => {
+        describe('in INPUT chain', () => {
           before(() => {
-            policy = "INPUT";
+            policy = 'INPUT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1559,7 +1559,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1568,11 +1568,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in OUTPUT chain", () => {
+        describe('in OUTPUT chain', () => {
           before(() => {
-            policy = "OUTPUT";
+            policy = 'OUTPUT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1580,7 +1580,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1589,11 +1589,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in FORWARD chain", () => {
+        describe('in FORWARD chain', () => {
           before(() => {
-            policy = "FORWARD";
+            policy = 'FORWARD';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1601,7 +1601,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1610,27 +1610,27 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in SNAT", () => {
+        describe('in SNAT', () => {
           before(() => {
-            policy = "SNAT";
+            policy = 'SNAT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              "$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -s 10.20.30.3 -j SNAT --to-source 192.168.0.50\n",
+              '$IPTABLES -t nat -A POSTROUTING -s 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -s 10.20.30.3 -j SNAT --to-source 192.168.0.50\n',
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              "$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -d 10.20.30.3 -j SNAT --to-source 192.168.0.50\n",
+              '$IPTABLES -t nat -A POSTROUTING -d 10.20.30.2 -j SNAT --to-source 192.168.0.50\n$IPTABLES -t nat -A POSTROUTING -d 10.20.30.3 -j SNAT --to-source 192.168.0.50\n',
             );
           });
 
-          it("should generate error (translated source)", async () => {
+          it('should generate error (translated source)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
@@ -1639,27 +1639,27 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in DNAT", () => {
+        describe('in DNAT', () => {
           before(() => {
-            policy = "DNAT";
+            policy = 'DNAT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              "$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -s 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n",
+              '$IPTABLES -t nat -A PREROUTING -s 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -s 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n',
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              "$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -d 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n",
+              '$IPTABLES -t nat -A PREROUTING -d 10.20.30.2 -j DNAT --to-destination 192.168.0.50\n$IPTABLES -t nat -A PREROUTING -d 10.20.30.3 -j DNAT --to-destination 192.168.0.50\n',
             );
           });
 
-          it("should generate error (translated destination)", async () => {
+          it('should generate error (translated destination)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
@@ -1670,23 +1670,23 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
       });
     });
 
-    describe("NFTables compiler", () => {
+    describe('NFTables compiler', () => {
       before(() => {
-        compiler = "NFTables";
+        compiler = 'NFTables';
       });
 
-      describe("In policy rule", () => {
+      describe('In policy rule', () => {
         before(() => {
-          IPv = "IPv4";
+          IPv = 'IPv4';
           useGroup = false;
           usePrefix = true;
         });
 
-        describe("in INPUT chain", () => {
+        describe('in INPUT chain', () => {
           before(() => {
-            policy = "INPUT";
+            policy = 'INPUT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1694,7 +1694,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1703,11 +1703,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in OUTPUT chain", () => {
+        describe('in OUTPUT chain', () => {
           before(() => {
-            policy = "OUTPUT";
+            policy = 'OUTPUT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1715,7 +1715,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1724,11 +1724,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in FORWARD chain", () => {
+        describe('in FORWARD chain', () => {
           before(() => {
-            policy = "FORWARD";
+            policy = 'FORWARD';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1736,7 +1736,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1745,27 +1745,27 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in SNAT", () => {
+        describe('in SNAT', () => {
           before(() => {
-            policy = "SNAT";
+            policy = 'SNAT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              "$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.3 counter snat to 192.168.0.50\n",
+              '$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.3 counter snat to 192.168.0.50\n',
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              "$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.3 counter snat to 192.168.0.50\n",
+              '$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.3 counter snat to 192.168.0.50\n',
             );
           });
 
-          it("should generate error (translated source)", async () => {
+          it('should generate error (translated source)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
@@ -1774,27 +1774,27 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in DNAT", () => {
+        describe('in DNAT', () => {
           before(() => {
-            policy = "DNAT";
+            policy = 'DNAT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              "$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip saddr 10.20.30.3 counter dnat to 192.168.0.50\n",
+              '$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip saddr 10.20.30.3 counter dnat to 192.168.0.50\n',
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              "$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip daddr 10.20.30.3 counter dnat to 192.168.0.50\n",
+              '$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip daddr 10.20.30.3 counter dnat to 192.168.0.50\n',
             );
           });
 
-          it("should generate error (translated destination)", async () => {
+          it('should generate error (translated destination)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),
@@ -1804,18 +1804,18 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
         });
       });
 
-      describe("In group in policy rule", () => {
+      describe('In group in policy rule', () => {
         before(() => {
-          IPv = "IPv4";
+          IPv = 'IPv4';
           useGroup = true;
           usePrefix = true;
         });
 
-        describe("in INPUT chain", () => {
+        describe('in INPUT chain', () => {
           before(() => {
-            policy = "INPUT";
+            policy = 'INPUT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1823,7 +1823,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1832,11 +1832,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in OUTPUT chain", () => {
+        describe('in OUTPUT chain', () => {
           before(() => {
-            policy = "OUTPUT";
+            policy = 'OUTPUT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1844,7 +1844,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1853,11 +1853,11 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in FORWARD chain", () => {
+        describe('in FORWARD chain', () => {
           before(() => {
-            policy = "FORWARD";
+            policy = 'FORWARD';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
@@ -1865,7 +1865,7 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
@@ -1874,27 +1874,27 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in SNAT", () => {
+        describe('in SNAT', () => {
           before(() => {
-            policy = "SNAT";
+            policy = 'SNAT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              "$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.3 counter snat to 192.168.0.50\n",
+              '$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip saddr 10.20.30.3 counter snat to 192.168.0.50\n',
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              "$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.3 counter snat to 192.168.0.50\n",
+              '$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.2 counter snat to 192.168.0.50\n$NFT add rule ip nat POSTROUTING ip daddr 10.20.30.3 counter snat to 192.168.0.50\n',
             );
           });
 
-          it("should generate error (translated source)", async () => {
+          it('should generate error (translated source)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Translated Source`),
@@ -1903,27 +1903,27 @@ describe(describeName("Policy Compiler Unit Tests - OpenVPN"), () => {
           });
         });
 
-        describe("in DNAT", () => {
+        describe('in DNAT', () => {
           before(() => {
-            policy = "DNAT";
+            policy = 'DNAT';
           });
-          it("should include the OpenVPN client IP in compilation string (source position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (source position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Source`),
-              "$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip saddr 10.20.30.3 counter dnat to 192.168.0.50\n",
+              '$NFT add rule ip nat PREROUTING ip saddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip saddr 10.20.30.3 counter dnat to 192.168.0.50\n',
             );
           });
 
-          it("should include the OpenVPN client IP in compilation string (destination position)", async () => {
+          it('should include the OpenVPN client IP in compilation string (destination position)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Destination`),
-              "$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip daddr 10.20.30.3 counter dnat to 192.168.0.50\n",
+              '$NFT add rule ip nat PREROUTING ip daddr 10.20.30.2 counter dnat to 192.168.0.50\n$NFT add rule ip nat PREROUTING ip daddr 10.20.30.3 counter dnat to 192.168.0.50\n',
             );
           });
 
-          it("should generate error (translated destination)", async () => {
+          it('should generate error (translated destination)', async () => {
             await runTest(
               PolicyTypesMap.get(`${IPv}:${policy}`),
               RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`),

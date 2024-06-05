@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsOptional, IsString, Length } from "class-validator";
+import { IsOptional, IsString, Length } from 'class-validator';
 
 export class FirewallControllerCompileDto {
   @IsString()

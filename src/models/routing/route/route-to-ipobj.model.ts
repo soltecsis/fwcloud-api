@@ -1,20 +1,20 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
-import { IPObj } from "../../ipobj/IPObj";
-import { IPObjGroup } from "../../ipobj/IPObjGroup";
-import Model from "../../Model";
-import { Route } from "./route.model";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { IPObj } from '../../ipobj/IPObj';
+import { IPObjGroup } from '../../ipobj/IPObjGroup';
+import Model from '../../Model';
+import { Route } from './route.model';
 
-const tableName: string = "route__ipobj";
+const tableName: string = 'route__ipobj';
 
 @Entity(tableName)
 export class RouteToIPObj extends Model {
   @PrimaryColumn({
-    name: "route",
+    name: 'route',
   })
   routeId: number;
 
   @PrimaryColumn({
-    name: "ipobj",
+    name: 'ipobj',
   })
   ipObjId: number;
 
@@ -24,18 +24,18 @@ export class RouteToIPObj extends Model {
   order: number;
 
   @ManyToOne(() => Route, (model) => model.routeToIPObjs, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "route",
+    name: 'route',
   })
   route: Route;
 
   @ManyToOne(() => IPObj, (model) => model.routeToIPObjs, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "ipobj",
+    name: 'ipobj',
   })
   ipObj: IPObj;
 

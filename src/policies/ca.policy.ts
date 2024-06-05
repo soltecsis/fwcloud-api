@@ -1,12 +1,12 @@
-import { getRepository } from "typeorm";
-import { Policy, Authorization } from "./../fonaments/authorization/policy";
-import { User } from "../models/user/User";
-import { Ca } from "../models/vpn/pki/Ca";
+import { getRepository } from 'typeorm';
+import { Policy, Authorization } from './../fonaments/authorization/policy';
+import { User } from '../models/user/User';
+import { Ca } from '../models/vpn/pki/Ca';
 
 export class CaPolicy extends Policy {
   static async update(ca: Ca, user: User): Promise<Authorization> {
     user = await getRepository(User).findOneOrFail(user.id, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
 
     if (user.role === 1) {

@@ -20,32 +20,32 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as path from "path";
-import * as fs from "fs";
-import * as fse from "fs-extra";
-import { app, logger } from "../fonaments/abstract-application";
-import { DatabaseService, DatabaseConfig } from "../database/database.service";
-import moment, { Moment } from "moment";
+import * as path from 'path';
+import * as fs from 'fs';
+import * as fse from 'fs-extra';
+import { app, logger } from '../fonaments/abstract-application';
+import { DatabaseService, DatabaseConfig } from '../database/database.service';
+import moment, { Moment } from 'moment';
 
-import { BackupNotFoundException } from "./exceptions/backup-not-found-exception";
-import { Responsable } from "../fonaments/contracts/responsable";
-import { RestoreBackupException } from "./exceptions/restore-backup-exception";
-import StringHelper from "../utils/string.helper";
-import { FSHelper } from "../utils/fs-helper";
-import { Application } from "../Application";
-import { Progress } from "../fonaments/http/progress/progress";
-import { getCustomRepository, getRepository, Migration } from "typeorm";
-import { FirewallRepository } from "../models/firewall/firewall.repository";
-import { Task } from "../fonaments/http/progress/task";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import * as crypto from "crypto";
-import { Zip } from "../utils/zip";
-import * as child_process from "child_process";
-import { OpenVPNRepository } from "../models/vpn/openvpn/openvpn-repository";
-import { Firewall } from "../models/firewall/Firewall";
-import { ProgressPayload } from "../sockets/messages/socket-message";
-import { E_ALREADY_LOCKED, Mutex, tryAcquire } from "async-mutex";
-import { BackupService } from "./backup.service";
+import { BackupNotFoundException } from './exceptions/backup-not-found-exception';
+import { Responsable } from '../fonaments/contracts/responsable';
+import { RestoreBackupException } from './exceptions/restore-backup-exception';
+import StringHelper from '../utils/string.helper';
+import { FSHelper } from '../utils/fs-helper';
+import { Application } from '../Application';
+import { Progress } from '../fonaments/http/progress/progress';
+import { getCustomRepository, getRepository, Migration } from 'typeorm';
+import { FirewallRepository } from '../models/firewall/firewall.repository';
+import { Task } from '../fonaments/http/progress/task';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import * as crypto from 'crypto';
+import { Zip } from '../utils/zip';
+import * as child_process from 'child_process';
+import { OpenVPNRepository } from '../models/vpn/openvpn/openvpn-repository';
+import { Firewall } from '../models/firewall/Firewall';
+import { ProgressPayload } from '../sockets/messages/socket-message';
+import { E_ALREADY_LOCKED, Mutex, tryAcquire } from 'async-mutex';
+import { BackupService } from './backup.service';
 
 export interface BackupMetadata {
   name: string;
@@ -56,18 +56,18 @@ export interface BackupMetadata {
   hash: string;
 }
 
-export const backupDigestContent: string = "FWCloud";
+export const backupDigestContent: string = 'FWCloud';
 
 const routesMap: Map<string, string> = new Map<string, string>([
-  ["openvpn.history", "archive/openvpn/history"],
-  ["pki", "pki"],
-  ["policy", "policy"],
-  ["snapshot", "snapshot"],
+  ['openvpn.history', 'archive/openvpn/history'],
+  ['pki', 'pki'],
+  ['policy', 'policy'],
+  ['snapshot', 'snapshot'],
 ]);
 export class Backup implements Responsable {
-  static DUMP_FILENAME: string = "db.sql";
-  static METADATA_FILENAME: string = "backup.json";
-  static DATA_DIRNAME: string = "DATA";
+  static DUMP_FILENAME: string = 'db.sql';
+  static METADATA_FILENAME: string = 'backup.json';
+  static DATA_DIRNAME: string = 'DATA';
 
   protected _id: number;
   protected _name: string;
@@ -151,9 +151,9 @@ export class Backup implements Responsable {
     }
 
     const digestedHash: string = crypto
-      .createHmac("sha256", app().config.get("crypt.secret"))
+      .createHmac('sha256', app().config.get('crypt.secret'))
       .update(backupDigestContent)
-      .digest("hex");
+      .digest('hex');
 
     return digestedHash === this._hash;
   }
@@ -186,7 +186,7 @@ export class Backup implements Responsable {
       this._version = metadata.version;
       this._imported = metadata.imported ?? false;
       this._backupPath = path.isAbsolute(backupPath)
-        ? StringHelper.after(path.join(app().path, "/"), backupPath)
+        ? StringHelper.after(path.join(app().path, '/'), backupPath)
         : backupPath;
       this._dumpFilename = Backup.DUMP_FILENAME;
       this._hash = metadata.hash ?? undefined;
@@ -221,9 +221,9 @@ export class Backup implements Responsable {
     try {
       return await tryAcquire(mutex).runExclusive(async () => {
         // If it is not possible to run the mysqldump command, then it is not possible to run the backup procedure.
-        if (!(await this.existsCmd("mysqldump"))) {
+        if (!(await this.existsCmd('mysqldump'))) {
           const err = new Error(
-            "Command mysqldump not found or it is not possible to execute it",
+            'Command mysqldump not found or it is not possible to execute it',
           );
           logger().error(err.message);
           throw err;
@@ -233,36 +233,36 @@ export class Backup implements Responsable {
         this._date = moment();
         this._id = moment().valueOf();
         this._version = app<Application>().version.tag;
-        this._name = this._date.format("YYYY-MM-DD HH:mm:ss");
+        this._name = this._date.format('YYYY-MM-DD HH:mm:ss');
         this._backupPath = path.join(
           backupDirectory,
           this.timestamp.toString(),
         );
         this._hash = crypto
-          .createHmac("sha256", app().config.get("crypt.secret"))
+          .createHmac('sha256', app().config.get('crypt.secret'))
           .update(backupDigestContent)
-          .digest("hex");
+          .digest('hex');
 
         this.createDirectorySync();
         this.exportMetadataFileSync();
 
         try {
           await progress.procedure(
-            "Creating backup",
+            'Creating backup',
             (task: Task) => {
               task.parallel((task: Task) => {
                 task.addTask(() => {
                   return this.exportDatabase();
-                }, "Database backup");
+                }, 'Database backup');
                 task.addTask(() => {
                   return this.exportDataDirectories();
-                }, "Data directories backup");
+                }, 'Data directories backup');
               });
               task.addTask(() => {
                 return this.zipDbSql();
-              }, "Compress db.sql file");
+              }, 'Compress db.sql file');
             },
-            "Backup created",
+            'Backup created',
           );
         } catch (err) {
           // If the backup task has fault for some reason, (for example, mysqldump command not found)
@@ -277,14 +277,14 @@ export class Backup implements Responsable {
     } catch (err) {
       if (err === E_ALREADY_LOCKED) {
         eventEmitter.emit(
-          "message",
+          'message',
           new ProgressPayload(
-            "error",
+            'error',
             false,
-            "There is another Backup running",
+            'There is another Backup running',
           ),
         );
-        throw new Error("There is another Backup runnning");
+        throw new Error('There is another Backup runnning');
       }
       throw err;
     }
@@ -297,9 +297,9 @@ export class Backup implements Responsable {
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<Backup> {
     // If it is not possible to run the mysql command, then it is not possible to run the restore procedure.
-    if (!(await this.existsCmd("mysql"))) {
+    if (!(await this.existsCmd('mysql'))) {
       const err = new Error(
-        "Command mysql not found or it is not possible to execute it",
+        'Command mysql not found or it is not possible to execute it',
       );
       logger().error(err.message);
       throw err;
@@ -309,7 +309,7 @@ export class Backup implements Responsable {
 
     if (this._exists) {
       await progress.procedure(
-        "Restoring backup",
+        'Restoring backup',
         (task: Task) => {
           task.sequence((task: Task) => {
             if (
@@ -319,25 +319,25 @@ export class Backup implements Responsable {
             ) {
               task.addTask(() => {
                 return this.unzipDbSql();
-              }, "Decompress db.sql file");
+              }, 'Decompress db.sql file');
             }
             task.parallel((task: Task) => {
               task.addTask(() => {
                 return this.importDatabase();
-              }, "Database restore");
+              }, 'Database restore');
               task.addTask(() => {
                 return this.importDataDirectories();
-              }, "Data directories restore");
+              }, 'Data directories restore');
             });
             task.addTask(() => {
               return FSHelper.rmDirectory(this.getTemporalyUnzipPath());
-            }, "Remove temporaly files");
+            }, 'Remove temporaly files');
             task.addTask(async (_) => {
               return this.runMigrations();
-            }, "Database migration");
+            }, 'Database migration');
           });
         },
-        "Backup restored",
+        'Backup restored',
       );
 
       return this;
@@ -395,7 +395,7 @@ export class Backup implements Responsable {
     return new Promise((resolve, reject) => {
       //console.time("mysqldump");
       child_process.exec(
-        this.buildCmd("mysqldump", databaseService),
+        this.buildCmd('mysqldump', databaseService),
         (error, stdout, stderr) => {
           //console.timeEnd("mysqldump");
           if (error) return reject(error);
@@ -447,7 +447,7 @@ export class Backup implements Responsable {
 
   protected getTemporalyUnzipPath(): string {
     return path.join(
-      app().config.get("tmp.directory"),
+      app().config.get('tmp.directory'),
       path.basename(this._backupPath),
     );
   }
@@ -464,11 +464,11 @@ export class Backup implements Responsable {
         await databaseService.emptyDatabase();
         if (!(await databaseService.isDatabaseEmpty()))
           return reject(
-            new RestoreBackupException("Database can not be wiped"),
+            new RestoreBackupException('Database can not be wiped'),
           );
 
         //console.time("db import");
-        child_process.execSync(this.buildCmd("mysql", databaseService));
+        child_process.execSync(this.buildCmd('mysql', databaseService));
         //console.timeEnd("db import");
 
         //Change compilation status from firewalls
@@ -542,30 +542,30 @@ export class Backup implements Responsable {
    * Builds mysqldump/mysql command
    */
   buildCmd(
-    cmd: "mysqldump" | "mysql",
+    cmd: 'mysqldump' | 'mysql',
     databaseService: DatabaseService,
   ): string {
     const config = app().config;
     const dbConfig: DatabaseConfig = databaseService.config;
     let dumpFile: string = path.join(this._backupPath, Backup.DUMP_FILENAME);
 
-    if (cmd === "mysql") {
+    if (cmd === 'mysql') {
       fs.existsSync(path.join(this._backupPath, Backup.DUMP_FILENAME))
         ? (dumpFile = path.join(this._backupPath, Backup.DUMP_FILENAME))
         : (dumpFile = path.join(
-            config.get("tmp.directory"),
+            config.get('tmp.directory'),
             path.basename(this._backupPath),
             Backup.DUMP_FILENAME,
           ));
     }
 
-    const shellescape = require("shell-escape");
+    const shellescape = require('shell-escape');
     process.env.MYSQL_PWD = shellescape([dbConfig.pass]).substring(0, 128);
 
-    const dir = cmd === "mysqldump" ? ">" : "<";
+    const dir = cmd === 'mysqldump' ? '>' : '<';
     // This is necessary for mysqldump/mysql commands to access the docker containers of the test environment.
-    if (app().config.get("db.mysqldump.protocol") === "tcp")
-      cmd += " --protocol=TCP";
+    if (app().config.get('db.mysqldump.protocol') === 'tcp')
+      cmd += ' --protocol=TCP';
     // If we don't specify the communications protocol and we are running the mysqldump/mysql commands in localhost,
     // they will use by default the socket file.
     // That is fine, because using the socket file will improve performance.
@@ -577,7 +577,7 @@ export class Backup implements Responsable {
   /**
    * Check that the mysqldump/mysql command exists
    */
-  existsCmd(cmd: "mysqldump" | "mysql"): Promise<boolean> {
+  existsCmd(cmd: 'mysqldump' | 'mysql'): Promise<boolean> {
     return new Promise((resolve) => {
       child_process.exec(`${cmd} --version`, (error, stdout, stderr) => {
         resolve(error ? false : true);

@@ -20,26 +20,26 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { expect } from "chai";
+import { expect } from 'chai';
 import {
   DHCPCompiled,
   DHCPCompiler,
-} from "../../../../../src/compiler/system/dhcp/DHCPCompiler";
+} from '../../../../../src/compiler/system/dhcp/DHCPCompiler';
 import {
   DHCPRuleService,
   DHCPRulesData,
-} from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service";
-import { DHCPRuleItemForCompiler } from "../../../../../src/models/system/dhcp/shared";
-import { testSuite } from "../../../../mocha/global-setup";
+} from '../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service';
+import { DHCPRuleItemForCompiler } from '../../../../../src/models/system/dhcp/shared';
+import { testSuite } from '../../../../mocha/global-setup';
 import {
   FwCloudFactory,
   FwCloudProduct,
-} from "../../../../utils/fwcloud-factory";
-import { getRepository } from "typeorm";
-import { DHCPRule } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.model";
-import { IPObj } from "../../../../../src/models/ipobj/IPObj";
-import sinon from "sinon";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+} from '../../../../utils/fwcloud-factory';
+import { getRepository } from 'typeorm';
+import { DHCPRule } from '../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.model';
+import { IPObj } from '../../../../../src/models/ipobj/IPObj';
+import sinon from 'sinon';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
 
 describe(DHCPCompiler.name, (): void => {
   let fwc: FwCloudProduct;
@@ -70,27 +70,27 @@ describe(DHCPCompiler.name, (): void => {
           max_lease: 5,
           network: await getRepository(IPObj).save(
             getRepository(IPObj).create({
-              name: "test",
-              address: "0.0.0.0",
+              name: 'test',
+              address: '0.0.0.0',
               ipObjTypeId: 0,
-              netmask: "/24",
+              netmask: '/24',
             }),
           ),
           range: await getRepository(IPObj).save(
             getRepository(IPObj).create({
-              name: "test",
-              address: "0.0.0.0",
+              name: 'test',
+              address: '0.0.0.0',
               ipObjTypeId: 0,
-              range_start: "1",
-              range_end: "2",
+              range_start: '1',
+              range_end: '2',
             }),
           ),
           router: await getRepository(IPObj).save(
             getRepository(IPObj).create({
-              name: "test",
-              address: "0.0.0.0",
+              name: 'test',
+              address: '0.0.0.0',
               ipObjTypeId: 0,
-              netmask: "/24",
+              netmask: '/24',
             }),
           ),
         }),
@@ -100,29 +100,29 @@ describe(DHCPCompiler.name, (): void => {
     }
 
     rules = await dhcpRuleService.getDHCPRulesData<DHCPRuleItemForCompiler>(
-      "compiler",
+      'compiler',
       fwc.fwcloud.id,
       fwc.firewall.id,
       [1, 2, 3],
     );
   });
 
-  describe("compile", () => {
-    it("should return an empty array when no data is provided", () => {
-      expect(compiler.compile([])).to.be.an("array").that.is.empty;
+  describe('compile', () => {
+    it('should return an empty array when no data is provided', () => {
+      expect(compiler.compile([])).to.be.an('array').that.is.empty;
     });
 
-    it("should return an array with compiled data for an active rule", async (): Promise<void> => {
-      expect(compiler.compile(rules)).to.be.an("array").that.is.not.empty;
+    it('should return an array with compiled data for an active rule', async (): Promise<void> => {
+      expect(compiler.compile(rules)).to.be.an('array').that.is.not.empty;
     });
 
-    it("should return an array with compiled data for an inactive rule", async (): Promise<void> => {
+    it('should return an array with compiled data for an inactive rule', async (): Promise<void> => {
       rules.forEach((element) => {
         element.active = false;
       });
 
       const result: DHCPCompiled[] = compiler.compile(rules);
-      expect(result).to.be.an("array").that.is.not.empty;
+      expect(result).to.be.an('array').that.is.not.empty;
 
       result.forEach((element) => {
         expect(element.active).to.be.false;
@@ -130,11 +130,11 @@ describe(DHCPCompiler.name, (): void => {
       });
     });
 
-    it("should emit a progress event for each rule", async () => {
+    it('should emit a progress event for each rule', async () => {
       const eventEmitter: EventEmitter = new EventEmitter();
 
       const progressHandler: sinon.SinonStub<any[], any> = sinon.stub();
-      eventEmitter.on("progress", progressHandler);
+      eventEmitter.on('progress', progressHandler);
 
       compiler.compile(rules, eventEmitter);
 
@@ -143,7 +143,7 @@ describe(DHCPCompiler.name, (): void => {
           expect(
             progressHandler.calledWith(
               sinon.match({
-                message: `Compiling DHCP rule ${index} (ID: ${rule.id})${!rule.active ? " [DISABLED]" : ""}`,
+                message: `Compiling DHCP rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}`,
               }),
             ),
           ).to.be.true;

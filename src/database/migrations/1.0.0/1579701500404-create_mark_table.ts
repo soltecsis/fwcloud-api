@@ -25,78 +25,78 @@ import {
   QueryRunner,
   Table,
   TableForeignKey,
-} from "typeorm";
+} from 'typeorm';
 
 export class createMarkTable1579701500404 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<any> {
     //mark
     await queryRunner.createTable(
       new Table({
-        name: "mark",
+        name: 'mark',
         columns: [
           {
-            name: "id",
-            type: "int",
-            length: "11",
+            name: 'id',
+            type: 'int',
+            length: '11',
             isGenerated: true,
-            generationStrategy: "increment",
+            generationStrategy: 'increment',
             isPrimary: true,
           },
           {
-            name: "code",
-            type: "int",
-            length: "11",
+            name: 'code',
+            type: 'int',
+            length: '11',
             isNullable: false,
           },
           {
-            name: "fwcloud",
-            type: "int",
-            length: "11",
+            name: 'fwcloud',
+            type: 'int',
+            length: '11',
             isNullable: false,
           },
           {
-            name: "name",
-            type: "varchar",
+            name: 'name',
+            type: 'varchar',
             isNullable: false,
           },
           {
-            name: "comment",
-            type: "varchar",
+            name: 'comment',
+            type: 'varchar',
             isNullable: true,
             default: null,
           },
           {
-            name: "created_at",
-            type: "datetime",
+            name: 'created_at',
+            type: 'datetime',
             isNullable: false,
-            default: "CURRENT_TIMESTAMP",
+            default: 'CURRENT_TIMESTAMP',
           },
           {
-            name: "updated_at",
-            type: "datetime",
+            name: 'updated_at',
+            type: 'datetime',
             isNullable: false,
-            default: "CURRENT_TIMESTAMP",
-            onUpdate: "CURRENT_TIMESTAMP",
+            default: 'CURRENT_TIMESTAMP',
+            onUpdate: 'CURRENT_TIMESTAMP',
           },
           {
-            name: "created_by",
-            type: "int",
+            name: 'created_by',
+            type: 'int',
             isNullable: false,
             default: 0,
           },
           {
-            name: "updated_by",
-            type: "int",
+            name: 'updated_by',
+            type: 'int',
             isNullable: false,
             default: 0,
           },
         ],
-        uniques: [{ columnNames: ["code", "fwcloud"] }],
+        uniques: [{ columnNames: ['code', 'fwcloud'] }],
         foreignKeys: [
           {
-            columnNames: ["fwcloud"],
-            referencedTableName: "fwcloud",
-            referencedColumnNames: ["id"],
+            columnNames: ['fwcloud'],
+            referencedTableName: 'fwcloud',
+            referencedColumnNames: ['id'],
           },
         ],
       }),
@@ -105,6 +105,6 @@ export class createMarkTable1579701500404 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<any> {
-    await queryRunner.dropTable("mark", true);
+    await queryRunner.dropTable('mark', true);
   }
 }

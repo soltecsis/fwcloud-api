@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../../../fonaments/abstract-application";
+import { AbstractApplication } from '../../../fonaments/abstract-application';
 import {
   ServiceBound,
   ServiceContainer,
-} from "../../../fonaments/services/service-container";
-import { ServiceProvider } from "../../../fonaments/services/service-provider";
-import { RoutingRuleService } from "./routing-rule.service";
+} from '../../../fonaments/services/service-container';
+import { ServiceProvider } from '../../../fonaments/services/service-provider';
+import { RoutingRuleService } from './routing-rule.service';
 
 export class RoutingRuleServiceProvider extends ServiceProvider {
   public register(serviceContainer: ServiceContainer): ServiceBound {

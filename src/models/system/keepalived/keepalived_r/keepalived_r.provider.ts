@@ -14,10 +14,10 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { ServiceProvider } from "../../../../fonaments/services/service-provider";
-import { ServiceContainer } from "../../../../fonaments/services/service-container";
-import { AbstractApplication } from "../../../../fonaments/abstract-application";
-import { KeepalivedRuleService } from "./keepalived_r.service";
+import { ServiceProvider } from '../../../../fonaments/services/service-provider';
+import { ServiceContainer } from '../../../../fonaments/services/service-container';
+import { AbstractApplication } from '../../../../fonaments/abstract-application';
+import { KeepalivedRuleService } from './keepalived_r.service';
 
 export class KeepalivedRuleServiceProvider extends ServiceProvider {
   public register(serviceContainer: ServiceContainer) {

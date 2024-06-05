@@ -1,4 +1,4 @@
-import { FwCloudError } from "../../../../src/fonaments/exceptions/error";
+import { FwCloudError } from '../../../../src/fonaments/exceptions/error';
 
 export class InvalidConnectionNameException extends FwCloudError {
   constructor(name: string) {

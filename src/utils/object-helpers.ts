@@ -35,7 +35,7 @@ export default class ObjectHelpers {
     T extends Record<string, unknown> = Record<string, unknown>,
   >(target: T, ...sources: Partial<T>[]): T {
     function isObject(item) {
-      return item && typeof item === "object" && !Array.isArray(item);
+      return item && typeof item === 'object' && !Array.isArray(item);
     }
 
     if (!sources.length) {

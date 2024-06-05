@@ -23,22 +23,22 @@
 import {
   TableTerraformer,
   TerraformHandlerCollection,
-} from "../table-terraformer";
-import { ImportMapping } from "../mapper/import-mapping";
-import { Firewall } from "../../../../models/firewall/Firewall";
-import { Ca } from "../../../../models/vpn/pki/Ca";
-import { Cluster } from "../../../../models/firewall/Cluster";
-import { Crt } from "../../../../models/vpn/pki/Crt";
-import Model from "../../../../models/Model";
-import { Interface } from "../../../../models/interface/Interface";
-import { OpenVPN } from "../../../../models/vpn/openvpn/OpenVPN";
-import { IPObj } from "../../../../models/ipobj/IPObj";
-import { IPObjGroup } from "../../../../models/ipobj/IPObjGroup";
-import { Mark } from "../../../../models/ipobj/Mark";
-import { CaPrefix } from "../../../../models/vpn/pki/CaPrefix";
-import { OpenVPNPrefix } from "../../../../models/vpn/openvpn/OpenVPNPrefix";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { RoutingTable } from "../../../../models/routing/routing-table/routing-table.model";
+} from '../table-terraformer';
+import { ImportMapping } from '../mapper/import-mapping';
+import { Firewall } from '../../../../models/firewall/Firewall';
+import { Ca } from '../../../../models/vpn/pki/Ca';
+import { Cluster } from '../../../../models/firewall/Cluster';
+import { Crt } from '../../../../models/vpn/pki/Crt';
+import Model from '../../../../models/Model';
+import { Interface } from '../../../../models/interface/Interface';
+import { OpenVPN } from '../../../../models/vpn/openvpn/OpenVPN';
+import { IPObj } from '../../../../models/ipobj/IPObj';
+import { IPObjGroup } from '../../../../models/ipobj/IPObjGroup';
+import { Mark } from '../../../../models/ipobj/Mark';
+import { CaPrefix } from '../../../../models/vpn/pki/CaPrefix';
+import { OpenVPNPrefix } from '../../../../models/vpn/openvpn/OpenVPNPrefix';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { RoutingTable } from '../../../../models/routing/routing-table/routing-table.model';
 
 export class FwcTreeTerraformer extends TableTerraformer {
   protected _typeToTableNameMapping: { [type: string]: typeof Model } = {
@@ -118,9 +118,9 @@ export class FwcTreeTerraformer extends TableTerraformer {
      * This custom handler gets the ipObjType referenced and based on the mapping localized in _typeToTableNameMapping,
      * it calls the mapper in order to get the terraformed id
      */
-    result["id_obj"] = (mapper: ImportMapping, row: any, value: any) => {
+    result['id_obj'] = (mapper: ImportMapping, row: any, value: any) => {
       if (
-        row.hasOwnProperty("node_type") &&
+        row.hasOwnProperty('node_type') &&
         row.node_type !== null &&
         this._typeToTableNameMapping.hasOwnProperty(row.node_type) &&
         this._typeToTableNameMapping[row.node_type] !== null

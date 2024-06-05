@@ -20,29 +20,29 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../../fonaments/http/controller";
-import { Firewall } from "../../../models/firewall/Firewall";
+import { Controller } from '../../../fonaments/http/controller';
+import { Firewall } from '../../../models/firewall/Firewall';
 import {
   RouteData,
   RoutingTableService,
-} from "../../../models/routing/routing-table/routing-table.service";
-import { Request } from "express";
-import { RoutingTable } from "../../../models/routing/routing-table/routing-table.model";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
+} from '../../../models/routing/routing-table/routing-table.service';
+import { Request } from 'express';
+import { RoutingTable } from '../../../models/routing/routing-table/routing-table.model';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
 import {
   Validate,
   ValidateQuery,
-} from "../../../decorators/validate.decorator";
-import { RoutingTablePolicy } from "../../../policies/routing-table.policy";
-import { RoutingTableControllerCreateDto } from "./dtos/create.dto";
-import { RoutingTableControllerUpdateDto } from "./dtos/update.dto";
-import { RouteItemForCompiler } from "../../../models/routing/shared";
-import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
-import { RoutingTableControllerCompileRoutesQueryDto } from "./dtos/compile-routes.dto";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { getRepository } from "typeorm";
-import { Tree } from "../../../models/tree/Tree";
-import { RoutingRule } from "../../../models/routing/routing-rule/routing-rule.model";
+} from '../../../decorators/validate.decorator';
+import { RoutingTablePolicy } from '../../../policies/routing-table.policy';
+import { RoutingTableControllerCreateDto } from './dtos/create.dto';
+import { RoutingTableControllerUpdateDto } from './dtos/update.dto';
+import { RouteItemForCompiler } from '../../../models/routing/shared';
+import { RoutingCompiler } from '../../../compiler/routing/RoutingCompiler';
+import { RoutingTableControllerCompileRoutesQueryDto } from './dtos/compile-routes.dto';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
+import { getRepository } from 'typeorm';
+import { Tree } from '../../../models/tree/Tree';
+import { RoutingRule } from '../../../models/routing/routing-rule/routing-rule.model';
 
 export class RoutingTableController extends Controller {
   protected routingTableService: RoutingTableService;
@@ -64,13 +64,13 @@ export class RoutingTableController extends Controller {
 
     //Get the firewall from the URL which contains the routingTable
     const firewallQueryBuilder = getRepository(Firewall)
-      .createQueryBuilder("firewall")
-      .where("firewall.id = :id", { id: parseInt(request.params.firewall) });
+      .createQueryBuilder('firewall')
+      .where('firewall.id = :id', { id: parseInt(request.params.firewall) });
     if (this._routingTable) {
       firewallQueryBuilder.innerJoin(
-        "firewall.routingTables",
-        "routingTable",
-        "routingTable.id = :routingTableId",
+        'firewall.routingTables',
+        'routingTable',
+        'routingTable.id = :routingTableId',
         { routingTableId: this._routingTable.id },
       );
     }
@@ -78,11 +78,11 @@ export class RoutingTableController extends Controller {
 
     //Get the fwcloud from the URL which contains the firewall
     this._fwCloud = await getRepository(FwCloud)
-      .createQueryBuilder("fwcloud")
-      .innerJoin("fwcloud.firewalls", "firewall", "firewall.id = :firewallId", {
+      .createQueryBuilder('fwcloud')
+      .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
         firewallId: this._firewall.id,
       })
-      .where("fwcloud.id = :id", { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
       .getOneOrFail();
   }
 
@@ -117,7 +117,7 @@ export class RoutingTableController extends Controller {
     ).authorize();
 
     const grid = await this.routingTableService.getRoutingTableData(
-      "grid",
+      'grid',
       this._firewall.fwCloudId,
       this._firewall.id,
       this._routingTable.id,
@@ -135,7 +135,7 @@ export class RoutingTableController extends Controller {
 
     let routes: RouteData<RouteItemForCompiler>[] =
       await this.routingTableService.getRoutingTableData(
-        "compiler",
+        'compiler',
         this._firewall.fwCloudId,
         this._firewall.id,
         this._routingTable.id,
@@ -150,7 +150,7 @@ export class RoutingTableController extends Controller {
       );
     }
 
-    const compilation = new RoutingCompiler().compile("Route", routes);
+    const compilation = new RoutingCompiler().compile('Route', routes);
 
     return ResponseBuilder.buildResponse().status(200).body(compilation);
   }
@@ -163,9 +163,9 @@ export class RoutingTableController extends Controller {
 
     const routingTable: RoutingTable = await this.routingTableService.create({
       firewallId: this._firewall.id,
-      name: request.inputs.get("name"),
-      number: request.inputs.get("number"),
-      comment: request.inputs.get("comment"),
+      name: request.inputs.get('name'),
+      number: request.inputs.get('number'),
+      comment: request.inputs.get('comment'),
     });
 
     return ResponseBuilder.buildResponse().status(201).body(routingTable);
@@ -199,17 +199,17 @@ export class RoutingTableController extends Controller {
     ).authorize();
 
     const rules: RoutingRule[] = await getRepository(RoutingRule)
-      .createQueryBuilder("rule")
-      .select("rule.id", "routing_rule_id")
-      .addSelect("table.id", "routing_table_id")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .innerJoin("rule.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
-      .where("table.id = :id", { id: this._routingTable.id })
+      .createQueryBuilder('rule')
+      .select('rule.id', 'routing_rule_id')
+      .addSelect('table.id', 'routing_table_id')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoin('rule.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
+      .where('table.id = :id', { id: this._routingTable.id })
       .getRawMany();
 
     if (rules.length > 0) {

@@ -1,6 +1,6 @@
-import * as fs from "fs-extra";
-import * as path from "path";
-import { FwCloudError } from "../../exceptions/error";
+import * as fs from 'fs-extra';
+import * as path from 'path';
+import { FwCloudError } from '../../exceptions/error';
 
 export class FileInfo {
   readonly basename: string;
@@ -17,7 +17,7 @@ export class FileInfo {
       this.extensions = path.extname(filepath);
       this.size = stat.size;
     } catch (e) {
-      throw new FwCloudError("Uploaded file not found", e.stack);
+      throw new FwCloudError('Uploaded file not found', e.stack);
     }
   }
 }

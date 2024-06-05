@@ -20,73 +20,73 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MigrationInterface, QueryRunner, Table } from "typeorm";
+import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class createCustomerTable1579701330995 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<any> {
     //customer
     await queryRunner.createTable(
       new Table({
-        name: "customer",
+        name: 'customer',
         columns: [
           {
-            name: "id",
-            type: "int",
+            name: 'id',
+            type: 'int',
             isGenerated: true,
-            generationStrategy: "increment",
+            generationStrategy: 'increment',
             isPrimary: true,
           },
           {
-            name: "name",
-            type: "varchar",
+            name: 'name',
+            type: 'varchar',
             isNullable: false,
           },
           {
-            name: "addr",
-            type: "varchar",
+            name: 'addr',
+            type: 'varchar',
             isNullable: true,
             default: null,
           },
           {
-            name: "phone",
-            type: "varchar",
+            name: 'phone',
+            type: 'varchar',
             isNullable: true,
             default: null,
           },
           {
-            name: "email",
-            type: "varchar",
+            name: 'email',
+            type: 'varchar',
             isNullable: true,
             default: null,
           },
           {
-            name: "web",
-            type: "varchar",
+            name: 'web',
+            type: 'varchar',
             isNullable: true,
             default: null,
           },
           {
-            name: "created_at",
-            type: "datetime",
+            name: 'created_at',
+            type: 'datetime',
             isNullable: false,
-            default: "CURRENT_TIMESTAMP",
+            default: 'CURRENT_TIMESTAMP',
           },
           {
-            name: "updated_at",
-            type: "datetime",
+            name: 'updated_at',
+            type: 'datetime',
             isNullable: false,
-            default: "CURRENT_TIMESTAMP",
-            onUpdate: "CURRENT_TIMESTAMP",
+            default: 'CURRENT_TIMESTAMP',
+            onUpdate: 'CURRENT_TIMESTAMP',
           },
           {
-            name: "created_by",
-            type: "int",
+            name: 'created_by',
+            type: 'int',
             isNullable: false,
             default: 0,
           },
           {
-            name: "updated_by",
-            type: "int",
+            name: 'updated_by',
+            type: 'int',
             isNullable: false,
             default: 0,
           },
@@ -97,6 +97,6 @@ export class createCustomerTable1579701330995 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<any> {
-    await queryRunner.dropTable("customer", true);
+    await queryRunner.dropTable('customer', true);
   }
 }

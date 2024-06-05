@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { logger } from "../fonaments/abstract-application";
-import { Service } from "../fonaments/services/service";
-import { Request } from "express";
-import * as fs from "fs";
-import axios, { AxiosRequestConfig, Method } from "axios";
-import * as https from "https";
-import cmp from "semver-compare";
-const spawn = require("child-process-promise").spawn;
+import { logger } from '../fonaments/abstract-application';
+import { Service } from '../fonaments/services/service';
+import { Request } from 'express';
+import * as fs from 'fs';
+import axios, { AxiosRequestConfig, Method } from 'axios';
+import * as https from 'https';
+import cmp from 'semver-compare';
+const spawn = require('child-process-promise').spawn;
 
 export interface Versions {
   current: string;
@@ -36,15 +36,15 @@ export interface Versions {
 }
 
 export enum Apps {
-  WEBSRV = "websrv",
-  UI = "ui",
-  API = "api",
-  UPDATER = "updater",
+  WEBSRV = 'websrv',
+  UI = 'ui',
+  API = 'api',
+  UPDATER = 'updater',
 }
 
 export class UpdateService extends Service {
   public async proxyUpdate(request: Request): Promise<any> {
-    const updaterURL = this._app.config.get("updater").url;
+    const updaterURL = this._app.config.get('updater').url;
 
     /* ATENTION+: Only forward the cookie header to fwcloud-updater. 
     If all headers are forwarded with:
@@ -68,7 +68,7 @@ export class UpdateService extends Service {
       return res && res.data ? res.data : null;
     } catch (err) {
       logger().error(`Proxying update request: ${err.message}`);
-      throw new Error("Proxying update request");
+      throw new Error('Proxying update request');
     }
   }
 
@@ -79,13 +79,13 @@ export class UpdateService extends Service {
     const localPath = `${this._app.config.get(app).installDir}/package.json`;
     try {
       fs.accessSync(localPath, fs.constants.R_OK);
-      localJson = JSON.parse(fs.readFileSync(localPath, "utf8"));
+      localJson = JSON.parse(fs.readFileSync(localPath, 'utf8'));
     } catch (err) {
       logger().error(`Accessing file '${localPath}' :`, err);
       return null;
     }
 
-    let remoteURL = "";
+    let remoteURL = '';
     try {
       remoteURL = `${this._app.config.get(app).versionURL}/main/package.json`;
       remoteJson = await axios.get(remoteURL);
@@ -115,31 +115,31 @@ export class UpdateService extends Service {
   }
 
   public async runUpdate(): Promise<void> {
-    const installDir = this._app.config.get("updater").installDir;
+    const installDir = this._app.config.get('updater').installDir;
 
     // Make sure install dir exists.
     try {
       fs.lstatSync(installDir).isDirectory();
     } catch (err) {
       logger().error(`Directory not found: ${installDir}`);
-      throw new Error("fwcloud-updater install directory not found");
+      throw new Error('fwcloud-updater install directory not found');
     }
 
     try {
       fs.readdirSync(installDir);
     } catch (err) {
       logger().error(`Accessing directory: ${installDir}`);
-      throw new Error("fwcloud-updater install directory not accessible");
+      throw new Error('fwcloud-updater install directory not accessible');
     }
 
     try {
-      logger().info("Updating fwcloud-updater ...");
-      await spawn("npm", ["run", "update"], { cwd: installDir });
-      logger().info("fwcloud-updater update finished. Starting it ...");
-      const promise = spawn("npm", ["run", "start:bg"], {
+      logger().info('Updating fwcloud-updater ...');
+      await spawn('npm', ['run', 'update'], { cwd: installDir });
+      logger().info('fwcloud-updater update finished. Starting it ...');
+      const promise = spawn('npm', ['run', 'start:bg'], {
         cwd: installDir,
         detached: true,
-        stdio: "ignore",
+        stdio: 'ignore',
       });
       promise.childProcess.unref();
       await promise;
@@ -154,7 +154,7 @@ export class UpdateService extends Service {
       logger().error(
         `Error during fwcloud-updater update procedure: ${err.message}`,
       );
-      throw new Error("Error during fwcloud-updater update procedure");
+      throw new Error('Error during fwcloud-updater update procedure');
     }
 
     return;

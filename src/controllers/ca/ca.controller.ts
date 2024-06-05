@@ -1,13 +1,13 @@
-import { ResponseBuilder } from "./../../fonaments/http/response-builder";
-import { Request } from "express";
-import { getRepository } from "typeorm";
-import { CaService } from "../../ca/ca.service";
-import { Controller } from "../../fonaments/http/controller";
-import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { Ca } from "../../models/vpn/pki/Ca";
-import { Validate } from "../../decorators/validate.decorator";
-import { CaPolicy } from "../../policies/ca.policy";
-import { CaControllerUpdateDto } from "./dtos/update.dto";
+import { ResponseBuilder } from './../../fonaments/http/response-builder';
+import { Request } from 'express';
+import { getRepository } from 'typeorm';
+import { CaService } from '../../ca/ca.service';
+import { Controller } from '../../fonaments/http/controller';
+import { FwCloud } from '../../models/fwcloud/FwCloud';
+import { Ca } from '../../models/vpn/pki/Ca';
+import { Validate } from '../../decorators/validate.decorator';
+import { CaPolicy } from '../../policies/ca.policy';
+import { CaControllerUpdateDto } from './dtos/update.dto';
 
 export class CaController extends Controller {
   protected CaService: CaService;
@@ -21,8 +21,8 @@ export class CaController extends Controller {
     }
     //Get the fwcloud wich contains the ca
     this._fwCloud = await getRepository(FwCloud)
-      .createQueryBuilder("fwcloud")
-      .where("fwcloud.id = :id", { id: parseInt(request.params.fwcloud) })
+      .createQueryBuilder('fwcloud')
+      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
       .getOneOrFail();
   }
   @Validate(CaControllerUpdateDto)

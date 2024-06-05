@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class fixOutOfRange1710494756611 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {

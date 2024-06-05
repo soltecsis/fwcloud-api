@@ -20,80 +20,80 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MigrationInterface, QueryRunner, Table } from "typeorm";
+import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class createCaTable1579700895349 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<any> {
     //ca
     await queryRunner.createTable(
       new Table({
-        name: "ca",
+        name: 'ca',
         columns: [
           {
-            name: "id",
-            type: "int",
+            name: 'id',
+            type: 'int',
             isPrimary: true,
             isGenerated: true,
-            generationStrategy: "increment",
+            generationStrategy: 'increment',
           },
           {
-            name: "fwcloud",
-            type: "int",
+            name: 'fwcloud',
+            type: 'int',
             isNullable: false,
           },
           {
-            name: "cn",
-            type: "varchar",
-            length: "255",
+            name: 'cn',
+            type: 'varchar',
+            length: '255',
             isNullable: false,
           },
           {
-            name: "days",
-            type: "int",
-            length: "11",
+            name: 'days',
+            type: 'int',
+            length: '11',
             unsigned: true,
             isNullable: false,
           },
           {
-            name: "comment",
-            type: "varchar",
+            name: 'comment',
+            type: 'varchar',
             isNullable: true,
             default: null,
           },
           {
-            name: "status",
-            type: "tinyint",
-            length: "1",
+            name: 'status',
+            type: 'tinyint',
+            length: '1',
             isNullable: false,
             default: 0,
           },
           {
-            name: "created_at",
-            type: "datetime",
+            name: 'created_at',
+            type: 'datetime',
             isNullable: false,
-            default: "CURRENT_TIMESTAMP",
+            default: 'CURRENT_TIMESTAMP',
           },
           {
-            name: "updated_at",
-            type: "datetime",
+            name: 'updated_at',
+            type: 'datetime',
             isNullable: false,
-            default: "CURRENT_TIMESTAMP",
-            onUpdate: "CURRENT_TIMESTAMP",
+            default: 'CURRENT_TIMESTAMP',
+            onUpdate: 'CURRENT_TIMESTAMP',
           },
           {
-            name: "created_by",
-            type: "int",
+            name: 'created_by',
+            type: 'int',
             isNullable: false,
             default: 0,
           },
           {
-            name: "updated_by",
-            type: "int",
+            name: 'updated_by',
+            type: 'int',
             isNullable: false,
             default: 0,
           },
         ],
-        uniques: [{ columnNames: ["id", "cn"] }],
+        uniques: [{ columnNames: ['id', 'cn'] }],
       }),
       true,
     );
@@ -101,32 +101,32 @@ export class createCaTable1579700895349 implements MigrationInterface {
     //ca_prefix
     await queryRunner.createTable(
       new Table({
-        name: "ca_prefix",
+        name: 'ca_prefix',
         columns: [
           {
-            name: "id",
-            type: "int",
+            name: 'id',
+            type: 'int',
             isPrimary: true,
             isGenerated: true,
-            generationStrategy: "increment",
+            generationStrategy: 'increment',
           },
           {
-            name: "ca",
-            type: "int",
+            name: 'ca',
+            type: 'int',
             isNullable: false,
           },
           {
-            name: "name",
-            type: "varchar",
+            name: 'name',
+            type: 'varchar',
             isNullable: false,
           },
         ],
-        uniques: [{ columnNames: ["ca", "name"] }],
+        uniques: [{ columnNames: ['ca', 'name'] }],
         foreignKeys: [
           {
-            referencedColumnNames: ["id"],
-            referencedTableName: "ca",
-            columnNames: ["ca"],
+            referencedColumnNames: ['id'],
+            referencedTableName: 'ca',
+            columnNames: ['ca'],
           },
         ],
       }),
@@ -135,7 +135,7 @@ export class createCaTable1579700895349 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<any> {
-    await queryRunner.dropTable("ca_prefix", true);
-    await queryRunner.dropTable("ca", true);
+    await queryRunner.dropTable('ca_prefix', true);
+    await queryRunner.dropTable('ca', true);
   }
 }

@@ -20,18 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Application } from "../../../../../src/Application";
-import { getRepository } from "typeorm";
-import { DhcpGroupController } from "../../../../../src/controllers/system/dhcp-group/dhcp-group.controller";
-import { Firewall } from "../../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
-import { DHCPGroup } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model";
-import StringHelper from "../../../../../src/utils/string.helper";
-import { testSuite } from "../../../../mocha/global-setup";
-import sinon from "sinon";
-import { Request } from "express";
-import { expect } from "chai";
-import { DHCPGroupService } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.service";
+import { Application } from '../../../../../src/Application';
+import { getRepository } from 'typeorm';
+import { DhcpGroupController } from '../../../../../src/controllers/system/dhcp-group/dhcp-group.controller';
+import { Firewall } from '../../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
+import { DHCPGroup } from '../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model';
+import StringHelper from '../../../../../src/utils/string.helper';
+import { testSuite } from '../../../../mocha/global-setup';
+import sinon from 'sinon';
+import { Request } from 'express';
+import { expect } from 'chai';
+import { DHCPGroupService } from '../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.service';
 
 describe(DhcpGroupController.name, () => {
   let firewall: Firewall;
@@ -70,8 +70,8 @@ describe(DhcpGroupController.name, () => {
     sinon.restore();
   });
 
-  describe("make", () => {
-    it("should fetch DHCPGroup when dhcpGroup param is present", async () => {
+  describe('make', () => {
+    it('should fetch DHCPGroup when dhcpGroup param is present', async () => {
       const requestMock = {
         params: {
           dhcpgroup: dhcpgroup.id,
@@ -81,13 +81,13 @@ describe(DhcpGroupController.name, () => {
       } as unknown as Request;
 
       const dhcpGroupServiceStub = sinon
-        .stub(DHCPGroupService.prototype, "findOneInPath")
+        .stub(DHCPGroupService.prototype, 'findOneInPath')
         .resolves(dhcpgroup);
       const firewallStub = sinon
-        .stub(getRepository(Firewall), "findOneOrFail")
+        .stub(getRepository(Firewall), 'findOneOrFail')
         .resolves(firewall);
       const fwCloudStub = sinon
-        .stub(getRepository(FwCloud), "findOneOrFail")
+        .stub(getRepository(FwCloud), 'findOneOrFail')
         .resolves(fwCloud);
 
       await controller.make(requestMock);
@@ -101,7 +101,7 @@ describe(DhcpGroupController.name, () => {
       fwCloudStub.restore();
     });
 
-    it("should fetch Firewall and FwCloud when dhcpGroup param is not present", async () => {
+    it('should fetch Firewall and FwCloud when dhcpGroup param is not present', async () => {
       const requestMock = {
         params: {
           firewall: firewall.id,
@@ -111,10 +111,10 @@ describe(DhcpGroupController.name, () => {
 
       const dhcpGroupServiceStub = sinon.stub(
         DHCPGroupService.prototype,
-        "findOneInPath",
+        'findOneInPath',
       );
-      const firewallStub = sinon.stub(getRepository(Firewall), "findOneOrFail");
-      const fwCloudStub = sinon.stub(getRepository(FwCloud), "findOneOrFail");
+      const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail');
+      const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail');
 
       await controller.make(requestMock);
 
@@ -127,7 +127,7 @@ describe(DhcpGroupController.name, () => {
       fwCloudStub.restore();
     });
 
-    it("should handle errors when entities are not found", async () => {
+    it('should handle errors when entities are not found', async () => {
       const requestMock = {
         params: {
           dhcpgroup: 9999,
@@ -137,11 +137,11 @@ describe(DhcpGroupController.name, () => {
       } as unknown as Request;
 
       const dhcpGroupServiceStub = sinon
-        .stub(DHCPGroupService.prototype, "findOneInPath")
-        .throws(new Error("DHCP Group not found"));
+        .stub(DHCPGroupService.prototype, 'findOneInPath')
+        .throws(new Error('DHCP Group not found'));
 
       await expect(controller.make(requestMock)).to.be.rejectedWith(
-        "DHCP Group not found",
+        'DHCP Group not found',
       );
 
       dhcpGroupServiceStub.restore();

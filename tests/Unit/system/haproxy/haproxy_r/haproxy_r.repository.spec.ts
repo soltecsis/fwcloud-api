@@ -15,17 +15,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getCustomRepository, getRepository } from "typeorm";
-import { Firewall } from "../../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
-import { HAProxyGroup } from "../../../../../src/models/system/haproxy/haproxy_g/haproxy_g.model";
-import { HAProxyRuleRepository } from "../../../../../src/models/system/haproxy/haproxy_r/haproxy.repository";
-import { HAProxyRule } from "../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.model";
-import { testSuite } from "../../../../mocha/global-setup";
-import StringHelper from "../../../../../src/utils/string.helper";
-import { expect } from "chai";
-import sinon from "sinon";
-import { Offset } from "../../../../../src/offset";
+import { getCustomRepository, getRepository } from 'typeorm';
+import { Firewall } from '../../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
+import { HAProxyGroup } from '../../../../../src/models/system/haproxy/haproxy_g/haproxy_g.model';
+import { HAProxyRuleRepository } from '../../../../../src/models/system/haproxy/haproxy_r/haproxy.repository';
+import { HAProxyRule } from '../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.model';
+import { testSuite } from '../../../../mocha/global-setup';
+import StringHelper from '../../../../../src/utils/string.helper';
+import { expect } from 'chai';
+import sinon from 'sinon';
+import { Offset } from '../../../../../src/offset';
 
 describe(HAProxyRuleRepository.name, () => {
   let repository: HAProxyRuleRepository;
@@ -63,15 +63,15 @@ describe(HAProxyRuleRepository.name, () => {
     );
   });
 
-  describe("remove", () => {
-    it("should remove a single HAProxyRule", async () => {
+  describe('remove', () => {
+    it('should remove a single HAProxyRule', async () => {
       const result = await repository.remove(haproxyRule);
 
       expect(result).to.deep.equal(haproxyRule);
       expect(await repository.findOne(haproxyRule.id)).to.be.undefined;
     });
 
-    it("should remove multiple HAProxyRules", async () => {
+    it('should remove multiple HAProxyRules', async () => {
       const haproxyRule2 = await getRepository(HAProxyRule).save(
         getRepository(HAProxyRule).create({
           group: group,
@@ -87,10 +87,10 @@ describe(HAProxyRuleRepository.name, () => {
       expect(await repository.findOne(haproxyRule2.id)).to.be.undefined;
     });
 
-    it("should refresh orders after remove", async () => {
+    it('should refresh orders after remove', async () => {
       const refreshOrdersSpy = sinon.stub(
         repository,
-        "refreshOrders" as keyof HAProxyRuleRepository,
+        'refreshOrders' as keyof HAProxyRuleRepository,
       );
 
       await repository.remove(haproxyRule);
@@ -98,10 +98,10 @@ describe(HAProxyRuleRepository.name, () => {
       expect(refreshOrdersSpy.calledOnceWithExactly(group.id)).to.be.true;
     });
 
-    it("should refresh orders for each group after removing multiple Rules", async () => {
+    it('should refresh orders for each group after removing multiple Rules', async () => {
       const group2 = await getRepository(HAProxyGroup).save(
         getRepository(HAProxyGroup).create({
-          name: "group2",
+          name: 'group2',
           firewall: firewall,
         }),
       );
@@ -118,7 +118,7 @@ describe(HAProxyRuleRepository.name, () => {
 
       const refreshOrdersSpy = sinon.stub(
         repository,
-        "refreshOrders" as keyof HAProxyRuleRepository,
+        'refreshOrders' as keyof HAProxyRuleRepository,
       );
 
       await repository.remove([haproxyRule, haproxyRule2]);
@@ -126,13 +126,13 @@ describe(HAProxyRuleRepository.name, () => {
       expect(refreshOrdersSpy.called).to.be.true;
     });
 
-    it("should not refresh orders after removing rules withouth group", async () => {
+    it('should not refresh orders after removing rules withouth group', async () => {
       haproxyRule.group = null;
       haproxyRule.save();
 
       const refreshOrdersSpy = sinon.stub(
         repository,
-        "refreshOrders" as keyof HAProxyRuleRepository,
+        'refreshOrders' as keyof HAProxyRuleRepository,
       );
 
       await repository.remove(haproxyRule);
@@ -141,22 +141,22 @@ describe(HAProxyRuleRepository.name, () => {
     });
   });
 
-  describe("move", () => {
+  describe('move', () => {
     let mockFind;
 
     beforeEach(() => {
-      mockFind = sinon.stub(repository, "find");
+      mockFind = sinon.stub(repository, 'find');
     });
 
     afterEach(() => {
       mockFind.restore();
     });
 
-    it("should update affected rules after move", async () => {
+    it('should update affected rules after move', async () => {
       mockFind.resolves([haproxyRule]);
       const updateAffectedRulesSpy = sinon.stub(
         repository,
-        "save" as keyof HAProxyRuleRepository,
+        'save' as keyof HAProxyRuleRepository,
       );
 
       await repository.move([haproxyRule.id], haproxyRule.id, Offset.Above);
@@ -164,11 +164,11 @@ describe(HAProxyRuleRepository.name, () => {
       expect(updateAffectedRulesSpy.called).to.be.true;
     });
 
-    it("should refresh orders after move", async () => {
+    it('should refresh orders after move', async () => {
       mockFind.resolves([haproxyRule]);
       const refreshOrdersSpy = sinon.stub(
         repository,
-        "refreshOrders" as keyof HAProxyRuleRepository,
+        'refreshOrders' as keyof HAProxyRuleRepository,
       );
 
       await repository.move([haproxyRule.id], haproxyRule.id, Offset.Above);
@@ -176,7 +176,7 @@ describe(HAProxyRuleRepository.name, () => {
       expect(refreshOrdersSpy.calledOnceWithExactly(group.id)).to.be.true;
     });
 
-    it("should return the updated rules", async () => {
+    it('should return the updated rules', async () => {
       mockFind.resolves([haproxyRule]);
       const updatedRules = await repository.move(
         [haproxyRule.id],
@@ -184,27 +184,27 @@ describe(HAProxyRuleRepository.name, () => {
         Offset.Above,
       );
 
-      expect(updatedRules).to.be.an("array");
+      expect(updatedRules).to.be.an('array');
       expect(updatedRules).to.have.lengthOf(1);
-      expect(updatedRules[0]).to.have.property("id", haproxyRule.id);
+      expect(updatedRules[0]).to.have.property('id', haproxyRule.id);
     });
   });
 
-  describe("getHAProxyRules", () => {
-    it("should retrieve HAProxyRule based on fwcloud and firewall IDs", async () => {
+  describe('getHAProxyRules', () => {
+    it('should retrieve HAProxyRule based on fwcloud and firewall IDs', async () => {
       const fwcloudId = 1;
       const firewallId = 1;
 
       const result = await repository.getHAProxyRules(fwcloudId, firewallId);
 
-      expect(result).to.be.an("array");
+      expect(result).to.be.an('array');
 
       for (const rule of result) {
         expect(rule).to.be.instanceOf(HAProxyRule);
       }
     });
 
-    it("should filter HAProxyRule based on provided rule IDs", async () => {
+    it('should filter HAProxyRule based on provided rule IDs', async () => {
       const fwcloudId = 1;
       const firewallId = 1;
       const ruleIds = [1, 2, 3];
@@ -215,7 +215,7 @@ describe(HAProxyRuleRepository.name, () => {
         ruleIds,
       );
 
-      expect(result).to.be.an("array");
+      expect(result).to.be.an('array');
 
       for (const rule of result) {
         expect(rule).to.be.instanceOf(HAProxyRule);

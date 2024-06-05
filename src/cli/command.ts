@@ -20,15 +20,15 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import yargs, { PositionalOptionsType } from "yargs";
-import { Application } from "./Application";
-import { Output } from "./output";
+import yargs, { PositionalOptionsType } from 'yargs';
+import { Application } from './Application';
+import { Output } from './output';
 
 export type Option = {
   name: string;
   alias?: string;
   description: string;
-  type?: "array" | "count" | Omit<PositionalOptionsType, any>;
+  type?: 'array' | 'count' | Omit<PositionalOptionsType, any>;
   required?: boolean;
   default?: any;
 };
@@ -46,7 +46,7 @@ export abstract class Command {
   public async safeHandle(args: yargs.Arguments): Promise<number> {
     this._app = await Application.run();
     this.output = new Output(
-      this._app.config.get("env") !== "test" ? console.log : () => {},
+      this._app.config.get('env') !== 'test' ? console.log : () => {},
     );
 
     try {
@@ -55,9 +55,9 @@ export abstract class Command {
 
       return 0;
     } catch (err) {
-      this.output.error("Unexpected error: " + err.message);
+      this.output.error('Unexpected error: ' + err.message);
 
-      if (this._app.config.get("env") === "test") {
+      if (this._app.config.get('env') === 'test') {
         throw err;
       }
 

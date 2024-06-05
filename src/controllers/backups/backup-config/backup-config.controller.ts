@@ -20,15 +20,15 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../../fonaments/http/controller";
+import { Controller } from '../../../fonaments/http/controller';
 import {
   BackupService,
   BackupUpdateableConfig,
-} from "../../../backups/backup.service";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { Request } from "express";
-import { Validate } from "../../../decorators/validate.decorator";
-import { BackupConfigControllerUpdateDto } from "./dtos/update.dto";
+} from '../../../backups/backup.service';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
+import { Request } from 'express';
+import { Validate } from '../../../decorators/validate.decorator';
+import { BackupConfigControllerUpdateDto } from './dtos/update.dto';
 
 export class BackupConfigController extends Controller {
   protected _backupService: BackupService;

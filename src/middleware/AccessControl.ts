@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
-import accessCtrl from "../authorization/access_control";
-import { Request, Response, NextFunction } from "express";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
+import accessCtrl from '../authorization/access_control';
+import { Request, Response, NextFunction } from 'express';
 
 export class AccessControl extends Middleware {
   public async handle(

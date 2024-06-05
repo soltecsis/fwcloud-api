@@ -15,11 +15,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SelectQueryBuilder } from "typeorm";
-import { IPObj } from "../../ipobj/IPObj";
-import { IPObjGroup } from "../../ipobj/IPObjGroup";
+import { SelectQueryBuilder } from 'typeorm';
+import { IPObj } from '../../ipobj/IPObj';
+import { IPObjGroup } from '../../ipobj/IPObjGroup';
 
-export type AvailableDestinations = "haproxy_grid" | "compiler";
+export type AvailableDestinations = 'haproxy_grid' | 'compiler';
 
 export type ItemForGrid = {
   entityId: number;

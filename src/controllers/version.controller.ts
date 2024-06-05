@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../fonaments/http/controller";
-import { Request, Response } from "express";
-import { app } from "../fonaments/abstract-application";
-import { Application } from "../Application";
-import { Version } from "../version/version";
-import { ResponseBuilder } from "../fonaments/http/response-builder";
-import { Validate } from "../decorators/validate.decorator";
+import { Controller } from '../fonaments/http/controller';
+import { Request, Response } from 'express';
+import { app } from '../fonaments/abstract-application';
+import { Application } from '../Application';
+import { Version } from '../version/version';
+import { ResponseBuilder } from '../fonaments/http/response-builder';
+import { Validate } from '../decorators/validate.decorator';
 
 export class VersionController extends Controller {
   @Validate()

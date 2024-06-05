@@ -24,69 +24,69 @@ import {
   describeName,
   expect,
   playgroundPath,
-} from "../../../../../mocha/global-setup";
-import { FileInfo } from "../../../../../../src/fonaments/http/files/file-info";
-import * as fs from "fs-extra";
-import * as path from "path";
+} from '../../../../../mocha/global-setup';
+import { FileInfo } from '../../../../../../src/fonaments/http/files/file-info';
+import * as fs from 'fs-extra';
+import * as path from 'path';
 import {
   ValidationArguments,
   ValidatorConstraintInterface,
-} from "class-validator";
-import { HasExtension } from "../../../../../../src/fonaments/validation/rules/extension.validation";
+} from 'class-validator';
+import { HasExtension } from '../../../../../../src/fonaments/validation/rules/extension.validation';
 
-describe(describeName("File Rule Unit Test"), () => {
+describe(describeName('File Rule Unit Test'), () => {
   let rule: ValidatorConstraintInterface;
 
-  describe("passes()", () => {
+  describe('passes()', () => {
     beforeEach(async () => {
       rule = new HasExtension();
     });
 
-    it("should return true if the value is null", async () => {
+    it('should return true if the value is null', async () => {
       expect(
         await rule.validate(undefined, {
-          constraints: ["txt"],
+          constraints: ['txt'],
         } as ValidationArguments),
       ).to.be.true;
     });
 
-    it("should return true if the value is undefined", async () => {
+    it('should return true if the value is undefined', async () => {
       expect(
         await rule.validate(null, {
-          constraints: ["txt"],
+          constraints: ['txt'],
         } as ValidationArguments),
       ).to.be.true;
     });
 
-    it("should return true if the value is not FileInfo", async () => {
+    it('should return true if the value is not FileInfo', async () => {
       expect(
-        await rule.validate("oth", {
-          constraints: ["txt"],
+        await rule.validate('oth', {
+          constraints: ['txt'],
         } as ValidationArguments),
       ).to.be.true;
       expect(
         await rule.validate(10, {
-          constraints: ["txt"],
+          constraints: ['txt'],
         } as ValidationArguments),
       ).to.be.true;
     });
 
-    it("should return true if the value is FileInfo and its extension is equal to the rule extension", async () => {
-      fs.writeFileSync(path.join(playgroundPath, "test.txt"), "");
+    it('should return true if the value is FileInfo and its extension is equal to the rule extension', async () => {
+      fs.writeFileSync(path.join(playgroundPath, 'test.txt'), '');
       expect(
         await rule.validate(
-          new FileInfo(path.join(playgroundPath, "test.txt")),
-          { constraints: ["txt"] } as ValidationArguments,
+          new FileInfo(path.join(playgroundPath, 'test.txt')),
+          { constraints: ['txt'] } as ValidationArguments,
         ),
       ).to.be.true;
     });
 
-    it("should return false if the value is FileInfo and its extension is not equal to the rule extension", async () => {
-      fs.writeFileSync(path.join(playgroundPath, "test.other"), "");
+    it('should return false if the value is FileInfo and its extension is not equal to the rule extension', async () => {
+      fs.writeFileSync(path.join(playgroundPath, 'test.other'), '');
       expect(
         await rule.validate(
-          new FileInfo(path.join(playgroundPath, "test.other")),
-          { constraints: ["txt"] } as ValidationArguments,
+          new FileInfo(path.join(playgroundPath, 'test.other')),
+          { constraints: ['txt'] } as ValidationArguments,
         ),
       ).to.be.false;
     });

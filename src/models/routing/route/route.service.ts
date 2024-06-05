@@ -28,27 +28,27 @@ import {
   In,
   Not,
   SelectQueryBuilder,
-} from "typeorm";
-import { Application } from "../../../Application";
-import db from "../../../database/database-manager";
-import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
-import { Service } from "../../../fonaments/services/service";
-import { ErrorBag } from "../../../fonaments/validation/validator";
-import { Offset } from "../../../offset";
-import { Firewall } from "../../firewall/Firewall";
-import { FirewallService } from "../../firewall/firewall.service";
-import { Interface } from "../../interface/Interface";
-import { IPObj } from "../../ipobj/IPObj";
-import { IPObjGroup } from "../../ipobj/IPObjGroup";
-import { PolicyRuleToIPObj } from "../../policy/PolicyRuleToIPObj";
-import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
-import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
-import { RouteToIPObjGroup } from "./route-to-ipobj-group.model";
-import { RouteToIPObj } from "./route-to-ipobj.model";
-import { RouteToOpenVPNPrefix } from "./route-to-openvpn-prefix.model";
-import { RouteToOpenVPN } from "./route-to-openvpn.model";
-import { Route } from "./route.model";
-import { RouteRepository } from "./route.repository";
+} from 'typeorm';
+import { Application } from '../../../Application';
+import db from '../../../database/database-manager';
+import { ValidationException } from '../../../fonaments/exceptions/validation-exception';
+import { Service } from '../../../fonaments/services/service';
+import { ErrorBag } from '../../../fonaments/validation/validator';
+import { Offset } from '../../../offset';
+import { Firewall } from '../../firewall/Firewall';
+import { FirewallService } from '../../firewall/firewall.service';
+import { Interface } from '../../interface/Interface';
+import { IPObj } from '../../ipobj/IPObj';
+import { IPObjGroup } from '../../ipobj/IPObjGroup';
+import { PolicyRuleToIPObj } from '../../policy/PolicyRuleToIPObj';
+import { OpenVPN } from '../../vpn/openvpn/OpenVPN';
+import { OpenVPNPrefix } from '../../vpn/openvpn/OpenVPNPrefix';
+import { RouteToIPObjGroup } from './route-to-ipobj-group.model';
+import { RouteToIPObj } from './route-to-ipobj.model';
+import { RouteToOpenVPNPrefix } from './route-to-openvpn-prefix.model';
+import { RouteToOpenVPN } from './route-to-openvpn.model';
+import { Route } from './route.model';
+import { RouteRepository } from './route.repository';
 
 interface IFindManyRoutePath {
   firewallId?: number;
@@ -175,8 +175,8 @@ export class RouteService extends Service {
     });
 
     if (
-      Object.prototype.hasOwnProperty.call(data, "to") &&
-      Object.prototype.hasOwnProperty.call(data, "offset")
+      Object.prototype.hasOwnProperty.call(data, 'to') &&
+      Object.prototype.hasOwnProperty.call(data, 'offset')
     ) {
       return (await this.move([persisted.id], data.to, data.offset))[0];
     }
@@ -201,7 +201,7 @@ export class RouteService extends Service {
 
     const firewall: Firewall = (
       await this._repository.findOne(route.id, {
-        relations: ["routingTable", "routingTable.firewall"],
+        relations: ['routingTable', 'routingTable.firewall'],
       })
     ).routingTable.firewall;
 
@@ -259,7 +259,7 @@ export class RouteService extends Service {
     await this.validateFirewallApplyToId(firewall, data);
     route.firewallApplyToId = data.firewallApplyToId;
 
-    if (Object.prototype.hasOwnProperty.call(data, "interfaceId")) {
+    if (Object.prototype.hasOwnProperty.call(data, 'interfaceId')) {
       if (data.interfaceId !== null) {
         await this.validateInterface(firewall, data);
       }
@@ -279,10 +279,10 @@ export class RouteService extends Service {
   protected async reorderTo(ruleId: number): Promise<void> {
     const route: Route = await this._repository.findOneOrFail(ruleId, {
       relations: [
-        "routeToIPObjs",
-        "routeToIPObjGroups",
-        "routeToOpenVPNs",
-        "routeToOpenVPNPrefixes",
+        'routeToIPObjs',
+        'routeToIPObjGroups',
+        'routeToOpenVPNs',
+        'routeToOpenVPNPrefixes',
       ],
     });
 
@@ -313,11 +313,11 @@ export class RouteService extends Service {
         id: In(ids),
       },
       relations: [
-        "routingTable",
-        "routeToIPObjs",
-        "routeToIPObjGroups",
-        "routeToOpenVPNs",
-        "routeToOpenVPNPrefixes",
+        'routingTable',
+        'routeToIPObjs',
+        'routeToIPObjGroups',
+        'routeToOpenVPNs',
+        'routeToOpenVPNPrefixes',
       ],
     });
 
@@ -362,9 +362,9 @@ export class RouteService extends Service {
           id: In(ids),
         },
         join: {
-          alias: "route",
+          alias: 'route',
           innerJoinAndSelect: {
-            table: "route.routingTable",
+            table: 'route.routingTable',
           },
         },
       })
@@ -391,9 +391,9 @@ export class RouteService extends Service {
           id: In(ids),
         },
         join: {
-          alias: "route",
+          alias: 'route',
           innerJoinAndSelect: {
-            table: "route.routingTable",
+            table: 'route.routingTable',
           },
         },
       })
@@ -411,18 +411,18 @@ export class RouteService extends Service {
   ): Promise<[Route, Route]> {
     const fromRule: Route = await getRepository(Route).findOneOrFail(fromId, {
       relations: [
-        "routeToIPObjs",
-        "routeToIPObjGroups",
-        "routeToOpenVPNs",
-        "routeToOpenVPNPrefixes",
+        'routeToIPObjs',
+        'routeToIPObjGroups',
+        'routeToOpenVPNs',
+        'routeToOpenVPNPrefixes',
       ],
     });
     const toRule: Route = await getRepository(Route).findOneOrFail(toId, {
       relations: [
-        "routeToIPObjs",
-        "routeToIPObjGroups",
-        "routeToOpenVPNs",
-        "routeToOpenVPNPrefixes",
+        'routeToIPObjs',
+        'routeToIPObjGroups',
+        'routeToOpenVPNs',
+        'routeToOpenVPNPrefixes',
       ],
     });
 
@@ -504,7 +504,7 @@ export class RouteService extends Service {
     data: IMoveToGatewayRoute,
   ): Promise<[Route, Route]> {
     const fromRule: Route = await getRepository(Route).findOneOrFail(fromId, {
-      relations: ["routeToIPObjs"],
+      relations: ['routeToIPObjs'],
     });
     const toRule: Route = await getRepository(Route).findOneOrFail(toId);
 
@@ -540,9 +540,9 @@ export class RouteService extends Service {
   async remove(path: IFindOneRoutePath): Promise<Route> {
     const route: Route = await this.findOneInPath(path);
     const firewall: Firewall = await getRepository(Firewall)
-      .createQueryBuilder("firewall")
-      .innerJoin("firewall.routingTables", "table")
-      .innerJoin("table.routes", "route", "route.id = :id", { id: route.id })
+      .createQueryBuilder('firewall')
+      .innerJoin('firewall.routingTables', 'table')
+      .innerJoin('table.routes', 'route', 'route.id = :id', { id: route.id })
       .getOne();
 
     route.routeToOpenVPNPrefixes = [];
@@ -603,25 +603,25 @@ export class RouteService extends Service {
           9, // DNS
         ]),
       },
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
 
     for (let i = 0; i < ipObjs.length; i++) {
       const ipObj: IPObj = ipObjs[i];
 
       if (ipObj.fwCloudId && ipObj.fwCloudId !== firewall.fwCloudId) {
-        errors[`ipObjIds.${i}`] = ["ipObj id must exist"];
+        errors[`ipObjIds.${i}`] = ['ipObj id must exist'];
       } else if (ipObj.ipObjTypeId === 8) {
         // 8 = HOST
         const addrs: any = await Interface.getHostAddr(db.getQuery(), ipObj.id);
         if (addrs.length === 0) {
-          errors[`ipObjIds.${i}`] = ["ipObj must contain at least one address"];
+          errors[`ipObjIds.${i}`] = ['ipObj must contain at least one address'];
         }
       }
     }
 
     if (Object.keys(errors).length > 0) {
-      throw new ValidationException("The given data was invalid", errors);
+      throw new ValidationException('The given data was invalid', errors);
     }
   }
 
@@ -646,11 +646,11 @@ export class RouteService extends Service {
         id: In(data.ipObjGroupIds.map((item) => item.id)),
       },
       relations: [
-        "fwCloud",
-        "openVPNPrefixes",
-        "openVPNs",
-        "ipObjToIPObjGroups",
-        "ipObjToIPObjGroups.ipObj",
+        'fwCloud',
+        'openVPNPrefixes',
+        'openVPNs',
+        'ipObjToIPObjGroups',
+        'ipObjToIPObjGroups.ipObj',
       ],
     });
 
@@ -658,16 +658,16 @@ export class RouteService extends Service {
       const ipObjGroup: IPObjGroup = ipObjGroups[i];
 
       if (ipObjGroup.type !== 20) {
-        errors[`ipObjGroupIds.${i}`] = ["ipObjGroupId not valid"];
+        errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId not valid'];
       } else if (
         ipObjGroup.fwCloudId &&
         ipObjGroup.fwCloudId !== firewall.fwCloudId
       ) {
-        errors[`ipObjGroupIds.${i}`] = ["ipObjGroupId must exist"];
+        errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must exist'];
       } else if (
         await PolicyRuleToIPObj.isGroupEmpty(db.getQuery(), ipObjGroup.id)
       ) {
-        errors[`ipObjGroupIds.${i}`] = ["ipObjGroupId must not be empty"];
+        errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must not be empty'];
       } else {
         let valid: boolean = false;
         for (const ipObjToIPObjGroup of ipObjGroup.ipObjToIPObjGroups) {
@@ -700,14 +700,14 @@ export class RouteService extends Service {
 
         if (!valid) {
           errors[`ipObjGroupIds.${i}`] = [
-            "ipObjGroupId is not suitable as it does not contains any valid host",
+            'ipObjGroupId is not suitable as it does not contains any valid host',
           ];
         }
       }
     }
 
     if (Object.keys(errors).length > 0) {
-      throw new ValidationException("The given data was invalid", errors);
+      throw new ValidationException('The given data was invalid', errors);
     }
   }
 
@@ -722,27 +722,27 @@ export class RouteService extends Service {
     }
 
     const openvpns: OpenVPN[] = await getRepository(OpenVPN)
-      .createQueryBuilder("openvpn")
-      .innerJoin("openvpn.crt", "crt")
-      .innerJoin("openvpn.firewall", "firewall")
+      .createQueryBuilder('openvpn')
+      .innerJoin('openvpn.crt', 'crt')
+      .innerJoin('openvpn.firewall', 'firewall')
       .whereInIds(data.openVPNIds.map((item) => item.id))
-      .andWhere("firewall.fwCloudId = :fwcloud", {
+      .andWhere('firewall.fwCloudId = :fwcloud', {
         fwcloud: firewall.fwCloudId,
       })
-      .andWhere("openvpn.parentId IS NOT null")
-      .andWhere("crt.type = 1")
+      .andWhere('openvpn.parentId IS NOT null')
+      .andWhere('crt.type = 1')
       .getMany();
 
     for (let i = 0; i < data.openVPNIds.length; i++) {
       if (openvpns.findIndex((item) => item.id === data.openVPNIds[i].id) < 0) {
         errors[`openVPNIds.${i}.id`] = [
-          "openVPN does not exists or is not a client",
+          'openVPN does not exists or is not a client',
         ];
       }
     }
 
     if (Object.keys(errors).length > 0) {
-      throw new ValidationException("The given data was invalid", errors);
+      throw new ValidationException('The given data was invalid', errors);
     }
   }
 
@@ -757,11 +757,11 @@ export class RouteService extends Service {
     }
 
     const openvpnprefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix)
-      .createQueryBuilder("prefix")
-      .innerJoin("prefix.openVPN", "openvpn")
-      .innerJoin("openvpn.firewall", "firewall")
+      .createQueryBuilder('prefix')
+      .innerJoin('prefix.openVPN', 'openvpn')
+      .innerJoin('openvpn.firewall', 'firewall')
       .whereInIds(data.openVPNPrefixIds.map((item) => item.id))
-      .andWhere("firewall.fwCloudId = :fwcloud", {
+      .andWhere('firewall.fwCloudId = :fwcloud', {
         fwcloud: firewall.fwCloudId,
       })
       .getMany();
@@ -772,12 +772,12 @@ export class RouteService extends Service {
           (item) => item.id === data.openVPNPrefixIds[i].id,
         ) < 0
       ) {
-        errors[`openVPNPrefixIds.${i}.id`] = ["openVPNPrefix does not exists"];
+        errors[`openVPNPrefixIds.${i}.id`] = ['openVPNPrefix does not exists'];
       }
     }
 
     if (Object.keys(errors).length > 0) {
-      throw new ValidationException("The given data was invalid", errors);
+      throw new ValidationException('The given data was invalid', errors);
     }
   }
 
@@ -792,18 +792,18 @@ export class RouteService extends Service {
     }
 
     const firewallApplyToId: Firewall = await getRepository(Firewall)
-      .createQueryBuilder("firewall")
-      .where("firewall.id = :id", { id: data.firewallApplyToId })
+      .createQueryBuilder('firewall')
+      .where('firewall.id = :id', { id: data.firewallApplyToId })
       .getOne();
 
     if (firewallApplyToId.clusterId !== firewall.clusterId) {
       errors[`firewallApplyToId`] = [
-        "This firewall does not belong to cluster",
+        'This firewall does not belong to cluster',
       ];
     }
 
     if (Object.keys(errors).length > 0) {
-      throw new ValidationException("The given data was invalid", errors);
+      throw new ValidationException('The given data was invalid', errors);
     }
   }
 
@@ -818,9 +818,9 @@ export class RouteService extends Service {
     }
 
     const intr: Interface = await getRepository(Interface)
-      .createQueryBuilder("interface")
-      .where("interface.id = :id", { id: data.interfaceId })
-      .andWhere("interface.firewallId = :firewallId", {
+      .createQueryBuilder('interface')
+      .where('interface.id = :id', { id: data.interfaceId })
+      .andWhere('interface.firewallId = :firewallId', {
         firewallId: firewall.id,
       })
       .getOne();
@@ -829,8 +829,8 @@ export class RouteService extends Service {
       return;
     }
 
-    errors.interfaceId = ["interface is not valid"];
-    throw new ValidationException("The given data was invalid", errors);
+    errors.interfaceId = ['interface is not valid'];
+    throw new ValidationException('The given data was invalid', errors);
   }
 
   protected getFindInPathOptions(
@@ -840,32 +840,32 @@ export class RouteService extends Service {
     return Object.assign(
       {
         join: {
-          alias: "route",
+          alias: 'route',
           innerJoin: {
-            table: "route.routingTable",
-            firewall: "table.firewall",
-            fwcloud: "firewall.fwCloud",
+            table: 'route.routingTable',
+            firewall: 'table.firewall',
+            fwcloud: 'firewall.fwCloud',
           },
         },
         where: (qb: SelectQueryBuilder<Route>) => {
           if (path.firewallId) {
-            qb.andWhere("firewall.id = :firewall", {
+            qb.andWhere('firewall.id = :firewall', {
               firewall: path.firewallId,
             });
           }
 
           if (path.fwCloudId) {
-            qb.andWhere("firewall.fwCloudId = :fwcloud", {
+            qb.andWhere('firewall.fwCloudId = :fwcloud', {
               fwcloud: path.fwCloudId,
             });
           }
 
           if (path.routingTableId) {
-            qb.andWhere("table.id = :table", { table: path.routingTableId });
+            qb.andWhere('table.id = :table', { table: path.routingTableId });
           }
 
           if (path.id) {
-            qb.andWhere("route.id = :id", { id: path.id });
+            qb.andWhere('route.id = :id', { id: path.id });
           }
         },
       },

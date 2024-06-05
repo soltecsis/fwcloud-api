@@ -1,19 +1,19 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from "typeorm";
-import Model from "../../Model";
-import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
-import { Route } from "./route.model";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import Model from '../../Model';
+import { OpenVPNPrefix } from '../../vpn/openvpn/OpenVPNPrefix';
+import { Route } from './route.model';
 
-const tableName: string = "route__openvpn_prefix";
+const tableName: string = 'route__openvpn_prefix';
 
 @Entity(tableName)
 export class RouteToOpenVPNPrefix extends Model {
   @PrimaryColumn({
-    name: "route",
+    name: 'route',
   })
   routeId: number;
 
   @PrimaryColumn({
-    name: "openvpn_prefix",
+    name: 'openvpn_prefix',
   })
   openVPNPrefixId: number;
 
@@ -23,18 +23,18 @@ export class RouteToOpenVPNPrefix extends Model {
   order: number;
 
   @ManyToOne(() => Route, (model) => model.routeToOpenVPNPrefixes, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "route",
+    name: 'route',
   })
   route: Route;
 
   @ManyToOne(() => OpenVPNPrefix, (model) => model.routeToOpenVPNPrefixes, {
-    orphanedRowAction: "delete",
+    orphanedRowAction: 'delete',
   })
   @JoinColumn({
-    name: "openvpn_prefix",
+    name: 'openvpn_prefix',
   })
   openVPNPrefix: OpenVPNPrefix;
 

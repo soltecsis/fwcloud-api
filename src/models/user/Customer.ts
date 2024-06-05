@@ -20,16 +20,16 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
+import Model from '../Model';
 import {
   PrimaryColumn,
   PrimaryGeneratedColumn,
   Column,
   Entity,
   OneToMany,
-} from "typeorm";
-import { User } from "./User";
-const tableName: string = "customer";
+} from 'typeorm';
+import { User } from './User';
+const tableName: string = 'customer';
 
 @Entity(tableName)
 export class Customer extends Model {

@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { SelectQueryBuilder } from "typeorm";
-import { Route } from "../../../models/routing/route/route.model";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { SelectQueryBuilder } from 'typeorm';
+import { Route } from '../../../models/routing/route/route.model';
 
 export class RouteExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -36,8 +36,8 @@ export class RouteExporter extends TableExporter {
     fwCloudId: number,
   ): SelectQueryBuilder<any> {
     return qb
-      .innerJoin(`${alias}.routingTable`, "table")
-      .innerJoin(`table.firewall`, "firewall")
+      .innerJoin(`${alias}.routingTable`, 'table')
+      .innerJoin(`table.firewall`, 'firewall')
       .where(`firewall.fwCloudId = :id`, {
         id: fwCloudId,
       });

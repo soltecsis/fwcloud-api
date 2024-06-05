@@ -20,24 +20,24 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Service } from "../fonaments/services/service";
-import { DatabaseService } from "./database.service";
+import { Service } from '../fonaments/services/service';
+import { DatabaseService } from './database.service';
 import {
   getRepository,
   ObjectType,
   EntitySchema,
   Repository,
   getCustomRepository,
-} from "typeorm";
-import { PolicyRule } from "../models/policy/PolicyRule";
-import { PolicyRuleRepository } from "../models/policy/policy-rule.repository";
-import { Firewall } from "../models/firewall/Firewall";
-import { FirewallRepository } from "../models/firewall/firewall.repository";
-import { PolicyGroup } from "../models/policy/PolicyGroup";
-import { PolicyGroupRepository } from "../repositories/PolicyGroupRepository";
-import { deprecate } from "util";
-import { OpenVPN } from "../models/vpn/openvpn/OpenVPN";
-import { OpenVPNRepository } from "../models/vpn/openvpn/openvpn-repository";
+} from 'typeorm';
+import { PolicyRule } from '../models/policy/PolicyRule';
+import { PolicyRuleRepository } from '../models/policy/policy-rule.repository';
+import { Firewall } from '../models/firewall/Firewall';
+import { FirewallRepository } from '../models/firewall/firewall.repository';
+import { PolicyGroup } from '../models/policy/PolicyGroup';
+import { PolicyGroupRepository } from '../repositories/PolicyGroupRepository';
+import { deprecate } from 'util';
+import { OpenVPN } from '../models/vpn/openvpn/OpenVPN';
+import { OpenVPNRepository } from '../models/vpn/openvpn/openvpn-repository';
 
 type RepositoryMapItem = { entityClass: Function; repository: Function };
 export class RepositoryService extends Service {
@@ -81,7 +81,7 @@ export class RepositoryService extends Service {
         );
       }
       return getRepository(entityClass, this._databaseService.connection.name);
-    }, "Repository service is deprecated and will be removed. Use getRepository() or getCustomRepository() from TypeORM instead")();
+    }, 'Repository service is deprecated and will be removed. Use getRepository() or getCustomRepository() from TypeORM instead')();
   }
 
   protected hasCustomRepository<Entity>(

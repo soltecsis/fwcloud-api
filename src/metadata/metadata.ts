@@ -1,4 +1,4 @@
-import { ClassConstructor } from "class-transformer";
+import { ClassConstructor } from 'class-transformer';
 
 export type Metadata = {
   validations: { [signature: string]: ClassConstructor<object> };

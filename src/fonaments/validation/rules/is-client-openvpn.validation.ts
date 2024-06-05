@@ -4,16 +4,16 @@ import {
   ValidationOptions,
   ValidatorConstraint,
   ValidatorConstraintInterface,
-} from "class-validator";
-import { getRepository, In } from "typeorm";
-import { boolean } from "yargs";
-import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
-import { Crt } from "../../../models/vpn/pki/Crt";
+} from 'class-validator';
+import { getRepository, In } from 'typeorm';
+import { boolean } from 'yargs';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
+import { Crt } from '../../../models/vpn/pki/Crt';
 
 export function IsClientOpenVPN(validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string) {
     registerDecorator({
-      name: "isClientOpenVPN",
+      name: 'isClientOpenVPN',
       target: object.constructor,
       propertyName: propertyName,
       constraints: [],

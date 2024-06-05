@@ -1,13 +1,13 @@
-import { describeName, expect, testSuite } from "../../../mocha/global-setup";
-import { getRepository } from "typeorm";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import StringHelper from "../../../../src/utils/string.helper";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import * as path from "path";
-import { Mark } from "../../../../src/models/ipobj/Mark";
-import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
+import { describeName, expect, testSuite } from '../../../mocha/global-setup';
+import { getRepository } from 'typeorm';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import StringHelper from '../../../../src/utils/string.helper';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import * as path from 'path';
+import { Mark } from '../../../../src/models/ipobj/Mark';
+import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
 
-describe(describeName("Firewall Model Unit Tests"), () => {
+describe(describeName('Firewall Model Unit Tests'), () => {
   let fwCloud: FwCloud;
 
   beforeEach(async () => {
@@ -18,16 +18,16 @@ describe(describeName("Firewall Model Unit Tests"), () => {
     );
   });
 
-  describe("getPolicyPath()", () => {
+  describe('getPolicyPath()', () => {
     let policyPath: string;
     let policyFilename: string;
 
     beforeEach(async () => {
-      policyPath = testSuite.app.config.get("policy").data_dir;
-      policyFilename = testSuite.app.config.get("policy").script_name;
+      policyPath = testSuite.app.config.get('policy').data_dir;
+      policyFilename = testSuite.app.config.get('policy').script_name;
     });
 
-    it("should return a path if the firewall belongs to a fwcloud and it has an id", async () => {
+    it('should return a path if the firewall belongs to a fwcloud and it has an id', async () => {
       const firewall: Firewall = await getRepository(Firewall).save(
         getRepository(Firewall).create({
           name: StringHelper.randomize(10),
@@ -45,7 +45,7 @@ describe(describeName("Firewall Model Unit Tests"), () => {
       );
     });
 
-    it("should return null if the firewall does not belong to a fwcloud", async () => {
+    it('should return null if the firewall does not belong to a fwcloud', async () => {
       const firewall: Firewall = await getRepository(Firewall).save(
         getRepository(Firewall).create({
           name: StringHelper.randomize(10),
@@ -55,7 +55,7 @@ describe(describeName("Firewall Model Unit Tests"), () => {
       expect(firewall.getPolicyFilePath()).to.be.null;
     });
 
-    it("should return null if the firewall does not persisted", async () => {
+    it('should return null if the firewall does not persisted', async () => {
       const firewall: Firewall = getRepository(Firewall).create({
         name: StringHelper.randomize(10),
         fwCloudId: fwCloud.id,
@@ -65,8 +65,8 @@ describe(describeName("Firewall Model Unit Tests"), () => {
     });
   });
 
-  describe("hasMarkedRules()", () => {
-    it("should return false if firewall does not have any rule", async () => {
+  describe('hasMarkedRules()', () => {
+    it('should return false if firewall does not have any rule', async () => {
       const firewall: Firewall = await getRepository(Firewall).save(
         getRepository(Firewall).create({
           name: StringHelper.randomize(10),
@@ -76,7 +76,7 @@ describe(describeName("Firewall Model Unit Tests"), () => {
       expect(await firewall.hasMarkedRules()).to.be.false;
     });
 
-    it("should return false if firewall rules are not marked", async () => {
+    it('should return false if firewall rules are not marked', async () => {
       const firewall: Firewall = await getRepository(Firewall).save(
         getRepository(Firewall).create({
           name: StringHelper.randomize(10),
@@ -96,7 +96,7 @@ describe(describeName("Firewall Model Unit Tests"), () => {
       expect(await firewall.hasMarkedRules()).to.be.false;
     });
 
-    it("should return true if at least one rule is marked", async () => {
+    it('should return true if at least one rule is marked', async () => {
       const firewall: Firewall = await getRepository(Firewall).save(
         getRepository(Firewall).create({
           name: StringHelper.randomize(10),
@@ -132,7 +132,7 @@ describe(describeName("Firewall Model Unit Tests"), () => {
       expect(await firewall.hasMarkedRules()).to.be.true;
     });
 
-    it("should return true if a rule is marked with a mark which id is 0", async () => {
+    it('should return true if a rule is marked with a mark which id is 0', async () => {
       const firewall: Firewall = await getRepository(Firewall).save(
         getRepository(Firewall).create({
           name: StringHelper.randomize(10),

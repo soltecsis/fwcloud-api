@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../fonaments/http/controller";
-import { Request } from "express";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { Validate } from "../../decorators/validate.decorator";
+import { Controller } from '../../fonaments/http/controller';
+import { Request } from 'express';
+import { ResponseBuilder } from '../../fonaments/http/response-builder';
+import { Validate } from '../../decorators/validate.decorator';
 
 export class PingController extends Controller {
   @Validate()

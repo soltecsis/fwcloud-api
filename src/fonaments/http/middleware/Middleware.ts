@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Application } from "../../../Application";
-import { Request, Response, NextFunction } from "express";
-import { HTTPApplication } from "../../http-application";
+import { Application } from '../../../Application';
+import { Request, Response, NextFunction } from 'express';
+import { HTTPApplication } from '../../http-application';
 
 export type Middlewareable = typeof Middleware | typeof ErrorMiddleware;
 

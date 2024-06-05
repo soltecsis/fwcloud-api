@@ -1,10 +1,10 @@
-import * as uuid from "uuid";
-import { SocketMessage } from "../messages/socket-message";
-import { EventEmitter } from "events";
-import { Request } from "express";
-import io from "socket.io";
-import { app } from "../../fonaments/abstract-application";
-import { WebSocketService } from "../web-socket.service";
+import * as uuid from 'uuid';
+import { SocketMessage } from '../messages/socket-message';
+import { EventEmitter } from 'events';
+import { Request } from 'express';
+import io from 'socket.io';
+import { app } from '../../fonaments/abstract-application';
+import { WebSocketService } from '../web-socket.service';
 
 export class Channel extends EventEmitter {
   protected _id: string;
@@ -26,7 +26,7 @@ export class Channel extends EventEmitter {
   }
 
   public emit(event: string | symbol, ...args: any[]): boolean {
-    if (event === "message") {
+    if (event === 'message') {
       return this.message(args[0]);
     }
 
@@ -34,7 +34,7 @@ export class Channel extends EventEmitter {
   }
 
   public static async fromRequest(request: Request): Promise<Channel> {
-    if (request.session.socketId && request.inputs.has("channel_id")) {
+    if (request.session.socketId && request.inputs.has('channel_id')) {
       const websocketService: WebSocketService =
         await app().getService<WebSocketService>(WebSocketService.name);
       let listener: EventEmitter = new EventEmitter();
@@ -42,7 +42,7 @@ export class Channel extends EventEmitter {
       if (websocketService.hasSocket(request.session.socketId)) {
         listener = websocketService.getSocket(request.session.socketId);
       }
-      const id: string = request.inputs.get("channel_id", uuid.v1());
+      const id: string = request.inputs.get('channel_id', uuid.v1());
 
       return new Channel(id, listener);
     }

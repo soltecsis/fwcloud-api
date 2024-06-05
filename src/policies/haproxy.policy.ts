@@ -1,15 +1,15 @@
-import { getRepository } from "typeorm";
-import { Authorization, Policy } from "../fonaments/authorization/policy";
-import { Firewall } from "../models/firewall/Firewall";
-import { FwCloud } from "../models/fwcloud/FwCloud";
-import { User } from "../models/user/User";
-import { HAProxyRule } from "../models/system/haproxy/haproxy_r/haproxy_r.model";
+import { getRepository } from 'typeorm';
+import { Authorization, Policy } from '../fonaments/authorization/policy';
+import { Firewall } from '../models/firewall/Firewall';
+import { FwCloud } from '../models/fwcloud/FwCloud';
+import { User } from '../models/user/User';
+import { HAProxyRule } from '../models/system/haproxy/haproxy_r/haproxy_r.model';
 
 export class HAProxyPolicy extends Policy {
   static async create(firewall: Firewall, user: User): Promise<Authorization> {
     user = await this.getUser(user);
     firewall = await getRepository(Firewall).findOneOrFail(firewall.id, {
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
 
     return this.checksAutorization(user, firewall);
@@ -20,7 +20,7 @@ export class HAProxyPolicy extends Policy {
     const firewall = await getRepository(Firewall).findOneOrFail(
       rule.firewallId,
       {
-        relations: ["fwCloud"],
+        relations: ['fwCloud'],
       },
     );
 
@@ -44,7 +44,7 @@ export class HAProxyPolicy extends Policy {
 
   protected static async getUser(user: User): Promise<User> {
     return getRepository(User).findOneOrFail(user.id, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
   }
 }

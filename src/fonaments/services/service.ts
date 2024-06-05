@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../abstract-application";
+import { AbstractApplication } from '../abstract-application';
 
 export class Service {
   protected constructor(protected _app: AbstractApplication) {}

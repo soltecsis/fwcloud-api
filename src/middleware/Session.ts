@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
-import session from "express-session";
-import FileStore from "session-file-store";
-import { Request, Response, NextFunction, RequestHandler } from "express";
-import { AbstractApplication } from "../fonaments/abstract-application";
-import { SocketMiddleware } from "../fonaments/http/sockets/socket-middleware";
-import { Socket } from "socket.io";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
+import session from 'express-session';
+import FileStore from 'session-file-store';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { AbstractApplication } from '../fonaments/abstract-application';
+import { SocketMiddleware } from '../fonaments/http/sockets/socket-middleware';
+import { Socket } from 'socket.io';
 
 class Session {
   private static sessionInstance: RequestHandler;
@@ -34,19 +34,19 @@ class Session {
   public static getSession(app: AbstractApplication) {
     if (!Session.sessionInstance) {
       Session.sessionInstance = session({
-        name: app.config.get("session").name,
-        secret: app.config.get("session").secret,
+        name: app.config.get('session').name,
+        secret: app.config.get('session').secret,
         //saveUninitialized: true,
         saveUninitialized: false,
         resave: false,
         rolling: false,
         store: new (FileStore(session))({
-          path: app.config.get("session").files_path,
+          path: app.config.get('session').files_path,
           retries: 0,
         }),
         cookie: {
           httpOnly: false,
-          secure: app.config.get("session").force_HTTPS, // Enable this when the https is enabled for the API.
+          secure: app.config.get('session').force_HTTPS, // Enable this when the https is enabled for the API.
         },
       });
     }

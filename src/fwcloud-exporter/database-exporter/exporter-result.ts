@@ -35,7 +35,7 @@ export class ExporterResult {
 
   public addTableData(tableName: string, data: Array<object>): this {
     if (this._results[tableName]) {
-      throw new Error("Exporting a table which already has been exported");
+      throw new Error('Exporting a table which already has been exported');
     }
 
     this._results[tableName] = data;

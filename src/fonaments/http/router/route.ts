@@ -20,15 +20,15 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { HttpMethod } from "./router.service";
-import { PathParams } from "express-serve-static-core";
-import { Controller } from "../controller";
-import { Request, Response } from "express";
-import { Gate } from "./gate";
-import { AbstractApplication, app } from "../../abstract-application";
-import { ParamNotValidException } from "./exceptions/param-not-valid.exception";
-import { ParamMissingException } from "./exceptions/param-missing.exception";
-import { HTTPApplication } from "../../http-application";
+import { HttpMethod } from './router.service';
+import { PathParams } from 'express-serve-static-core';
+import { Controller } from '../controller';
+import { Request, Response } from 'express';
+import { Gate } from './gate';
+import { AbstractApplication, app } from '../../abstract-application';
+import { ParamNotValidException } from './exceptions/param-not-valid.exception';
+import { ParamMissingException } from './exceptions/param-missing.exception';
+import { HTTPApplication } from '../../http-application';
 
 export class ControllerHandlerSignature {
   controller: typeof Controller;
@@ -136,19 +136,19 @@ export class Route {
 
     for (const param in params) {
       if (Object.prototype.hasOwnProperty.call(params, param)) {
-        if (new RegExp("/").test(params[param])) {
+        if (new RegExp('/').test(params[param])) {
           throw new ParamNotValidException(param, params[param], this);
         }
 
-        url = url.replace(new RegExp(":" + param), params[param]);
+        url = url.replace(new RegExp(':' + param), params[param]);
       }
     }
 
     //TODO: Should use the regexp path restrictions in order to validate params
     // are valid
-    url = url.replace(/ *\([^)]*\)*/g, "");
+    url = url.replace(/ *\([^)]*\)*/g, '');
 
-    const occurrences = url.match(new RegExp(":[A-Za-z0-9]+"));
+    const occurrences = url.match(new RegExp(':[A-Za-z0-9]+'));
     if (occurrences && occurrences.length > 0) {
       throw new ParamMissingException(occurrences, this);
     }

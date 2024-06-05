@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Request } from "express";
-import ObjectHelpers from "../../utils/object-helpers";
+import { Request } from 'express';
+import ObjectHelpers from '../../utils/object-helpers';
 
 export class RequestInputs {
   private _req: Request;

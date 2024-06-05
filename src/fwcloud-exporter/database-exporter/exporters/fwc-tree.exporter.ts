@@ -20,16 +20,16 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { FwcTree } from "../../../models/tree/fwc-tree.model";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { FwcTree } from '../../../models/tree/fwc-tree.model';
 import {
   SelectQueryBuilder,
   Connection,
   QueryRunner,
   In,
   IsNull,
-} from "typeorm";
+} from 'typeorm';
 
 export class FwcTreeExporter extends TableExporter {
   protected _ids: Array<number>;

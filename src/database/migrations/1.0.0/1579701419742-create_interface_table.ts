@@ -25,96 +25,96 @@ import {
   QueryRunner,
   Table,
   TableForeignKey,
-} from "typeorm";
+} from 'typeorm';
 
 export class createInterfaceTable1579701419742 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<any> {
     //interface
     await queryRunner.createTable(
       new Table({
-        name: "interface",
+        name: 'interface',
         columns: [
           {
-            name: "id",
-            type: "int",
-            length: "11",
+            name: 'id',
+            type: 'int',
+            length: '11',
             isGenerated: true,
-            generationStrategy: "increment",
+            generationStrategy: 'increment',
             isPrimary: true,
           },
           {
-            name: "firewall",
-            type: "int",
-            length: "11",
+            name: 'firewall',
+            type: 'int',
+            length: '11',
             isNullable: true,
             default: null,
           },
           {
-            name: "name",
-            type: "varchar",
+            name: 'name',
+            type: 'varchar',
             isNullable: false,
           },
           {
-            name: "labelName",
-            type: "varchar",
+            name: 'labelName',
+            type: 'varchar',
             isNullable: true,
             default: "''",
           },
           {
-            name: "type",
-            type: "varchar",
+            name: 'type',
+            type: 'varchar',
             isNullable: false,
           },
           {
-            name: "interface_type",
-            type: "tinyint",
-            length: "2",
+            name: 'interface_type',
+            type: 'tinyint',
+            length: '2',
             isNullable: false,
           },
           {
-            name: "created_at",
-            type: "datetime",
+            name: 'created_at',
+            type: 'datetime',
             isNullable: false,
-            default: "CURRENT_TIMESTAMP",
+            default: 'CURRENT_TIMESTAMP',
           },
           {
-            name: "updated_at",
-            type: "datetime",
+            name: 'updated_at',
+            type: 'datetime',
             isNullable: false,
-            default: "CURRENT_TIMESTAMP",
-            onUpdate: "CURRENT_TIMESTAMP",
+            default: 'CURRENT_TIMESTAMP',
+            onUpdate: 'CURRENT_TIMESTAMP',
           },
           {
-            name: "created_by",
-            type: "int",
-            isNullable: false,
-            default: 0,
-          },
-          {
-            name: "updated_by",
-            type: "int",
+            name: 'created_by',
+            type: 'int',
             isNullable: false,
             default: 0,
           },
           {
-            name: "comment",
-            type: "varchar",
+            name: 'updated_by',
+            type: 'int',
+            isNullable: false,
+            default: 0,
+          },
+          {
+            name: 'comment',
+            type: 'varchar',
             isNullable: true,
             default: null,
           },
           {
-            name: "mac",
-            type: "varchar",
-            length: "45",
+            name: 'mac',
+            type: 'varchar',
+            length: '45',
             isNullable: true,
             default: null,
           },
         ],
         foreignKeys: [
           {
-            columnNames: ["firewall"],
-            referencedColumnNames: ["id"],
-            referencedTableName: "firewall",
+            columnNames: ['firewall'],
+            referencedColumnNames: ['id'],
+            referencedTableName: 'firewall',
           },
         ],
       }),
@@ -123,6 +123,6 @@ export class createInterfaceTable1579701419742 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<any> {
-    await queryRunner.dropTable("interface", true);
+    await queryRunner.dropTable('interface', true);
   }
 }

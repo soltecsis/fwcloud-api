@@ -14,8 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { IsArray, IsEnum, IsNumber, IsPositive } from "class-validator";
-import { Offset } from "../../../../offset";
+import { IsArray, IsEnum, IsNumber, IsPositive } from 'class-validator';
+import { Offset } from '../../../../offset';
 
 export class KeepalivedRuleCopyDto {
   @IsNumber()

@@ -24,10 +24,10 @@ import {
   describeName,
   testSuite,
   expect,
-} from "../../../../mocha/global-setup";
-import { Controller } from "../../../../../src/fonaments/http/controller";
-import { RouterService } from "../../../../../src/fonaments/http/router/router.service";
-import { Route } from "../../../../../src/fonaments/http/router/route";
+} from '../../../../mocha/global-setup';
+import { Controller } from '../../../../../src/fonaments/http/controller';
+import { RouterService } from '../../../../../src/fonaments/http/router/router.service';
+import { Route } from '../../../../../src/fonaments/http/router/route';
 
 class TestController extends Controller {
   public async test(request: Request) {}
@@ -36,23 +36,23 @@ class TestController extends Controller {
 let service: RouterService;
 let routeGet: Route;
 
-describe(describeName("RouterService Unit tests"), () => {
+describe(describeName('RouterService Unit tests'), () => {
   beforeEach(async () => {
     service = await RouterService.make(testSuite.app);
     service.registerRoutes();
 
     routeGet = new Route();
     routeGet
-      .setControllerHandler({ controller: TestController, method: "test" })
-      .setHttpMethod("PUT")
-      .setName("ping.pong")
-      .setPathParams("/ping");
+      .setControllerHandler({ controller: TestController, method: 'test' })
+      .setHttpMethod('PUT')
+      .setName('ping.pong')
+      .setPathParams('/ping');
   });
 
-  describe("getRouteByName()", () => {
-    it("should return a route by its name", async () => {
-      expect(service.findRouteByName("ping.pong").name).to.be.deep.equal(
-        "ping.pong",
+  describe('getRouteByName()', () => {
+    it('should return a route by its name', async () => {
+      expect(service.findRouteByName('ping.pong').name).to.be.deep.equal(
+        'ping.pong',
       );
     });
   });

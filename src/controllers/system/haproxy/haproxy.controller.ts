@@ -14,38 +14,38 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Request } from "express";
-import { SelectQueryBuilder, getRepository } from "typeorm";
+import { Request } from 'express';
+import { SelectQueryBuilder, getRepository } from 'typeorm';
 import {
   Validate,
   ValidateQuery,
-} from "../../../decorators/validate.decorator";
-import { Controller } from "../../../fonaments/http/controller";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { HAProxyGroup } from "../../../models/system/haproxy/haproxy_g/haproxy_g.model";
-import { HAProxyRule } from "../../../models/system/haproxy/haproxy_r/haproxy_r.model";
+} from '../../../decorators/validate.decorator';
+import { Controller } from '../../../fonaments/http/controller';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
+import { HAProxyGroup } from '../../../models/system/haproxy/haproxy_g/haproxy_g.model';
+import { HAProxyRule } from '../../../models/system/haproxy/haproxy_r/haproxy_r.model';
 import {
   HAProxyRuleService,
   HAProxyRulesData,
   ICreateHAProxyRule,
   IUpdateHAProxyRule,
-} from "../../../models/system/haproxy/haproxy_r/haproxy_r.service";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { HAProxyPolicy } from "../../../policies/haproxy.policy";
-import { Offset } from "../../../offset";
-import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
-import { HAProxyRuleBulkRemoveDto } from "./dto/bulk-remove.dto";
-import { HAProxyRuleCopyDto } from "./dto/copy.dto";
-import { HAProxyRuleCreateDto } from "./dto/create.dto";
-import { HAProxyRuleUpdateDto } from "./dto/update.dto";
-import { HAProxyRuleBulkUpdateDto } from "./dto/bulk-update.dto";
-import { HAProxyMoveFromDto } from "./dto/move-from.dto";
-import { HAProxyRuleItemForCompiler } from "../../../models/system/haproxy/shared";
-import { HAProxyCompiler } from "../../../compiler/system/haproxy/HAProxyCompiler";
-import { Channel } from "../../../sockets/channels/channel";
-import { Communication } from "../../../communications/communication";
-import { ProgressPayload } from "../../../sockets/messages/socket-message";
+} from '../../../models/system/haproxy/haproxy_r/haproxy_r.service';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
+import { HAProxyPolicy } from '../../../policies/haproxy.policy';
+import { Offset } from '../../../offset';
+import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
+import { HAProxyRuleBulkRemoveDto } from './dto/bulk-remove.dto';
+import { HAProxyRuleCopyDto } from './dto/copy.dto';
+import { HAProxyRuleCreateDto } from './dto/create.dto';
+import { HAProxyRuleUpdateDto } from './dto/update.dto';
+import { HAProxyRuleBulkUpdateDto } from './dto/bulk-update.dto';
+import { HAProxyMoveFromDto } from './dto/move-from.dto';
+import { HAProxyRuleItemForCompiler } from '../../../models/system/haproxy/shared';
+import { HAProxyCompiler } from '../../../compiler/system/haproxy/HAProxyCompiler';
+import { Channel } from '../../../sockets/channels/channel';
+import { Communication } from '../../../communications/communication';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
 
 export class HAProxyController extends Controller {
   protected _haproxyRuleService: HAProxyRuleService;
@@ -84,7 +84,7 @@ export class HAProxyController extends Controller {
 
     const rules: HAProxyRule[] =
       await this._haproxyRuleService.getHAProxyRulesData(
-        "compiler",
+        'compiler',
         this._fwCloud.id,
         this._firewall.id,
       );
@@ -100,7 +100,7 @@ export class HAProxyController extends Controller {
 
     const rules: HAProxyRule[] =
       await this._haproxyRuleService.getHAProxyRulesData(
-        "haproxy_grid",
+        'haproxy_grid',
         this._fwCloud.id,
         this._firewall.id,
       );
@@ -131,7 +131,7 @@ export class HAProxyController extends Controller {
 
   @Validate(HAProxyRuleCopyDto)
   public async copy(request: Request): Promise<ResponseBuilder> {
-    const ids: number[] = request.inputs.get<number[]>("rules");
+    const ids: number[] = request.inputs.get<number[]>('rules');
     for (const id of ids) {
       const rule: HAProxyRule =
         await getRepository(HAProxyRule).findOneOrFail(id);
@@ -140,8 +140,8 @@ export class HAProxyController extends Controller {
 
     const copied: HAProxyRule[] = await this._haproxyRuleService.copy(
       ids,
-      request.inputs.get("to"),
-      request.inputs.get<Offset>("offset"),
+      request.inputs.get('to'),
+      request.inputs.get<Offset>('offset'),
     );
 
     return ResponseBuilder.buildResponse().status(201).body(copied);
@@ -198,16 +198,16 @@ export class HAProxyController extends Controller {
 
     const rules: HAProxyRule[] = await getRepository(HAProxyRule).find({
       join: {
-        alias: "rule",
+        alias: 'rule',
         innerJoin: {
-          firewall: "rule.firewall",
-          fwcloud: "firewall.fwCloud",
+          firewall: 'rule.firewall',
+          fwcloud: 'firewall.fwCloud',
         },
       },
       where: (qb) => {
-        qb.whereInIds(request.inputs.get("rules"))
-          .andWhere("firewall.id = :firewall", { firewall: this._firewall.id })
-          .andWhere("firewall.fwCloudId = :fwcloud", {
+        qb.whereInIds(request.inputs.get('rules'))
+          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+          .andWhere('firewall.fwCloudId = :fwcloud', {
             fwcloud: this._fwCloud.id,
           });
       },
@@ -215,8 +215,8 @@ export class HAProxyController extends Controller {
 
     const result: HAProxyRule[] = await this._haproxyRuleService.move(
       rules.map((item) => item.id),
-      request.inputs.get("to"),
-      request.inputs.get<Offset>("offset"),
+      request.inputs.get('to'),
+      request.inputs.get<Offset>('offset'),
     );
 
     return ResponseBuilder.buildResponse().status(200).body(result);
@@ -229,8 +229,8 @@ export class HAProxyController extends Controller {
     ).authorize();
 
     const result: HAProxyRule[] = await this._haproxyRuleService.moveFrom(
-      request.inputs.get("fromId"),
-      request.inputs.get("toId"),
+      request.inputs.get('fromId'),
+      request.inputs.get('toId'),
       request.inputs.all(),
     );
 
@@ -243,7 +243,7 @@ export class HAProxyController extends Controller {
 
     const rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] =
       await this._haproxyRuleService.getHAProxyRulesData(
-        "compiler",
+        'compiler',
         this._fwCloud.id,
         this._firewall.id,
         [this._haproxyRule.id],
@@ -265,11 +265,11 @@ export class HAProxyController extends Controller {
     if (firewall.clusterId) {
       firewallId = (
         await getRepository(Firewall)
-          .createQueryBuilder("firewall")
-          .where("firewall.clusterId = :clusterId", {
+          .createQueryBuilder('firewall')
+          .where('firewall.clusterId = :clusterId', {
             clusterId: firewall.clusterId,
           })
-          .andWhere("firewall.fwmaster = 1")
+          .andWhere('firewall.fwmaster = 1')
           .getOneOrFail()
       ).id;
     } else {
@@ -278,7 +278,7 @@ export class HAProxyController extends Controller {
 
     const rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] =
       await this._haproxyRuleService.getHAProxyRulesData(
-        "compiler",
+        'compiler',
         this._fwCloud.id,
         firewallId,
       );
@@ -286,25 +286,25 @@ export class HAProxyController extends Controller {
     const content: string = new HAProxyCompiler()
       .compile(rules, channel)
       .map((item) => item.cs)
-      .join("\n");
+      .join('\n');
 
     const communication: Communication<unknown> =
       await firewall.getCommunication();
 
     channel.emit(
-      "message",
-      new ProgressPayload("start", false, "Installing HAProxy rules"),
+      'message',
+      new ProgressPayload('start', false, 'Installing HAProxy rules'),
     );
 
     await communication.installHAPRoxyConfigs(
-      "/etc/haproxy",
-      [{ name: "haproxy.cfg", content: content }],
+      '/etc/haproxy',
+      [{ name: 'haproxy.cfg', content: content }],
       channel,
     );
 
     channel.emit(
-      "message",
-      new ProgressPayload("end", false, "Installing HAProxy rules"),
+      'message',
+      new ProgressPayload('end', false, 'Installing HAProxy rules'),
     );
 
     return ResponseBuilder.buildResponse().status(200).body(null);

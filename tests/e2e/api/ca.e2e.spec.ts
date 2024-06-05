@@ -1,16 +1,16 @@
-import { getRepository } from "typeorm";
-import { Application } from "../../../src/Application";
-import { CaService } from "../../../src/ca/ca.service";
-import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { User } from "../../../src/models/user/User";
-import request = require("supertest");
-import StringHelper from "../../../src/utils/string.helper";
-import { describeName, expect, testSuite } from "../../mocha/global-setup";
-import { attachSession, createUser, generateSession } from "../../utils/utils";
-import { _URL } from "../../../src/fonaments/http/router/router.service";
-import { Ca } from "../../../src/models/vpn/pki/Ca";
+import { getRepository } from 'typeorm';
+import { Application } from '../../../src/Application';
+import { CaService } from '../../../src/ca/ca.service';
+import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
+import { User } from '../../../src/models/user/User';
+import request = require('supertest');
+import StringHelper from '../../../src/utils/string.helper';
+import { describeName, expect, testSuite } from '../../mocha/global-setup';
+import { attachSession, createUser, generateSession } from '../../utils/utils';
+import { _URL } from '../../../src/fonaments/http/router/router.service';
+import { Ca } from '../../../src/models/vpn/pki/Ca';
 
-describe(describeName("Ca E2E Test"), () => {
+describe(describeName('Ca E2E Test'), () => {
   let app: Application;
 
   let loggedUser: User;
@@ -40,69 +40,69 @@ describe(describeName("Ca E2E Test"), () => {
         fwCloudId: fwCloud.id,
         cn: StringHelper.randomize(10),
         days: 1000,
-        comment: "testComment",
+        comment: 'testComment',
       }),
     );
     service = await app.getService<CaService>(CaService.name);
   });
 
-  describe("CaController@update", () => {
-    it("guest user should not update a comment of ca", async () => {
+  describe('CaController@update', () => {
+    it('guest user should not update a comment of ca', async () => {
       return await request(app.express)
         .put(
-          _URL().getURL("fwclouds.cas.update", {
+          _URL().getURL('fwclouds.cas.update', {
             fwcloud: fwCloud.id,
             ca: ca.id,
           }),
         )
         .expect(401);
     });
-    it("regular user should not update a comment of ca if it does not belong to the fwcloud", async () => {
+    it('regular user should not update a comment of ca if it does not belong to the fwcloud', async () => {
       return await request(app.express)
         .put(
-          _URL().getURL("fwclouds.cas.update", {
+          _URL().getURL('fwclouds.cas.update', {
             fwcloud: fwCloud.id,
             ca: ca.id,
           }),
         )
-        .set("Cookie", [attachSession(loggedUserSessionId)])
+        .set('Cookie', [attachSession(loggedUserSessionId)])
         .expect(401);
     });
-    it("regular user should update a comment of ca if it does belong to the fwcloud", async () => {
+    it('regular user should update a comment of ca if it does belong to the fwcloud', async () => {
       loggedUser.fwClouds = [fwCloud];
       await getRepository(User).save(loggedUser);
 
       return await request(app.express)
         .put(
-          _URL().getURL("fwclouds.cas.update", {
+          _URL().getURL('fwclouds.cas.update', {
             fwcloud: fwCloud.id,
             ca: ca.id,
           }),
         )
-        .set("Cookie", [attachSession(loggedUserSessionId)])
+        .set('Cookie', [attachSession(loggedUserSessionId)])
         .expect(200);
     });
-    it("admin user should update a comment of ca", async () => {
+    it('admin user should update a comment of ca', async () => {
       return await request(app.express)
         .put(
-          _URL().getURL("fwclouds.cas.update", {
+          _URL().getURL('fwclouds.cas.update', {
             fwcloud: fwCloud.id,
             ca: ca.id,
           }),
         )
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .expect(200);
     });
-    it("should update the comment of the ca", async () => {
+    it('should update the comment of the ca', async () => {
       const comment: string = StringHelper.randomize(10);
       return await request(app.express)
         .put(
-          _URL().getURL("fwclouds.cas.update", {
+          _URL().getURL('fwclouds.cas.update', {
             fwcloud: fwCloud.id,
             ca: ca.id,
           }),
         )
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .send({
           comment: comment,
         })
@@ -112,16 +112,16 @@ describe(describeName("Ca E2E Test"), () => {
           expect(caWithNewComment.comment).to.be.equal(comment);
         });
     });
-    it("should return the updated ca", async () => {
+    it('should return the updated ca', async () => {
       const comment = StringHelper.randomize(10);
       return await request(app.express)
         .put(
-          _URL().getURL("fwclouds.cas.update", {
+          _URL().getURL('fwclouds.cas.update', {
             fwcloud: fwCloud.id,
             ca: ca.id,
           }),
         )
-        .set("Cookie", [attachSession(adminUserSessionId)])
+        .set('Cookie', [attachSession(adminUserSessionId)])
         .send({
           comment: comment,
         })

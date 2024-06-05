@@ -21,45 +21,45 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
-} from "typeorm";
-import { IPObj } from "../../../ipobj/IPObj";
-import { KeepalivedGroup } from "../keepalived_g/keepalived_g.model";
-import Model from "../../../Model";
-import { Firewall } from "../../../firewall/Firewall";
-import { KeepalivedToIPObj } from "./keepalived_r-to-ipobj";
-import { Interface } from "../../../interface/Interface";
+} from 'typeorm';
+import { IPObj } from '../../../ipobj/IPObj';
+import { KeepalivedGroup } from '../keepalived_g/keepalived_g.model';
+import Model from '../../../Model';
+import { Firewall } from '../../../firewall/Firewall';
+import { KeepalivedToIPObj } from './keepalived_r-to-ipobj';
+import { Interface } from '../../../interface/Interface';
 
-const tableName: string = "keepalived_r";
+const tableName: string = 'keepalived_r';
 
 @Entity(tableName)
 export class KeepalivedRule extends Model {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: "tinyint", default: 1 })
+  @Column({ type: 'tinyint', default: 1 })
   rule_type: number;
 
-  @Column({ type: "int" })
+  @Column({ type: 'int' })
   rule_order: number;
 
-  @Column({ type: "boolean", default: false })
+  @Column({ type: 'boolean', default: false })
   active: boolean;
 
-  @Column({ name: "group" })
+  @Column({ name: 'group' })
   groupId: number;
 
   @ManyToOne(() => KeepalivedGroup)
-  @JoinColumn({ name: "group" })
+  @JoinColumn({ name: 'group' })
   group: KeepalivedGroup;
 
-  @Column({ type: "varchar", length: 50 })
+  @Column({ type: 'varchar', length: 50 })
   style: string;
 
-  @Column({ name: "interface" })
+  @Column({ name: 'interface' })
   interfaceId: number;
 
   @ManyToOne(() => Interface, { eager: true })
-  @JoinColumn({ name: "interface" })
+  @JoinColumn({ name: 'interface' })
   interface: Interface;
 
   @OneToMany(
@@ -71,24 +71,24 @@ export class KeepalivedRule extends Model {
   )
   virtualIps: KeepalivedToIPObj[];
 
-  @Column({ name: "master_node" })
+  @Column({ name: 'master_node' })
   masterNodeId: number;
 
   @ManyToOne(() => Firewall, { eager: true })
-  @JoinColumn({ name: "master_node" })
+  @JoinColumn({ name: 'master_node' })
   masterNode: Firewall;
 
-  @Column({ name: "firewall" })
+  @Column({ name: 'firewall' })
   firewallId: number;
 
   @ManyToOne(() => Firewall, { eager: true })
-  @JoinColumn({ name: "firewall" })
+  @JoinColumn({ name: 'firewall' })
   firewall: Firewall;
 
-  @Column({ type: "text" })
+  @Column({ type: 'text' })
   cfg_text: string;
 
-  @Column({ type: "text" })
+  @Column({ type: 'text' })
   comment: string;
 
   public getTableName(): string {
@@ -120,7 +120,7 @@ export class KeepalivedRule extends Model {
       const originalKeepalivedRules: KeepalivedRule[] =
         await KeepalivedRule.find({
           where: { firewall: originalFirewall },
-          relations: ["virtualIps"],
+          relations: ['virtualIps'],
         });
 
       for (const originalRule of originalKeepalivedRules) {
@@ -149,7 +149,7 @@ export class KeepalivedRule extends Model {
     return KeepalivedRule.createQueryBuilder()
       .update()
       .set({ firewallId: dst_firewall })
-      .where("firewallId = :src_firewall", { src_firewall })
+      .where('firewallId = :src_firewall', { src_firewall })
       .execute();
   }
 }

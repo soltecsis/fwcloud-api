@@ -20,22 +20,22 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import "reflect-metadata";
-import * as fs from "fs";
-import { ServiceContainer } from "./services/service-container";
-import { ServiceProvider } from "./services/service-provider";
-import { Service } from "./services/service";
-import * as path from "path";
-import { Version } from "../version/version";
-import { FSHelper } from "../utils/fs-helper";
-import { DatabaseService } from "../database/database.service";
-import { LogServiceProvider } from "../logs/log.provider";
-import { LoggerType, LogService } from "../logs/log.service";
-import winston from "winston";
+import 'reflect-metadata';
+import * as fs from 'fs';
+import { ServiceContainer } from './services/service-container';
+import { ServiceProvider } from './services/service-provider';
+import { Service } from './services/service';
+import * as path from 'path';
+import { Version } from '../version/version';
+import { FSHelper } from '../utils/fs-helper';
+import { DatabaseService } from '../database/database.service';
+import { LogServiceProvider } from '../logs/log.provider';
+import { LoggerType, LogService } from '../logs/log.service';
+import winston from 'winston';
 
 let _runningApplication: AbstractApplication = null;
 
-export function logger(type: LoggerType = "default"): winston.Logger {
+export function logger(type: LoggerType = 'default'): winston.Logger {
   if (app()) {
     return app().logger(type);
   }
@@ -57,11 +57,11 @@ export abstract class AbstractApplication {
   protected constructor(path: string = process.cwd()) {
     try {
       this._path = path;
-      this._config = require("../config/config");
+      this._config = require('../config/config');
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       _runningApplication = this;
     } catch (e) {
-      console.error("Aplication startup failed: " + e.message);
+      console.error('Aplication startup failed: ' + e.message);
       process.exit(e);
     }
   }
@@ -78,7 +78,7 @@ export abstract class AbstractApplication {
     return this._version;
   }
 
-  logger(type: LoggerType = "default"): winston.Logger {
+  logger(type: LoggerType = 'default'): winston.Logger {
     return this._logService.getLogger(type);
   }
 
@@ -106,7 +106,7 @@ export abstract class AbstractApplication {
   protected async loadVersion(): Promise<Version> {
     const version: Version = new Version();
     version.tag = JSON.parse(
-      fs.readFileSync(path.join(this._path, "package.json")).toString(),
+      fs.readFileSync(path.join(this._path, 'package.json')).toString(),
     ).version;
     version.schema = await (
       await this.getService<DatabaseService>(DatabaseService.name)
@@ -148,19 +148,19 @@ export abstract class AbstractApplication {
    */
   public generateDirectories(): void {
     try {
-      FSHelper.mkdirSync(this._config.get("policy").data_dir);
-      FSHelper.mkdirSync(this._config.get("pki").data_dir);
-      FSHelper.mkdirSync(this._config.get("session").files_path);
-      FSHelper.mkdirSync(this._config.get("backup").data_dir);
-      FSHelper.mkdirSync(this._config.get("snapshot").data_dir);
-      FSHelper.mkdirSync(this._config.get("openvpn.history").data_dir);
+      FSHelper.mkdirSync(this._config.get('policy').data_dir);
+      FSHelper.mkdirSync(this._config.get('pki').data_dir);
+      FSHelper.mkdirSync(this._config.get('session').files_path);
+      FSHelper.mkdirSync(this._config.get('backup').data_dir);
+      FSHelper.mkdirSync(this._config.get('snapshot').data_dir);
+      FSHelper.mkdirSync(this._config.get('openvpn.history').data_dir);
 
-      if (FSHelper.directoryExistsSync(this._config.get("tmp").directory)) {
-        FSHelper.rmDirectorySync(this._config.get("tmp").directory);
+      if (FSHelper.directoryExistsSync(this._config.get('tmp').directory)) {
+        FSHelper.rmDirectorySync(this._config.get('tmp').directory);
       }
-      FSHelper.mkdirSync(this._config.get("tmp").directory);
+      FSHelper.mkdirSync(this._config.get('tmp').directory);
     } catch (e) {
-      console.error("Could not create the logs directory. ERROR: ", e.message);
+      console.error('Could not create the logs directory. ERROR: ', e.message);
       process.exit(1);
     }
   }

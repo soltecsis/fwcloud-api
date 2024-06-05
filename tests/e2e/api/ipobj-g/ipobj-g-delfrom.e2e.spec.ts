@@ -1,27 +1,27 @@
-import { getRepository } from "typeorm";
-import { Application } from "../../../../src/Application";
-import { IPObj } from "../../../../src/models/ipobj/IPObj";
-import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
-import { IPObjToIPObjGroup } from "../../../../src/models/ipobj/IPObjToIPObjGroup";
-import { RoutingRule } from "../../../../src/models/routing/routing-rule/routing-rule.model";
-import { User } from "../../../../src/models/user/User";
-import { describeName, expect, testSuite } from "../../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
+import { getRepository } from 'typeorm';
+import { Application } from '../../../../src/Application';
+import { IPObj } from '../../../../src/models/ipobj/IPObj';
+import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';
+import { IPObjToIPObjGroup } from '../../../../src/models/ipobj/IPObjToIPObjGroup';
+import { RoutingRule } from '../../../../src/models/routing/routing-rule/routing-rule.model';
+import { User } from '../../../../src/models/user/User';
+import { describeName, expect, testSuite } from '../../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import {
   attachSession,
   createUser,
   generateSession,
-} from "../../../utils/utils";
-import request = require("supertest");
-import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
-import { RouteService } from "../../../../src/models/routing/route/route.service";
-import { PolicyRuleToIPObj } from "../../../../src/models/policy/PolicyRuleToIPObj";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
-import { Route } from "../../../../src/models/routing/route/route.model";
-import { OpenVPN } from "../../../../src/models/vpn/openvpn/OpenVPN";
-import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
-import { Mark } from "../../../../src/models/ipobj/Mark";
+} from '../../../utils/utils';
+import request = require('supertest');
+import { RoutingRuleService } from '../../../../src/models/routing/routing-rule/routing-rule.service';
+import { RouteService } from '../../../../src/models/routing/route/route.service';
+import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import { Route } from '../../../../src/models/routing/route/route.model';
+import { OpenVPN } from '../../../../src/models/vpn/openvpn/OpenVPN';
+import { OpenVPNPrefix } from '../../../../src/models/vpn/openvpn/OpenVPNPrefix';
+import { Mark } from '../../../../src/models/ipobj/Mark';
 
 enum PolicyColumn {
   SOURCE = 1,
@@ -37,7 +37,7 @@ enum PolicyTypeId {
   DNAT = 5,
 }
 
-describe(describeName("Ipobj group delfrom E2E Tests"), () => {
+describe(describeName('Ipobj group delfrom E2E Tests'), () => {
   let app: Application;
   let fwcProduct: FwCloudProduct;
   let adminUser: User;
@@ -74,7 +74,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
 
     await PolicyRule.insertDefaultPolicy(
       fwcProduct.firewall.id,
-      fwcProduct.interfaces.get("firewall-interface1").id,
+      fwcProduct.interfaces.get('firewall-interface1').id,
       {},
     );
     inputRuleId = await PolicyRule.insertPolicy_r({
@@ -126,13 +126,13 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
     });
 
     route = await routeService.create({
-      gatewayId: fwcProduct.ipobjs.get("address").id,
+      gatewayId: fwcProduct.ipobjs.get('address').id,
       routingTableId: fwcProduct.routingTable.id,
     });
 
     firewall = await getRepository(Firewall).findOneOrFail(
       fwcProduct.firewall.id,
-      { relations: ["policyRules"] },
+      { relations: ['policyRules'] },
     );
 
     adminUser.fwClouds = [fwcProduct.fwcloud];
@@ -140,7 +140,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
     await getRepository(User).save(adminUser);
 
     group = await getRepository(IPObjGroup).save({
-      name: "group",
+      name: 'group',
       type: 20,
       fwCloudId: fwcProduct.fwcloud.id,
     });
@@ -151,11 +151,11 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
     };
   });
 
-  describe("ipObj", () => {
+  describe('ipObj', () => {
     let ipObj: IPObj;
 
     beforeEach(async () => {
-      ipObj = fwcProduct.ipobjs.get("address");
+      ipObj = fwcProduct.ipobjs.get('address');
 
       await getRepository(IPObjToIPObjGroup).save({
         ipObjGroupId: group.id,
@@ -166,16 +166,16 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
       requestData.obj_type = ipObj.ipObjTypeId;
     });
 
-    it("should remove the item from the group if it is not used", async () => {
+    it('should remove the item from the group if it is not used', async () => {
       return await request(app.express)
-        .put("/ipobj/group/delfrom")
-        .set("Cookie", [attachSession(session)])
+        .put('/ipobj/group/delfrom')
+        .set('Cookie', [attachSession(session)])
         .send(requestData)
         .expect(200);
     });
 
-    describe("used in routing rule", () => {
-      it("should throw an exception if item is used in a routing rule", async () => {
+    describe('used in routing rule', () => {
+      it('should throw an exception if item is used in a routing rule', async () => {
         await routingRuleService.update(routingRule.id, {
           ipObjGroupIds: [
             {
@@ -186,8 +186,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
 
         return await request(app.express)
-          .put("/ipobj/group/delfrom")
-          .set("Cookie", [attachSession(session)])
+          .put('/ipobj/group/delfrom')
+          .set('Cookie', [attachSession(session)])
           .send(requestData)
           .expect(400)
           .then((response) => {
@@ -196,8 +196,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
       });
     });
 
-    describe("used in route", () => {
-      it("should throw an exception if item is used in a route", async () => {
+    describe('used in route', () => {
+      it('should throw an exception if item is used in a route', async () => {
         await routeService.update(route.id, {
           ipObjGroupIds: [
             {
@@ -208,8 +208,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
 
         return await request(app.express)
-          .put("/ipobj/group/delfrom")
-          .set("Cookie", [attachSession(session)])
+          .put('/ipobj/group/delfrom')
+          .set('Cookie', [attachSession(session)])
           .send(requestData)
           .expect(400)
           .then((response) => {
@@ -218,15 +218,15 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
       });
     });
 
-    describe("used in policy rules", () => {
+    describe('used in policy rules', () => {
       let rule: PolicyRule;
 
-      describe("INPUT", () => {
+      describe('INPUT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(inputRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -237,8 +237,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -246,7 +246,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -257,8 +257,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -267,12 +267,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("OUTPUT", () => {
+      describe('OUTPUT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(outputRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -283,8 +283,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -292,7 +292,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -303,8 +303,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -313,12 +313,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("FORWARD", () => {
+      describe('FORWARD', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(forwardRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -329,8 +329,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -338,7 +338,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -349,8 +349,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -359,12 +359,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("DNAT", () => {
+      describe('DNAT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(dnatRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -375,8 +375,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -384,7 +384,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -395,8 +395,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -405,12 +405,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("SNAT", () => {
+      describe('SNAT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(snatRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -421,8 +421,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -430,7 +430,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -441,8 +441,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -453,11 +453,11 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
     });
   });
 
-  describe("openvpn", () => {
+  describe('openvpn', () => {
     let openvpn: OpenVPN;
 
     beforeEach(async () => {
-      openvpn = fwcProduct.openvpnClients.get("OpenVPN-Cli-1");
+      openvpn = fwcProduct.openvpnClients.get('OpenVPN-Cli-1');
       openvpn.ipObjGroups = [{ id: group.id } as IPObjGroup];
       await getRepository(OpenVPN).save(openvpn);
 
@@ -465,16 +465,16 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
       requestData.obj_type = 311;
     });
 
-    it("should remove the item from the group if it is not used", async () => {
+    it('should remove the item from the group if it is not used', async () => {
       return await request(app.express)
-        .put("/ipobj/group/delfrom")
-        .set("Cookie", [attachSession(session)])
+        .put('/ipobj/group/delfrom')
+        .set('Cookie', [attachSession(session)])
         .send(requestData)
         .expect(200);
     });
 
-    describe("used in routing rule", () => {
-      it("should throw an exception if item is used in a routing rule", async () => {
+    describe('used in routing rule', () => {
+      it('should throw an exception if item is used in a routing rule', async () => {
         await routingRuleService.update(routingRule.id, {
           ipObjGroupIds: [
             {
@@ -485,8 +485,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
 
         return await request(app.express)
-          .put("/ipobj/group/delfrom")
-          .set("Cookie", [attachSession(session)])
+          .put('/ipobj/group/delfrom')
+          .set('Cookie', [attachSession(session)])
           .send(requestData)
           .expect(400)
           .then((response) => {
@@ -495,8 +495,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
       });
     });
 
-    describe("used in route", () => {
-      it("should throw an exception if item is used in a route", async () => {
+    describe('used in route', () => {
+      it('should throw an exception if item is used in a route', async () => {
         await routeService.update(route.id, {
           ipObjGroupIds: [
             {
@@ -507,8 +507,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
 
         return await request(app.express)
-          .put("/ipobj/group/delfrom")
-          .set("Cookie", [attachSession(session)])
+          .put('/ipobj/group/delfrom')
+          .set('Cookie', [attachSession(session)])
           .send(requestData)
           .expect(400)
           .then((response) => {
@@ -517,15 +517,15 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
       });
     });
 
-    describe("used in policy rules", () => {
+    describe('used in policy rules', () => {
       let rule: PolicyRule;
 
-      describe("INPUT", () => {
+      describe('INPUT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(inputRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -536,8 +536,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -545,7 +545,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -556,8 +556,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -566,12 +566,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("OUTPUT", () => {
+      describe('OUTPUT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(outputRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -582,8 +582,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -591,7 +591,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -602,8 +602,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -612,12 +612,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("FORWARD", () => {
+      describe('FORWARD', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(forwardRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -628,8 +628,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -637,7 +637,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -648,8 +648,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -658,12 +658,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("DNAT", () => {
+      describe('DNAT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(dnatRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -674,8 +674,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -683,7 +683,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -694,8 +694,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -704,12 +704,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("SNAT", () => {
+      describe('SNAT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(snatRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -720,8 +720,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -729,7 +729,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -740,8 +740,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -752,7 +752,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
     });
   });
 
-  describe("openvpn prefix", () => {
+  describe('openvpn prefix', () => {
     let prefix: OpenVPNPrefix;
 
     beforeEach(async () => {
@@ -764,16 +764,16 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
       requestData.obj_type = 401;
     });
 
-    it("should remove the item from the group if it is not used", async () => {
+    it('should remove the item from the group if it is not used', async () => {
       return await request(app.express)
-        .put("/ipobj/group/delfrom")
-        .set("Cookie", [attachSession(session)])
+        .put('/ipobj/group/delfrom')
+        .set('Cookie', [attachSession(session)])
         .send(requestData)
         .expect(200);
     });
 
-    describe("used in routing rule", () => {
-      it("should throw an exception if item is used in a routing rule", async () => {
+    describe('used in routing rule', () => {
+      it('should throw an exception if item is used in a routing rule', async () => {
         await routingRuleService.update(routingRule.id, {
           ipObjGroupIds: [
             {
@@ -784,8 +784,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
 
         return await request(app.express)
-          .put("/ipobj/group/delfrom")
-          .set("Cookie", [attachSession(session)])
+          .put('/ipobj/group/delfrom')
+          .set('Cookie', [attachSession(session)])
           .send(requestData)
           .expect(400)
           .then((response) => {
@@ -794,8 +794,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
       });
     });
 
-    describe("used in route", () => {
-      it("should throw an exception if item is used in a route", async () => {
+    describe('used in route', () => {
+      it('should throw an exception if item is used in a route', async () => {
         await routeService.update(route.id, {
           ipObjGroupIds: [
             {
@@ -806,8 +806,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
 
         return await request(app.express)
-          .put("/ipobj/group/delfrom")
-          .set("Cookie", [attachSession(session)])
+          .put('/ipobj/group/delfrom')
+          .set('Cookie', [attachSession(session)])
           .send(requestData)
           .expect(400)
           .then((response) => {
@@ -816,15 +816,15 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
       });
     });
 
-    describe("used in policy rules", () => {
+    describe('used in policy rules', () => {
       let rule: PolicyRule;
 
-      describe("INPUT", () => {
+      describe('INPUT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(inputRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -835,8 +835,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -844,7 +844,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -855,8 +855,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -865,12 +865,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("OUTPUT", () => {
+      describe('OUTPUT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(outputRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -881,8 +881,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -890,7 +890,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -901,8 +901,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -911,12 +911,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("FORWARD", () => {
+      describe('FORWARD', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(forwardRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -927,8 +927,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -936,7 +936,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -947,8 +947,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -957,12 +957,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("DNAT", () => {
+      describe('DNAT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(dnatRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -973,8 +973,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -982,7 +982,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -993,8 +993,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -1003,12 +1003,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("SNAT", () => {
+      describe('SNAT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(snatRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SOURCE)", async () => {
+        it('should throw an exception if item is used in a policy (SOURCE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -1019,8 +1019,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -1028,7 +1028,7 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
             });
         });
 
-        it("should throw an exception if item is used in a policy (DESTINATION)", async () => {
+        it('should throw an exception if item is used in a policy (DESTINATION)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -1039,8 +1039,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -1051,14 +1051,14 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
     });
   });
 
-  describe("Services", () => {
+  describe('Services', () => {
     let service: IPObj;
 
     beforeEach(async () => {
       service = await getRepository(IPObj).findOneOrFail(10040);
 
       group = await getRepository(IPObjGroup).save({
-        name: "group",
+        name: 'group',
         type: 21,
         fwCloudId: fwcProduct.fwcloud.id,
       });
@@ -1073,23 +1073,23 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
       requestData.obj_type = 1;
     });
 
-    it("should remove the item from the group if it is not used", async () => {
+    it('should remove the item from the group if it is not used', async () => {
       return await request(app.express)
-        .put("/ipobj/group/delfrom")
-        .set("Cookie", [attachSession(session)])
+        .put('/ipobj/group/delfrom')
+        .set('Cookie', [attachSession(session)])
         .send(requestData)
         .expect(200);
     });
 
-    describe("used in policy rules", () => {
+    describe('used in policy rules', () => {
       let rule: PolicyRule;
 
-      describe("INPUT", () => {
+      describe('INPUT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(inputRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SERVICE)", async () => {
+        it('should throw an exception if item is used in a policy (SERVICE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -1100,8 +1100,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -1110,12 +1110,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("OUTPUT", () => {
+      describe('OUTPUT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(outputRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SERVICE)", async () => {
+        it('should throw an exception if item is used in a policy (SERVICE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -1126,8 +1126,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -1136,12 +1136,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("FORWARD", () => {
+      describe('FORWARD', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(forwardRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SERVICE)", async () => {
+        it('should throw an exception if item is used in a policy (SERVICE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -1152,8 +1152,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -1162,12 +1162,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("DNAT", () => {
+      describe('DNAT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(dnatRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SERVICE)", async () => {
+        it('should throw an exception if item is used in a policy (SERVICE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -1178,8 +1178,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {
@@ -1188,12 +1188,12 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
         });
       });
 
-      describe("SNAT", () => {
+      describe('SNAT', () => {
         beforeEach(async () => {
           rule = await getRepository(PolicyRule).findOneOrFail(snatRuleId);
         });
 
-        it("should throw an exception if item is used in a policy (SERVICE)", async () => {
+        it('should throw an exception if item is used in a policy (SERVICE)', async () => {
           await PolicyRuleToIPObj.insertPolicy_r__ipobj({
             rule: rule.id,
             ipobj: -1,
@@ -1204,8 +1204,8 @@ describe(describeName("Ipobj group delfrom E2E Tests"), () => {
           });
 
           return await request(app.express)
-            .put("/ipobj/group/delfrom")
-            .set("Cookie", [attachSession(session)])
+            .put('/ipobj/group/delfrom')
+            .set('Cookie', [attachSession(session)])
             .send(requestData)
             .expect(400)
             .then((response) => {

@@ -20,22 +20,22 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Service } from "../fonaments/services/service";
-import { DatabaseService } from "../database/database.service";
-import * as fs from "fs-extra";
-import * as path from "path";
-import { Backup, BackupMetadata } from "./backup";
-import moment, { Moment } from "moment";
-import { BackupNotFoundException } from "./exceptions/backup-not-found-exception";
-import { CronTime, CronJob } from "cron";
-import { CronService } from "./cron/cron.service";
-import * as fse from "fs-extra";
-import { NotFoundException } from "../fonaments/exceptions/not-found-exception";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { logger } from "../fonaments/abstract-application";
-import * as uuid from "uuid";
-import { Zip } from "../utils/zip";
-import { Mutex } from "async-mutex";
+import { Service } from '../fonaments/services/service';
+import { DatabaseService } from '../database/database.service';
+import * as fs from 'fs-extra';
+import * as path from 'path';
+import { Backup, BackupMetadata } from './backup';
+import moment, { Moment } from 'moment';
+import { BackupNotFoundException } from './exceptions/backup-not-found-exception';
+import { CronTime, CronJob } from 'cron';
+import { CronService } from './cron/cron.service';
+import * as fse from 'fs-extra';
+import { NotFoundException } from '../fonaments/exceptions/not-found-exception';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { logger } from '../fonaments/abstract-application';
+import * as uuid from 'uuid';
+import { Zip } from '../utils/zip';
+import { Mutex } from 'async-mutex';
 
 export interface BackupUpdateableConfig {
   schedule: string;
@@ -61,7 +61,7 @@ export class BackupService extends Service {
   }
 
   public async build(): Promise<BackupService> {
-    this._config = this.loadCustomizedConfig(this._app.config.get("backup"));
+    this._config = this.loadCustomizedConfig(this._app.config.get('backup'));
     this._db = await this._app.getService<DatabaseService>(
       DatabaseService.name,
     );
@@ -84,27 +84,27 @@ export class BackupService extends Service {
         await this._backupMutex.waitForUnlock();
 
         try {
-          logger().info("Starting BACKUP job.");
+          logger().info('Starting BACKUP job.');
           const backup = new Backup();
-          backup.setComment("Cron backup");
+          backup.setComment('Cron backup');
           await backup.create(this._config.data_dir);
           logger().info(`BACKUP job completed: ${backup.id}`);
         } catch (error) {
-          logger().error("BACKUP job ERROR: ", error.message);
+          logger().error('BACKUP job ERROR: ', error.message);
         }
       },
     );
     this._scheduledBackupCreationJob.start();
 
     this._scheduledBackupRetentionJob = this._cronService.addJob(
-      "0 0 0 * * *",
+      '0 0 0 * * *',
       async () => {
         try {
-          logger().info("Starting RETENTION BACKUP job.");
+          logger().info('Starting RETENTION BACKUP job.');
           const backups: Backup[] = await this.applyRetentionPolicy();
           logger().info(`BACKUPS removed: ${backups.length}`);
         } catch (error) {
-          logger().error("BACKUP job ERROR: ", error.message);
+          logger().error('BACKUP job ERROR: ', error.message);
         }
       },
     );
@@ -194,7 +194,7 @@ export class BackupService extends Service {
 
     //Copy backup into the tmp directory
     const destinationPath: string = path.join(
-      this._app.config.get("tmp.directory"),
+      this._app.config.get('tmp.directory'),
       id,
       path.basename(backup.path),
     );
@@ -220,7 +220,7 @@ export class BackupService extends Service {
   public async import(zippedFilePath: string): Promise<Backup> {
     const outputPath: string = path.join(
       path.dirname(zippedFilePath),
-      "backup",
+      'backup',
     );
 
     await Zip.unzip(zippedFilePath, outputPath);
@@ -306,7 +306,7 @@ export class BackupService extends Service {
     const deletedBackups: Array<Backup> = [];
     const expirationTimestamp: Moment = moment().subtract(
       this._config.max_days,
-      "days",
+      'days',
     );
 
     for (let i = 0; i < backups.length; i++) {
@@ -357,7 +357,7 @@ export class BackupService extends Service {
 
     if (fs.existsSync(backupConfigFile)) {
       const backupConfig = JSON.parse(
-        fs.readFileSync(backupConfigFile, "utf8"),
+        fs.readFileSync(backupConfigFile, 'utf8'),
       );
       config = Object.assign(config, backupConfig);
     }
@@ -380,7 +380,7 @@ export class BackupService extends Service {
         fs.writeFileSync(
           backupConfigFile,
           JSON.stringify(custom_config),
-          "utf8",
+          'utf8',
         );
         resolve(custom_config);
       } catch (error) {

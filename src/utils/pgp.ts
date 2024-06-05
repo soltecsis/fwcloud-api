@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-const openpgp = require("openpgp");
-const fwcError = require("./error_table");
+const openpgp = require('openpgp');
+const fwcError = require('./error_table');
 
 export class PgpHelper {
   private _publicKey: string;
@@ -46,9 +46,9 @@ export class PgpHelper {
     return new Promise(async (resolve, reject) => {
       try {
         const { privateKey, publicKey } = await openpgp.generateKey({
-          userIDs: [{ name: "FWCloud.net", email: "info@fwcloud.net" }],
+          userIDs: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }],
           rsaBits: rsaBits,
-          format: "binary", // Change the format to 'binary'
+          format: 'binary', // Change the format to 'binary'
         });
 
         if (!publicKey || !privateKey) return reject(fwcError.PGP_KEYS_GEN);

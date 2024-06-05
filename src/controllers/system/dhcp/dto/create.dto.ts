@@ -27,8 +27,8 @@ import {
   IsPositive,
   IsEnum,
   IsIn,
-} from "class-validator";
-import { Offset } from "../../../../offset";
+} from 'class-validator';
+import { Offset } from '../../../../offset';
 
 export class DHCPRuleCreateDto {
   @IsBoolean()

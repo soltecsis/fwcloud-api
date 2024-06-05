@@ -1,4 +1,4 @@
-import { Type } from "class-transformer";
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsOptional,
@@ -8,9 +8,9 @@ import {
   ValidateNested,
   IsPositive,
   IsEnum,
-} from "class-validator";
-import { Offset } from "../../../../offset";
-import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
+} from 'class-validator';
+import { Offset } from '../../../../offset';
+import { PositionalEntityDto } from '../../../dtos/positional-entity.dto';
 
 export class HAProxyRuleUpdateDto {
   @IsBoolean()

@@ -1,5 +1,5 @@
-import { ClassConstructor } from "class-transformer";
-import { getFWCloudMetadata } from "../metadata/metadata";
+import { ClassConstructor } from 'class-transformer';
+import { getFWCloudMetadata } from '../metadata/metadata';
 
 export function Validate(dto?: ClassConstructor<object>) {
   return function (
@@ -8,7 +8,7 @@ export function Validate(dto?: ClassConstructor<object>) {
     descriptor: PropertyDescriptor,
   ) {
     getFWCloudMetadata.validations[
-      target.constructor.name + "@" + propertyKey
+      target.constructor.name + '@' + propertyKey
     ] = dto ?? null;
   };
 }
@@ -20,7 +20,7 @@ export function ValidateQuery(dto: ClassConstructor<object>) {
     descriptor: PropertyDescriptor,
   ) {
     getFWCloudMetadata.queryValidation[
-      target.constructor.name + "@" + propertyKey
+      target.constructor.name + '@' + propertyKey
     ] = dto ?? null;
   };
 }

@@ -20,19 +20,19 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../fonaments/http/controller";
-import { BackupService } from "../../backups/backup.service";
-import { app } from "../../fonaments/abstract-application";
-import { Backup } from "../../backups/backup";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { Request } from "express";
-import { Channel } from "../../sockets/channels/channel";
-import { Validate } from "../../decorators/validate.decorator";
-import { FileInfo } from "../../fonaments/http/files/file-info";
-import { HttpException } from "../../fonaments/exceptions/http/http-exception";
-import { BackupControllerStoreDto } from "./dtos/store.dto";
-import { BackupControllerRestoreDto } from "./dtos/restore.dto";
-import { BackupControllerImportDto } from "./dtos/import.dto";
+import { Controller } from '../../fonaments/http/controller';
+import { BackupService } from '../../backups/backup.service';
+import { app } from '../../fonaments/abstract-application';
+import { Backup } from '../../backups/backup';
+import { ResponseBuilder } from '../../fonaments/http/response-builder';
+import { Request } from 'express';
+import { Channel } from '../../sockets/channels/channel';
+import { Validate } from '../../decorators/validate.decorator';
+import { FileInfo } from '../../fonaments/http/files/file-info';
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
+import { BackupControllerStoreDto } from './dtos/store.dto';
+import { BackupControllerRestoreDto } from './dtos/restore.dto';
+import { BackupControllerImportDto } from './dtos/import.dto';
 
 export class BackupController extends Controller {
   protected _backupService: BackupService;
@@ -76,7 +76,7 @@ export class BackupController extends Controller {
     const channel: Channel = await Channel.fromRequest(request);
 
     const backup: Backup = await this._backupService.create(
-      request.inputs.get("comment"),
+      request.inputs.get('comment'),
       channel,
     );
     return ResponseBuilder.buildResponse().status(201).body(backup);
@@ -96,14 +96,14 @@ export class BackupController extends Controller {
 
     const channel: Channel = await Channel.fromRequest(request);
 
-    this._app.config.set("maintenance_mode", true);
+    this._app.config.set('maintenance_mode', true);
 
     try {
       backup = await this._backupService.restore(backup, channel);
-      this._app.config.set("maintenance_mode", false);
+      this._app.config.set('maintenance_mode', false);
       return ResponseBuilder.buildResponse().status(201).body(backup);
     } catch (err) {
-      this._app.config.set("maintenance_mode", false);
+      this._app.config.set('maintenance_mode', false);
       throw err;
     }
   }
@@ -145,11 +145,11 @@ export class BackupController extends Controller {
   public async import(request: Request): Promise<ResponseBuilder> {
     try {
       const backup: Backup = await this._backupService.import(
-        (<FileInfo>(<unknown>request.inputs.get("file"))).filepath,
+        (<FileInfo>(<unknown>request.inputs.get('file'))).filepath,
       );
       return ResponseBuilder.buildResponse().status(201).body(backup);
     } catch (err) {
-      throw new HttpException("Invalid backup file", 400);
+      throw new HttpException('Invalid backup file', 400);
     }
   }
 }

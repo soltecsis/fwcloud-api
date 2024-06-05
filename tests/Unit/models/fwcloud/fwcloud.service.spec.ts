@@ -20,34 +20,34 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
-import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { FwCloudService } from "../../../../src/models/fwcloud/fwcloud.service";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { getRepository } from "typeorm";
-import StringHelper from "../../../../src/utils/string.helper";
-import { createUser } from "../../../utils/utils";
-import { FwcTree } from "../../../../src/models/tree/fwc-tree.model";
+import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
+import { describeName, testSuite, expect } from '../../../mocha/global-setup';
+import { FwCloudService } from '../../../../src/models/fwcloud/fwcloud.service';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { getRepository } from 'typeorm';
+import StringHelper from '../../../../src/utils/string.helper';
+import { createUser } from '../../../utils/utils';
+import { FwcTree } from '../../../../src/models/tree/fwc-tree.model';
 
 let app: AbstractApplication;
 let service: FwCloudService;
 
-describe(describeName("FwCloudService Unit tests"), async () => {
+describe(describeName('FwCloudService Unit tests'), async () => {
   beforeEach(async () => {
     app = testSuite.app;
     service = await app.getService<FwCloudService>(FwCloudService.name);
   });
 
-  describe("Bootstrap", () => {
-    it("service is instantiated in during bootstrap process", async () => {
+  describe('Bootstrap', () => {
+    it('service is instantiated in during bootstrap process', async () => {
       expect(
         await app.getService<FwCloudService>(FwCloudService.name),
       ).to.be.instanceof(FwCloudService);
     });
   });
 
-  describe("store()", () => {
-    it("should create a fwcloud", async () => {
+  describe('store()', () => {
+    it('should create a fwcloud', async () => {
       const fwCloud: FwCloud = await service.store({
         name: StringHelper.randomize(10),
       });
@@ -55,7 +55,7 @@ describe(describeName("FwCloudService Unit tests"), async () => {
       expect(await getRepository(FwCloud).findOne(fwCloud.id)).not.to.be.null;
     });
 
-    it("should grant access to all admin users", async () => {
+    it('should grant access to all admin users', async () => {
       const admin = await createUser({ role: 1 });
       const regular = await createUser({ role: 0 });
 
@@ -64,7 +64,7 @@ describe(describeName("FwCloudService Unit tests"), async () => {
       });
 
       fwCloud = await getRepository(FwCloud).findOne(fwCloud.id, {
-        relations: ["users"],
+        relations: ['users'],
       });
 
       expect(
@@ -75,7 +75,7 @@ describe(describeName("FwCloudService Unit tests"), async () => {
       ).to.have.length(1);
     });
 
-    it("should create the fwcloud tree node", async () => {
+    it('should create the fwcloud tree node', async () => {
       const fwCloud: FwCloud = await service.store({
         name: StringHelper.randomize(10),
       });
@@ -90,7 +90,7 @@ describe(describeName("FwCloudService Unit tests"), async () => {
     });
   });
 
-  describe("update()", () => {
+  describe('update()', () => {
     let fwCloud: FwCloud;
 
     beforeEach(async () => {
@@ -101,7 +101,7 @@ describe(describeName("FwCloudService Unit tests"), async () => {
         .save();
     });
 
-    it("should update a fwcloud", async () => {
+    it('should update a fwcloud', async () => {
       const newName: string = StringHelper.randomize(10);
       const newComment: string = StringHelper.randomize(10);
 
@@ -116,7 +116,7 @@ describe(describeName("FwCloudService Unit tests"), async () => {
       expect(fwCloud.comment).to.be.eq(newComment);
     });
 
-    it("should return the updated fwcloud", async () => {
+    it('should return the updated fwcloud', async () => {
       const newName: string = StringHelper.randomize(10);
       const newComment: string = StringHelper.randomize(10);
 

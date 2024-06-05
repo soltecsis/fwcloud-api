@@ -20,18 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as yargs from "yargs";
-import { DatabaseService } from "../../database/database.service";
-import { Command, Option } from "../command";
-import { getRepository } from "typeorm";
-import { IPObj } from "../../models/ipobj/IPObj";
+import * as yargs from 'yargs';
+import { DatabaseService } from '../../database/database.service';
+import { Command, Option } from '../command';
+import { getRepository } from 'typeorm';
+import { IPObj } from '../../models/ipobj/IPObj';
 
 /**
  * Runs migration command.
  */
 export class MigrationImportDataCommand extends Command {
-  public name: string = "migration:data";
-  public description: string = "Import default data";
+  public name: string = 'migration:data';
+  public description: string = 'Import default data';
 
   async handle(args: yargs.Arguments) {
     const forceFlag: boolean = (args.force ?? false) as boolean;
@@ -50,10 +50,10 @@ export class MigrationImportDataCommand extends Command {
   public getOptions(): Option[] {
     return [
       {
-        name: "force",
+        name: 'force',
         alias: null,
-        type: "boolean",
-        description: "Force key generation even when they are already defined",
+        type: 'boolean',
+        description: 'Force key generation even when they are already defined',
         required: false,
       },
     ];

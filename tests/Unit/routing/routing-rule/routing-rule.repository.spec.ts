@@ -1,16 +1,16 @@
-import { getCustomRepository, getRepository } from "typeorm";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { RoutingGroup } from "../../../../src/models/routing/routing-group/routing-group.model";
-import { RoutingGroupService } from "../../../../src/models/routing/routing-group/routing-group.service";
-import { RoutingRule } from "../../../../src/models/routing/routing-rule/routing-rule.model";
-import { RoutingRuleRepository } from "../../../../src/models/routing/routing-rule/routing-rule.repository";
-import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
-import { RoutingTableService } from "../../../../src/models/routing/routing-table/routing-table.service";
-import { Tree } from "../../../../src/models/tree/Tree";
-import { Offset } from "../../../../src/offset";
-import StringHelper from "../../../../src/utils/string.helper";
-import { expect, testSuite } from "../../../mocha/global-setup";
+import { getCustomRepository, getRepository } from 'typeorm';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { RoutingGroup } from '../../../../src/models/routing/routing-group/routing-group.model';
+import { RoutingGroupService } from '../../../../src/models/routing/routing-group/routing-group.service';
+import { RoutingRule } from '../../../../src/models/routing/routing-rule/routing-rule.model';
+import { RoutingRuleRepository } from '../../../../src/models/routing/routing-rule/routing-rule.repository';
+import { RoutingTable } from '../../../../src/models/routing/routing-table/routing-table.model';
+import { RoutingTableService } from '../../../../src/models/routing/routing-table/routing-table.service';
+import { Tree } from '../../../../src/models/tree/Tree';
+import { Offset } from '../../../../src/offset';
+import StringHelper from '../../../../src/utils/string.helper';
+import { expect, testSuite } from '../../../mocha/global-setup';
 
 describe(RoutingRuleRepository.name, () => {
   let repository: RoutingRuleRepository;
@@ -48,20 +48,20 @@ describe(RoutingRuleRepository.name, () => {
     await Tree.createAllTreeCloud(fwCloud);
     const node: { id: number } = (await Tree.getNodeByNameAndType(
       fwCloud.id,
-      "FIREWALLS",
-      "FDF",
+      'FIREWALLS',
+      'FDF',
     )) as { id: number };
     await Tree.insertFwc_Tree_New_firewall(fwCloud.id, node.id, firewall.id);
 
     table = await tableService.create({
       firewallId: firewall.id,
-      name: "name",
+      name: 'name',
       number: 1,
       comment: null,
     });
   });
 
-  describe("getLastRoutingRuleInFirewall", () => {
+  describe('getLastRoutingRuleInFirewall', () => {
     let table2: RoutingTable;
     let tableRuleOrder1: RoutingRule;
     let tableRuleOrder2: RoutingRule;
@@ -71,7 +71,7 @@ describe(RoutingRuleRepository.name, () => {
     beforeEach(async () => {
       table2 = await tableService.create({
         firewallId: firewall.id,
-        name: "name",
+        name: 'name',
         number: 2,
         comment: null,
       });
@@ -79,29 +79,29 @@ describe(RoutingRuleRepository.name, () => {
       tableRuleOrder1 = await repository.save({
         routingTableId: table.id,
         rule_order: 1,
-        comment: "tableRuleOrder1",
+        comment: 'tableRuleOrder1',
       });
 
       tableRuleOrder2 = await repository.save({
         routingTableId: table.id,
         rule_order: 2,
-        comment: "tableRuleOrder2",
+        comment: 'tableRuleOrder2',
       });
 
       table2RuleOrder1 = await repository.save({
         routingTableId: table2.id,
         rule_order: 3,
-        comment: "table2RuleOrder1",
+        comment: 'table2RuleOrder1',
       });
 
       table2RuleOrder2 = await repository.save({
         routingTableId: table2.id,
         rule_order: 4,
-        comment: "table2RuleOrder2",
+        comment: 'table2RuleOrder2',
       });
     });
 
-    it("should return the rule which has the last order", async () => {
+    it('should return the rule which has the last order', async () => {
       const last: RoutingRule = await repository.getLastRoutingRuleInFirewall(
         firewall.id,
       );
@@ -110,8 +110,8 @@ describe(RoutingRuleRepository.name, () => {
     });
   });
 
-  describe("move", () => {
-    it("should manage rule_order forward changes", async () => {
+  describe('move', () => {
+    it('should manage rule_order forward changes', async () => {
       const ruleOrder1: RoutingRule = await repository.save({
         routingTableId: table.id,
         rule_order: 1,
@@ -137,7 +137,7 @@ describe(RoutingRuleRepository.name, () => {
       expect((await repository.findOne(ruleOrder4.id)).rule_order).to.eq(3);
     });
 
-    it("should manage rule_order backward changes", async () => {
+    it('should manage rule_order backward changes', async () => {
       const ruleOrder1: RoutingRule = await repository.save({
         routingTableId: table.id,
         rule_order: 1,
@@ -163,7 +163,7 @@ describe(RoutingRuleRepository.name, () => {
       expect((await repository.findOne(ruleOrder4.id)).rule_order).to.eq(2);
     });
 
-    it("should add to a group is destination belongs to a group", async () => {
+    it('should add to a group is destination belongs to a group', async () => {
       const ruleOrder1: RoutingRule = await repository.save({
         routingTableId: table.id,
         rule_order: 1,
@@ -178,7 +178,7 @@ describe(RoutingRuleRepository.name, () => {
       });
 
       const group: RoutingGroup = await routingGroupService.create({
-        name: "group",
+        name: 'group',
         routingRules: [ruleOrder2],
         firewallId: firewall.id,
       });
@@ -193,8 +193,8 @@ describe(RoutingRuleRepository.name, () => {
       );
     });
 
-    describe("bulk", () => {
-      it("should manage rule_order forward changes", async () => {
+    describe('bulk', () => {
+      it('should manage rule_order forward changes', async () => {
         const ruleOrder1: RoutingRule = await repository.save({
           routingTableId: table.id,
           rule_order: 1,
@@ -224,7 +224,7 @@ describe(RoutingRuleRepository.name, () => {
         expect((await repository.findOne(ruleOrder4.id)).rule_order).to.eq(4);
       });
 
-      it("should manage rule_order backward changes", async () => {
+      it('should manage rule_order backward changes', async () => {
         const ruleOrder1: RoutingRule = await repository.save({
           routingTableId: table.id,
           rule_order: 1,
@@ -254,7 +254,7 @@ describe(RoutingRuleRepository.name, () => {
         expect((await repository.findOne(ruleOrder4.id)).rule_order).to.eq(3);
       });
 
-      it("should add to a group if destination belongs to a group", async () => {
+      it('should add to a group if destination belongs to a group', async () => {
         const ruleOrder1: RoutingRule = await repository.save({
           routingTableId: table.id,
           rule_order: 1,
@@ -269,7 +269,7 @@ describe(RoutingRuleRepository.name, () => {
         });
 
         const group: RoutingGroup = await routingGroupService.create({
-          name: "group",
+          name: 'group',
           routingRules: [ruleOrder1],
           firewallId: firewall.id,
         });
@@ -290,7 +290,7 @@ describe(RoutingRuleRepository.name, () => {
     });
   });
 
-  describe("remove", () => {
+  describe('remove', () => {
     let table2: RoutingTable;
     let tableRuleOrder1: RoutingRule;
     let tableRuleOrder2: RoutingRule;
@@ -300,7 +300,7 @@ describe(RoutingRuleRepository.name, () => {
     beforeEach(async () => {
       table2 = await tableService.create({
         firewallId: firewall.id,
-        name: "name",
+        name: 'name',
         number: 2,
         comment: null,
       });
@@ -308,29 +308,29 @@ describe(RoutingRuleRepository.name, () => {
       tableRuleOrder1 = await repository.save({
         routingTableId: table.id,
         rule_order: 1,
-        comment: "tableRuleOrder1",
+        comment: 'tableRuleOrder1',
       });
 
       tableRuleOrder2 = await repository.save({
         routingTableId: table.id,
         rule_order: 2,
-        comment: "tableRuleOrder2",
+        comment: 'tableRuleOrder2',
       });
 
       table2RuleOrder1 = await repository.save({
         routingTableId: table2.id,
         rule_order: 3,
-        comment: "table2RuleOrder1",
+        comment: 'table2RuleOrder1',
       });
 
       table2RuleOrder2 = await repository.save({
         routingTableId: table2.id,
         rule_order: 4,
-        comment: "table2RuleOrder2",
+        comment: 'table2RuleOrder2',
       });
     });
 
-    it("should refresh orders after remove", async () => {
+    it('should refresh orders after remove', async () => {
       await repository.remove([tableRuleOrder2, table2RuleOrder1]);
 
       expect(

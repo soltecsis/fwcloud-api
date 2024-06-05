@@ -20,17 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Column, Entity, ManyToOne, PrimaryColumn } from "typeorm";
-import { Interface } from "../../interface/Interface";
-import Model from "../../Model";
-import { RoutingRule } from "../routing-rule/routing-rule.model";
+import { Column, Entity, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Interface } from '../../interface/Interface';
+import Model from '../../Model';
+import { RoutingRule } from '../routing-rule/routing-rule.model';
 
-const tableName: string = "routing_r__interface";
+const tableName: string = 'routing_r__interface';
 
 @Entity(tableName)
 export class RoutingRuleToInterface extends Model {
   @PrimaryColumn({
-    name: "rule",
+    name: 'rule',
   })
   routingRuleId: number;
 
@@ -41,7 +41,7 @@ export class RoutingRuleToInterface extends Model {
   routingRule: RoutingRule;
 
   @PrimaryColumn({
-    name: "interface",
+    name: 'interface',
   })
   interfaceId: number;
   @ManyToOne(

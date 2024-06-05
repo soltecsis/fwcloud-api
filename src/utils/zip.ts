@@ -1,8 +1,8 @@
-import yauzl from "yauzl";
-import { FSHelper } from "./fs-helper";
-import * as path from "path";
-import * as fs from "fs";
-import archiver from "archiver";
+import yauzl from 'yauzl';
+import { FSHelper } from './fs-helper';
+import * as path from 'path';
+import * as fs from 'fs';
+import archiver from 'archiver';
 
 export class Zip {
   /**
@@ -22,7 +22,7 @@ export class Zip {
           FSHelper.mkdirSync(destinationPath);
         }
 
-        zipfile.on("entry", (entry) => {
+        zipfile.on('entry', (entry) => {
           if (/\/$/.test(entry.fileName)) {
             // Entry is a directory as file names end with '/'.
             FSHelper.mkdirSync(path.join(destinationPath, entry.fileName));
@@ -33,7 +33,7 @@ export class Zip {
               if (err) {
                 return reject(err);
               }
-              readStream.on("end", function () {
+              readStream.on('end', function () {
                 zipfile.readEntry();
               });
               const ws: fs.WriteStream = fs.createWriteStream(
@@ -44,11 +44,11 @@ export class Zip {
           }
         });
 
-        zipfile.on("error", (err) => {
+        zipfile.on('error', (err) => {
           return reject(err);
         });
 
-        zipfile.on("end", async () => {
+        zipfile.on('end', async () => {
           return resolve();
         });
 
@@ -72,15 +72,15 @@ export class Zip {
       }
 
       const output = fs.createWriteStream(destinationPath);
-      const archive = archiver("zip", { zlib: { level: 9 } });
+      const archive = archiver('zip', { zlib: { level: 9 } });
 
-      output.on("close", async () => {
+      output.on('close', async () => {
         return resolve();
       });
 
       // good practice to catch warnings (ie stat failures and other non-blocking errors)
-      archive.on("warning", (error: any) => {
-        if (error.code === "ENOENT") {
+      archive.on('warning', (error: any) => {
+        if (error.code === 'ENOENT') {
           console.warn(error);
         } else {
           return reject(error);
@@ -88,7 +88,7 @@ export class Zip {
       });
 
       // good practice to catch this error explicitly
-      archive.on("error", (err) => {
+      archive.on('error', (err) => {
         return reject(err);
       });
 

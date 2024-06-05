@@ -27,12 +27,12 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-} from "typeorm";
-import { Firewall } from "../../firewall/Firewall";
-import Model from "../../Model";
-import { Route } from "../route/route.model";
+} from 'typeorm';
+import { Firewall } from '../../firewall/Firewall';
+import Model from '../../Model';
+import { Route } from '../route/route.model';
 
-const tableName: string = "route_g";
+const tableName: string = 'route_g';
 
 @Entity(tableName)
 export class RouteGroup extends Model {
@@ -49,13 +49,13 @@ export class RouteGroup extends Model {
   style: string;
 
   @Column({
-    name: "firewall",
+    name: 'firewall',
   })
   firewallId: number;
 
   @ManyToOne((type) => Firewall, (model) => model.routeGroups)
   @JoinColumn({
-    name: "firewall",
+    name: 'firewall',
   })
   firewall: Firewall;
 

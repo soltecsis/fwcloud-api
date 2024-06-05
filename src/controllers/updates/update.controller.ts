@@ -20,12 +20,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../fonaments/http/controller";
-import { UpdateService, Versions, Apps } from "../../updates/updates.service";
-import { Validate } from "../../decorators/validate.decorator";
-import { Request } from "express";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { app } from "../../fonaments/abstract-application";
+import { Controller } from '../../fonaments/http/controller';
+import { UpdateService, Versions, Apps } from '../../updates/updates.service';
+import { Validate } from '../../decorators/validate.decorator';
+import { Request } from 'express';
+import { ResponseBuilder } from '../../fonaments/http/response-builder';
+import { app } from '../../fonaments/abstract-application';
 
 interface UpdatesInfo {
   websrv: Versions;

@@ -15,26 +15,26 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
+import { getRepository } from 'typeorm';
 import {
   HAProxyCompiled,
   HAProxyCompiler,
-} from "../../../../../src/compiler/system/haproxy/HAProxyCompiler";
-import { HAProxyRule } from "../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.model";
+} from '../../../../../src/compiler/system/haproxy/HAProxyCompiler';
+import { HAProxyRule } from '../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.model';
 import {
   HAProxyRuleService,
   HAProxyRulesData,
-} from "../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.service";
-import { HAProxyRuleItemForCompiler } from "../../../../../src/models/system/haproxy/shared";
-import { testSuite } from "../../../../mocha/global-setup";
+} from '../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.service';
+import { HAProxyRuleItemForCompiler } from '../../../../../src/models/system/haproxy/shared';
+import { testSuite } from '../../../../mocha/global-setup';
 import {
   FwCloudFactory,
   FwCloudProduct,
-} from "../../../../utils/fwcloud-factory";
-import { expect } from "chai";
-import { IPObj } from "../../../../../src/models/ipobj/IPObj";
-import { EventEmitter } from "events";
-import sinon from "sinon";
+} from '../../../../utils/fwcloud-factory';
+import { expect } from 'chai';
+import { IPObj } from '../../../../../src/models/ipobj/IPObj';
+import { EventEmitter } from 'events';
+import sinon from 'sinon';
 
 describe(HAProxyCompiler.name, () => {
   let fwc: FwCloudProduct;
@@ -65,7 +65,7 @@ describe(HAProxyCompiler.name, () => {
               address: `192.168.1.${i}`,
               destination_port_start: 80,
               destination_port_end: 80,
-              name: "test",
+              name: 'test',
               ipObjTypeId: 0,
             }),
           ),
@@ -73,7 +73,7 @@ describe(HAProxyCompiler.name, () => {
             getRepository(IPObj).create({
               destination_port_start: 80,
               destination_port_end: 80,
-              name: "test",
+              name: 'test',
               ipObjTypeId: 0,
             }),
           ),
@@ -85,40 +85,40 @@ describe(HAProxyCompiler.name, () => {
 
     rules =
       await haproxyService.getHAProxyRulesData<HAProxyRuleItemForCompiler>(
-        "compiler",
+        'compiler',
         fwc.fwcloud.id,
         fwc.firewall.id,
       );
   });
 
-  describe("compile", () => {
-    it("should return an empty array when no data is provided", () => {
-      expect(compiler.compile([])).to.be.an("array").that.is.empty;
+  describe('compile', () => {
+    it('should return an empty array when no data is provided', () => {
+      expect(compiler.compile([])).to.be.an('array').that.is.empty;
     });
 
-    it("should return an array with compiled data for an active rule", async (): Promise<void> => {
-      expect(compiler.compile(rules)).to.be.an("array").that.is.not.empty;
+    it('should return an array with compiled data for an active rule', async (): Promise<void> => {
+      expect(compiler.compile(rules)).to.be.an('array').that.is.not.empty;
     });
 
-    it("should return an array with compiled data for an inactive rule", async (): Promise<void> => {
+    it('should return an array with compiled data for an inactive rule', async (): Promise<void> => {
       rules.forEach((element) => {
         element.active = false;
       });
 
       const result: HAProxyCompiled[] = compiler.compile(rules);
-      expect(result).to.be.an("array").that.is.not.empty;
+      expect(result).to.be.an('array').that.is.not.empty;
 
       result.forEach((element) => {
         expect(element.active).to.be.false;
-        expect(element.cs).equals("");
+        expect(element.cs).equals('');
       });
     });
 
-    it("should emit a progress event for each rule", async () => {
+    it('should emit a progress event for each rule', async () => {
       const eventEmitter: EventEmitter = new EventEmitter();
 
       const progressHandler: sinon.SinonStub<any[], any> = sinon.stub();
-      eventEmitter.on("progress", progressHandler);
+      eventEmitter.on('progress', progressHandler);
 
       compiler.compile(rules, eventEmitter);
 
@@ -130,7 +130,7 @@ describe(HAProxyCompiler.name, () => {
           expect(
             progressHandler.calledWith(
               sinon.match({
-                message: `Compiling HAProxy rule ${index} (ID: ${rule.id})${!rule.active ? " [DISABLED]" : ""}`,
+                message: `Compiling HAProxy rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}`,
               }),
             ),
           ).to.be.true;

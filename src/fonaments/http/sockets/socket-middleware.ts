@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { NextFunction } from "express";
-import { Socket } from "socket.io";
-import { HTTPApplication } from "../../http-application";
+import { NextFunction } from 'express';
+import { Socket } from 'socket.io';
+import { HTTPApplication } from '../../http-application';
 
 export abstract class SocketMiddleware {
   protected app: HTTPApplication;

@@ -1,10 +1,10 @@
-import { ServiceProvider } from "../fonaments/services/service-provider";
+import { ServiceProvider } from '../fonaments/services/service-provider';
 import {
   ServiceContainer,
   ServiceBound,
-} from "../fonaments/services/service-container";
-import { AbstractApplication } from "../fonaments/abstract-application";
-import { CrtService } from "./crt.service";
+} from '../fonaments/services/service-container';
+import { AbstractApplication } from '../fonaments/abstract-application';
+import { CrtService } from './crt.service';
 
 export class CrtServiceProvider extends ServiceProvider {
   public register(serviceContainer: ServiceContainer): ServiceBound {

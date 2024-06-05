@@ -20,16 +20,16 @@
 	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { PolicyCompilerTools } from "../PolicyCompilerTools";
+import { PolicyCompilerTools } from '../PolicyCompilerTools';
 
 export class NFTablesCompiler extends PolicyCompilerTools {
   constructor(ruleData: any) {
     super();
 
-    this._compiler = "NFTables";
+    this._compiler = 'NFTables';
     this._ruleData = ruleData;
     this._policyType = ruleData.type;
-    this._cmd = "$NFT";
+    this._cmd = '$NFT';
     this._cs = `${this._cmd} `; // Compilation string.
     this._comment = this.ruleComment();
   }

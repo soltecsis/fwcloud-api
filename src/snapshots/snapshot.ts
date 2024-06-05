@@ -20,31 +20,31 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Moment } from "moment";
-import { Responsable } from "../fonaments/contracts/responsable";
-import { app } from "../fonaments/abstract-application";
-import { FSHelper } from "../utils/fs-helper";
-import moment from "moment";
-import * as path from "path";
-import * as fs from "fs-extra";
-import { FwCloud } from "../models/fwcloud/FwCloud";
-import { Application } from "../Application";
-import { DatabaseExporter } from "../fwcloud-exporter/database-exporter/database-exporter";
-import { Progress } from "../fonaments/http/progress/progress";
-import { BulkDatabaseDelete } from "./bulk-database-delete";
-import { SnapshotNotCompatibleException } from "./exceptions/snapshot-not-compatible.exception";
-import { Firewall } from "../models/firewall/Firewall";
-import { FirewallRepository } from "../models/firewall/firewall.repository";
-import { Task } from "../fonaments/http/progress/task";
-import * as semver from "semver";
-import { ExporterResult } from "../fwcloud-exporter/database-exporter/exporter-result";
-import { DatabaseImporter } from "../fwcloud-exporter/database-importer/database-importer";
-import { SnapshotService } from "./snapshot.service";
-import { BackupService } from "../backups/backup.service";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { getCustomRepository, getRepository, Migration } from "typeorm";
-import { DatabaseService } from "../database/database.service";
-import * as crypto from "crypto";
+import { Moment } from 'moment';
+import { Responsable } from '../fonaments/contracts/responsable';
+import { app } from '../fonaments/abstract-application';
+import { FSHelper } from '../utils/fs-helper';
+import moment from 'moment';
+import * as path from 'path';
+import * as fs from 'fs-extra';
+import { FwCloud } from '../models/fwcloud/FwCloud';
+import { Application } from '../Application';
+import { DatabaseExporter } from '../fwcloud-exporter/database-exporter/database-exporter';
+import { Progress } from '../fonaments/http/progress/progress';
+import { BulkDatabaseDelete } from './bulk-database-delete';
+import { SnapshotNotCompatibleException } from './exceptions/snapshot-not-compatible.exception';
+import { Firewall } from '../models/firewall/Firewall';
+import { FirewallRepository } from '../models/firewall/firewall.repository';
+import { Task } from '../fonaments/http/progress/task';
+import * as semver from 'semver';
+import { ExporterResult } from '../fwcloud-exporter/database-exporter/exporter-result';
+import { DatabaseImporter } from '../fwcloud-exporter/database-importer/database-importer';
+import { SnapshotService } from './snapshot.service';
+import { BackupService } from '../backups/backup.service';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { getCustomRepository, getRepository, Migration } from 'typeorm';
+import { DatabaseService } from '../database/database.service';
+import * as crypto from 'crypto';
 
 export type SnapshotMetadata = {
   timestamp: number;
@@ -55,16 +55,16 @@ export type SnapshotMetadata = {
   hash: string;
 };
 
-export const snapshotDigestContent: string = "FWCloud";
+export const snapshotDigestContent: string = 'FWCloud';
 
 export class Snapshot implements Responsable {
-  static METADATA_FILENAME = "snapshot.json";
-  static DATA_FILENAME = "data.json";
-  static DEPENDENCY_FILENAME = "dep.json";
+  static METADATA_FILENAME = 'snapshot.json';
+  static DATA_FILENAME = 'data.json';
+  static DEPENDENCY_FILENAME = 'dep.json';
 
-  static DATA_DIRECTORY = "_data";
-  static PKI_DIRECTORY = path.join(Snapshot.DATA_DIRECTORY, "pki");
-  static POLICY_DIRECTORY = path.join(Snapshot.DATA_DIRECTORY, "policy");
+  static DATA_DIRECTORY = '_data';
+  static PKI_DIRECTORY = path.join(Snapshot.DATA_DIRECTORY, 'pki');
+  static POLICY_DIRECTORY = path.join(Snapshot.DATA_DIRECTORY, 'policy');
 
   protected _id: number;
   protected _date: Moment;
@@ -150,9 +150,9 @@ export class Snapshot implements Responsable {
     }
 
     const digestedHash: string = crypto
-      .createHmac("sha256", app().config.get("crypt.secret"))
+      .createHmac('sha256', app().config.get('crypt.secret'))
       .update(snapshotDigestContent)
-      .digest("hex");
+      .digest('hex');
 
     return digestedHash === this._hash;
   }
@@ -197,31 +197,31 @@ export class Snapshot implements Responsable {
     }
 
     await progress.procedure(
-      "Restoring snapshot",
+      'Restoring snapshot',
       (task: Task) => {
         task.addTask(async () => {
           const backupService: BackupService =
             await app().getService<BackupService>(BackupService.name);
           return backupService.create(
-            "Before snapshot (" + this.id + ") restore",
+            'Before snapshot (' + this.id + ') restore',
           );
-        }, "Backup created");
+        }, 'Backup created');
         task.addTask(async () => {
           this._restoredFwCloud = await this.restoreDatabaseData(eventEmitter);
-        }, "FWCloud restored from snapshot");
+        }, 'FWCloud restored from snapshot');
         task.parallel((task: Task) => {
           task.addTask(() => {
             return this.resetCompiledStatus();
-          }, "Firewalls compilation flags reset");
+          }, 'Firewalls compilation flags reset');
           task.addTask(() => {
             return this.migrateSnapshots(this.fwCloud, this._restoredFwCloud);
-          }, "Snapshots migrated");
+          }, 'Snapshots migrated');
         });
         task.addTask(() => {
           return this._fwCloud.remove();
-        }, "Deprecated FWCloud removed");
+        }, 'Deprecated FWCloud removed');
       },
-      "FWCloud snapshot restored",
+      'FWCloud snapshot restored',
     );
 
     return this._restoredFwCloud;
@@ -353,30 +353,30 @@ export class Snapshot implements Responsable {
       return migration.name;
     });
     this._hash = crypto
-      .createHmac("sha256", app().config.get("crypt.secret"))
+      .createHmac('sha256', app().config.get('crypt.secret'))
       .update(snapshotDigestContent)
-      .digest("hex");
+      .digest('hex');
 
     if (FSHelper.directoryExistsSync(this._path)) {
-      throw new Error("Snapshot with id = " + this._id + " already exists");
+      throw new Error('Snapshot with id = ' + this._id + ' already exists');
     }
 
     FSHelper.mkdirSync(this._path);
     this.saveMetadataFile();
 
     await progress.procedure(
-      "Creating snapshot",
+      'Creating snapshot',
       (task: Task) => {
         task.parallel((task: Task) => {
           task.addTask(() => {
             return this.copyFwCloudDataDirectories();
-          }, "FWCloud data directories exported");
+          }, 'FWCloud data directories exported');
           task.addTask(() => {
             return this.saveDataFile();
-          }, "FWCloud database exported");
+          }, 'FWCloud database exported');
         });
       },
-      "Snapshot created",
+      'Snapshot created',
     );
 
     this._exists = true;
@@ -401,7 +401,7 @@ export class Snapshot implements Responsable {
     const fwCloud: FwCloud = await importer.import(this);
 
     const oldFwCloud: FwCloud = await FwCloud.findOne(this.fwCloud.id, {
-      relations: ["users"],
+      relations: ['users'],
     });
 
     fwCloud.users = oldFwCloud.users;
@@ -483,9 +483,9 @@ export class Snapshot implements Responsable {
    */
   protected static async generateSnapshotDirectoryIfDoesNotExist() {
     if (
-      !(await FSHelper.directoryExists(app().config.get("snapshot").data_dir))
+      !(await FSHelper.directoryExists(app().config.get('snapshot').data_dir))
     ) {
-      FSHelper.mkdir(app().config.get("snapshot").data_dir);
+      FSHelper.mkdir(app().config.get('snapshot').data_dir);
     }
   }
 
@@ -496,7 +496,7 @@ export class Snapshot implements Responsable {
     return new Promise<void>(async (resolve, reject) => {
       const fwcloud: FwCloud = await FwCloud.findOneOrFail(
         this._restoredFwCloud.id,
-        { relations: ["clusters", "firewalls"] },
+        { relations: ['clusters', 'firewalls'] },
       );
 
       await getCustomRepository(FirewallRepository).markAsUncompiled(

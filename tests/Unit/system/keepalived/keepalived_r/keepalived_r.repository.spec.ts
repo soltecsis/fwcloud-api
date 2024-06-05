@@ -14,18 +14,18 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { getCustomRepository } from "typeorm";
-import { KeepalivedRule } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model";
-import { KeepalivedRepository } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived.repository";
-import { KeepalivedGroup } from "../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.model";
-import { IPObj } from "../../../../../src/models/ipobj/IPObj";
-import { getRepository } from "typeorm";
-import { Firewall } from "../../../../../src/models/firewall/Firewall";
-import { testSuite, expect } from "../../../../mocha/global-setup";
-import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
-import StringHelper from "../../../../../src/utils/string.helper";
-import sinon from "sinon";
-import { Offset } from "../../../../../src/offset";
+import { getCustomRepository } from 'typeorm';
+import { KeepalivedRule } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model';
+import { KeepalivedRepository } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived.repository';
+import { KeepalivedGroup } from '../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.model';
+import { IPObj } from '../../../../../src/models/ipobj/IPObj';
+import { getRepository } from 'typeorm';
+import { Firewall } from '../../../../../src/models/firewall/Firewall';
+import { testSuite, expect } from '../../../../mocha/global-setup';
+import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
+import StringHelper from '../../../../../src/utils/string.helper';
+import sinon from 'sinon';
+import { Offset } from '../../../../../src/offset';
 
 describe(KeepalivedRepository.name, () => {
   let repository: KeepalivedRepository;
@@ -51,8 +51,8 @@ describe(KeepalivedRepository.name, () => {
     );
     gateway = await getRepository(IPObj).save(
       getRepository(IPObj).create({
-        name: "test",
-        address: "0.0.0.0",
+        name: 'test',
+        address: '0.0.0.0',
         ipObjTypeId: 0,
         interfaceId: null,
       }),
@@ -60,7 +60,7 @@ describe(KeepalivedRepository.name, () => {
 
     group = await getRepository(KeepalivedGroup).save(
       getRepository(KeepalivedGroup).create({
-        name: "group",
+        name: 'group',
         firewall: firewall,
       }),
     );
@@ -75,14 +75,14 @@ describe(KeepalivedRepository.name, () => {
     );
   });
 
-  describe("remove", () => {
-    it("should remove a single KeepalivedRule entity", async () => {
+  describe('remove', () => {
+    it('should remove a single KeepalivedRule entity', async () => {
       const result = await repository.remove(keepalivedRule);
 
       expect(await repository.findOne(keepalivedRule.id)).to.be.undefined;
     });
 
-    it("should remove multiple KeepalivedRule entities", async () => {
+    it('should remove multiple KeepalivedRule entities', async () => {
       const keepalivedRule2 = await getRepository(KeepalivedRule).save(
         getRepository(KeepalivedRule).create({
           group: group,
@@ -98,10 +98,10 @@ describe(KeepalivedRepository.name, () => {
       expect(await repository.findOne(keepalivedRule2.id)).to.be.undefined;
     });
 
-    it("should refresh orders after remove", async () => {
+    it('should refresh orders after remove', async () => {
       const refreshOrdersSpy = sinon.spy(
         repository,
-        "refreshOrders" as keyof KeepalivedRepository,
+        'refreshOrders' as keyof KeepalivedRepository,
       );
 
       await repository.remove(keepalivedRule);
@@ -110,14 +110,14 @@ describe(KeepalivedRepository.name, () => {
     });
   });
 
-  describe("move", () => {
-    it("should move the rule to the specified position", async () => {
+  describe('move', () => {
+    it('should move the rule to the specified position', async () => {
       keepalivedRule.group = null;
       keepalivedRule.save();
 
       const moveAboveSpy = sinon.spy(
         repository,
-        "moveAbove" as keyof KeepalivedRepository,
+        'moveAbove' as keyof KeepalivedRepository,
       );
 
       await repository.move(
@@ -129,10 +129,10 @@ describe(KeepalivedRepository.name, () => {
       expect(moveAboveSpy.calledOnce).to.be.true;
     });
 
-    it("should refresh orders after move", async () => {
+    it('should refresh orders after move', async () => {
       const refreshOrdersSpy = sinon.spy(
         repository,
-        "refreshOrders" as keyof KeepalivedRepository,
+        'refreshOrders' as keyof KeepalivedRepository,
       );
 
       await repository.move(
@@ -145,8 +145,8 @@ describe(KeepalivedRepository.name, () => {
     });
   });
 
-  describe("getLastKeepalivedRuleInGroup", () => {
-    it("should return the last Keepalived rule in the group", async () => {
+  describe('getLastKeepalivedRuleInGroup', () => {
+    it('should return the last Keepalived rule in the group', async () => {
       const Keepalivedgid = group.id;
       const expectedRule: KeepalivedRule = await getRepository(
         KeepalivedRule,

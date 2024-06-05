@@ -20,24 +20,24 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Request } from "express";
-import { HttpException } from "../fonaments/exceptions/http/http-exception";
-import { IptablesSaveToFWCloud } from "./iptables-save.model";
-import { NetFilterTables, IptablesSaveStats } from "./iptables-save.data";
+import { Request } from 'express';
+import { HttpException } from '../fonaments/exceptions/http/http-exception';
+import { IptablesSaveToFWCloud } from './iptables-save.model';
+import { NetFilterTables, IptablesSaveStats } from './iptables-save.data';
 import {
   Firewall,
   FirewallInstallCommunication,
-} from "../models/firewall/Firewall";
-import { Channel } from "../sockets/channels/channel";
-import { ProgressNoticePayload } from "../sockets/messages/socket-message";
-import { PolicyRule } from "../models/policy/PolicyRule";
-import { SSHCommunication } from "../communications/ssh.communication";
-import { Communication } from "../communications/communication";
-import { AgentCommunication } from "../communications/agent.communication";
-import { getRepository } from "typeorm";
-import { PgpHelper } from "../utils/pgp";
-import { IPObj } from "../models/ipobj/IPObj";
-const utilsModel = require("../utils/utils.js");
+} from '../models/firewall/Firewall';
+import { Channel } from '../sockets/channels/channel';
+import { ProgressNoticePayload } from '../sockets/messages/socket-message';
+import { PolicyRule } from '../models/policy/PolicyRule';
+import { SSHCommunication } from '../communications/ssh.communication';
+import { Communication } from '../communications/communication';
+import { AgentCommunication } from '../communications/agent.communication';
+import { getRepository } from 'typeorm';
+import { PgpHelper } from '../utils/pgp';
+import { IPObj } from '../models/ipobj/IPObj';
+const utilsModel = require('../utils/utils.js');
 
 export class IptablesSaveService extends IptablesSaveToFWCloud {
   public async import(request: Request): Promise<IptablesSaveStats> {
@@ -66,7 +66,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
 
     for (this.line = 0; this.line < this.data.length; this.line++) {
       channel.emit(
-        "message",
+        'message',
         new ProgressNoticePayload(`${this.line + 1}/${this.data.length}`),
       );
 
@@ -75,9 +75,9 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
 
       // Ignore comments or empty lines.
       if (
-        this.items[0] === "#" ||
+        this.items[0] === '#' ||
         this.items.length === 0 ||
-        this.items[0] === ""
+        this.items[0] === ''
       )
         continue;
 
@@ -98,18 +98,18 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
       }
 
       // End of iptables table.
-      if (this.items[0] === "COMMIT") {
+      if (this.items[0] === 'COMMIT') {
         this.table = null;
         continue;
       }
 
       // By the moment ignore MANGLE and RAW iptables tables.
-      if (this.table === "mangle" || this.table === "raw") continue;
+      if (this.table === 'mangle' || this.table === 'raw') continue;
 
       try {
-        if (this.data[this.line].charAt(0) === ":")
+        if (this.data[this.line].charAt(0) === ':')
           await this.generateCustomChainsMap();
-        else if (this.items[0] === "-A") {
+        else if (this.items[0] === '-A') {
           // Generate rule.
           if (await this.generateRule()) {
             await this.fillRulePositions(this.line);
@@ -123,7 +123,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
         }
       } catch (err) {
         throw new HttpException(
-          `ERROR in iptables-save import (line: ${this.line + 1})${err.message ? ": " + err.message : ""} `,
+          `ERROR in iptables-save import (line: ${this.line + 1})${err.message ? ': ' + err.message : ''} `,
           400,
         );
       }
@@ -172,9 +172,9 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
 
     try {
       const firewall: Firewall = await getRepository(Firewall)
-        .createQueryBuilder("firewall")
-        .where("firewall.id = :id", { id: request.body.firewall })
-        .andWhere("firewall.fwCloudId = :fwcloud", {
+        .createQueryBuilder('firewall')
+        .where('firewall.id = :id', { id: request.body.firewall })
+        .andWhere('firewall.fwCloudId = :fwcloud', {
           fwcloud: request.body.fwcloud,
         })
         .getOneOrFail();
@@ -182,22 +182,22 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
 
       if (firewall.install_communication === FirewallInstallCommunication.SSH) {
         communication = new SSHCommunication({
-          host: Object.prototype.hasOwnProperty.call(request.body, "host")
+          host: Object.prototype.hasOwnProperty.call(request.body, 'host')
             ? request.body.host
             : (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj))
                 .address,
-          port: Object.prototype.hasOwnProperty.call(request.body, "port")
+          port: Object.prototype.hasOwnProperty.call(request.body, 'port')
             ? request.body.port
             : firewall.install_port,
           username: Object.prototype.hasOwnProperty.call(
             request.body,
-            "sshuser",
+            'sshuser',
           )
             ? request.body.sshuser
             : utilsModel.decrypt(firewall.install_user),
           password: Object.prototype.hasOwnProperty.call(
             request.body,
-            "sshpass",
+            'sshpass',
           )
             ? request.body.sshpass
             : utilsModel.decrypt(firewall.install_pass),

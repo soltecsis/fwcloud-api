@@ -20,38 +20,38 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
-import { Application } from "../../../../../src/Application";
-import { RoutingTableController } from "../../../../../src/controllers/routing/routing-tables/routing-tables.controller";
-import { Firewall } from "../../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
-import { User } from "../../../../../src/models/user/User";
-import StringHelper from "../../../../../src/utils/string.helper";
+import { getRepository } from 'typeorm';
+import { Application } from '../../../../../src/Application';
+import { RoutingTableController } from '../../../../../src/controllers/routing/routing-tables/routing-tables.controller';
+import { Firewall } from '../../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
+import { User } from '../../../../../src/models/user/User';
+import StringHelper from '../../../../../src/utils/string.helper';
 import {
   describeName,
   expect,
   testSuite,
-} from "../../../../mocha/global-setup";
+} from '../../../../mocha/global-setup';
 import {
   attachSession,
   createUser,
   generateSession,
-} from "../../../../utils/utils";
-import request = require("supertest");
-import { _URL } from "../../../../../src/fonaments/http/router/router.service";
-import { RoutingTable } from "../../../../../src/models/routing/routing-table/routing-table.model";
-import { RoutingTableService } from "../../../../../src/models/routing/routing-table/routing-table.service";
-import { Tree } from "../../../../../src/models/tree/Tree";
+} from '../../../../utils/utils';
+import request = require('supertest');
+import { _URL } from '../../../../../src/fonaments/http/router/router.service';
+import { RoutingTable } from '../../../../../src/models/routing/routing-table/routing-table.model';
+import { RoutingTableService } from '../../../../../src/models/routing/routing-table/routing-table.service';
+import { Tree } from '../../../../../src/models/tree/Tree';
 import {
   FwCloudFactory,
   FwCloudProduct,
-} from "../../../../utils/fwcloud-factory";
-import { RouteService } from "../../../../../src/models/routing/route/route.service";
-import { Route } from "../../../../../src/models/routing/route/route.model";
-import { RoutingRuleService } from "../../../../../src/models/routing/routing-rule/routing-rule.service";
-import { RoutingRule } from "../../../../../src/models/routing/routing-rule/routing-rule.model";
+} from '../../../../utils/fwcloud-factory';
+import { RouteService } from '../../../../../src/models/routing/route/route.service';
+import { Route } from '../../../../../src/models/routing/route/route.model';
+import { RoutingRuleService } from '../../../../../src/models/routing/routing-rule/routing-rule.service';
+import { RoutingRule } from '../../../../../src/models/routing/routing-rule/routing-rule.model';
 
-describe(describeName("Routing Table E2E Tests"), () => {
+describe(describeName('Routing Table E2E Tests'), () => {
   let app: Application;
   let loggedUser: User;
   let loggedUserSessionId: string;
@@ -82,14 +82,14 @@ describe(describeName("Routing Table E2E Tests"), () => {
     await Tree.createAllTreeCloud(fwCloud);
     const node: { id: number } = (await Tree.getNodeByNameAndType(
       fwCloud.id,
-      "FIREWALLS",
-      "FDF",
+      'FIREWALLS',
+      'FDF',
     )) as { id: number };
     await Tree.insertFwc_Tree_New_firewall(fwCloud.id, node.id, firewall.id);
   });
 
   describe(RoutingTableController.name, () => {
-    describe("@index", () => {
+    describe('@index', () => {
       let table: RoutingTable;
       let tableService: RoutingTableService;
 
@@ -98,10 +98,10 @@ describe(describeName("Routing Table E2E Tests"), () => {
         table = fwcProduct.routingTable;
       });
 
-      it("guest user should not see a routing tables", async () => {
+      it('guest user should not see a routing tables', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.index", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
@@ -109,45 +109,45 @@ describe(describeName("Routing Table E2E Tests"), () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not see tables", async () => {
+      it('regular user which does not belong to the fwcloud should not see tables', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.index", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should see tables", async () => {
+      it('regular user which belongs to the fwcloud should see tables', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.index", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.have.length(1);
           });
       });
 
-      it("admin user should see routing tables", async () => {
+      it('admin user should see routing tables', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.index", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.index', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.have.length(1);
@@ -155,7 +155,7 @@ describe(describeName("Routing Table E2E Tests"), () => {
       });
     });
 
-    describe("@show", () => {
+    describe('@show', () => {
       let table: RoutingTable;
       let tableService: RoutingTableService;
 
@@ -163,16 +163,16 @@ describe(describeName("Routing Table E2E Tests"), () => {
         tableService = await app.getService(RoutingTableService.name);
         table = await tableService.create({
           firewallId: firewall.id,
-          name: "name",
+          name: 'name',
           number: 1,
           comment: null,
         });
       });
 
-      it("guest user should not see a routing table", async () => {
+      it('guest user should not see a routing table', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.show", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
@@ -181,48 +181,48 @@ describe(describeName("Routing Table E2E Tests"), () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not see the table", async () => {
+      it('regular user which does not belong to the fwcloud should not see the table', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.show", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should see the table", async () => {
+      it('regular user which belongs to the fwcloud should see the table', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.show", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data.id).to.eq(table.id);
           });
       });
 
-      it("admin user should see routing table", async () => {
+      it('admin user should see routing table', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.show", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.show', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data.id).to.eq(table.id);
@@ -230,7 +230,7 @@ describe(describeName("Routing Table E2E Tests"), () => {
       });
     });
 
-    describe("@grid", () => {
+    describe('@grid', () => {
       let table: RoutingTable;
       let tableService: RoutingTableService;
 
@@ -238,16 +238,16 @@ describe(describeName("Routing Table E2E Tests"), () => {
         tableService = await app.getService(RoutingTableService.name);
         table = await tableService.create({
           firewallId: firewall.id,
-          name: "name",
+          name: 'name',
           number: 1,
           comment: null,
         });
       });
 
-      it("guest user should not see a routing table grid", async () => {
+      it('guest user should not see a routing table grid', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.grid", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.grid', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
@@ -256,48 +256,48 @@ describe(describeName("Routing Table E2E Tests"), () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not see the table grid", async () => {
+      it('regular user which does not belong to the fwcloud should not see the table grid', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.grid", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.grid', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should see the table grid", async () => {
+      it('regular user which belongs to the fwcloud should see the table grid', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.grid", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.grid', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.deep.eq([]);
           });
       });
 
-      it("admin user should see routing table grid", async () => {
+      it('admin user should see routing table grid', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.grid", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.grid', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.deep.eq([]);
@@ -305,85 +305,85 @@ describe(describeName("Routing Table E2E Tests"), () => {
       });
     });
 
-    describe("@create", () => {
-      it("guest user should not create a routing table", async () => {
+    describe('@create', () => {
+      it('guest user should not create a routing table', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.routing.tables.store", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
           .send({
             number: 1,
-            name: "table",
+            name: 'table',
           })
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not create the table", async () => {
+      it('regular user which does not belong to the fwcloud should not create the table', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.routing.tables.store", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
           .send({
             number: 1,
-            name: "table",
+            name: 'table',
           })
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should create the table", async () => {
+      it('regular user which belongs to the fwcloud should create the table', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.routing.tables.store", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
           .send({
             number: 1,
-            name: "table",
+            name: 'table',
           })
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(201)
           .then((response) => {
             expect(response.body.data.firewallId).to.eq(firewall.id);
-            expect(response.body.data.name).to.eq("table");
+            expect(response.body.data.name).to.eq('table');
             expect(response.body.data.number).to.eq(1);
           });
       });
 
-      it("admin user should create routing table", async () => {
+      it('admin user should create routing table', async () => {
         return await request(app.express)
           .post(
-            _URL().getURL("fwclouds.firewalls.routing.tables.store", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.store', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
             }),
           )
           .send({
             number: 1,
-            name: "table",
+            name: 'table',
           })
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(201)
           .then((response) => {
             expect(response.body.data.firewallId).to.eq(firewall.id);
-            expect(response.body.data.name).to.eq("table");
+            expect(response.body.data.name).to.eq('table');
             expect(response.body.data.number).to.eq(1);
           });
       });
     });
 
-    describe("@update", () => {
+    describe('@update', () => {
       let table: RoutingTable;
       let tableService: RoutingTableService;
 
@@ -391,90 +391,90 @@ describe(describeName("Routing Table E2E Tests"), () => {
         tableService = await app.getService(RoutingTableService.name);
         table = await tableService.create({
           firewallId: firewall.id,
-          name: "name",
+          name: 'name',
           number: 1,
           comment: null,
         });
       });
 
-      it("guest user should not update a routing table", async () => {
+      it('guest user should not update a routing table', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.routing.tables.update", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.update', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
           .send({
-            name: "table",
-            comment: "table",
+            name: 'table',
+            comment: 'table',
           })
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not create the table", async () => {
+      it('regular user which does not belong to the fwcloud should not create the table', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.routing.tables.update", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.update', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
           .send({
-            name: "table",
-            comment: "table",
+            name: 'table',
+            comment: 'table',
           })
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should update the table", async () => {
+      it('regular user which belongs to the fwcloud should update the table', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.routing.tables.update", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.update', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
           .send({
-            name: "table",
-            comment: "table",
+            name: 'table',
+            comment: 'table',
           })
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then((response) => {
-            expect(response.body.data.comment).to.eq("table");
+            expect(response.body.data.comment).to.eq('table');
           });
       });
 
-      it("admin user should create routing table", async () => {
+      it('admin user should create routing table', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL("fwclouds.firewalls.routing.tables.update", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.update', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
           .send({
-            name: "table",
-            comment: "other_table",
+            name: 'table',
+            comment: 'other_table',
           })
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then((response) => {
-            expect(response.body.data.comment).to.eq("other_table");
+            expect(response.body.data.comment).to.eq('other_table');
           });
       });
     });
 
-    describe("@restrictions", () => {
+    describe('@restrictions', () => {
       let table: RoutingTable;
       let tableService: RoutingTableService;
       let rule: RoutingRule;
@@ -483,7 +483,7 @@ describe(describeName("Routing Table E2E Tests"), () => {
         tableService = await app.getService(RoutingTableService.name);
         table = await tableService.create({
           firewallId: firewall.id,
-          name: "name",
+          name: 'name',
           number: 1,
           comment: null,
         });
@@ -501,10 +501,10 @@ describe(describeName("Routing Table E2E Tests"), () => {
         });
       });
 
-      it("guest user should not see a routing table restrictions", async () => {
+      it('guest user should not see a routing table restrictions', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.restrictions", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.restrictions', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
@@ -513,32 +513,32 @@ describe(describeName("Routing Table E2E Tests"), () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not see the table restrictions", async () => {
+      it('regular user which does not belong to the fwcloud should not see the table restrictions', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.restrictions", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.restrictions', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should see the table restrictions", async () => {
+      it('regular user which belongs to the fwcloud should see the table restrictions', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.restrictions", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.restrictions', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(403)
           .then((response) => {
             expect(
@@ -551,16 +551,16 @@ describe(describeName("Routing Table E2E Tests"), () => {
           });
       });
 
-      it("admin user should see routing table restrictions", async () => {
+      it('admin user should see routing table restrictions', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.restrictions", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.restrictions', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(403)
           .then((response) => {
             expect(
@@ -573,7 +573,7 @@ describe(describeName("Routing Table E2E Tests"), () => {
           });
       });
     });
-    describe("@remove", () => {
+    describe('@remove', () => {
       let table: RoutingTable;
       let tableService: RoutingTableService;
 
@@ -581,16 +581,16 @@ describe(describeName("Routing Table E2E Tests"), () => {
         tableService = await app.getService(RoutingTableService.name);
         table = await tableService.create({
           firewallId: firewall.id,
-          name: "name",
+          name: 'name',
           number: 1,
           comment: null,
         });
       });
 
-      it("guest user should not remove a routing table", async () => {
+      it('guest user should not remove a routing table', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.routing.tables.delete", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.delete', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
@@ -599,32 +599,32 @@ describe(describeName("Routing Table E2E Tests"), () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not remove the table", async () => {
+      it('regular user which does not belong to the fwcloud should not remove the table', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.routing.tables.delete", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.delete', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should remove the table", async () => {
+      it('regular user which belongs to the fwcloud should remove the table', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.routing.tables.delete", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.delete', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then(async () => {
             expect(
@@ -637,16 +637,16 @@ describe(describeName("Routing Table E2E Tests"), () => {
           });
       });
 
-      it("admin user should create routing table", async () => {
+      it('admin user should create routing table', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL("fwclouds.firewalls.routing.tables.delete", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.delete', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .then(async () => {
             expect(
@@ -660,7 +660,7 @@ describe(describeName("Routing Table E2E Tests"), () => {
       });
     });
 
-    describe("@compileRoutes", () => {
+    describe('@compileRoutes', () => {
       let fwcProduct: FwCloudProduct;
       let table: RoutingTable;
       let routeService: RouteService;
@@ -676,19 +676,19 @@ describe(describeName("Routing Table E2E Tests"), () => {
 
         route1 = await routeService.create({
           routingTableId: table.id,
-          gatewayId: fwcProduct.ipobjs.get("gateway").id,
+          gatewayId: fwcProduct.ipobjs.get('gateway').id,
         });
 
         route2 = await routeService.create({
           routingTableId: table.id,
-          gatewayId: fwcProduct.ipobjs.get("gateway").id,
+          gatewayId: fwcProduct.ipobjs.get('gateway').id,
         });
       });
 
-      it("guest user should not see a routing table grid", async () => {
+      it('guest user should not see a routing table grid', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.compile", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.compile', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
@@ -697,52 +697,52 @@ describe(describeName("Routing Table E2E Tests"), () => {
           .expect(401);
       });
 
-      it("regular user which does not belong to the fwcloud should not see the table grid", async () => {
+      it('regular user which does not belong to the fwcloud should not see the table grid', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.compile", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.compile', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(401);
       });
 
-      it("regular user which belongs to the fwcloud should see the table grid", async () => {
+      it('regular user which belongs to the fwcloud should see the table grid', async () => {
         loggedUser.fwClouds = [fwCloud];
         await getRepository(User).save(loggedUser);
 
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.compile", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.compile', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(loggedUserSessionId)])
+          .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200);
       });
 
-      it("admin user should see routing table grid", async () => {
+      it('admin user should see routing table grid', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.compile", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.compile', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
             }),
           )
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200);
       });
 
-      it("should compile a list of routes", async () => {
+      it('should compile a list of routes', async () => {
         return await request(app.express)
           .get(
-            _URL().getURL("fwclouds.firewalls.routing.tables.compile", {
+            _URL().getURL('fwclouds.firewalls.routing.tables.compile', {
               fwcloud: fwCloud.id,
               firewall: firewall.id,
               routingTable: table.id,
@@ -751,7 +751,7 @@ describe(describeName("Routing Table E2E Tests"), () => {
           .query({
             routes: [route1.id, route2.id],
           })
-          .set("Cookie", [attachSession(adminUserSessionId)])
+          .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(200)
           .expect((response) => {
             expect(response.body.data).to.have.length(2);

@@ -20,11 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Connection, QueryRunner } from "typeorm";
-import * as config from "../config/config";
-import Query from "./Query";
-import { AbstractApplication } from "../fonaments/abstract-application";
-import { DatabaseService } from "./database.service";
+import { Connection, QueryRunner } from 'typeorm';
+import * as config from '../config/config';
+import Query from './Query';
+import { AbstractApplication } from '../fonaments/abstract-application';
+import { DatabaseService } from './database.service';
 
 export class DatabaseManager {
   private _connected: boolean = false;
@@ -35,7 +35,7 @@ export class DatabaseManager {
     port: number;
     pass: string;
     name: string;
-  } = config.get("db");
+  } = config.get('db');
 
   public async connect(app: AbstractApplication): Promise<Connection> {
     const databaseService: DatabaseService =
@@ -47,7 +47,7 @@ export class DatabaseManager {
 
   public get(done: (err, query: Query) => void) {
     if (!this._connection) {
-      done(new Error("Connection not found"), null);
+      done(new Error('Connection not found'), null);
     }
 
     const query: Query = new Query();
@@ -57,7 +57,7 @@ export class DatabaseManager {
 
   public getQueryRunner(): QueryRunner {
     if (!this._connection) {
-      throw Error("Connection not found");
+      throw Error('Connection not found');
     }
 
     return this._connection.createQueryRunner();
@@ -65,7 +65,7 @@ export class DatabaseManager {
 
   public getQuery(): Query {
     if (!this._connection) {
-      throw Error("Connection not found");
+      throw Error('Connection not found');
     }
 
     return new Query();

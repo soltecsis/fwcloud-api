@@ -22,29 +22,29 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-} from "typeorm";
-import Model from "../../../Model";
-import { Firewall } from "../../../firewall/Firewall";
-import { HAProxyRule } from "../haproxy_r/haproxy_r.model";
+} from 'typeorm';
+import Model from '../../../Model';
+import { Firewall } from '../../../firewall/Firewall';
+import { HAProxyRule } from '../haproxy_r/haproxy_r.model';
 
-const tableName = "haproxy_g";
+const tableName = 'haproxy_g';
 
 @Entity({ name: tableName })
 export class HAProxyGroup extends Model {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: "varchar", length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  @Column({ name: "firewall" })
+  @Column({ name: 'firewall' })
   firewallId: number;
 
   @ManyToOne((type) => Firewall, (firewall) => firewall.haproxyGroups)
-  @JoinColumn({ name: "firewall" })
+  @JoinColumn({ name: 'firewall' })
   firewall: Firewall;
 
-  @Column({ type: "varchar", length: 50 })
+  @Column({ type: 'varchar', length: 50 })
   style: string;
 
   @OneToMany((type) => HAProxyRule, (haproxy) => haproxy.group, { eager: true })

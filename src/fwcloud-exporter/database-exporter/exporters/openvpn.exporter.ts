@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
-import { SelectQueryBuilder } from "typeorm";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FirewallExporter } from "./firewall.exporter";
-import { Crt } from "../../../models/vpn/pki/Crt";
-import { CrtExporter } from "./crt.exporter";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
+import { SelectQueryBuilder } from 'typeorm';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FirewallExporter } from './firewall.exporter';
+import { Crt } from '../../../models/vpn/pki/Crt';
+import { CrtExporter } from './crt.exporter';
 
 export class OpenVPNExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -43,23 +43,23 @@ export class OpenVPNExporter extends TableExporter {
       .where((qb) => {
         const subquery = qb
           .subQuery()
-          .from(Firewall, "firewall")
-          .select("firewall.id");
+          .from(Firewall, 'firewall')
+          .select('firewall.id');
 
         return (
           `${alias}.firewallId IN ` +
           new FirewallExporter()
-            .getFilterBuilder(subquery, "firewall", fwCloudId)
+            .getFilterBuilder(subquery, 'firewall', fwCloudId)
             .getQuery()
         );
       })
       .orWhere((qb) => {
-        const subquery = qb.subQuery().from(Crt, "crt").select("crt.id");
+        const subquery = qb.subQuery().from(Crt, 'crt').select('crt.id');
 
         return (
           `${alias}.crtId IN ` +
           new CrtExporter()
-            .getFilterBuilder(subquery, "crt", fwCloudId)
+            .getFilterBuilder(subquery, 'crt', fwCloudId)
             .getQuery()
         );
       });

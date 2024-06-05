@@ -32,16 +32,16 @@ import {
   OneToMany,
   BeforeRemove,
   getCustomRepository,
-} from "typeorm";
-import db from "../../database/database-manager";
+} from 'typeorm';
+import db from '../../database/database-manager';
 
-import Model from "../Model";
-import { PolicyRule } from "./PolicyRule";
-import { Firewall } from "../firewall/Firewall";
-import { PolicyRuleRepository } from "./policy-rule.repository";
-import { app, logger } from "../../fonaments/abstract-application";
+import Model from '../Model';
+import { PolicyRule } from './PolicyRule';
+import { Firewall } from '../firewall/Firewall';
+import { PolicyRuleRepository } from './policy-rule.repository';
+import { app, logger } from '../../fonaments/abstract-application';
 
-const tableName = "policy_g";
+const tableName = 'policy_g';
 
 @Entity(tableName)
 export class PolicyGroup extends Model {
@@ -69,21 +69,21 @@ export class PolicyGroup extends Model {
   @Column()
   groupstyle: string;
 
-  @Column({ name: "firewall" })
+  @Column({ name: 'firewall' })
   firewallId: number;
 
   @ManyToOne((type) => Firewall, (firewall) => firewall.policyGroups)
   @JoinColumn({
-    name: "firewall",
+    name: 'firewall',
   })
   firewall: Firewall;
 
-  @Column({ name: "idgroup" })
+  @Column({ name: 'idgroup' })
   parentId: number;
 
   @ManyToOne((type) => PolicyGroup, (policyGroup) => policyGroup.childs)
   @JoinColumn({
-    name: "idgroup",
+    name: 'idgroup',
   })
   parent: PolicyGroup;
 
@@ -107,11 +107,11 @@ export class PolicyGroup extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " WHERE firewall=" +
+        ' WHERE firewall=' +
         connection.escape(idfirewall) +
-        " ORDER BY id";
+        ' ORDER BY id';
       connection.query(sql, (error, rows) => {
         if (error) callback(error, null);
         else callback(null, rows);
@@ -124,13 +124,13 @@ export class PolicyGroup extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " WHERE firewall=" +
+        ' WHERE firewall=' +
         connection.escape(idfirewall) +
-        " AND idgroup=" +
+        ' AND idgroup=' +
         connection.escape(idgroup) +
-        " ORDER BY id";
+        ' ORDER BY id';
       connection.query(sql, (error, rows) => {
         if (error) callback(error, null);
         else callback(null, rows);
@@ -143,11 +143,11 @@ export class PolicyGroup extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " WHERE id = " +
+        ' WHERE id = ' +
         connection.escape(id) +
-        " AND firewall=" +
+        ' AND firewall=' +
         connection.escape(idfirewall);
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
@@ -161,33 +161,33 @@ export class PolicyGroup extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        "  WHERE id = " +
+        '  WHERE id = ' +
         connection.escape(policy_gData.id) +
-        " AND firewall=" +
+        ' AND firewall=' +
         connection.escape(policy_gData.firewall);
 
       connection.query(sqlExists, (error, row) => {
         if (row && row.length > 0) {
-          logger().debug("GRUPO Existente: " + policy_gData.id);
+          logger().debug('GRUPO Existente: ' + policy_gData.id);
           callback(null, { insertId: policy_gData.id });
         } else {
           const sqlInsert =
-            "INSERT INTO " +
+            'INSERT INTO ' +
             tableName +
-            " SET firewall=" +
+            ' SET firewall=' +
             policy_gData.firewall +
-            ", name=" +
+            ', name=' +
             connection.escape(policy_gData.name) +
-            ", comment=" +
+            ', comment=' +
             connection.escape(policy_gData.comment);
           connection.query(sqlInsert, (error, result) => {
             if (error) {
               callback(error, null);
             } else {
               //devolvemos la última id insertada
-              logger().debug("CREADO nuevo GRUPO: " + result.insertId);
+              logger().debug('CREADO nuevo GRUPO: ' + result.insertId);
               callback(null, { insertId: result.insertId });
             }
           });
@@ -201,18 +201,18 @@ export class PolicyGroup extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "UPDATE " +
+        'UPDATE ' +
         tableName +
-        " SET name = " +
+        ' SET name = ' +
         connection.escape(policy_gData.name) +
-        "," +
-        "firewall = " +
+        ',' +
+        'firewall = ' +
         connection.escape(policy_gData.firewall) +
-        "," +
-        "comment = " +
+        ',' +
+        'comment = ' +
         connection.escape(policy_gData.comment) +
-        " " +
-        " WHERE id = " +
+        ' ' +
+        ' WHERE id = ' +
         policy_gData.id;
 
       connection.query(sql, (error, result) => {
@@ -230,12 +230,12 @@ export class PolicyGroup extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "UPDATE " +
+        'UPDATE ' +
         tableName +
-        " SET name = " +
+        ' SET name = ' +
         connection.escape(policy_gData.name) +
-        " " +
-        " WHERE id = " +
+        ' ' +
+        ' WHERE id = ' +
         policy_gData.id;
 
       connection.query(sql, (error, result) => {
@@ -254,15 +254,15 @@ export class PolicyGroup extends Model {
       if (error) callback(error, null);
 
       const sql =
-        "UPDATE " +
+        'UPDATE ' +
         tableName +
-        " SET " +
-        "groupstyle = " +
+        ' SET ' +
+        'groupstyle = ' +
         connection.escape(style) +
-        " " +
-        " WHERE id = " +
+        ' ' +
+        ' WHERE id = ' +
         connection.escape(id) +
-        " and firewall=" +
+        ' and firewall=' +
         connection.escape(firewall);
       connection.query(sql, (error, result) => {
         if (error) {
@@ -283,26 +283,26 @@ export class PolicyGroup extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        "  WHERE id = " +
+        '  WHERE id = ' +
         connection.escape(id) +
-        " AND firewall=" +
+        ' AND firewall=' +
         connection.escape(idfirewall);
       connection.query(sqlExists, (error, row) => {
         //If exists Id from policy_g to remove
         if (row) {
           db.get((error, connection) => {
             const sql =
-              "DELETE FROM " +
+              'DELETE FROM ' +
               tableName +
-              " WHERE id = " +
+              ' WHERE id = ' +
               connection.escape(id);
             connection.query(sql, (error, result) => {
               if (error) {
                 callback(error, null);
               } else {
-                callback(null, { result: true, msg: "deleted" });
+                callback(null, { result: true, msg: 'deleted' });
               }
             });
           });
@@ -320,12 +320,12 @@ export class PolicyGroup extends Model {
         if (error) return reject(error);
 
         const sql =
-          "select " +
+          'select ' +
           connection.escape(idNewFirewall) +
-          " as newfirewall,id,firewall,name,comment,idgroup,groupstyle" +
-          " from " +
+          ' as newfirewall,id,firewall,name,comment,idgroup,groupstyle' +
+          ' from ' +
           tableName +
-          " where firewall=" +
+          ' where firewall=' +
           connection.escape(idFirewall);
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
@@ -345,29 +345,29 @@ export class PolicyGroup extends Model {
         if (error) return reject(error);
 
         let sql =
-          "INSERT INTO " +
+          'INSERT INTO ' +
           tableName +
-          " (firewall,name,comment,idgroup,groupstyle)" +
-          " VALUES(" +
+          ' (firewall,name,comment,idgroup,groupstyle)' +
+          ' VALUES(' +
           connection.escape(rowData.newfirewall) +
-          "," +
+          ',' +
           connection.escape(rowData.name) +
-          "," +
+          ',' +
           connection.escape(rowData.comment) +
-          "," +
+          ',' +
           connection.escape(rowData.idgroup) +
-          "," +
+          ',' +
           connection.escape(rowData.groupstyle) +
-          ")";
+          ')';
         connection.query(sql, (error, result) => {
           if (error) return reject(error);
 
           sql =
-            "UPDATE policy_r SET idgroup=" +
+            'UPDATE policy_r SET idgroup=' +
             connection.escape(result.insertId) +
-            " WHERE idgroup=" +
+            ' WHERE idgroup=' +
             connection.escape(rowData.id) +
-            " AND firewall=" +
+            ' AND firewall=' +
             connection.escape(rowData.newfirewall);
           connection.query(sql, async (error, result) => {
             if (error) return reject(error);
@@ -385,9 +385,9 @@ export class PolicyGroup extends Model {
         if (error) return reject(error);
 
         const sql =
-          "DELETE FROM " +
+          'DELETE FROM ' +
           tableName +
-          " WHERE firewall=" +
+          ' WHERE firewall=' +
           connection.escape(idFirewall);
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);

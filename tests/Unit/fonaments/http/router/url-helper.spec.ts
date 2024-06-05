@@ -24,23 +24,23 @@ import {
   describeName,
   testSuite,
   expect,
-} from "../../../../mocha/global-setup";
-import { RouterService } from "../../../../../src/fonaments/http/router/router.service";
-import { URLHelper } from "../../../../../src/fonaments/http/router/url-helper";
+} from '../../../../mocha/global-setup';
+import { RouterService } from '../../../../../src/fonaments/http/router/router.service';
+import { URLHelper } from '../../../../../src/fonaments/http/router/url-helper';
 
 let service: RouterService;
 let routing: URLHelper;
 
-describe(describeName("URL tests"), () => {
+describe(describeName('URL tests'), () => {
   beforeEach(async () => {
     service = await RouterService.make(testSuite.app);
     service.registerRoutes();
     routing = new URLHelper(service);
   });
 
-  describe("getRouteByName()", () => {
-    it("should return a route by its name", async () => {
-      expect(routing.getURL("ping.pong")).to.be.deep.eq("/ping");
+  describe('getRouteByName()', () => {
+    it('should return a route by its name', async () => {
+      expect(routing.getURL('ping.pong')).to.be.deep.eq('/ping');
     });
   });
 });

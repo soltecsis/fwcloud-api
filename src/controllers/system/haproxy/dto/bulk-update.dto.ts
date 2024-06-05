@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString, IsNumber } from "class-validator";
+import { IsBoolean, IsOptional, IsString, IsNumber } from 'class-validator';
 
 export class HAProxyRuleBulkUpdateDto {
   @IsBoolean()

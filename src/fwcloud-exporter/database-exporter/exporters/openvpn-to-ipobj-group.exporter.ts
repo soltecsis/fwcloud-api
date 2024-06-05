@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { Connection, QueryRunner } from "typeorm";
-import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
-import { OpenVPNExporter } from "./openvpn.exporter";
-import { IPObjGroup } from "../../../models/ipobj/IPObjGroup";
-import { IPObjGroupExporter } from "./ipobj-group.exporter";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { Connection, QueryRunner } from 'typeorm';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
+import { OpenVPNExporter } from './openvpn.exporter';
+import { IPObjGroup } from '../../../models/ipobj/IPObjGroup';
+import { IPObjGroupExporter } from './ipobj-group.exporter';
 
 export class OpenVPNToIPObjGroupExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -34,7 +34,7 @@ export class OpenVPNToIPObjGroupExporter extends TableExporter {
   }
 
   public getTableName(): string {
-    return "openvpn__ipobj_g";
+    return 'openvpn__ipobj_g';
   }
 
   protected async getRows(
@@ -64,10 +64,10 @@ export class OpenVPNToIPObjGroupExporter extends TableExporter {
     const subquery = connection
       .createQueryBuilder()
       .subQuery()
-      .from(OpenVPN, "openvpn")
-      .select("openvpn.id");
+      .from(OpenVPN, 'openvpn')
+      .select('openvpn.id');
     return new OpenVPNExporter()
-      .getFilterBuilder(subquery, "openvpn", fwCloudId)
+      .getFilterBuilder(subquery, 'openvpn', fwCloudId)
       .getQueryAndParameters();
   }
 
@@ -78,10 +78,10 @@ export class OpenVPNToIPObjGroupExporter extends TableExporter {
     const subquery = connection
       .createQueryBuilder()
       .subQuery()
-      .from(IPObjGroup, "ipobj_g")
-      .select("ipobj_g.id");
+      .from(IPObjGroup, 'ipobj_g')
+      .select('ipobj_g.id');
     return new IPObjGroupExporter()
-      .getFilterBuilder(subquery, "ipobj_g", fwCloudId)
+      .getFilterBuilder(subquery, 'ipobj_g', fwCloudId)
       .getQueryAndParameters();
   }
 }

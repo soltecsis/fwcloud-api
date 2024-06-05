@@ -1,7 +1,7 @@
-import { getRepository, Repository } from "typeorm";
-import { Application } from "./../cli/Application";
-import { Service } from "../fonaments/services/service";
-import { Ca } from "../models/vpn/pki/Ca";
+import { getRepository, Repository } from 'typeorm';
+import { Application } from './../cli/Application';
+import { Service } from '../fonaments/services/service';
+import { Ca } from '../models/vpn/pki/Ca';
 
 interface IUpdateCa {
   comment?: string;

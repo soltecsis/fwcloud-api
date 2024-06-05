@@ -20,17 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
-import { Request, Response, NextFunction } from "express";
-import { User } from "../models/user/User";
-import StringHelper from "../utils/string.helper";
-import { Repository } from "typeorm";
-import { logger } from "../fonaments/abstract-application";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
+import { Request, Response, NextFunction } from 'express';
+import { User } from '../models/user/User';
+import StringHelper from '../utils/string.helper';
+import { Repository } from 'typeorm';
+import { logger } from '../fonaments/abstract-application';
 
 export class ConfirmationToken extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction) {
     try {
-      if (this.app.config.get("confirmation_token") === false) {
+      if (this.app.config.get('confirmation_token') === false) {
         next();
         return;
       }
@@ -52,7 +52,7 @@ export class ConfirmationToken extends Middleware {
       res.status(403).json({ fwc_confirm_token: newToken });
     } catch (error) {
       logger().error(
-        "Error during confirmation token middleware: " + JSON.stringify(error),
+        'Error during confirmation token middleware: ' + JSON.stringify(error),
       );
       res.status(400).json(error);
     }
@@ -65,16 +65,16 @@ export class ConfirmationToken extends Middleware {
    */
   protected isConfirmationTokenRequired(req: Request): boolean {
     if (
-      req.url.split("/").pop() === "get" ||
-      req.url.split("/").pop() === "restricted" ||
-      req.url.split("/").pop() === "where" ||
-      req.method === "GET" ||
-      (req.method === "POST" && req.path === "/user/login") ||
-      (req.method === "PUT" && req.path === "/ping") ||
+      req.url.split('/').pop() === 'get' ||
+      req.url.split('/').pop() === 'restricted' ||
+      req.url.split('/').pop() === 'where' ||
+      req.method === 'GET' ||
+      (req.method === 'POST' && req.path === '/user/login') ||
+      (req.method === 'PUT' && req.path === '/ping') ||
       // The component used in fwcloud-ui for select the file needed in the next two api calls
       // doesn't allows confirmation token management.
-      (req.method === "POST" && req.path === "/fwclouds/import") ||
-      (req.method === "POST" && req.path === "/backups/import")
+      (req.method === 'POST' && req.path === '/fwclouds/import') ||
+      (req.method === 'POST' && req.path === '/backups/import')
     ) {
       return false;
     }
@@ -90,7 +90,7 @@ export class ConfirmationToken extends Middleware {
   protected hasValidConfirmationToken(req: Request): boolean {
     if (
       req.session.user &&
-      req.session.user.confirmation_token === req.headers["x-fwc-confirm-token"]
+      req.session.user.confirmation_token === req.headers['x-fwc-confirm-token']
     ) {
       return true;
     }
@@ -108,7 +108,7 @@ export class ConfirmationToken extends Middleware {
     user: User,
     sessionId: string,
   ): Promise<string> {
-    user.confirmation_token = sessionId + "_" + StringHelper.randomize(20);
+    user.confirmation_token = sessionId + '_' + StringHelper.randomize(20);
     await user.save();
 
     return user.confirmation_token;

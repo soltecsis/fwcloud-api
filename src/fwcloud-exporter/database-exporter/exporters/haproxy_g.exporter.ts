@@ -15,12 +15,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SelectQueryBuilder } from "typeorm";
-import Model from "../../../models/Model";
-import { HAProxyGroup } from "../../../models/system/haproxy/haproxy_g/haproxy_g.model";
-import { TableExporter } from "./table-exporter";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FirewallExporter } from "./firewall.exporter";
+import { SelectQueryBuilder } from 'typeorm';
+import Model from '../../../models/Model';
+import { HAProxyGroup } from '../../../models/system/haproxy/haproxy_g/haproxy_g.model';
+import { TableExporter } from './table-exporter';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FirewallExporter } from './firewall.exporter';
 
 export class HAProxyGroupExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -35,13 +35,13 @@ export class HAProxyGroupExporter extends TableExporter {
     return qb.where((qb) => {
       const query = qb
         .subQuery()
-        .from(Firewall, "firewall")
-        .select("firewall.id");
+        .from(Firewall, 'firewall')
+        .select('firewall.id');
 
       return (
         `${alias}.firewallId IN ` +
         new FirewallExporter()
-          .getFilterBuilder(query, "firewall", fwCloudId)
+          .getFilterBuilder(query, 'firewall', fwCloudId)
           .getQuery()
       );
     });

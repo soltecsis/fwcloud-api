@@ -23,10 +23,10 @@
 import {
   TableTerraformer,
   TerraformHandlerCollection,
-} from "../table-terraformer";
-import { ImportMapping } from "../mapper/import-mapping";
-import { FwCloud } from "../../../../models/fwcloud/FwCloud";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+} from '../table-terraformer';
+import { ImportMapping } from '../mapper/import-mapping';
+import { FwCloud } from '../../../../models/fwcloud/FwCloud';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
 
 export class IpObjGroupTerraformer extends TableTerraformer {
   public static async make(
@@ -47,12 +47,12 @@ export class IpObjGroupTerraformer extends TableTerraformer {
   protected getCustomHandlers(): TerraformHandlerCollection {
     const result = {};
 
-    result["fwCloudId"] = (
+    result['fwCloudId'] = (
       mapper: ImportMapping,
       row: object,
       value: number,
     ) => {
-      return mapper.getMappedId(FwCloud._getTableName(), "id", value);
+      return mapper.getMappedId(FwCloud._getTableName(), 'id', value);
     };
 
     return result;

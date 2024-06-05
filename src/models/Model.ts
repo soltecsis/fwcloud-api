@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DeepPartial, getMetadataArgsStorage, BaseEntity } from "typeorm";
-import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
-import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
-import ObjectHelpers from "../utils/object-helpers";
-import { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs";
-import { JoinColumnMetadataArgs } from "typeorm/metadata-args/JoinColumnMetadataArgs";
-import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
+import { DeepPartial, getMetadataArgsStorage, BaseEntity } from 'typeorm';
+import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs';
+import { RelationMetadataArgs } from 'typeorm/metadata-args/RelationMetadataArgs';
+import ObjectHelpers from '../utils/object-helpers';
+import { TableMetadataArgs } from 'typeorm/metadata-args/TableMetadataArgs';
+import { JoinColumnMetadataArgs } from 'typeorm/metadata-args/JoinColumnMetadataArgs';
+import { JoinTableMetadataArgs } from 'typeorm/metadata-args/JoinTableMetadataArgs';
 
 export interface IModel {
   getTableName(): string;
@@ -45,8 +45,8 @@ export default abstract class Model extends BaseEntity implements IModel {
 
   public static methodExists(method: string): boolean {
     return (
-      typeof this[method] === "function" ||
-      typeof this.prototype[method] === "function"
+      typeof this[method] === 'function' ||
+      typeof this.prototype[method] === 'function'
     );
   }
 
@@ -246,7 +246,7 @@ export default abstract class Model extends BaseEntity implements IModel {
     }
 
     if (columnMetadatas.length > 1) {
-      throw new Error("Unexpected metadata length");
+      throw new Error('Unexpected metadata length');
     }
 
     return (
@@ -275,7 +275,7 @@ export default abstract class Model extends BaseEntity implements IModel {
       });
 
     if (matchingColumns.length > 1) {
-      throw new Error("Unexpected metadata length");
+      throw new Error('Unexpected metadata length');
     }
 
     if (matchingColumns.length === 0) {
@@ -346,7 +346,7 @@ export default abstract class Model extends BaseEntity implements IModel {
       });
 
     if (relations.length !== 1) {
-      throw new Error("Unexpected metadata length");
+      throw new Error('Unexpected metadata length');
     }
 
     return relations[0];

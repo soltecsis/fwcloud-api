@@ -1,15 +1,15 @@
-import { expect } from "chai";
-import { getRepository, QueryFailedError } from "typeorm";
-import { Application } from "../../../../src/Application";
-import { RouteController } from "../../../../src/controllers/routing/route/route.controller";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { Route } from "../../../../src/models/routing/route/route.model";
-import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
-import StringHelper from "../../../../src/utils/string.helper";
-import { testSuite } from "../../../mocha/global-setup";
-import { FwCloudProduct, FwCloudFactory } from "../../../utils/fwcloud-factory";
-import { Request } from "express";
+import { expect } from 'chai';
+import { getRepository, QueryFailedError } from 'typeorm';
+import { Application } from '../../../../src/Application';
+import { RouteController } from '../../../../src/controllers/routing/route/route.controller';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { Route } from '../../../../src/models/routing/route/route.model';
+import { RoutingTable } from '../../../../src/models/routing/routing-table/routing-table.model';
+import StringHelper from '../../../../src/utils/string.helper';
+import { testSuite } from '../../../mocha/global-setup';
+import { FwCloudProduct, FwCloudFactory } from '../../../utils/fwcloud-factory';
+import { Request } from 'express';
 
 describe(RouteController.name, () => {
   let firewall: Firewall;
@@ -29,15 +29,15 @@ describe(RouteController.name, () => {
     fwcloud = product.fwcloud;
     firewall = product.firewall;
     table = product.routingTable;
-    route = product.routes.get("route1");
+    route = product.routes.get('route1');
 
     controller = new RouteController(app);
   });
 
-  describe("make", () => {
-    it("should throw error if the route does not belongs to the table", async () => {
+  describe('make', () => {
+    it('should throw error if the route does not belongs to the table', async () => {
       const newTable: RoutingTable = await getRepository(RoutingTable).save({
-        name: "table",
+        name: 'table',
         firewallId: firewall.id,
         number: 1,
       });
@@ -58,7 +58,7 @@ describe(RouteController.name, () => {
       ).rejected;
     });
 
-    it("should throw error if the table does not belong to the firewall", async () => {
+    it('should throw error if the table does not belong to the firewall', async () => {
       const newFirewall: Firewall = await getRepository(Firewall).save({
         name: StringHelper.randomize(10),
         fwCloudId: fwcloud.id,
@@ -76,7 +76,7 @@ describe(RouteController.name, () => {
       ).rejected;
     });
 
-    it("should throw error if the firewall does not belong to the fwcloud", async () => {
+    it('should throw error if the firewall does not belong to the fwcloud', async () => {
       const newfwcloud = await getRepository(FwCloud).save({
         name: StringHelper.randomize(10),
       });
@@ -91,7 +91,7 @@ describe(RouteController.name, () => {
       ).rejected;
     });
 
-    it("should throw error if the fwcloud does not exist", async () => {
+    it('should throw error if the fwcloud does not exist', async () => {
       await expect(
         controller.make({
           params: {
@@ -103,7 +103,7 @@ describe(RouteController.name, () => {
       ).rejected;
     });
 
-    it("should throw error if the firewall does not exist", async () => {
+    it('should throw error if the firewall does not exist', async () => {
       await expect(
         controller.make({
           params: {
@@ -115,7 +115,7 @@ describe(RouteController.name, () => {
       ).rejected;
     });
 
-    it("should throw error if the table does not exist", async () => {
+    it('should throw error if the table does not exist', async () => {
       await expect(
         controller.make({
           params: {
@@ -127,7 +127,7 @@ describe(RouteController.name, () => {
       ).rejected;
     });
 
-    it("should throw error if the route does not exist", async () => {
+    it('should throw error if the route does not exist', async () => {
       await expect(
         controller.make({
           params: {
@@ -140,7 +140,7 @@ describe(RouteController.name, () => {
       ).rejected;
     });
 
-    it("should not throw error if the params are valid", async () => {
+    it('should not throw error if the params are valid', async () => {
       expect(
         await controller.make({
           params: {

@@ -20,23 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
-import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
-import { PolicyRule } from "./PolicyRule";
-import { PolicyPosition } from "./PolicyPosition";
-import { OpenVPNPrefix } from "../vpn/openvpn/OpenVPNPrefix";
+import Model from '../Model';
+import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { PolicyRule } from './PolicyRule';
+import { PolicyPosition } from './PolicyPosition';
+import { OpenVPNPrefix } from '../vpn/openvpn/OpenVPNPrefix';
 
-const tableName: string = "policy_r__openvpn_prefix";
+const tableName: string = 'policy_r__openvpn_prefix';
 
 @Entity(tableName)
 export class PolicyRuleToOpenVPNPrefix extends Model {
-  @PrimaryColumn({ name: "rule" })
+  @PrimaryColumn({ name: 'rule' })
   policyRuleId: number;
 
-  @PrimaryColumn({ name: "prefix" })
+  @PrimaryColumn({ name: 'prefix' })
   openVPNPrefixId: number;
 
-  @PrimaryColumn({ name: "position" })
+  @PrimaryColumn({ name: 'position' })
   policyPositionId: number;
 
   @Column()
@@ -59,7 +59,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     (policyPosition) => policyPosition.policyRuleToOpenVPNPrefixes,
   )
   @JoinColumn({
-    name: "position",
+    name: 'position',
   })
   policyPosition: PolicyPosition;
 
@@ -68,7 +68,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     (openVPNPrefix) => openVPNPrefix.policyRuleToOpenVPNPrefixes,
   )
   @JoinColumn({
-    name: "prefix",
+    name: 'prefix',
   })
   openVPNPrefix: OpenVPNPrefix;
 
@@ -77,7 +77,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     (policyRule) => policyRule.policyRuleToOpenVPNPrefixes,
   )
   @JoinColumn({
-    name: "rule",
+    name: 'rule',
   })
   policyRule: PolicyRule;
 

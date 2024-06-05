@@ -20,29 +20,29 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, SelectQueryBuilder } from "typeorm";
-import { Repository } from "../../database/repository";
-import { IPObj } from "./IPObj";
+import { EntityRepository, SelectQueryBuilder } from 'typeorm';
+import { Repository } from '../../database/repository';
+import { IPObj } from './IPObj';
 
 export type ValidEntities =
-  | "route"
-  | "rule"
-  | "dhcp_r"
-  | "keepalived_r"
-  | "haproxy_r";
+  | 'route'
+  | 'rule'
+  | 'dhcp_r'
+  | 'keepalived_r'
+  | 'haproxy_r';
 
 @EntityRepository(IPObj)
 export class IPObjRepository extends Repository<IPObj> {
   private routingSelects(entity: ValidEntities): SelectQueryBuilder<IPObj> {
-    let q = this.createQueryBuilder("ipobj")
-      .select("ipobj.type", "type")
-      .addSelect("ipobj.address", "address")
-      .addSelect("ipobj.netmask", "netmask")
-      .addSelect("ipobj.range_start", "range_start")
-      .addSelect("ipobj.range_end", "range_end")
-      .addSelect(`${entity}.id`, "entityId");
+    let q = this.createQueryBuilder('ipobj')
+      .select('ipobj.type', 'type')
+      .addSelect('ipobj.address', 'address')
+      .addSelect('ipobj.netmask', 'netmask')
+      .addSelect('ipobj.range_start', 'range_start')
+      .addSelect('ipobj.range_end', 'range_end')
+      .addSelect(`${entity}.id`, 'entityId');
 
-    if (entity === "rule") q = q.addSelect("null as mark_code");
+    if (entity === 'rule') q = q.addSelect('null as mark_code');
 
     return q;
   }
@@ -56,14 +56,14 @@ export class IPObjRepository extends Repository<IPObj> {
     query: SelectQueryBuilder<IPObj>,
   ): SelectQueryBuilder<IPObj> {
     let q = query
-      .innerJoin(`${entity}.routingTable`, "table")
-      .innerJoin("table.firewall", "firewall")
-      .innerJoin("firewall.fwCloud", "fwcloud")
-      .where("fwcloud.id = :fwcloud", { fwcloud: fwcloud })
-      .andWhere("firewall.id = :firewall", { firewall: firewall });
+      .innerJoin(`${entity}.routingTable`, 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwcloud')
+      .where('fwcloud.id = :fwcloud', { fwcloud: fwcloud })
+      .andWhere('firewall.id = :firewall', { firewall: firewall });
 
     if (routingTable)
-      q = q.andWhere("table.id = :routingTable", { routingTable });
+      q = q.andWhere('table.id = :routingTable', { routingTable });
 
     return ids ? q.andWhere(`${entity}.id IN (:...ids)`, { ids: ids }) : q;
   }
@@ -78,17 +78,17 @@ export class IPObjRepository extends Repository<IPObj> {
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity);
 
-    if (entity === "route") {
+    if (entity === 'route') {
       query
-        .innerJoin("ipobj.routeToIPObjs", "routeToIPObjs")
-        .innerJoin("routeToIPObjs.route", entity);
+        .innerJoin('ipobj.routeToIPObjs', 'routeToIPObjs')
+        .innerJoin('routeToIPObjs.route', entity);
     } else {
       query
-        .innerJoin("ipobj.routingRuleToIPObjs", "routingRuleToIPObjs")
-        .innerJoin("routingRuleToIPObjs.routingRule", entity);
+        .innerJoin('ipobj.routingRuleToIPObjs', 'routingRuleToIPObjs')
+        .innerJoin('routingRuleToIPObjs.routingRule', entity);
     }
 
-    query.andWhere("ipobj.type<>8");
+    query.andWhere('ipobj.type<>8');
 
     return this.belongsToFWCloud(
       entity,
@@ -109,18 +109,18 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin("ipobj.interface", "interface")
-      .innerJoin("interface.hosts", "interfaceHost")
-      .innerJoin("interfaceHost.hostIPObj", "host");
+      .innerJoin('ipobj.interface', 'interface')
+      .innerJoin('interface.hosts', 'interfaceHost')
+      .innerJoin('interfaceHost.hostIPObj', 'host');
 
-    if (entity === "route") {
+    if (entity === 'route') {
       query
-        .innerJoin("host.routeToIPObjs", "routeToIPObjs")
-        .innerJoin("routeToIPObjs.route", entity);
+        .innerJoin('host.routeToIPObjs', 'routeToIPObjs')
+        .innerJoin('routeToIPObjs.route', entity);
     } else {
       query
-        .innerJoin("host.routingRuleToIPObjs", "routingRuleToIPObjs")
-        .innerJoin("routingRuleToIPObjs.routingRule", entity);
+        .innerJoin('host.routingRuleToIPObjs', 'routingRuleToIPObjs')
+        .innerJoin('routingRuleToIPObjs.routingRule', entity);
     }
 
     return this.belongsToFWCloud(
@@ -142,22 +142,22 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin("ipobj.ipObjToIPObjGroups", "ipObjToIPObjGroup")
-      .innerJoin("ipObjToIPObjGroup.ipObjGroup", "ipobjGroup");
+      .innerJoin('ipobj.ipObjToIPObjGroups', 'ipObjToIPObjGroup')
+      .innerJoin('ipObjToIPObjGroup.ipObjGroup', 'ipobjGroup');
 
-    if (entity === "route") {
+    if (entity === 'route') {
       query
-        .innerJoin("ipobjGroup.routeToIPObjGroups", "routeToIPObjGroups")
-        .innerJoin("routeToIPObjGroups.route", entity);
+        .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .innerJoin('routeToIPObjGroups.route', entity);
     }
 
-    if (entity === "rule") {
+    if (entity === 'rule') {
       query
         .innerJoin(
-          "ipobjGroup.routingRuleToIPObjGroups",
-          "routingRuleToIPObjGroups",
+          'ipobjGroup.routingRuleToIPObjGroups',
+          'routingRuleToIPObjGroups',
         )
-        .innerJoin("routingRuleToIPObjGroups.routingRule", entity);
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
     }
 
     return this.belongsToFWCloud(
@@ -167,7 +167,7 @@ export class IPObjRepository extends Repository<IPObj> {
       routingTable,
       ids,
       query,
-    ).andWhere("ipobj.type<>8");
+    ).andWhere('ipobj.type<>8');
   }
 
   // All ipobj under host (type=8) included in IP objects groups
@@ -179,25 +179,25 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin("ipobj.interface", "interface")
-      .innerJoin("interface.hosts", "interfaceHost")
-      .innerJoin("interfaceHost.hostIPObj", "host")
-      .innerJoin("host.ipObjToIPObjGroups", "ipObjToIPObjGroup")
-      .innerJoin("ipObjToIPObjGroup.ipObjGroup", "ipobjGroup");
+      .innerJoin('ipobj.interface', 'interface')
+      .innerJoin('interface.hosts', 'interfaceHost')
+      .innerJoin('interfaceHost.hostIPObj', 'host')
+      .innerJoin('host.ipObjToIPObjGroups', 'ipObjToIPObjGroup')
+      .innerJoin('ipObjToIPObjGroup.ipObjGroup', 'ipobjGroup');
 
-    if (entity === "route") {
+    if (entity === 'route') {
       query
-        .innerJoin("ipobjGroup.routeToIPObjGroups", "routeToIPObjGroups")
-        .innerJoin("routeToIPObjGroups.route", entity);
+        .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .innerJoin('routeToIPObjGroups.route', entity);
     }
 
-    if (entity === "rule") {
+    if (entity === 'rule') {
       query
         .innerJoin(
-          "ipobjGroup.routingRuleToIPObjGroups",
-          "routingRuleToIPObjGroups",
+          'ipobjGroup.routingRuleToIPObjGroups',
+          'routingRuleToIPObjGroups',
         )
-        .innerJoin("routingRuleToIPObjGroups.routingRule", entity);
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
     }
 
     return this.belongsToFWCloud(
@@ -219,19 +219,19 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin("ipobj.optionsList", "vpnOpt")
-      .innerJoin("vpnOpt.openVPN", "vpn");
+      .innerJoin('ipobj.optionsList', 'vpnOpt')
+      .innerJoin('vpnOpt.openVPN', 'vpn');
 
-    if (entity === "route") {
+    if (entity === 'route') {
       query
-        .innerJoin("vpn.routeToOpenVPNs", "routeToOpenVPNs")
-        .innerJoin("routeToOpenVPNs.route", entity);
+        .innerJoin('vpn.routeToOpenVPNs', 'routeToOpenVPNs')
+        .innerJoin('routeToOpenVPNs.route', entity);
     }
 
-    if (entity === "rule") {
+    if (entity === 'rule') {
       query
-        .innerJoin("vpn.routingRuleToOpenVPNs", "routingRuleToOpenVPNs")
-        .innerJoin("routingRuleToOpenVPNs.routingRule", entity);
+        .innerJoin('vpn.routingRuleToOpenVPNs', 'routingRuleToOpenVPNs')
+        .innerJoin('routingRuleToOpenVPNs.routingRule', entity);
     }
 
     return this.belongsToFWCloud(
@@ -253,23 +253,23 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin("ipobj.optionsList", "vpnOpt")
-      .innerJoin("vpnOpt.openVPN", "vpn")
-      .innerJoin("vpn.ipObjGroups", "ipobjGroup");
+      .innerJoin('ipobj.optionsList', 'vpnOpt')
+      .innerJoin('vpnOpt.openVPN', 'vpn')
+      .innerJoin('vpn.ipObjGroups', 'ipobjGroup');
 
-    if (entity === "route") {
+    if (entity === 'route') {
       query
-        .innerJoin("ipobjGroup.routeToIPObjGroups", "routeToIPObjGroups")
-        .innerJoin("routeToIPObjGroups.route", entity);
+        .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .innerJoin('routeToIPObjGroups.route', entity);
     }
 
-    if (entity === "rule") {
+    if (entity === 'rule') {
       query
         .innerJoin(
-          "ipobjGroup.routingRuleToIPObjGroups",
-          "routingRuleToIPObjGroups",
+          'ipobjGroup.routingRuleToIPObjGroups',
+          'routingRuleToIPObjGroups',
         )
-        .innerJoin("routingRuleToIPObjGroups.routingRule", entity);
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
     }
 
     return this.belongsToFWCloud(
@@ -291,25 +291,25 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin("ipobj.optionsList", "vpnOpt")
-      .innerJoin("vpnOpt.openVPN", "vpn")
-      .innerJoin("vpn.crt", "crt")
-      .innerJoin("vpn.parent", "vpnServer")
-      .innerJoin("vpnServer.openVPNPrefixes", "prefix");
+      .innerJoin('ipobj.optionsList', 'vpnOpt')
+      .innerJoin('vpnOpt.openVPN', 'vpn')
+      .innerJoin('vpn.crt', 'crt')
+      .innerJoin('vpn.parent', 'vpnServer')
+      .innerJoin('vpnServer.openVPNPrefixes', 'prefix');
 
-    if (entity === "route") {
+    if (entity === 'route') {
       query
-        .innerJoin("prefix.routeToOpenVPNPrefixes", "routeToOpenVPNPrefixes")
-        .innerJoin("routeToOpenVPNPrefixes.route", entity);
+        .innerJoin('prefix.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
+        .innerJoin('routeToOpenVPNPrefixes.route', entity);
     }
 
-    if (entity === "rule") {
+    if (entity === 'rule') {
       query
         .innerJoin(
-          "prefix.routingRuleToOpenVPNPrefixes",
-          "routingRuleToOpenVPNPrefixes",
+          'prefix.routingRuleToOpenVPNPrefixes',
+          'routingRuleToOpenVPNPrefixes',
         )
-        .innerJoin("routingRuleToOpenVPNPrefixes.routingRule", entity);
+        .innerJoin('routingRuleToOpenVPNPrefixes.routingRule', entity);
     }
 
     return this.belongsToFWCloud(
@@ -333,26 +333,26 @@ export class IPObjRepository extends Repository<IPObj> {
     ids: number[],
   ): SelectQueryBuilder<IPObj> {
     const query = this.routingSelects(entity)
-      .innerJoin("ipobj.optionsList", "vpnOpt")
-      .innerJoin("vpnOpt.openVPN", "vpn")
-      .innerJoin("vpn.crt", "crt")
-      .innerJoin("vpn.parent", "vpnServer")
-      .innerJoin("vpnServer.openVPNPrefixes", "prefix")
-      .innerJoin("prefix.ipObjGroups", "ipobjGroup");
+      .innerJoin('ipobj.optionsList', 'vpnOpt')
+      .innerJoin('vpnOpt.openVPN', 'vpn')
+      .innerJoin('vpn.crt', 'crt')
+      .innerJoin('vpn.parent', 'vpnServer')
+      .innerJoin('vpnServer.openVPNPrefixes', 'prefix')
+      .innerJoin('prefix.ipObjGroups', 'ipobjGroup');
 
-    if (entity === "route") {
+    if (entity === 'route') {
       query
-        .innerJoin("ipobjGroup.routeToIPObjGroups", "routeToIPObjGroups")
-        .innerJoin("routeToIPObjGroups.route", entity);
+        .innerJoin('ipobjGroup.routeToIPObjGroups', 'routeToIPObjGroups')
+        .innerJoin('routeToIPObjGroups.route', entity);
     }
 
-    if (entity === "rule") {
+    if (entity === 'rule') {
       query
         .innerJoin(
-          "ipobjGroup.routingRuleToIPObjGroups",
-          "routingRuleToIPObjGroups",
+          'ipobjGroup.routingRuleToIPObjGroups',
+          'routingRuleToIPObjGroups',
         )
-        .innerJoin("routingRuleToIPObjGroups.routingRule", entity);
+        .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
     }
 
     return this.belongsToFWCloud(
@@ -374,44 +374,44 @@ export class IPObjRepository extends Repository<IPObj> {
     firewall: number,
     routingTable?: number,
   ): SelectQueryBuilder<IPObj> {
-    const query = this.createQueryBuilder("ipobj")
-      .select("ipobj.id", "id")
-      .addSelect("ipobj.name", "name")
-      .addSelect("ipobj.type", "type")
-      .addSelect("host.id", "host_id")
-      .addSelect("host.name", "host_name")
-      .addSelect("int_firewall.id", "firewall_id")
-      .addSelect("int_firewall.name", "firewall_name")
-      .addSelect("int_cluster.id", "cluster_id")
-      .addSelect("int_cluster.name", "cluster_name")
-      .addSelect(`${entity}.id`, "entityId");
+    const query = this.createQueryBuilder('ipobj')
+      .select('ipobj.id', 'id')
+      .addSelect('ipobj.name', 'name')
+      .addSelect('ipobj.type', 'type')
+      .addSelect('host.id', 'host_id')
+      .addSelect('host.name', 'host_name')
+      .addSelect('int_firewall.id', 'firewall_id')
+      .addSelect('int_firewall.name', 'firewall_name')
+      .addSelect('int_cluster.id', 'cluster_id')
+      .addSelect('int_cluster.name', 'cluster_name')
+      .addSelect(`${entity}.id`, 'entityId');
 
-    if (entity === "route") {
+    if (entity === 'route') {
       query
-        .innerJoin("ipobj.routeToIPObjs", "routeToIPObjs")
-        .addSelect("routeToIPObjs.order", "_order")
-        .innerJoin("routeToIPObjs.route", entity);
+        .innerJoin('ipobj.routeToIPObjs', 'routeToIPObjs')
+        .addSelect('routeToIPObjs.order', '_order')
+        .innerJoin('routeToIPObjs.route', entity);
     } else {
       query
-        .innerJoin("ipobj.routingRuleToIPObjs", "routingRuleToIPObjs")
-        .addSelect("routingRuleToIPObjs.order", "_order")
-        .innerJoin("routingRuleToIPObjs.routingRule", entity);
+        .innerJoin('ipobj.routingRuleToIPObjs', 'routingRuleToIPObjs')
+        .addSelect('routingRuleToIPObjs.order', '_order')
+        .innerJoin('routingRuleToIPObjs.routingRule', entity);
     }
 
     query
-      .innerJoin(`${entity}.routingTable`, "table")
-      .innerJoin("table.firewall", "firewall")
-      .innerJoin("firewall.fwCloud", "fwcloud")
-      .leftJoin("ipobj.interface", "int")
-      .leftJoin("int.hosts", "InterfaceIPObj")
-      .leftJoin("InterfaceIPObj.hostIPObj", "host")
-      .leftJoin("int.firewall", "int_firewall")
-      .leftJoin("int_firewall.cluster", "int_cluster")
-      .where("fwcloud.id = :fwcloud", { fwcloud: fwcloud })
-      .andWhere("firewall.id = :firewall", { firewall: firewall });
+      .innerJoin(`${entity}.routingTable`, 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwcloud')
+      .leftJoin('ipobj.interface', 'int')
+      .leftJoin('int.hosts', 'InterfaceIPObj')
+      .leftJoin('InterfaceIPObj.hostIPObj', 'host')
+      .leftJoin('int.firewall', 'int_firewall')
+      .leftJoin('int_firewall.cluster', 'int_cluster')
+      .where('fwcloud.id = :fwcloud', { fwcloud: fwcloud })
+      .andWhere('firewall.id = :firewall', { firewall: firewall });
 
     if (routingTable) {
-      query.andWhere("table.id = :routingTable", { routingTable });
+      query.andWhere('table.id = :routingTable', { routingTable });
     }
 
     return query;
@@ -422,36 +422,36 @@ export class IPObjRepository extends Repository<IPObj> {
     fwcloud: number,
     firewall: number,
   ): SelectQueryBuilder<IPObj> {
-    const query: SelectQueryBuilder<IPObj> = this.createQueryBuilder("ipobj")
-      .select("ipobj.id", "id")
-      .addSelect("ipobj.address", "address")
-      .addSelect("ipobj.name", "name")
-      .addSelect("ipobj.type", "type")
-      .addSelect("host.id", "host_id")
-      .addSelect("host.name", "host_name")
-      .addSelect("int_firewall.id", "firewall_id")
-      .addSelect("int_firewall.name", "firewall_name")
-      .addSelect("int_cluster.id", "cluster_id")
-      .addSelect("int_cluster.name", "cluster_name")
-      .addSelect(`${entity}.id`, "entityId");
+    const query: SelectQueryBuilder<IPObj> = this.createQueryBuilder('ipobj')
+      .select('ipobj.id', 'id')
+      .addSelect('ipobj.address', 'address')
+      .addSelect('ipobj.name', 'name')
+      .addSelect('ipobj.type', 'type')
+      .addSelect('host.id', 'host_id')
+      .addSelect('host.name', 'host_name')
+      .addSelect('int_firewall.id', 'firewall_id')
+      .addSelect('int_firewall.name', 'firewall_name')
+      .addSelect('int_cluster.id', 'cluster_id')
+      .addSelect('int_cluster.name', 'cluster_name')
+      .addSelect(`${entity}.id`, 'entityId');
 
-    if (entity === "rule") {
+    if (entity === 'rule') {
       query
-        .innerJoin("ipobj.dhcpRuleToIPObjs", "dhcpRuleToIPObjs")
-        .addSelect("dhcpRuleToIPObjs.order", "_order")
-        .innerJoin("dhcpRuleToIPObjs.dhcpRule", entity);
+        .innerJoin('ipobj.dhcpRuleToIPObjs', 'dhcpRuleToIPObjs')
+        .addSelect('dhcpRuleToIPObjs.order', '_order')
+        .innerJoin('dhcpRuleToIPObjs.dhcpRule', entity);
     }
 
     query
-      .innerJoin(`${entity}.firewall`, "firewall")
-      .innerJoin("firewall.fwCloud", "fwcloud")
-      .leftJoin("ipobj.interface", "int")
-      .leftJoin("int.hosts", "InterfaceIPObj")
-      .leftJoin("InterfaceIPObj.hostIPObj", "host")
-      .leftJoin("int.firewall", "int_firewall")
-      .leftJoin("int_firewall.cluster", "int_cluster")
-      .where("fwcloud.id = :fwcloud", { fwcloud: fwcloud })
-      .andWhere("firewall.id = :firewall", { firewall: firewall });
+      .innerJoin(`${entity}.firewall`, 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwcloud')
+      .leftJoin('ipobj.interface', 'int')
+      .leftJoin('int.hosts', 'InterfaceIPObj')
+      .leftJoin('InterfaceIPObj.hostIPObj', 'host')
+      .leftJoin('int.firewall', 'int_firewall')
+      .leftJoin('int_firewall.cluster', 'int_cluster')
+      .where('fwcloud.id = :fwcloud', { fwcloud: fwcloud })
+      .andWhere('firewall.id = :firewall', { firewall: firewall });
 
     return query;
   }
@@ -462,36 +462,36 @@ export class IPObjRepository extends Repository<IPObj> {
     firewall: number,
     dhcpRule?: number,
   ): SelectQueryBuilder<IPObj> {
-    const query = this.createQueryBuilder("ipobj")
-      .select("ipobj.id", "id")
-      .addSelect("ipobj.address", "address")
-      .addSelect("ipobj.name", "name")
-      .addSelect("ipobj.type", "type")
-      .addSelect("host.id", "host_id")
-      .addSelect("host.name", "host_name")
-      .addSelect("int_firewall.id", "firewall_id")
-      .addSelect("int_firewall.name", "firewall_name")
-      .addSelect("int_cluster.id", "cluster_id")
-      .addSelect("int_cluster.name", "cluster_name")
-      .addSelect(`${entity}.id`, "entityId");
+    const query = this.createQueryBuilder('ipobj')
+      .select('ipobj.id', 'id')
+      .addSelect('ipobj.address', 'address')
+      .addSelect('ipobj.name', 'name')
+      .addSelect('ipobj.type', 'type')
+      .addSelect('host.id', 'host_id')
+      .addSelect('host.name', 'host_name')
+      .addSelect('int_firewall.id', 'firewall_id')
+      .addSelect('int_firewall.name', 'firewall_name')
+      .addSelect('int_cluster.id', 'cluster_id')
+      .addSelect('int_cluster.name', 'cluster_name')
+      .addSelect(`${entity}.id`, 'entityId');
 
-    if (entity === "rule") {
+    if (entity === 'rule') {
       query
-        .innerJoin("ipobj.keepalivedRuleToIPObjs", "keepalivedToIPObjs")
-        .addSelect("keepalivedToIPObjs.order", "_order")
-        .innerJoin("keepalivedToIPObjs.keepalivedRule", entity);
+        .innerJoin('ipobj.keepalivedRuleToIPObjs', 'keepalivedToIPObjs')
+        .addSelect('keepalivedToIPObjs.order', '_order')
+        .innerJoin('keepalivedToIPObjs.keepalivedRule', entity);
     }
 
     query
-      .innerJoin(`${entity}.firewall`, "firewall")
-      .innerJoin("firewall.fwCloud", "fwcloud")
-      .leftJoin("ipobj.interface", "int")
-      .leftJoin("int.hosts", "InterfaceIPObj")
-      .leftJoin("InterfaceIPObj.hostIPObj", "host")
-      .leftJoin("int.firewall", "int_firewall")
-      .leftJoin("int_firewall.cluster", "int_cluster")
-      .where("fwcloud.id = :fwcloud", { fwcloud: fwcloud })
-      .andWhere("firewall.id = :firewall", { firewall: firewall });
+      .innerJoin(`${entity}.firewall`, 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwcloud')
+      .leftJoin('ipobj.interface', 'int')
+      .leftJoin('int.hosts', 'InterfaceIPObj')
+      .leftJoin('InterfaceIPObj.hostIPObj', 'host')
+      .leftJoin('int.firewall', 'int_firewall')
+      .leftJoin('int_firewall.cluster', 'int_cluster')
+      .where('fwcloud.id = :fwcloud', { fwcloud: fwcloud })
+      .andWhere('firewall.id = :firewall', { firewall: firewall });
 
     return query;
   }
@@ -501,36 +501,36 @@ export class IPObjRepository extends Repository<IPObj> {
     fwcloud: number,
     firewall: number,
   ): SelectQueryBuilder<IPObj> {
-    const query: SelectQueryBuilder<IPObj> = this.createQueryBuilder("ipobj")
-      .select("ipobj.id", "id")
-      .addSelect("ipobj.address", "address")
-      .addSelect("ipobj.name", "name")
-      .addSelect("ipobj.type", "type")
-      .addSelect("host.id", "host_id")
-      .addSelect("host.name", "host_name")
-      .addSelect("int_firewall.id", "firewall_id")
-      .addSelect("int_firewall.name", "firewall_name")
-      .addSelect("int_cluster.id", "cluster_id")
-      .addSelect("int_cluster.name", "cluster_name")
-      .addSelect(`${entity}.id`, "entityId");
+    const query: SelectQueryBuilder<IPObj> = this.createQueryBuilder('ipobj')
+      .select('ipobj.id', 'id')
+      .addSelect('ipobj.address', 'address')
+      .addSelect('ipobj.name', 'name')
+      .addSelect('ipobj.type', 'type')
+      .addSelect('host.id', 'host_id')
+      .addSelect('host.name', 'host_name')
+      .addSelect('int_firewall.id', 'firewall_id')
+      .addSelect('int_firewall.name', 'firewall_name')
+      .addSelect('int_cluster.id', 'cluster_id')
+      .addSelect('int_cluster.name', 'cluster_name')
+      .addSelect(`${entity}.id`, 'entityId');
 
-    if (entity === "rule") {
+    if (entity === 'rule') {
       query
-        .innerJoin("ipobj.haproxyRuleToIPObjs", "haproxyRuleToIPObjs")
-        .addSelect("haproxyRuleToIPObjs.order", "_order")
-        .innerJoin("haproxyRuleToIPObjs.haproxyRule", entity);
+        .innerJoin('ipobj.haproxyRuleToIPObjs', 'haproxyRuleToIPObjs')
+        .addSelect('haproxyRuleToIPObjs.order', '_order')
+        .innerJoin('haproxyRuleToIPObjs.haproxyRule', entity);
     }
 
     query
-      .innerJoin(`${entity}.firewall`, "firewall")
-      .innerJoin("firewall.fwCloud", "fwcloud")
-      .leftJoin("ipobj.interface", "int")
-      .leftJoin("int.hosts", "InterfaceIPObj")
-      .leftJoin("InterfaceIPObj.hostIPObj", "host")
-      .leftJoin("int.firewall", "int_firewall")
-      .leftJoin("int_firewall.cluster", "int_cluster")
-      .where("fwcloud.id = :fwcloud", { fwcloud: fwcloud })
-      .andWhere("firewall.id = :firewall", { firewall: firewall });
+      .innerJoin(`${entity}.firewall`, 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwcloud')
+      .leftJoin('ipobj.interface', 'int')
+      .leftJoin('int.hosts', 'InterfaceIPObj')
+      .leftJoin('InterfaceIPObj.hostIPObj', 'host')
+      .leftJoin('int.firewall', 'int_firewall')
+      .leftJoin('int_firewall.cluster', 'int_cluster')
+      .where('fwcloud.id = :fwcloud', { fwcloud: fwcloud })
+      .andWhere('firewall.id = :firewall', { firewall: firewall });
 
     return query;
   }

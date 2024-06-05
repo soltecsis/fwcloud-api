@@ -20,18 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
-import fwcError from "../utils/error_table";
-import { User } from "../models/user/User";
-import { Request, Response, NextFunction } from "express";
-import { getRepository } from "typeorm";
-import { logger } from "../fonaments/abstract-application";
-import { timeStamp } from "console";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
+import fwcError from '../utils/error_table';
+import { User } from '../models/user/User';
+import { Request, Response, NextFunction } from 'express';
+import { getRepository } from 'typeorm';
+import { logger } from '../fonaments/abstract-application';
+import { timeStamp } from 'console';
 
 export class Authorization extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction) {
     // Exclude the login route.
-    if (req.method === "POST" && req.path === "/user/login") {
+    if (req.method === 'POST' && req.path === '/user/login') {
       return next();
     }
 
@@ -58,7 +58,7 @@ export class Authorization extends Middleware {
 
       // Verify that this session has had recent activity.
       const elapsed_ms: number = Date.now() - req.session.keepalive_ts;
-      const keepalive_ms: number = this.app.config.get("session").keepalive_ms;
+      const keepalive_ms: number = this.app.config.get('session').keepalive_ms;
       if (elapsed_ms > keepalive_ms) {
         req.session.destroy((err) => {});
         throw fwcError.SESSION_EXPIRED;
@@ -77,19 +77,19 @@ export class Authorization extends Middleware {
       req.session.user = await getRepository(User).findOne(req.session.user_id);
       // If we arrive here, then the session is correct.
       logger().debug(
-        "USER AUTHORIZED (customer_id: " +
+        'USER AUTHORIZED (customer_id: ' +
           req.session.customer_id +
-          ", user_id: " +
+          ', user_id: ' +
           req.session.user_id +
-          ", username: " +
+          ', username: ' +
           req.session.username +
-          ")",
+          ')',
       );
 
       next();
     } catch (error) {
       logger().error(
-        "Error during authorization middleware: " + JSON.stringify(error),
+        'Error during authorization middleware: ' + JSON.stringify(error),
       );
       res.status(400).json(error);
     }

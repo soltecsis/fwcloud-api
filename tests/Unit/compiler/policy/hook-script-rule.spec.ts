@@ -20,36 +20,36 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, expect } from "../../../mocha/global-setup";
+import { describeName, expect } from '../../../mocha/global-setup';
 import {
   PolicyRule,
   PolicyRuleOptMask,
   SpecialPolicyRules,
-} from "../../../../src/models/policy/PolicyRule";
-import db from "../../../../src/database/database-manager";
-import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
-import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
-import { populateRule } from "./utils";
+} from '../../../../src/models/policy/PolicyRule';
+import db from '../../../../src/database/database-manager';
+import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
+import { RulePositionsMap } from '../../../../src/models/policy/PolicyPosition';
+import { populateRule } from './utils';
 import {
   AvailablePolicyCompilers,
   PolicyCompiler,
-} from "../../../../src/compiler/policy/PolicyCompiler";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
+} from '../../../../src/compiler/policy/PolicyCompiler';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 
-describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
+describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
   let fwcProduct: FwCloudProduct;
   let dbCon: any;
   let IPv: string;
   let compiler: AvailablePolicyCompilers;
 
   const code_before_cmt =
-    "###########################\n# Hook script rule code:";
-  const code_end_cmt = "###########################";
+    '###########################\n# Hook script rule code:';
+  const code_end_cmt = '###########################';
 
   const run_before_code = 'echo "Script rule code"';
   const run_after_code = 'echo "Other code"';
 
-  const comment = "This is the comment text.\nSecond comment line.\n";
+  const comment = 'This is the comment text.\nSecond comment line.\n';
 
   const ruleData = {
     firewall: 0,
@@ -76,7 +76,7 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
         50010,
       ); // 50010 = Standard VRRP IP
     const rulesData: any = await PolicyRule.getPolicyData(
-      "compiler",
+      'compiler',
       dbCon,
       fwcProduct.fwcloud.id,
       ruleData.firewall,
@@ -91,7 +91,7 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
         id: rule,
         active: ruleData.active,
         comment: ruleData.comment ? ruleData.comment : null,
-        cs: `${ruleData.fw_apply_to ? `if [ "$HOSTNAME" = "${fwcProduct.firewall.name}" ]; then\n` : ""}${code_before_cmt}\n${run_before_code}\n${code_end_cmt}\n${ruleData.fw_apply_to ? "fi\n" : ""}`,
+        cs: `${ruleData.fw_apply_to ? `if [ "$HOSTNAME" = "${fwcProduct.firewall.name}" ]; then\n` : ''}${code_before_cmt}\n${run_before_code}\n${code_end_cmt}\n${ruleData.fw_apply_to ? 'fi\n' : ''}`,
       },
     ]);
   }
@@ -102,45 +102,45 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
     ruleData.firewall = fwcProduct.firewall.id;
   });
 
-  describe("IPv4", () => {
+  describe('IPv4', () => {
     before(() => {
-      IPv = "IPv4";
+      IPv = 'IPv4';
     });
 
-    describe("Hook script rule code is included in rule compilation (IPTables, INPUT chain)", () => {
+    describe('Hook script rule code is included in rule compilation (IPTables, INPUT chain)', () => {
       before(() => {
-        compiler = "IPTables";
+        compiler = 'IPTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -150,35 +150,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (NFTables, INPUT chain)", () => {
+    describe('Hook script rule code is included in rule compilation (NFTables, INPUT chain)', () => {
       before(() => {
-        compiler = "NFTables";
+        compiler = 'NFTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -188,35 +188,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (IPTables, OUTPUT chain)", () => {
+    describe('Hook script rule code is included in rule compilation (IPTables, OUTPUT chain)', () => {
       before(() => {
-        compiler = "IPTables";
+        compiler = 'IPTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -226,34 +226,34 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (NFTables, OUTPUT chain)", () => {
+    describe('Hook script rule code is included in rule compilation (NFTables, OUTPUT chain)', () => {
       before(() => {
-        compiler = "NFTables";
+        compiler = 'NFTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`);
         ruleData.comment = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -263,35 +263,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (IPTables, FORWARD chain)", () => {
+    describe('Hook script rule code is included in rule compilation (IPTables, FORWARD chain)', () => {
       before(() => {
-        compiler = "IPTables";
+        compiler = 'IPTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -301,35 +301,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (NFTables, FORWARD chain)", () => {
+    describe('Hook script rule code is included in rule compilation (NFTables, FORWARD chain)', () => {
       before(() => {
-        compiler = "NFTables";
+        compiler = 'NFTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -339,35 +339,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (IPTables, SNAT)", () => {
+    describe('Hook script rule code is included in rule compilation (IPTables, SNAT)', () => {
       before(() => {
-        compiler = "IPTables";
+        compiler = 'IPTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -377,35 +377,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (NFTables, SNAT)", () => {
+    describe('Hook script rule code is included in rule compilation (NFTables, SNAT)', () => {
       before(() => {
-        compiler = "NFTables";
+        compiler = 'NFTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -415,35 +415,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (IPTables, DNAT)", () => {
+    describe('Hook script rule code is included in rule compilation (IPTables, DNAT)', () => {
       before(() => {
-        compiler = "IPTables";
+        compiler = 'IPTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -453,35 +453,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (NFTables, DNAT)", () => {
+    describe('Hook script rule code is included in rule compilation (NFTables, DNAT)', () => {
       before(() => {
-        compiler = "NFTables";
+        compiler = 'NFTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -492,40 +492,40 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
     });
   });
 
-  describe("IPv6", () => {
+  describe('IPv6', () => {
     before(() => {
-      IPv = "IPv6";
+      IPv = 'IPv6';
     });
 
-    describe("Hook script rule code is included in rule compilation (IPTables, INPUT chain)", () => {
+    describe('Hook script rule code is included in rule compilation (IPTables, INPUT chain)', () => {
       before(() => {
-        compiler = "IPTables";
+        compiler = 'IPTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -535,35 +535,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (NFTables, INPUT chain)", () => {
+    describe('Hook script rule code is included in rule compilation (NFTables, INPUT chain)', () => {
       before(() => {
-        compiler = "NFTables";
+        compiler = 'NFTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:INPUT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -573,35 +573,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (IPTables, OUTPUT chain)", () => {
+    describe('Hook script rule code is included in rule compilation (IPTables, OUTPUT chain)', () => {
       before(() => {
-        compiler = "IPTables";
+        compiler = 'IPTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -611,34 +611,34 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (NFTables, OUTPUT chain)", () => {
+    describe('Hook script rule code is included in rule compilation (NFTables, OUTPUT chain)', () => {
       before(() => {
-        compiler = "NFTables";
+        compiler = 'NFTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:OUTPUT`);
         ruleData.comment = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -648,35 +648,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (IPTables, FORWARD chain)", () => {
+    describe('Hook script rule code is included in rule compilation (IPTables, FORWARD chain)', () => {
       before(() => {
-        compiler = "IPTables";
+        compiler = 'IPTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -686,35 +686,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (NFTables, FORWARD chain)", () => {
+    describe('Hook script rule code is included in rule compilation (NFTables, FORWARD chain)', () => {
       before(() => {
-        compiler = "NFTables";
+        compiler = 'NFTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:FORWARD`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -724,35 +724,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (IPTables, SNAT)", () => {
+    describe('Hook script rule code is included in rule compilation (IPTables, SNAT)', () => {
       before(() => {
-        compiler = "IPTables";
+        compiler = 'IPTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -762,35 +762,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (NFTables, SNAT)", () => {
+    describe('Hook script rule code is included in rule compilation (NFTables, SNAT)', () => {
       before(() => {
-        compiler = "NFTables";
+        compiler = 'NFTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:SNAT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -800,35 +800,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (IPTables, DNAT)", () => {
+    describe('Hook script rule code is included in rule compilation (IPTables, DNAT)', () => {
       before(() => {
-        compiler = "IPTables";
+        compiler = 'IPTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;
@@ -838,35 +838,35 @@ describe(describeName("Policy Compiler Unit Tests - Hook script rule"), () => {
       });
     });
 
-    describe("Hook script rule code is included in rule compilation (NFTables, DNAT)", () => {
+    describe('Hook script rule code is included in rule compilation (NFTables, DNAT)', () => {
       before(() => {
-        compiler = "NFTables";
+        compiler = 'NFTables';
         ruleData.type = PolicyTypesMap.get(`${IPv}:DNAT`);
         ruleData.comment = null;
         ruleData.fw_apply_to = null;
         ruleData.options = 0;
       });
 
-      it("should compile as expected", async () => {
+      it('should compile as expected', async () => {
         await runTest();
       });
 
-      it("should not include after run code", async () => {
+      it('should not include after run code', async () => {
         ruleData.run_after = run_after_code;
         await runTest();
       });
 
-      it("should not include rule comment", async () => {
+      it('should not include rule comment', async () => {
         ruleData.comment = comment;
         await runTest();
       });
 
-      it("should compile with firewall apply to", async () => {
+      it('should compile with firewall apply to', async () => {
         ruleData.fw_apply_to = fwcProduct.firewall.id;
         await runTest();
       });
 
-      it("should not include logging code in compilation", async () => {
+      it('should not include logging code in compilation', async () => {
         ruleData.options = PolicyRuleOptMask.LOG; // Enable logging option in rule.
         await runTest();
         ruleData.options = PolicyRuleOptMask.LOG | PolicyRuleOptMask.STATEFUL;

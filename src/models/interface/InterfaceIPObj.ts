@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
-import db from "../../database/database-manager";
+import Model from '../Model';
+import db from '../../database/database-manager';
 import {
   Column,
   MoreThan,
@@ -35,19 +35,19 @@ import {
   Repository,
   ManyToOne,
   JoinColumn,
-} from "typeorm";
-import { IPObj } from "../ipobj/IPObj";
-import { app, logger } from "../../fonaments/abstract-application";
-import { Interface } from "./Interface";
+} from 'typeorm';
+import { IPObj } from '../ipobj/IPObj';
+import { app, logger } from '../../fonaments/abstract-application';
+import { Interface } from './Interface';
 
-const tableName: string = "interface__ipobj";
+const tableName: string = 'interface__ipobj';
 
 @Entity(tableName)
 export class InterfaceIPObj extends Model {
-  @PrimaryColumn({ name: "interface" })
+  @PrimaryColumn({ name: 'interface' })
   interfaceId: number;
 
-  @PrimaryColumn({ name: "ipobj" })
+  @PrimaryColumn({ name: 'ipobj' })
   ipObjId: number;
 
   @Column()
@@ -67,13 +67,13 @@ export class InterfaceIPObj extends Model {
 
   @ManyToOne((type) => Interface, (model) => model.hosts)
   @JoinColumn({
-    name: "interface",
+    name: 'interface',
   })
   hostInterface: Interface;
 
   @ManyToOne((type) => IPObj, (model) => model.hosts)
   @JoinColumn({
-    name: "ipobj",
+    name: 'ipobj',
   })
   hostIPObj: IPObj;
 
@@ -86,11 +86,11 @@ export class InterfaceIPObj extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " WHERE interface=" +
+        ' WHERE interface=' +
         connection.escape(_interface) +
-        " ORDER BY interface_order";
+        ' ORDER BY interface_order';
       connection.query(sql, (error, rows) => {
         if (error) callback(error, null);
         else callback(null, rows);
@@ -103,11 +103,11 @@ export class InterfaceIPObj extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " WHERE ipobj=" +
+        ' WHERE ipobj=' +
         connection.escape(ipobj) +
-        " ORDER BY interface_order";
+        ' ORDER BY interface_order';
       connection.query(sql, (error, rows) => {
         if (error) callback(error, null);
         else callback(null, rows);
@@ -120,11 +120,11 @@ export class InterfaceIPObj extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " WHERE interface = " +
+        ' WHERE interface = ' +
         connection.escape(_interface) +
-        " AND ipobj=" +
+        ' AND ipobj=' +
         connection.escape(ipobj);
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
@@ -139,19 +139,19 @@ export class InterfaceIPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
         const sql =
-          "SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, " +
-          "C.id cloud_id, C.name cloud_name, H.id host_id, H.name host_name, H.type host_type, TH.type host_type_name " +
-          "FROM interface__ipobj O " +
-          "inner join  interface I on I.id=O.interface " +
-          "inner join ipobj_type T on T.id=I.interface_type " +
-          "inner join ipobj H on H.id=O.ipobj " +
-          "inner join ipobj_type TH on TH.id=H.type " +
-          "left join fwcloud C on C.id=H.fwcloud " +
-          " WHERE O.interface=" +
+          'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
+          'C.id cloud_id, C.name cloud_name, H.id host_id, H.name host_name, H.type host_type, TH.type host_type_name ' +
+          'FROM interface__ipobj O ' +
+          'inner join  interface I on I.id=O.interface ' +
+          'inner join ipobj_type T on T.id=I.interface_type ' +
+          'inner join ipobj H on H.id=O.ipobj ' +
+          'inner join ipobj_type TH on TH.id=H.type ' +
+          'left join fwcloud C on C.id=H.fwcloud ' +
+          ' WHERE O.interface=' +
           _interface +
-          " AND (H.fwcloud=" +
+          ' AND (H.fwcloud=' +
           fwcloud +
-          " OR H.fwcloud is NULL) ORDER BY interface_order";
+          ' OR H.fwcloud is NULL) ORDER BY interface_order';
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
           resolve(rows);
@@ -191,21 +191,21 @@ export class InterfaceIPObj extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "UPDATE " +
+        'UPDATE ' +
         tableName +
-        " SET " +
-        "interface = " +
+        ' SET ' +
+        'interface = ' +
         connection.escape(interface__ipobjData.interface) +
-        "," +
-        "ipobj = " +
+        ',' +
+        'ipobj = ' +
         connection.escape(interface__ipobjData.ipobj) +
-        "," +
-        "interface_order = " +
+        ',' +
+        'interface_order = ' +
         connection.escape(interface__ipobjData.interface_order) +
-        " " +
-        " WHERE interface = " +
+        ' ' +
+        ' WHERE interface = ' +
         connection.escape(get_interface) +
-        " AND ipobj=" +
+        ' AND ipobj=' +
         connection.escape(get_ipobj);
       connection.query(sql, (error, result) => {
         if (error) {
@@ -232,15 +232,15 @@ export class InterfaceIPObj extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "UPDATE " +
+        'UPDATE ' +
         tableName +
-        " SET " +
-        "interface_order = " +
+        ' SET ' +
+        'interface_order = ' +
         connection.escape(new_order) +
-        " " +
-        " WHERE interface = " +
+        ' ' +
+        ' WHERE interface = ' +
         connection.escape(interface__ipobjData.interface) +
-        " AND ipobj=" +
+        ' AND ipobj=' +
         connection.escape(interface__ipobjData.ipobj);
       connection.query(sql, (error, result) => {
         if (error) {
@@ -258,10 +258,10 @@ export class InterfaceIPObj extends Model {
       db.get((error, connection) => {
         if (error) reject(error);
         const sql =
-          "UPDATE ipobj H  " +
-          "inner join interface__ipobj I on I.ipobj=H.id " +
-          "set H.updated_at= CURRENT_TIMESTAMP " +
-          " WHERE I.interface = " +
+          'UPDATE ipobj H  ' +
+          'inner join interface__ipobj I on I.ipobj=H.id ' +
+          'set H.updated_at= CURRENT_TIMESTAMP ' +
+          ' WHERE I.interface = ' +
           connection.escape(_interface);
         logger().debug(sql);
         connection.query(sql, async (error, result) => {
@@ -282,11 +282,11 @@ export class InterfaceIPObj extends Model {
 
   private static async OrderList(new_order, _interface, old_order) {
     return new Promise<any>((resolve, reject) => {
-      let increment = "+1";
+      let increment = '+1';
       let order1 = new_order;
       let order2 = old_order;
       if (new_order > old_order) {
-        increment = "-1";
+        increment = '-1';
         order1 = old_order;
         order2 = new_order;
       }
@@ -294,16 +294,16 @@ export class InterfaceIPObj extends Model {
       db.get((error, connection) => {
         if (error) reject(error);
         const sql =
-          "UPDATE " +
+          'UPDATE ' +
           tableName +
-          " SET " +
-          "interface_order = interface_order" +
+          ' SET ' +
+          'interface_order = interface_order' +
           increment +
-          " WHERE interface = " +
+          ' WHERE interface = ' +
           connection.escape(_interface) +
-          " AND interface_order>=" +
+          ' AND interface_order>=' +
           order1 +
-          " AND interface_order<=" +
+          ' AND interface_order<=' +
           order2;
         connection.query(sql, (error, result) => {
           if (error) {

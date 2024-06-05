@@ -1,12 +1,12 @@
-import { workerData, parentPort } from "worker_threads";
+import { workerData, parentPort } from 'worker_threads';
 import {
   ExporterResult,
   ExporterResultData,
-} from "../database-exporter/exporter-result";
-import { IdManager, TableIdState } from "./terraformer/mapper/id-manager";
-import { ImportMapping } from "./terraformer/mapper/import-mapping";
-import { Terraformer } from "./terraformer/terraformer";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+} from '../database-exporter/exporter-result';
+import { IdManager, TableIdState } from './terraformer/mapper/id-manager';
+import { ImportMapping } from './terraformer/mapper/import-mapping';
+import { Terraformer } from './terraformer/terraformer';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
 
 export type InputData = {
   tableName: string;

@@ -1,7 +1,7 @@
-import { Application } from "./../cli/Application";
-import { getRepository, Repository } from "typeorm";
-import { Service } from "../fonaments/services/service";
-import { Crt } from "../models/vpn/pki/Crt";
+import { Application } from './../cli/Application';
+import { getRepository, Repository } from 'typeorm';
+import { Service } from '../fonaments/services/service';
+import { Crt } from '../models/vpn/pki/Crt';
 
 interface IUpdateCrt {
   comment?: string;

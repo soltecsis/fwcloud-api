@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { RouterService } from "./router.service";
-import { Route } from "./route";
+import { RouterService } from './router.service';
+import { Route } from './route';
 
 export class URLHelper {
   constructor(protected _routerService: RouterService) {}
@@ -30,7 +30,7 @@ export class URLHelper {
     const route: Route = this._routerService.findRouteByName(routeName);
 
     if (route === null) {
-      throw Error("Route " + routeName + " not found");
+      throw Error('Route ' + routeName + ' not found');
     }
 
     return route.generateURL(params);

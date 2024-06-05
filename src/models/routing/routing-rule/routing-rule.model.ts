@@ -1,4 +1,4 @@
-import { Firewall } from "./../../firewall/Firewall";
+import { Firewall } from './../../firewall/Firewall';
 /*!
     Copyright 2021 SOLTECSIS SOLUCIONES TECNOLOGICAS, SLU
     https://soltecsis.com
@@ -31,22 +31,22 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-} from "typeorm";
-import { IPObj } from "../../ipobj/IPObj";
-import { Mark } from "../../ipobj/Mark";
-import Model from "../../Model";
-import { RoutingRuleToInterface } from "../routing-rule-to-interface/routing-rule-to-interface.model";
-import { RoutingTable } from "../routing-table/routing-table.model";
-import { RoutingGroup } from "../routing-group/routing-group.model";
-import { Interface } from "../../interface/Interface";
-import db from "../../../database/database-manager";
-import { RoutingRuleToOpenVPNPrefix } from "./routing-rule-to-openvpn-prefix.model";
-import { RoutingRuleToOpenVPN } from "./routing-rule-to-openvpn.model";
-import { RoutingRuleToIPObjGroup } from "./routing-rule-to-ipobj-group.model";
-import { RoutingRuleToIPObj } from "./routing-rule-to-ipobj.model";
-import { RoutingRuleToMark } from "./routing-rule-to-mark.model";
+} from 'typeorm';
+import { IPObj } from '../../ipobj/IPObj';
+import { Mark } from '../../ipobj/Mark';
+import Model from '../../Model';
+import { RoutingRuleToInterface } from '../routing-rule-to-interface/routing-rule-to-interface.model';
+import { RoutingTable } from '../routing-table/routing-table.model';
+import { RoutingGroup } from '../routing-group/routing-group.model';
+import { Interface } from '../../interface/Interface';
+import db from '../../../database/database-manager';
+import { RoutingRuleToOpenVPNPrefix } from './routing-rule-to-openvpn-prefix.model';
+import { RoutingRuleToOpenVPN } from './routing-rule-to-openvpn.model';
+import { RoutingRuleToIPObjGroup } from './routing-rule-to-ipobj-group.model';
+import { RoutingRuleToIPObj } from './routing-rule-to-ipobj.model';
+import { RoutingRuleToMark } from './routing-rule-to-mark.model';
 
-const tableName: string = "routing_r";
+const tableName: string = 'routing_r';
 
 @Entity(tableName)
 export class RoutingRule extends Model {
@@ -70,18 +70,18 @@ export class RoutingRule extends Model {
   style: string;
 
   @Column({
-    name: "fw_apply_to",
+    name: 'fw_apply_to',
   })
   firewallApplyToId: number;
 
   @ManyToOne((type) => Firewall, (firewall) => firewall.routingRules)
   @JoinColumn({
-    name: "fw_apply_to",
+    name: 'fw_apply_to',
   })
   firewallApplyTo: Firewall;
 
   @Column({
-    name: "group",
+    name: 'group',
   })
   routingGroupId: number;
 
@@ -90,12 +90,12 @@ export class RoutingRule extends Model {
     (routingGroup) => routingGroup.routingRules,
   )
   @JoinColumn({
-    name: "group",
+    name: 'group',
   })
   routingGroup: RoutingGroup;
 
   @Column({
-    name: "routing_table",
+    name: 'routing_table',
   })
   routingTableId: number;
 
@@ -104,7 +104,7 @@ export class RoutingRule extends Model {
     (routingTable) => routingTable.routingRules,
   )
   @JoinColumn({
-    name: "routing_table",
+    name: 'routing_table',
   })
   routingTable: RoutingTable;
 
@@ -113,9 +113,9 @@ export class RoutingRule extends Model {
     (routingRuleToInterface) => routingRuleToInterface.routingRule,
   )
   @JoinTable({
-    name: "routing_r__interface",
-    joinColumn: { name: "rule" },
-    inverseJoinColumn: { name: "mark" },
+    name: 'routing_r__interface',
+    joinColumn: { name: 'rule' },
+    inverseJoinColumn: { name: 'mark' },
   })
   routingRuleToInterfaces: RoutingRuleToInterface[];
 
@@ -156,16 +156,16 @@ export class RoutingRule extends Model {
     const routingRuleToIPObjs: RoutingRuleToIPObj[] = await getRepository(
       RoutingRuleToIPObj,
     )
-      .createQueryBuilder("routingRuleToIPObj")
-      .innerJoin("routingRuleToIPObj.ipObj", "ipobj")
-      .innerJoin("ipobj.hosts", "interfaceIPObj")
-      .innerJoin("routingRuleToIPObj.routingRule", "rule")
-      .innerJoin("interfaceIPObj.hostInterface", "interface")
-      .innerJoin("interface.ipObjs", "intIPObj")
-      .innerJoin("rule.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .where("intIPObj.id = :ipobjId", { ipobjId })
-      .andWhere("firewall.fwCloudId = :fwcloud", { fwcloud })
+      .createQueryBuilder('routingRuleToIPObj')
+      .innerJoin('routingRuleToIPObj.ipObj', 'ipobj')
+      .innerJoin('ipobj.hosts', 'interfaceIPObj')
+      .innerJoin('routingRuleToIPObj.routingRule', 'rule')
+      .innerJoin('interfaceIPObj.hostInterface', 'interface')
+      .innerJoin('interface.ipObjs', 'intIPObj')
+      .innerJoin('rule.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .where('intIPObj.id = :ipobjId', { ipobjId })
+      .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud })
       .getMany();
 
     const result: RoutingRuleToIPObj[] = [];
@@ -193,19 +193,19 @@ export class RoutingRule extends Model {
     }
 
     return await getRepository(RoutingRule)
-      .createQueryBuilder("routing_rule")
+      .createQueryBuilder('routing_rule')
       .distinct()
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .innerJoin("routing_rule.routingRuleToIPObjs", "routingRuleToIPObjs")
-      .innerJoin("routingRuleToIPObjs.ipObj", "ipobj")
-      .innerJoin("ipobj.hosts", "InterfaceIPObj")
-      .innerJoin("InterfaceIPObj.hostInterface", "interface")
-      .innerJoin("routing_rule.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoin('routing_rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
+      .innerJoin('routingRuleToIPObjs.ipObj', 'ipobj')
+      .innerJoin('ipobj.hosts', 'InterfaceIPObj')
+      .innerJoin('InterfaceIPObj.hostInterface', 'interface')
+      .innerJoin('routing_rule.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .whereInIds(result.map((item) => item.routingRuleId))
       .getRawMany();
   }
@@ -217,22 +217,22 @@ export class RoutingRule extends Model {
   ): Promise<RoutingRule[]> {
     const routingRuleToIPObjGroups: RoutingRuleToIPObjGroup[] =
       await getRepository(RoutingRuleToIPObjGroup)
-        .createQueryBuilder("routingRuleToIPObjGroups")
-        .innerJoinAndSelect("routingRuleToIPObjGroups.ipObjGroup", "ipObjGroup")
+        .createQueryBuilder('routingRuleToIPObjGroups')
+        .innerJoinAndSelect('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
         .innerJoinAndSelect(
-          "ipObjGroup.ipObjToIPObjGroups",
-          "ipObjToIPObjGroups",
+          'ipObjGroup.ipObjToIPObjGroups',
+          'ipObjToIPObjGroups',
         )
-        .innerJoin("ipObjToIPObjGroups.ipObj", "ipobj")
-        .innerJoin("ipobj.hosts", "interfaceIPObj")
-        .innerJoin("routingRuleToIPObjGroups.routingRule", "rule")
-        .innerJoin("interfaceIPObj.hostInterface", "interface")
-        .innerJoin("interface.ipObjs", "intIPObj")
-        .innerJoin("rule.routingTable", "table")
-        .innerJoin("table.firewall", "firewall")
-        .where("intIPObj.id = :ipobjId", { ipobjId })
-        .andWhere("ipObjGroup.type = 20")
-        .andWhere("firewall.fwCloudId = :fwcloud", { fwcloud })
+        .innerJoin('ipObjToIPObjGroups.ipObj', 'ipobj')
+        .innerJoin('ipobj.hosts', 'interfaceIPObj')
+        .innerJoin('routingRuleToIPObjGroups.routingRule', 'rule')
+        .innerJoin('interfaceIPObj.hostInterface', 'interface')
+        .innerJoin('interface.ipObjs', 'intIPObj')
+        .innerJoin('rule.routingTable', 'table')
+        .innerJoin('table.firewall', 'firewall')
+        .where('intIPObj.id = :ipobjId', { ipobjId })
+        .andWhere('ipObjGroup.type = 20')
+        .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud })
         .getMany();
 
     const result: RoutingRuleToIPObjGroup[] = [];
@@ -263,24 +263,24 @@ export class RoutingRule extends Model {
     }
 
     return await getRepository(RoutingRule)
-      .createQueryBuilder("routing_rule")
+      .createQueryBuilder('routing_rule')
       .distinct()
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
       .innerJoin(
-        "routing_rule.routingRuleToIPObjGroups",
-        "routingRuleToIPObjGroups",
+        'routing_rule.routingRuleToIPObjGroups',
+        'routingRuleToIPObjGroups',
       )
-      .innerJoin("routingRuleToIPObjGroups.ipObjGroup", "ipObjGroup")
-      .innerJoin("ipObjGroup.ipObjToIPObjGroups", "ipObjToIPObjGroups")
-      .innerJoin("ipObjToIPObjGroups.ipObj", "ipobj")
-      .innerJoin("ipobj.hosts", "InterfaceIPObj")
-      .innerJoin("InterfaceIPObj.hostInterface", "interface")
-      .innerJoin("routing_rule.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
+      .innerJoin('ipObjGroup.ipObjToIPObjGroups', 'ipObjToIPObjGroups')
+      .innerJoin('ipObjToIPObjGroups.ipObj', 'ipobj')
+      .innerJoin('ipobj.hosts', 'InterfaceIPObj')
+      .innerJoin('InterfaceIPObj.hostInterface', 'interface')
+      .innerJoin('routing_rule.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .whereInIds(result.map((item) => item.routingRuleId))
       .getRawMany();
   }

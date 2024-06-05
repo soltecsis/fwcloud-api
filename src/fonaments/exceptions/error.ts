@@ -41,7 +41,7 @@ export class FwCloudError extends Error {
   public stackToArray(): Array<string> {
     const stack: string = this.stack;
     const results: Array<string> = [];
-    const stackLines: Array<string> = stack.split("\n");
+    const stackLines: Array<string> = stack.split('\n');
 
     for (let i = 0; i < stackLines.length; i++) {
       const line: string = stackLines[i].trim();

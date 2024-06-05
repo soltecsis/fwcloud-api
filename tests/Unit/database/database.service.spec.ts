@@ -20,15 +20,15 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, testSuite, expect } from "../../mocha/global-setup";
-import { AbstractApplication } from "../../../src/fonaments/abstract-application";
-import { DatabaseService } from "../../../src/database/database.service";
-import { Connection, Migration } from "typeorm";
+import { describeName, testSuite, expect } from '../../mocha/global-setup';
+import { AbstractApplication } from '../../../src/fonaments/abstract-application';
+import { DatabaseService } from '../../../src/database/database.service';
+import { Connection, Migration } from 'typeorm';
 
 let app: AbstractApplication;
 let databaseService: DatabaseService;
 
-describe(describeName("Database Service tests"), () => {
+describe(describeName('Database Service tests'), () => {
   beforeEach(async () => {
     app = testSuite.app;
     databaseService = await app.getService<DatabaseService>(
@@ -36,16 +36,16 @@ describe(describeName("Database Service tests"), () => {
     );
   });
 
-  describe("getAppliedMigrations()", async () => {
+  describe('getAppliedMigrations()', async () => {
     let connection: Connection;
 
     beforeEach(async () => {
       connection = databaseService.connection;
     });
 
-    it("should return all migrations", async () => {
+    it('should return all migrations', async () => {
       const migrations = (
-        await connection.query("SELECT * from migrations ORDER BY id DESC")
+        await connection.query('SELECT * from migrations ORDER BY id DESC')
       ).map((row: any) => {
         return {
           id: row.id,
@@ -68,8 +68,8 @@ describe(describeName("Database Service tests"), () => {
     });
   });
 
-  describe("rollbackMigrations()", () => {
-    it("should rollback multiple migrations", async () => {
+  describe('rollbackMigrations()', () => {
+    it('should rollback multiple migrations', async () => {
       const migrations: Migration[] =
         await databaseService.getExecutedMigrations();
 

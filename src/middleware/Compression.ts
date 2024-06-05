@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
-import compression from "compression";
-import { Request, Response, NextFunction } from "express";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
+import compression from 'compression';
+import { Request, Response, NextFunction } from 'express';
 
 export class Compression extends Middleware {
   public async handle(

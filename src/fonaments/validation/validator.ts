@@ -1,12 +1,12 @@
-import { ValidationException } from "../exceptions/validation-exception";
-import { validate, validateSync, ValidationError } from "class-validator";
+import { ValidationException } from '../exceptions/validation-exception';
+import { validate, validateSync, ValidationError } from 'class-validator';
 import {
   ClassConstructor,
   classToPlain,
   ClassTransformOptions,
   plainToClass,
-} from "class-transformer";
-import { transformValidationErrorsToErrorBag } from "./validation.helper";
+} from 'class-transformer';
+import { transformValidationErrorsToErrorBag } from './validation.helper';
 
 export type ErrorBag = { [input: string]: string[] };
 
@@ -31,7 +31,7 @@ export class Validator {
 
       if (errors.length > 0) {
         throw new ValidationException(
-          "The given data is invalid.",
+          'The given data is invalid.',
           transformValidationErrorsToErrorBag(errors),
         );
       }

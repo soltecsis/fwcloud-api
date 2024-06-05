@@ -20,35 +20,35 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import express from "express";
-import { Service } from "../../services/service";
-import { Request, Response, NextFunction } from "express";
+import express from 'express';
+import { Service } from '../../services/service';
+import { Request, Response, NextFunction } from 'express';
 import {
   RouteCollection as RouteDefinition,
   RouteCollectionable,
-} from "./route-collection";
-import { RouterParser } from "./router-parser";
-import { Route } from "./route";
-import { AuthorizationException } from "../../exceptions/authorization-exception";
-import { ResponseBuilder } from "../response-builder";
-import { URLHelper } from "./url-helper";
-import { Validator } from "../../validation/validator";
-import { HttpException } from "../../exceptions/http/http-exception";
-import { getFWCloudMetadata } from "../../../metadata/metadata";
-import { HTTPApplication } from "../../http-application";
-import { CLIApplication } from "../../cli-application";
-import { ClassConstructor } from "class-transformer";
-import { Routes } from "../../../routes/routes";
+} from './route-collection';
+import { RouterParser } from './router-parser';
+import { Route } from './route';
+import { AuthorizationException } from '../../exceptions/authorization-exception';
+import { ResponseBuilder } from '../response-builder';
+import { URLHelper } from './url-helper';
+import { Validator } from '../../validation/validator';
+import { HttpException } from '../../exceptions/http/http-exception';
+import { getFWCloudMetadata } from '../../../metadata/metadata';
+import { HTTPApplication } from '../../http-application';
+import { CLIApplication } from '../../cli-application';
+import { ClassConstructor } from 'class-transformer';
+import { Routes } from '../../../routes/routes';
 
 export type HttpMethod =
-  | "ALL"
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "DELETE"
-  | "OPTIONS"
-  | "HEAD";
+  | 'ALL'
+  | 'GET'
+  | 'POST'
+  | 'PUT'
+  | 'PATCH'
+  | 'DELETE'
+  | 'OPTIONS'
+  | 'HEAD';
 export type ArgumentTypes<F extends Function> = F extends (
   ...args: infer A
 ) => any
@@ -98,82 +98,82 @@ export class RouterService extends Service {
 
     if (this._app instanceof HTTPApplication) {
       //OLD Routes
-      this._express.use("/user", require("../../../routes/user/user"));
-      this._express.use("/customer", require("../../../routes/user/customer"));
-      this._express.use("/fwcloud", require("../../../routes/fwcloud/fwcloud"));
+      this._express.use('/user', require('../../../routes/user/user'));
+      this._express.use('/customer', require('../../../routes/user/customer'));
+      this._express.use('/fwcloud', require('../../../routes/fwcloud/fwcloud'));
       this._express.use(
-        "/cluster",
-        require("../../../routes/firewall/cluster"),
+        '/cluster',
+        require('../../../routes/firewall/cluster'),
       );
       this._express.use(
-        "/firewall",
-        require("../../../routes/firewall/firewall"),
+        '/firewall',
+        require('../../../routes/firewall/firewall'),
       );
-      this._express.use("/policy/rule", require("../../../routes/policy/rule"));
+      this._express.use('/policy/rule', require('../../../routes/policy/rule'));
       this._express.use(
-        "/policy/compile",
-        require("../../../routes/policy/compile"),
-      );
-      this._express.use(
-        "/policy/install",
-        require("../../../routes/policy/install"),
+        '/policy/compile',
+        require('../../../routes/policy/compile'),
       );
       this._express.use(
-        "/policy/ipobj",
-        require("../../../routes/policy/ipobj"),
+        '/policy/install',
+        require('../../../routes/policy/install'),
       );
       this._express.use(
-        "/policy/interface",
-        require("../../../routes/policy/interface"),
+        '/policy/ipobj',
+        require('../../../routes/policy/ipobj'),
       );
       this._express.use(
-        "/policy/group",
-        require("../../../routes/policy/group"),
+        '/policy/interface',
+        require('../../../routes/policy/interface'),
       );
       this._express.use(
-        "/policy/types",
-        require("../../../routes/policy/types"),
+        '/policy/group',
+        require('../../../routes/policy/group'),
       );
       this._express.use(
-        "/policy/positions",
-        require("../../../routes/policy/positions"),
+        '/policy/types',
+        require('../../../routes/policy/types'),
       );
       this._express.use(
-        "/policy/openvpn",
-        require("../../../routes/policy/openvpn"),
+        '/policy/positions',
+        require('../../../routes/policy/positions'),
       );
       this._express.use(
-        "/policy/prefix",
-        require("../../../routes/policy/prefix"),
+        '/policy/openvpn',
+        require('../../../routes/policy/openvpn'),
       );
       this._express.use(
-        "/interface",
-        require("../../../routes/interface/interface"),
-      );
-      this._express.use("/ipobj", require("../../../routes/ipobj/ipobj"));
-      this._express.use("/ipobj/group", require("../../../routes/ipobj/group"));
-      this._express.use("/ipobj/types", require("../../../routes/ipobj/types"));
-      this._express.use(
-        "/ipobj/positions",
-        require("../../../routes/ipobj/positions"),
-      );
-      this._express.use("/ipobj/mark", require("../../../routes/ipobj/mark"));
-      this._express.use("/tree", require("../../../routes/tree/tree"));
-      this._express.use("/tree/folder", require("../../../routes/tree/folder"));
-      this._express.use("/tree/repair", require("../../../routes/tree/repair"));
-      this._express.use("/vpn/pki/ca", require("../../../routes/vpn/pki/ca"));
-      this._express.use("/vpn/pki/crt", require("../../../routes/vpn/pki/crt"));
-      this._express.use(
-        "/vpn/pki/prefix",
-        require("../../../routes/vpn/pki/prefix"),
+        '/policy/prefix',
+        require('../../../routes/policy/prefix'),
       );
       this._express.use(
-        "/vpn/openvpn",
-        require("../../../routes/vpn/openvpn/openvpn"),
+        '/interface',
+        require('../../../routes/interface/interface'),
+      );
+      this._express.use('/ipobj', require('../../../routes/ipobj/ipobj'));
+      this._express.use('/ipobj/group', require('../../../routes/ipobj/group'));
+      this._express.use('/ipobj/types', require('../../../routes/ipobj/types'));
+      this._express.use(
+        '/ipobj/positions',
+        require('../../../routes/ipobj/positions'),
+      );
+      this._express.use('/ipobj/mark', require('../../../routes/ipobj/mark'));
+      this._express.use('/tree', require('../../../routes/tree/tree'));
+      this._express.use('/tree/folder', require('../../../routes/tree/folder'));
+      this._express.use('/tree/repair', require('../../../routes/tree/repair'));
+      this._express.use('/vpn/pki/ca', require('../../../routes/vpn/pki/ca'));
+      this._express.use('/vpn/pki/crt', require('../../../routes/vpn/pki/crt'));
+      this._express.use(
+        '/vpn/pki/prefix',
+        require('../../../routes/vpn/pki/prefix'),
       );
       this._express.use(
-        "/vpn/openvpn/prefix",
-        require("../../../routes/vpn/openvpn/prefix"),
+        '/vpn/openvpn',
+        require('../../../routes/vpn/openvpn/openvpn'),
+      );
+      this._express.use(
+        '/vpn/openvpn/prefix',
+        require('../../../routes/vpn/openvpn/prefix'),
       );
     }
   }
@@ -225,9 +225,9 @@ export class RouterService extends Service {
             )
           ) {
             throw new Error(
-              "Method " +
+              'Method ' +
                 route.controllerSignature.method +
-                " does not exist in controller: " +
+                ' does not exist in controller: ' +
                 route.controllerSignature.controller.name,
             );
           }
@@ -244,11 +244,11 @@ export class RouterService extends Service {
 
           if (!builder) {
             throw new Error(
-              "Controller handler " +
+              'Controller handler ' +
                 route.controllerSignature.controller.name +
-                "@" +
+                '@' +
                 route.controllerSignature.method +
-                " does not return a response",
+                ' does not return a response',
             );
           }
 
@@ -278,15 +278,15 @@ export class RouterService extends Service {
   public async validateInput(route: Route, request: Request): Promise<void> {
     // These routes are already validated with the Joi middleware.
     if (
-      route.pathParams === "/iptables-save/import" ||
-      route.pathParams === "/iptables-save/export"
+      route.pathParams === '/iptables-save/import' ||
+      route.pathParams === '/iptables-save/export'
     )
       return;
 
     const validationDto: ClassConstructor<object> =
       getFWCloudMetadata.validations[
         route.controllerSignature.controller.name +
-          "@" +
+          '@' +
           route.controllerSignature.method
       ];
 
@@ -302,7 +302,7 @@ export class RouterService extends Service {
     const validationQueryDto: ClassConstructor<object> =
       getFWCloudMetadata.queryValidation[
         route.controllerSignature.controller.name +
-          "@" +
+          '@' +
           route.controllerSignature.method
       ];
 

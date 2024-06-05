@@ -20,11 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
-import cors, { CorsOptions } from "cors";
-import { Request, Response, NextFunction } from "express";
-import { CorsException } from "./exceptions/cors.exception";
-import { HTTPApplication } from "../fonaments/http-application";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
+import cors, { CorsOptions } from 'cors';
+import { Request, Response, NextFunction } from 'express';
+import { CorsException } from './exceptions/cors.exception';
+import { HTTPApplication } from '../fonaments/http-application';
 
 export class CORS extends Middleware {
   public register(app: HTTPApplication) {
@@ -56,10 +56,10 @@ export class CORS extends Middleware {
   }
 
   public isOriginAllowed(origin: string): boolean {
-    if (this.app.config.get("CORS.enabled") === false) {
+    if (this.app.config.get('CORS.enabled') === false) {
       return true;
     }
 
-    return this.app.config.get("CORS").whitelist.indexOf(origin) !== -1;
+    return this.app.config.get('CORS').whitelist.indexOf(origin) !== -1;
   }
 }

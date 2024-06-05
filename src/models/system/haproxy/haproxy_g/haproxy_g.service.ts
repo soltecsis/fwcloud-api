@@ -21,12 +21,12 @@ import {
   Repository,
   SelectQueryBuilder,
   getRepository,
-} from "typeorm";
-import { Service } from "../../../../fonaments/services/service";
-import { Application } from "../../../../Application";
-import { HAProxyGroup } from "./haproxy_g.model";
-import { Firewall } from "../../../firewall/Firewall";
-import { HAProxyRule } from "../haproxy_r/haproxy_r.model";
+} from 'typeorm';
+import { Service } from '../../../../fonaments/services/service';
+import { Application } from '../../../../Application';
+import { HAProxyGroup } from './haproxy_g.model';
+import { Firewall } from '../../../firewall/Firewall';
+import { HAProxyRule } from '../haproxy_r/haproxy_r.model';
 
 interface IFindManyHAProxyGPath {
   fwcloudId?: number;
@@ -75,25 +75,25 @@ export class HAProxyGroupService extends Service {
     return Object.assign(
       {
         join: {
-          alias: "group",
+          alias: 'group',
           innerJoin: {
-            firewall: "group.firewall",
-            fwcloud: "firewall.fwCloud",
+            firewall: 'group.firewall',
+            fwcloud: 'firewall.fwCloud',
           },
         },
         where: (qb: SelectQueryBuilder<HAProxyGroup>) => {
           if (path.firewallId) {
-            qb.andWhere("firewall.id = :firewallId", {
+            qb.andWhere('firewall.id = :firewallId', {
               firewallId: path.firewallId,
             });
           }
           if (path.fwcloudId) {
-            qb.andWhere("firewall.fwCloudId = :fwcloudId", {
+            qb.andWhere('firewall.fwCloudId = :fwcloudId', {
               fwcloudId: path.fwcloudId,
             });
           }
           if (path.id) {
-            qb.andWhere("group.id = :id", { id: path.id });
+            qb.andWhere('group.id = :id', { id: path.id });
           }
         },
       },
@@ -118,7 +118,7 @@ export class HAProxyGroupService extends Service {
     const group: HAProxyGroup | undefined = await this._repository.findOne(id);
 
     if (!group) {
-      throw new Error("HAProxyGroup not found");
+      throw new Error('HAProxyGroup not found');
     }
 
     Object.assign(group, data);
@@ -130,7 +130,7 @@ export class HAProxyGroupService extends Service {
   async remove(path: IFindOneHAProxyGPath): Promise<HAProxyGroup> {
     const group: HAProxyGroup = await this.findOneInPath(path);
     if (!group) {
-      throw new Error("HAProxyGroup not found");
+      throw new Error('HAProxyGroup not found');
     }
     if (group.rules && group.rules.length > 0) {
       await getRepository(HAProxyRule).update(

@@ -20,23 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Application } from "../Application";
-import { Server } from "../Server";
-import { Worker } from "worker_threads";
-import * as path from "path";
+import { Application } from '../Application';
+import { Server } from '../Server';
+import { Worker } from 'worker_threads';
+import * as path from 'path';
 
 async function loadApiApplication(): Promise<Application> {
   const application = await Application.run();
   const worker: Worker = new Worker(
     path.join(
       application.path,
-      "dist",
-      "src",
-      "models",
-      "vpn",
-      "openvpn",
-      "status",
-      "worker.js",
+      'dist',
+      'src',
+      'models',
+      'vpn',
+      'openvpn',
+      'status',
+      'worker.js',
     ),
     {
       stdout: false,

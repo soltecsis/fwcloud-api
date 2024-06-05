@@ -20,18 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../../fonaments/http/controller";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { RoutingGroupService } from "../../../models/routing/routing-group/routing-group.service";
-import { Request } from "express";
-import { Validate } from "../../../decorators/validate.decorator";
-import { RoutingGroupPolicy } from "../../../policies/routing-group.policy";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { RoutingGroup } from "../../../models/routing/routing-group/routing-group.model";
-import { RoutingGroupControllerUpdateDto } from "./dtos/update.dto";
-import { RoutingGroupControllerCreateDto } from "./dtos/create.dto";
-import { getRepository } from "typeorm";
+import { Controller } from '../../../fonaments/http/controller';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
+import { RoutingGroupService } from '../../../models/routing/routing-group/routing-group.service';
+import { Request } from 'express';
+import { Validate } from '../../../decorators/validate.decorator';
+import { RoutingGroupPolicy } from '../../../policies/routing-group.policy';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
+import { RoutingGroup } from '../../../models/routing/routing-group/routing-group.model';
+import { RoutingGroupControllerUpdateDto } from './dtos/update.dto';
+import { RoutingGroupControllerCreateDto } from './dtos/create.dto';
+import { getRepository } from 'typeorm';
 
 export class RoutingGroupController extends Controller {
   protected _routingGroupService: RoutingGroupService;
@@ -53,13 +53,13 @@ export class RoutingGroupController extends Controller {
 
     //Get the firewall from the URL which contains the routing group
     const firewallQueryBuilder = getRepository(Firewall)
-      .createQueryBuilder("firewall")
-      .where("firewall.id = :id", { id: parseInt(request.params.firewall) });
+      .createQueryBuilder('firewall')
+      .where('firewall.id = :id', { id: parseInt(request.params.firewall) });
     if (request.params.routingGroup) {
       firewallQueryBuilder.innerJoin(
-        "firewall.routingGroups",
-        "group",
-        "group.id = :groupId",
+        'firewall.routingGroups',
+        'group',
+        'group.id = :groupId',
         { groupId: parseInt(request.params.routingGroup) },
       );
     }
@@ -67,11 +67,11 @@ export class RoutingGroupController extends Controller {
 
     //Get the fwcloud from the URL which contains the firewall
     this._fwCloud = await getRepository(FwCloud)
-      .createQueryBuilder("fwcloud")
-      .innerJoin("fwcloud.firewalls", "firewall", "firewall.id = :firewallId", {
+      .createQueryBuilder('fwcloud')
+      .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
         firewallId: this._firewall.id,
       })
-      .where("fwcloud.id = :id", { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
       .getOneOrFail();
   }
 
@@ -106,11 +106,11 @@ export class RoutingGroupController extends Controller {
     ).authorize();
 
     const group: RoutingGroup = await this._routingGroupService.create({
-      name: request.inputs.get("name"),
-      comment: request.inputs.get("comment"),
+      name: request.inputs.get('name'),
+      comment: request.inputs.get('comment'),
       firewallId: this._firewall.id,
       routingRules: request.inputs
-        .get<number[]>("routingRules")
+        .get<number[]>('routingRules')
         .map((id) => ({ id })),
     });
 

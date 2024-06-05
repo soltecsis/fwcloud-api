@@ -20,63 +20,63 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../fonaments/http/controller";
+import { Controller } from '../../fonaments/http/controller';
 import {
   Firewall,
   FirewallInstallCommunication,
-} from "../../models/firewall/Firewall";
-import { getRepository } from "typeorm";
-import { Request } from "express";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
+} from '../../models/firewall/Firewall';
+import { getRepository } from 'typeorm';
+import { Request } from 'express';
+import { ResponseBuilder } from '../../fonaments/http/response-builder';
 import {
   FirewallService,
   SSHConfig,
-} from "../../models/firewall/firewall.service";
-import { FirewallPolicy } from "../../policies/firewall.policy";
-import { Channel } from "../../sockets/channels/channel";
-import { ProgressPayload } from "../../sockets/messages/socket-message";
-import { Validate, ValidateQuery } from "../../decorators/validate.decorator";
-import { FirewallControllerCompileDto } from "./dtos/compile.dto";
-import { FirewallControllerInstallDto } from "./dtos/install.dto";
+} from '../../models/firewall/firewall.service';
+import { FirewallPolicy } from '../../policies/firewall.policy';
+import { Channel } from '../../sockets/channels/channel';
+import { ProgressPayload } from '../../sockets/messages/socket-message';
+import { Validate, ValidateQuery } from '../../decorators/validate.decorator';
+import { FirewallControllerCompileDto } from './dtos/compile.dto';
+import { FirewallControllerInstallDto } from './dtos/install.dto';
 import {
   RoutingRulesData,
   RoutingRuleService,
-} from "../../models/routing/routing-rule/routing-rule.service";
-import { RoutingRuleItemForCompiler } from "../../models/routing/shared";
-import { RoutingCompiler } from "../../compiler/routing/RoutingCompiler";
-import { FirewallControllerCompileRoutingRuleQueryDto } from "./dtos/compile-routing-rules.dto";
-import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { PingDto } from "./dtos/ping.dto";
-import { InfoDto } from "./dtos/info.dto";
+} from '../../models/routing/routing-rule/routing-rule.service';
+import { RoutingRuleItemForCompiler } from '../../models/routing/shared';
+import { RoutingCompiler } from '../../compiler/routing/RoutingCompiler';
+import { FirewallControllerCompileRoutingRuleQueryDto } from './dtos/compile-routing-rules.dto';
+import { FwCloud } from '../../models/fwcloud/FwCloud';
+import { PingDto } from './dtos/ping.dto';
+import { InfoDto } from './dtos/info.dto';
 import {
   Communication,
   FwcAgentInfo,
-} from "../../communications/communication";
-import { SSHCommunication } from "../../communications/ssh.communication";
-import { AgentCommunication } from "../../communications/agent.communication";
-import { PgpHelper } from "../../utils/pgp";
-import { PluginDto } from "./dtos/plugin.dto";
+} from '../../communications/communication';
+import { SSHCommunication } from '../../communications/ssh.communication';
+import { AgentCommunication } from '../../communications/agent.communication';
+import { PgpHelper } from '../../utils/pgp';
+import { PluginDto } from './dtos/plugin.dto';
 import {
   HAProxyRuleService,
   HAProxyRulesData,
-} from "../../models/system/haproxy/haproxy_r/haproxy_r.service";
-import { HAProxyRuleItemForCompiler } from "../../models/system/haproxy/shared";
-import { HAProxyCompiler } from "../../compiler/system/haproxy/HAProxyCompiler";
+} from '../../models/system/haproxy/haproxy_r/haproxy_r.service';
+import { HAProxyRuleItemForCompiler } from '../../models/system/haproxy/shared';
+import { HAProxyCompiler } from '../../compiler/system/haproxy/HAProxyCompiler';
 import {
   DHCPRuleService,
   DHCPRulesData,
-} from "../../models/system/dhcp/dhcp_r/dhcp_r.service";
-import { DHCPRuleItemForCompiler } from "../../models/system/dhcp/shared";
+} from '../../models/system/dhcp/dhcp_r/dhcp_r.service';
+import { DHCPRuleItemForCompiler } from '../../models/system/dhcp/shared';
 import {
   DHCPCompiled,
   DHCPCompiler,
-} from "../../compiler/system/dhcp/DHCPCompiler";
+} from '../../compiler/system/dhcp/DHCPCompiler';
 import {
   KeepalivedRuleService,
   KeepalivedRulesData,
-} from "../../models/system/keepalived/keepalived_r/keepalived_r.service";
-import { KeepalivedCompiler } from "../../compiler/system/keepalived/KeepalivedCompiler";
-import { KeepalivedRuleItemForCompiler } from "../../models/system/keepalived/shared";
+} from '../../models/system/keepalived/keepalived_r/keepalived_r.service';
+import { KeepalivedCompiler } from '../../compiler/system/keepalived/KeepalivedCompiler';
+import { KeepalivedRuleItemForCompiler } from '../../models/system/keepalived/shared';
 
 export class FirewallController extends Controller {
   protected firewallService: FirewallService;
@@ -89,8 +89,8 @@ export class FirewallController extends Controller {
   public async make(request: Request): Promise<void> {
     //Get the fwcloud from the URL which contains the firewall
     this._fwCloud = await getRepository(FwCloud)
-      .createQueryBuilder("fwcloud")
-      .where("fwcloud.id = :id", { id: parseInt(request.params.fwcloud) })
+      .createQueryBuilder('fwcloud')
+      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
       .getOneOrFail();
 
     this.firewallService = await this._app.getService<FirewallService>(
@@ -127,8 +127,8 @@ export class FirewallController extends Controller {
     firewall = await this.firewallService.compile(firewall, channel);
 
     channel.emit(
-      "message",
-      new ProgressPayload("end", false, "Compiling firewall"),
+      'message',
+      new ProgressPayload('end', false, 'Compiling firewall'),
     );
 
     return ResponseBuilder.buildResponse().status(201).body(firewall);
@@ -160,8 +160,8 @@ export class FirewallController extends Controller {
     );
 
     channel.emit(
-      "message",
-      new ProgressPayload("end", false, "Installing firewall"),
+      'message',
+      new ProgressPayload('end', false, 'Installing firewall'),
     );
 
     return ResponseBuilder.buildResponse().status(201).body(firewall);
@@ -179,14 +179,14 @@ export class FirewallController extends Controller {
 
     const rules: RoutingRulesData<RoutingRuleItemForCompiler>[] =
       await this.routingRuleService.getRoutingRulesData(
-        "compiler",
+        'compiler',
         firewall.fwCloudId,
         firewall.id,
         request.query.rules
           ? (request.query.rules as string[]).map((item) => parseInt(item))
           : undefined,
       );
-    const compilation = new RoutingCompiler().compile("Rule", rules);
+    const compilation = new RoutingCompiler().compile('Rule', rules);
 
     return ResponseBuilder.buildResponse().status(200).body(compilation);
   }
@@ -203,7 +203,7 @@ export class FirewallController extends Controller {
 
     const rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] =
       await this.haproxyRuleService.getHAProxyRulesData(
-        "compiler",
+        'compiler',
         firewall.fwCloudId,
         firewall.id,
         request.query.rules
@@ -228,7 +228,7 @@ export class FirewallController extends Controller {
 
     const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] =
       await this.dhcpRuleService.getDHCPRulesData(
-        "compiler",
+        'compiler',
         firewall.fwCloudId,
         firewall.id,
         req.query.rules
@@ -253,7 +253,7 @@ export class FirewallController extends Controller {
 
     const rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] =
       await this.keepalivedService.getKeepalivedRulesData(
-        "compiler",
+        'compiler',
         firewall.fwCloudId,
         firewall.id,
         request.query.rules
@@ -298,10 +298,10 @@ export class FirewallController extends Controller {
       await communication.ping();
 
       return ResponseBuilder.buildResponse().status(200).body({
-        status: "OK",
+        status: 'OK',
       });
     } catch (error) {
-      if (error.message === "Method not implemented") {
+      if (error.message === 'Method not implemented') {
         return ResponseBuilder.buildResponse().status(501);
       }
 
@@ -341,7 +341,7 @@ export class FirewallController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body(info);
     } catch (error) {
-      if (error.message === "Method not implemented") {
+      if (error.message === 'Method not implemented') {
         return ResponseBuilder.buildResponse().status(501);
       }
 
@@ -369,7 +369,7 @@ export class FirewallController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {
-      if (error.message === "Method not implemented") {
+      if (error.message === 'Method not implemented') {
         return ResponseBuilder.buildResponse().status(501);
       }
       throw error;

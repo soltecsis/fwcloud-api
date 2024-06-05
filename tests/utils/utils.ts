@@ -20,23 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { User } from "../../src/models/user/User";
-import * as path from "path";
-import * as fs from "fs";
-import moment from "moment";
-import cookie from "cookie";
-import signature from "cookie-signature";
-import { DeepPartial, getRepository } from "typeorm";
-import { testSuite, TestSuite } from "../mocha/global-setup";
-import StringHelper from "../../src/utils/string.helper";
-import { Channel } from "../../src/sockets/channels/channel";
-import { WebSocketService } from "../../src/sockets/web-socket.service";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+import { User } from '../../src/models/user/User';
+import * as path from 'path';
+import * as fs from 'fs';
+import moment from 'moment';
+import cookie from 'cookie';
+import signature from 'cookie-signature';
+import { DeepPartial, getRepository } from 'typeorm';
+import { testSuite, TestSuite } from '../mocha/global-setup';
+import StringHelper from '../../src/utils/string.helper';
+import { Channel } from '../../src/sockets/channels/channel';
+import { WebSocketService } from '../../src/sockets/web-socket.service';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
 
 export async function createUser(user: DeepPartial<User>): Promise<User> {
   const result: User = getRepository(User).create({
     username: user.username ? user.username : StringHelper.randomize(10),
-    email: StringHelper.randomize(10) + "@fwcloud.test",
+    email: StringHelper.randomize(10) + '@fwcloud.test',
     password: StringHelper.randomize(10),
     customer: { id: 1 },
     role: user.role ? user.role : 0,
@@ -51,8 +51,8 @@ export function generateSession(user: User): string {
   const _app = testSuite.app;
   const session_id: string = StringHelper.randomize(10);
   const session_path: string = path.join(
-    _app.config.get("session").files_path,
-    session_id + ".json",
+    _app.config.get('session').files_path,
+    session_id + '.json',
   );
 
   fs.writeFileSync(
@@ -60,10 +60,10 @@ export function generateSession(user: User): string {
     JSON.stringify({
       cookie: {
         originalMaxAge: 899998,
-        expires: moment().add(1, "d").utc(),
+        expires: moment().add(1, 'd').utc(),
         secure: false,
         httpOnly: false,
-        path: "/",
+        path: '/',
       },
       customer_id: user.customer,
       user_id: user.id,
@@ -78,8 +78,8 @@ export function generateSession(user: User): string {
 export function attachSession(id: string): string {
   const _app = testSuite.app;
   return cookie.serialize(
-    _app.config.get("session").name,
-    signature.sign(id, _app.config.get("crypt").secret),
+    _app.config.get('session').name,
+    signature.sign(id, _app.config.get('crypt').secret),
     {},
   );
 }

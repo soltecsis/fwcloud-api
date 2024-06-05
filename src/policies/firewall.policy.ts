@@ -20,16 +20,16 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Policy, Authorization } from "../fonaments/authorization/policy";
-import { Firewall } from "../models/firewall/Firewall";
-import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
-import { FwCloud } from "../models/fwcloud/FwCloud";
+import { Policy, Authorization } from '../fonaments/authorization/policy';
+import { Firewall } from '../models/firewall/Firewall';
+import { User } from '../models/user/User';
+import { getRepository } from 'typeorm';
+import { FwCloud } from '../models/fwcloud/FwCloud';
 
 export class FirewallPolicy extends Policy {
   static async compile(firewall: Firewall, user: User): Promise<Authorization> {
     user = await getRepository(User).findOneOrFail(user.id, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
 
     if (user.role === 1) {
@@ -48,7 +48,7 @@ export class FirewallPolicy extends Policy {
 
   static async ping(fwcloud: FwCloud, user: User): Promise<Authorization> {
     user = await getRepository(User).findOneOrFail(user.id, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
 
     if (user.role === 1) {
@@ -64,7 +64,7 @@ export class FirewallPolicy extends Policy {
 
   static async info(fwcloud: FwCloud, user: User): Promise<Authorization> {
     user = await getRepository(User).findOneOrFail(user.id, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
 
     if (user.role === 1) {
@@ -80,7 +80,7 @@ export class FirewallPolicy extends Policy {
 
   static async install(firewall: Firewall, user: User): Promise<Authorization> {
     user = await getRepository(User).findOneOrFail(user.id, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
 
     if (user.role === 1) {

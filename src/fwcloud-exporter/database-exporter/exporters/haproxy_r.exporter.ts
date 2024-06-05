@@ -15,14 +15,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SelectQueryBuilder } from "typeorm";
-import Model from "../../../models/Model";
-import { HAProxyRule } from "../../../models/system/haproxy/haproxy_r/haproxy_r.model";
-import { HAProxyGroup } from "../../../models/system/haproxy/haproxy_g/haproxy_g.model";
-import { HAProxyGroupExporter } from "./haproxy_g.exporter";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FirewallExporter } from "./firewall.exporter";
-import { TableExporter } from "./table-exporter";
+import { SelectQueryBuilder } from 'typeorm';
+import Model from '../../../models/Model';
+import { HAProxyRule } from '../../../models/system/haproxy/haproxy_r/haproxy_r.model';
+import { HAProxyGroup } from '../../../models/system/haproxy/haproxy_g/haproxy_g.model';
+import { HAProxyGroupExporter } from './haproxy_g.exporter';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FirewallExporter } from './firewall.exporter';
+import { TableExporter } from './table-exporter';
 
 export class HAProxyRuleExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -38,25 +38,25 @@ export class HAProxyRuleExporter extends TableExporter {
       .where((qb) => {
         const query = qb
           .subQuery()
-          .from(HAProxyGroup, "haproxy_g")
-          .select("haproxy_g.id");
+          .from(HAProxyGroup, 'haproxy_g')
+          .select('haproxy_g.id');
 
         return (
           `${alias}.haproxyGroupId IN ` +
           new HAProxyGroupExporter()
-            .getFilterBuilder(query, "dhcp_g", fwCloudId)
+            .getFilterBuilder(query, 'dhcp_g', fwCloudId)
             .getQuery()
         );
       })
       .where((qb) => {
         const query = qb
           .subQuery()
-          .from(Firewall, "firewall")
-          .select("firewall.id");
+          .from(Firewall, 'firewall')
+          .select('firewall.id');
         return (
           `${alias}.firewallId IN ` +
           new FirewallExporter()
-            .getFilterBuilder(query, "firewall", fwCloudId)
+            .getFilterBuilder(query, 'firewall', fwCloudId)
             .getQuery()
         );
       });

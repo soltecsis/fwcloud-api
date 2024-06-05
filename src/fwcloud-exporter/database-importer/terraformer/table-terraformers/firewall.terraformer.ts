@@ -1,12 +1,12 @@
 import {
   TableTerraformer,
   TerraformHandlerCollection,
-} from "../table-terraformer";
-import { ImportMapping } from "../mapper/import-mapping";
-import { QueryRunner } from "typeorm";
-import { IPObj } from "../../../../models/ipobj/IPObj";
-import { Interface } from "../../../../models/interface/Interface";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+} from '../table-terraformer';
+import { ImportMapping } from '../mapper/import-mapping';
+import { QueryRunner } from 'typeorm';
+import { IPObj } from '../../../../models/ipobj/IPObj';
+import { Interface } from '../../../../models/interface/Interface';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
 
 export class FirewallTerraformer extends TableTerraformer {
   public static async make(
@@ -27,20 +27,20 @@ export class FirewallTerraformer extends TableTerraformer {
   protected getCustomHandlers(): TerraformHandlerCollection {
     const result = {};
 
-    result["install_ipobj"] = (
+    result['install_ipobj'] = (
       mapper: ImportMapping,
       row: object,
       value: number,
     ) => {
-      return mapper.getMappedId(IPObj._getTableName(), "id", value);
+      return mapper.getMappedId(IPObj._getTableName(), 'id', value);
     };
 
-    result["install_interface"] = (
+    result['install_interface'] = (
       mapper: ImportMapping,
       row: object,
       value: number,
     ) => {
-      return mapper.getMappedId(Interface._getTableName(), "id", value);
+      return mapper.getMappedId(Interface._getTableName(), 'id', value);
     };
 
     return result;

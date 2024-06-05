@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AuthorizationService } from "./authorization.service";
-import { AuthorizationException } from "../exceptions/authorization-exception";
+import { AuthorizationService } from './authorization.service';
+import { AuthorizationException } from '../exceptions/authorization-exception';
 
 export abstract class Authorization {
   public can(): boolean {

@@ -20,22 +20,22 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, expect } from "../../../mocha/global-setup";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { getRepository } from "typeorm";
-import StringHelper from "../../../../src/utils/string.helper";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
-import db from "../../../../src/database/database-manager";
-import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
-import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
-import { populateRule } from "./utils";
+import { describeName, expect } from '../../../mocha/global-setup';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { getRepository } from 'typeorm';
+import StringHelper from '../../../../src/utils/string.helper';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import db from '../../../../src/database/database-manager';
+import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
+import { RulePositionsMap } from '../../../../src/models/policy/PolicyPosition';
+import { populateRule } from './utils';
 import {
   AvailablePolicyCompilers,
   PolicyCompiler,
-} from "../../../../src/compiler/policy/PolicyCompiler";
+} from '../../../../src/compiler/policy/PolicyCompiler';
 
-describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
+describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
   let fwcloud: number;
   let dbCon: any;
   let rule: number;
@@ -64,7 +64,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       await populateRule(rule, posData[i][0], posData[i][1]);
 
     const rulesData: any = await PolicyRule.getPolicyData(
-      "compiler",
+      'compiler',
       dbCon,
       fwcloud,
       ruleData.firewall,
@@ -102,14 +102,14 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
     ).id;
   });
 
-  describe("Not allowed combinations (IPTables)", () => {
+  describe('Not allowed combinations (IPTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "IPTables";
+      IPv = 'IPv4';
+      compiler = 'IPTables';
     });
 
-    it("in SNAT should throw error if translated service is empty", async () => {
-      nat = "SNAT";
+    it('in SNAT should throw error if translated service is empty', async () => {
+      nat = 'SNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedService = 20029; // Standard https service.
       rule = await PolicyRule.insertPolicy_r(ruleData);
@@ -122,7 +122,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
 
       try {
         const rulesData: any = await PolicyRule.getPolicyData(
-          "compiler",
+          'compiler',
           dbCon,
           fwcloud,
           ruleData.firewall,
@@ -141,8 +141,8 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       });
     });
 
-    it("in DNAT should throw error if translated destination is empty", async () => {
-      nat = "DNAT";
+    it('in DNAT should throw error if translated destination is empty', async () => {
+      nat = 'DNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedService = 20029; // Standard https service.
       rule = await PolicyRule.insertPolicy_r(ruleData);
@@ -155,7 +155,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
 
       try {
         const rulesData: any = await PolicyRule.getPolicyData(
-          "compiler",
+          'compiler',
           dbCon,
           fwcloud,
           ruleData.firewall,
@@ -175,14 +175,14 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
     });
   });
 
-  describe("Not allowed combinations (NFTables)", () => {
+  describe('Not allowed combinations (NFTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "NFTables";
+      IPv = 'IPv4';
+      compiler = 'NFTables';
     });
 
-    it("in SNAT should throw error if translated service is empty", async () => {
-      nat = "SNAT";
+    it('in SNAT should throw error if translated service is empty', async () => {
+      nat = 'SNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedService = 20029; // Standard https service.
       rule = await PolicyRule.insertPolicy_r(ruleData);
@@ -195,7 +195,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
 
       try {
         const rulesData: any = await PolicyRule.getPolicyData(
-          "compiler",
+          'compiler',
           dbCon,
           fwcloud,
           ruleData.firewall,
@@ -214,8 +214,8 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       });
     });
 
-    it("in DNAT should throw error if translated destination is empty", async () => {
-      nat = "DNAT";
+    it('in DNAT should throw error if translated destination is empty', async () => {
+      nat = 'DNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedService = 20029; // Standard https service.
       rule = await PolicyRule.insertPolicy_r(ruleData);
@@ -228,7 +228,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
 
       try {
         const rulesData: any = await PolicyRule.getPolicyData(
-          "compiler",
+          'compiler',
           dbCon,
           fwcloud,
           ruleData.firewall,
@@ -248,11 +248,11 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
     });
   });
 
-  describe("SNAT with TCP translated service (IPTables)", () => {
+  describe('SNAT with TCP translated service (IPTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "IPTables";
-      nat = "SNAT";
+      IPv = 'IPv4';
+      compiler = 'IPTables';
+      nat = 'SNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedAddr = 50010; // Standard VRRP IP
       translatedService = 20029; // Standard https service.
@@ -272,14 +272,14 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("only with translated source and translated service", async () => {
+    it('only with translated source and translated service', async () => {
       await runTest(
         [],
         `$IPTABLES -t nat -A POSTROUTING -j ${nat} -p tcp --to-source 224.0.0.18:443\n`,
       );
     });
 
-    it("with translated source, translated service and one source", async () => {
+    it('with translated source, translated service and one source', async () => {
       // 70003 - Net 10.0.0.0/8
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]],
@@ -287,7 +287,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service and one service", async () => {
+    it('with translated source, translated service and one service', async () => {
       // 20020 - Auth service
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Service`), 20020]],
@@ -295,7 +295,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service, one source and one service", async () => {
+    it('with translated source, translated service, one source and one service', async () => {
       // 70003 - Net 10.0.0.0/8
       // 20020 - Auth service
       await runTest(
@@ -308,11 +308,11 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
     });
   });
 
-  describe("SNAT with TCP translated service (NFTables)", () => {
+  describe('SNAT with TCP translated service (NFTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "NFTables";
-      nat = "SNAT";
+      IPv = 'IPv4';
+      compiler = 'NFTables';
+      nat = 'SNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedAddr = 50010; // Standard VRRP IP
       translatedService = 20029; // Standard https service.
@@ -332,14 +332,14 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("only with translated source and translated service", async () => {
+    it('only with translated source and translated service', async () => {
       await runTest(
         [],
         `$NFT add rule ip nat POSTROUTING ip protocol tcp counter ${nat.toLowerCase()} to 224.0.0.18:443\n`,
       );
     });
 
-    it("with translated source, translated service and one source", async () => {
+    it('with translated source, translated service and one source', async () => {
       // 70003 - Net 10.0.0.0/8
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]],
@@ -347,7 +347,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service and one service", async () => {
+    it('with translated source, translated service and one service', async () => {
       // 20020 - Auth service
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Service`), 20020]],
@@ -355,7 +355,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service, one source and one service", async () => {
+    it('with translated source, translated service, one source and one service', async () => {
       // 70003 - Net 10.0.0.0/8
       // 20020 - Auth service
       await runTest(
@@ -368,11 +368,11 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
     });
   });
 
-  describe("SNAT with UDP translated service (IPTables)", () => {
+  describe('SNAT with UDP translated service (IPTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "IPTables";
-      nat = "SNAT";
+      IPv = 'IPv4';
+      compiler = 'IPTables';
+      nat = 'SNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedAddr = 50010; // Standard VRRP IP
       translatedService = 40011; // Standard domain service.
@@ -392,14 +392,14 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("only with translated source and translated service", async () => {
+    it('only with translated source and translated service', async () => {
       await runTest(
         [],
         `$IPTABLES -t nat -A POSTROUTING -j ${nat} -p udp --to-source 224.0.0.18:53\n`,
       );
     });
 
-    it("with translated source, translated service and one source", async () => {
+    it('with translated source, translated service and one source', async () => {
       // 70003 - Net 10.0.0.0/8
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]],
@@ -407,7 +407,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service and one service", async () => {
+    it('with translated source, translated service and one service', async () => {
       // 40031 - Rsync service
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]],
@@ -415,7 +415,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service, one source and one service", async () => {
+    it('with translated source, translated service, one source and one service', async () => {
       // 70003 - Net 10.0.0.0/8
       // 40031 - Rsync service
       await runTest(
@@ -428,11 +428,11 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
     });
   });
 
-  describe("SNAT with UDP translated service (NFTables)", () => {
+  describe('SNAT with UDP translated service (NFTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "NFTables";
-      nat = "SNAT";
+      IPv = 'IPv4';
+      compiler = 'NFTables';
+      nat = 'SNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedAddr = 50010; // Standard VRRP IP
       translatedService = 40011; // Standard domain service.
@@ -452,14 +452,14 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("only with translated source and translated service", async () => {
+    it('only with translated source and translated service', async () => {
       await runTest(
         [],
         `$NFT add rule ip nat POSTROUTING ip protocol udp counter ${nat.toLowerCase()} to 224.0.0.18:53\n`,
       );
     });
 
-    it("with translated source, translated service and one source", async () => {
+    it('with translated source, translated service and one source', async () => {
       // 70003 - Net 10.0.0.0/8
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]],
@@ -467,7 +467,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service and one service", async () => {
+    it('with translated source, translated service and one service', async () => {
       // 40031 - Rsync service
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]],
@@ -475,7 +475,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service, one source and one service", async () => {
+    it('with translated source, translated service, one source and one service', async () => {
       // 70003 - Net 10.0.0.0/8
       // 40031 - Rsync service
       await runTest(
@@ -488,11 +488,11 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
     });
   });
 
-  describe("DNAT with TCP translated service (IPTables)", () => {
+  describe('DNAT with TCP translated service (IPTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "IPTables";
-      nat = "DNAT";
+      IPv = 'IPv4';
+      compiler = 'IPTables';
+      nat = 'DNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedAddr = 50010; // Standard VRRP IP
       translatedService = 20029; // Standard https service.
@@ -512,14 +512,14 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("only with translated source and translated service", async () => {
+    it('only with translated source and translated service', async () => {
       await runTest(
         [],
         `$IPTABLES -t nat -A PREROUTING -j ${nat} -p tcp --to-destination 224.0.0.18:443\n`,
       );
     });
 
-    it("with translated source, translated service and one source", async () => {
+    it('with translated source, translated service and one source', async () => {
       // 70003 - Net 10.0.0.0/8
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]],
@@ -527,7 +527,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service and one service", async () => {
+    it('with translated source, translated service and one service', async () => {
       // 20020 - Auth service
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Service`), 20020]],
@@ -535,7 +535,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service, one source and one service", async () => {
+    it('with translated source, translated service, one source and one service', async () => {
       // 70003 - Net 10.0.0.0/8
       // 20020 - Auth service
       await runTest(
@@ -548,11 +548,11 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
     });
   });
 
-  describe("DNAT with TCP translated service (NFTables)", () => {
+  describe('DNAT with TCP translated service (NFTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "NFTables";
-      nat = "DNAT";
+      IPv = 'IPv4';
+      compiler = 'NFTables';
+      nat = 'DNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedAddr = 50010; // Standard VRRP IP
       translatedService = 20029; // Standard https service.
@@ -572,14 +572,14 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("only with translated source and translated service", async () => {
+    it('only with translated source and translated service', async () => {
       await runTest(
         [],
         `$NFT add rule ip nat PREROUTING ip protocol tcp counter ${nat.toLowerCase()} to 224.0.0.18:443\n`,
       );
     });
 
-    it("with translated source, translated service and one source", async () => {
+    it('with translated source, translated service and one source', async () => {
       // 70003 - Net 10.0.0.0/8
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]],
@@ -587,7 +587,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service and one service", async () => {
+    it('with translated source, translated service and one service', async () => {
       // 20020 - Auth service
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Service`), 20020]],
@@ -595,7 +595,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service, one source and one service", async () => {
+    it('with translated source, translated service, one source and one service', async () => {
       // 70003 - Net 10.0.0.0/8
       // 20020 - Auth service
       await runTest(
@@ -608,11 +608,11 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
     });
   });
 
-  describe("SNAT with UDP translated service (IPTables)", () => {
+  describe('SNAT with UDP translated service (IPTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "IPTables";
-      nat = "DNAT";
+      IPv = 'IPv4';
+      compiler = 'IPTables';
+      nat = 'DNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedAddr = 50010; // Standard VRRP IP
       translatedService = 40011; // Standard domain service.
@@ -632,14 +632,14 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("only with translated source and translated service", async () => {
+    it('only with translated source and translated service', async () => {
       await runTest(
         [],
         `$IPTABLES -t nat -A PREROUTING -j ${nat} -p udp --to-destination 224.0.0.18:53\n`,
       );
     });
 
-    it("with translated source, translated service and one source", async () => {
+    it('with translated source, translated service and one source', async () => {
       // 70003 - Net 10.0.0.0/8
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]],
@@ -647,7 +647,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service and one service", async () => {
+    it('with translated source, translated service and one service', async () => {
       // 40031 - Rsync service
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]],
@@ -655,7 +655,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service, one source and one service", async () => {
+    it('with translated source, translated service, one source and one service', async () => {
       // 70003 - Net 10.0.0.0/8
       // 40031 - Rsync service
       await runTest(
@@ -668,11 +668,11 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
     });
   });
 
-  describe("SNAT with UDP translated service (NFTables)", () => {
+  describe('SNAT with UDP translated service (NFTables)', () => {
     before(() => {
-      IPv = "IPv4";
-      compiler = "NFTables";
-      nat = "DNAT";
+      IPv = 'IPv4';
+      compiler = 'NFTables';
+      nat = 'DNAT';
       ruleData.type = PolicyTypesMap.get(`${IPv}:${nat}`);
       translatedAddr = 50010; // Standard VRRP IP
       translatedService = 40011; // Standard domain service.
@@ -692,14 +692,14 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("only with translated source and translated service", async () => {
+    it('only with translated source and translated service', async () => {
       await runTest(
         [],
         `$NFT add rule ip nat PREROUTING ip protocol udp counter ${nat.toLowerCase()} to 224.0.0.18:53\n`,
       );
     });
 
-    it("with translated source, translated service and one source", async () => {
+    it('with translated source, translated service and one source', async () => {
       // 70003 - Net 10.0.0.0/8
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Source`), 70003]],
@@ -707,7 +707,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service and one service", async () => {
+    it('with translated source, translated service and one service', async () => {
       // 40031 - Rsync service
       await runTest(
         [[RulePositionsMap.get(`${IPv}:${nat}:Service`), 40031]],
@@ -715,7 +715,7 @@ describe(describeName("Policy Compiler Unit Tests - SNAT and DNAT"), () => {
       );
     });
 
-    it("with translated source, translated service, one source and one service", async () => {
+    it('with translated source, translated service, one source and one service', async () => {
       // 70003 - Net 10.0.0.0/8
       // 40031 - Rsync service
       await runTest(

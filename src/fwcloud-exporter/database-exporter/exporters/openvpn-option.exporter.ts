@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { OpenVPNOption } from "../../../models/vpn/openvpn/openvpn-option.model";
-import { SelectQueryBuilder } from "typeorm";
-import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
-import { OpenVPNExporter } from "./openvpn.exporter";
-import { IPObj } from "../../../models/ipobj/IPObj";
-import { IPObjExporter } from "./ipobj.exporter";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { OpenVPNOption } from '../../../models/vpn/openvpn/openvpn-option.model';
+import { SelectQueryBuilder } from 'typeorm';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
+import { OpenVPNExporter } from './openvpn.exporter';
+import { IPObj } from '../../../models/ipobj/IPObj';
+import { IPObjExporter } from './ipobj.exporter';
 
 export class OpenVPNOptionExporter extends TableExporter {
   protected getEntity(): typeof Model {
@@ -43,23 +43,23 @@ export class OpenVPNOptionExporter extends TableExporter {
       .where((qb) => {
         const subquery = qb
           .subQuery()
-          .from(OpenVPN, "openvpn")
-          .select("openvpn.id");
+          .from(OpenVPN, 'openvpn')
+          .select('openvpn.id');
 
         return (
           `${alias}.openVPNId IN ` +
           new OpenVPNExporter()
-            .getFilterBuilder(subquery, "openvpn", fwCloudId)
+            .getFilterBuilder(subquery, 'openvpn', fwCloudId)
             .getQuery()
         );
       })
       .orWhere((qb) => {
-        const subquery = qb.subQuery().from(IPObj, "ipobj").select("ipobj.id");
+        const subquery = qb.subQuery().from(IPObj, 'ipobj').select('ipobj.id');
 
         return (
           `${alias}.ipObjId IN ` +
           new IPObjExporter()
-            .getFilterBuilder(subquery, "ipobj", fwCloudId)
+            .getFilterBuilder(subquery, 'ipobj', fwCloudId)
             .getQuery()
         );
       });

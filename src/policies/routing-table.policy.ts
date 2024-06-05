@@ -20,19 +20,19 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Policy, Authorization } from "../fonaments/authorization/policy";
-import { Firewall } from "../models/firewall/Firewall";
-import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
-import { RoutingTable } from "../models/routing/routing-table/routing-table.model";
+import { Policy, Authorization } from '../fonaments/authorization/policy';
+import { Firewall } from '../models/firewall/Firewall';
+import { User } from '../models/user/User';
+import { getRepository } from 'typeorm';
+import { RoutingTable } from '../models/routing/routing-table/routing-table.model';
 
 export class RoutingTablePolicy extends Policy {
   static async create(firewall: Firewall, user: User): Promise<Authorization> {
     user = await getRepository(User).findOneOrFail(user.id, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
     firewall = await getRepository(Firewall).findOneOrFail(firewall.id, {
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
 
     if (user.role === 1) {
@@ -48,10 +48,10 @@ export class RoutingTablePolicy extends Policy {
 
   static async index(firewall: Firewall, user: User): Promise<Authorization> {
     user = await getRepository(User).findOneOrFail(user.id, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
     firewall = await getRepository(Firewall).findOneOrFail(firewall.id, {
-      relations: ["fwCloud"],
+      relations: ['fwCloud'],
     });
 
     if (user.role === 1) {
@@ -67,10 +67,10 @@ export class RoutingTablePolicy extends Policy {
 
   static async show(table: RoutingTable, user: User): Promise<Authorization> {
     user = await getRepository(User).findOneOrFail(user.id, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
     table = await getRepository(RoutingTable).findOneOrFail(table.id, {
-      relations: ["firewall", "firewall.fwCloud"],
+      relations: ['firewall', 'firewall.fwCloud'],
     });
 
     if (user.role === 1) {
@@ -86,10 +86,10 @@ export class RoutingTablePolicy extends Policy {
 
   static async update(table: RoutingTable, user: User): Promise<Authorization> {
     user = await getRepository(User).findOneOrFail(user.id, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
     table = await getRepository(RoutingTable).findOneOrFail(table.id, {
-      relations: ["firewall", "firewall.fwCloud"],
+      relations: ['firewall', 'firewall.fwCloud'],
     });
 
     if (user.role === 1) {
@@ -105,10 +105,10 @@ export class RoutingTablePolicy extends Policy {
 
   static async delete(table: RoutingTable, user: User): Promise<Authorization> {
     user = await getRepository(User).findOneOrFail(user.id, {
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
     table = await getRepository(RoutingTable).findOneOrFail(table.id, {
-      relations: ["firewall", "firewall.fwCloud"],
+      relations: ['firewall', 'firewall.fwCloud'],
     });
 
     if (user.role === 1) {

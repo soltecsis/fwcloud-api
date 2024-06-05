@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../http/middleware/Middleware";
-import { Request, Response, NextFunction } from "express";
-import { AuthorizationService } from "./authorization.service";
+import { Middleware } from '../http/middleware/Middleware';
+import { Request, Response, NextFunction } from 'express';
+import { AuthorizationService } from './authorization.service';
 
 export class AuthorizationMiddleware extends Middleware {
   public async handle(

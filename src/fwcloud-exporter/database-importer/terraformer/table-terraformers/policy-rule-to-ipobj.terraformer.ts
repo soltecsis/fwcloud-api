@@ -23,12 +23,12 @@
 import {
   TableTerraformer,
   TerraformHandlerCollection,
-} from "../table-terraformer";
-import { ImportMapping } from "../mapper/import-mapping";
-import { Interface } from "../../../../models/interface/Interface";
-import { IPObj } from "../../../../models/ipobj/IPObj";
-import { IPObjGroup } from "../../../../models/ipobj/IPObjGroup";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+} from '../table-terraformer';
+import { ImportMapping } from '../mapper/import-mapping';
+import { Interface } from '../../../../models/interface/Interface';
+import { IPObj } from '../../../../models/ipobj/IPObj';
+import { IPObjGroup } from '../../../../models/ipobj/IPObjGroup';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
 
 export class PolicyRuleToIpObjTerraformer extends TableTerraformer {
   public static async make(
@@ -47,24 +47,24 @@ export class PolicyRuleToIpObjTerraformer extends TableTerraformer {
   protected getCustomHandlers(): TerraformHandlerCollection {
     const result = {};
 
-    result["interfaceId"] = (
+    result['interfaceId'] = (
       mapper: ImportMapping,
       row: object,
       value: number,
     ) => {
-      return mapper.getMappedId(Interface._getTableName(), "id", value);
+      return mapper.getMappedId(Interface._getTableName(), 'id', value);
     };
 
-    result["ipObjId"] = (mapper: ImportMapping, row: object, value: number) => {
-      return mapper.getMappedId(IPObj._getTableName(), "id", value);
+    result['ipObjId'] = (mapper: ImportMapping, row: object, value: number) => {
+      return mapper.getMappedId(IPObj._getTableName(), 'id', value);
     };
 
-    result["ipObjGroupId"] = (
+    result['ipObjGroupId'] = (
       mapper: ImportMapping,
       row: object,
       value: number,
     ) => {
-      return mapper.getMappedId(IPObjGroup._getTableName(), "id", value);
+      return mapper.getMappedId(IPObjGroup._getTableName(), 'id', value);
     };
 
     return result;

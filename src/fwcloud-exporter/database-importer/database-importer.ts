@@ -20,29 +20,29 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Snapshot } from "../../snapshots/snapshot";
-import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { ExporterResult } from "../database-exporter/exporter-result";
+import { Snapshot } from '../../snapshots/snapshot';
+import { FwCloud } from '../../models/fwcloud/FwCloud';
+import { ExporterResult } from '../database-exporter/exporter-result';
 import {
   QueryRunner,
   DeepPartial,
   createQueryBuilder,
   getRepository,
-} from "typeorm";
-import { app } from "../../fonaments/abstract-application";
-import { DatabaseService } from "../../database/database.service";
-import { IdManager } from "./terraformer/mapper/id-manager";
-import { ImportMapping } from "./terraformer/mapper/import-mapping";
-import * as path from "path";
-import { Firewall } from "../../models/firewall/Firewall";
-import { FSHelper } from "../../utils/fs-helper";
-import { PathHelper } from "../../utils/path-helpers";
-import { Ca } from "../../models/vpn/pki/Ca";
-import * as fs from "fs";
-import { EventEmitter } from "events";
-import { Worker } from "worker_threads";
-import { InputData, OutputData } from "./terraform_table.worker";
-import { ProgressNoticePayload } from "../../sockets/messages/socket-message";
+} from 'typeorm';
+import { app } from '../../fonaments/abstract-application';
+import { DatabaseService } from '../../database/database.service';
+import { IdManager } from './terraformer/mapper/id-manager';
+import { ImportMapping } from './terraformer/mapper/import-mapping';
+import * as path from 'path';
+import { Firewall } from '../../models/firewall/Firewall';
+import { FSHelper } from '../../utils/fs-helper';
+import { PathHelper } from '../../utils/path-helpers';
+import { Ca } from '../../models/vpn/pki/Ca';
+import * as fs from 'fs';
+import { EventEmitter } from 'events';
+import { Worker } from 'worker_threads';
+import { InputData, OutputData } from './terraform_table.worker';
+import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
 
 export class DatabaseImporter {
   protected _mapper: ImportMapping;
@@ -77,14 +77,14 @@ export class DatabaseImporter {
     await queryRunner.startTransaction();
 
     try {
-      await queryRunner.query("SET FOREIGN_KEY_CHECKS = 0");
+      await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
 
       this._idManager = await IdManager.make(queryRunner, data.getTableNames());
       this._mapper = new ImportMapping(this._idManager, data);
       let index: number = 1;
       for (const tableName of data.getTableNames()) {
         this.eventEmitter.emit(
-          "message",
+          'message',
           new ProgressNoticePayload(`${index}/${data.getTableNames().length}`),
         );
 
@@ -126,7 +126,7 @@ export class DatabaseImporter {
         index++;
       }
       await Promise.all(promises);
-      await queryRunner.query("SET FOREIGN_KEY_CHECKS = 1");
+      await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
       await queryRunner.commitTransaction();
     } catch (e) {
       await queryRunner.rollbackTransaction();
@@ -181,13 +181,13 @@ export class DatabaseImporter {
       };
 
       const worker = new Worker(
-        path.join(__dirname, "terraform_table.worker.js"),
+        path.join(__dirname, 'terraform_table.worker.js'),
         {
           workerData: wData,
         },
       );
 
-      worker.on("message", (data: OutputData) => {
+      worker.on('message', (data: OutputData) => {
         if (data.error) {
           const error = new Error(data.error.message);
           error.stack = data.error.stack;
@@ -196,7 +196,7 @@ export class DatabaseImporter {
         return resolve(data);
       });
 
-      worker.on("error", (err) => {
+      worker.on('error', (err) => {
         return reject(err);
       });
     });
@@ -254,7 +254,7 @@ export class DatabaseImporter {
       );
       const importDirectory: string = path.join(
         path.join(
-          app().config.get("pki").data_dir,
+          app().config.get('pki').data_dir,
           fwCloud.id.toString(),
           newCaId.toString(),
         ),
@@ -283,7 +283,7 @@ export class DatabaseImporter {
       );
       const importDirectory: string = path.join(
         path.join(
-          app().config.get("policy").data_dir,
+          app().config.get('policy').data_dir,
           fwCloud.id.toString(),
           newFirewallId.toString(),
         ),

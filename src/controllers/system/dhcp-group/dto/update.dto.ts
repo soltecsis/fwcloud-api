@@ -1,4 +1,4 @@
-import { ArrayMinSize, IsNumber, IsOptional, IsString } from "class-validator";
+import { ArrayMinSize, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class DHCPGroupUpdateDto {
   @IsString()

@@ -28,10 +28,10 @@ import {
   Repository,
   SelectQueryBuilder,
   getRepository,
-} from "typeorm";
-import { Offset } from "../../../../offset";
-import { DHCPRule } from "./dhcp_r.model";
-import { Firewall } from "../../../firewall/Firewall";
+} from 'typeorm';
+import { Offset } from '../../../../offset';
+import { DHCPRule } from './dhcp_r.model';
+import { Firewall } from '../../../firewall/Firewall';
 
 interface IFindManyDHCPRPath {
   fwcloudId?: number;
@@ -74,9 +74,9 @@ export class DHCPRepository extends Repository<DHCPRule> {
         id: In(ids),
       },
       order: {
-        rule_order: "ASC",
+        rule_order: 'ASC',
       },
-      relations: ["firewall", "group"],
+      relations: ['firewall', 'group'],
     });
 
     let affectedDHCPs: DHCPRule[] = await this.findManyInPath({
@@ -244,30 +244,30 @@ export class DHCPRepository extends Repository<DHCPRule> {
     return Object.assign(
       {
         join: {
-          alias: "dhcp",
+          alias: 'dhcp',
           innerJoin: {
-            firewall: "dhcp.firewall",
-            fwcloud: "firewall.fwCloud",
+            firewall: 'dhcp.firewall',
+            fwcloud: 'firewall.fwCloud',
           },
         },
         where: (qb: SelectQueryBuilder<DHCPRule>): void => {
           if (path.firewallId) {
-            qb.andWhere("firewall.id = :firewallId", {
+            qb.andWhere('firewall.id = :firewallId', {
               firewallId: path.firewallId,
             });
           }
           if (path.fwcloudId) {
-            qb.andWhere("fwcloud.id = :fwcloudId", {
+            qb.andWhere('fwcloud.id = :fwcloudId', {
               fwcloudId: path.fwcloudId,
             });
           }
           if (path.dhcpGroupId) {
-            qb.andWhere("group.id = :dhcpGroupId", {
+            qb.andWhere('group.id = :dhcpGroupId', {
               dhcpGroupId: path.dhcpGroupId,
             });
           }
           if (path.id) {
-            qb.andWhere("dhcp.id = :id", { id: path.id });
+            qb.andWhere('dhcp.id = :id', { id: path.id });
           }
         },
       },
@@ -293,16 +293,16 @@ export class DHCPRepository extends Repository<DHCPRule> {
     }
 
     await this.query(
-      `SET @a:=0; UPDATE ${DHCPRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map((item) => item.id).join(",")}) ORDER BY rule_order`,
+      `SET @a:=0; UPDATE ${DHCPRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map((item) => item.id).join(',')}) ORDER BY rule_order`,
     );
   }
 
   async getLastDHCPRuleInFirewall(
     firewall: number,
   ): Promise<DHCPRule | undefined> {
-    return this.createQueryBuilder("rule")
-      .where("rule.firewall = :firewall", { firewall })
-      .orderBy("rule.rule_order", "DESC")
+    return this.createQueryBuilder('rule')
+      .where('rule.firewall = :firewall', { firewall })
+      .orderBy('rule.rule_order', 'DESC')
       .take(1)
       .getOne();
   }
@@ -315,48 +315,48 @@ export class DHCPRepository extends Repository<DHCPRule> {
     forCompilation: boolean = false,
   ): Promise<DHCPRule[]> {
     const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder(
-      "dhcp_r",
+      'dhcp_r',
     )
-      .leftJoinAndSelect("dhcp_r.group", "group")
-      .leftJoinAndSelect("dhcp_r.network", "network")
-      .leftJoinAndSelect("dhcp_r.range", "range")
-      .leftJoinAndSelect("dhcp_r.router", "router")
-      .leftJoinAndSelect("router.interface", "routerInterface")
-      .leftJoinAndSelect("routerInterface.firewall", "routerFirewall")
-      .leftJoinAndSelect("routerInterface.hosts", "routerInterfaceHosts")
+      .leftJoinAndSelect('dhcp_r.group', 'group')
+      .leftJoinAndSelect('dhcp_r.network', 'network')
+      .leftJoinAndSelect('dhcp_r.range', 'range')
+      .leftJoinAndSelect('dhcp_r.router', 'router')
+      .leftJoinAndSelect('router.interface', 'routerInterface')
+      .leftJoinAndSelect('routerInterface.firewall', 'routerFirewall')
+      .leftJoinAndSelect('routerInterface.hosts', 'routerInterfaceHosts')
       .leftJoinAndSelect(
-        "routerInterfaceHosts.hostIPObj",
-        "routerInterfaceHostIPObj",
+        'routerInterfaceHosts.hostIPObj',
+        'routerInterfaceHostIPObj',
       )
-      .leftJoinAndSelect("routerFirewall.cluster", "routerCluster")
-      .leftJoinAndSelect("dhcp_r.interface", "interface")
-      .leftJoinAndSelect("interface.firewall", "interfaceFirewall")
-      .leftJoinAndSelect("interfaceFirewall.cluster", "interfaceCluster")
-      .leftJoinAndSelect("interface.hosts", "hosts")
-      .leftJoinAndSelect("hosts.hostIPObj", "hostIPObj")
-      .leftJoinAndSelect("dhcp_r.firewall", "firewall")
-      .leftJoinAndSelect("firewall.fwCloud", "fwCloud")
-      .where("firewall.id = :firewallId", { firewallId: firewall })
-      .andWhere("fwCloud.id = :fwCloudId", { fwCloudId: FWCloud });
+      .leftJoinAndSelect('routerFirewall.cluster', 'routerCluster')
+      .leftJoinAndSelect('dhcp_r.interface', 'interface')
+      .leftJoinAndSelect('interface.firewall', 'interfaceFirewall')
+      .leftJoinAndSelect('interfaceFirewall.cluster', 'interfaceCluster')
+      .leftJoinAndSelect('interface.hosts', 'hosts')
+      .leftJoinAndSelect('hosts.hostIPObj', 'hostIPObj')
+      .leftJoinAndSelect('dhcp_r.firewall', 'firewall')
+      .leftJoinAndSelect('firewall.fwCloud', 'fwCloud')
+      .where('firewall.id = :firewallId', { firewallId: firewall })
+      .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: FWCloud });
 
     if (rule_types) {
       query
-        .andWhere("dhcp_r.rule_type IN (:...rule_types)")
-        .setParameter("rule_types", rule_types);
+        .andWhere('dhcp_r.rule_type IN (:...rule_types)')
+        .setParameter('rule_types', rule_types);
 
       if (forCompilation) {
         query
-          .orderBy("FIELD(dhcp_r.rule_type, :...rule_types)", "ASC")
-          .addOrderBy("dhcp_r.rule_order", "ASC");
+          .orderBy('FIELD(dhcp_r.rule_type, :...rule_types)', 'ASC')
+          .addOrderBy('dhcp_r.rule_order', 'ASC');
       } else {
-        query.orderBy("dhcp_r.rule_order", "ASC");
+        query.orderBy('dhcp_r.rule_order', 'ASC');
       }
     } else {
-      query.orderBy("dhcp_r.rule_order", "ASC");
+      query.orderBy('dhcp_r.rule_order', 'ASC');
     }
 
     if (rules) {
-      query.andWhere("dhcp_r.id IN (:...rule)").setParameter("rule", rules);
+      query.andWhere('dhcp_r.id IN (:...rule)').setParameter('rule', rules);
     }
 
     const dhcpRules: DHCPRule[] = await query.getMany();

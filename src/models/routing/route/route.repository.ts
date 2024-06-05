@@ -31,10 +31,10 @@ import {
   RemoveOptions,
   Repository,
   SelectQueryBuilder,
-} from "typeorm";
-import { Offset } from "../../../offset";
-import { RoutingTable } from "../routing-table/routing-table.model";
-import { Route } from "./route.model";
+} from 'typeorm';
+import { Offset } from '../../../offset';
+import { RoutingTable } from '../routing-table/routing-table.model';
+import { Route } from './route.model';
 
 interface IFindManyRoutePath {
   fwCloudId?: number;
@@ -89,9 +89,9 @@ export class RouteRepository extends Repository<Route> {
         id: In(ids),
       },
       order: {
-        route_order: "ASC",
+        route_order: 'ASC',
       },
-      relations: ["routingTable", "routingTable.firewall"],
+      relations: ['routingTable', 'routingTable.firewall'],
     });
 
     let affectedRoutes: Route[] = await this.findManyInPath({
@@ -202,7 +202,7 @@ export class RouteRepository extends Repository<Route> {
       where: {
         id: In(entityArray.map((item) => item.id)),
       },
-      relations: ["routingTable"],
+      relations: ['routingTable'],
     });
 
     for (const entity of entitiesWithRoutingTable) {
@@ -235,7 +235,7 @@ export class RouteRepository extends Repository<Route> {
           routingTableId: routingTableId,
         },
         order: {
-          route_order: "DESC",
+          route_order: 'DESC',
         },
         take: 1,
       })
@@ -248,22 +248,22 @@ export class RouteRepository extends Repository<Route> {
     routingTable: number,
     routes?: number[],
   ): Promise<Route[]> {
-    let query = this.createQueryBuilder("route")
-      .innerJoinAndSelect("route.gateway", "gateway")
-      .leftJoinAndSelect("route.interface", "interface")
-      .leftJoinAndSelect("route.routeGroup", "group")
-      .leftJoinAndSelect("route.firewallApplyTo", "cluster_node")
-      .innerJoinAndSelect("route.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .innerJoin("firewall.fwCloud", "fwcloud")
-      .where("table.id = :routingTable", { routingTable })
-      .andWhere("firewall.id = :firewall", { firewall: firewall })
-      .andWhere("fwcloud.id = :fwcloud", { fwcloud: fwcloud });
+    let query = this.createQueryBuilder('route')
+      .innerJoinAndSelect('route.gateway', 'gateway')
+      .leftJoinAndSelect('route.interface', 'interface')
+      .leftJoinAndSelect('route.routeGroup', 'group')
+      .leftJoinAndSelect('route.firewallApplyTo', 'cluster_node')
+      .innerJoinAndSelect('route.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwcloud')
+      .where('table.id = :routingTable', { routingTable })
+      .andWhere('firewall.id = :firewall', { firewall: firewall })
+      .andWhere('fwcloud.id = :fwcloud', { fwcloud: fwcloud });
 
     if (routes)
-      query = query.andWhere("route.id IN (:...routes)", { routes: routes });
+      query = query.andWhere('route.id IN (:...routes)', { routes: routes });
 
-    return query.orderBy("route.route_order").getMany();
+    return query.orderBy('route.route_order').getMany();
   }
 
   /**
@@ -282,7 +282,7 @@ export class RouteRepository extends Repository<Route> {
     }
 
     await this.query(
-      `SET @a:=0; UPDATE ${Route._getTableName()} SET route_order=@a:=@a+1 WHERE id IN (${affectedRoutes.map((item) => item.id).join(",")}) ORDER BY route_order`,
+      `SET @a:=0; UPDATE ${Route._getTableName()} SET route_order=@a:=@a+1 WHERE id IN (${affectedRoutes.map((item) => item.id).join(',')}) ORDER BY route_order`,
     );
   }
 
@@ -293,32 +293,32 @@ export class RouteRepository extends Repository<Route> {
     return Object.assign(
       {
         join: {
-          alias: "route",
+          alias: 'route',
           innerJoin: {
-            table: "route.routingTable",
-            firewall: "table.firewall",
-            fwcloud: "firewall.fwCloud",
+            table: 'route.routingTable',
+            firewall: 'table.firewall',
+            fwcloud: 'firewall.fwCloud',
           },
         },
         where: (qb: SelectQueryBuilder<Route>) => {
           if (path.firewallId) {
-            qb.andWhere("firewall.id = :firewall", {
+            qb.andWhere('firewall.id = :firewall', {
               firewall: path.firewallId,
             });
           }
 
           if (path.fwCloudId) {
-            qb.andWhere("firewall.fwCloudId = :fwcloud", {
+            qb.andWhere('firewall.fwCloudId = :fwcloud', {
               fwcloud: path.fwCloudId,
             });
           }
 
           if (path.routingTableId) {
-            qb.andWhere("table.id = :table", { table: path.routingTableId });
+            qb.andWhere('table.id = :table', { table: path.routingTableId });
           }
 
           if (path.id) {
-            qb.andWhere("rule.id = :id", { id: path.id });
+            qb.andWhere('rule.id = :id', { id: path.id });
           }
         },
       },

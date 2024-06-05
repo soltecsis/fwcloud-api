@@ -20,12 +20,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../fonaments/http/controller";
-import { IptablesSaveService } from "../../iptables-save/iptables-save.service";
-import { IptablesSaveStats } from "../../iptables-save/iptables-save.data";
-import { Request } from "express";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { app } from "../../fonaments/abstract-application";
+import { Controller } from '../../fonaments/http/controller';
+import { IptablesSaveService } from '../../iptables-save/iptables-save.service';
+import { IptablesSaveStats } from '../../iptables-save/iptables-save.data';
+import { Request } from 'express';
+import { ResponseBuilder } from '../../fonaments/http/response-builder';
+import { app } from '../../fonaments/abstract-application';
 
 export class IptablesSaveController extends Controller {
   protected _iptablesSaveService: IptablesSaveService;
@@ -44,7 +44,7 @@ export class IptablesSaveController extends Controller {
 
     let result: IptablesSaveStats;
 
-    if (request.body.type === "data")
+    if (request.body.type === 'data')
       result = await this._iptablesSaveService.import(request);
     // ssh
     else

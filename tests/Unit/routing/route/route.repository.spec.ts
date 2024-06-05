@@ -1,17 +1,17 @@
-import { getCustomRepository, getRepository } from "typeorm";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { IPObj } from "../../../../src/models/ipobj/IPObj";
-import { RouteGroup } from "../../../../src/models/routing/route-group/route-group.model";
-import { RouteGroupService } from "../../../../src/models/routing/route-group/route-group.service";
-import { Route } from "../../../../src/models/routing/route/route.model";
-import { RouteRepository } from "../../../../src/models/routing/route/route.repository";
-import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
-import { RoutingTableService } from "../../../../src/models/routing/routing-table/routing-table.service";
-import { Tree } from "../../../../src/models/tree/Tree";
-import { Offset } from "../../../../src/offset";
-import StringHelper from "../../../../src/utils/string.helper";
-import { expect, testSuite } from "../../../mocha/global-setup";
+import { getCustomRepository, getRepository } from 'typeorm';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { IPObj } from '../../../../src/models/ipobj/IPObj';
+import { RouteGroup } from '../../../../src/models/routing/route-group/route-group.model';
+import { RouteGroupService } from '../../../../src/models/routing/route-group/route-group.service';
+import { Route } from '../../../../src/models/routing/route/route.model';
+import { RouteRepository } from '../../../../src/models/routing/route/route.repository';
+import { RoutingTable } from '../../../../src/models/routing/routing-table/routing-table.model';
+import { RoutingTableService } from '../../../../src/models/routing/routing-table/routing-table.service';
+import { Tree } from '../../../../src/models/tree/Tree';
+import { Offset } from '../../../../src/offset';
+import StringHelper from '../../../../src/utils/string.helper';
+import { expect, testSuite } from '../../../mocha/global-setup';
 
 describe(RouteRepository.name, () => {
   let repository: RouteRepository;
@@ -50,30 +50,30 @@ describe(RouteRepository.name, () => {
     await Tree.createAllTreeCloud(fwCloud);
     const node: { id: number } = (await Tree.getNodeByNameAndType(
       fwCloud.id,
-      "FIREWALLS",
-      "FDF",
+      'FIREWALLS',
+      'FDF',
     )) as { id: number };
     await Tree.insertFwc_Tree_New_firewall(fwCloud.id, node.id, firewall.id);
 
     table = await tableService.create({
       firewallId: firewall.id,
-      name: "name",
+      name: 'name',
       number: 1,
       comment: null,
     });
 
     gateway = await getRepository(IPObj).save(
       getRepository(IPObj).create({
-        name: "test",
-        address: "0.0.0.0",
+        name: 'test',
+        address: '0.0.0.0',
         ipObjTypeId: 0,
         interfaceId: null,
       }),
     );
   });
 
-  describe("move", () => {
-    it("should manage route_order forward changes", async () => {
+  describe('move', () => {
+    it('should manage route_order forward changes', async () => {
       const routeOrder1: Route = await repository.save({
         routingTableId: table.id,
         route_order: 1,
@@ -103,7 +103,7 @@ describe(RouteRepository.name, () => {
       expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(3);
     });
 
-    it("should manage route_order backward changes", async () => {
+    it('should manage route_order backward changes', async () => {
       const routeOrder1: Route = await repository.save({
         routingTableId: table.id,
         route_order: 1,
@@ -133,7 +133,7 @@ describe(RouteRepository.name, () => {
       expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(2);
     });
 
-    it("should add to a group is destination belongs to a group", async () => {
+    it('should add to a group is destination belongs to a group', async () => {
       const routeOrder1: Route = await repository.save({
         routingTableId: table.id,
         route_order: 1,
@@ -151,7 +151,7 @@ describe(RouteRepository.name, () => {
       });
 
       const group: RouteGroup = await routeGroupService.create({
-        name: "group",
+        name: 'group',
         routes: [routeOrder2],
         firewallId: firewall.id,
       });
@@ -166,8 +166,8 @@ describe(RouteRepository.name, () => {
       );
     });
 
-    describe("bulk", () => {
-      it("should manage route_order forward changes", async () => {
+    describe('bulk', () => {
+      it('should manage route_order forward changes', async () => {
         const routeOrder1: Route = await repository.save({
           routingTableId: table.id,
           route_order: 1,
@@ -201,7 +201,7 @@ describe(RouteRepository.name, () => {
         expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(4);
       });
 
-      it("should manage route_order backward changes", async () => {
+      it('should manage route_order backward changes', async () => {
         const routeOrder1: Route = await repository.save({
           routingTableId: table.id,
           route_order: 1,
@@ -235,7 +235,7 @@ describe(RouteRepository.name, () => {
         expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(3);
       });
 
-      it("should add to a group is destination belongs to a group", async () => {
+      it('should add to a group is destination belongs to a group', async () => {
         const routeOrder1: Route = await repository.save({
           routingTableId: table.id,
           route_order: 1,
@@ -253,7 +253,7 @@ describe(RouteRepository.name, () => {
         });
 
         const group: RouteGroup = await routeGroupService.create({
-          name: "group",
+          name: 'group',
           routes: [routeOrder1],
           firewallId: firewall.id,
         });
@@ -274,8 +274,8 @@ describe(RouteRepository.name, () => {
     });
   });
 
-  describe("remove", () => {
-    it("should refresh orders after remove", async () => {
+  describe('remove', () => {
+    it('should refresh orders after remove', async () => {
       const routeOrder1: Route = await repository.save({
         routingTableId: table.id,
         route_order: 1,

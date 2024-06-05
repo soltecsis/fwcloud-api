@@ -20,26 +20,26 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
-import db from "../../database/database-manager";
-import { PrimaryColumn, Column, Entity, OneToMany } from "typeorm";
-import { PolicyPosition } from "./PolicyPosition";
-import { PolicyRule } from "./PolicyRule";
-import { logger } from "../../fonaments/abstract-application";
+import Model from '../Model';
+import db from '../../database/database-manager';
+import { PrimaryColumn, Column, Entity, OneToMany } from 'typeorm';
+import { PolicyPosition } from './PolicyPosition';
+import { PolicyRule } from './PolicyRule';
+import { logger } from '../../fonaments/abstract-application';
 
-const tableName: string = "policy_type";
+const tableName: string = 'policy_type';
 
 export const PolicyTypesMap = new Map<string, number>([
-  ["IPv4:INPUT", 1],
-  ["IPv4:OUTPUT", 2],
-  ["IPv4:FORWARD", 3],
-  ["IPv4:SNAT", 4],
-  ["IPv4:DNAT", 5],
-  ["IPv6:INPUT", 61],
-  ["IPv6:OUTPUT", 62],
-  ["IPv6:FORWARD", 63],
-  ["IPv6:SNAT", 64],
-  ["IPv6:DNAT", 65],
+  ['IPv4:INPUT', 1],
+  ['IPv4:OUTPUT', 2],
+  ['IPv4:FORWARD', 3],
+  ['IPv4:SNAT', 4],
+  ['IPv4:DNAT', 5],
+  ['IPv6:INPUT', 61],
+  ['IPv6:OUTPUT', 62],
+  ['IPv6:FORWARD', 63],
+  ['IPv6:SNAT', 64],
+  ['IPv6:DNAT', 65],
 ]);
 
 @Entity(tableName)
@@ -71,7 +71,7 @@ export class PolicyType extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query(
-        "SELECT * FROM " + tableName + " ORDER BY type_order",
+        'SELECT * FROM ' + tableName + ' ORDER BY type_order',
         (error, rows) => {
           if (error) callback(error, null);
           else callback(null, rows);
@@ -85,7 +85,7 @@ export class PolicyType extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "SELECT * FROM " + tableName + " WHERE id = " + connection.escape(id);
+        'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
         else {
@@ -100,7 +100,7 @@ export class PolicyType extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "SELECT * FROM " + tableName + " WHERE type = " + connection.escape(id);
+        'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(id);
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
         else {
@@ -114,13 +114,13 @@ export class PolicyType extends Model {
   public static getPolicy_typeName(name, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      const namesql = "%" + name + "%";
+      const namesql = '%' + name + '%';
       const sql =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " WHERE name like  " +
+        ' WHERE name like  ' +
         connection.escape(namesql) +
-        " ORDER BY type_order";
+        ' ORDER BY type_order';
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
         else callback(null, row);
@@ -133,7 +133,7 @@ export class PolicyType extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query(
-        "INSERT INTO " + tableName + " SET ?",
+        'INSERT INTO ' + tableName + ' SET ?',
         policy_typeData,
         (error, result) => {
           if (error) {
@@ -152,18 +152,18 @@ export class PolicyType extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "UPDATE " +
+        'UPDATE ' +
         tableName +
-        " SET name = " +
+        ' SET name = ' +
         connection.escape(policy_typeData.name) +
-        ", " +
-        " SET type = " +
+        ', ' +
+        ' SET type = ' +
         connection.escape(policy_typeData.type) +
-        ", " +
-        " SET id = " +
+        ', ' +
+        ' SET id = ' +
         connection.escape(policy_typeData.id) +
-        " " +
-        " WHERE type = " +
+        ' ' +
+        ' WHERE type = ' +
         policy_typeData.type;
       logger().debug(sql);
       connection.query(sql, (error, result) => {
@@ -181,18 +181,18 @@ export class PolicyType extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " WHERE type = " +
+        ' WHERE type = ' +
         connection.escape(type);
       connection.query(sqlExists, (error, row) => {
         //If exists Id from policy_type to remove
         if (row) {
           db.get((error, connection) => {
             const sql =
-              "DELETE FROM " +
+              'DELETE FROM ' +
               tableName +
-              " WHERE type = " +
+              ' WHERE type = ' +
               connection.escape(type);
             connection.query(sql, (error, result) => {
               if (error) {

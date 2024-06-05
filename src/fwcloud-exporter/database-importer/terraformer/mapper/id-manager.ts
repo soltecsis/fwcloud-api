@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../../../../models/Model";
-import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
-import { QueryRunner } from "typeorm";
+import Model from '../../../../models/Model';
+import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs';
+import { QueryRunner } from 'typeorm';
 
 export type TableIdState = {
   [tableName: string]: { [propertyName: string]: number };
@@ -75,7 +75,7 @@ export class IdManager {
 
         for (let i = 0; i < primaryKeys.length; i++) {
           if (!entity.isJoinColumn(primaryKeys[i].propertyName)) {
-            if ((<Function>primaryKeys[i].options.type).name === "Number") {
+            if ((<Function>primaryKeys[i].options.type).name === 'Number') {
               const primaryKeyPropertyName: string =
                 primaryKeys[i].propertyName;
               // TypeORM might apply some kind of propertyName mapping.
@@ -85,10 +85,10 @@ export class IdManager {
 
               const queryBuilder = queryRunner.manager
                 .createQueryBuilder(tableName, tableName)
-                .select(`MAX(${originalColumnName})`, "id");
+                .select(`MAX(${originalColumnName})`, 'id');
 
               // If the table is empty, the returned value is null. We set 0 because it will be incremented afterwards
-              const id = (await queryBuilder.execute())[0]["id"] || 0;
+              const id = (await queryBuilder.execute())[0]['id'] || 0;
 
               ids[tableName] = {};
               ids[tableName][primaryKeyPropertyName] = id ? id + 1 : 1;

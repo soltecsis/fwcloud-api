@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
-import fwcError from "../utils/error_table";
-import { Request, Response, NextFunction } from "express";
-import { logger } from "../fonaments/abstract-application";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
+import fwcError from '../utils/error_table';
+import { Request, Response, NextFunction } from 'express';
+import { logger } from '../fonaments/abstract-application';
 
 export class InputValidation extends Middleware {
   public async handle(
@@ -33,13 +33,13 @@ export class InputValidation extends Middleware {
   ): Promise<void> {
     // The FWCloud.net API only supports these HTTP methods.
     if (
-      req.method !== "POST" &&
-      req.method !== "GET" &&
-      req.method !== "PUT" &&
-      req.method !== "DELETE"
+      req.method !== 'POST' &&
+      req.method !== 'GET' &&
+      req.method !== 'PUT' &&
+      req.method !== 'DELETE'
     ) {
       logger().error(
-        "Error during input validation check: " +
+        'Error during input validation check: ' +
           JSON.stringify(fwcError.NOT_ACCEPTED_METHOD),
       );
       res.status(400).json(fwcError.NOT_ACCEPTED_METHOD);
@@ -47,52 +47,52 @@ export class InputValidation extends Middleware {
     }
 
     if (
-      (req.method === "GET" || req.method === "DELETE") &&
+      (req.method === 'GET' || req.method === 'DELETE') &&
       Object.keys(req.body).length !== 0
     ) {
       logger().error(
-        "Error during input validation check: " +
+        'Error during input validation check: ' +
           JSON.stringify(fwcError.BODY_MUST_BE_EMPTY),
       );
       res.status(400).json(fwcError.BODY_MUST_BE_EMPTY);
       return;
     }
 
-    const item1 = req.url.split("/")[1];
+    const item1 = req.url.split('/')[1];
     const item1_valid_list = [
-      "user",
-      "customer",
-      "fwcloud",
-      "firewall",
-      "cluster",
-      "policy",
-      "interface",
-      "ipobj",
-      "tree",
-      "vpn",
-      "config",
+      'user',
+      'customer',
+      'fwcloud',
+      'firewall',
+      'cluster',
+      'policy',
+      'interface',
+      'ipobj',
+      'tree',
+      'vpn',
+      'config',
     ];
 
     const item1_new_route_system = [
-      "backups",
-      "version",
-      "fwclouds",
-      "updates",
-      "iptables-save",
-      "ping",
-      "profile",
-      "openvpnarchives",
-      "systemctl",
+      'backups',
+      'version',
+      'fwclouds',
+      'updates',
+      'iptables-save',
+      'ping',
+      'profile',
+      'openvpnarchives',
+      'systemctl',
     ];
 
     // Verify that item1 is in the valid list.
     if (
       !item1_valid_list.includes(item1) &&
-      !item1_new_route_system.includes(item1.replace(/\?.*/, ""))
+      !item1_new_route_system.includes(item1.replace(/\?.*/, ''))
     ) {
-      logger().error("Unknown route: " + item1);
+      logger().error('Unknown route: ' + item1);
       logger().error(
-        "Error during input validation check: " +
+        'Error during input validation check: ' +
           JSON.stringify(fwcError.BAD_API_CALL),
       );
       res.status(404).json(fwcError.BAD_API_CALL);
@@ -100,22 +100,22 @@ export class InputValidation extends Middleware {
     }
 
     if (
-      item1_new_route_system.includes(item1.replace(/\?.*/, "")) &&
-      item1 != "iptables-save"
+      item1_new_route_system.includes(item1.replace(/\?.*/, '')) &&
+      item1 != 'iptables-save'
     ) {
       return next();
     }
 
     // URLs excluded of the input data validation process because don't have any data to be validated.
     if (
-      (req.method === "GET" && req.url === "/fwcloud/all/get") ||
-      (req.method === "GET" && req.url === "/firewall/all/get") ||
-      (req.method === "GET" && req.url === "/cluster/all/get") ||
-      (req.method === "GET" && req.url === "/ipobj/types") ||
-      (req.method === "GET" && req.url === "/ipobj/positions/policy") ||
-      (req.method === "GET" && req.url === "/policy/types") ||
-      (req.method === "GET" && req.url === "/stream") ||
-      (req.method === "GET" && req.url === "/config")
+      (req.method === 'GET' && req.url === '/fwcloud/all/get') ||
+      (req.method === 'GET' && req.url === '/firewall/all/get') ||
+      (req.method === 'GET' && req.url === '/cluster/all/get') ||
+      (req.method === 'GET' && req.url === '/ipobj/types') ||
+      (req.method === 'GET' && req.url === '/ipobj/positions/policy') ||
+      (req.method === 'GET' && req.url === '/policy/types') ||
+      (req.method === 'GET' && req.url === '/stream') ||
+      (req.method === 'GET' && req.url === '/config')
     )
       return next();
 
@@ -126,15 +126,15 @@ export class InputValidation extends Middleware {
       // If we arrive here then input data has been sucessfully validated.
       next();
     } catch (error) {
-      if (Object.prototype.hasOwnProperty.call(error, "_object")) {
+      if (Object.prototype.hasOwnProperty.call(error, '_object')) {
         delete error._object;
       }
 
       logger().error(
-        "Error during input validation check: " + JSON.stringify(error),
+        'Error during input validation check: ' + JSON.stringify(error),
       );
 
-      if (error.code === "MODULE_NOT_FOUND") {
+      if (error.code === 'MODULE_NOT_FOUND') {
         res.status(400).json(fwcError.MODULE_NOT_FOUND);
       } else {
         res.status(400).json(error);

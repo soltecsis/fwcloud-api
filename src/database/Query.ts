@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import db from "./database-manager";
-import { QueryRunner, Connection } from "typeorm";
-import * as sqlstring from "sqlstring";
+import db from './database-manager';
+import { QueryRunner, Connection } from 'typeorm';
+import * as sqlstring from 'sqlstring';
 
 export default class Query {
   public query(
@@ -43,7 +43,7 @@ export default class Query {
   ): void {
     const queryRunner: QueryRunner = db.getQueryRunner();
 
-    if (typeof params === "function") {
+    if (typeof params === 'function') {
       callback = params;
       params = [];
     }

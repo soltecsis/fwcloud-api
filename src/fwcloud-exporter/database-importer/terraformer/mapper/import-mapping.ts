@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IdManager } from "./id-manager";
-import { ExporterResult } from "../../../database-exporter/exporter-result";
+import { IdManager } from './id-manager';
+import { ExporterResult } from '../../../database-exporter/exporter-result';
 
 export type IdMap = { old: any; new: any };
 

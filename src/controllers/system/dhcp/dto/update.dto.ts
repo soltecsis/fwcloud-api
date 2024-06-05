@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Type } from "class-transformer";
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsOptional,
@@ -29,8 +29,8 @@ import {
   Min,
   IsArray,
   ValidateNested,
-} from "class-validator";
-import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
+} from 'class-validator';
+import { PositionalEntityDto } from '../../../dtos/positional-entity.dto';
 
 export class DHCPRuleUpdateDto {
   @IsBoolean()

@@ -1,15 +1,15 @@
-import { getCustomRepository, getRepository } from "typeorm";
-import { Application } from "../../../../src/Application";
-import rule from "../../../../src/middleware/joi_schemas/policy/rule";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { RoutingGroup } from "../../../../src/models/routing/routing-group/routing-group.model";
-import { RoutingGroupService } from "../../../../src/models/routing/routing-group/routing-group.service";
-import { RoutingRule } from "../../../../src/models/routing/routing-rule/routing-rule.model";
-import { RoutingRuleRepository } from "../../../../src/models/routing/routing-rule/routing-rule.repository";
-import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
-import StringHelper from "../../../../src/utils/string.helper";
-import { expect, testSuite } from "../../../mocha/global-setup";
+import { getCustomRepository, getRepository } from 'typeorm';
+import { Application } from '../../../../src/Application';
+import rule from '../../../../src/middleware/joi_schemas/policy/rule';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { RoutingGroup } from '../../../../src/models/routing/routing-group/routing-group.model';
+import { RoutingGroupService } from '../../../../src/models/routing/routing-group/routing-group.service';
+import { RoutingRule } from '../../../../src/models/routing/routing-rule/routing-rule.model';
+import { RoutingRuleRepository } from '../../../../src/models/routing/routing-rule/routing-rule.repository';
+import { RoutingTable } from '../../../../src/models/routing/routing-table/routing-table.model';
+import StringHelper from '../../../../src/utils/string.helper';
+import { expect, testSuite } from '../../../mocha/global-setup';
 
 describe(RoutingGroupService.name, () => {
   let fwCloud: FwCloud;
@@ -41,7 +41,7 @@ describe(RoutingGroupService.name, () => {
     table = await getRepository(RoutingTable).save({
       firewallId: firewall.id,
       number: 1,
-      name: "name",
+      name: 'name',
     });
 
     rule = await getCustomRepository(RoutingRuleRepository).save({
@@ -50,13 +50,13 @@ describe(RoutingGroupService.name, () => {
     });
 
     group = await getRepository(RoutingGroup).save({
-      name: "group",
+      name: 'group',
       firewallId: firewall.id,
       routingRules: [rule],
     });
   });
-  describe("update", () => {
-    it("should remove the group if its empty", async () => {
+  describe('update', () => {
+    it('should remove the group if its empty', async () => {
       await service.update(group.id, {
         routingRules: [],
       });

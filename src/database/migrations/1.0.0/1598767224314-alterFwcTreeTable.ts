@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class alterFwcTreeTable1598767224314 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<any> {

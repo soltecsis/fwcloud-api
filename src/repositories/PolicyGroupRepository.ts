@@ -26,9 +26,9 @@ import {
   DeleteResult,
   InsertResult,
   EntityRepository,
-} from "typeorm";
-import { PolicyGroup } from "../models/policy/PolicyGroup";
-import { PolicyRule } from "../models/policy/PolicyRule";
+} from 'typeorm';
+import { PolicyGroup } from '../models/policy/PolicyGroup';
+import { PolicyRule } from '../models/policy/PolicyRule';
 
 @EntityRepository(PolicyGroup)
 export class PolicyGroupRepository extends Repository<PolicyGroup> {
@@ -64,7 +64,7 @@ export class PolicyGroupRepository extends Repository<PolicyGroup> {
     if (
       (
         await this.createQueryBuilder()
-          .relation(PolicyGroup, "policyRules")
+          .relation(PolicyGroup, 'policyRules')
           .of(policyGroup)
           .loadMany()
       ).length === 0

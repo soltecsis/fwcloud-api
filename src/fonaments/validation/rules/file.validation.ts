@@ -2,8 +2,8 @@ import {
   ValidationArguments,
   ValidatorConstraint,
   ValidatorConstraintInterface,
-} from "class-validator";
-import { FileInfo } from "../../http/files/file-info";
+} from 'class-validator';
+import { FileInfo } from '../../http/files/file-info';
 
 @ValidatorConstraint({ async: false })
 export class IsFile implements ValidatorConstraintInterface {

@@ -20,18 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../fonaments/http/controller";
-import { Request } from "express";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { FwCloudService } from "../../models/fwcloud/fwcloud.service";
-import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { colorUsage } from "../../models/fwcloud/FwCloud-colors";
-import { Validate } from "../../decorators/validate.decorator";
-import { FwCloudPolicy } from "../../policies/fwcloud.policy";
-import { FwCloudControllerStoreDto } from "./dtos/store.dto";
-import { FwCloudControllerUpdateDto } from "./dtos/update.dto";
+import { Controller } from '../../fonaments/http/controller';
+import { Request } from 'express';
+import { ResponseBuilder } from '../../fonaments/http/response-builder';
+import { FwCloudService } from '../../models/fwcloud/fwcloud.service';
+import { FwCloud } from '../../models/fwcloud/FwCloud';
+import { colorUsage } from '../../models/fwcloud/FwCloud-colors';
+import { Validate } from '../../decorators/validate.decorator';
+import { FwCloudPolicy } from '../../policies/fwcloud.policy';
+import { FwCloudControllerStoreDto } from './dtos/store.dto';
+import { FwCloudControllerUpdateDto } from './dtos/update.dto';
 
-const fwcError = require("../../utils/error_table");
+const fwcError = require('../../utils/error_table');
 
 export class FwCloudController extends Controller {
   protected _fwCloudService: FwCloudService;
@@ -51,8 +51,8 @@ export class FwCloudController extends Controller {
     await FwCloud.getFwclouds(request.dbCon, request.session.user_id).then(
       (result: FwCloud[]) => {
         errorLimit =
-          this._app.config.get("limits").fwclouds > 0 &&
-          result.length >= this._app.config.get("limits").fwclouds;
+          this._app.config.get('limits').fwclouds > 0 &&
+          result.length >= this._app.config.get('limits').fwclouds;
       },
     );
 
@@ -101,10 +101,10 @@ export class FwCloudController extends Controller {
 
   @Validate()
   public async getConfig(): Promise<ResponseBuilder> {
-    let availablecommunications: string[] = ["agent"];
+    let availablecommunications: string[] = ['agent'];
 
-    if (this._app.config.get("firewall_communication").ssh_enable) {
-      availablecommunications = ["agent", "ssh"];
+    if (this._app.config.get('firewall_communication').ssh_enable) {
+      availablecommunications = ['agent', 'ssh'];
     }
 
     return ResponseBuilder.buildResponse()

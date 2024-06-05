@@ -20,38 +20,38 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
-import { testSuite, expect, describeName } from "../../../mocha/global-setup";
-import { DatabaseService } from "../../../../src/database/database.service";
-import { MigrationRunCommand } from "../../../../src/cli/commands/migration-run.command";
-import { QueryRunner } from "typeorm";
-import { runCLICommandIsolated } from "../../../utils/utils";
+import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
+import { testSuite, expect, describeName } from '../../../mocha/global-setup';
+import { DatabaseService } from '../../../../src/database/database.service';
+import { MigrationRunCommand } from '../../../../src/cli/commands/migration-run.command';
+import { QueryRunner } from 'typeorm';
+import { runCLICommandIsolated } from '../../../utils/utils';
 
-describe(describeName("MigrationRunCommand tests"), () => {
+describe(describeName('MigrationRunCommand tests'), () => {
   after(async () => {
     await testSuite.resetDatabaseData();
   });
-  it("should run the migrations", async () => {
+  it('should run the migrations', async () => {
     const app: AbstractApplication = testSuite.app;
     const databaseService: DatabaseService =
       await app.getService<DatabaseService>(DatabaseService.name);
 
     let queryRunner: QueryRunner =
       databaseService.connection.createQueryRunner();
-    const migration = await queryRunner.query("SELECT name FROM migrations");
+    const migration = await queryRunner.query('SELECT name FROM migrations');
     await queryRunner.release();
     await databaseService.emptyDatabase();
 
     await runCLICommandIsolated(testSuite, async () => {
       return new MigrationRunCommand().safeHandle({
-        $0: "migration:run",
+        $0: 'migration:run',
         _: [],
       });
     });
 
     queryRunner = databaseService.connection.createQueryRunner();
     const afterMigration = await queryRunner.query(
-      "SELECT name FROM migrations",
+      'SELECT name FROM migrations',
     );
     await queryRunner.release();
 

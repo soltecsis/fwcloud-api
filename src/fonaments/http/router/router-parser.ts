@@ -20,13 +20,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Gate } from "./gate";
-import { PathParams } from "express-serve-static-core";
-import { Controller } from "../controller";
-import { Route, RequestHandlerCallback } from "./route";
-import { HttpMethod } from "./router.service";
-import { FunctionHelper } from "../../../utils/FunctionHelper";
-import * as path from "path";
+import { Gate } from './gate';
+import { PathParams } from 'express-serve-static-core';
+import { Controller } from '../controller';
+import { Route, RequestHandlerCallback } from './route';
+import { HttpMethod } from './router.service';
+import { FunctionHelper } from '../../../utils/FunctionHelper';
+import * as path from 'path';
 
 export class RouterParser {
   protected _routes: Array<Route>;
@@ -39,7 +39,7 @@ export class RouterParser {
     this._gates = [];
     this._routes = [];
     this._currentRoute = null;
-    this._prefix = "";
+    this._prefix = '';
   }
 
   get routes(): Array<Route> {
@@ -110,7 +110,7 @@ export class RouterParser {
     method?: string,
   ): RouterParser {
     this.newControllerHandler(
-      "POST",
+      'POST',
       this.generatePathParamsWithPrefix(pathParams),
       controller,
       method,
@@ -133,7 +133,7 @@ export class RouterParser {
     method?: string,
   ): RouterParser {
     this.newControllerHandler(
-      "GET",
+      'GET',
       this.generatePathParamsWithPrefix(pathParams),
       controller,
       method,
@@ -156,7 +156,7 @@ export class RouterParser {
     method?: string,
   ): RouterParser {
     this.newControllerHandler(
-      "ALL",
+      'ALL',
       this.generatePathParamsWithPrefix(pathParams),
       controller,
       method,
@@ -179,7 +179,7 @@ export class RouterParser {
     method?: string,
   ): RouterParser {
     this.newControllerHandler(
-      "OPTIONS",
+      'OPTIONS',
       this.generatePathParamsWithPrefix(pathParams),
       controller,
       method,
@@ -202,7 +202,7 @@ export class RouterParser {
     method?: string,
   ): RouterParser {
     this.newControllerHandler(
-      "DELETE",
+      'DELETE',
       this.generatePathParamsWithPrefix(pathParams),
       controller,
       method,
@@ -225,7 +225,7 @@ export class RouterParser {
     method?: string,
   ): RouterParser {
     this.newControllerHandler(
-      "HEAD",
+      'HEAD',
       this.generatePathParamsWithPrefix(pathParams),
       controller,
       method,
@@ -248,7 +248,7 @@ export class RouterParser {
     method?: string,
   ): RouterParser {
     this.newControllerHandler(
-      "PATCH",
+      'PATCH',
       this.generatePathParamsWithPrefix(pathParams),
       controller,
       method,
@@ -271,7 +271,7 @@ export class RouterParser {
     method?: string,
   ): RouterParser {
     this.newControllerHandler(
-      "PUT",
+      'PUT',
       this.generatePathParamsWithPrefix(pathParams),
       controller,
       method,
@@ -285,13 +285,13 @@ export class RouterParser {
   }
 
   protected generatePathParamsWithPrefix(pathParams: PathParams): PathParams {
-    if (this._prefix !== "" && pathParams instanceof RegExp) {
-      throw new Error("Can not use prefix with regexp");
+    if (this._prefix !== '' && pathParams instanceof RegExp) {
+      throw new Error('Can not use prefix with regexp');
     }
 
     const pathParam: string = path.join(this._prefix, <string>pathParams);
 
-    return pathParam.replace(/\/$/, ""); //Remove trailing slash if exists
+    return pathParam.replace(/\/$/, ''); //Remove trailing slash if exists
   }
 
   protected newControllerHandler(

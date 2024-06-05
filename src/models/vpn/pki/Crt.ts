@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../../Model";
+import Model from '../../Model';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -28,13 +28,13 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
-} from "typeorm";
-import { Ca } from "./Ca";
-import { OpenVPN } from "../openvpn/OpenVPN";
+} from 'typeorm';
+import { Ca } from './Ca';
+import { OpenVPN } from '../openvpn/OpenVPN';
 
-const fwcError = require("../../../utils/error_table");
+const fwcError = require('../../../utils/error_table');
 
-const tableName: string = "crt";
+const tableName: string = 'crt';
 
 @Entity(tableName)
 export class Crt extends Model {
@@ -65,12 +65,12 @@ export class Crt extends Model {
   @Column()
   updated_by: Date;
 
-  @Column({ name: "ca" })
+  @Column({ name: 'ca' })
   caId: number;
 
   @ManyToOne((type) => Ca, (ca) => ca.crts)
   @JoinColumn({
-    name: "ca",
+    name: 'ca',
   })
   ca: Ca;
 
@@ -104,7 +104,7 @@ export class Crt extends Model {
         type: req.body.type,
         comment: req.body.comment,
       };
-      req.dbCon.query("insert into crt SET ?", cert, (error, result) => {
+      req.dbCon.query('insert into crt SET ?', cert, (error, result) => {
         if (error) return reject(error);
         resolve(result.insertId);
       });
@@ -116,18 +116,18 @@ export class Crt extends Model {
     return new Promise((resolve, reject) => {
       // Verify that the CA can be deleted.
       req.dbCon.query(
-        "SELECT count(*) AS n FROM openvpn WHERE crt=" + req.body.crt,
+        'SELECT count(*) AS n FROM openvpn WHERE crt=' + req.body.crt,
         (error, result) => {
           if (error) return reject(error);
           if (result[0].n > 0)
             return reject(
               fwcError.other(
-                "This certificate can not be removed because it is used in a OpenVPN setup",
+                'This certificate can not be removed because it is used in a OpenVPN setup',
               ),
             );
 
           req.dbCon.query(
-            "DELETE FROM crt WHERE id=" + req.body.crt,
+            'DELETE FROM crt WHERE id=' + req.body.crt,
             (error, result) => {
               if (error) return reject(error);
               resolve();
@@ -141,7 +141,7 @@ export class Crt extends Model {
   // Get database certificate data.
   public static getCRTdata(dbCon, crt) {
     return new Promise((resolve, reject) => {
-      dbCon.query("SELECT * FROM crt WHERE id=" + crt, (error, result) => {
+      dbCon.query('SELECT * FROM crt WHERE id=' + crt, (error, result) => {
         if (error) return reject(error);
         if (result.length !== 1) return reject(fwcError.NOT_FOUND);
 

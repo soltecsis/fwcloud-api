@@ -6,49 +6,49 @@ import {
   TableForeignKey,
   TableIndex,
   Unique,
-} from "typeorm";
+} from 'typeorm';
 
 export class add2faToUser1654166618845 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
       new Table({
-        name: "tfa",
+        name: 'tfa',
         columns: [
           {
-            name: "id",
-            type: "int",
+            name: 'id',
+            type: 'int',
             isGenerated: true,
-            generationStrategy: "increment",
+            generationStrategy: 'increment',
             isPrimary: true,
           },
           {
-            name: "secret",
-            type: "varchar",
+            name: 'secret',
+            type: 'varchar',
           },
           {
-            name: "tempSecret",
-            type: "varchar",
+            name: 'tempSecret',
+            type: 'varchar',
           },
           {
-            name: "dataURL",
-            type: "text",
+            name: 'dataURL',
+            type: 'text',
           },
           {
-            name: "tfaURL",
-            type: "varchar",
+            name: 'tfaURL',
+            type: 'varchar',
           },
           {
-            name: "user",
-            type: "int",
-            length: "11",
+            name: 'user',
+            type: 'int',
+            length: '11',
             isUnique: true,
           },
         ],
         foreignKeys: [
           {
-            columnNames: ["user"],
-            referencedTableName: "user",
-            referencedColumnNames: ["id"],
+            columnNames: ['user'],
+            referencedTableName: 'user',
+            referencedColumnNames: ['id'],
           },
         ],
       }),
@@ -57,6 +57,6 @@ export class add2faToUser1654166618845 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropTable("tfa");
+    await queryRunner.dropTable('tfa');
   }
 }

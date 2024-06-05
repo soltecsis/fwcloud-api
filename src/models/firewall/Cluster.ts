@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
-import db from "../../database/database-manager";
-import { Firewall } from "./Firewall";
+import Model from '../Model';
+import db from '../../database/database-manager';
+import { Firewall } from './Firewall';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -32,13 +32,13 @@ import {
   OneToMany,
   UpdateResult,
   getConnection,
-} from "typeorm";
-import { Tree } from "../tree/Tree";
-import { Interface } from "../../models/interface/Interface";
-import { FwCloud } from "../fwcloud/FwCloud";
-import { logger } from "../../fonaments/abstract-application";
+} from 'typeorm';
+import { Tree } from '../tree/Tree';
+import { Interface } from '../../models/interface/Interface';
+import { FwCloud } from '../fwcloud/FwCloud';
+import { logger } from '../../fonaments/abstract-application';
 
-const tableName: string = "cluster";
+const tableName: string = 'cluster';
 
 @Entity(tableName)
 export class Cluster extends Model {
@@ -63,12 +63,12 @@ export class Cluster extends Model {
   @Column()
   updated_by: number;
 
-  @Column({ name: "fwcloud" })
+  @Column({ name: 'fwcloud' })
   fwCloudId: number;
 
   @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.clusters)
   @JoinColumn({
-    name: "fwcloud",
+    name: 'fwcloud',
   })
   fwCloud: FwCloud;
 
@@ -96,11 +96,11 @@ export class Cluster extends Model {
   public static getCluster(req): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
-        " WHERE id = " +
+        ' WHERE id = ' +
         req.dbCon.escape(req.body.cluster) +
-        " AND fwcloud=" +
+        ' AND fwcloud=' +
         req.dbCon.escape(req.body.fwcloud);
       req.dbCon.query(sql, (error, row) => {
         if (error) return reject(error);
@@ -153,7 +153,7 @@ export class Cluster extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        "SELECT * FROM " +
+        'SELECT * FROM ' +
         tableName +
         ' WHERE name like  "%' +
         connection.escape(name) +
@@ -204,15 +204,15 @@ export class Cluster extends Model {
   public static deleteClusterSimple(id, iduser, fwcloud, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      logger().debug("------>>>> DELETING CLUSTER: ", id);
+      logger().debug('------>>>> DELETING CLUSTER: ', id);
       const sqlExists =
-        "SELECT T.* , A.id as idnode FROM " +
+        'SELECT T.* , A.id as idnode FROM ' +
         tableName +
-        " T " +
-        " INNER JOIN fwc_tree A ON A.id_obj = T.id AND A.obj_type=100 " +
-        " WHERE T.id = " +
+        ' T ' +
+        ' INNER JOIN fwc_tree A ON A.id_obj = T.id AND A.obj_type=100 ' +
+        ' WHERE T.id = ' +
         connection.escape(id);
-      logger().debug("SQL DELETE CLUSTER: ", sqlExists);
+      logger().debug('SQL DELETE CLUSTER: ', sqlExists);
       connection.query(sqlExists, (error, row) => {
         //If exists Id from cluster to remove
         if (row.length > 0) {
@@ -224,9 +224,9 @@ export class Cluster extends Model {
           Tree.deleteFwc_TreeFullNode(dataNode).then((resp) => {
             db.get((error, connection) => {
               const sql =
-                "DELETE FROM " +
+                'DELETE FROM ' +
                 tableName +
-                " WHERE id = " +
+                ' WHERE id = ' +
                 connection.escape(id);
               connection.query(sql, (error, result) => {
                 if (error) {

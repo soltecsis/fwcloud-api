@@ -30,53 +30,53 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-} from "typeorm";
-import { Interface } from "../../interface/Interface";
-import { IPObj } from "../../ipobj/IPObj";
-import { IPObjGroup } from "../../ipobj/IPObjGroup";
-import Model from "../../Model";
-import { OpenVPN } from "../../vpn/openvpn/OpenVPN";
-import { OpenVPNPrefix } from "../../vpn/openvpn/OpenVPNPrefix";
-import { RoutingTable } from "../routing-table/routing-table.model";
-import { RouteGroup } from "../route-group/route-group.model";
-import db from "../../../database/database-manager";
-import { RouteToOpenVPNPrefix } from "./route-to-openvpn-prefix.model";
-import { RouteToOpenVPN } from "./route-to-openvpn.model";
-import { RouteToIPObjGroup } from "./route-to-ipobj-group.model";
-import { RouteToIPObj } from "./route-to-ipobj.model";
-import { Firewall } from "../../firewall/Firewall";
+} from 'typeorm';
+import { Interface } from '../../interface/Interface';
+import { IPObj } from '../../ipobj/IPObj';
+import { IPObjGroup } from '../../ipobj/IPObjGroup';
+import Model from '../../Model';
+import { OpenVPN } from '../../vpn/openvpn/OpenVPN';
+import { OpenVPNPrefix } from '../../vpn/openvpn/OpenVPNPrefix';
+import { RoutingTable } from '../routing-table/routing-table.model';
+import { RouteGroup } from '../route-group/route-group.model';
+import db from '../../../database/database-manager';
+import { RouteToOpenVPNPrefix } from './route-to-openvpn-prefix.model';
+import { RouteToOpenVPN } from './route-to-openvpn.model';
+import { RouteToIPObjGroup } from './route-to-ipobj-group.model';
+import { RouteToIPObj } from './route-to-ipobj.model';
+import { Firewall } from '../../firewall/Firewall';
 
-const tableName: string = "route";
+const tableName: string = 'route';
 
 @Entity(tableName)
 export class Route extends Model {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: "routing_table" })
+  @Column({ name: 'routing_table' })
   routingTableId: number;
 
   @ManyToOne((type) => RoutingTable, (model) => model.routes)
   @JoinColumn({
-    name: "routing_table",
+    name: 'routing_table',
   })
   routingTable: RoutingTable;
 
-  @Column({ name: "gateway" })
+  @Column({ name: 'gateway' })
   gatewayId: number;
 
   @ManyToOne((type) => IPObj, (model) => model.routeGateways)
   @JoinColumn({
-    name: "gateway",
+    name: 'gateway',
   })
   gateway: IPObj;
 
-  @Column({ name: "interface" })
+  @Column({ name: 'interface' })
   interfaceId: number;
 
   @ManyToOne((type) => Interface, (model) => model.routes)
   @JoinColumn({
-    name: "interface",
+    name: 'interface',
   })
   interface: Interface;
 
@@ -97,24 +97,24 @@ export class Route extends Model {
   route_order: number;
 
   @Column({
-    name: "fw_apply_to",
+    name: 'fw_apply_to',
   })
   firewallApplyToId: number;
 
   @ManyToOne((type) => Firewall, (firewall) => firewall.routes)
   @JoinColumn({
-    name: "fw_apply_to",
+    name: 'fw_apply_to',
   })
   firewallApplyTo: Firewall;
 
   @Column({
-    name: "group",
+    name: 'group',
   })
   routeGroupId: number;
 
   @ManyToOne((type) => RouteGroup, (model) => model.routes)
   @JoinColumn({
-    name: "group",
+    name: 'group',
   })
   routeGroup: RouteGroup;
 
@@ -148,16 +148,16 @@ export class Route extends Model {
     fwcloud: number,
   ): Promise<Route[]> {
     const routeToIPObjs: RouteToIPObj[] = await getRepository(RouteToIPObj)
-      .createQueryBuilder("routeToIPObj")
-      .innerJoin("routeToIPObj.ipObj", "ipobj")
-      .innerJoin("ipobj.hosts", "interfaceIPObj")
-      .innerJoin("routeToIPObj.route", "route")
-      .innerJoin("interfaceIPObj.hostInterface", "interface")
-      .innerJoin("interface.ipObjs", "intIPObj")
-      .innerJoin("route.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .where("intIPObj.id = :ipobjId", { ipobjId })
-      .andWhere("firewall.fwCloudId = :fwcloud", { fwcloud })
+      .createQueryBuilder('routeToIPObj')
+      .innerJoin('routeToIPObj.ipObj', 'ipobj')
+      .innerJoin('ipobj.hosts', 'interfaceIPObj')
+      .innerJoin('routeToIPObj.route', 'route')
+      .innerJoin('interfaceIPObj.hostInterface', 'interface')
+      .innerJoin('interface.ipObjs', 'intIPObj')
+      .innerJoin('route.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .where('intIPObj.id = :ipobjId', { ipobjId })
+      .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud })
       .getMany();
 
     const result: RouteToIPObj[] = [];
@@ -185,18 +185,18 @@ export class Route extends Model {
     }
 
     return await getRepository(Route)
-      .createQueryBuilder("route")
+      .createQueryBuilder('route')
       .distinct()
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .addSelect("table.id", "table_id")
-      .addSelect("table.name", "table_name")
-      .addSelect("table.number", "table_number")
-      .innerJoin("route.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .addSelect('table.id', 'table_id')
+      .addSelect('table.name', 'table_name')
+      .addSelect('table.number', 'table_number')
+      .innerJoin('route.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .whereInIds(result.map((item) => item.routeId))
       .getRawMany();
   }
@@ -209,19 +209,19 @@ export class Route extends Model {
     const routeToIPObjGroups: RouteToIPObjGroup[] = await getRepository(
       RouteToIPObjGroup,
     )
-      .createQueryBuilder("routeToIPObjGroups")
-      .innerJoinAndSelect("routeToIPObjGroups.ipObjGroup", "ipObjGroup")
-      .innerJoinAndSelect("ipObjGroup.ipObjToIPObjGroups", "ipObjToIPObjGroups")
-      .innerJoin("ipObjToIPObjGroups.ipObj", "ipobj")
-      .innerJoin("ipobj.hosts", "interfaceIPObj")
-      .innerJoin("routeToIPObjGroups.route", "route")
-      .innerJoin("interfaceIPObj.hostInterface", "interface")
-      .innerJoin("interface.ipObjs", "intIPObj")
-      .innerJoin("route.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .where("intIPObj.id = :ipobjId", { ipobjId })
-      .andWhere("ipObjGroup.type = 20")
-      .andWhere("firewall.fwCloudId = :fwcloud", { fwcloud })
+      .createQueryBuilder('routeToIPObjGroups')
+      .innerJoinAndSelect('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
+      .innerJoinAndSelect('ipObjGroup.ipObjToIPObjGroups', 'ipObjToIPObjGroups')
+      .innerJoin('ipObjToIPObjGroups.ipObj', 'ipobj')
+      .innerJoin('ipobj.hosts', 'interfaceIPObj')
+      .innerJoin('routeToIPObjGroups.route', 'route')
+      .innerJoin('interfaceIPObj.hostInterface', 'interface')
+      .innerJoin('interface.ipObjs', 'intIPObj')
+      .innerJoin('route.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .where('intIPObj.id = :ipobjId', { ipobjId })
+      .andWhere('ipObjGroup.type = 20')
+      .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud })
       .getMany();
 
     const result: RouteToIPObjGroup[] = [];
@@ -252,18 +252,18 @@ export class Route extends Model {
     }
 
     return await getRepository(Route)
-      .createQueryBuilder("route")
+      .createQueryBuilder('route')
       .distinct()
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .addSelect("table.id", "table_id")
-      .addSelect("table.name", "table_name")
-      .addSelect("table.number", "table_number")
-      .innerJoin("route.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .addSelect('table.id', 'table_id')
+      .addSelect('table.name', 'table_name')
+      .addSelect('table.number', 'table_number')
+      .innerJoin('route.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .whereInIds(result.map((item) => item.routeId))
       .getRawMany();
   }

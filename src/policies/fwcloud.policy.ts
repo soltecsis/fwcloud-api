@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Policy, Authorization } from "../fonaments/authorization/policy";
-import { User } from "../models/user/User";
-import { FwCloud } from "../models/fwcloud/FwCloud";
+import { Policy, Authorization } from '../fonaments/authorization/policy';
+import { User } from '../models/user/User';
+import { FwCloud } from '../models/fwcloud/FwCloud';
 
 export class FwCloudPolicy extends Policy {
   static async store(user: User): Promise<Authorization> {
@@ -40,7 +40,7 @@ export class FwCloudPolicy extends Policy {
 
     user = await User.findOne({
       where: { id: user.id },
-      relations: ["fwClouds"],
+      relations: ['fwClouds'],
     });
     return user.fwClouds.findIndex((item) => item.id === fwCloud.id) >= 0
       ? Authorization.grant()

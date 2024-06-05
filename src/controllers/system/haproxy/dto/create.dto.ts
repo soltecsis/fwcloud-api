@@ -7,10 +7,10 @@ import {
   IsPositive,
   IsString,
   ValidateNested,
-} from "class-validator";
-import { Offset } from "../../../../offset";
-import { Type } from "class-transformer";
-import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
+} from 'class-validator';
+import { Offset } from '../../../../offset';
+import { Type } from 'class-transformer';
+import { PositionalEntityDto } from '../../../dtos/positional-entity.dto';
 
 export class HAProxyRuleCreateDto {
   @IsBoolean()

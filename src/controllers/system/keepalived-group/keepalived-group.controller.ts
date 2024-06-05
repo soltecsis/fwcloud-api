@@ -14,19 +14,19 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { getRepository } from "typeorm";
-import { Controller } from "../../../fonaments/http/controller";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { KeepalivedGroup } from "../../../models/system/keepalived/keepalived_g/keepalived_g.model";
-import { KeepalivedGroupService } from "../../../models/system/keepalived/keepalived_g/keepalived_g.service";
-import { Request } from "express";
-import { KeepalivedGroupPolicy } from "../../../policies/keepalived-group.policy";
-import { Validate } from "../../../decorators/validate.decorator";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { KeepalivedGroupControllerCreateDto } from "./dto/create.dto";
-import { KeepalivedGroupUpdateDto } from "./dto/update.dto";
-import { KeepalivedRuleService } from "../../../models/system/keepalived/keepalived_r/keepalived_r.service";
+import { getRepository } from 'typeorm';
+import { Controller } from '../../../fonaments/http/controller';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
+import { KeepalivedGroup } from '../../../models/system/keepalived/keepalived_g/keepalived_g.model';
+import { KeepalivedGroupService } from '../../../models/system/keepalived/keepalived_g/keepalived_g.service';
+import { Request } from 'express';
+import { KeepalivedGroupPolicy } from '../../../policies/keepalived-group.policy';
+import { Validate } from '../../../decorators/validate.decorator';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
+import { KeepalivedGroupControllerCreateDto } from './dto/create.dto';
+import { KeepalivedGroupUpdateDto } from './dto/update.dto';
+import { KeepalivedRuleService } from '../../../models/system/keepalived/keepalived_r/keepalived_r.service';
 
 export class KeepalivedGroupController extends Controller {
   protected _keepalivedGroupService: KeepalivedGroupService;
@@ -103,12 +103,12 @@ export class KeepalivedGroupController extends Controller {
       firewallId: this._firewall.id,
       name: req.body.name,
       style: req.body.style,
-      rules: req.inputs.get<number[]>("rules")?.map((id) => ({ id })),
+      rules: req.inputs.get<number[]>('rules')?.map((id) => ({ id })),
     });
 
-    if (req.inputs.get<number[]>("rules")) {
+    if (req.inputs.get<number[]>('rules')) {
       await this._keepalivedRuleService.bulkUpdate(
-        req.inputs.get<number[]>("rules")?.map((id) => id),
+        req.inputs.get<number[]>('rules')?.map((id) => id),
         { group: group.id },
       );
     }

@@ -20,7 +20,7 @@
 	along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
+import Model from '../Model';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -33,23 +33,23 @@ import {
   AfterInsert,
   RemoveOptions,
   QueryRunner,
-} from "typeorm";
-import db from "../../database/database-manager";
-import * as path from "path";
-import * as fs from "fs-extra";
-import { User } from "../../models/user/User";
-import { app, logger } from "../../fonaments/abstract-application";
-import { DatabaseService } from "../../database/database.service";
-import { Ca } from "../vpn/pki/Ca";
-import { Cluster } from "../firewall/Cluster";
-import { Firewall } from "../firewall/Firewall";
-import { FwcTree } from "../tree/fwc-tree.model";
-import { IPObj } from "../ipobj/IPObj";
-import { Mark } from "../ipobj/Mark";
-import { FSHelper } from "../../utils/fs-helper";
-import { IPObjGroup } from "../ipobj/IPObjGroup";
+} from 'typeorm';
+import db from '../../database/database-manager';
+import * as path from 'path';
+import * as fs from 'fs-extra';
+import { User } from '../../models/user/User';
+import { app, logger } from '../../fonaments/abstract-application';
+import { DatabaseService } from '../../database/database.service';
+import { Ca } from '../vpn/pki/Ca';
+import { Cluster } from '../firewall/Cluster';
+import { Firewall } from '../firewall/Firewall';
+import { FwcTree } from '../tree/fwc-tree.model';
+import { IPObj } from '../ipobj/IPObj';
+import { Mark } from '../ipobj/Mark';
+import { FSHelper } from '../../utils/fs-helper';
+import { IPObjGroup } from '../ipobj/IPObjGroup';
 
-const tableName: string = "fwcloud";
+const tableName: string = 'fwcloud';
 
 @Entity(tableName)
 export class FwCloud extends Model {
@@ -88,9 +88,9 @@ export class FwCloud extends Model {
 
   @ManyToMany((type) => User, (user) => user.fwClouds)
   @JoinTable({
-    name: "user__fwcloud",
-    joinColumn: { name: "fwcloud" },
-    inverseJoinColumn: { name: "user" },
+    name: 'user__fwcloud',
+    joinColumn: { name: 'fwcloud' },
+    inverseJoinColumn: { name: 'user' },
   })
   users: Array<User>;
 
@@ -269,7 +269,7 @@ export class FwCloud extends Model {
    */
   public getPkiDirectoryPath(): string {
     if (this.id) {
-      return path.join(app().config.get("pki").data_dir, this.id.toString());
+      return path.join(app().config.get('pki').data_dir, this.id.toString());
     }
 
     return null;
@@ -282,7 +282,7 @@ export class FwCloud extends Model {
    */
   public getPolicyDirectoryPath(): string {
     if (this.id) {
-      return path.join(app().config.get("policy").data_dir, this.id.toString());
+      return path.join(app().config.get('policy').data_dir, this.id.toString());
     }
 
     return null;
@@ -296,7 +296,7 @@ export class FwCloud extends Model {
   public getSnapshotDirectoryPath(): string {
     if (this.id) {
       return path.join(
-        app().config.get("snapshot").data_dir,
+        app().config.get('snapshot').data_dir,
         this.id.toString(),
       );
     }
@@ -368,13 +368,13 @@ export class FwCloud extends Model {
       if (error) callback(error, null);
 
       const sql =
-        "SELECT distinctrow C.* FROM " +
+        'SELECT distinctrow C.* FROM ' +
         tableName +
-        " C  " +
-        " INNER JOIN user__fwcloud U ON C.id=U.fwcloud " +
-        " WHERE U.user=" +
+        ' C  ' +
+        ' INNER JOIN user__fwcloud U ON C.id=U.fwcloud ' +
+        ' WHERE U.user=' +
         connection.escape(iduser) +
-        " AND C.id=" +
+        ' AND C.id=' +
         connection.escape(fwcloud);
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
@@ -402,19 +402,19 @@ export class FwCloud extends Model {
       db.get((error, connection) => {
         if (error) return reject(false);
         const sql =
-          "SELECT distinctrow C.* FROM " +
+          'SELECT distinctrow C.* FROM ' +
           tableName +
-          " C  " +
-          " INNER JOIN user__fwcloud U ON C.id=U.fwcloud " +
-          " WHERE U.user=" +
+          ' C  ' +
+          ' INNER JOIN user__fwcloud U ON C.id=U.fwcloud ' +
+          ' WHERE U.user=' +
           connection.escape(iduser) +
-          " AND C.id=" +
+          ' AND C.id=' +
           connection.escape(fwcloud);
         connection.query(sql, (error, row) => {
           if (error) reject(false);
           else if (row && row.length > 0) {
             //logger().debug(row[0]);
-            logger().debug("IDUSER: " + iduser);
+            logger().debug('IDUSER: ' + iduser);
             if (
               row[0].locked === 1 &&
               Number(row[0].locked_by) === Number(iduser)
@@ -445,18 +445,18 @@ export class FwCloud extends Model {
                 access: true,
                 locked: false,
                 mylock: false,
-                locked_at: "",
-                locked_by: "",
+                locked_at: '',
+                locked_by: '',
               });
             }
           } else {
             //Access ERROR, NOT LOCKED
             resolve({
               access: false,
-              locked: "",
+              locked: '',
               mylock: false,
-              locked_at: "",
-              locked_by: "",
+              locked_at: '',
+              locked_by: '',
             });
           }
         });
@@ -481,9 +481,9 @@ export class FwCloud extends Model {
       db.get((error, connection) => {
         if (error) return reject(false);
         const sql =
-          "select TIMESTAMPDIFF(MINUTE, updated_at, NOW()) as dif,  C.* from " +
+          'select TIMESTAMPDIFF(MINUTE, updated_at, NOW()) as dif,  C.* from ' +
           tableName +
-          " C WHERE C.locked=1 HAVING dif>" +
+          ' C WHERE C.locked=1 HAVING dif>' +
           timeout;
         connection.query(sql, (error, rows) => {
           if (error) reject(false);
@@ -492,18 +492,18 @@ export class FwCloud extends Model {
             for (let i = 0; i < rows.length; i++) {
               const row = rows[i];
               const sqlupdate =
-                "UPDATE " + tableName + " SET locked = 0  WHERE id = " + row.id;
+                'UPDATE ' + tableName + ' SET locked = 0  WHERE id = ' + row.id;
               connection.query(sqlupdate, (error, result) => {
                 logger().info(
-                  "-----> UNLOCK FWCLOUD: " +
+                  '-----> UNLOCK FWCLOUD: ' +
                     row.id +
-                    " BY TIMEOT INACTIVITY of " +
+                    ' BY TIMEOT INACTIVITY of ' +
                     row.dif +
-                    "  Min LAST UPDATE: " +
+                    '  Min LAST UPDATE: ' +
                     row.updated_at +
-                    "  LAST LOCK: " +
+                    '  LAST LOCK: ' +
                     row.locked_at +
-                    "  BY: " +
+                    '  BY: ' +
                     row.locked_by,
                 );
               });
@@ -605,40 +605,40 @@ export class FwCloud extends Model {
 
         //Check if FWCloud is unlocked or locked by the same user
         const sqlExists =
-          "SELECT id FROM " +
+          'SELECT id FROM ' +
           tableName +
-          "  " +
-          " WHERE id = " +
+          '  ' +
+          ' WHERE id = ' +
           connection.escape(fwcloudData.fwcloud) +
-          " AND (locked=0 OR (locked=1 AND locked_by=" +
+          ' AND (locked=0 OR (locked=1 AND locked_by=' +
           connection.escape(fwcloudData.iduser) +
-          ")) ";
+          ')) ';
 
         connection.query(sqlExists, (error, row) => {
           if (row && row.length > 0) {
             //Check if there are FWCloud with Access and Edit permissions
             const sqlExists =
-              "SELECT C.id FROM " +
+              'SELECT C.id FROM ' +
               tableName +
-              " C " +
-              " INNER JOIN user__fwcloud U on U.fwcloud=C.id AND U.user=" +
+              ' C ' +
+              ' INNER JOIN user__fwcloud U on U.fwcloud=C.id AND U.user=' +
               connection.escape(fwcloudData.iduser) +
-              " WHERE C.id = " +
+              ' WHERE C.id = ' +
               connection.escape(fwcloudData.fwcloud);
             logger().debug(sqlExists);
             connection.query(sqlExists, (error, row) => {
               if (row && row.length > 0) {
                 const sql =
-                  "UPDATE " +
+                  'UPDATE ' +
                   tableName +
-                  " SET locked = " +
+                  ' SET locked = ' +
                   connection.escape(locked) +
-                  "," +
-                  "locked_at = CURRENT_TIMESTAMP ," +
-                  "locked_by = " +
+                  ',' +
+                  'locked_at = CURRENT_TIMESTAMP ,' +
+                  'locked_by = ' +
                   connection.escape(fwcloudData.iduser) +
-                  " " +
-                  " WHERE id = " +
+                  ' ' +
+                  ' WHERE id = ' +
                   fwcloudData.fwcloud;
                 logger().debug(sql);
                 connection.query(sql, (error, result) => {
@@ -692,28 +692,28 @@ export class FwCloud extends Model {
       db.get((error, connection) => {
         if (error) reject(error);
         const sqlExists =
-          "SELECT id FROM " +
+          'SELECT id FROM ' +
           tableName +
-          "  " +
-          " WHERE id = " +
+          '  ' +
+          ' WHERE id = ' +
           connection.escape(fwcloudData.id) +
-          " AND (locked=1 AND locked_by=" +
+          ' AND (locked=1 AND locked_by=' +
           connection.escape(fwcloudData.iduser) +
-          ") ";
+          ') ';
         connection.query(sqlExists, (error, row) => {
           //If exists Id from fwcloud to remove
           if (row && row.length > 0) {
             const sql =
-              "UPDATE " +
+              'UPDATE ' +
               tableName +
-              " SET locked = " +
+              ' SET locked = ' +
               connection.escape(locked) +
-              "," +
-              "locked_at = CURRENT_TIMESTAMP ," +
-              "locked_by = " +
+              ',' +
+              'locked_at = CURRENT_TIMESTAMP ,' +
+              'locked_by = ' +
               connection.escape(fwcloudData.iduser) +
-              " " +
-              " WHERE id = " +
+              ' ' +
+              ' WHERE id = ' +
               fwcloudData.id;
 
             connection.query(sql, (error, result) => {

@@ -20,23 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
-import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from "typeorm";
-import { PolicyPosition } from "./PolicyPosition";
-import { OpenVPN } from "../vpn/openvpn/OpenVPN";
-import { PolicyRule } from "./PolicyRule";
+import Model from '../Model';
+import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { PolicyPosition } from './PolicyPosition';
+import { OpenVPN } from '../vpn/openvpn/OpenVPN';
+import { PolicyRule } from './PolicyRule';
 
-const tableName: string = "policy_r__openvpn";
+const tableName: string = 'policy_r__openvpn';
 
 @Entity(tableName)
 export class PolicyRuleToOpenVPN extends Model {
-  @PrimaryColumn({ name: "rule" })
+  @PrimaryColumn({ name: 'rule' })
   policyRuleId: number;
 
-  @PrimaryColumn({ name: "openvpn" })
+  @PrimaryColumn({ name: 'openvpn' })
   openVPNId: number;
 
-  @PrimaryColumn({ name: "position" })
+  @PrimaryColumn({ name: 'position' })
   policyPositionId: number;
 
   @Column()
@@ -59,13 +59,13 @@ export class PolicyRuleToOpenVPN extends Model {
     (policyPosition) => policyPosition.policyRuleToOpenVPNs,
   )
   @JoinColumn({
-    name: "position",
+    name: 'position',
   })
   policyPosition: PolicyPosition;
 
   @ManyToOne((type) => OpenVPN, (openVPN) => openVPN.policyRuleToOpenVPNs)
   @JoinColumn({
-    name: "openvpn",
+    name: 'openvpn',
   })
   openVPN: OpenVPN;
 
@@ -74,7 +74,7 @@ export class PolicyRuleToOpenVPN extends Model {
     (policyRule) => policyRule.policyRuleToOpenVPNs,
   )
   @JoinColumn({
-    name: "rule",
+    name: 'rule',
   })
   policyRule: PolicyRule;
 

@@ -26,66 +26,66 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
-} from "typeorm";
-import { IPObj } from "../../../ipobj/IPObj";
-import { Interface } from "../../../interface/Interface";
-import { DHCPGroup } from "../dhcp_g/dhcp_g.model";
-import Model from "../../../Model";
-import { Firewall } from "../../../firewall/Firewall";
-import { DHCPRuleToIPObj } from "./dhcp_r-to-ipobj.model";
+} from 'typeorm';
+import { IPObj } from '../../../ipobj/IPObj';
+import { Interface } from '../../../interface/Interface';
+import { DHCPGroup } from '../dhcp_g/dhcp_g.model';
+import Model from '../../../Model';
+import { Firewall } from '../../../firewall/Firewall';
+import { DHCPRuleToIPObj } from './dhcp_r-to-ipobj.model';
 
-const tableName: string = "dhcp_r";
+const tableName: string = 'dhcp_r';
 
 @Entity(tableName)
 export class DHCPRule extends Model {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: "tinyint", default: 1 })
+  @Column({ type: 'tinyint', default: 1 })
   rule_type: number;
 
-  @Column({ type: "int" })
+  @Column({ type: 'int' })
   rule_order: number;
 
-  @Column({ type: "boolean", default: false })
+  @Column({ type: 'boolean', default: false })
   active: boolean;
 
-  @Column({ name: "group" })
+  @Column({ name: 'group' })
   groupId: number;
 
   @ManyToOne(() => DHCPGroup)
-  @JoinColumn({ name: "group" })
+  @JoinColumn({ name: 'group' })
   group: DHCPGroup;
 
-  @Column({ type: "varchar", length: 50 })
+  @Column({ type: 'varchar', length: 50 })
   style: string;
 
-  @Column({ name: "network" })
+  @Column({ name: 'network' })
   networkId: number;
 
   @ManyToOne(() => IPObj, { eager: true })
-  @JoinColumn({ name: "network" })
+  @JoinColumn({ name: 'network' })
   network: IPObj;
 
-  @Column({ name: "range" })
+  @Column({ name: 'range' })
   rangeId: number;
 
   @ManyToOne(() => IPObj, { eager: true })
-  @JoinColumn({ name: "range" })
+  @JoinColumn({ name: 'range' })
   range: IPObj;
 
-  @Column({ name: "router" })
+  @Column({ name: 'router' })
   routerId: number;
 
   @ManyToOne(() => IPObj, { eager: true })
-  @JoinColumn({ name: "router" })
+  @JoinColumn({ name: 'router' })
   router: IPObj;
 
-  @Column({ name: "interface" })
+  @Column({ name: 'interface' })
   interfaceId: number;
 
   @ManyToOne(() => Interface, { eager: true })
-  @JoinColumn({ name: "interface" })
+  @JoinColumn({ name: 'interface' })
   interface: Interface;
 
   @OneToMany(() => DHCPRuleToIPObj, (model) => model.dhcpRule, {
@@ -93,20 +93,20 @@ export class DHCPRule extends Model {
   })
   dhcpRuleToIPObjs: DHCPRuleToIPObj[];
 
-  @Column({ name: "firewall" })
+  @Column({ name: 'firewall' })
   firewallId: number;
 
   @ManyToOne(() => Firewall)
-  @JoinColumn({ name: "firewall" })
+  @JoinColumn({ name: 'firewall' })
   firewall: Firewall;
 
-  @Column({ type: "int", unsigned: true, default: 86400 })
+  @Column({ type: 'int', unsigned: true, default: 86400 })
   max_lease: number;
 
-  @Column({ type: "text" })
+  @Column({ type: 'text' })
   cfg_text: string;
 
-  @Column({ type: "text" })
+  @Column({ type: 'text' })
   comment: string;
 
   public getTableName(): string {
@@ -134,7 +134,7 @@ export class DHCPRule extends Model {
 
       const originalRules = await DHCPRule.find({
         where: { firewall: originalFirewall },
-        relations: ["dhcpRuleToIPObjs"],
+        relations: ['dhcpRuleToIPObjs'],
       });
 
       for (const originalRule of originalRules) {
@@ -167,7 +167,7 @@ export class DHCPRule extends Model {
     return DHCPRule.createQueryBuilder()
       .update()
       .set({ firewallId: dst_firewall })
-      .where("firewall = :src_firewall", { src_firewall })
+      .where('firewall = :src_firewall', { src_firewall })
       .execute();
   }
 }

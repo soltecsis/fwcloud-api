@@ -23,10 +23,10 @@ import {
   Repository,
   SelectQueryBuilder,
   getRepository,
-} from "typeorm";
-import { Offset } from "../../../../offset";
-import { KeepalivedRule } from "./keepalived_r.model";
-import { Firewall } from "../../../firewall/Firewall";
+} from 'typeorm';
+import { Offset } from '../../../../offset';
+import { KeepalivedRule } from './keepalived_r.model';
+import { Firewall } from '../../../firewall/Firewall';
 
 interface IFindManyKeepalivedRPath {
   fwcloudId?: number;
@@ -69,9 +69,9 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
         id: In(ids),
       },
       order: {
-        rule_order: "ASC",
+        rule_order: 'ASC',
       },
-      relations: ["firewall", "group"],
+      relations: ['firewall', 'group'],
     });
 
     let affectedKeepaliveds: KeepalivedRule[] = await this.findManyInPath({
@@ -272,30 +272,30 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     return Object.assign(
       {
         join: {
-          alias: "keepalived",
+          alias: 'keepalived',
           innerJoin: {
-            firewall: "keepalived.firewall",
-            fwcloud: "firewall.fwCloud",
+            firewall: 'keepalived.firewall',
+            fwcloud: 'firewall.fwCloud',
           },
         },
         where: (qb: SelectQueryBuilder<KeepalivedRule>) => {
           if (path.firewallId) {
-            qb.andWhere("firewall.id = :firewallId", {
+            qb.andWhere('firewall.id = :firewallId', {
               firewallId: path.firewallId,
             });
           }
           if (path.fwcloudId) {
-            qb.andWhere("fwcloud.id = :fwcloudId", {
+            qb.andWhere('fwcloud.id = :fwcloudId', {
               fwcloudId: path.fwcloudId,
             });
           }
           if (path.keepalivedGroupId) {
-            qb.andWhere("group.id = :keepalivedGroupId", {
+            qb.andWhere('group.id = :keepalivedGroupId', {
               keepalivedGroupId: path.keepalivedGroupId,
             });
           }
           if (path.id) {
-            qb.andWhere("keepalived.id = :id", { id: path.id });
+            qb.andWhere('keepalived.id = :id', { id: path.id });
           }
         },
       },
@@ -321,16 +321,16 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     }
 
     await this.query(
-      `SET @a:=0; UPDATE ${KeepalivedRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map((item) => item.id).join(",")}) ORDER BY rule_order`,
+      `SET @a:=0; UPDATE ${KeepalivedRule._getTableName()} SET rule_order=@a:=@a+1 WHERE id IN (${rules.map((item) => item.id).join(',')}) ORDER BY rule_order`,
     );
   }
 
   async getLastKeepalivedRuleInFirewall(
     firewall: number,
   ): Promise<KeepalivedRule | undefined> {
-    return this.createQueryBuilder("rule")
-      .where("rule.firewall = :firewall", { firewall })
-      .orderBy("rule.rule_order", "DESC")
+    return this.createQueryBuilder('rule')
+      .where('rule.firewall = :firewall', { firewall })
+      .orderBy('rule.rule_order', 'DESC')
       .take(1)
       .getOne();
   }
@@ -341,26 +341,26 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     rules?: number[],
   ): Promise<KeepalivedRule[]> {
     const query: SelectQueryBuilder<KeepalivedRule> = this.createQueryBuilder(
-      "keepalived_r",
+      'keepalived_r',
     )
-      .leftJoinAndSelect("keepalived_r.group", "group")
-      .leftJoinAndSelect("keepalived_r.interface", "interface")
-      .leftJoinAndSelect("keepalived_r.masterNode", "masterNode")
-      .leftJoinAndSelect("interface.firewall", "interfaceFirewall")
-      .leftJoinAndSelect("interfaceFirewall.cluster", "interfaceCluster")
-      .leftJoinAndSelect("interface.hosts", "hosts")
-      .leftJoinAndSelect("hosts.hostIPObj", "hostIPObj")
-      .innerJoin("keepalived_r.firewall", "firewall")
-      .innerJoin("firewall.fwCloud", "fwCloud")
-      .where("firewall.id = :firewallId", { firewallId: firewall })
-      .andWhere("fwCloud.id = :fwCloudId", { fwCloudId: fwcloud });
+      .leftJoinAndSelect('keepalived_r.group', 'group')
+      .leftJoinAndSelect('keepalived_r.interface', 'interface')
+      .leftJoinAndSelect('keepalived_r.masterNode', 'masterNode')
+      .leftJoinAndSelect('interface.firewall', 'interfaceFirewall')
+      .leftJoinAndSelect('interfaceFirewall.cluster', 'interfaceCluster')
+      .leftJoinAndSelect('interface.hosts', 'hosts')
+      .leftJoinAndSelect('hosts.hostIPObj', 'hostIPObj')
+      .innerJoin('keepalived_r.firewall', 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwCloud')
+      .where('firewall.id = :firewallId', { firewallId: firewall })
+      .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud });
 
     if (rules) {
       query
-        .andWhere("keepalived_r.id IN (:...rule)")
-        .setParameter("rule", rules);
+        .andWhere('keepalived_r.id IN (:...rule)')
+        .setParameter('rule', rules);
     }
 
-    return query.orderBy("keepalived_r.rule_order", "ASC").getMany();
+    return query.orderBy('keepalived_r.rule_order', 'ASC').getMany();
   }
 }

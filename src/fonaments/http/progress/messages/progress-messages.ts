@@ -1,40 +1,40 @@
-import { Task } from "../task";
+import { Task } from '../task';
 import {
   ProgressPayload,
   ProgressInfoPayload,
   ProgressErrorPayload,
-} from "../../../../sockets/messages/socket-message";
-import { Progress } from "../progress";
+} from '../../../../sockets/messages/socket-message';
+import { Progress } from '../progress';
 
 export type TaskPayloadType =
-  | "start"
-  | "end"
-  | "start_task"
-  | "end_task"
-  | "info"
-  | "error";
+  | 'start'
+  | 'end'
+  | 'start_task'
+  | 'end_task'
+  | 'info'
+  | 'error';
 
 export class StartProgressPayload extends ProgressPayload {
   constructor(progress: Progress) {
-    super("start", false, progress.startMessage, progress.id);
+    super('start', false, progress.startMessage, progress.id);
   }
 }
 
 export class EndProgressPayload extends ProgressPayload {
   constructor(progress: Progress) {
-    super("end", false, progress.startMessage, progress.id);
+    super('end', false, progress.startMessage, progress.id);
   }
 }
 
 export class StartTaskPayload extends ProgressPayload {
   constructor(task: Task) {
-    super("start_task", false, task.description, task.id);
+    super('start_task', false, task.description, task.id);
   }
 }
 
 export class EndTaskPayload extends ProgressPayload {
   constructor(task: Task) {
-    super("end_task", false, task.description, task.id);
+    super('end_task', false, task.description, task.id);
   }
 }
 

@@ -14,10 +14,10 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { KeepalivedRulesData } from "../../../models/system/keepalived/keepalived_r/keepalived_r.service";
-import { KeepalivedRuleItemForCompiler } from "../../../models/system/keepalived/shared";
-import { ProgressNoticePayload } from "../../../sockets/messages/socket-message";
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { KeepalivedRulesData } from '../../../models/system/keepalived/keepalived_r/keepalived_r.service';
+import { KeepalivedRuleItemForCompiler } from '../../../models/system/keepalived/shared';
+import { ProgressNoticePayload } from '../../../sockets/messages/socket-message';
 
 export type KeepalivedCompiled = {
   id: number;
@@ -29,11 +29,11 @@ export class KeepalivedCompiler {
   public ruleCompile(
     ruleData: KeepalivedRulesData<KeepalivedRuleItemForCompiler>,
   ): string {
-    let cs: string = "";
+    let cs: string = '';
 
     switch (ruleData.rule_type) {
       case 2:
-        cs = ruleData.cfg_text ? ruleData.cfg_text : "";
+        cs = ruleData.cfg_text ? ruleData.cfg_text : '';
         break;
       default:
         if (ruleData.comment) {
@@ -47,17 +47,17 @@ export class KeepalivedCompiler {
           cs += `\tvirtual_router_id ${ruleData.interface.hosts[0].ipObjId}\n`;
         }
         cs += `\tpriority ${ruleData.masterNode === ruleData.firewall ? 99 : 50}\n`;
-        cs += "\tadvert_int 5\n";
+        cs += '\tadvert_int 5\n';
         if (ruleData.virtualIps?.length) {
-          cs += "\tvirtual_ipaddress {\n";
+          cs += '\tvirtual_ipaddress {\n';
           for (const vip of ruleData.virtualIps) {
             const ipobj = vip.ipObj;
-            const ipSplit = ipobj.address.split(".");
+            const ipSplit = ipobj.address.split('.');
             cs += `\t\t${ipobj.address} label ${ruleData.interface.name}:${ipSplit[ipSplit.length - 1]} dev ${ruleData.interface.name}\n`;
           }
-          cs += "\t}\n";
+          cs += '\t}\n';
         }
-        cs += "}\n";
+        cs += '}\n';
         break;
     }
 
@@ -77,9 +77,9 @@ export class KeepalivedCompiler {
     for (let i: number = 0; i < data.length; i++) {
       if (eventEmitter) {
         eventEmitter.emit(
-          "progress",
+          'progress',
           new ProgressNoticePayload(
-            `Compiling Keepalived rule ${i} (ID: ${data[i].id})${!data[i].active ? " [DISABLED]" : ""}`,
+            `Compiling Keepalived rule ${i} (ID: ${data[i].id})${!data[i].active ? ' [DISABLED]' : ''}`,
           ),
         );
       }

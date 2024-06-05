@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import chalk from "chalk";
+import chalk from 'chalk';
 
 export class Output {
   protected _stdout;
@@ -36,7 +36,7 @@ export class Output {
   public writeLine(lines: number = 1): void {
     if (lines > 0) {
       for (let i = 0; i < lines; i++) {
-        this.writeln("");
+        this.writeln('');
       }
     }
   }
@@ -63,9 +63,9 @@ export class Output {
 
   public static symbols(): { ok: string; error: string; warning: string } {
     return {
-      ok: process.platform === "win32" ? "\u221A" : "✓",
-      error: process.platform === "win32" ? "\u00D7" : "✖",
-      warning: "!",
+      ok: process.platform === 'win32' ? '\u221A' : '✓',
+      error: process.platform === 'win32' ? '\u00D7' : '✖',
+      warning: '!',
     };
   }
 
