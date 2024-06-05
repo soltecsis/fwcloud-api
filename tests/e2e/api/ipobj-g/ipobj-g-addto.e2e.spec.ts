@@ -36,7 +36,10 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
         adminUser = await createUser({role: 1});
         session = generateSession(adminUser);
 
-        firewall = await getRepository(Firewall).findOneOrFail(fwcProduct.firewall.id, {relations: ['policyRules']});
+        firewall = await getRepository(Firewall).findOneOrFail({
+            where: {fwCloudId: fwcProduct.fwcloud.id},
+            relations: ['policyRules']
+        });
 
         adminUser.fwClouds = [
             fwcProduct.fwcloud

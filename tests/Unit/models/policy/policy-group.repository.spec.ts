@@ -51,7 +51,7 @@ describe(describeName('PolicyGroupRepository tests'), () => {
 
                 await policyGroupRepository.deleteIfEmpty(policyGroup);
 
-                expect(await policyGroupRepository.findOne(policyGroup.id)).to.be.undefined;
+                expect(await policyGroupRepository.findOne({ where: { id: policyGroup.id }})).to.be.undefined;
             });
 
             it('should not delete a policyGroup if it is not empty', async () => {
@@ -70,7 +70,7 @@ describe(describeName('PolicyGroupRepository tests'), () => {
 
                 await policyGroupRepository.deleteIfEmpty(policyGroup);
 
-                expect(await PolicyGroup.findOne(policyGroup.id)).to.be.instanceOf(PolicyGroup);
+                expect(await PolicyGroup.findOne({ where: { id: policyGroup.id }})).to.be.instanceOf(PolicyGroup);
             });
 
         });

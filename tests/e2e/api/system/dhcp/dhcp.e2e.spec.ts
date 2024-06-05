@@ -958,8 +958,8 @@ describe('DHCPRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(DHCPRule).findOneOrFail(rule1.id)).active).to.equal(false);
-                expect((await getRepository(DHCPRule).findOneOrFail(rule2.id)).active).to.equal(false);
+                expect((await getRepository(DHCPRule).findOneOrFail({ where: { id: rule1.id }})).active).to.equal(false);
+                expect((await getRepository(DHCPRule).findOneOrFail({ where: { id: rule2.id }})).active).to.equal(false);
             });
 
             it('admin user should bulk update a dhcp rule', async () => {
@@ -978,8 +978,8 @@ describe('DHCPRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(DHCPRule).findOneOrFail(rule1.id)).active).to.equal(false);
-                expect((await getRepository(DHCPRule).findOneOrFail(rule2.id)).active).to.equal(false);
+                expect((await getRepository(DHCPRule).findOneOrFail({ where: { id: rule1.id }})).active).to.equal(false);
+                expect((await getRepository(DHCPRule).findOneOrFail({ where: { id: rule2.id }})).active).to.equal(false);
             });
         });
 
@@ -1051,8 +1051,8 @@ describe('DHCPRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect(await getRepository(DHCPRule).findOne(rule1.id)).to.be.undefined;
-                expect(await getRepository(DHCPRule).findOne(rule2.id)).to.be.undefined;
+                expect(await getRepository(DHCPRule).findOne({ where: { id: rule1.id }})).to.be.undefined;
+                expect(await getRepository(DHCPRule).findOne({ where: { id: rule2.id }})).to.be.undefined;
             });
 
             it('admin user should bulk remove a dhcp rule', async () => {
@@ -1070,8 +1070,8 @@ describe('DHCPRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect(await getRepository(DHCPRule).findOne(rule1.id)).to.be.undefined;
-                expect(await getRepository(DHCPRule).findOne(rule2.id)).to.be.undefined;
+                expect(await getRepository(DHCPRule).findOne({ where: { id: rule1.id }})).to.be.undefined;
+                expect(await getRepository(DHCPRule).findOne({ where: { id: rule2.id }})).to.be.undefined;
             });
         });
     });

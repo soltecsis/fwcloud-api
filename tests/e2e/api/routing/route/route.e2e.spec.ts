@@ -233,10 +233,10 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(Route).findOne(routeOrder1.id)).route_order).to.eq(1);
-                expect((await getRepository(Route).findOne(routeOrder2.id)).route_order).to.eq(2);
-                expect((await getRepository(Route).findOne(routeOrder3.id)).route_order).to.eq(3);
-                expect((await getRepository(Route).findOne(routeOrder4.id)).route_order).to.eq(4);
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder1.id }})).route_order).to.eq(1);
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder2.id }})).route_order).to.eq(2);
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder3.id }})).route_order).to.eq(3);
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder4.id }})).route_order).to.eq(4);
             });
 
             it('admin user should move routes', async () => {
@@ -253,10 +253,10 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(Route).findOne(routeOrder1.id)).route_order).to.eq(1);
-                expect((await getRepository(Route).findOne(routeOrder2.id)).route_order).to.eq(2);
-                expect((await getRepository(Route).findOne(routeOrder3.id)).route_order).to.eq(3);
-                expect((await getRepository(Route).findOne(routeOrder4.id)).route_order).to.eq(4);
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder1.id }})).route_order).to.eq(1);
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder2.id }})).route_order).to.eq(2);
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder3.id }})).route_order).to.eq(3);
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder4.id }})).route_order).to.eq(4);
             });
 
 
@@ -418,7 +418,7 @@ describe(describeName('Route E2E Tests'), () => {
                     .send(data)
                     .expect(200)
 
-                expect((await getRepository(Route).findOneOrFail(route2.id)).gatewayId).to.eq(gateway.id);
+                expect((await getRepository(Route).findOneOrFail({ where: { id: route2.id }})).gatewayId).to.eq(gateway.id);
             });
 
             it('admin user should move from items to gateway between rules', async () => {
@@ -432,7 +432,7 @@ describe(describeName('Route E2E Tests'), () => {
                     .send(data)
                     .expect(200)
 
-                expect((await getRepository(Route).findOneOrFail(route2.id)).gatewayId).to.eq(gateway.id);
+                expect((await getRepository(Route).findOneOrFail({ where: { id: route2.id }})).gatewayId).to.eq(gateway.id);
             });
 
 
@@ -498,8 +498,8 @@ describe(describeName('Route E2E Tests'), () => {
                     .send(data)
                     .expect(200);
 
-                expect((await getRepository(Route).findOneOrFail(rule1.id)).interfaceId).to.be.null;
-                expect((await getRepository(Route).findOneOrFail(rule2.id)).interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
+                expect((await getRepository(Route).findOneOrFail({ where: { id: rule1.id }})).interfaceId).to.be.null;
+                expect((await getRepository(Route).findOneOrFail({ where: { id: rule2.id }})).interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
             });
 
             it('admin user should move from interface between rules', async () => {
@@ -513,8 +513,8 @@ describe(describeName('Route E2E Tests'), () => {
                     .send(data)
                     .expect(200)
                 
-                    expect((await getRepository(Route).findOneOrFail(rule1.id)).interfaceId).to.be.null;
-                    expect((await getRepository(Route).findOneOrFail(rule2.id)).interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
+                    expect((await getRepository(Route).findOneOrFail({ where: { id: rule1.id }})).interfaceId).to.be.null;
+                    expect((await getRepository(Route).findOneOrFail({ where: { id: rule2.id }})).interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
             });
 
 
@@ -1057,8 +1057,8 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(Route).findOne(routeOrder1.id)).style).to.eq('style!');
-                expect((await getRepository(Route).findOne(routeOrder2.id)).style).to.eq('style!');
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder1.id }})).style).to.eq('style!');
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder2.id }})).style).to.eq('style!');
             });
 
             it('admin user should bulk update routes', async () => {
@@ -1078,8 +1078,8 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(Route).findOne(routeOrder1.id)).style).to.eq('style!');
-                expect((await getRepository(Route).findOne(routeOrder2.id)).style).to.eq('style!');
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder1.id }})).style).to.eq('style!');
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder2.id }})).style).to.eq('style!');
             });
 
 
@@ -1225,8 +1225,8 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(Route).findOne(routeOrder1.id))).to.be.undefined;
-                expect((await getRepository(Route).findOne(routeOrder2.id))).to.be.undefined;
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder1.id }}))).to.be.undefined;
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder2.id }}))).to.be.undefined;
             });
 
             it('admin user should bulk remove routes', async () => {
@@ -1244,8 +1244,8 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(Route).findOne(routeOrder1.id))).to.be.undefined;
-                expect((await getRepository(Route).findOne(routeOrder2.id))).to.be.undefined;
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder1.id }}))).to.be.undefined;
+                expect((await getRepository(Route).findOne({ where: { id: routeOrder2.id }}))).to.be.undefined;
             });
 
             it('should throw validation error if query rules is not provided', async () => {

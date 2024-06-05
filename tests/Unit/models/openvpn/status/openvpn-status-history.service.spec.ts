@@ -64,7 +64,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
             }]);
 
-            const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail(previous[0].id);
+            const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail({ where: { id: previous[0].id }});
             expect(persisted).to.have.length(1);
             expect(shouldDisconnect.disconnectedAtTimestampInSeconds).not.to.be.null;
         });
@@ -73,7 +73,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             const previous: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, data);
             const persisted: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, []);
 
-            const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail(previous[0].id);
+            const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail({ where: { id: previous[0].id }});
             
             expect(persisted).to.have.length(0);
             expect(shouldDisconnect.disconnectedAtTimestampInSeconds).not.to.be.null;
@@ -90,7 +90,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
             }]);
 
-            const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail(previous[0].id);
+            const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail({ where: { id: previous[0].id }});
 
             expect(persisted).to.have.length(1);
             expect(shouldDisconnect.disconnectedAtTimestampInSeconds).not.to.be.null;

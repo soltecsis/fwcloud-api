@@ -53,7 +53,7 @@ describe(describeName('FwCloudService Unit tests'), async() => {
                 name: StringHelper.randomize(10)
             });
 
-            expect(await getRepository(FwCloud).findOne(fwCloud.id)).not.to.be.null;
+            expect(await getRepository(FwCloud).findOne({ where: { id: fwCloud.id }})).not.to.be.null;
         });
 
         it('should grant access to all admin users', async () => {
@@ -64,7 +64,10 @@ describe(describeName('FwCloudService Unit tests'), async() => {
                 name: StringHelper.randomize(10)
             });
             
-            fwCloud = await getRepository(FwCloud).findOne(fwCloud.id, {relations: ['users']});
+            fwCloud = await getRepository(FwCloud).findOne({
+                where: { id: fwCloud.id },
+                relations: ['users']
+            });
 
             expect(fwCloud.users.filter(user => user.id === regular.id)).to.have.length(0);
             expect(fwCloud.users.filter(user => user.id === admin.id)).to.have.length(1);
@@ -101,7 +104,7 @@ describe(describeName('FwCloudService Unit tests'), async() => {
                 comment: newComment
             });
 
-            fwCloud = await FwCloud.findOne(fwCloud.id);
+            fwCloud = await FwCloud.findOne({ where: { id: fwCloud.id }});
 
             expect(fwCloud.name).to.be.eq(newName);
             expect(fwCloud.comment).to.be.eq(newComment);

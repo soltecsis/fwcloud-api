@@ -121,7 +121,7 @@ describe(DHCPGroupService.name, () => {
 
             expect(saveStub.calledOnce).to.be.true;
             expect(findOneStub2.calledOnce).to.be.true;
-            expect(result).to.deep.equal(await getRepository(DHCPGroup).findOne(id));
+            expect(result).to.deep.equal(await getRepository(DHCPGroup).findOne({ where: { id: id }}));
 
             saveStub.restore();
             findOneStub2.restore();

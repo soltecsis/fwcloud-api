@@ -75,7 +75,7 @@ describe(DHCPRepository.name, () => {
             const result = await repository.remove(dhcpRule);
 
             expect(result).to.deep.equal(dhcpRule);
-            expect(await repository.findOne(dhcpRule.id)).to.be.undefined;
+            expect(await repository.findOne({ where: { id: dhcpRule.id }})).to.be.undefined;
         });
 
         it('should remove multiple DHCPRule entities', async () => {
@@ -89,8 +89,8 @@ describe(DHCPRepository.name, () => {
             const result = await repository.remove([dhcpRule, dhcpRule2]);
 
             expect(result).to.deep.equal([dhcpRule, dhcpRule2]);
-            expect(await repository.findOne(dhcpRule.id)).to.be.undefined;
-            expect(await repository.findOne(dhcpRule2.id)).to.be.undefined;
+            expect(await repository.findOne({ where: { id: dhcpRule.id }})).to.be.undefined;
+            expect(await repository.findOne({ where: { id: dhcpRule2.id }})).to.be.undefined;
         });
 
         it('should refresh orders after remove', async () => {

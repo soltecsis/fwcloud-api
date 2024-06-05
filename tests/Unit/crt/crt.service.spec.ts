@@ -45,7 +45,7 @@ describe(describeName('Crt Service Unit Test'), () =>{
 
             await service.update(crt.id, {comment:changeComment});
 
-            crt = await getRepository(Crt).findOne(crt.id);
+            crt = await getRepository(Crt).findOne({ where: { id: crt.id }});
 
             expect(await crt.comment).to.be.equal(changeComment);
         })

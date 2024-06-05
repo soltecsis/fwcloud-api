@@ -136,7 +136,7 @@ describe(describeName('FwCloud E2E Tests'), () => {
                     })
                     .expect(200)
                     .then(async (response) => {
-                        const persistedFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id);
+                        const persistedFwCloud: FwCloud = await FwCloud.findOne({ where: { id: fwCloud.id }});
                         expect(persistedFwCloud.name).to.be.eq(name);
                         expect(persistedFwCloud.comment).to.be.eq(comment);
                     });
@@ -153,7 +153,7 @@ describe(describeName('FwCloud E2E Tests'), () => {
                     })
                     .expect(200)
                     .then(async (response) => {
-                        const persistedFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id);
+                        const persistedFwCloud: FwCloud = await FwCloud.findOne({ where: { id: fwCloud.id }});
                         const persistedFwCloudObj: any = persistedFwCloud.toJSON()
                         
                         expect(response.body.data.name).to.be.deep.eq(persistedFwCloudObj.name);

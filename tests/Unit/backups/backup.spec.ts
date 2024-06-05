@@ -296,7 +296,7 @@ describe(describeName('Backup Unit tests'), () => {
 
             backup = await backup.restore();
 
-            firewall = await Firewall.findOne(firewall.id);
+            firewall = await Firewall.findOne({ where: { id: firewall.id }});
 
             expect(firewall.status).to.be.deep.eq(3);
             expect(firewall.installed_at).to.be.null;
@@ -338,7 +338,7 @@ describe(describeName('Backup Unit tests'), () => {
 
             await backup.restore();
 
-            firewall = await Firewall.findOne(firewall.id);
+            firewall = await Firewall.findOne({ where: { id: firewall.id }});
 
             expect(firewall.install_user).to.be.null;
             expect(firewall.install_pass).to.be.null;

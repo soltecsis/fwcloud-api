@@ -96,7 +96,7 @@ describe(describeName('Ca E2E Test'), () => {
             })
             .expect(200)
             .then(async (response)=>{
-                const caWithNewComment: Ca = await Ca.findOne(ca.id);
+                const caWithNewComment: Ca = await Ca.findOne({ where: { id: ca.id }});
                 expect(caWithNewComment.comment).to.be.equal(comment)
             })
 
@@ -114,7 +114,7 @@ describe(describeName('Ca E2E Test'), () => {
             })
             .expect(200)
             .then(async (response)=>{
-                const caWithNewComment = await Ca.findOne(ca.id);                
+                const caWithNewComment = await Ca.findOne({ where: { id: ca.id }});                
                 expect(response.body.data.comment).to.be.equal(caWithNewComment.comment)
             })
         })

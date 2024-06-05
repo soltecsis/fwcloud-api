@@ -50,7 +50,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
 
             const result: PolicyRule = await policyRuleRepository.updateActive(policyRule, 1);
 
-            policyRule = await PolicyRule.findOne(policyRule.id);
+            policyRule = await PolicyRule.findOne({ where: { id: policyRule.id }});
 
             expect(result.active).to.be.deep.eq(1);
             expect(policyRule.active).to.be.deep.eq(1);
@@ -113,11 +113,11 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
                 firewall: policyGroupOld.firewall
             }));
 
-            policyRule = await PolicyRule.findOne(policyRule.id);
+            policyRule = await PolicyRule.findOne({ where: { id: policyRule.id }});
 
             const result = await policyRuleRepository.assignToGroup(policyRule, policyGroupNew);
 
-            policyRule = await PolicyRule.findOne(policyRule.id);
+            policyRule = await PolicyRule.findOne({ where: { id: policyRule.id }});
 
             expect(result).to.be.instanceOf(PolicyRule);
             expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupNew.id);
@@ -150,8 +150,8 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
 
             const result = await policyRuleRepository.assignToGroup([policyRule, policyRule2], policyGroupNew);
 
-            policyRule = await PolicyRule.findOne(policyRule.id);
-            policyRule2 = await PolicyRule.findOne(policyRule2.id);
+            policyRule = await PolicyRule.findOne({ where: { id: policyRule.id }});
+            policyRule2 = await PolicyRule.findOne({ where: { id: policyRule2.id }});
 
             expect(result).to.have.length(2);
             expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupNew.id);
@@ -182,7 +182,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
 
             await policyRuleRepository.assignToGroup([policyRule], policyGroupNew);
 
-            policyRule = await PolicyRule.findOne(policyRule.id);
+            policyRule = await PolicyRule.findOne({ where: { id: policyRule.id }});
 
             expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupOld.id);
         });

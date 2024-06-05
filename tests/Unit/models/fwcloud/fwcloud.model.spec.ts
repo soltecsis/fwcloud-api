@@ -87,13 +87,13 @@ describe(describeName('FwCloud Unit Tests'), () => {
 
     describe('remove database data', () => {
         it('should remove all database data', async () => {
-            let fwCloud = await FwCloud.findOne(fwc.fwcloud.id);
+            let fwCloud = await FwCloud.findOne({ where: { id: fwc.fwcloud.id }});
 
             expect(fwc.fwcloud.id).to.be.equal(fwCloud.id);
 
             await fwCloud.remove();
 
-            fwCloud = await FwCloud.findOne(fwc.fwcloud.id);
+            fwCloud = await FwCloud.findOne({ where: { id: fwc.fwcloud.id }});
             expect(fwCloud).to.be.undefined;
         });
     });

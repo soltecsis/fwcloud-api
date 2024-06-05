@@ -177,7 +177,7 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
 
             const restoredFwCloud: FwCloud = await fwCloudExporter.import();
 
-            firewall = (await Firewall.find({ fwCloudId: restoredFwCloud.id }))[0];
+            firewall = (await Firewall.find({ where: { fwCloudId: restoredFwCloud.id }}))[0];
 
             expect(firewall.install_user).to.be.null;
             expect(firewall.install_pass).to.be.null;

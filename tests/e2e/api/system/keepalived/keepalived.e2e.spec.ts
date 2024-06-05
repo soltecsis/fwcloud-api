@@ -655,10 +655,10 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule1.id)).rule_order).to.equal(1);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule2.id)).rule_order).to.equal(2);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule3.id)).rule_order).to.equal(3);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule4.id)).rule_order).to.equal(4);
+                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule1.id }})).rule_order).to.equal(1);
+                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule2.id }})).rule_order).to.equal(2);
+                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule3.id }})).rule_order).to.equal(3);
+                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule4.id }})).rule_order).to.equal(4);
             });
 
             it('admin user should move a Keepalived rule', async () => {
@@ -674,10 +674,10 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule1.id)).rule_order).to.equal(1);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule2.id)).rule_order).to.equal(2);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule3.id)).rule_order).to.equal(3);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(KeepalivedRule4.id)).rule_order).to.equal(4);
+                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule1.id }})).rule_order).to.equal(1);
+                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule2.id }})).rule_order).to.equal(2);
+                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule3.id }})).rule_order).to.equal(3);
+                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule4.id }})).rule_order).to.equal(4);
             });
         });
 
@@ -752,8 +752,8 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(KeepalivedRule).findOneOrFail(rule1.id)).active).to.equal(false);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(rule2.id)).active).to.equal(false);
+                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule1.id }})).active).to.equal(false);
+                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule2.id }})).active).to.equal(false);
             });
 
             it('admin user should bulk update a Keepalived rule', async () => {
@@ -772,8 +772,8 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(KeepalivedRule).findOneOrFail(rule1.id)).active).to.equal(false);
-                expect((await getRepository(KeepalivedRule).findOneOrFail(rule2.id)).active).to.equal(false);
+                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule1.id }})).active).to.equal(false);
+                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule2.id }})).active).to.equal(false);
             });
         });
 
@@ -841,8 +841,8 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect(await getRepository(KeepalivedRule).findOne(rule1.id)).to.be.undefined;
-                expect(await getRepository(KeepalivedRule).findOne(rule2.id)).to.be.undefined;
+                expect(await getRepository(KeepalivedRule).findOne({ where: { id: rule1.id }})).to.be.undefined;
+                expect(await getRepository(KeepalivedRule).findOne({ where: { id: rule2.id }})).to.be.undefined;
             });
 
             it('admin user should bulk remove a Keepalived rule', async () => {
@@ -860,8 +860,8 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect(await getRepository(KeepalivedRule).findOne(rule1.id)).to.be.undefined;
-                expect(await getRepository(KeepalivedRule).findOne(rule2.id)).to.be.undefined;
+                expect(await getRepository(KeepalivedRule).findOne({ where: { id: rule1.id }})).to.be.undefined;
+                expect(await getRepository(KeepalivedRule).findOne({ where: { id: rule2.id }})).to.be.undefined;
             });
         });
     });

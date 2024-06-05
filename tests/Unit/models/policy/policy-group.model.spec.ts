@@ -53,7 +53,7 @@ describe(describeName('PolicyRule tests'), () => {
 
             await group.unassignPolicyRulesBeforeRemove();
 
-            rule = await PolicyRule.findOne(rule.id);
+            rule = await PolicyRule.findOne({ where: { id: rule.id }});
 
             expect(rule.policyGroupId).to.be.null;
         });

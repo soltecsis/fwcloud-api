@@ -123,7 +123,10 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             routingTableId: fwcProduct.routingTable.id,
         });
 
-        firewall = await getRepository(Firewall).findOneOrFail(fwcProduct.firewall.id, {relations: ['policyRules']});
+        firewall = await getRepository(Firewall).findOneOrFail({
+            where: {id: fwcProduct.firewall.id},
+            relations: ['policyRules']
+        });
 
         adminUser.fwClouds = [
             fwcProduct.fwcloud
@@ -215,7 +218,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('INPUT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(inputRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: inputRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -262,7 +265,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('OUTPUT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(outputRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: outputRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -309,7 +312,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('FORWARD', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(forwardRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: forwardRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -356,7 +359,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('DNAT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(dnatRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: dnatRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -403,7 +406,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('SNAT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(snatRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: snatRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -515,7 +518,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('INPUT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(inputRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: inputRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -562,7 +565,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('OUTPUT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(outputRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: outputRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -609,7 +612,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('FORWARD', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(forwardRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: forwardRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -656,7 +659,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('DNAT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(dnatRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: dnatRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -703,7 +706,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('SNAT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(snatRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: snatRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -815,7 +818,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('INPUT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(inputRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: inputRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -862,7 +865,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('OUTPUT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(outputRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: outputRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -909,7 +912,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('FORWARD', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(forwardRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: forwardRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -956,7 +959,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('DNAT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(dnatRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: dnatRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -1003,7 +1006,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('SNAT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(snatRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: snatRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SOURCE)', async () => {
@@ -1053,7 +1056,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
         let service: IPObj;
 
         beforeEach(async () => {
-            service = await getRepository(IPObj).findOneOrFail(10040);
+            service = await getRepository(IPObj).findOneOrFail({ where: { id: 10040 }});
             
             group = await getRepository(IPObjGroup).save({
                 name: 'group',
@@ -1085,7 +1088,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('INPUT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(inputRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: inputRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SERVICE)', async () => {
@@ -1112,7 +1115,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('OUTPUT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(outputRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: outputRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SERVICE)', async () => {
@@ -1139,7 +1142,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('FORWARD', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(forwardRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: forwardRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SERVICE)', async () => {
@@ -1166,7 +1169,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('DNAT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(dnatRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: dnatRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SERVICE)', async () => {
@@ -1193,7 +1196,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
             describe('SNAT', () => {
 
                 beforeEach(async () => {
-                    rule = await getRepository(PolicyRule).findOneOrFail(snatRuleId);
+                    rule = await getRepository(PolicyRule).findOneOrFail({ where: { id: snatRuleId }});
                 });
 
                 it('should throw an exception if item is used in a policy (SERVICE)', async () => {

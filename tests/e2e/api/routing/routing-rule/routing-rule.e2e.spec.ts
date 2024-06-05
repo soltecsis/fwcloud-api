@@ -1011,8 +1011,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).style).to.eq('style!');
-                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).style).to.eq('style!');
+                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id }})).style).to.eq('style!');
+                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id }})).style).to.eq('style!');
             });
 
             it('admin user should bulk update rules', async () => {
@@ -1031,8 +1031,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id)).style).to.eq('style!');
-                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id)).style).to.eq('style!');
+                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id }})).style).to.eq('style!');
+                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id }})).style).to.eq('style!');
             });
 
 
@@ -1187,8 +1187,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id))).to.be.undefined;
-                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id))).to.be.undefined;
+                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id }}))).to.be.undefined;
+                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id }}))).to.be.undefined;
             });
 
             it('admin user should bulk remove rules', async () => {
@@ -1206,8 +1206,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(RoutingRule).findOne(ruleOrder1.id))).to.be.undefined;
-                expect((await getRepository(RoutingRule).findOne(ruleOrder2.id))).to.be.undefined;
+                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id }}))).to.be.undefined;
+                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id }}))).to.be.undefined;
             });
 
             it('should throw validation error if query rules is not provided', async () => {

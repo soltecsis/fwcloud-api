@@ -60,7 +60,7 @@ describe(HAProxyRuleRepository.name, () => {
             const result = await repository.remove(haproxyRule);
 
             expect(result).to.deep.equal(haproxyRule);
-            expect(await repository.findOne(haproxyRule.id)).to.be.undefined;
+            expect(await repository.findOne({ where: { id: haproxyRule.id }})).to.be.undefined;
         });
 
         it('should remove multiple HAProxyRules', async () => {
@@ -73,8 +73,8 @@ describe(HAProxyRuleRepository.name, () => {
             const result = await repository.remove([haproxyRule, haproxyRule2]);
 
             expect(result).to.deep.equal([haproxyRule, haproxyRule2]);
-            expect(await repository.findOne(haproxyRule.id)).to.be.undefined;
-            expect(await repository.findOne(haproxyRule2.id)).to.be.undefined;
+            expect(await repository.findOne({ where: { id: haproxyRule.id }})).to.be.undefined;
+            expect(await repository.findOne({ where: { id: haproxyRule2.id }})).to.be.undefined;
         });
 
         it('should refresh orders after remove', async () => {

@@ -162,8 +162,13 @@ describe(RoutingRuleService.name, () => {
                     }]
                 });
 
-                rule = await getRepository(RoutingRule).findOne(rule.id, {relations: ['firewallApplyTo']})
-                
+                rule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule.id
+                    },
+                    relations: ['firewallApplyTo']
+                });
+
                 expect(rule.firewallApplyTo.id).to.eq(firewall.id)
             })
             it('should firewallApplyToId set null to default when does not have any firewall', async () =>{
@@ -176,7 +181,12 @@ describe(RoutingRuleService.name, () => {
                     }]
                 });
 
-                rule = await getRepository(RoutingRule).findOne(rule.id, {relations: ['firewallApplyTo']})
+                rule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule.id
+                    },
+                    relations: ['firewallApplyTo']
+                });
 
                 expect(rule.firewallApplyToId).to.eq(null)
             })
@@ -240,7 +250,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjs']})).routingRuleToIPObjs.map(item => item.ipObjId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToIPObjs']
+                    })).routingRuleToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj1.id, ipobj2.id])
             });
 
@@ -259,7 +274,12 @@ describe(RoutingRuleService.name, () => {
                     }))
                 });
                 
-                rule = await getRepository(RoutingRule).findOne(rule.id, { relations: ['routingRuleToIPObjs']});
+                rule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule.id
+                    },
+                    relations: ['routingRuleToIPObjs']
+                });
 
                 expect(rule.routingRuleToIPObjs).to.have.length(standards.length);
             })
@@ -327,7 +347,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjGroups']})).routingRuleToIPObjGroups.map(item => item.ipObjGroupId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToIPObjGroups']
+                    })).routingRuleToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([group1.id, group2.id])
             });
         });
@@ -377,7 +402,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNs']})).routingRuleToOpenVPNs.map(item => item.openVPNId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToOpenVPNs']
+                    })).routingRuleToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([openVPN1.id, openVPN2.id])
             });
         });
@@ -431,7 +461,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNPrefixes']})).routingRuleToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToOpenVPNPrefixes']
+                    })).routingRuleToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id])
             });
         });
@@ -464,7 +499,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToMarks']})).routingRuleToMarks.map(item => item.markId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToMarks']
+                    })).routingRuleToMarks.map(item => item.markId)
                 ).to.deep.eq([mark1.id, mark2.id])
             });
         });
@@ -557,7 +597,12 @@ describe(RoutingRuleService.name, () => {
                     }]
                 });
 
-                expect((await getRepository(RoutingRule).findOne(rule.id, {relations: ['firewallApplyTo']})).firewallApplyTo.id).to.eq(firewall.id)
+                expect((await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule.id
+                    },
+                    relations: ['firewallApplyTo']
+                })).firewallApplyTo.id).to.eq(firewall.id)
             })
 
             it('should remove firewallApplyToId when remove a firewall attached', async () =>{
@@ -578,7 +623,12 @@ describe(RoutingRuleService.name, () => {
                     }]
                 });
 
-                expect((await getRepository(RoutingRule).findOne(rule.id, {relations: ['firewallApplyTo']})).firewallApplyToId).to.eq(null)
+                expect((await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule.id
+                    },
+                    relations: ['firewallApplyTo']
+                })).firewallApplyToId).to.eq(null)
             })
 
             it('should firewallApplyToId null default when does not have any firewall', async () =>{
@@ -590,7 +640,12 @@ describe(RoutingRuleService.name, () => {
                     }]
                 });
 
-                expect((await getRepository(RoutingRule).findOne(rule.id, {relations: ['firewallApplyTo']})).firewallApplyToId).to.eq(null)
+                expect((await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule.id
+                    },
+                    relations: ['firewallApplyTo']
+                })).firewallApplyToId).to.eq(null)
             })
 
             it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
@@ -643,7 +698,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjs']})).routingRuleToIPObjs.map(item => item.ipObjId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToIPObjs']
+                    })).routingRuleToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj1.id, ipobj2.id])
             });
 
@@ -662,7 +722,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjs']})).routingRuleToIPObjs.map(item => item.ipObjId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToIPObjs']
+                    })).routingRuleToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj2.id])
             });
 
@@ -679,7 +744,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjs']})).routingRuleToIPObjs.map(item => item.ipObjId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToIPObjs']
+                    })).routingRuleToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([])
             });
 
@@ -759,7 +829,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjGroups']})).routingRuleToIPObjGroups.map(item => item.ipObjGroupId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToIPObjGroups']
+                    })).routingRuleToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([group1.id, group2.id])
             });
 
@@ -778,7 +853,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjGroups']})).routingRuleToIPObjGroups.map(item => item.ipObjGroupId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToIPObjGroups']
+                    })).routingRuleToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([group2.id])
             });
 
@@ -795,7 +875,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToIPObjGroups']})).routingRuleToIPObjGroups.map(item => item.ipObjGroupId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToIPObjGroups']
+                    })).routingRuleToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([])
             });
 
@@ -815,7 +900,7 @@ describe(RoutingRuleService.name, () => {
             });
 
             it('should not allow attach a service group', async () => {
-                let _service = await getRepository(IPObj).findOneOrFail(10040);
+                let _service = await getRepository(IPObj).findOneOrFail({ where: { id: 10040 }});
                 
                 let group = await getRepository(IPObjGroup).save({
                     name: 'group',
@@ -880,7 +965,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNs']})).routingRuleToOpenVPNs.map(item => item.openVPNId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToOpenVPNs']
+                    })).routingRuleToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([openVPN1.id, openVPN2.id])
             });
 
@@ -899,7 +989,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNs']})).routingRuleToOpenVPNs.map(item => item.openVPNId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToOpenVPNs']
+                    })).routingRuleToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([openVPN2.id])
             });
 
@@ -916,7 +1011,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNs']})).routingRuleToOpenVPNs.map(item => item.openVPNId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToOpenVPNs']
+                    })).routingRuleToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([])
             })
         });
@@ -969,7 +1069,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNPrefixes']})).routingRuleToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToOpenVPNPrefixes']
+                    })).routingRuleToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id])
             });
 
@@ -988,7 +1093,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNPrefixes']})).routingRuleToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToOpenVPNPrefixes']
+                    })).routingRuleToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([openVPNPrefix2.id])
             });
 
@@ -1005,7 +1115,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToOpenVPNPrefixes']})).routingRuleToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToOpenVPNPrefixes']
+                    })).routingRuleToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([])
             })
         });
@@ -1037,7 +1152,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToMarks']})).routingRuleToMarks.map(item => item.markId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToMarks']
+                    })).routingRuleToMarks.map(item => item.markId)
                 ).to.deep.eq([mark1.id, mark2.id])
             });
 
@@ -1056,7 +1176,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToMarks']})).routingRuleToMarks.map(item => item.markId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToMarks']
+                    })).routingRuleToMarks.map(item => item.markId)
                 ).to.deep.eq([mark2.id])
             });
 
@@ -1073,7 +1198,12 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne(rule.id, {relations: ['routingRuleToMarks']})).routingRuleToMarks.map(item => item.markId)
+                    (await getRepository(RoutingRule).findOne({
+                        where: {
+                            id: rule.id
+                        },
+                        relations: ['routingRuleToMarks']
+                    })).routingRuleToMarks.map(item => item.markId)
                 ).to.deep.eq([])
             })
         });
@@ -1147,7 +1277,7 @@ describe(RoutingRuleService.name, () => {
                 id: rule.id
             });
 
-            expect(await getRepository(RoutingRule).findOne(rule.id)).to.be.undefined;
+            expect(await getRepository(RoutingRule).findOne({ where: { id: rule.id }})).to.be.undefined;
         });
 
         it('should reset firewall compiled flag', async () => {
@@ -1243,8 +1373,18 @@ describe(RoutingRuleService.name, () => {
                     ipObjId: fwcProduct.ipobjs.get('address').id
                 });
 
-                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne(rule1.id, { relations: ['routingRuleToIPObjs']});
-                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne(rule2.id, { relations: ['routingRuleToIPObjs']});
+                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule1.id
+                    },
+                    relations: ['routingRuleToIPObjs']
+                });
+                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule2.id
+                    },
+                    relations: ['routingRuleToIPObjs']
+                });
 
                 expect(refreshedRule1.routingRuleToIPObjs).length(0);
                 expect(refreshedRule2.routingRuleToIPObjs).length(1);
@@ -1266,8 +1406,18 @@ describe(RoutingRuleService.name, () => {
                     ipObjGroupId: fwcProduct.ipobjGroup.id,
                 });
 
-                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne(rule1.id, { relations: ['routingRuleToIPObjGroups']});
-                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne(rule2.id, { relations: ['routingRuleToIPObjGroups']});
+                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule1.id
+                    },
+                    relations: ['routingRuleToIPObjGroups']
+                });
+                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule2.id
+                    },
+                    relations: ['routingRuleToIPObjGroups']
+                });
 
                 expect(refreshedRule1.routingRuleToIPObjGroups).length(0);
                 expect(refreshedRule2.routingRuleToIPObjGroups).length(1);
@@ -1289,8 +1439,18 @@ describe(RoutingRuleService.name, () => {
                     openVPNId: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
                 });
 
-                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne(rule1.id, { relations: ['routingRuleToOpenVPNs']});
-                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne(rule2.id, { relations: ['routingRuleToOpenVPNs']});
+                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule1.id
+                    },
+                    relations: ['routingRuleToOpenVPNs']
+                });
+                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule2.id
+                    },
+                    relations: ['routingRuleToOpenVPNs']
+                });
 
                 expect(refreshedRule1.routingRuleToOpenVPNs).length(0);
                 expect(refreshedRule2.routingRuleToOpenVPNs).length(1);
@@ -1312,8 +1472,18 @@ describe(RoutingRuleService.name, () => {
                     openVPNPrefixId: fwcProduct.openvpnPrefix.id,
                 });
 
-                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne(rule1.id, { relations: ['routingRuleToOpenVPNPrefixes']});
-                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne(rule2.id, { relations: ['routingRuleToOpenVPNPrefixes']});
+                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule1.id
+                    },
+                    relations: ['routingRuleToOpenVPNPrefixes']
+                });
+                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule2.id
+                    },
+                    relations: ['routingRuleToOpenVPNPrefixes']
+                });
 
                 expect(refreshedRule1.routingRuleToOpenVPNPrefixes).length(0);
                 expect(refreshedRule2.routingRuleToOpenVPNPrefixes).length(1);
@@ -1328,8 +1498,18 @@ describe(RoutingRuleService.name, () => {
                     markId: mark2.id
                 });
 
-                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne(rule1.id, { relations: ['routingRuleToMarks']});
-                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne(rule2.id, { relations: ['routingRuleToMarks']});
+                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule1.id
+                    },
+                    relations: ['routingRuleToMarks']
+                });
+                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne({
+                    where: {
+                        id: rule2.id
+                    },
+                    relations: ['routingRuleToMarks']
+                });
 
                 expect(refreshedRule1.routingRuleToMarks).length(1);
                 expect(refreshedRule2.routingRuleToMarks).length(2);

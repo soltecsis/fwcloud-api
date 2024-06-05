@@ -128,7 +128,12 @@ describe(RouteService.name, () => {
                     }))
                 });
 
-                route = await getRepository(Route).findOne(route.id, { relations: ['routeToIPObjs']});
+                route = await getRepository(Route).findOne({
+                    where: {
+                        id: route.id
+                    },
+                    relations: ['routeToIPObjs']
+                });
 
                 expect(route.routeToIPObjs).to.have.length(standards.length);
             })
@@ -142,7 +147,12 @@ describe(RouteService.name, () => {
                     firewallApplyToId: firewall.id
                 })
 
-                route = await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})
+                route = await getRepository(Route).findOne({
+                    where: {
+                        id: route.id
+                    },
+                    relations: ['firewallApplyTo']
+                });
                 expect(route.firewallApplyTo.id).to.eq(firewall.id)
             });
 
@@ -152,7 +162,12 @@ describe(RouteService.name, () => {
                     gatewayId: gateway.id,
                 })
 
-                route = await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})
+                route = await getRepository(Route).findOne({
+                    where: {
+                        id: route.id
+                    },
+                    relations: ['firewallApplyTo']
+                });
                 expect(route.firewallApplyToId).to.eq(null)
             })
 
@@ -242,7 +257,12 @@ describe(RouteService.name, () => {
                     firewallApplyToId: firewall.id
                 })
 
-                expect((await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})).firewallApplyTo.id).to.eq(firewall.id)
+                expect((await getRepository(Route).findOne({
+                    where: {
+                        id: route.id
+                    },
+                    relations: ['firewallApplyTo']
+                })).firewallApplyTo.id).to.eq(firewall.id)
             })
 
             it('should remove firewallApplyToId when remove a firewall attached', async ()=>{
@@ -255,7 +275,12 @@ describe(RouteService.name, () => {
                 });
                 
                 
-                expect((await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})).firewallApplyToId).to.eq(null)
+                expect((await getRepository(Route).findOne({
+                    where: {
+                        id: route.id
+                    },
+                    relations: ['firewallApplyTo']
+                })).firewallApplyToId).to.eq(null)
             })
 
             it('should firewallApplyToId null default when does not have any firewall', async () =>{    
@@ -263,7 +288,12 @@ describe(RouteService.name, () => {
                 });
                 
 
-                expect((await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})).firewallApplyToId).to.eq(null)
+                expect((await getRepository(Route).findOne({
+                    where: {
+                        id: route.id
+                    },
+                    relations: ['firewallApplyTo']
+                })).firewallApplyToId).to.eq(null)
             })
 
             it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
@@ -311,7 +341,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjs']})).routeToIPObjs.map(item => item.ipObjId)
+                    (await getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToIPObjs']
+                    })).routeToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj1.id, ipobj2.id])
             });
 
@@ -330,7 +365,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjs']})).routeToIPObjs.map(item => item.ipObjId)
+                    (await getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToIPObjs']
+                    })).routeToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj2.id])
             });
 
@@ -347,7 +387,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjs']})).routeToIPObjs.map(item => item.ipObjId)
+                    (await getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToIPObjs']
+                    })).routeToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([])
             });
 
@@ -441,7 +486,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjGroups']})).routeToIPObjGroups.map(item => item.ipObjGroupId)
+                    (await getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToIPObjGroups']
+                    })).routeToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([group1.id, group2.id])
             });
 
@@ -460,7 +510,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjGroups']})).routeToIPObjGroups.map(item => item.ipObjGroupId)
+                    (await getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToIPObjGroups']
+                    })).routeToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([group2.id])
             });
 
@@ -477,7 +532,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjGroups']})).routeToIPObjGroups.map(item => item.ipObjGroupId)
+                    (await getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToIPObjGroups']
+                    })).routeToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([])
             });
 
@@ -497,7 +557,7 @@ describe(RouteService.name, () => {
             });
 
             it('should not allow attach a service group', async () => {
-                let _service = await getRepository(IPObj).findOneOrFail(10040);
+                let _service = await getRepository(IPObj).findOneOrFail({ where: { id: 10040 }});
                 
                 let group = await getRepository(IPObjGroup).save({
                     name: 'group',
@@ -562,7 +622,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNs']})).routeToOpenVPNs.map(item => item.openVPNId)
+                    (await getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToOpenVPNs']
+                    })).routeToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([openVPN1.id, openVPN2.id])
             });
 
@@ -581,7 +646,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNs']})).routeToOpenVPNs.map(item => item.openVPNId)
+                    (await getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToOpenVPNs']
+                    })).routeToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([openVPN2.id])
             });
 
@@ -598,7 +668,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNs']})).routeToOpenVPNs.map(item => item.openVPNId)
+                    (await getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToOpenVPNs']
+                    })).routeToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([])
             })
         });
@@ -652,7 +727,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNPrefixes']})).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
+                    (await getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToOpenVPNPrefixes']
+                    })).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id])
             });
 
@@ -671,7 +751,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNPrefixes']})).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
+                    (await getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToOpenVPNPrefixes']
+                    })).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([openVPNPrefix2.id])
             });
 
@@ -688,7 +773,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNPrefixes']})).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
+                    (await getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToOpenVPNPrefixes']
+                    })).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([])
             })
         });
@@ -798,8 +888,18 @@ describe(RouteService.name, () => {
                     ipObjId: fwcProduct.ipobjs.get('address').id
                 });
 
-                const refreshedRoute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToIPObjs']});
-                const refreshedroute2: Route = await getRepository(Route).findOne(route2.id, { relations: ['routeToIPObjs']});
+                const refreshedRoute1: Route = await getRepository(Route).findOne({
+                    where: {
+                        id: route1.id
+                    },
+                    relations: ['routeToIPObjs']
+                });
+                const refreshedroute2: Route = await getRepository(Route).findOne({
+                    where: {
+                        id: route2.id
+                    },
+                    relations: ['routeToIPObjs']
+                });
 
                 expect(refreshedRoute1.routeToIPObjs).length(0);
                 expect(refreshedroute2.routeToIPObjs).length(1);
@@ -821,8 +921,18 @@ describe(RouteService.name, () => {
                     ipObjGroupId: fwcProduct.ipobjGroup.id,
                 });
 
-                const refreshedroute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToIPObjGroups']});
-                const refreshedroute2: Route = await getRepository(Route).findOne(route2.id, { relations: ['routeToIPObjGroups']});
+                const refreshedroute1: Route = await getRepository(Route).findOne({
+                    where: {
+                        id: route1.id
+                    },
+                    relations: ['routeToIPObjGroups']
+                });
+                const refreshedroute2: Route = await getRepository(Route).findOne({
+                    where: {
+                        id: route2.id
+                    },
+                    relations: ['routeToIPObjGroups']
+                });
 
                 expect(refreshedroute1.routeToIPObjGroups).length(0);
                 expect(refreshedroute2.routeToIPObjGroups).length(1);
@@ -844,8 +954,18 @@ describe(RouteService.name, () => {
                     openVPNId: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
                 });
 
-                const refreshedroute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToOpenVPNs']});
-                const refreshedroute2: Route = await getRepository(Route).findOne(route2.id, { relations: ['routeToOpenVPNs']});
+                const refreshedroute1: Route = await getRepository(Route).findOne({
+                    where: {
+                        id: route1.id
+                    },
+                    relations: ['routeToOpenVPNs']
+                });
+                const refreshedroute2: Route = await getRepository(Route).findOne({
+                    where: {
+                        id: route2.id
+                    },
+                    relations: ['routeToOpenVPNs']
+                });
 
                 expect(refreshedroute1.routeToOpenVPNs).length(0);
                 expect(refreshedroute2.routeToOpenVPNs).length(1);
@@ -867,8 +987,18 @@ describe(RouteService.name, () => {
                     openVPNPrefixId: fwcProduct.openvpnPrefix.id,
                 });
 
-                const refreshedroute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToOpenVPNPrefixes']});
-                const refreshedroute2: Route = await getRepository(Route).findOne(route2.id, { relations: ['routeToOpenVPNPrefixes']});
+                const refreshedroute1: Route = await getRepository(Route).findOne({
+                    where: {
+                        id: route1.id
+                    },
+                    relations: ['routeToOpenVPNPrefixes']
+                });
+                const refreshedroute2: Route = await getRepository(Route).findOne({
+                    where: {
+                        id: route2.id
+                    },
+                    relations: ['routeToOpenVPNPrefixes']
+                });
 
                 expect(refreshedroute1.routeToOpenVPNPrefixes).length(0);
                 expect(refreshedroute2.routeToOpenVPNPrefixes).length(1);
@@ -912,8 +1042,13 @@ describe(RouteService.name, () => {
                 ipObjId: gateway.id
             });
 
-            const refreshedRoute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToIPObjs']});
-            const refreshedroute2: Route = await getRepository(Route).findOne(route2.id);
+            const refreshedRoute1: Route = await getRepository(Route).findOne({
+                where: {
+                    id: route1.id
+                },
+                relations: ['routeToIPObjs']
+            });
+            const refreshedroute2: Route = await getRepository(Route).findOne({ where: { id: route2.id }});
 
             expect(refreshedRoute1.routeToIPObjs).length(0);
             expect(refreshedroute2.gatewayId).to.eq(gateway.id);
@@ -944,8 +1079,8 @@ describe(RouteService.name, () => {
                 interfaceId: fwcProduct.interfaces.get('firewall-interface1').id
             });
 
-            const refreshedRoute1: Route = await getRepository(Route).findOne(route1.id);
-            const refreshedroute2: Route = await getRepository(Route).findOne(route2.id);
+            const refreshedRoute1: Route = await getRepository(Route).findOne({ where: { id: route1.id }});
+            const refreshedroute2: Route = await getRepository(Route).findOne({ where: { id: route2.id }});
 
             expect(refreshedRoute1.interfaceId).to.be.null;
             expect(refreshedroute2.interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
