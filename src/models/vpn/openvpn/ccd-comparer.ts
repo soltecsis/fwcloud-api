@@ -1,4 +1,4 @@
-import { CCDHash } from "../../../communications/communication";
+import { CCDHash } from '../../../communications/communication';
 
 export type CCDComparation = {
     onlyLocal: string[],

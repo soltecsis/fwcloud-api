@@ -1,4 +1,4 @@
-import { IsDate, IsIP, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsDate, IsIP, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class HistoryQueryDto {
     @IsNumber()

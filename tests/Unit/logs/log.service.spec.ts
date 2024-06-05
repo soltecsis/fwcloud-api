@@ -1,8 +1,8 @@
-import { describeName, testSuite, expect } from "../../mocha/global-setup";
-import { LogService } from "../../../src/logs/log.service";
-import { FSHelper } from "../../../src/utils/fs-helper";
-import { Application } from "../../../src/Application";
-import winston from "winston";
+import { describeName, testSuite, expect } from '../../mocha/global-setup';
+import { LogService } from '../../../src/logs/log.service';
+import { FSHelper } from '../../../src/utils/fs-helper';
+import { Application } from '../../../src/Application';
+import winston from 'winston';
 
 describe(describeName('LogService Unit Tests'), () => {
     let app: Application;

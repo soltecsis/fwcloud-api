@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsNumber, IsPositive } from "class-validator";
+import { IsNumber, IsPositive } from 'class-validator';
 
 export class OpenVPNArchiveControllerUpdateDto {
     @IsNumber()

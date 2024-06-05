@@ -36,6 +36,7 @@ module.exports = {
     'no-async-promise-executor': 'off',
     'no-prototype-builtins': 'off',
     '@typescript-eslint/ban-types': 'off',
+    '@typescript-eslint/restrict-plus-operands': 'off'
   },
   ignorePatterns: ['dist/', 'node_modules/', 'lib/'],
 };
