@@ -4,11 +4,11 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
-} from "typeorm";
-import Model from "../../../Model";
-import { OpenVPN } from "../OpenVPN";
+} from 'typeorm';
+import Model from '../../../Model';
+import { OpenVPN } from '../OpenVPN';
 
-const tableName: string = "openvpn_status_history";
+const tableName: string = 'openvpn_status_history';
 
 @Entity(tableName)
 export class OpenVPNStatusHistory extends Model {
@@ -22,36 +22,36 @@ export class OpenVPNStatusHistory extends Model {
   address: string;
 
   @Column({
-    name: "bytes_received",
+    name: 'bytes_received',
   })
   bytesReceived: string;
 
   @Column({
-    name: "bytes_sent",
+    name: 'bytes_sent',
   })
   bytesSent: string;
 
   @Column({
-    name: "connected_at_timestamp",
+    name: 'connected_at_timestamp',
   })
   connectedAtTimestampInSeconds: number;
 
   @Column({
-    name: "disconnected_at_timestamp",
+    name: 'disconnected_at_timestamp',
   })
   disconnectedAtTimestampInSeconds: number;
 
   @Column({
-    name: "timestamp",
+    name: 'timestamp',
   })
   timestampInSeconds: number;
 
-  @Column({ name: "openvpn_server_id" })
+  @Column({ name: 'openvpn_server_id' })
   openVPNServerId: number;
 
   @ManyToOne(() => OpenVPN, (model) => model.historyRecords)
   @JoinColumn({
-    name: "openvpn_server_id",
+    name: 'openvpn_server_id',
   })
   openVPNServer: OpenVPN;
 

@@ -1,12 +1,12 @@
-import { getRepository } from "typeorm";
-import db from "../../../../src/database/database-manager";
-import { Route } from "../../../../src/models/routing/route/route.model";
-import { RouteService } from "../../../../src/models/routing/route/route.service";
-import { RoutingRule } from "../../../../src/models/routing/routing-rule/routing-rule.model";
-import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
-import { OpenVPNPrefix } from "../../../../src/models/vpn/openvpn/OpenVPNPrefix";
-import { expect, testSuite } from "../../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
+import { getRepository } from 'typeorm';
+import db from '../../../../src/database/database-manager';
+import { Route } from '../../../../src/models/routing/route/route.model';
+import { RouteService } from '../../../../src/models/routing/route/route.service';
+import { RoutingRule } from '../../../../src/models/routing/routing-rule/routing-rule.model';
+import { RoutingRuleService } from '../../../../src/models/routing/routing-rule/routing-rule.service';
+import { OpenVPNPrefix } from '../../../../src/models/vpn/openvpn/OpenVPNPrefix';
+import { expect, testSuite } from '../../../mocha/global-setup';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 
 describe(OpenVPNPrefix.name, () => {
   let fwcloudProduct: FwCloudProduct;
@@ -29,13 +29,13 @@ describe(OpenVPNPrefix.name, () => {
     prefix = await getRepository(OpenVPNPrefix).save(
       getRepository(OpenVPNPrefix).create({
         openVPNId: fwcloudProduct.openvpnServer.id,
-        name: "OpenVPN-Cli-test",
+        name: 'OpenVPN-Cli-test',
       }),
     );
 
     route = await routeService.create({
       routingTableId: fwcloudProduct.routingTable.id,
-      gatewayId: fwcloudProduct.ipobjs.get("gateway").id,
+      gatewayId: fwcloudProduct.ipobjs.get('gateway').id,
     });
 
     route = await routeService.update(route.id, {
@@ -48,9 +48,9 @@ describe(OpenVPNPrefix.name, () => {
     });
   });
 
-  describe("searchPrefixUsage", () => {
-    describe("route", () => {
-      it("should detect usages", async () => {
+  describe('searchPrefixUsage', () => {
+    describe('route', () => {
+      it('should detect usages', async () => {
         const whereUsed: any = await OpenVPNPrefix.searchPrefixUsage(
           db.getQuery(),
           fwcloudProduct.fwcloud.id,
@@ -65,8 +65,8 @@ describe(OpenVPNPrefix.name, () => {
       });
     });
 
-    describe("routingRule", () => {
-      it("should detect usages", async () => {
+    describe('routingRule', () => {
+      it('should detect usages', async () => {
         const whereUsed: any = await OpenVPNPrefix.searchPrefixUsage(
           db.getQuery(),
           fwcloudProduct.fwcloud.id,

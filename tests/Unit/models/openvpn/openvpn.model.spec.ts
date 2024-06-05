@@ -1,14 +1,14 @@
-import { expect } from "chai";
-import { getRepository } from "typeorm";
-import db from "../../../../src/database/database-manager";
-import { Route } from "../../../../src/models/routing/route/route.model";
-import { RouteService } from "../../../../src/models/routing/route/route.service";
-import { RoutingRule } from "../../../../src/models/routing/routing-rule/routing-rule.model";
-import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
-import { OpenVPN } from "../../../../src/models/vpn/openvpn/OpenVPN";
-import { Crt } from "../../../../src/models/vpn/pki/Crt";
-import { testSuite } from "../../../mocha/global-setup";
-import { FwCloudProduct, FwCloudFactory } from "../../../utils/fwcloud-factory";
+import { expect } from 'chai';
+import { getRepository } from 'typeorm';
+import db from '../../../../src/database/database-manager';
+import { Route } from '../../../../src/models/routing/route/route.model';
+import { RouteService } from '../../../../src/models/routing/route/route.service';
+import { RoutingRule } from '../../../../src/models/routing/routing-rule/routing-rule.model';
+import { RoutingRuleService } from '../../../../src/models/routing/routing-rule/routing-rule.service';
+import { OpenVPN } from '../../../../src/models/vpn/openvpn/OpenVPN';
+import { Crt } from '../../../../src/models/vpn/pki/Crt';
+import { testSuite } from '../../../mocha/global-setup';
+import { FwCloudProduct, FwCloudFactory } from '../../../utils/fwcloud-factory';
 
 describe(OpenVPN.name, () => {
   let fwcloudProduct: FwCloudProduct;
@@ -36,7 +36,7 @@ describe(OpenVPN.name, () => {
           await getRepository(Crt).save(
             getRepository(Crt).create({
               caId: fwcloudProduct.ca.id,
-              cn: "test",
+              cn: 'test',
               days: 1000,
               type: 1,
             }),
@@ -47,7 +47,7 @@ describe(OpenVPN.name, () => {
 
     route = await routeService.create({
       routingTableId: fwcloudProduct.routingTable.id,
-      gatewayId: fwcloudProduct.ipobjs.get("gateway").id,
+      gatewayId: fwcloudProduct.ipobjs.get('gateway').id,
     });
 
     route = await routeService.update(route.id, {
@@ -60,9 +60,9 @@ describe(OpenVPN.name, () => {
     });
   });
 
-  describe("searchIpobjUsage", () => {
-    describe("route", () => {
-      it("should detect usages", async () => {
+  describe('searchIpobjUsage', () => {
+    describe('route', () => {
+      it('should detect usages', async () => {
         const whereUsed: any = await OpenVPN.searchOpenvpnUsage(
           db.getQuery(),
           fwcloudProduct.fwcloud.id,
@@ -77,8 +77,8 @@ describe(OpenVPN.name, () => {
       });
     });
 
-    describe("routingRule", () => {
-      it("should detect usages", async () => {
+    describe('routingRule', () => {
+      it('should detect usages', async () => {
         const whereUsed: any = await OpenVPN.searchOpenvpnUsage(
           db.getQuery(),
           fwcloudProduct.fwcloud.id,

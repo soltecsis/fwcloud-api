@@ -106,10 +106,5 @@
     "sinon": "18.0.0",
     "supertest": "7.0.0",
     "typescript": "^5.4.5"
-  },
-  "prettier": {
-    "semi": true,
-    "singleQuote": true,
-    "trailingComma": "all"
   }
 }

@@ -30,22 +30,22 @@ import {
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
-} from "typeorm";
-import Model from "../../Model";
-import { IPObj } from "../../ipobj/IPObj";
-import { OpenVPN } from "./OpenVPN";
+} from 'typeorm';
+import Model from '../../Model';
+import { IPObj } from '../../ipobj/IPObj';
+import { OpenVPN } from './OpenVPN';
 
-const tableName: string = "openvpn_opt";
+const tableName: string = 'openvpn_opt';
 
 @Entity(tableName)
 export class OpenVPNOption extends Model {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: "openvpn" })
+  @Column({ name: 'openvpn' })
   openVPNId: number;
 
-  @Column({ name: "ipobj" })
+  @Column({ name: 'ipobj' })
   ipObjId: number;
 
   @Column()
@@ -53,13 +53,13 @@ export class OpenVPNOption extends Model {
 
   @ManyToOne((type) => OpenVPN, (openVPN) => openVPN.openVPNOptions)
   @JoinColumn({
-    name: "openvpn",
+    name: 'openvpn',
   })
   openVPN: OpenVPN;
 
   @ManyToOne((type) => IPObj, (ipObj) => ipObj.optionsList)
   @JoinColumn({
-    name: "ipobj",
+    name: 'ipobj',
   })
   ipObj: IPObj;
 

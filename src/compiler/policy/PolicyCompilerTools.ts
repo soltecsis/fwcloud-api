@@ -181,7 +181,7 @@ export abstract class PolicyCompilerTools {
         this._csEnd = `${this._compiler == 'IPTables' ? '-m conntrack --ctstate ESTABLISHED,RELATED -j' : 'ct state related,established'} ${this._action}\n`;
         break;
 
-      case SpecialPolicyRules.CROWDSEC:
+      case SpecialPolicyRules.CROWDSEC: {
         if (
           this._policyType != PolicyTypesMap.get('IPv4:INPUT') &&
           this._policyType != PolicyTypesMap.get('IPv4:FORWARD') &&
@@ -193,21 +193,24 @@ export abstract class PolicyCompilerTools {
         const setName = `crowdsec${this._family === 'ip6' ? '6' : ''}-blacklists`;
         this._csEnd = `${this._compiler == 'IPTables' ? `-m set --match-set ${setName} src -j` : `ip saddr . ip daddr vmap @${setName}`} ${this._action}\n`;
         break;
-
+      }
       case SpecialPolicyRules.FAIL2BAN:
         if (
           this._family === 'ip6' ||
           this._policyType != PolicyTypesMap.get('IPv4:INPUT')
         )
           throw fwcError.other('Invalid chain for Fail2Ban special rule');
-      case SpecialPolicyRules.HOOKSCRIPT:
+      // eslint-disable-next-line no-fallthrough
+      case SpecialPolicyRules.HOOKSCRIPT: {
         this._cs = '###########################\n# Hook script rule code:\n';
         this._cs += `${this._ruleData.run_before ? this._ruleData.run_before : ''}\n###########################\n`;
         break;
+      }
 
-      default:
+      default: {
         this._csEnd = `${this._stateful} ${this._compiler == 'IPTables' ? '-j ' : ''}${this._action}\n`;
         break;
+      }
     }
   }
 
@@ -477,7 +480,8 @@ export abstract class PolicyCompilerTools {
       switch (
         svc[i].protocol // PROTOCOL NUMBER
       ) {
-        case 6: // TCP
+        case 6: {
+          // TCP
           const mask = svc[i].tcp_flags_mask;
 
           if (!mask || mask === 0) {
@@ -581,8 +585,10 @@ export abstract class PolicyCompilerTools {
             cmpPos.items.push(tmp);
           }
           break;
+        }
 
-        case 17: // UDP
+        case 17: {
+          // UDP
           if (svc[i].source_port_end === 0 || svc[i].source_port_end === null) {
             // No source port.
             if (udpPorts) udpPorts += ',';
@@ -594,8 +600,10 @@ export abstract class PolicyCompilerTools {
             cmpPos.items.push(tmp);
           }
           break;
+        }
 
-        case 1: // ICMP
+        case 1: {
+          // ICMP
           const iptablesOpt =
             ipv === 4
               ? '-p icmp -m icmp --icmp-type'
@@ -619,6 +627,7 @@ export abstract class PolicyCompilerTools {
                 : `icmp type ${svc[i].icmp_type} icmp code ${svc[i].icmp_code}`,
             );
           break;
+        }
 
         default: // Other IP protocols.
           cmpPos.items.push(
@@ -713,7 +722,6 @@ export abstract class PolicyCompilerTools {
       svc_position: number,
       objs: any,
       negated: boolean;
-    let dir: 'IN' | 'OUT';
     let i: number, j: number, p: number;
 
     if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
@@ -730,7 +738,7 @@ export abstract class PolicyCompilerTools {
     // WARNING: The order of creation of the arrays is important for optimization!!!!
     // The positions first in the array will be used first in the conditions.
     // INTERFACE IN / OUT
-    dir =
+    const dir: 'IN' | 'OUT' =
       this._policyType === PolicyTypesMap.get('IPv4:OUTPUT') ||
       this._policyType === PolicyTypesMap.get('IPv4:SNAT')
         ? 'OUT'

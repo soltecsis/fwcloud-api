@@ -20,34 +20,34 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../../fonaments/http/controller";
-import { Request } from "express";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { OpenVPNPolicy } from "../../../policies/openvpn.policy";
-import { getRepository } from "typeorm";
-import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
-import { NotFoundException } from "../../../fonaments/exceptions/not-found-exception";
-import { OpenVPNService } from "../../../models/vpn/openvpn/openvpn.service";
-import { FSHelper } from "../../../utils/fs-helper";
-import { app } from "../../../fonaments/abstract-application";
-import * as uuid from "uuid";
-import * as path from "path";
+import { Controller } from '../../../fonaments/http/controller';
+import { Request } from 'express';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
+import { OpenVPNPolicy } from '../../../policies/openvpn.policy';
+import { getRepository } from 'typeorm';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
+import { NotFoundException } from '../../../fonaments/exceptions/not-found-exception';
+import { OpenVPNService } from '../../../models/vpn/openvpn/openvpn.service';
+import { FSHelper } from '../../../utils/fs-helper';
+import { app } from '../../../fonaments/abstract-application';
+import * as uuid from 'uuid';
+import * as path from 'path';
 import {
   Validate,
   ValidateQuery,
-} from "../../../decorators/validate.decorator";
-import { OpenVPNControllerInstallerDto } from "./dtos/installer.dto";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { FwCloud } from "../../../models/fwcloud/FwCloud";
+} from '../../../decorators/validate.decorator';
+import { OpenVPNControllerInstallerDto } from './dtos/installer.dto';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { FwCloud } from '../../../models/fwcloud/FwCloud';
 import {
   FindOpenVPNStatusHistoryOptions,
   FindResponse,
   GraphDataResponse,
   GraphOpenVPNStatusHistoryOptions,
   OpenVPNStatusHistoryService,
-} from "../../../models/vpn/openvpn/status/openvpn-status-history.service";
-import { HistoryQueryDto } from "./dtos/history-query.dto";
-import { GraphQueryDto } from "./dtos/graph-query.dto";
+} from '../../../models/vpn/openvpn/status/openvpn-status-history.service';
+import { HistoryQueryDto } from './dtos/history-query.dto';
+import { GraphQueryDto } from './dtos/graph-query.dto';
 
 export class OpenVPNController extends Controller {
   protected _openvpn: OpenVPN;
@@ -62,43 +62,43 @@ export class OpenVPNController extends Controller {
     }
 
     const firewallQueryBuilder = getRepository(Firewall)
-      .createQueryBuilder("firewall")
-      .where("firewall.id = :id", { id: parseInt(request.params.firewall) });
+      .createQueryBuilder('firewall')
+      .where('firewall.id = :id', { id: parseInt(request.params.firewall) });
     if (request.params.openvpn) {
       firewallQueryBuilder.innerJoin(
-        "firewall.openVPNs",
-        "openvpn",
-        "openvpn.id = :openvpn",
+        'firewall.openVPNs',
+        'openvpn',
+        'openvpn.id = :openvpn',
         { openvpn: parseInt(request.params.openvpn) },
       );
     }
     this._firewall = await firewallQueryBuilder.getOneOrFail();
 
     this._fwCloud = await getRepository(FwCloud)
-      .createQueryBuilder("fwcloud")
-      .innerJoin("fwcloud.firewalls", "firewall", "firewall.id = :firewallId", {
+      .createQueryBuilder('fwcloud')
+      .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {
         firewallId: parseInt(request.params.firewall),
       })
-      .where("fwcloud.id = :id", { id: parseInt(request.params.fwcloud) })
+      .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
       .getOneOrFail();
   }
 
   @Validate(OpenVPNControllerInstallerDto)
   public async installer(req: Request): Promise<ResponseBuilder> {
     const openVPN: OpenVPN = await getRepository(OpenVPN)
-      .createQueryBuilder("openvpn")
-      .leftJoinAndSelect("openvpn.firewall", "firewall")
-      .leftJoinAndSelect("firewall.fwCloud", "fwcloud")
-      .where("fwcloud.id = :fwcloudId", {
+      .createQueryBuilder('openvpn')
+      .leftJoinAndSelect('openvpn.firewall', 'firewall')
+      .leftJoinAndSelect('firewall.fwCloud', 'fwcloud')
+      .where('fwcloud.id = :fwcloudId', {
         fwcloudId: parseInt(req.params.fwcloud),
       })
-      .andWhere("firewall.id = :firewallId", {
+      .andWhere('firewall.id = :firewallId', {
         firewallId: parseInt(req.params.firewall),
       })
-      .andWhere("openvpn.id = :openvpnId", {
+      .andWhere('openvpn.id = :openvpnId', {
         openvpnId: parseInt(req.params.openvpn),
       })
-      .andWhere("openvpn.openvpn IS NOT NULL")
+      .andWhere('openvpn.openvpn IS NOT NULL')
       .getOne();
 
     if (!openVPN) {
@@ -106,17 +106,17 @@ export class OpenVPNController extends Controller {
     }
 
     const serverOpenVPN: OpenVPN = await getRepository(OpenVPN)
-      .createQueryBuilder("openvpn")
-      .leftJoinAndSelect("openvpn.firewall", "firewall")
-      .leftJoinAndSelect("firewall.fwCloud", "fwcloud")
-      .where("fwcloud.id = :fwcloudId", {
+      .createQueryBuilder('openvpn')
+      .leftJoinAndSelect('openvpn.firewall', 'firewall')
+      .leftJoinAndSelect('firewall.fwCloud', 'fwcloud')
+      .where('fwcloud.id = :fwcloudId', {
         fwcloudId: parseInt(req.params.fwcloud),
       })
-      .andWhere("firewall.id = :firewallId", {
+      .andWhere('firewall.id = :firewallId', {
         firewallId: parseInt(req.params.firewall),
       })
-      .andWhere("openvpn.id = :openvpnId", { openvpnId: openVPN.parentId })
-      .andWhere("openvpn.openvpn IS NULL")
+      .andWhere('openvpn.id = :openvpnId', { openvpnId: openVPN.parentId })
+      .andWhere('openvpn.openvpn IS NULL')
       .getOne();
 
     if (!serverOpenVPN) {
@@ -130,7 +130,7 @@ export class OpenVPNController extends Controller {
     ).generateInstaller(
       req.body.connection_name,
       openVPN,
-      this.generateTemporaryPath("fwcloud-vpn.exe"),
+      this.generateTemporaryPath('fwcloud-vpn.exe'),
     );
 
     setTimeout(() => {
@@ -141,7 +141,7 @@ export class OpenVPNController extends Controller {
 
     return ResponseBuilder.buildResponse()
       .status(201)
-      .download(exePath, "fwcloud-vpn.exe");
+      .download(exePath, 'fwcloud-vpn.exe');
   }
 
   @ValidateQuery(HistoryQueryDto)
@@ -208,7 +208,7 @@ export class OpenVPNController extends Controller {
    * @param filename
    */
   protected generateTemporaryPath(filename: string): string {
-    return path.join(app().config.get("tmp.directory"), uuid.v4(), filename);
+    return path.join(app().config.get('tmp.directory'), uuid.v4(), filename);
   }
 
   protected getOpenVPNServerOrFail(
@@ -217,15 +217,15 @@ export class OpenVPNController extends Controller {
     openVPNId: number,
   ): Promise<OpenVPN> {
     return getRepository(OpenVPN)
-      .createQueryBuilder("openvpn")
-      .innerJoinAndSelect("openvpn.firewall", "firewall")
-      .innerJoinAndSelect("firewall.fwCloud", "fwcloud")
-      .innerJoin("openvpn.crt", "crt")
-      .where("fwcloud.id = :fwcloudId", { fwcloudId })
-      .andWhere("firewall.id = :firewallId", { firewallId })
-      .andWhere("openvpn.id = :openVPNId", { openVPNId })
-      .andWhere("openvpn.parentId IS NULL")
-      .andWhere("crt.type =  2")
+      .createQueryBuilder('openvpn')
+      .innerJoinAndSelect('openvpn.firewall', 'firewall')
+      .innerJoinAndSelect('firewall.fwCloud', 'fwcloud')
+      .innerJoin('openvpn.crt', 'crt')
+      .where('fwcloud.id = :fwcloudId', { fwcloudId })
+      .andWhere('firewall.id = :firewallId', { firewallId })
+      .andWhere('openvpn.id = :openVPNId', { openVPNId })
+      .andWhere('openvpn.parentId IS NULL')
+      .andWhere('crt.type =  2')
       .getOneOrFail();
   }
 

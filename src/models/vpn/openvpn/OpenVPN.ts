@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../../Model";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { PolicyRuleToOpenVPN } from "../../../models/policy/PolicyRuleToOpenVPN";
-import { Interface } from "../../../models/interface/Interface";
+import Model from '../../Model';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
+import { Interface } from '../../../models/interface/Interface';
 import {
   PrimaryGeneratedColumn,
   Column,
@@ -35,26 +35,26 @@ import {
   ManyToMany,
   JoinTable,
   getRepository,
-} from "typeorm";
-const config = require("../../../config/config");
-import { IPObj } from "../../ipobj/IPObj";
-const readline = require("readline");
-import { Tree } from "../../../models/tree/Tree";
-import { Crt } from "../pki/Crt";
-import { OpenVPNOption } from "./openvpn-option.model";
-import { IPObjGroup } from "../../ipobj/IPObjGroup";
-import sshTools from "../../../utils/ssh";
-import { OpenVPNPrefix } from "./OpenVPNPrefix";
-import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
-import { Route } from "../../routing/route/route.model";
-import { RouteToOpenVPN } from "../../routing/route/route-to-openvpn.model";
-import { RoutingRuleToOpenVPN } from "../../routing/routing-rule/routing-rule-to-openvpn.model";
-import { OpenVPNStatusHistory } from "./status/openvpn-status-history";
-const fwcError = require("../../../utils/error_table");
-const fs = require("fs");
-const ip = require("ip");
+} from 'typeorm';
+const config = require('../../../config/config');
+import { IPObj } from '../../ipobj/IPObj';
+const readline = require('readline');
+import { Tree } from '../../../models/tree/Tree';
+import { Crt } from '../pki/Crt';
+import { OpenVPNOption } from './openvpn-option.model';
+import { IPObjGroup } from '../../ipobj/IPObjGroup';
+import sshTools from '../../../utils/ssh';
+import { OpenVPNPrefix } from './OpenVPNPrefix';
+import { RoutingRule } from '../../routing/routing-rule/routing-rule.model';
+import { Route } from '../../routing/route/route.model';
+import { RouteToOpenVPN } from '../../routing/route/route-to-openvpn.model';
+import { RoutingRuleToOpenVPN } from '../../routing/routing-rule/routing-rule-to-openvpn.model';
+import { OpenVPNStatusHistory } from './status/openvpn-status-history';
+const fwcError = require('../../../utils/error_table');
+const fs = require('fs');
+const ip = require('ip');
 
-const tableName: string = "openvpn";
+const tableName: string = 'openvpn';
 
 @Entity(tableName)
 export class OpenVPN extends Model {
@@ -88,33 +88,33 @@ export class OpenVPN extends Model {
   @Column()
   installed_at: Date;
 
-  @Column({ name: "openvpn" })
+  @Column({ name: 'openvpn' })
   parentId: number;
 
   @ManyToOne((type) => OpenVPN, (openVPN) => openVPN.childs)
   @JoinColumn({
-    name: "openvpn",
+    name: 'openvpn',
   })
   parent: OpenVPN;
 
   @OneToMany((type) => OpenVPN, (openVPN) => openVPN.parent)
   childs: Array<OpenVPN>;
 
-  @Column({ name: "firewall" })
+  @Column({ name: 'firewall' })
   firewallId: number;
 
   @ManyToOne((type) => Firewall, (firewall) => firewall.openVPNs)
   @JoinColumn({
-    name: "firewall",
+    name: 'firewall',
   })
   firewall: Firewall;
 
-  @Column({ name: "crt" })
+  @Column({ name: 'crt' })
   crtId: number;
 
   @ManyToOne((type) => Crt, (crt) => crt.openVPNs)
   @JoinColumn({
-    name: "crt",
+    name: 'crt',
   })
   crt: Crt;
 
@@ -123,12 +123,12 @@ export class OpenVPN extends Model {
 
   @ManyToMany((type) => IPObjGroup, (ipObjGroup) => ipObjGroup.openVPNs)
   @JoinTable({
-    name: "openvpn__ipobj_g",
+    name: 'openvpn__ipobj_g',
     joinColumn: {
-      name: "openvpn",
+      name: 'openvpn',
     },
     inverseJoinColumn: {
-      name: "ipobj_g",
+      name: 'ipobj_g',
     },
   })
   ipObjGroups: Array<IPObjGroup>;
@@ -193,7 +193,7 @@ export class OpenVPN extends Model {
 
   public static addCfgOpt(req, opt): Promise<void> {
     return new Promise((resolve, reject) => {
-      req.dbCon.query("insert into openvpn_opt SET ?", opt, (error, result) => {
+      req.dbCon.query('insert into openvpn_opt SET ?', opt, (error, result) => {
         if (error) return reject(error);
         resolve();
       });
@@ -202,7 +202,7 @@ export class OpenVPN extends Model {
 
   public static delCfgOptAll(req): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql = "delete from openvpn_opt where openvpn=" + req.body.openvpn;
+      const sql = 'delete from openvpn_opt where openvpn=' + req.body.openvpn;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve();
@@ -302,7 +302,7 @@ export class OpenVPN extends Model {
         if (error) return reject(error);
 
         const data = result[0];
-        sql = "select * from openvpn_opt where openvpn=" + req.body.openvpn;
+        sql = 'select * from openvpn_opt where openvpn=' + req.body.openvpn;
         req.dbCon.query(sql, (error, result) => {
           if (error) return reject(error);
 
@@ -316,9 +316,9 @@ export class OpenVPN extends Model {
   public static getOptData(dbCon, openvpn, name) {
     return new Promise((resolve, reject) => {
       const sql =
-        "select * from openvpn_opt where openvpn=" +
+        'select * from openvpn_opt where openvpn=' +
         openvpn +
-        " and name=" +
+        ' and name=' +
         dbCon.escape(name);
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
@@ -330,26 +330,26 @@ export class OpenVPN extends Model {
   // Get certificate data form file.
   public static getCRTData(file): Promise<string> {
     return new Promise((resolve, reject): void => {
-      let data = "";
+      let data = '';
       let onData = 0;
       const rs = fs.createReadStream(file);
 
-      rs.on("error", (error) => reject(error));
+      rs.on('error', (error) => reject(error));
 
       const rl = readline.createInterface({
         input: rs,
         crlfDelay: Infinity,
       });
 
-      rl.on("line", (line) => {
-        if (onData) data += line + "\n";
-        else if (line.indexOf("-----BEGIN ") === 0) {
-          data += line + "\n";
+      rl.on('line', (line) => {
+        if (onData) data += line + '\n';
+        else if (line.indexOf('-----BEGIN ') === 0) {
+          data += line + '\n';
           onData = 1;
         }
       });
 
-      rl.on("close", () => {
+      rl.on('close', () => {
         resolve(data);
       });
     });
@@ -433,26 +433,26 @@ export class OpenVPN extends Model {
         if (error) return reject(error);
 
         const ca_dir =
-          config.get("pki").data_dir + "/" + fwcloud + "/" + result[0].ca + "/";
-        const ca_crt_path = ca_dir + "ca.crt";
-        const crt_path = ca_dir + "issued/" + result[0].cn + ".crt";
-        const key_path = ca_dir + "private/" + result[0].cn + ".key";
-        const dh_path = result[0].type === 2 ? ca_dir + "dh.pem" : "";
+          config.get('pki').data_dir + '/' + fwcloud + '/' + result[0].ca + '/';
+        const ca_crt_path = ca_dir + 'ca.crt';
+        const crt_path = ca_dir + 'issued/' + result[0].cn + '.crt';
+        const key_path = ca_dir + 'private/' + result[0].cn + '.key';
+        const dh_path = result[0].type === 2 ? ca_dir + 'dh.pem' : '';
 
         // Header description.
         let des =
-          "# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n";
+          '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
         des += `# Generated: ${Date()}\n`;
         des += `# Certificate Common Name: ${result[0].cn} \n`;
         des += result[0].cl_name
           ? `# Firewall Cluster: ${result[0].cl_name}\n`
           : `# Firewall: ${result[0].fw_name}\n`;
-        if (result[0].srv_config1 && result[0].srv_config1.endsWith(".conf"))
+        if (result[0].srv_config1 && result[0].srv_config1.endsWith('.conf'))
           result[0].srv_config1 = result[0].srv_config1.slice(0, -5);
-        if (result[0].srv_config2 && result[0].srv_config2.endsWith(".conf"))
+        if (result[0].srv_config2 && result[0].srv_config2.endsWith('.conf'))
           result[0].srv_config2 = result[0].srv_config2.slice(0, -5);
         des += `# OpenVPN Server: ${result[0].srv_config1 ? result[0].srv_config1 : result[0].srv_config2}\n`;
-        des += `# Type: ${result[0].srv_config1 ? "Server" : "Client"}\n\n`;
+        des += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
 
         // Get all the configuration options.
         sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${openvpn} order by openvpn_opt.order`;
@@ -462,14 +462,14 @@ export class OpenVPN extends Model {
           try {
             // Generate the OpenVPN config file.
             let ovpn_cfg = des;
-            let ovpn_ccd = "";
+            let ovpn_ccd = '';
 
             // First add all the configuration options.
             for (const opt of result) {
               let cfg_line =
                 (opt.comment
-                  ? "# " + opt.comment.replace("\n", "\n# ") + "\n"
-                  : "") + opt.name;
+                  ? '# ' + opt.comment.replace('\n', '\n# ') + '\n'
+                  : '') + opt.name;
               if (opt.ipobj) {
                 // Get the ipobj data.
                 const ipobj: any = await IPObj.getIpobjInfo(
@@ -480,46 +480,46 @@ export class OpenVPN extends Model {
                 if (ipobj.type === 7) {
                   // Network
                   const netmask =
-                    ipobj.netmask[0] === "/"
+                    ipobj.netmask[0] === '/'
                       ? ip.cidrSubnet(`${ipobj.address}${ipobj.netmask}`)
                           .subnetMask
                       : ipobj.netmask;
-                  cfg_line += " " + ipobj.address + " " + netmask;
+                  cfg_line += ' ' + ipobj.address + ' ' + netmask;
                 } else if (ipobj.type === 5) {
                   // Address
-                  cfg_line += " " + ipobj.address;
-                  if (opt.name === "ifconfig-push")
-                    cfg_line += " " + ipobj.netmask;
-                  else if (opt.name === "remote") cfg_line += " " + opt.arg;
+                  cfg_line += ' ' + ipobj.address;
+                  if (opt.name === 'ifconfig-push')
+                    cfg_line += ' ' + ipobj.netmask;
+                  else if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
                 } else if (ipobj.type === 9) {
                   // DNS Name
-                  cfg_line += " " + ipobj.name;
-                  if (opt.name === "remote") cfg_line += " " + opt.arg;
+                  cfg_line += ' ' + ipobj.name;
+                  if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
                 }
-              } else if (opt.arg) cfg_line += " " + opt.arg;
+              } else if (opt.arg) cfg_line += ' ' + opt.arg;
 
               if (opt.scope === 0)
                 // CCD file
-                ovpn_ccd += cfg_line + "\n";
+                ovpn_ccd += cfg_line + '\n';
               // Config file
-              else ovpn_cfg += cfg_line + "\n";
+              else ovpn_cfg += cfg_line + '\n';
             }
 
             // Now read the files data and put it into de config files.
             if (dh_path)
               // Configuración OpenVPN de servidor.
               ovpn_cfg +=
-                (("\n<dh>\n" + (await this.getCRTData(dh_path))) as string) +
-                "</dh>\n";
+                (('\n<dh>\n' + (await this.getCRTData(dh_path))) as string) +
+                '</dh>\n';
             ovpn_cfg +=
-              (("\n<ca>\n" + (await this.getCRTData(ca_crt_path))) as string) +
-              "</ca>\n";
+              (('\n<ca>\n' + (await this.getCRTData(ca_crt_path))) as string) +
+              '</ca>\n';
             ovpn_cfg +=
-              (("\n<cert>\n" + (await this.getCRTData(crt_path))) as string) +
-              "</cert>\n";
+              (('\n<cert>\n' + (await this.getCRTData(crt_path))) as string) +
+              '</cert>\n';
             ovpn_cfg +=
-              (("\n<key>\n" + (await this.getCRTData(key_path))) as string) +
-              "</key>\n";
+              (('\n<key>\n' + (await this.getCRTData(key_path))) as string) +
+              '</key>\n';
 
             resolve({ cfg: ovpn_cfg, ccd: ovpn_ccd });
           } catch (error) {
@@ -583,12 +583,12 @@ export class OpenVPN extends Model {
 
         // If we have no VPN LAN we can not give any free IP.
         if (result.length === 0)
-          return reject(fwcError.other("OpenVPN LAN not found"));
+          return reject(fwcError.other('OpenVPN LAN not found'));
 
         // net will contain information about the VPN network.
         const ipobj = result[0];
         const netmask =
-          ipobj.netmask[0] === "/"
+          ipobj.netmask[0] === '/'
             ? ip.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask
             : ipobj.netmask;
         const net = ip.subnet(ipobj.address, netmask);
@@ -620,7 +620,7 @@ export class OpenVPN extends Model {
             if (!found)
               return resolve({ ip: ip.fromLong(freeIPLong), netmask: netmask });
           }
-          reject(fwcError.other("There are no free VPN IPs"));
+          reject(fwcError.other('There are no free VPN IPs'));
         });
       });
     });
@@ -734,21 +734,21 @@ export class OpenVPN extends Model {
     openvpn: number,
   ): Promise<any> {
     return await getRepository(Route)
-      .createQueryBuilder("route")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .innerJoin("route.routeToOpenVPNs", "routeToOpenVPNs")
+      .createQueryBuilder('route')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoin('route.routeToOpenVPNs', 'routeToOpenVPNs')
       .innerJoin(
-        "routeToOpenVPNs.openVPN",
-        "openvpn",
-        "openvpn.id = :openvpn",
+        'routeToOpenVPNs.openVPN',
+        'openvpn',
+        'openvpn.id = :openvpn',
         { openvpn: openvpn },
       )
-      .innerJoinAndSelect("route.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoinAndSelect('route.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }
@@ -758,21 +758,21 @@ export class OpenVPN extends Model {
     openvpn: number,
   ): Promise<any> {
     return await getRepository(RoutingRule)
-      .createQueryBuilder("routing_rule")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .innerJoin("routing_rule.routingRuleToOpenVPNs", "routingRuleToOpenVPNs")
+      .createQueryBuilder('routing_rule')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoin('routing_rule.routingRuleToOpenVPNs', 'routingRuleToOpenVPNs')
       .innerJoin(
-        "routingRuleToOpenVPNs.openVPN",
-        "openvpn",
-        "openvpn.id = :openvpn",
+        'routingRuleToOpenVPNs.openVPN',
+        'openvpn',
+        'openvpn.id = :openvpn',
         { openvpn: openvpn },
       )
-      .innerJoinAndSelect("routing_rule.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoinAndSelect('routing_rule.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }
@@ -782,19 +782,19 @@ export class OpenVPN extends Model {
     openvpn: number,
   ): Promise<any> {
     return await getRepository(Route)
-      .createQueryBuilder("route")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .innerJoinAndSelect("route.routingTable", "table")
-      .innerJoin("route.routeToIPObjGroups", "routeToIPObjGroups")
-      .innerJoin("routeToIPObjGroups.ipObjGroup", "ipObjGroup")
-      .innerJoin("ipObjGroup.openVPNs", "openvpn", "openvpn.id = :openvpn", {
+      .createQueryBuilder('route')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoinAndSelect('route.routingTable', 'table')
+      .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+      .innerJoin('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
+      .innerJoin('ipObjGroup.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {
         openvpn: openvpn,
       })
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }
@@ -804,22 +804,22 @@ export class OpenVPN extends Model {
     openvpn: number,
   ): Promise<any> {
     return await getRepository(RoutingRule)
-      .createQueryBuilder("routing_rule")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
+      .createQueryBuilder('routing_rule')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
       .innerJoin(
-        "routing_rule.routingRuleToIPObjGroups",
-        "routingRuleToIPObjGroups",
+        'routing_rule.routingRuleToIPObjGroups',
+        'routingRuleToIPObjGroups',
       )
-      .innerJoin("routingRuleToIPObjGroups.ipObjGroup", "ipObjGroup")
-      .innerJoin("ipObjGroup.openVPNs", "openvpn", "openvpn.id = :openvpn", {
+      .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
+      .innerJoin('ipObjGroup.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {
         openvpn: openvpn,
       })
-      .innerJoin("routing_rule.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoin('routing_rule.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }
@@ -827,7 +827,7 @@ export class OpenVPN extends Model {
   public static searchOpenvpnUsageOutOfThisFirewall(req) {
     return new Promise((resolve, reject) => {
       // First get all firewalls OpenVPN configurations.
-      const sql = "select id from openvpn where firewall=" + req.body.firewall;
+      const sql = 'select id from openvpn where firewall=' + req.body.firewall;
 
       req.dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
@@ -954,7 +954,7 @@ export class OpenVPN extends Model {
   public static createOpenvpnServerInterface(req, cfg): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        let openvpn_opt: any = await this.getOptData(req.dbCon, cfg, "dev");
+        let openvpn_opt: any = await this.getOptData(req.dbCon, cfg, 'dev');
         if (openvpn_opt) {
           const interface_name = openvpn_opt.arg;
 
@@ -973,11 +973,11 @@ export class OpenVPN extends Model {
             id: null,
             firewall: req.body.firewall,
             name: interface_name,
-            labelName: "",
+            labelName: '',
             type: 10,
             interface_type: 10,
-            comment: "",
-            mac: "",
+            comment: '',
+            mac: '',
           };
 
           const interfaceId = await Interface.insertInterface(
@@ -989,7 +989,7 @@ export class OpenVPN extends Model {
               req.dbCon,
               req.body.fwcloud,
               req.body.firewall,
-              "FDI",
+              'FDI',
             );
             if (interfaces_node) {
               const nodeId = await Tree.newNode(
@@ -997,13 +997,13 @@ export class OpenVPN extends Model {
                 req.body.fwcloud,
                 interface_name,
                 interfaces_node.id,
-                "IFF",
+                'IFF',
                 interfaceId,
                 10,
               );
 
               // Create the network address for the new interface.
-              openvpn_opt = await this.getOptData(req.dbCon, cfg, "server");
+              openvpn_opt = await this.getOptData(req.dbCon, cfg, 'server');
               if (openvpn_opt && openvpn_opt.ipobj) {
                 // Get the ipobj data.
                 const ipobj: any = await IPObj.getIpobjInfo(
@@ -1045,7 +1045,7 @@ export class OpenVPN extends Model {
                     req.body.fwcloud,
                     `${interface_name} (${net.firstAddress})`,
                     nodeId,
-                    "OIA",
+                    'OIA',
                     ipobjId,
                     5,
                   );

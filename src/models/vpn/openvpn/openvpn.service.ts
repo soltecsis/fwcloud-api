@@ -24,28 +24,28 @@ import {
   ProgressInfoPayload,
   ProgressPayload,
   ProgressNoticePayload,
-} from "./../../../sockets/messages/socket-message";
-import { Service } from "../../../fonaments/services/service";
-import { OpenVPN } from "./OpenVPN";
-import db from "../../../database/database-manager";
-import { InstallerGenerator } from "../../../openvpn-installer/installer-generator";
+} from './../../../sockets/messages/socket-message';
+import { Service } from '../../../fonaments/services/service';
+import { OpenVPN } from './OpenVPN';
+import db from '../../../database/database-manager';
+import { InstallerGenerator } from '../../../openvpn-installer/installer-generator';
 import {
   getMetadataArgsStorage,
   getRepository,
   SelectQueryBuilder,
-} from "typeorm";
-import { Firewall } from "../../firewall/Firewall";
-import { CronService } from "../../../backups/cron/cron.service";
-import { CronJob } from "cron";
-import { logger } from "../../../fonaments/abstract-application";
-import { OpenVPNStatusHistory } from "./status/openvpn-status-history";
-import * as fs from "fs-extra";
-import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
-import path from "path";
-import { Zip } from "../../../utils/zip";
-import ObjectHelpers from "../../../utils/object-helpers";
-import { Mutex, tryAcquire, E_ALREADY_LOCKED } from "async-mutex";
-import { EventEmitter } from "events";
+} from 'typeorm';
+import { Firewall } from '../../firewall/Firewall';
+import { CronService } from '../../../backups/cron/cron.service';
+import { CronJob } from 'cron';
+import { logger } from '../../../fonaments/abstract-application';
+import { OpenVPNStatusHistory } from './status/openvpn-status-history';
+import * as fs from 'fs-extra';
+import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs';
+import path from 'path';
+import { Zip } from '../../../utils/zip';
+import ObjectHelpers from '../../../utils/object-helpers';
+import { Mutex, tryAcquire, E_ALREADY_LOCKED } from 'async-mutex';
+import { EventEmitter } from 'events';
 
 export type OpenVPNConfig = {
   history: {
@@ -74,7 +74,7 @@ export class OpenVPNService extends Service {
   protected _archiveMutex = new Mutex();
 
   public async build(): Promise<OpenVPNService> {
-    this._config = this.loadCustomizedConfig(this._app.config.get("openvpn"));
+    this._config = this.loadCustomizedConfig(this._app.config.get('openvpn'));
     this._cronService = await this._app.getService<CronService>(
       CronService.name,
     );
@@ -95,13 +95,13 @@ export class OpenVPNService extends Service {
         await this._archiveMutex.waitForUnlock();
 
         try {
-          logger().info("Starting OpenVPNHistory archive job.");
+          logger().info('Starting OpenVPNHistory archive job.');
           const removedItemsCount: number = await this.archiveHistory();
           logger().info(
             `OpenVPNHistory archive job completed: ${removedItemsCount} rows archived.`,
           );
         } catch (error) {
-          logger().error("OpenVPNHistory archive job ERROR: ", error.message);
+          logger().error('OpenVPNHistory archive job ERROR: ', error.message);
         }
       },
     );
@@ -111,13 +111,13 @@ export class OpenVPNService extends Service {
       this._config.history.retention_schedule,
       async () => {
         try {
-          logger().info("Starting OpenVPNHistory retention job.");
+          logger().info('Starting OpenVPNHistory retention job.');
           const removedItemsCount: number = await this.removeExpiredFiles();
           logger().info(
             `OpenVPNHistory archive job completed: ${removedItemsCount} files removed.`,
           );
         } catch (error) {
-          logger().error("OpenVPNHistory retention job ERROR: ", error.message);
+          logger().error('OpenVPNHistory retention job ERROR: ', error.message);
         }
       },
     );
@@ -135,7 +135,7 @@ export class OpenVPNService extends Service {
       const openVPNId: number = openVPN.id;
       const firewall: Firewall = await getRepository(Firewall).findOne(
         openVPN.firewallId,
-        { relations: ["fwCloud"] },
+        { relations: ['fwCloud'] },
       );
       const fwCloudId: number = firewall.fwCloudId;
 
@@ -144,13 +144,13 @@ export class OpenVPNService extends Service {
       ).cfg;
     } catch (e) {
       throw new Error(
-        "Unable to generate the openvpn configuration during installer generation: " +
+        'Unable to generate the openvpn configuration during installer generation: ' +
           JSON.stringify(e),
       );
     }
 
     const installerGenerator: InstallerGenerator = new InstallerGenerator(
-      "lib/nsis",
+      'lib/nsis',
       name,
       configData,
       outputPath,
@@ -159,7 +159,7 @@ export class OpenVPNService extends Service {
   }
 
   public getCustomizedConfig(): OpenVPNUpdateableConfig {
-    this._config = this.loadCustomizedConfig(this._app.config.get("openvpn"));
+    this._config = this.loadCustomizedConfig(this._app.config.get('openvpn'));
 
     return {
       history: {
@@ -181,8 +181,8 @@ export class OpenVPNService extends Service {
       expirationInSeconds: number,
     ): SelectQueryBuilder<OpenVPNStatusHistory> {
       return getRepository(OpenVPNStatusHistory)
-        .createQueryBuilder("history")
-        .where("history.timestampInSeconds <= :timestamp", {
+        .createQueryBuilder('history')
+        .where('history.timestampInSeconds <= :timestamp', {
           timestamp: (Date.now() - expirationInSeconds * 1000) / 1000,
         });
     }
@@ -190,16 +190,16 @@ export class OpenVPNService extends Service {
       return await tryAcquire(this._archiveMutex).runExclusive(() => {
         return new Promise<number>(async (resolve, reject) => {
           this._config = this.loadCustomizedConfig(
-            this._app.config.get("openvpn"),
+            this._app.config.get('openvpn'),
           );
 
           eventEmitter.emit(
-            "message",
-            new ProgressInfoPayload("Starting OpenVPN history archiver"),
+            'message',
+            new ProgressInfoPayload('Starting OpenVPN history archiver'),
           );
           eventEmitter.emit(
-            "message",
-            new ProgressNoticePayload("Checking expired history"),
+            'message',
+            new ProgressNoticePayload('Checking expired history'),
           );
 
           const expirationInSeconds: number =
@@ -211,10 +211,10 @@ export class OpenVPNService extends Service {
               .getCount()) === 0
           ) {
             eventEmitter.emit(
-              "message",
-              new ProgressNoticePayload("Nothing to archive"),
+              'message',
+              new ProgressNoticePayload('Nothing to archive'),
             );
-            eventEmitter.emit("message", new ProgressPayload("end", false, ""));
+            eventEmitter.emit('message', new ProgressPayload('end', false, ''));
 
             return resolve(0);
           }
@@ -222,8 +222,8 @@ export class OpenVPNService extends Service {
           let count: number = 0;
           const date: Date = new Date();
           const yearDir: string = date.getFullYear().toString();
-          const monthSubDir: string = ("0" + (date.getMonth() + 1)).slice(-2);
-          const fileName: string = `openvpn_status_history-${date.getFullYear()}${("0" + (date.getMonth() + 1)).slice(-2)}${("0" + date.getDate()).slice(-2)}.sql`;
+          const monthSubDir: string = ('0' + (date.getMonth() + 1)).slice(-2);
+          const fileName: string = `openvpn_status_history-${date.getFullYear()}${('0' + (date.getMonth() + 1)).slice(-2)}${('0' + date.getDate()).slice(-2)}.sql`;
 
           // If there is already a zipped file, then unzip it in order to write down new registers there
           if (
@@ -232,8 +232,8 @@ export class OpenVPNService extends Service {
             )
           ) {
             eventEmitter.emit(
-              "message",
-              new ProgressNoticePayload("Decompressing existing zip file"),
+              'message',
+              new ProgressNoticePayload('Decompressing existing zip file'),
             );
 
             await Zip.unzip(
@@ -257,9 +257,9 @@ export class OpenVPNService extends Service {
             Date.now() - expirationInSeconds * 1000,
           );
           eventEmitter.emit(
-            "message",
+            'message',
             new ProgressNoticePayload(
-              `Archiving registers older than ${expirationDate.getFullYear().toString()}-${("0" + (expirationDate.getMonth() + 1)).slice(-2)}-${expirationDate.getDate()}`,
+              `Archiving registers older than ${expirationDate.getFullYear().toString()}-${('0' + (expirationDate.getMonth() + 1)).slice(-2)}-${expirationDate.getDate()}`,
             ),
           );
 
@@ -267,7 +267,7 @@ export class OpenVPNService extends Service {
             await getExpiredStatusHistoryQuery(expirationInSeconds).getCount();
 
           eventEmitter.emit(
-            "message",
+            'message',
             new ProgressNoticePayload(
               `Registers to be archived: ${totalExpiredHistoryRows}`,
             ),
@@ -280,8 +280,8 @@ export class OpenVPNService extends Service {
                 .getMany();
             if (history.length <= 0) {
               eventEmitter.emit(
-                "message",
-                new ProgressNoticePayload("Compressing archive file"),
+                'message',
+                new ProgressNoticePayload('Compressing archive file'),
               );
               //When all expired registers have been processed, then zip the sql file
               // and remove it
@@ -303,8 +303,8 @@ export class OpenVPNService extends Service {
               );
 
               eventEmitter.emit(
-                "message",
-                new ProgressPayload("end", false, ""),
+                'message',
+                new ProgressPayload('end', false, ''),
               );
 
               return resolve(count);
@@ -313,7 +313,7 @@ export class OpenVPNService extends Service {
             count = count + history.length;
 
             eventEmitter.emit(
-              "message",
+              'message',
               new ProgressNoticePayload(
                 `Progress: ${count} of ${totalExpiredHistoryRows} registers`,
               ),
@@ -329,8 +329,8 @@ export class OpenVPNService extends Service {
               );
             const insertColumnDef: string = columns
               .map((item) => `\`${item.options.name ?? item.propertyName}\``)
-              .join(",");
-            const content: string = `INSERT INTO \`${table}\` (${insertColumnDef}) VALUES \n ${history.map((item) => `(${columns.map((column) => (item[column.propertyName] ? `'${item[column.propertyName]}'` : "NULL")).join(",")})`).join(",")};\n`;
+              .join(',');
+            const content: string = `INSERT INTO \`${table}\` (${insertColumnDef}) VALUES \n ${history.map((item) => `(${columns.map((column) => (item[column.propertyName] ? `'${item[column.propertyName]}'` : 'NULL')).join(',')})`).join(',')};\n`;
 
             const promise: Promise<void> = new Promise<void>(
               (resolve, reject) => {
@@ -342,7 +342,7 @@ export class OpenVPNService extends Service {
                     fileName,
                   ),
                   content,
-                  { flag: "a" },
+                  { flag: 'a' },
                   async (err) => {
                     if (err) {
                       return reject(err);
@@ -366,14 +366,14 @@ export class OpenVPNService extends Service {
     } catch (err) {
       if (err === E_ALREADY_LOCKED) {
         eventEmitter.emit(
-          "message",
+          'message',
           new ProgressPayload(
-            "error",
+            'error',
             false,
-            "There is another OpenVPN history archiver running",
+            'There is another OpenVPN history archiver running',
           ),
         );
-        throw new Error("There is another OpenVPN history archiver runnning");
+        throw new Error('There is another OpenVPN history archiver runnning');
       }
       throw err;
     }
@@ -469,12 +469,12 @@ export class OpenVPNService extends Service {
 
     const openvpnConfigFile: string = path.join(
       base_config.history.data_dir,
-      "config.json",
+      'config.json',
     );
 
     if (fs.existsSync(openvpnConfigFile)) {
       const backupConfig = JSON.parse(
-        fs.readFileSync(openvpnConfigFile, "utf8"),
+        fs.readFileSync(openvpnConfigFile, 'utf8'),
       );
       config = ObjectHelpers.deepMerge<OpenVPNConfig>(config, backupConfig);
     }
@@ -498,12 +498,12 @@ export class OpenVPNService extends Service {
 
         const openvpnConfigFile = path.join(
           this._config.history.data_dir,
-          "config.json",
+          'config.json',
         );
         await fs.writeFile(
           openvpnConfigFile,
           JSON.stringify(custom_config),
-          "utf8",
+          'utf8',
         );
         return resolve(custom_config);
       } catch (error) {

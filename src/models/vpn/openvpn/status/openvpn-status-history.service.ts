@@ -1,7 +1,7 @@
-import { getRepository, Repository, SelectQueryBuilder } from "typeorm";
-import { Service } from "../../../../fonaments/services/service";
-import { OpenVPN } from "../OpenVPN";
-import { OpenVPNStatusHistory } from "./openvpn-status-history";
+import { getRepository, Repository, SelectQueryBuilder } from 'typeorm';
+import { Service } from '../../../../fonaments/services/service';
+import { OpenVPN } from '../OpenVPN';
+import { OpenVPNStatusHistory } from './openvpn-status-history';
 
 export type CreateOpenVPNStatusHistoryData = {
   timestampInSeconds: number;
@@ -71,12 +71,12 @@ export class OpenVPNStatusHistoryService extends Service {
   ): Promise<OpenVPNStatusHistory[]> {
     // Makes sure openvpn is a server
     const serverOpenVPN: OpenVPN = await getRepository(OpenVPN)
-      .createQueryBuilder("openvpn")
-      .innerJoin("openvpn.crt", "crt")
-      .innerJoinAndSelect("openvpn.firewall", "firewall")
-      .where("openvpn.parentId IS NULL")
-      .andWhere("crt.type =  2")
-      .andWhere("openvpn.id = :id", { id: serverOpenVPNId })
+      .createQueryBuilder('openvpn')
+      .innerJoin('openvpn.crt', 'crt')
+      .innerJoinAndSelect('openvpn.firewall', 'firewall')
+      .where('openvpn.parentId IS NULL')
+      .andWhere('crt.type =  2')
+      .andWhere('openvpn.id = :id', { id: serverOpenVPNId })
       .getOneOrFail();
 
     // Get the last entry already persisted from the openvpn server. This entry is used to get  its timestamp as it will be used to
@@ -85,22 +85,22 @@ export class OpenVPNStatusHistoryService extends Service {
     const lastEntry: OpenVPNStatusHistory | undefined = await getRepository(
       OpenVPNStatusHistory,
     )
-      .createQueryBuilder("history")
-      .where("history.openVPNServerId = :openvpn", {
+      .createQueryBuilder('history')
+      .where('history.openVPNServerId = :openvpn', {
         openvpn: serverOpenVPN.id,
       })
-      .orderBy("history.timestampInSeconds", "DESC")
+      .orderBy('history.timestampInSeconds', 'DESC')
       .limit(1)
       .getOne();
 
     let lastTimestampedBatch: OpenVPNStatusHistory[] = [];
     if (lastEntry) {
       lastTimestampedBatch = await getRepository(OpenVPNStatusHistory)
-        .createQueryBuilder("history")
-        .where("history.openVPNServerId = :openvpn", {
+        .createQueryBuilder('history')
+        .where('history.openVPNServerId = :openvpn', {
           openvpn: serverOpenVPN.id,
         })
-        .andWhere("history.timestampInSeconds = :timestamp", {
+        .andWhere('history.timestampInSeconds = :timestamp', {
           timestamp: lastEntry.timestampInSeconds,
         })
         .getMany();
@@ -161,27 +161,27 @@ export class OpenVPNStatusHistoryService extends Service {
     options: FindOpenVPNStatusHistoryOptions = {},
   ): Promise<OpenVPNStatusHistory[]> {
     const query: SelectQueryBuilder<OpenVPNStatusHistory> = this._repository
-      .createQueryBuilder("record")
+      .createQueryBuilder('record')
       .andWhere(`record.openVPNServerId = :serverId`, {
         serverId: openVpnServerId,
       });
 
-    if (Object.prototype.hasOwnProperty.call(options, "rangeTimestamp")) {
+    if (Object.prototype.hasOwnProperty.call(options, 'rangeTimestamp')) {
       query.andWhere(`record.timestampInSeconds BETWEEN :start and :end`, {
         start: options.rangeTimestamp[0].getTime() / 1000,
         end: options.rangeTimestamp[1].getTime() / 1000,
       });
     }
 
-    if (Object.prototype.hasOwnProperty.call(options, "name")) {
+    if (Object.prototype.hasOwnProperty.call(options, 'name')) {
       query.andWhere(`record.name like :name`, { name: options.name });
     }
 
-    if (Object.prototype.hasOwnProperty.call(options, "address")) {
+    if (Object.prototype.hasOwnProperty.call(options, 'address')) {
       query.andWhere(`record.address = :address`, { address: options.address });
     }
 
-    return query.orderBy("record.timestampInSeconds", "ASC").getMany();
+    return query.orderBy('record.timestampInSeconds', 'ASC').getMany();
   }
 
   /**

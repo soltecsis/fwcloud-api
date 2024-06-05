@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../../Model";
+import Model from '../../Model';
 import {
   PrimaryGeneratedColumn,
   Column,
@@ -31,26 +31,26 @@ import {
   OneToMany,
   ManyToOne,
   getRepository,
-} from "typeorm";
-import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
-import { Tree } from "../../../models/tree/Tree";
-import { IPObjGroup } from "../../ipobj/IPObjGroup";
-import { PolicyRuleToOpenVPNPrefix } from "../../policy/PolicyRuleToOpenVPNPrefix";
-import { Firewall } from "../../firewall/Firewall";
-import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
-import { Route } from "../../routing/route/route.model";
-import { RouteToOpenVPNPrefix } from "../../routing/route/route-to-openvpn-prefix.model";
-import { RoutingRuleToOpenVPNPrefix } from "../../routing/routing-rule/routing-rule-to-openvpn-prefix.model";
-const fwcError = require("../../../utils/error_table");
+} from 'typeorm';
+import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
+import { Tree } from '../../../models/tree/Tree';
+import { IPObjGroup } from '../../ipobj/IPObjGroup';
+import { PolicyRuleToOpenVPNPrefix } from '../../policy/PolicyRuleToOpenVPNPrefix';
+import { Firewall } from '../../firewall/Firewall';
+import { RoutingRule } from '../../routing/routing-rule/routing-rule.model';
+import { Route } from '../../routing/route/route.model';
+import { RouteToOpenVPNPrefix } from '../../routing/route/route-to-openvpn-prefix.model';
+import { RoutingRuleToOpenVPNPrefix } from '../../routing/routing-rule/routing-rule-to-openvpn-prefix.model';
+const fwcError = require('../../../utils/error_table');
 
-const tableName: string = "openvpn_prefix";
+const tableName: string = 'openvpn_prefix';
 
 @Entity(tableName)
 export class OpenVPNPrefix extends Model {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: "openvpn" })
+  @Column({ name: 'openvpn' })
   openVPNId: number;
 
   @Column()
@@ -58,19 +58,19 @@ export class OpenVPNPrefix extends Model {
 
   @ManyToMany((type) => IPObjGroup, (ipObjGroup) => ipObjGroup.openVPNPrefixes)
   @JoinTable({
-    name: "openvpn_prefix__ipobj_g",
+    name: 'openvpn_prefix__ipobj_g',
     joinColumn: {
-      name: "prefix",
+      name: 'prefix',
     },
     inverseJoinColumn: {
-      name: "ipobj_g",
+      name: 'ipobj_g',
     },
   })
   ipObjGroups: Array<IPObjGroup>;
 
   @ManyToOne((type) => OpenVPN, (model) => model.openVPNPrefixes)
   @JoinColumn({
-    name: "openvpn",
+    name: 'openvpn',
   })
   openVPN: OpenVPN;
 
@@ -209,7 +209,7 @@ export class OpenVPNPrefix extends Model {
 
         const matches: { id: number; name: string }[] = [];
         for (let i = 0; i < result.length; i++) {
-          const pattern = new RegExp("^" + result[i].name);
+          const pattern = new RegExp('^' + result[i].name);
           if (pattern.test(result[i].cn))
             matches.push({ id: result[i].id, name: result[i].name });
         }
@@ -246,14 +246,14 @@ export class OpenVPNPrefix extends Model {
             await Firewall.updateFirewallStatus(
               fwcloud,
               PrefixInRule[j].firewall_id,
-              "|3",
+              '|3',
             );
 
           for (let j = 0; j < PrefixInGroupIpRule.length; j++)
             await Firewall.updateFirewallStatus(
               fwcloud,
               PrefixInGroupIpRule[j].firewall_id,
-              "|3",
+              '|3',
             );
         }
       } catch (error) {
@@ -332,7 +332,7 @@ export class OpenVPNPrefix extends Model {
             fwcloud,
             prefix_name,
             parent,
-            "PRO",
+            'PRO',
             prefix_id,
             401,
           );
@@ -342,7 +342,7 @@ export class OpenVPNPrefix extends Model {
               fwcloud,
               row.sufix,
               node_id,
-              "OCL",
+              'OCL',
               row.id,
               311,
             );
@@ -370,7 +370,7 @@ export class OpenVPNPrefix extends Model {
   ): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        const node = await Tree.getNodeInfo(dbCon, fwcloud, "OSR", openvpn_srv);
+        const node = await Tree.getNodeInfo(dbCon, fwcloud, 'OSR', openvpn_srv);
         const node_id = node[0].id;
         // Remove all nodes under the OpenVPN server configuration node.
         await Tree.deleteNodesUnderMe(dbCon, fwcloud, node_id);
@@ -386,7 +386,7 @@ export class OpenVPNPrefix extends Model {
             fwcloud,
             openvpn_cli.cn,
             node_id,
-            "OCL",
+            'OCL',
             openvpn_cli.id,
             311,
           );
@@ -539,21 +539,21 @@ export class OpenVPNPrefix extends Model {
     prefix: number,
   ): Promise<any> {
     return await getRepository(Route)
-      .createQueryBuilder("route")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .innerJoin("route.routeToOpenVPNPrefixes", "routeToOpenVPNPrefixes")
+      .createQueryBuilder('route')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoin('route.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
       .innerJoin(
-        "routeToOpenVPNPrefixes.openVPNPrefix",
-        "prefix",
-        "prefix.id = :prefix",
+        'routeToOpenVPNPrefixes.openVPNPrefix',
+        'prefix',
+        'prefix.id = :prefix',
         { prefix: prefix },
       )
-      .innerJoinAndSelect("route.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoinAndSelect('route.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }
@@ -563,24 +563,24 @@ export class OpenVPNPrefix extends Model {
     prefix: number,
   ): Promise<any> {
     return await getRepository(RoutingRule)
-      .createQueryBuilder("routing_rule")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
+      .createQueryBuilder('routing_rule')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
       .innerJoin(
-        "routing_rule.routingRuleToOpenVPNPrefixes",
-        "routingRuleToOpenVPNPrefixes",
+        'routing_rule.routingRuleToOpenVPNPrefixes',
+        'routingRuleToOpenVPNPrefixes',
       )
       .innerJoin(
-        "routingRuleToOpenVPNPrefixes.openVPNPrefix",
-        "prefix",
-        "prefix.id = :prefix",
+        'routingRuleToOpenVPNPrefixes.openVPNPrefix',
+        'prefix',
+        'prefix.id = :prefix',
         { prefix: prefix },
       )
-      .innerJoin("routing_rule.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoin('routing_rule.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }
@@ -590,22 +590,22 @@ export class OpenVPNPrefix extends Model {
     prefix: number,
   ): Promise<any> {
     return await getRepository(Route)
-      .createQueryBuilder("route")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
-      .innerJoinAndSelect("route.routingTable", "table")
-      .innerJoin("route.routeToIPObjGroups", "routeToIPObjGroups")
-      .innerJoin("routeToIPObjGroups.ipObjGroup", "ipObjGroup")
+      .createQueryBuilder('route')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
+      .innerJoinAndSelect('route.routingTable', 'table')
+      .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+      .innerJoin('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
       .innerJoin(
-        "ipObjGroup.openVPNPrefixes",
-        "prefix",
-        "prefix.id = :prefix",
+        'ipObjGroup.openVPNPrefixes',
+        'prefix',
+        'prefix.id = :prefix',
         { prefix: prefix },
       )
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }
@@ -615,25 +615,25 @@ export class OpenVPNPrefix extends Model {
     prefix: number,
   ): Promise<any> {
     return await getRepository(RoutingRule)
-      .createQueryBuilder("routing_rule")
-      .addSelect("firewall.id", "firewall_id")
-      .addSelect("firewall.name", "firewall_name")
-      .addSelect("cluster.id", "cluster_id")
-      .addSelect("cluster.name", "cluster_name")
+      .createQueryBuilder('routing_rule')
+      .addSelect('firewall.id', 'firewall_id')
+      .addSelect('firewall.name', 'firewall_name')
+      .addSelect('cluster.id', 'cluster_id')
+      .addSelect('cluster.name', 'cluster_name')
       .innerJoin(
-        "routing_rule.routingRuleToIPObjGroups",
-        "routingRuleToIPObjGroups",
+        'routing_rule.routingRuleToIPObjGroups',
+        'routingRuleToIPObjGroups',
       )
-      .innerJoin("routingRuleToIPObjGroups.ipObjGroup", "ipObjGroup")
+      .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
       .innerJoin(
-        "ipObjGroup.openVPNPrefixes",
-        "prefix",
-        "prefix.id = :prefix",
+        'ipObjGroup.openVPNPrefixes',
+        'prefix',
+        'prefix.id = :prefix',
         { prefix: prefix },
       )
-      .innerJoin("routing_rule.routingTable", "table")
-      .innerJoin("table.firewall", "firewall")
-      .leftJoin("firewall.cluster", "cluster")
+      .innerJoin('routing_rule.routingTable', 'table')
+      .innerJoin('table.firewall', 'firewall')
+      .leftJoin('firewall.cluster', 'cluster')
       .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
       .getRawMany();
   }

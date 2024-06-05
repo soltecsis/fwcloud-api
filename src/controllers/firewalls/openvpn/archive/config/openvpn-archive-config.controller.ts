@@ -20,16 +20,16 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Validate } from "../../../../../decorators/validate.decorator";
-import { app } from "../../../../../fonaments/abstract-application";
-import { Controller } from "../../../../../fonaments/http/controller";
-import { ResponseBuilder } from "../../../../../fonaments/http/response-builder";
+import { Validate } from '../../../../../decorators/validate.decorator';
+import { app } from '../../../../../fonaments/abstract-application';
+import { Controller } from '../../../../../fonaments/http/controller';
+import { ResponseBuilder } from '../../../../../fonaments/http/response-builder';
 import {
   OpenVPNService,
   OpenVPNUpdateableConfig,
-} from "../../../../../models/vpn/openvpn/openvpn.service";
-import { OpenVPNArchiveControllerUpdateDto } from "./dtos/openvpn-archive-config-update.dto";
-import { Request } from "express";
+} from '../../../../../models/vpn/openvpn/openvpn.service';
+import { OpenVPNArchiveControllerUpdateDto } from './dtos/openvpn-archive-config-update.dto';
+import { Request } from 'express';
 
 export class OpenVPNArchiveConfigController extends Controller {
   protected _openvpnService: OpenVPNService;

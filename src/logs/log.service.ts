@@ -1,8 +1,8 @@
-import { Service } from "../fonaments/services/service";
-import { FSHelper } from "../utils/fs-helper";
-import * as winston from "winston";
-import * as path from "path";
-import moment from "moment";
+import { Service } from '../fonaments/services/service';
+import { FSHelper } from '../utils/fs-helper';
+import * as winston from 'winston';
+import * as path from 'path';
+import moment from 'moment';
 
 export type LogServiceConfig = {
   level: string;
@@ -11,13 +11,13 @@ export type LogServiceConfig = {
   maxSize: number;
 };
 
-export type LoggerType = "default" | "query" | "http";
+export type LoggerType = 'default' | 'query' | 'http';
 
 export type Transport =
   | winston.transports.ConsoleTransportInstance
   | winston.transports.FileTransportInstance;
 export type TransportCollection = { [name: string]: Transport };
-export type TransportName = "file" | "console";
+export type TransportName = 'file' | 'console';
 
 export class LogService extends Service {
   protected _config: LogServiceConfig;
@@ -31,7 +31,7 @@ export class LogService extends Service {
   protected _transports: TransportCollection = {};
 
   public async build(): Promise<LogService> {
-    this._config = this._app.config.get("log");
+    this._config = this._app.config.get('log');
 
     if (!FSHelper.directoryExistsSync(this._config.directory)) {
       FSHelper.mkdirSync(this._config.directory);
@@ -44,12 +44,12 @@ export class LogService extends Service {
         transports: this.getDefaultTransports(),
       }),
       http: winston.createLogger({
-        level: "entry",
+        level: 'entry',
         levels: { entry: 0 },
         transports: this.getHttpTransports(),
       }),
       query: winston.createLogger({
-        level: "info",
+        level: 'info',
         levels: winston.config.npm.levels,
         transports: this.getQueryTransports(),
       }),
@@ -58,7 +58,7 @@ export class LogService extends Service {
     return this;
   }
 
-  public getLogger(type: LoggerType = "default"): winston.Logger {
+  public getLogger(type: LoggerType = 'default'): winston.Logger {
     return this._loggers[type];
   }
 
@@ -67,10 +67,10 @@ export class LogService extends Service {
 
     transports.push(
       new winston.transports.File({
-        filename: path.join(this._config.directory, "app.log"),
+        filename: path.join(this._config.directory, 'app.log'),
         format: winston.format.combine(
           winston.format.timestamp({
-            format: "YYYY-MM-DD HH:mm:ss",
+            format: 'YYYY-MM-DD HH:mm:ss',
           }),
           winston.format.printf(
             (info) =>
@@ -83,12 +83,12 @@ export class LogService extends Service {
       }),
     );
 
-    if (this._app.config.get("log.stdout")) {
+    if (this._app.config.get('log.stdout')) {
       transports.push(
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.timestamp({
-              format: "YYYY-MM-DD HH:mm:ss",
+              format: 'YYYY-MM-DD HH:mm:ss',
             }),
             winston.format.printf(
               (info) =>
@@ -106,10 +106,10 @@ export class LogService extends Service {
     const transports: Array<Transport> = [];
     transports.push(
       new winston.transports.File({
-        filename: path.join(this._config.directory, "query.log"),
+        filename: path.join(this._config.directory, 'query.log'),
         format: winston.format.combine(
           winston.format.timestamp({
-            format: "YYYY-MM-DD HH:mm:ss",
+            format: 'YYYY-MM-DD HH:mm:ss',
           }),
           winston.format.align(),
           winston.format.printf((info) => `${info.timestamp}|${info.message}`),
@@ -120,12 +120,12 @@ export class LogService extends Service {
       }),
     );
 
-    if (this._app.config.get("log.stdout")) {
+    if (this._app.config.get('log.stdout')) {
       transports.push(
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.timestamp({
-              format: "YYYY-MM-DD HH:mm:ss",
+              format: 'YYYY-MM-DD HH:mm:ss',
             }),
             winston.format.printf(
               (info) => `${info.timestamp}|${info.message}`,
@@ -142,10 +142,10 @@ export class LogService extends Service {
     const transports: Array<Transport> = [];
     transports.push(
       new winston.transports.File({
-        filename: path.join(this._config.directory, "http.log"),
+        filename: path.join(this._config.directory, 'http.log'),
         format: winston.format.combine(
           winston.format.timestamp({
-            format: "YYYY-MM-DD HH:mm:ss",
+            format: 'YYYY-MM-DD HH:mm:ss',
           }),
           winston.format.printf((info) => `${info.timestamp}|${info.message}`),
         ),

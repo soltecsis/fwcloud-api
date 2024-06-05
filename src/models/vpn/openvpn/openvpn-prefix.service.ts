@@ -1,12 +1,12 @@
-import { getRepository } from "typeorm";
-import db from "../../../database/database-manager";
-import { Service } from "../../../fonaments/services/service";
-import { Firewall } from "../../firewall/Firewall";
-import { OpenVPNPrefix } from "./OpenVPNPrefix";
-import { Request } from "express";
-import { FirewallService } from "../../firewall/firewall.service";
-import { FwcTree } from "../../tree/fwc-tree.model";
-const fwcError = require("../../../utils/error_table");
+import { getRepository } from 'typeorm';
+import db from '../../../database/database-manager';
+import { Service } from '../../../fonaments/services/service';
+import { Firewall } from '../../firewall/Firewall';
+import { OpenVPNPrefix } from './OpenVPNPrefix';
+import { Request } from 'express';
+import { FirewallService } from '../../firewall/firewall.service';
+import { FwcTree } from '../../tree/fwc-tree.model';
+const fwcError = require('../../../utils/error_table');
 
 export class OpenVPNPrefixService extends Service {
   protected _firewallService: FirewallService;
@@ -60,13 +60,13 @@ export class OpenVPNPrefixService extends Service {
 
     //Update all group nodes which references the prefix to set the new name
     await getRepository(FwcTree)
-      .createQueryBuilder("node")
+      .createQueryBuilder('node')
       .update(FwcTree)
       .set({
         name: req.body.name,
       })
-      .where("node_type = :type", { type: "PRO" })
-      .andWhere("id_obj = :id", { id: req.body.prefix })
+      .where('node_type = :type', { type: 'PRO' })
+      .andWhere('id_obj = :id', { id: req.body.prefix })
       .execute();
 
     // Update the compilation/installation flags of all firewalls that use this prefix.
@@ -93,49 +93,49 @@ export class OpenVPNPrefixService extends Service {
           await Firewall.updateFirewallStatus(
             fwcloudId,
             PrefixInRule[j].firewall_id,
-            "|3",
+            '|3',
           );
 
         for (let j = 0; j < PrefixInGroupIpRule.length; j++)
           await Firewall.updateFirewallStatus(
             fwcloudId,
             PrefixInGroupIpRule[j].firewall_id,
-            "|3",
+            '|3',
           );
 
         const firewall: Firewall[] = await getRepository(Firewall)
-          .createQueryBuilder("firewall")
+          .createQueryBuilder('firewall')
           .distinct()
-          .innerJoin("firewall.routingTables", "table")
-          .leftJoin("table.routingRules", "rule")
-          .leftJoin("table.routes", "route")
+          .innerJoin('firewall.routingTables', 'table')
+          .leftJoin('table.routingRules', 'rule')
+          .leftJoin('table.routes', 'route')
 
-          .leftJoin("rule.routingRuleToIPObjGroups", "routingRuleToIPObjGroups")
-          .leftJoin("routingRuleToIPObjGroups.ipObjGroup", "ruleGroup")
-          .leftJoin("ruleGroup.openVPNPrefixes", "ruleGroupOpenVPNPrefix")
+          .leftJoin('rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+          .leftJoin('routingRuleToIPObjGroups.ipObjGroup', 'ruleGroup')
+          .leftJoin('ruleGroup.openVPNPrefixes', 'ruleGroupOpenVPNPrefix')
 
           .leftJoin(
-            "rule.routingRuleToOpenVPNPrefixes",
-            "routingRuleToOpenVPNPrefix",
+            'rule.routingRuleToOpenVPNPrefixes',
+            'routingRuleToOpenVPNPrefix',
           )
 
-          .leftJoin("route.routeToIPObjGroups", "routeToIPObjGroups")
-          .leftJoin("routeToIPObjGroups.ipObjGroup", "routeGroup")
-          .leftJoin("routeGroup.openVPNPrefixes", "routeGroupOpenVPNPrefix")
+          .leftJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+          .leftJoin('routeToIPObjGroups.ipObjGroup', 'routeGroup')
+          .leftJoin('routeGroup.openVPNPrefixes', 'routeGroupOpenVPNPrefix')
 
-          .leftJoin("route.routeToOpenVPNPrefixes", "routeToOpenVPNPrefix")
+          .leftJoin('route.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefix')
 
           .where(
-            "routingRuleToOpenVPNPrefix.openVPNPrefixId = :idRoutingRule",
+            'routingRuleToOpenVPNPrefix.openVPNPrefixId = :idRoutingRule',
             { idRoutingRule: prefixId },
           )
-          .orWhere("routeToOpenVPNPrefix.openVPNPrefixId = :idRoute", {
+          .orWhere('routeToOpenVPNPrefix.openVPNPrefixId = :idRoute', {
             idRoute: prefixId,
           })
-          .orWhere("ruleGroupOpenVPNPrefix.id = :idRuleGroupPrefix", {
+          .orWhere('ruleGroupOpenVPNPrefix.id = :idRuleGroupPrefix', {
             idRuleGroupPrefix: prefixId,
           })
-          .orWhere("routeGroupOpenVPNPrefix.id = :idRouteGroupPrefix", {
+          .orWhere('routeGroupOpenVPNPrefix.id = :idRouteGroupPrefix', {
             idRouteGroupPrefix: prefixId,
           })
 

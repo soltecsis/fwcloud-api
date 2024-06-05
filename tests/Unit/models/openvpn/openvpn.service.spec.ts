@@ -20,23 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FSHelper } from "./../../../../src/utils/fs-helper";
-import { describeName, testSuite, expect } from "../../../mocha/global-setup";
+import { FSHelper } from './../../../../src/utils/fs-helper';
+import { describeName, testSuite, expect } from '../../../mocha/global-setup';
 import {
   OpenVPNService,
   OpenVPNUpdateableConfig,
-} from "../../../../src/models/vpn/openvpn/openvpn.service";
-import * as fs from "fs";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
-import path from "path";
+} from '../../../../src/models/vpn/openvpn/openvpn.service';
+import * as fs from 'fs';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
+import path from 'path';
 import {
   CreateOpenVPNStatusHistoryData,
   OpenVPNStatusHistoryService,
-} from "../../../../src/models/vpn/openvpn/status/openvpn-status-history.service";
-import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
-import sinon from "sinon";
+} from '../../../../src/models/vpn/openvpn/status/openvpn-status-history.service';
+import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
+import sinon from 'sinon';
 
-describe(describeName("OpenVPN Service Unit Tests"), () => {
+describe(describeName('OpenVPN Service Unit Tests'), () => {
   let app: AbstractApplication;
   let openVPNService: OpenVPNService;
   let openVPNStatusHistoryService: OpenVPNStatusHistoryService;
@@ -61,8 +61,8 @@ describe(describeName("OpenVPN Service Unit Tests"), () => {
     data = [
       {
         timestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0)),
-        name: "test-status-history1",
-        address: "1.1.1.1",
+        name: 'test-status-history1',
+        address: '1.1.1.1',
         bytesReceived: 100,
         bytesSent: 200,
         connectedAtTimestampInSeconds: parseInt(
@@ -71,14 +71,14 @@ describe(describeName("OpenVPN Service Unit Tests"), () => {
       },
       {
         timestampInSeconds: parseInt(
-          (new Date("2000-01-01").getTime() / 1000).toFixed(0),
+          (new Date('2000-01-01').getTime() / 1000).toFixed(0),
         ),
-        name: "test-status-history2",
-        address: "1.1.1.1",
+        name: 'test-status-history2',
+        address: '1.1.1.1',
         bytesReceived: 100,
         bytesSent: 200,
         connectedAtTimestampInSeconds: parseInt(
-          (new Date("2000-01-01").getTime() / 1000).toFixed(0),
+          (new Date('2000-01-01').getTime() / 1000).toFixed(0),
         ),
       },
     ];
@@ -89,37 +89,37 @@ describe(describeName("OpenVPN Service Unit Tests"), () => {
 
     const date = new Date();
     yearDir = date.getFullYear().toString();
-    monthSubDir = ("0" + (date.getMonth() + 1)).slice(-2);
-    fileName = `openvpn_status_history-${date.getFullYear()}${("0" + (date.getMonth() + 1)).slice(-2)}${("0" + date.getDate()).slice(-2)}.sql`;
+    monthSubDir = ('0' + (date.getMonth() + 1)).slice(-2);
+    fileName = `openvpn_status_history-${date.getFullYear()}${('0' + (date.getMonth() + 1)).slice(-2)}${('0' + date.getDate()).slice(-2)}.sql`;
     filePath = path.join(
-      `${path.join(app.config.get("openvpn.history").data_dir, yearDir, monthSubDir, fileName)}.zip`,
+      `${path.join(app.config.get('openvpn.history').data_dir, yearDir, monthSubDir, fileName)}.zip`,
     );
   });
 
-  it("should be provided as an application service", async () => {
+  it('should be provided as an application service', async () => {
     expect(
       await app.getService<OpenVPNService>(OpenVPNService.name),
     ).to.be.instanceOf(OpenVPNService);
   });
 
-  describe("archiveHistory()", () => {
-    it("should create a backup directory", async () => {
+  describe('archiveHistory()', () => {
+    it('should create a backup directory', async () => {
       const directory = path.join(
-        `${path.join(app.config.get("openvpn.history").data_dir, yearDir, monthSubDir)}`,
+        `${path.join(app.config.get('openvpn.history').data_dir, yearDir, monthSubDir)}`,
       );
 
       expect(FSHelper.directoryExistsSync(directory)).to.be.true;
     });
 
-    it("should be created a zip file with data records file less than archive_days config", async () => {
+    it('should be created a zip file with data records file less than archive_days config', async () => {
       expect(fs.existsSync(filePath)).to.be.true;
     });
 
-    it("should remove a unzipped data records file", () => {
+    it('should remove a unzipped data records file', () => {
       expect(
         fs.existsSync(
           path.join(
-            app.config.get("openvpn.history").data_dir,
+            app.config.get('openvpn.history').data_dir,
             yearDir,
             monthSubDir,
             fileName,
@@ -128,7 +128,7 @@ describe(describeName("OpenVPN Service Unit Tests"), () => {
       ).to.be.false;
     });
 
-    it("should be deleted zipped records", async () => {
+    it('should be deleted zipped records', async () => {
       const results = await openVPNStatusHistoryService.history(
         fwcProduct.openvpnServer.id,
         {
@@ -136,9 +136,9 @@ describe(describeName("OpenVPN Service Unit Tests"), () => {
         },
       );
 
-      expect(results).to.not.have.property("name");
+      expect(results).to.not.have.property('name');
     });
-    it("should be added new records to zip file if exist new registers", async () => {
+    it('should be added new records to zip file if exist new registers', async () => {
       const date = new Date();
       const oldDate = date.setMonth(date.getMonth() - 4);
 
@@ -147,8 +147,8 @@ describe(describeName("OpenVPN Service Unit Tests"), () => {
           timestampInSeconds: parseInt(
             (new Date(oldDate).getTime() / 1000).toFixed(0),
           ),
-          name: "test-status-history3",
-          address: "1.1.1.1",
+          name: 'test-status-history3',
+          address: '1.1.1.1',
           bytesReceived: 100,
           bytesSent: 200,
           connectedAtTimestampInSeconds: parseInt(
@@ -170,11 +170,11 @@ describe(describeName("OpenVPN Service Unit Tests"), () => {
         },
       );
 
-      expect(results).to.not.have.property("name");
+      expect(results).to.not.have.property('name');
     });
   });
 
-  describe("removeExpiredFiles()", () => {
+  describe('removeExpiredFiles()', () => {
     let clock;
     before(async () => {
       const date = new Date();
@@ -183,7 +183,7 @@ describe(describeName("OpenVPN Service Unit Tests"), () => {
       clock = sinon.useFakeTimers({
         now: new Date(futureDate),
         shouldAdvanceTime: true,
-        toFake: ["Date"],
+        toFake: ['Date'],
       });
     });
 
@@ -191,18 +191,18 @@ describe(describeName("OpenVPN Service Unit Tests"), () => {
       clock.restore();
     });
 
-    it("should be deleted files with date of creation greater than retention_days config", async () => {
+    it('should be deleted files with date of creation greater than retention_days config', async () => {
       const res = await openVPNService.removeExpiredFiles();
       expect(fs.existsSync(filePath)).to.be.false;
       expect(res).to.be.equal(1);
     });
   });
 
-  describe("updateArchiveConfig()", () => {
-    it("should be stored custom config in json file", async () => {
+  describe('updateArchiveConfig()', () => {
+    it('should be stored custom config in json file', async () => {
       const jsonPath = path.join(
-        app.config.get("openvpn.history").data_dir,
-        "config.json",
+        app.config.get('openvpn.history').data_dir,
+        'config.json',
       );
       const custom_config = {
         history: { archive_days: 20, retention_days: 40 },
@@ -212,7 +212,7 @@ describe(describeName("OpenVPN Service Unit Tests"), () => {
       expect(fs.existsSync(jsonPath)).to.be.true;
     });
 
-    it("should be overwritten base config by a custom config", async () => {
+    it('should be overwritten base config by a custom config', async () => {
       const custom_config = {
         history: { archive_days: 20, retention_days: 40 },
       };
@@ -223,7 +223,7 @@ describe(describeName("OpenVPN Service Unit Tests"), () => {
     });
   });
 
-  describe("getCustomizedConfig()", () => {
+  describe('getCustomizedConfig()', () => {
     let custom_config: OpenVPNUpdateableConfig;
 
     beforeEach(async () => {
@@ -236,21 +236,21 @@ describe(describeName("OpenVPN Service Unit Tests"), () => {
       await openVPNService.updateArchiveConfig(custom_config);
     });
 
-    it("should be returned custom_config if config.json exists", async () => {
+    it('should be returned custom_config if config.json exists', async () => {
       expect(openVPNService.getCustomizedConfig()).to.be.deep.equals(
         custom_config,
       );
     });
 
-    it("should be returned base_config if config.json does not exist", async () => {
+    it('should be returned base_config if config.json does not exist', async () => {
       fs.unlinkSync(
-        path.join(app.config.get("openvpn.history").data_dir, "config.json"),
+        path.join(app.config.get('openvpn.history').data_dir, 'config.json'),
       );
 
       expect(openVPNService.getCustomizedConfig()).to.be.deep.equals({
         history: {
-          archive_days: app.config.get("openvpn.history").archive_days,
-          retention_days: app.config.get("openvpn.history").retention_days,
+          archive_days: app.config.get('openvpn.history').archive_days,
+          retention_days: app.config.get('openvpn.history').retention_days,
         },
       });
     });
