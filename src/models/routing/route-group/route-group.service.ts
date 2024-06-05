@@ -71,7 +71,7 @@ export class RouteGroupService extends Service {
 
     async create(data: ICreateRouteGroup): Promise<RouteGroup> {
         let group: RouteGroup = await this._repository.save(data);
-        return this._repository.findOne(group.id);
+        return this._repository.findOne({ where: { id: group.id }});
     }
 
     async update(id: number, data: IUpdateRouteGroup): Promise<RouteGroup> {

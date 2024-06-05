@@ -50,8 +50,8 @@ export class KeepalivedGroupController extends Controller {
       this._keepalivedGroup = await this._keepalivedGroupService.findOneInPath({ id: parseInt(request.params.keepalivedgroup) });
     }
 
-    this._firewall = await getRepository(Firewall).findOneOrFail(request.params.firewall);
-    this._fwCloud = await getRepository(FwCloud).findOneOrFail(request.params.fwcloud);
+    this._firewall = await getRepository(Firewall).findOneOrFail({ where: { id: parseInt(request.params.firewall) }});
+    this._fwCloud = await getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
   }
 
   @Validate()

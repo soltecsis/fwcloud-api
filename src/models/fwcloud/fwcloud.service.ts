@@ -26,7 +26,7 @@ export class FwCloudService extends Service {
         await this.grantAdminAccess(fwCloud);
         await Tree.createAllTreeCloud(fwCloud);
 
-        return FwCloud.findOne(fwCloud.id);
+        return FwCloud.findOne({ where: { id: fwCloud.id }});
     }
 
     public async update(fwCloud: FwCloud, data: DeepPartial<FwCloud>): Promise<FwCloud> {

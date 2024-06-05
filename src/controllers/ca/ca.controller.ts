@@ -20,7 +20,7 @@ export class CaController extends Controller {
 
         this.CaService = await this._app.getService<CaService>(CaService.name);
         if(request.params.ca){
-            this._ca = await getRepository(Ca).findOneOrFail(request.params.ca)
+            this._ca = await getRepository(Ca).findOneOrFail({ where: { id: parseInt(request.params.ca) }})
         }
         //Get the fwcloud wich contains the ca
         this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')

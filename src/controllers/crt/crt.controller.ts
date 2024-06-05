@@ -20,7 +20,7 @@ export class CrtController extends Controller {
     public async make(request: Request): Promise <void> {
         this.CrtService = await this._app.getService<CrtService>(CrtService.name);
         if(request.params.crt){
-            this._crt = await getRepository(Crt).findOneOrFail(request.params.crt)
+            this._crt = await getRepository(Crt).findOneOrFail({ where: { id: parseInt(request.params.crt) }})
         }
         this._ca = await getRepository(Ca).createQueryBuilder('ca')
         .where('ca.id = :id', {id: parseInt(request.params.ca)})

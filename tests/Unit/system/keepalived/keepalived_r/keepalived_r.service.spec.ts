@@ -348,9 +348,9 @@ describe(KeepalivedRuleService.name, () => {
             };
 
             sinon.stub(service['_repository'], 'findOneOrFail')
-                .withArgs(sinon.match(1), sinon.match.any)
+                .withArgs(sinon.match(1))
                 .resolves(fromRule)
-                .withArgs(sinon.match(2), sinon.match.any)
+                .withArgs(sinon.match(2))
                 .resolves(toRule);
         });
 

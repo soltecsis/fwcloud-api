@@ -66,7 +66,7 @@ export class Authorization extends Middleware {
                 throw fwcError.SESSION_BAD;
             }
 
-            req.session.user = await getRepository(User).findOne(req.session.user_id);
+            req.session.user = await getRepository(User).findOne({ where: { id: req.session.user_id }});
             // If we arrive here, then the session is correct.
             logger().debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");
             

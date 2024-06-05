@@ -41,7 +41,7 @@ export class SnapshotController extends Controller {
 
     public async make(request: Request) {
         this._snapshotService = await this._app.getService<SnapshotService>(SnapshotService.name);
-        this._fwCloud = await FwCloud.findOneOrFail(parseInt(request.params.fwcloud));
+        this._fwCloud = await FwCloud.findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
     }
 
     @Validate()

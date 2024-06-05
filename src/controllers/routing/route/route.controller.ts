@@ -59,7 +59,7 @@ export class RouteController extends Controller {
         this._routingTableService = await this._app.getService<RoutingTableService>(RoutingTableService.name);
 
         if (request.params.route) {
-            this._route = await getRepository(Route).findOneOrFail(parseInt(request.params.route));
+            this._route = await getRepository(Route).findOneOrFail({ where: { id: parseInt(request.params.route) }});
         }
 
         const routingTableQueryBuilder = getRepository(RoutingTable).createQueryBuilder('table')
@@ -98,19 +98,14 @@ export class RouteController extends Controller {
         (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
         
         const routes: Route[] = await getRepository(Route).find({
-            join: {
-                alias: 'route',
-                innerJoin: {
-                    table: 'route.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
+            where: { 
+                routingTable: {
+                    id: this._routingTable.id,
+                    firewall: {
+                        id: this._firewall.id,
+                        fwCloudId: this._fwCloud.id
+                    }
                 }
-            },
-            where: (qb: SelectQueryBuilder<Route>) => {
-                qb.whereInIds(request.inputs.get('routes'))
-                    .andWhere('table.id = :table', {table: this._routingTable.id})
-                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
-                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
             }
         });
 
@@ -222,36 +217,26 @@ export class RouteController extends Controller {
         (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
 
         const fromRule: Route = await getRepository(Route).findOneOrFail({
-            join: {
-                alias: 'route',
-                innerJoin: {
-                    table: 'route.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
+            where: { 
+                routingTable: {
+                    id: this._routingTable.id,
+                    firewall: {
+                        id: this._firewall.id,
+                        fwCloudId: this._fwCloud.id
+                    }
                 }
-            },
-            where: (qb: SelectQueryBuilder<Route>) => {
-                qb.where('route.id = :id', {id: request.inputs.get('fromId')})
-                    .andWhere('table.id = :table', {table: this._routingTable.id})
-                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
-                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
             }
         });
 
         const toRule: Route = await getRepository(Route).findOneOrFail({
-            join: {
-                alias: 'route',
-                innerJoin: {
-                    table: 'route.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
+            where: { 
+                routingTable: {
+                    id: this._routingTable.id,
+                    firewall: {
+                        id: this._firewall.id,
+                        fwCloudId: this._fwCloud.id
+                    }
                 }
-            },
-            where: (qb: SelectQueryBuilder<Route>) => {
-                qb.where('route.id = :id', {id: request.inputs.get('toId')})
-                    .andWhere('table.id = :table', {table: this._routingTable.id})
-                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
-                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
             }
         });
 
@@ -264,36 +249,26 @@ export class RouteController extends Controller {
     async moveToGateway(request: Request): Promise<ResponseBuilder> {
         (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
         const fromRule: Route = await getRepository(Route).findOneOrFail({
-            join: {
-                alias: 'route',
-                innerJoin: {
-                    table: 'route.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
+            where: { 
+                routingTable: {
+                    id: this._routingTable.id,
+                    firewall: {
+                        id: this._firewall.id,
+                        fwCloudId: this._fwCloud.id
+                    }
                 }
-            },
-            where: (qb: SelectQueryBuilder<Route>) => {
-                qb.where('route.id = :id', {id: request.inputs.get('fromId')})
-                    .andWhere('table.id = :table', {table: this._routingTable.id})
-                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
-                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
             }
         });
 
         const toRule: Route = await getRepository(Route).findOneOrFail({
-            join: {
-                alias: 'route',
-                innerJoin: {
-                    table: 'route.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
+            where: { 
+                routingTable: {
+                    id: this._routingTable.id,
+                    firewall: {
+                        id: this._firewall.id,
+                        fwCloudId: this._fwCloud.id
+                    }
                 }
-            },
-            where: (qb: SelectQueryBuilder<Route>) => {
-                qb.where('route.id = :id', {id: request.inputs.get('toId')})
-                    .andWhere('table.id = :table', {table: this._routingTable.id})
-                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
-                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
             }
         });
         
@@ -307,36 +282,26 @@ export class RouteController extends Controller {
         (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
 
         const fromRule: Route = await getRepository(Route).findOneOrFail({
-            join: {
-                alias: 'route',
-                innerJoin: {
-                    table: 'route.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
+            where: { 
+                routingTable: {
+                    id: this._routingTable.id,
+                    firewall: {
+                        id: this._firewall.id,
+                        fwCloudId: this._fwCloud.id
+                    }
                 }
-            },
-            where: (qb: SelectQueryBuilder<Route>) => {
-                qb.where('route.id = :id', {id: request.inputs.get('fromId')})
-                    .andWhere('table.id = :table', {table: this._routingTable.id})
-                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
-                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
             }
         });
 
         const toRule: Route = await getRepository(Route).findOneOrFail({
-            join: {
-                alias: 'route',
-                innerJoin: {
-                    table: 'route.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
+            where: { 
+                routingTable: {
+                    id: this._routingTable.id,
+                    firewall: {
+                        id: this._firewall.id,
+                        fwCloudId: this._fwCloud.id
+                    }
                 }
-            },
-            where: (qb: SelectQueryBuilder<Route>) => {
-                qb.where('route.id = :id', {id: request.inputs.get('toId')})
-                    .andWhere('table.id = :table', {table: this._routingTable.id})
-                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
-                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
             }
         });
 

@@ -61,7 +61,7 @@ export class AuthorizationTest extends Middleware {
                 req.session.customer_id = session_data.customer_id;
                 req.session.user_id = session_data.user_id;
                 req.session.username = session_data.username;
-                req.session.user = await getRepository(User).findOne(session_data.user_id);
+                req.session.user = await getRepository(User).findOne({ where: { id: session_data.user_id }});
 
                 // If we arrive here, then the session is correct.
                 logger().debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");

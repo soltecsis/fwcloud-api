@@ -49,8 +49,8 @@ export class DhcpGroupController extends Controller {
       this._dhcpGroup = await this._dhcpGroupService.findOneInPath({ id: parseInt(request.params.dhcpgroup) });
     }
 
-    this._firewall = await getRepository(Firewall).findOneOrFail(request.params.firewall);
-    this._fwCloud = await getRepository(FwCloud).findOneOrFail(request.params.fwcloud);
+    this._firewall = await getRepository(Firewall).findOneOrFail({ where: { id: parseInt(request.params.firewall) }});
+    this._fwCloud = await getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
   }
 
   @Validate()

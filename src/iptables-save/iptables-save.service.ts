@@ -152,7 +152,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
 
       if (firewall.install_communication === FirewallInstallCommunication.SSH) {
         communication = new SSHCommunication({
-          host: Object.prototype.hasOwnProperty.call(request.body, "host") ? request.body.host : (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
+          host: Object.prototype.hasOwnProperty.call(request.body, "host") ? request.body.host : (await getRepository(IPObj).findOneOrFail({ where: { id: firewall.install_ipobj }})).address,
           port: Object.prototype.hasOwnProperty.call(request.body, "port") ? request.body.port : firewall.install_port,
           username: Object.prototype.hasOwnProperty.call(request.body, "sshuser") ? request.body.sshuser : utilsModel.decrypt(firewall.install_user),
           password: Object.prototype.hasOwnProperty.call(request.body, "sshpass") ? request.body.sshpass : utilsModel.decrypt(firewall.install_pass),

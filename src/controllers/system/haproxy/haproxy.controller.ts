@@ -50,13 +50,13 @@ export class HAProxyController extends Controller {
   public async make(request: Request): Promise<void> {
     this._haproxyRuleService = await this._app.getService<HAProxyRuleService>(HAProxyRuleService.name);
     if (request.params.haproxy) {
-      this._haproxyRule = await getRepository(HAProxyRule).findOneOrFail(request.params.haproxy);
+      this._haproxyRule = await getRepository(HAProxyRule).findOneOrFail({ where: { id: parseInt(request.params.haproxy) }});
     }
     if (request.params.haproxygroup) {
-      this._haproxyGroup = await getRepository(HAProxyGroup).findOneOrFail(request.params.haproxygroup);
+      this._haproxyGroup = await getRepository(HAProxyGroup).findOneOrFail({ where: { id: parseInt(request.params.haproxygroup) }});
     }
-    this._firewall = await getRepository(Firewall).findOneOrFail(request.params.firewall);
-    this._fwCloud = await getRepository(FwCloud).findOneOrFail(request.params.fwcloud);
+    this._firewall = await getRepository(Firewall).findOneOrFail({ where: { id: parseInt(request.params.firewall) }});
+    this._fwCloud = await getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
   }
 
   @Validate()
@@ -95,7 +95,7 @@ export class HAProxyController extends Controller {
   public async copy(request: Request): Promise<ResponseBuilder> {
     const ids: number[] = request.inputs.get<number[]>('rules');
     for (const id of ids) {
-      const rule: HAProxyRule = await getRepository(HAProxyRule).findOneOrFail(id);
+      const rule: HAProxyRule = await getRepository(HAProxyRule).findOneOrFail({ where: { id: id }});
       (await HAProxyPolicy.show(rule, request.session.user)).authorize();
     }
 
@@ -141,17 +141,11 @@ export class HAProxyController extends Controller {
     (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
 
     const rules: HAProxyRule[] = await getRepository(HAProxyRule).find({
-      join: {
-        alias: 'rule',
-        innerJoin: {
-          firewall: 'rule.firewall',
-          fwcloud: 'firewall.fwCloud'
+      where: { 
+        firewall: {
+          id: this._firewall.id,
+          fwCloudId: this._fwCloud.id
         }
-      },
-      where: (qb) => {
-        qb.whereInIds(request.inputs.get('rules'))
-          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
-          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
       }
     });
 
@@ -185,7 +179,7 @@ export class HAProxyController extends Controller {
     const channel: Channel = await Channel.fromRequest(req);
     let firewallId: number;
 
-    let firewall: Firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
+    let firewall: Firewall = await getRepository(Firewall).findOneOrFail({ where: { id: this._firewall.id }});
     if (firewall.clusterId) {
       firewallId = (await getRepository(Firewall).createQueryBuilder('firewall')
         .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })

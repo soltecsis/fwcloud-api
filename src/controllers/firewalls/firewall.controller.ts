@@ -84,8 +84,10 @@ export class FirewallController extends Controller {
          * This method is not used temporarily
          */
         let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
-            id: parseInt(request.params.firewall),
-            fwCloudId: parseInt(request.params.fwcloud)
+            where: {
+                id: parseInt(request.params.firewall),
+                fwCloudId: parseInt(request.params.fwcloud)
+            }
         });
 
         (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
@@ -105,8 +107,10 @@ export class FirewallController extends Controller {
          * This method is not used temporarily
          */
         let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
-            id: parseInt(request.params.firewall),
-            fwCloudId: parseInt(request.params.fwcloud)
+            where: {
+                id: parseInt(request.params.firewall),
+                fwCloudId: parseInt(request.params.fwcloud)
+            }
         });
 
         (await FirewallPolicy.install(firewall, request.session.user)).authorize();
@@ -129,8 +133,10 @@ export class FirewallController extends Controller {
     @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
     async compileRoutingRules(request: Request): Promise<ResponseBuilder> {
         let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
-            id: parseInt(request.params.firewall),
-            fwCloudId: parseInt(request.params.fwcloud)
+            where: {
+                id: parseInt(request.params.firewall),
+                fwCloudId: parseInt(request.params.fwcloud)
+            }
         });
 
 
@@ -151,8 +157,10 @@ export class FirewallController extends Controller {
     @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
     async compileHAProxyRules(request: Request): Promise<ResponseBuilder> {
         let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
-            id: parseInt(request.params.firewall),
-            fwCloudId: parseInt(request.params.fwcloud)
+            where: {
+                id: parseInt(request.params.firewall),
+                fwCloudId: parseInt(request.params.fwcloud)
+            }
         });
 
         (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
@@ -173,8 +181,10 @@ export class FirewallController extends Controller {
     @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
     async compileDHCPRules(req: Request): Promise<ResponseBuilder> {
         let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
-            id: parseInt(req.params.firewall),
-            fwCloudId: parseInt(req.params.fwcloud)
+            where: {
+                id: parseInt(req.params.firewall),
+                fwCloudId: parseInt(req.params.fwcloud)
+            }
         });
 
         (await FirewallPolicy.compile(firewall, req.session.user)).authorize();
@@ -195,8 +205,10 @@ export class FirewallController extends Controller {
     @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
     async compileKeepalivedRules(request: Request): Promise<ResponseBuilder> {
         let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
-            id: parseInt(request.params.firewall),
-            fwCloudId: parseInt(request.params.fwcloud)
+            where: {
+                id: parseInt(request.params.firewall),
+                fwCloudId: parseInt(request.params.fwcloud)
+            }
         });
 
         (await FirewallPolicy.compile(firewall, request.session.user)).authorize();

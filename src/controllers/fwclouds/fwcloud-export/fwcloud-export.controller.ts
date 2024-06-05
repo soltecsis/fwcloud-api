@@ -45,7 +45,7 @@ export class FwCloudExportController extends Controller {
 
     @Validate()
     public async store(request: Request): Promise<ResponseBuilder> {
-        const fwCloud: FwCloud = await getRepository(FwCloud).findOneOrFail(parseInt(request.params.fwcloud));
+        const fwCloud: FwCloud = await getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
 
         (await FwCloudExportPolicy.store(fwCloud, request.session.user)).authorize();
 

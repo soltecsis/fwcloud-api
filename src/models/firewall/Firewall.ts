@@ -250,7 +250,7 @@ export class Firewall extends Model {
 	async getCommunication(custom: { sshuser?: string, sshpassword?: string } = {}): Promise<Communication<unknown>> {
 		if (this.install_communication === FirewallInstallCommunication.SSH) {
 			return new SSHCommunication({
-				host: (await getRepository(IPObj).findOneOrFail(this.install_ipobj)).address,
+				host: (await getRepository(IPObj).findOneOrFail({ where: { id: this.install_ipobj }})).address,
 				port: this.install_port,
 				username: custom.sshuser ?? utilsModel.decrypt(this.install_user),
 				password: custom.sshpassword ?? utilsModel.decrypt(this.install_pass),
@@ -260,7 +260,7 @@ export class Firewall extends Model {
 
 		return new AgentCommunication({
 			protocol: this.install_protocol,
-			host: (await getRepository(IPObj).findOneOrFail(this.install_ipobj)).address,
+			host: (await getRepository(IPObj).findOneOrFail({ where: { id: this.install_ipobj }})).address,
 			port: this.install_port,
 			apikey: utilsModel.decrypt(this.install_apikey)
 		});

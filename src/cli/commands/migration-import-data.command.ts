@@ -38,7 +38,7 @@ export class MigrationImportDataCommand extends Command {
         const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
 
         // If at least a standard object already exists means data have been imported
-        if (forceFlag || !await getRepository(IPObj).findOne(10000)) {
+        if (forceFlag || !await getRepository(IPObj).findOne({ where: { id: 10000 }})) {
             await databaseService.feedDefaultData();
             this.output.success(`Default data imported.`);
         } else {

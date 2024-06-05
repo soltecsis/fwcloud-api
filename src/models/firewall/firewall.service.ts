@@ -88,7 +88,7 @@ export class FirewallService extends Service {
     }
 
     public async install(firewall: Firewall, customSSHConfig: Partial<SSHConfig>, eventEmitter: EventEmitter = new EventEmitter()): Promise<Firewall> {
-        const ipObj: IPObj = await getRepository(IPObj).findOne({id: firewall.install_ipobj, interfaceId: firewall.install_interface});
+        const ipObj: IPObj = await getRepository(IPObj).findOne({ where: { id: firewall.install_ipobj, interfaceId: firewall.install_interface }});
         const sshConfig: SSHConfig = <SSHConfig>ObjectHelpers.merge({
             host: ipObj.address,
             port: firewall.install_port,
@@ -115,9 +115,9 @@ export class FirewallService extends Service {
             return await this._repository.markAsUncompiled(firewalls);
         }
 
-        const firewall: Firewall = await this._repository.findOneOrFail(idOrIds);
+        const firewall: Firewall = await this._repository.findOneOrFail({ where: { id: idOrIds }});
         await getCustomRepository(FirewallRepository).markAsUncompiled(firewall);
-        return this._repository.findOneOrFail(idOrIds);
+        return this._repository.findOneOrFail({ where: { id: idOrIds }});
     }
 
     public async clone(originalId: number, clonedId: number, dataI: {id_org: number, id_clon: number}[]): Promise<void> {
@@ -173,7 +173,10 @@ export class FirewallService extends Service {
         const keepalivedRuleService: KeepalivedRuleService = await app().getService(KeepalivedRuleService.name);
         const haproxyRuleService: HAProxyRuleService = await app().getService(HAProxyRuleService.name);
 
-        const firewallEntity: Firewall = await getRepository(Firewall).findOneOrFail(firewallId, { relations: ['routingTables', 'routingTables.routingRules', 'dhcpRules', 'keepalivedRules', 'haproxyRules'] });
+        const firewallEntity: Firewall = await getRepository(Firewall).findOneOrFail({ 
+            relations: ['routingTables', 'routingTables.routingRules', 'dhcpRules', 'keepalivedRules', 'haproxyRules'],
+            where: { id: firewallId }
+        });
         for (let table of firewallEntity.routingTables) {
             await routingRuleService.bulkRemove(table.routingRules.map(item => item.id));
             await routingTableService.remove({

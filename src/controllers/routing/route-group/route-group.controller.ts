@@ -45,7 +45,7 @@ export class RouteGroupController extends Controller {
         this._routeGroupService = await this._app.getService<RouteGroupService>(RouteGroupService.name);
         
         if (request.params.routeGroup) {
-            this._routeGroup = await getRepository(RouteGroup).findOneOrFail(parseInt(request.params.routeGroup));
+            this._routeGroup = await getRepository(RouteGroup).findOneOrFail({ where: { id: parseInt(request.params.routeGroup) }});
         }
 
         //Get the firewall from the URL which contains the route group 

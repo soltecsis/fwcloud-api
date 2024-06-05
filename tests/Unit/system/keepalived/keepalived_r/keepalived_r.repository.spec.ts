@@ -69,7 +69,7 @@ describe(KeepalivedRepository.name, () => {
         it('should remove a single KeepalivedRule entity', async () => {
             const result = await repository.remove(keepalivedRule);
 
-            expect(await repository.findOne(keepalivedRule.id)).to.be.undefined;
+            expect(await repository.findOne({ where: { id: keepalivedRule.id }})).to.be.undefined;
         });
 
         it('should remove multiple KeepalivedRule entities', async () => {
@@ -82,8 +82,8 @@ describe(KeepalivedRepository.name, () => {
 
             const result = await repository.remove([keepalivedRule, keepalivedRule2]);
 
-            expect(await repository.findOne(keepalivedRule.id)).to.be.undefined;
-            expect(await repository.findOne(keepalivedRule2.id)).to.be.undefined;
+            expect(await repository.findOne({ where: { id: keepalivedRule.id }})).to.be.undefined;
+            expect(await repository.findOne({ where: { id: keepalivedRule2.id }})).to.be.undefined;
         });
 
         it('should refresh orders after remove', async () => {

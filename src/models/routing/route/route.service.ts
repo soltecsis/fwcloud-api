@@ -176,7 +176,12 @@ export class RouteService extends Service {
             style: data.style,
         }, {id}));
 
-        const firewall: Firewall = (await this._repository.findOne(route.id, {relations: ['routingTable', 'routingTable.firewall']})).routingTable.firewall;
+        const firewall: Firewall = (await this._repository.findOne({
+            relations: ['routingTable', 'routingTable.firewall'],
+            where: {
+                id: route.id
+            }
+        })).routingTable.firewall;
 
         if (data.ipObjIds) {
             await this.validateUpdateIPObjs(firewall, data);
@@ -239,9 +244,14 @@ export class RouteService extends Service {
     }
 
     protected async reorderTo(ruleId: number): Promise<void> {
-        const route: Route = await this._repository.findOneOrFail(ruleId, {relations: [
-            'routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes'
-        ]})
+        const route: Route = await this._repository.findOneOrFail({
+            where: {
+                id: ruleId
+            },
+            relations: [
+                'routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes'
+            ]
+        });
 
         const items: {order: number}[] = [].concat(
             route.routeToIPObjs,
@@ -332,10 +342,16 @@ export class RouteService extends Service {
     }
 
     async moveTo(fromId: number, toId: number, data: IMoveToRoute): Promise<[Route, Route]> {
-        const fromRule: Route = await getRepository(Route).findOneOrFail(fromId, {
+        const fromRule: Route = await getRepository(Route).findOneOrFail({
+            where: {
+                id: fromId
+            },
             relations: ['routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes']
         });
-        const toRule: Route = await getRepository(Route).findOneOrFail(toId, {
+        const toRule: Route = await getRepository(Route).findOneOrFail({
+            where: {
+                id: toId
+            },
             relations: ['routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes']
         });
         
@@ -405,10 +421,13 @@ export class RouteService extends Service {
     }
 
     async moveToGateway(fromId: number, toId: number, data: IMoveToGatewayRoute): Promise<[Route, Route]> {
-        const fromRule: Route = await getRepository(Route).findOneOrFail(fromId, {
+        const fromRule: Route = await getRepository(Route).findOneOrFail({
+            where: {
+                id: fromId
+            },
             relations: ['routeToIPObjs']
         });
-        const toRule: Route = await getRepository(Route).findOneOrFail(toId);
+        const toRule: Route = await getRepository(Route).findOneOrFail({ where: { id: toId }});
         
         if (data.ipObjId !== undefined) {
             const index: number = fromRule.routeToIPObjs.findIndex(item => item.ipObjId === data.ipObjId);
@@ -422,8 +441,8 @@ export class RouteService extends Service {
     }
 
     async moveInterface(fromId: number, toId: number, data: IMoveInterfaceRoute): Promise<[Route, Route]> {
-        const fromRule: Route = await getRepository(Route).findOneOrFail(fromId);
-        const toRule: Route = await getRepository(Route).findOneOrFail(toId);
+        const fromRule: Route = await getRepository(Route).findOneOrFail({ where: { id: fromId }});
+        const toRule: Route = await getRepository(Route).findOneOrFail({ where: { id: toId }});
         
         if (fromRule.interfaceId === data.interfaceId) {
             toRule.interfaceId = fromRule.interfaceId;

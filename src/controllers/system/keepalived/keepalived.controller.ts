@@ -51,13 +51,13 @@ export class KeepalivedController extends Controller {
     this._keepalivedRuleService = await this._app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
 
     if (req.params.keepalived) {
-      this._keepalivedrule = await getRepository(KeepalivedRule).findOneOrFail(req.params.keepalived);
+      this._keepalivedrule = await getRepository(KeepalivedRule).findOneOrFail({ where: { id: parseInt( req.params.keepalived) }});
     }
     if (req.params.keepalivedgroup) {
-      this._keepalivedgroup = await getRepository(KeepalivedGroup).findOneOrFail(this._keepalivedrule.group.id);
+      this._keepalivedgroup = await getRepository(KeepalivedGroup).findOneOrFail({ where: { id: this._keepalivedrule.group.id }});
     }
-    this._firewall = await getRepository(Firewall).findOneOrFail(req.params.firewall);
-    this._fwCloud = await getRepository(FwCloud).findOneOrFail(req.params.fwcloud);
+    this._firewall = await getRepository(Firewall).findOneOrFail({ where: { id: parseInt(req.params.firewall) }});
+    this._fwCloud = await getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(req.params.fwcloud) }});
   }
 
 
@@ -122,7 +122,7 @@ export class KeepalivedController extends Controller {
   public async copy(req: Request): Promise<ResponseBuilder> {
     const ids: number[] = req.inputs.get('rules');
     for (const id of ids) {
-      const rule: KeepalivedRule = await getRepository(KeepalivedRule).findOneOrFail(id);
+      const rule: KeepalivedRule = await getRepository(KeepalivedRule).findOneOrFail({ where: { id: id }});
       (await KeepalivedPolicy.copy(rule, req.session.user)).authorize();
     }
 
@@ -191,17 +191,11 @@ export class KeepalivedController extends Controller {
     (await KeepalivedPolicy.move(this._firewall, req.session.user)).authorize();
 
     const rules: KeepalivedRule[] = await getRepository(KeepalivedRule).find({
-      join: {
-        alias: 'rule',
-        innerJoin: {
-          firewall: 'rule.firewall',
-          fwcloud: 'firewall.fwCloud'
+      where: { 
+        firewall: {
+          id: this._firewall.id,
+          fwCloudId: this._fwCloud.id
         }
-      },
-      where: (qb: SelectQueryBuilder<KeepalivedRule>) => {
-        qb.whereInIds(req.inputs.get('rules'))
-          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
-          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
       }
     });
 
@@ -235,7 +229,7 @@ export class KeepalivedController extends Controller {
     const channel: Channel = await Channel.fromRequest(req);
     let firewallId: number;
 
-    let firewall: Firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
+    let firewall: Firewall = await getRepository(Firewall).findOneOrFail({ where: { id: this._firewall.id }});
     if (firewall.clusterId) {
       firewallId = (await getRepository(Firewall).createQueryBuilder('firewall')
         .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })

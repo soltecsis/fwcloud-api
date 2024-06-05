@@ -45,7 +45,7 @@ export class SystemCtlController extends Controller {
     if (firewall.install_communication === FirewallInstallCommunication.SSH) {
       const pgp: PgpHelper = new PgpHelper(req.session.pgp);
       communication = new SSHCommunication({
-        host: (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
+        host: (await getRepository(IPObj).findOneOrFail({ where: { id: firewall.install_ipobj }})).address,
         port: firewall.install_port,
         username: Object.prototype.hasOwnProperty.call(req.body, "sshuser") ? await pgp.decrypt(req.body.sshuser) : await pgp.decrypt(firewall.install_user),
         password: Object.prototype.hasOwnProperty.call(req.body, "sshpass") ? await pgp.decrypt(req.body.sshpass) : await pgp.decrypt(firewall.install_pass),

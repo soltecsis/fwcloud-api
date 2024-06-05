@@ -275,9 +275,6 @@ export class DatabaseService extends Service {
             multipleStatements: true, // For optimization purposes. For example, in emptyDatabase() method.
             logger: new DatabaseLogger(loggerOptions),
             migrations: this._config.migrations,
-            cli: {
-                migrationsDir: this._config.migration_directory
-            },
             entities: [
                 Cluster,
                 Firewall,

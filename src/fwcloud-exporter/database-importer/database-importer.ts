@@ -101,7 +101,7 @@ export class DatabaseImporter {
             await queryRunner.release();
         }
 
-        const fwCloud: FwCloud = await FwCloud.findOne(fwCloudId);
+        const fwCloud: FwCloud = await FwCloud.findOne({ where: { id: fwCloudId }});
 
         if (!snapshot.isHashCompatible()) {
             await getRepository(Firewall).update({fwCloudId: fwCloud.id}, {

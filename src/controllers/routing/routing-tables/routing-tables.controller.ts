@@ -50,7 +50,7 @@ export class RoutingTableController extends Controller {
         
         //Get the routingTable
         if (request.params.routingTable) {
-            this._routingTable = await getRepository(RoutingTable).findOneOrFail(parseInt(request.params.routingTable));
+            this._routingTable = await getRepository(RoutingTable).findOneOrFail({ where: { id: parseInt(request.params.routingTable) }});
         }
 
         //Get the firewall from the URL which contains the routingTable 

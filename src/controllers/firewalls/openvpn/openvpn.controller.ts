@@ -47,7 +47,7 @@ export class OpenVPNController extends Controller {
 
     public async make(request: Request): Promise<void> {
         if (request.params.openvpn) {
-            this._openvpn = await getRepository(OpenVPN).findOneOrFail(parseInt(request.params.openvpn));
+            this._openvpn = await getRepository(OpenVPN).findOneOrFail({ where: { id: parseInt(request.params.openvpn) }});
         }
 
         const firewallQueryBuilder = getRepository(Firewall).createQueryBuilder('firewall')
