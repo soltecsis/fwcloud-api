@@ -144,7 +144,10 @@ export class RoutingRuleService extends Service {
     }
 
     async create(data: ICreateRoutingRule): Promise<RoutingRule> {
-        const routingTable: RoutingTable = await this._routingTableRepository.findOneOrFail(data.routingTableId, {
+        const routingTable: RoutingTable = await this._routingTableRepository.findOneOrFail({
+            where: {
+                id: data.routingTableId
+            },
             relations: ['firewall']
         });
         const firewall: Firewall = routingTable.firewall;
@@ -219,7 +222,10 @@ export class RoutingRuleService extends Service {
             comment: data.comment,
         }, {id}));
 
-        const firewall: Firewall = (await this._repository.findOne(rule.id, {relations: ['routingTable', 'routingTable.firewall']})).routingTable.firewall;
+        const firewall: Firewall = (await this._repository.findOne({
+            where: {id: rule.id },
+            relations: ['routingTable', 'routingTable.firewall']
+        })).routingTable.firewall;
 
         await this.validateFromRestriction(rule.id, data);
 
@@ -285,9 +291,12 @@ export class RoutingRuleService extends Service {
     }
 
     protected async reorderFrom(ruleId: number): Promise<void> {
-        const rule: RoutingRule = await this._repository.findOneOrFail(ruleId, {relations: [
-            'routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes'
-        ]})
+        const rule: RoutingRule = await this._repository.findOneOrFail({
+            where: {id: ruleId},
+            relations: [
+                'routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes'
+            ]
+        });
 
         const items: {order: number}[] = [].concat(
             rule.routingRuleToIPObjs,
@@ -311,7 +320,10 @@ export class RoutingRuleService extends Service {
                 id: In(ids)
             }, { ...data, routingGroupId: data.routingGroupId });
         } else {
-            const group: RoutingGroup = (await this._repository.findOneOrFail(ids[0], { relations: ['routingGroup'] })).routingGroup;
+            const group: RoutingGroup = (await this._repository.findOneOrFail({
+                where: { id: ids[0] },
+                relations: ['routingGroup']
+            })).routingGroup;
             if (data.routingGroupId !== undefined && group && (group.routingRules.length - ids.length) < 1) {
                 await this._groupService.remove({ id: group.id });
             }
@@ -343,13 +355,14 @@ export class RoutingRuleService extends Service {
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<RoutingRule[]> {
-        const destinationRule: RoutingRule = await this._repository.findOneOrFail(destRule, {
+        const destinationRule: RoutingRule = await this._repository.findOneOrFail({
+            where: {
+                id: destRule
+            },
             relations: ['routingGroup']
         });
 
-        const sourceRules: RoutingRule[] = await this._repository.findByIds(ids, {
-            relations: ['routingGroup']
-        });
+        const sourceRules: RoutingRule[] = await this._repository.findByIds(ids);
 
         const rules: RoutingRule[] = await this._repository.move(ids, destRule, offset);
 
@@ -375,10 +388,12 @@ export class RoutingRuleService extends Service {
     }
 
     async moveFrom(fromId: number, toId: number, data: IMoveFromRoutingRule): Promise<[RoutingRule, RoutingRule]> {
-        const fromRule: RoutingRule = await getRepository(RoutingRule).findOneOrFail(fromId, {
+        const fromRule: RoutingRule = await getRepository(RoutingRule).findOneOrFail({
+            where: { id: fromId },
             relations: ['routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
         });
-        const toRule: RoutingRule = await getRepository(RoutingRule).findOneOrFail(toId, {
+        const toRule: RoutingRule = await getRepository(RoutingRule).findOneOrFail({
+            where: { id: toId },
             relations: ['routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
         });
         
@@ -591,10 +606,11 @@ export class RoutingRuleService extends Service {
      * @returns 
      */
     protected async validateFromRestriction(ruleId: number, data: IUpdateRoutingRule): Promise<void> {
-        const rule = await this._repository.findOneOrFail(ruleId, {
+        const rule = await this._repository.findOneOrFail({
+            where: {id: ruleId},
             relations: ['routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
         });
-
+        
         const errors: ErrorBag = {};
         const marks: number = data.markIds ? data.markIds.length : rule.routingRuleToMarks.length;
         const ipObjs: number = data.ipObjIds ? data.ipObjIds.length: rule.routingRuleToIPObjs.length;

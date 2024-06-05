@@ -94,11 +94,15 @@ export class RoutePolicy extends Policy {
     }
 
     protected static getUser(userId: number): Promise<User> {
-        return getRepository(User).findOneOrFail(userId, {relations: ['fwClouds']});
+        return getRepository(User).findOneOrFail({
+            where: { id: userId },
+            relations: ['fwClouds']
+        });
     }
 
     protected static getRoutingTable(routingTableId: number): Promise<RoutingTable> {
-        return getRepository(RoutingTable).findOne(routingTableId, {
+        return getRepository(RoutingTable).findOne({
+            where: { id: routingTableId },
             relations: [
                 'firewall',
                 'firewall.fwCloud'
@@ -107,7 +111,8 @@ export class RoutePolicy extends Policy {
     }
 
     protected static getRoute(routeId: number): Promise<Route> {
-        return getRepository(Route).findOne(routeId, {
+        return getRepository(Route).findOne({
+            where: { id: routeId },
             relations: [
                 'routingTable',
                 'routingTable.firewall',

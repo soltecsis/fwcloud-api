@@ -240,7 +240,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
      * @returns A Promise that resolves when the orders are successfully refreshed.
      */
     protected async refreshOrders(firewallId: number): Promise<void> {
-        const firewall: Firewall = await getRepository(Firewall).findOneOrFail(firewallId);
+        const firewall: Firewall = await getRepository(Firewall).findOneOrFail({ where: { id: firewallId }});
         const rules: KeepalivedRule[] = await this.findManyInPath({
             fwcloudId: firewall.fwCloudId,
             firewallId: firewall.id,

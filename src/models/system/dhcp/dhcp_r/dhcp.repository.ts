@@ -235,7 +235,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
      * @param firewallId
      */
     protected async refreshOrders(firewallId: number): Promise<void> {
-        const firewall: Firewall = await getRepository(Firewall).findOneOrFail(firewallId);
+        const firewall: Firewall = await getRepository(Firewall).findOneOrFail({ where: { id: firewallId }});
         const rules: DHCPRule[] = await this.findManyInPath({
             fwcloudId: firewall.fwCloudId,
             firewallId: firewall.id,

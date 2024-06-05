@@ -109,19 +109,19 @@ export class HAProxyRuleService extends Service {
         };
 
         if (data.group) {
-            haProxyRule.group = await getRepository(HAProxyGroup).findOneOrFail(data.group);
+            haProxyRule.group = await getRepository(HAProxyGroup).findOneOrFail({ where: { id: data.group }});
         }
         if (data.frontendIpId) {
-            haProxyRule.frontendIp = await this._ipobjRepository.findOneOrFail({ id: data.frontendIpId });
+            haProxyRule.frontendIp = await this._ipobjRepository.findOneOrFail({ where: { id: data.frontendIpId }});
         }
         if (data.frontendPortId) {
-            haProxyRule.frontendPort = await this._ipobjRepository.findOneOrFail({ id: data.frontendPortId });
+            haProxyRule.frontendPort = await this._ipobjRepository.findOneOrFail({ where: { id: data.frontendPortId }});
         }
         if (data.backendPortId) {
-            haProxyRule.backendPort = await this._ipobjRepository.findOneOrFail({ id: data.backendPortId });
+            haProxyRule.backendPort = await this._ipobjRepository.findOneOrFail({ where: { id: data.backendPortId }});
         }
         if (data.firewallId) {
-            haProxyRule.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId);
+            haProxyRule.firewall = await getRepository(Firewall).findOneOrFail({ where: { id: data.firewallId }});
         }
         if (data.backendIpsIds) {
             await this.validateBackendIps(haProxyRule.firewall, data);
@@ -137,7 +137,7 @@ export class HAProxyRuleService extends Service {
             const frontendIpVersion = haProxyRule.frontendIp.ip_version;
             const backendIpVersions = await Promise.all(
                 haProxyRule.backendIps.map(async backendIp => {
-                    const ipObj = await getRepository(IPObj).findOneOrFail(backendIp.ipObjId);
+                    const ipObj = await getRepository(IPObj).findOneOrFail({ where: { id: backendIp.ipObjId }});
                     return ipObj.ip_version;
                 })
             );
@@ -193,13 +193,14 @@ export class HAProxyRuleService extends Service {
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<HAProxyRule[]> {
-        const destinatationRule: HAProxyRule = await this._repository.findOneOrFail(destRule, {
-            relations: ['group']
+        const destinatationRule: HAProxyRule = await this._repository.findOneOrFail({
+            where: {
+                id: destRule,
+            },
+            relations: ['group'],
         });
 
-        const sourceRules: HAProxyRule[] = await this._repository.findByIds(ids, {
-            relations: ['group']
-        });
+        const sourceRules: HAProxyRule[] = await this._repository.findByIds(ids);
 
         const movedRules = await this._repository.move(ids, destRule, offset);
 
@@ -211,12 +212,18 @@ export class HAProxyRuleService extends Service {
     }
 
     async moveFrom(fromId: number, toId: number, data: IMoveFromHaProxyRule): Promise<[HAProxyRule, HAProxyRule]> {
-        const fromRule: HAProxyRule = await this._repository.findOneOrFail(fromId, {
-            relations: ['firewall', 'firewall.fwCloud', 'backendIps']
+        const fromRule: HAProxyRule = await this._repository.findOneOrFail({
+            where: {
+                id: fromId,
+            },
+            relations: ['firewall', 'firewall.fwCloud', 'backendIps'],
         });
 
-        const toRule: HAProxyRule = await this._repository.findOneOrFail(toId, {
-            relations: ['firewall', 'firewall.fwCloud', 'backendIps']
+        const toRule: HAProxyRule = await this._repository.findOneOrFail({
+            where: {
+                id: toId,
+            },
+            relations: ['firewall', 'firewall.fwCloud', 'backendIps'],
         });
 
         let lastPosition = 0;
@@ -241,7 +248,10 @@ export class HAProxyRuleService extends Service {
     }
 
     async update(id: number, data: Partial<ICreateHAProxyRule>): Promise<HAProxyRule> {
-        let haProxyRule: HAProxyRule | undefined = await this._repository.findOneOrFail(id, {
+        let haProxyRule: HAProxyRule | undefined = await this._repository.findOneOrFail({
+            where: {
+                id,
+            },
             relations: ['group', 'frontendIp', 'frontendPort', 'backendIps', 'backendPort', 'firewall']
         });
         if (!haProxyRule) {
@@ -260,7 +270,7 @@ export class HAProxyRuleService extends Service {
             if (haProxyRule.group && !data.group && haProxyRule.group.rules.length === 1) {
                 await this._groupService.remove({ id: haProxyRule.group.id });
             }
-            haProxyRule.group = data.group ? await getRepository(HAProxyGroup).findOne(data.group) : null;
+            haProxyRule.group = data.group ? await getRepository(HAProxyGroup).findOne({ where: { id: data.group }}) : null;
         } else if (data.backendIpsIds) {
             await this.validateBackendIps(haProxyRule.firewall, data);
             haProxyRule.backendIps = data.backendIpsIds.map(item => ({
@@ -283,7 +293,7 @@ export class HAProxyRuleService extends Service {
 
             const backendIpVersions = await Promise.all(
                 haProxyRule.backendIps.map(async backEndIp => {
-                    const ipObj = await getRepository(IPObj).findOne(backEndIp.ipObjId);
+                    const ipObj = await getRepository(IPObj).findOne({ where: { id: backEndIp.ipObjId }});
                     return ipObj.ip_version;
                 })
             );
@@ -309,7 +319,12 @@ export class HAProxyRuleService extends Service {
     }
 
     async remove(path: IFindOneHAProxyRPath): Promise<HAProxyRule> {
-        const haProxyRule: HAProxyRule = await this._repository.findOne(path.id, { relations: ['group', 'firewall'] });
+        const haProxyRule: HAProxyRule = await this._repository.findOne({
+            where: {
+                id: path.id,
+            },
+            relations: ['group', 'firewall'],
+        });
 
         haProxyRule.backendIps = [];
 
@@ -389,7 +404,12 @@ export class HAProxyRuleService extends Service {
                 id: In(ids),
             }, { ...data, group: { id: data.group } })
         } else {
-            const group = (await this._repository.findOne(ids[0], { relations: ['group'] })).group;
+            const group = (await this._repository.findOne({
+                where: {
+                    id: ids[0],
+                },
+                relations: ['group'],
+            })).group;
             if (data.group !== undefined && group && (group.rules.length - ids.length) < 1) {
                 await this._groupService.remove({ id: group.id });
             }

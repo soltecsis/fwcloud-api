@@ -49,7 +49,7 @@ export class PolicyGroupRepository extends Repository<PolicyGroup> {
     public async deleteIfEmpty(policyGroup: PolicyGroup): Promise<PolicyGroup>
     {
         if((await this.createQueryBuilder().relation(PolicyGroup, "policyRules").of(policyGroup).loadMany()).length === 0) {
-            await this.delete(policyGroup);
+            await this.delete({ id: policyGroup.id }); // Modify the argument passed to the delete method
             return policyGroup;
         }
 
@@ -74,7 +74,11 @@ export class PolicyGroupRepository extends Repository<PolicyGroup> {
     }
 
     public async cloneFirewallPolicyGroups(firewallId: number): Promise<any> {
-        const policyGroups: Array<PolicyGroup> = await this.find({ firewall: { id: firewallId } });
+        const policyGroups: Array<PolicyGroup> = await this.find({
+            where: { 
+                firewall: { id: firewallId } 
+            }
+        });
 
         return await Promise.all(policyGroups.map((policyGroup: PolicyGroup) => {
             this.clone(policyGroup);
@@ -82,6 +86,6 @@ export class PolicyGroupRepository extends Repository<PolicyGroup> {
     }
 
     public async isEmpty(firewallId: number, groupId: number): Promise<boolean> {
-        return (await this.find({ firewallId: firewallId, parentId: groupId })).length > 0
+        return (await this.find({ where : { firewallId: firewallId, parentId: groupId }})).length > 0
     }
 }

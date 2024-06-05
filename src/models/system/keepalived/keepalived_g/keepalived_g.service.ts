@@ -88,16 +88,16 @@ export class KeepalivedGroupService extends Service {
     async create(data: ICreateKeepalivedGroup): Promise<KeepalivedGroup> {
         const groupData: Partial<KeepalivedGroup> = {
             name: data.name,
-            firewall: await getRepository(Firewall).findOne(data.firewallId) as unknown as Firewall,
+            firewall: await getRepository(Firewall).findOne({ where: { id: data.firewallId }}) as unknown as Firewall,
             style: data.style,
         };
 
         const group: KeepalivedGroup = await this._repository.save(groupData);
-        return this._repository.findOne(group.id);
+        return this._repository.findOne({ where: { id: group.id }});
     }
 
     async update(id: number, data: IUpdateKeepalivedGroup): Promise<KeepalivedGroup> {
-        let group: KeepalivedGroup | undefined = await this._repository.findOne(id);
+        let group: KeepalivedGroup | undefined = await this._repository.findOne({ where: { id: id }});
 
         if (!group) {
             throw new Error('KeepalivedGroup not found');

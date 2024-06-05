@@ -28,8 +28,14 @@ import {FwCloud} from "../models/fwcloud/FwCloud";
 
 export class DhcpPolicy extends Policy {
     static async index(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, { relations: ['fwClouds'] });
-        firewall = await getRepository(Firewall).findOneOrFail(firewall.id, { relations: ['fwCloud'] });
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        firewall = await getRepository(Firewall).findOneOrFail({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
@@ -52,8 +58,14 @@ export class DhcpPolicy extends Policy {
     }
 
     static async create(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, { relations: ['fwClouds'] });
-        firewall = await getRepository(Firewall).findOneOrFail(firewall.id, { relations: ['fwCloud'] });
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        firewall = await getRepository(Firewall).findOneOrFail({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
@@ -108,10 +120,16 @@ export class DhcpPolicy extends Policy {
     }
 
     private static getDhcpR(dhcpId: number): Promise<DHCPRule> {
-        return getRepository(DHCPRule).findOneOrFail(dhcpId, { relations: ['group', 'firewall', 'firewall.fwCloud'] });
+        return getRepository(DHCPRule).findOneOrFail({
+            where: { id: dhcpId },
+            relations: ['group', 'firewall', 'firewall.fwCloud']
+        });
     }
 
     private static getUser(userId: number): Promise<User> {
-        return getRepository(User).findOneOrFail(userId, { relations: ['fwClouds'] });
+        return getRepository(User).findOneOrFail({
+            where: { id: userId },
+            relations: ['fwClouds']
+        });
     }
 }

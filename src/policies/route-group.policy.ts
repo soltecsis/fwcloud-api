@@ -30,7 +30,10 @@ export class RouteGroupPolicy extends Policy {
 
     static async create(firewall: Firewall, user: User): Promise<Authorization> {
         user = await this.getUser(user.id);
-        firewall = await getRepository(Firewall).findOne(firewall.id, {relations: ['fwCloud']});
+        firewall = await getRepository(Firewall).findOne({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
         if (user.role === 1) {
             return Authorization.grant();
         }
@@ -42,7 +45,10 @@ export class RouteGroupPolicy extends Policy {
 
     static async index(firewall: Firewall, user: User): Promise<Authorization> {
         user = await this.getUser(user.id);
-        firewall = await getRepository(Firewall).findOne(firewall.id, {relations: ['fwCloud']});
+        firewall = await getRepository(Firewall).findOne({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
         if (user.role === 1) {
             return Authorization.grant();
         }
@@ -92,7 +98,8 @@ export class RouteGroupPolicy extends Policy {
     }
 
     protected static getGroup(groupId: number): Promise<RouteGroup> {
-        return getRepository(RouteGroup).findOne(groupId, {
+        return getRepository(RouteGroup).findOne({
+            where: { id: groupId },
             relations: [
                 'firewall',
                 'firewall.fwCloud'
@@ -101,6 +108,9 @@ export class RouteGroupPolicy extends Policy {
     }
 
     protected static getUser(userId: number): Promise<User> {
-        return getRepository(User).findOneOrFail(userId, {relations: ['fwClouds']});
+        return getRepository(User).findOneOrFail({
+            where: { id: userId },
+            relations: ['fwClouds']
+        });
     }
 }

@@ -108,7 +108,10 @@ export class OpenVPNService extends Service {
 
         try {
             const openVPNId: number = openVPN.id;
-            const firewall: Firewall = await getRepository(Firewall).findOne(openVPN.firewallId, { relations: ['fwCloud']});
+            const firewall: Firewall = await getRepository(Firewall).findOne({
+                where: {id: openVPN.firewallId},
+                relations: ['fwCloud']
+            });
             const fwCloudId: number = firewall.fwCloudId;
             
             configData = (await OpenVPN.dumpCfg(db.getQuery(), fwCloudId, openVPNId) as any).cfg;

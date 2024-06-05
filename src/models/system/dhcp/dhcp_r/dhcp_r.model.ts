@@ -107,12 +107,12 @@ export class DHCPRule extends Model {
     }
 
     public static async cloneDHCP(idfirewall: number, idNewFirewall: number) {
-        const originalFirewall = await Firewall.findOne(idfirewall);
-        const newFirewall = await Firewall.findOne(idNewFirewall);
+        const originalFirewall = await Firewall.findOne({ where: { id: idfirewall }});
+        const newFirewall = await Firewall.findOne({ where: { id: idNewFirewall }});
 
         if (originalFirewall && newFirewall) {
             const groupMapping = new Map<number, number>();
-            const originalDHCPGroups = await DHCPGroup.find({ firewall: originalFirewall });
+            const originalDHCPGroups = await DHCPGroup.find({ where: { firewall: originalFirewall }});
 
             for (const group of originalDHCPGroups) {
                 const newGroup = new DHCPGroup();

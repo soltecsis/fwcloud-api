@@ -29,7 +29,10 @@ import { FwCloud } from "../models/fwcloud/FwCloud";
 export class FirewallPolicy extends Policy {
 
     static async compile(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
         
         if (user.role === 1) {
             return Authorization.grant();
@@ -44,7 +47,10 @@ export class FirewallPolicy extends Policy {
     }
 
     static async ping(fwcloud: FwCloud, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
@@ -56,7 +62,10 @@ export class FirewallPolicy extends Policy {
     }
 
     static async info(fwcloud: FwCloud, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
@@ -69,7 +78,10 @@ export class FirewallPolicy extends Policy {
 
 
     static async install(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
         
         if (user.role === 1) {
             return Authorization.grant();

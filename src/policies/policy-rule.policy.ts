@@ -7,8 +7,14 @@ import { Policy, Authorization } from './../fonaments/authorization/policy';
 export class PolicyRulePolicy extends Policy {
 
     static async read(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
-        firewall = await getRepository(Firewall).findOneOrFail(firewall.id, {relations: ['fwCloud']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        firewall = await getRepository(Firewall).findOneOrFail({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
@@ -19,8 +25,14 @@ export class PolicyRulePolicy extends Policy {
         return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
     static async download(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
-        firewall = await getRepository(Firewall).findOneOrFail(firewall.id, {relations: ['fwCloud']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        firewall = await getRepository(Firewall).findOneOrFail({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();

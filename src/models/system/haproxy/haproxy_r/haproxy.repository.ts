@@ -184,7 +184,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
     }
 
     protected async refreshOrders(firewallId: number) {
-        const firewall: Firewall = await getRepository(Firewall).findOneOrFail(firewallId);
+        const firewall: Firewall = await getRepository(Firewall).findOneOrFail({ where: { id: firewallId }});
         const rules: HAProxyRule[] = await this.findManyInPath({
             fwcloudId: firewall.fwCloudId,
             firewallId: firewall.id,

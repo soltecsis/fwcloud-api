@@ -27,7 +27,10 @@ import { getRepository } from "typeorm";
 
 export class FwCloudExportPolicy extends Policy {
     static async store(fwCloud: FwCloud, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
         
         if (user.role === 1) {
             return Authorization.grant();

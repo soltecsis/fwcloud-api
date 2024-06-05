@@ -29,15 +29,24 @@ import { OpenVPN } from "../models/vpn/openvpn/OpenVPN";
 export class OpenVPNPolicy extends Policy {
 
     static async installer(openvpn: OpenVPN, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
-        openvpn = await getRepository(OpenVPN).findOneOrFail(openvpn.id, {relations: ['firewall']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        openvpn = await getRepository(OpenVPN).findOneOrFail({
+            where: { id: openvpn.id },
+            relations: ['firewall']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
         }
 
         if (openvpn.firewall) {
-            const firewall: Firewall = await getRepository(Firewall).findOneOrFail(openvpn.firewall, {relations: ['fwCloud']})
+            const firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+                where: { id: openvpn.firewall.id },
+                relations: ['fwCloud']
+            });
             
             const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === firewall.fwCloudId});
 
@@ -48,15 +57,24 @@ export class OpenVPNPolicy extends Policy {
     }
 
     static async history(openvpn: OpenVPN, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
-        openvpn = await getRepository(OpenVPN).findOneOrFail(openvpn.id, {relations: ['firewall']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        openvpn = await getRepository(OpenVPN).findOneOrFail({
+            where: { id: openvpn.id },
+            relations: ['firewall']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
         }
 
         if (openvpn.firewall) {
-            const firewall: Firewall = await getRepository(Firewall).findOneOrFail(openvpn.firewall, {relations: ['fwCloud']})
+            const firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+                where: { id: openvpn.firewall.id },
+                relations: ['fwCloud']
+            });
             
             const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === firewall.fwCloudId});
 

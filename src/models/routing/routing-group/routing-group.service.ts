@@ -72,12 +72,12 @@ export class RoutingGroupService extends Service {
 
     async create(data: ICreateRoutingGroup): Promise<RoutingGroup> {
         let group: RoutingGroup = await this._repository.save(data);
-        return this._repository.findOne(group.id);
+        return this._repository.findOne({ where: { id: group.id }});
     }
 
     async update(id: number, data: IUpdateRoutingGroup): Promise<RoutingGroup> {
         let group: RoutingGroup = await this._repository.preload(Object.assign(data, {id}));
-        let firewall: Firewall = await getRepository(Firewall).findOne(group.firewallId)
+        let firewall: Firewall = await getRepository(Firewall).findOne({ where: { id: group.firewallId }})
         
         if (data.routingRules) {
             if (data.routingRules.length === 0) {
@@ -93,7 +93,7 @@ export class RoutingGroupService extends Service {
         
         group = await this._repository.save(group);
 
-        return this._repository.findOneOrFail(group.id);
+        return this._repository.findOneOrFail({ where: { id: group.id }});
     }
 
     async remove(path: IFindOneRoutingGroupPath): Promise<RoutingGroup> {
@@ -106,7 +106,7 @@ export class RoutingGroupService extends Service {
     }
 
     protected getFindInPathOptions(path: Partial<IFindOneRoutingGroupPath>): FindOneOptions<RoutingGroup> {
-        return {
+        const options: FindOneOptions<RoutingGroup> = {
             join: {
                 alias: 'group',
                 innerJoin: {
@@ -114,19 +114,32 @@ export class RoutingGroupService extends Service {
                     fwcloud: 'firewall.fwCloud'
                 }
             },
-            where: (qb: SelectQueryBuilder<RoutingGroup>) => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewall', {firewall: path.firewallId})
-                }
+            where: {}
+        };
 
-                if (path.fwCloudId) {
-                    qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
-                }
+        if (path.firewallId) {
+            options.where = {
+                ...options.where,
+                firewallId: path.firewallId
+            }
+        }
 
-                if (path.id) {
-                    qb.andWhere('group.id = :id', {id: path.id})
+        if (path.fwCloudId) {
+            options.where = {
+                ...options.where,
+                firewall: {
+                    fwCloudId: path.fwCloudId
                 }
             }
         }
+
+        if (path.id) {
+            options.where = {
+                ...options.where,
+                id: path.id
+            }
+        }   
+
+        return options;
     }
 }

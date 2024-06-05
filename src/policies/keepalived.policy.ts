@@ -6,8 +6,14 @@ import { Firewall } from "../models/firewall/Firewall";
 
 export class KeepalivedPolicy extends Policy {
     static async index(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, { relations: ['fwClouds'] });
-        firewall = await getRepository(Firewall).findOneOrFail(firewall.id, { relations: ['fwCloud'] });
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        firewall = await getRepository(Firewall).findOneOrFail({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
@@ -30,8 +36,14 @@ export class KeepalivedPolicy extends Policy {
     }
 
     static async create(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, { relations: ['fwClouds'] });
-        firewall = await getRepository(Firewall).findOneOrFail(firewall.id, { relations: ['fwCloud'] });
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        firewall = await getRepository(Firewall).findOneOrFail({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
@@ -55,8 +67,14 @@ export class KeepalivedPolicy extends Policy {
     }
 
     static async move(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, { relations: ['fwClouds'] });
-        firewall = await getRepository(Firewall).findOneOrFail(firewall.id, { relations: ['fwCloud'] });
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        firewall = await getRepository(Firewall).findOneOrFail({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
@@ -96,10 +114,16 @@ export class KeepalivedPolicy extends Policy {
     }
 
     private static getKeepalivedR(keepalivedId: number): Promise<KeepalivedRule> {
-        return getRepository(KeepalivedRule).findOneOrFail(keepalivedId, { relations: ['group', 'firewall', 'firewall.fwCloud'] });
+        return getRepository(KeepalivedRule).findOneOrFail({
+            where: { id: keepalivedId },
+            relations: ['group', 'firewall', 'firewall.fwCloud']
+        });
     }
 
     private static getUser(userId: number): Promise<User> {
-        return getRepository(User).findOneOrFail(userId, { relations: ['fwClouds'] });
+        return getRepository(User).findOneOrFail({
+            where: { id: userId },
+            relations: ['fwClouds']
+        });
     }
 }

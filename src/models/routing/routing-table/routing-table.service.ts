@@ -111,9 +111,12 @@ export class RoutingTableService extends Service {
     async create(data: ICreateRoutingTable): Promise<RoutingTable> {
         await this.validateRoutingTableNumber(data);
         const result: {id: number} = await this._repository.save(data);
-        const routingTable: RoutingTable = await this._repository.findOne(result.id);
+        const routingTable: RoutingTable = await this._repository.findOne({ where: { id: result.id }});
 
-        const firewall: Firewall = await getRepository(Firewall).findOne(routingTable.firewallId, {relations: ['fwCloud']});
+        const firewall: Firewall = await getRepository(Firewall).findOne({
+            where: { id: routingTable.firewallId },
+            relations: ['fwCloud']
+        });
 
         const node: {id: number} = await Tree.getNodeUnderFirewall(db.getQuery(), firewall.fwCloud.id, firewall.id, 'RTS') as {id: number};
         if (node && Object.prototype.hasOwnProperty.call(node, 'id')) {
@@ -137,7 +140,10 @@ export class RoutingTableService extends Service {
 
     async remove(path: IFindOneRoutingTablePath): Promise<RoutingTable> {
         const table: RoutingTable =  await this.findOneInPath(path);
-        const tableWithRules: RoutingTable = await this._repository.findOne(table.id, { relations: ['routingRules', 'routes', 'firewall']});
+        const tableWithRules: RoutingTable = await this._repository.findOne({
+            where: { id: table.id },
+            relations: ['routingRules', 'routes', 'firewall']
+        });
 
         if (tableWithRules.routingRules.length > 0) {
             throw new ValidationException('Routing table cannot be removed', {
@@ -164,7 +170,7 @@ export class RoutingTableService extends Service {
     }
 
     protected getFindInPathOptions(path: Partial<IFindOneRoutingTablePath>): FindOneOptions<RoutingTable> | FindManyOptions<RoutingTable> {
-        return {
+        const result: FindOneOptions<RoutingTable> | FindManyOptions<RoutingTable> = {
             join: {
                 alias: 'table',
                 innerJoin: {
@@ -172,20 +178,33 @@ export class RoutingTableService extends Service {
                     fwcloud: 'firewall.fwCloud'
                 }
             },
-            where: (qb: SelectQueryBuilder<RoutingTable>) => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewall', {firewall: path.firewallId})
-                }
+            where: {}
+        }
 
-                if (path.fwCloudId) {
-                    qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
-                }
+        if (path.firewallId) {
+            result.where = {
+                ...result.where,
+                firewallId: path.firewallId
+            }
+        }
 
-                if(path.id) {
-                    qb.andWhere('table.id = :id', {id: path.id})
+        if (path.fwCloudId) {
+            result.where = {
+                ...result.where,
+                firewall: {
+                    fwCloudId: path.fwCloudId
                 }
             }
         }
+
+        if (path.id) {
+            result.where = {
+                ...result.where,
+                id: path.id
+            }
+        }
+
+        return result;
     }
     
 

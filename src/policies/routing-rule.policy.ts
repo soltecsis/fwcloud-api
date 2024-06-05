@@ -29,8 +29,14 @@ import { RoutingRule } from "../models/routing/routing-rule/routing-rule.model";
 export class RoutingRulePolicy extends Policy {
 
     static async create(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
-        firewall = await getRepository(Firewall).findOneOrFail(firewall.id, {relations: ['fwCloud']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        firewall = await getRepository(Firewall).findOneOrFail({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
@@ -42,8 +48,14 @@ export class RoutingRulePolicy extends Policy {
     }
 
     static async index(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
-        firewall = await getRepository(Firewall).findOneOrFail(firewall.id, {relations: ['fwCloud']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        firewall = await getRepository(Firewall).findOneOrFail({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
@@ -55,8 +67,14 @@ export class RoutingRulePolicy extends Policy {
     }
 
     static async show(rule: RoutingRule, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
-        rule = await getRepository(RoutingRule).findOneOrFail(rule.id, {relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        rule = await getRepository(RoutingRule).findOneOrFail({
+            where: { id: rule.id },
+            relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
@@ -68,8 +86,14 @@ export class RoutingRulePolicy extends Policy {
     }
 
     static async update(rule: RoutingRule, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
-        rule = await getRepository(RoutingRule).findOneOrFail(rule.id, {relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        rule = await getRepository(RoutingRule).findOneOrFail({
+            where: { id: rule.id },
+            relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();
@@ -81,8 +105,14 @@ export class RoutingRulePolicy extends Policy {
     }
 
     static async delete(rule: RoutingRule, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
-        rule = await getRepository(RoutingRule).findOneOrFail(rule.id, {relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
+        rule = await getRepository(RoutingRule).findOneOrFail({
+            where: { id: rule.id },
+            relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();

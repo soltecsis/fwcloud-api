@@ -7,7 +7,10 @@ import { Ca } from '../models/vpn/pki/Ca';
 export class CaPolicy extends Policy {
 
     static async update(ca: Ca, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+        user = await getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
+        });
 
         if (user.role === 1) {
             return Authorization.grant();

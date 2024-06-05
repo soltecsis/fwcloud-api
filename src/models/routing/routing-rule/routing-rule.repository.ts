@@ -224,7 +224,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
      * @param firewallId 
      */
     protected async refreshOrders(firewallId: number): Promise<void> {
-        const firewall: Firewall = await getRepository(Firewall).findOneOrFail(firewallId);
+        const firewall: Firewall = await getRepository(Firewall).findOneOrFail({ where: { id: firewallId }});
         const rules: RoutingRule[] = await this.findManyInPath({
             fwCloudId: firewall.fwCloudId,
             firewallId: firewall.id

@@ -93,16 +93,16 @@ export class DHCPGroupService extends Service {
     async create(data: ICreateDHCGroup): Promise<DHCPGroup> {
         const groupData: Partial<DHCPGroup> = {
             name: data.name,
-            firewall: await getRepository(Firewall).findOne(data.firewallId) as unknown as Firewall,
+            firewall: await getRepository(Firewall).findOne({ where: { id: data.firewallId }}) as unknown as Firewall,
             style: data.style,
         };
 
         const group: DHCPGroup = await this._repository.save(groupData);
-        return this._repository.findOne(group.id);
+        return this._repository.findOne({ where: { id: group.id }});
     }
 
     async update(id: number, data: IUpdateDHCPGroup): Promise<DHCPGroup> {
-        let group: DHCPGroup | undefined = await this._repository.findOne(id);
+        let group: DHCPGroup | undefined = await this._repository.findOne({ where: { id: id }});
 
         if (!group) {
             throw new Error('DHCPGroup not found');
