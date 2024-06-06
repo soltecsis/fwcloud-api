@@ -9,8 +9,6 @@
     "stop": "if [ -f \".pid\" ]; then PID=$(cat .pid); EXISTS=`ps axw | awk '{print $1}' | grep \"^${PID}$\"`; if [ \"$EXISTS\" ]; then kill $PID; fi; fi",
     "update": "npm run stop && git checkout -- package-lock.json && git pull && npm install && git checkout -- package-lock.json && npm run build && node fwcli migration:run && node fwcli standard:services:add",
     "update-cert": "bin/update-cert.sh api",
-    "generate-jsdoc": "node_modules/.bin/jsdoc -c jsdoc.json",
-    "generate-apidoc": "node_modules/.bin/apidoc -i routes -o apidoc/",
     "clean": "rm -fr dist/",
     "build": "npm run clean && mkdir -p dist/src && cp -r src/views dist/src/views && node_modules/.bin/tsc",
     "watch": "npm run build -- -w",
@@ -22,17 +20,7 @@
     "format:fix": "prettier --write \"{src,app,lib,tests}/**/*.ts\""
 
   },
-  "apidoc": {
-    "title": "FWCloud.net API",
-    "url": "https://api.fwcloud.net",
-    "template": {
-      "forceLanguage": "en",
-      "withCompare": false,
-      "withGenerator": false
-    }
-  },
   "dependencies": {
-    "apidoc": "^1.2.0",
     "archiver": "^7.0.1",
     "async": "^3.2.5",
     "async-mutex": "^0.5.0",
@@ -85,7 +73,7 @@
     "@types/express": "^4.17.21",
     "@types/express-session": "^1.18.0",
     "@types/mocha": "10.0.6",
-    "@types/node": "^20.14.1",
+    "@types/node": "^20.14.2",
     "@types/serve-static": "^1.15.7",
     "@types/session-file-store": "^1.2.5",
     "@types/sinon": "^17.0.3",
