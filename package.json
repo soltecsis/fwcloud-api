@@ -15,9 +15,11 @@
     "fwcloud": "node --no-warnings dist/src/cli/cli.js",
     "test": "npm run build && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --colors dist/tests/**/*spec.js",
     "lint": "eslint \"{src,app,lib,tests}/**/*.ts\"",
-    "lint:fix": "eslint \"{src,app,lib,tests}/**/*.ts\" --fix",
+    "lint:fix": "npm run lint -- --fix",
+    "lint:check": "npm run lint",
     "format": "prettier --check \"{src,app,lib,tests}/**/*.ts\"",
-    "format:fix": "prettier --write \"{src,app,lib,tests}/**/*.ts\""
+    "format:fix": "npm run format -- --write",
+    "format:check": "npm run format"
 
   },
   "dependencies": {
