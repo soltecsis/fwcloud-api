@@ -1,7 +1,8 @@
-import { getRepository, Repository, SelectQueryBuilder } from "typeorm";
+import { In, Repository, SelectQueryBuilder } from "typeorm";
 import { Service } from "../../../../fonaments/services/service";
 import { OpenVPN } from "../OpenVPN";
 import { OpenVPNStatusHistory } from "./openvpn-status-history";
+import db from "../../../../database/database-manager";
 
 export type CreateOpenVPNStatusHistoryData = {
     timestampInSeconds: number;
@@ -54,7 +55,7 @@ export class OpenVPNStatusHistoryService extends Service {
     protected _repository: Repository<OpenVPNStatusHistory>;
 
     public async build(): Promise<Service> {
-        this._repository = getRepository(OpenVPNStatusHistory);
+        this._repository = db.getSource().manager.getRepository(OpenVPNStatusHistory);
         return this;
     }
 
@@ -68,7 +69,7 @@ export class OpenVPNStatusHistoryService extends Service {
      */
     async create(serverOpenVPNId: number, data: CreateOpenVPNStatusHistoryData[]): Promise<OpenVPNStatusHistory[]> {
         // Makes sure openvpn is a server
-        const serverOpenVPN: OpenVPN = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+        const serverOpenVPN: OpenVPN = await db.getSource().manager.getRepository(OpenVPN).createQueryBuilder('openvpn')
             .innerJoin('openvpn.crt', 'crt')
             .innerJoinAndSelect('openvpn.firewall', 'firewall')
             .where('openvpn.parentId IS NULL')
@@ -79,7 +80,7 @@ export class OpenVPNStatusHistoryService extends Service {
         // Get the last entry already persisted from the openvpn server. This entry is used to get  its timestamp as it will be used to
         // retrieve the last batch. If there is not lastEntry means there is not lastBatch thus all disconnect detection logic
         // won't be applied.
-        const lastEntry: OpenVPNStatusHistory | undefined = await getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
+        const lastEntry: OpenVPNStatusHistory | undefined = await db.getSource().manager.getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
             .where('history.openVPNServerId = :openvpn', {openvpn: serverOpenVPN.id})
             .orderBy('history.timestampInSeconds', 'DESC')
             .limit(1)
@@ -87,7 +88,7 @@ export class OpenVPNStatusHistoryService extends Service {
         
         let lastTimestampedBatch: OpenVPNStatusHistory[] = [];
         if (lastEntry) {
-            lastTimestampedBatch = await getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
+            lastTimestampedBatch = await db.getSource().manager.getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
             .where('history.openVPNServerId = :openvpn', {openvpn: serverOpenVPN.id})
             .andWhere('history.timestampInSeconds = :timestamp', {timestamp: lastEntry.timestampInSeconds})
             .getMany();
@@ -110,7 +111,7 @@ export class OpenVPNStatusHistoryService extends Service {
             const timestampedBatch: CreateOpenVPNStatusHistoryData[] = data.filter(item => item.timestampInSeconds === timestamp);
             await this.detectDisconnections(timestampedBatch, lastTimestampedBatch);
 
-            const persistedBatch = await getRepository(OpenVPNStatusHistory).save(timestampedBatch.map<Partial<OpenVPNStatusHistory>>(item => ({
+            const persistedBatch = await db.getSource().manager.getRepository(OpenVPNStatusHistory).save(timestampedBatch.map<Partial<OpenVPNStatusHistory>>(item => ({
                 timestampInSeconds: item.timestampInSeconds,
                 name: item.name,
                 address: item.address,
@@ -122,7 +123,7 @@ export class OpenVPNStatusHistoryService extends Service {
 
 
             //Once this batch is persisted, they become lastTimestampedBatch for the next iteration
-            lastTimestampedBatch = await getRepository(OpenVPNStatusHistory).findByIds(persistedBatch.map(item => item.id));
+            lastTimestampedBatch = await db.getSource().manager.getRepository(OpenVPNStatusHistory).findBy( {id: In(persistedBatch.map(item => item.id))});
 
             entries = entries.concat(lastTimestampedBatch);
         }
@@ -314,14 +315,14 @@ export class OpenVPNStatusHistoryService extends Service {
             //If the persisted batch name is not present in the current batch, then we must set as disconnected
             if ( matchIndex < 0) {
                 previous.disconnectedAtTimestampInSeconds = previous.timestampInSeconds;
-                await getRepository(OpenVPNStatusHistory).save(previous);
+                await db.getSource().manager.getRepository(OpenVPNStatusHistory).save(previous);
 
             } else {
                 // If the persisted batch name is present in the current batch but its address is different,
                 // then is a new connection.
                 if (previous.address !== newTimestampedBatch[matchIndex].address) {
                     previous.disconnectedAtTimestampInSeconds = previous.timestampInSeconds;
-                    await getRepository(OpenVPNStatusHistory).save(previous);
+                    await db.getSource().manager.getRepository(OpenVPNStatusHistory).save(previous);
                 }
             }
         }

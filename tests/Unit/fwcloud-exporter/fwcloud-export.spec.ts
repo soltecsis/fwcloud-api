@@ -4,7 +4,6 @@ import * as path from "path";
 import * as fs from "fs";
 import { FwCloudExport } from "../../../src/fwcloud-exporter/fwcloud-export";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { getRepository } from "typeorm";
 import StringHelper from "../../../src/utils/string.helper";
 import { FSHelper } from "../../../src/utils/fs-helper";
 import { Snapshot, SnapshotMetadata } from "../../../src/snapshots/snapshot";
@@ -13,9 +12,9 @@ import { User } from "../../../src/models/user/User";
 import { createUser } from "../../utils/utils";
 import { SnapshotNotCompatibleException } from "../../../src/snapshots/exceptions/snapshot-not-compatible.exception";
 import Sinon from "sinon";
-import { DatabaseService } from "../../../src/database/database.service";
-import sinon from "sinon";
 import { Firewall } from "../../../src/models/firewall/Firewall";
+import { EntityManager } from "typeorm";
+import db from "../../../src/database/database-manager";
 
 describe(describeName('FwCloudExport Unit Tests'), () => {
     let app: Application;
@@ -23,12 +22,14 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
     let directory: string;
     let snapshotService: SnapshotService;
     let user: User;
+    let manager: EntityManager;
 
     before(async() => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         snapshotService = await app.getService<SnapshotService>(SnapshotService.name);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 

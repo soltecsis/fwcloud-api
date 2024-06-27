@@ -20,13 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, SelectQueryBuilder } from "typeorm";
-import { Repository } from "../../../database/repository";
+import { EntityManager, SelectQueryBuilder } from "typeorm";
 import { ValidEntities } from "../../ipobj/IPObj.repository";
 import { OpenVPNPrefix } from "./OpenVPNPrefix";
+import { Repository } from "../../../database/repository";
 
-@EntityRepository(OpenVPNPrefix)
+//@EntityRepository(OpenVPNPrefix)
 export class OpenVPNPrefixRepository extends Repository<OpenVPNPrefix> {
+
+  constructor(manager?: EntityManager) {
+    super(OpenVPNPrefix, manager);
+  }
 
   getOpenVPNPrefixInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<OpenVPNPrefix> {
     let query = this.createQueryBuilder("vpnPrefix")

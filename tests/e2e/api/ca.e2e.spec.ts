@@ -1,4 +1,3 @@
-import { getRepository } from "typeorm";
 import { Application } from "../../../src/Application";
 import { CaService } from "../../../src/ca/ca.service";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
@@ -9,6 +8,8 @@ import { describeName, expect, testSuite } from "../../mocha/global-setup";
 import { attachSession, createUser, generateSession } from "../../utils/utils";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { Ca } from "../../../src/models/vpn/pki/Ca";
+import db from "../../../src/database/database-manager"
+import { EntityManager } from "typeorm";
 
 
 describe(describeName('Ca E2E Test'), () => {
@@ -23,9 +24,11 @@ describe(describeName('Ca E2E Test'), () => {
     let fwCloud: FwCloud;
     let ca: Ca;
     let service : CaService;
+    let manager: EntityManager
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
 
         loggedUser = await createUser({ role: 0 });
         loggedUserSessionId = generateSession(loggedUser);
@@ -33,8 +36,8 @@ describe(describeName('Ca E2E Test'), () => {
         adminUser = await createUser({ role: 1 });
         adminUserSessionId = generateSession(adminUser);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({name: StringHelper.randomize(10)}));
-        ca = await getRepository(Ca).save(getRepository(Ca).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({name: StringHelper.randomize(10)}));
+        ca = await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
             fwCloudId: fwCloud.id,
             cn: StringHelper.randomize(10),
             days: 1000,
@@ -64,7 +67,7 @@ describe(describeName('Ca E2E Test'), () => {
         })
         it('regular user should update a comment of ca if it does belong to the fwcloud', async()=>{
             loggedUser.fwClouds = [fwCloud]
-            await getRepository(User).save(loggedUser)
+            await manager.getRepository(User).save(loggedUser)
 
             return await request(app.express)
             .put(_URL().getURL('fwclouds.cas.update', {

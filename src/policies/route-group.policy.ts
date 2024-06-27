@@ -22,15 +22,15 @@
 
 import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
 import { Firewall } from "../models/firewall/Firewall";
 import { RouteGroup } from "../models/routing/route-group/route-group.model";
+import db from "../database/database-manager";
 
 export class RouteGroupPolicy extends Policy {
 
     static async create(firewall: Firewall, user: User): Promise<Authorization> {
         user = await this.getUser(user.id);
-        firewall = await getRepository(Firewall).findOne({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOne({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });
@@ -45,7 +45,7 @@ export class RouteGroupPolicy extends Policy {
 
     static async index(firewall: Firewall, user: User): Promise<Authorization> {
         user = await this.getUser(user.id);
-        firewall = await getRepository(Firewall).findOne({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOne({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });
@@ -98,7 +98,7 @@ export class RouteGroupPolicy extends Policy {
     }
 
     protected static getGroup(groupId: number): Promise<RouteGroup> {
-        return getRepository(RouteGroup).findOne({
+        return db.getSource().manager.getRepository(RouteGroup).findOne({
             where: { id: groupId },
             relations: [
                 'firewall',
@@ -108,7 +108,7 @@ export class RouteGroupPolicy extends Policy {
     }
 
     protected static getUser(userId: number): Promise<User> {
-        return getRepository(User).findOneOrFail({
+        return db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: userId },
             relations: ['fwClouds']
         });

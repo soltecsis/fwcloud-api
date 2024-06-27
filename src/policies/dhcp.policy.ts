@@ -19,20 +19,20 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { getRepository } from "typeorm";
 import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { User } from "../models/user/User";
 import { DHCPRule } from "../models/system/dhcp/dhcp_r/dhcp_r.model";
 import { Firewall } from "../models/firewall/Firewall";
 import {FwCloud} from "../models/fwcloud/FwCloud";
+import db from "../database/database-manager";
 
 export class DhcpPolicy extends Policy {
     static async index(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        firewall = await getRepository(Firewall).findOneOrFail({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });
@@ -58,11 +58,11 @@ export class DhcpPolicy extends Policy {
     }
 
     static async create(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        firewall = await getRepository(Firewall).findOneOrFail({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });
@@ -115,19 +115,18 @@ export class DhcpPolicy extends Policy {
 
     private static async checkAuthorization(user: User, fwCloudId: number): Promise<Authorization> {
         const match: FwCloud[] = user.fwClouds.filter((fwcloud: FwCloud): boolean => fwcloud.id === fwCloudId);
-
         return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
 
     private static getDhcpR(dhcpId: number): Promise<DHCPRule> {
-        return getRepository(DHCPRule).findOneOrFail({
+        return db.getSource().manager.getRepository(DHCPRule).findOneOrFail({
             where: { id: dhcpId },
             relations: ['group', 'firewall', 'firewall.fwCloud']
         });
     }
 
     private static getUser(userId: number): Promise<User> {
-        return getRepository(User).findOneOrFail({
+        return db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: userId },
             relations: ['fwClouds']
         });

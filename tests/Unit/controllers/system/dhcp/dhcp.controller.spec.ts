@@ -21,7 +21,6 @@
 */
 import { expect } from "chai";
 import { Application } from "../../../../../src/Application";
-import { getRepository } from "typeorm";
 import { DhcpController } from "../../../../../src/controllers/system/dhcp/dhcp.controller";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
@@ -31,6 +30,8 @@ import { testSuite } from "../../../../mocha/global-setup";
 import { Request } from 'express';
 import StringHelper from "../../../../../src/utils/string.helper";
 import sinon from "sinon";
+import { EntityManager } from "typeorm";
+import db from "../../../../../src/database/database-manager";
 
 describe(DhcpController.name, () => {
     let firewall: Firewall;
@@ -40,30 +41,32 @@ describe(DhcpController.name, () => {
 
     let controller: DhcpController;
     let app: Application;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         controller = new DhcpController(app);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
 
-        dhcpgroup = await getRepository(DHCPGroup).save({
+        dhcpgroup = await manager.getRepository(DHCPGroup).save({
             name: StringHelper.randomize(10),
             firewall: firewall,
         });
 
-        dhcprule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+        dhcprule = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
             id: 1,
-            group: await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+            group: await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
                 name: 'group',
                 firewall: firewall,
             })),
@@ -87,9 +90,9 @@ describe(DhcpController.name, () => {
                 }
             } as unknown as Request;
 
-            const dhcpruleStub = sinon.stub(getRepository(DHCPRule), 'findOneOrFail').resolves(dhcprule);
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail').resolves(firewall);
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
+            const dhcpruleStub = sinon.stub(manager.getRepository(DHCPRule), 'findOneOrFail').resolves(dhcprule);
+            const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail').resolves(firewall);
+            const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
 
             await controller.make(requestMock);
 
@@ -110,10 +113,10 @@ describe(DhcpController.name, () => {
                 }
             } as unknown as Request;
 
-            const dhcpruleStub = sinon.stub(getRepository(DHCPRule), 'findOneOrFail');
-            const dhcpgroupStub = sinon.stub(getRepository(DHCPGroup), 'findOneOrFail');
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail');
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail');
+            const dhcpruleStub = sinon.stub(manager.getRepository(DHCPRule), 'findOneOrFail');
+            const dhcpgroupStub = sinon.stub(manager.getRepository(DHCPGroup), 'findOneOrFail');
+            const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail');
+            const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail');
 
             await controller.make(requestMock);
 
@@ -137,7 +140,7 @@ describe(DhcpController.name, () => {
                 }
             } as unknown as Request;
 
-            const dhcpruleStub = sinon.stub(getRepository(DHCPRule), 'findOneOrFail').throws(new Error('DHCPRule not found'));
+            const dhcpruleStub = sinon.stub(manager.getRepository(DHCPRule), 'findOneOrFail').throws(new Error('DHCPRule not found'));
 
             await expect(controller.make(requestMock)).to.be.rejectedWith('DHCPRule not found');
 
@@ -152,8 +155,8 @@ describe(DhcpController.name, () => {
                 }
             } as unknown as Request;
 
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail').resolves(firewall);
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
+            const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail').resolves(firewall);
+            const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
 
             await controller.make(requestMock);
 

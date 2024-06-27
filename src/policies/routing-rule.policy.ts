@@ -23,17 +23,17 @@
 import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { Firewall } from "../models/firewall/Firewall";
 import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
 import { RoutingRule } from "../models/routing/routing-rule/routing-rule.model";
+import db from "../database/database-manager";
 
 export class RoutingRulePolicy extends Policy {
 
     static async create(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        firewall = await getRepository(Firewall).findOneOrFail({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });
@@ -48,11 +48,11 @@ export class RoutingRulePolicy extends Policy {
     }
 
     static async index(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        firewall = await getRepository(Firewall).findOneOrFail({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });
@@ -67,11 +67,11 @@ export class RoutingRulePolicy extends Policy {
     }
 
     static async show(rule: RoutingRule, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        rule = await getRepository(RoutingRule).findOneOrFail({
+        rule = await db.getSource().manager.getRepository(RoutingRule).findOneOrFail({
             where: { id: rule.id },
             relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud']
         });
@@ -86,11 +86,11 @@ export class RoutingRulePolicy extends Policy {
     }
 
     static async update(rule: RoutingRule, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        rule = await getRepository(RoutingRule).findOneOrFail({
+        rule = await db.getSource().manager.getRepository(RoutingRule).findOneOrFail({
             where: { id: rule.id },
             relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud']
         });
@@ -105,11 +105,11 @@ export class RoutingRulePolicy extends Policy {
     }
 
     static async delete(rule: RoutingRule, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        rule = await getRepository(RoutingRule).findOneOrFail({
+        rule = await db.getSource().manager.getRepository(RoutingRule).findOneOrFail({
             where: { id: rule.id },
             relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud']
         });

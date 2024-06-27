@@ -21,7 +21,7 @@
 */
 
 import db from "./database-manager";
-import { QueryRunner, Connection } from "typeorm";
+import { QueryRunner } from "typeorm";
 import * as sqlstring from "sqlstring";
 
 export default class Query {

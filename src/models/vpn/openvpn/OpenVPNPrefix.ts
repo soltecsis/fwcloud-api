@@ -21,7 +21,7 @@
 */
 
 import Model from "../../Model";
-import { PrimaryGeneratedColumn, Column, Entity, JoinTable, JoinColumn, ManyToMany, OneToMany, ManyToOne, getRepository } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, JoinTable, JoinColumn, ManyToMany, OneToMany, ManyToOne } from "typeorm";
 import { OpenVPN } from '../../../models/vpn/openvpn/OpenVPN';
 import { Tree } from '../../../models/tree/Tree';
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
@@ -31,6 +31,7 @@ import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
 import { Route } from "../../routing/route/route.model";
 import { RouteToOpenVPNPrefix } from "../../routing/route/route-to-openvpn-prefix.model";
 import { RoutingRuleToOpenVPNPrefix } from "../../routing/routing-rule/routing-rule-to-openvpn-prefix.model";
+import db from "../../../database/database-manager";
 const fwcError = require('../../../utils/error_table');
 
 const tableName: string = 'openvpn_prefix';
@@ -389,7 +390,7 @@ export class OpenVPNPrefix extends Model {
     }
 
     public static async searchPrefixInRoute(fwcloud: number, prefix: number): Promise<any> {
-        return await getRepository(Route).createQueryBuilder('route')
+        return await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoin('route.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
@@ -402,7 +403,7 @@ export class OpenVPNPrefix extends Model {
     }
 
     public static async searchPrefixInRoutingRule(fwcloud: number, prefix: number): Promise<any> {
-        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+        return await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('routing_rule')
         .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
         .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
         .innerJoin('routing_rule.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefixes')
@@ -415,7 +416,7 @@ export class OpenVPNPrefix extends Model {
     }
 
     public static async searchPrefixInGroupInRoute(fwcloud: number, prefix: number): Promise<any> {
-        return await getRepository(Route).createQueryBuilder('route')
+        return await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoinAndSelect('route.routingTable', 'table')
@@ -429,7 +430,7 @@ export class OpenVPNPrefix extends Model {
     }
 
     public static async searchPrefixInGroupInRoutingRule(fwcloud: number, prefix: number): Promise<any> {
-        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+        return await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('routing_rule')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')

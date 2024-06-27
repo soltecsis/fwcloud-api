@@ -35,7 +35,6 @@ import { RouteControllerUpdateDto } from "./dtos/update.dto";
 import { RouteData, RoutingTableService } from "../../../models/routing/routing-table/routing-table.service";
 import { RouteItemForCompiler } from "../../../models/routing/shared";
 import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
-import { getRepository, SelectQueryBuilder } from "typeorm";
 import { RouteControllerMoveDto } from "./dtos/move.dto";
 import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
 import { RouteControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
@@ -45,6 +44,7 @@ import { Offset } from "../../../offset";
 import { RouteMoveToDto } from "./dtos/move-to.dto";
 import { RouteMoveInterfaceDto } from "./dtos/move-interface.dto";
 import { RouteMoveToGatewayDto } from "./dtos/move-to-gateway.dto";
+import db from "../../../database/database-manager";
 
 export class RouteController extends Controller {
     protected _routeService: RouteService;
@@ -59,22 +59,22 @@ export class RouteController extends Controller {
         this._routingTableService = await this._app.getService<RoutingTableService>(RoutingTableService.name);
 
         if (request.params.route) {
-            this._route = await getRepository(Route).findOneOrFail({ where: { id: parseInt(request.params.route) }});
+            this._route = await db.getSource().manager.getRepository(Route).findOneOrFail({ where: { id: parseInt(request.params.route) }});
         }
 
-        const routingTableQueryBuilder = getRepository(RoutingTable).createQueryBuilder('table')
+        const routingTableQueryBuilder = db.getSource().manager.getRepository(RoutingTable).createQueryBuilder('table')
             .where('table.id = :id', {id: parseInt(request.params.routingTable)});
         if (request.params.route) {
             routingTableQueryBuilder.innerJoin('table.routes', 'route', 'route.id = :routeId', {routeId: parseInt(request.params.route)})
         }
         this._routingTable = await routingTableQueryBuilder.getOneOrFail();
 
-        this._firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+        this._firewall = await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
             .innerJoin('firewall.routingTables', 'table', 'table.id = :tableId', {tableId: parseInt(request.params.routingTable)})
             .where('firewall.id = :id', {id: parseInt(request.params.firewall)})
             .getOneOrFail();
 
-        this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
+        this._fwCloud = await db.getSource().manager.getRepository(FwCloud).createQueryBuilder('fwcloud')
             .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {firewallId: parseInt(request.params.firewall)})
             .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)})
             .getOneOrFail()    
@@ -97,20 +97,17 @@ export class RouteController extends Controller {
     async move(request: Request): Promise<ResponseBuilder> {
         (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
         
-        const routes: Route[] = await getRepository(Route).find({
-            where: { 
-                routingTable: {
-                    id: this._routingTable.id,
-                    firewall: {
-                        id: this._firewall.id,
-                        fwCloudId: this._fwCloud.id
-                    }
-                }
-            }
-        });
+        const routes: Route[] = await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
+        .innerJoin('route.routingTable', 'table')
+        .innerJoin('table.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        .where('route.id IN (:...ids)', { ids: request.inputs.get('routes') })
+        .andWhere('table.id = :table', { table: this._routingTable.id })
+        .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+        .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
+        .getMany();
 
         const result: Route[] = await this._routeService.move(routes.map(item => item.id), request.inputs.get('to'), request.inputs.get<Offset>('offset'));
-
         return ResponseBuilder.buildResponse().status(200).body(result);
     }
 
@@ -216,29 +213,25 @@ export class RouteController extends Controller {
     async moveTo(request: Request): Promise<ResponseBuilder> {
         (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
 
-        const fromRule: Route = await getRepository(Route).findOneOrFail({
-            where: { 
-                routingTable: {
-                    id: this._routingTable.id,
-                    firewall: {
-                        id: this._firewall.id,
-                        fwCloudId: this._fwCloud.id
-                    }
-                }
-            }
-        });
+        const fromRule: Route = await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
+        .innerJoin('route.routingTable', 'table')
+        .innerJoin('table.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        .where('route.id = :id', { id: request.inputs.get('fromId') })
+        .andWhere('table.id = :table', { table: this._routingTable.id })
+        .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+        .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
+        .getOneOrFail();
 
-        const toRule: Route = await getRepository(Route).findOneOrFail({
-            where: { 
-                routingTable: {
-                    id: this._routingTable.id,
-                    firewall: {
-                        id: this._firewall.id,
-                        fwCloudId: this._fwCloud.id
-                    }
-                }
-            }
-        });
+        const toRule: Route = await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
+        .innerJoin('route.routingTable', 'table')
+        .innerJoin('table.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        .where('route.id = :id', { id: request.inputs.get('toId') })
+        .andWhere('table.id = :table', { table: this._routingTable.id })
+        .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+        .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
+        .getOneOrFail();
 
         const result: Route[] = await this._routeService.moveTo(fromRule.id, toRule.id, request.inputs.all());
 
@@ -248,29 +241,26 @@ export class RouteController extends Controller {
     @Validate(RouteMoveToGatewayDto)
     async moveToGateway(request: Request): Promise<ResponseBuilder> {
         (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
-        const fromRule: Route = await getRepository(Route).findOneOrFail({
-            where: { 
-                routingTable: {
-                    id: this._routingTable.id,
-                    firewall: {
-                        id: this._firewall.id,
-                        fwCloudId: this._fwCloud.id
-                    }
-                }
-            }
-        });
 
-        const toRule: Route = await getRepository(Route).findOneOrFail({
-            where: { 
-                routingTable: {
-                    id: this._routingTable.id,
-                    firewall: {
-                        id: this._firewall.id,
-                        fwCloudId: this._fwCloud.id
-                    }
-                }
-            }
-        });
+        const fromRule: Route = await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
+        .innerJoin('route.routingTable', 'table')
+        .innerJoin('table.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        .where('route.id = :id', { id: request.inputs.get('fromId') })
+        .andWhere('table.id = :table', { table: this._routingTable.id })
+        .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+        .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
+        .getOneOrFail();
+
+        const toRule: Route = await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
+        .innerJoin('route.routingTable', 'table')
+        .innerJoin('table.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        .where('route.id = :id', { id: request.inputs.get('toId') })
+        .andWhere('table.id = :table', { table: this._routingTable.id })
+        .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+        .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
+        .getOneOrFail();
         
         const result: Route[] = await this._routeService.moveToGateway(fromRule.id, toRule.id, request.inputs.all());
 
@@ -281,29 +271,25 @@ export class RouteController extends Controller {
     async moveInterface(request: Request): Promise<ResponseBuilder> {
         (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
 
-        const fromRule: Route = await getRepository(Route).findOneOrFail({
-            where: { 
-                routingTable: {
-                    id: this._routingTable.id,
-                    firewall: {
-                        id: this._firewall.id,
-                        fwCloudId: this._fwCloud.id
-                    }
-                }
-            }
-        });
+        const fromRule: Route = await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
+        .innerJoin('route.routingTable', 'table')
+        .innerJoin('table.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        .where('route.id = :id', { id: request.inputs.get('fromId') })
+        .andWhere('table.id = :table', { table: this._routingTable.id })
+        .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+        .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
+        .getOneOrFail();
 
-        const toRule: Route = await getRepository(Route).findOneOrFail({
-            where: { 
-                routingTable: {
-                    id: this._routingTable.id,
-                    firewall: {
-                        id: this._firewall.id,
-                        fwCloudId: this._fwCloud.id
-                    }
-                }
-            }
-        });
+        const toRule: Route = await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
+        .innerJoin('route.routingTable', 'table')
+        .innerJoin('table.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        .where('route.id = :id', { id: request.inputs.get('toId') })
+        .andWhere('table.id = :table', { table: this._routingTable.id })
+        .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
+        .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
+        .getOneOrFail();
 
         const result: Route[] = await this._routeService.moveInterface(fromRule.id, toRule.id, request.inputs.all());
 

@@ -1,4 +1,4 @@
-import { getRepository, SimpleConsoleLogger } from "typeorm";
+import { EntityManager } from "typeorm";
 import db from "../../../../src/database/database-manager";
 import { ValidationException } from "../../../../src/fonaments/exceptions/validation-exception";
 import { Cluster } from "../../../../src/models/firewall/Cluster";
@@ -31,8 +31,10 @@ describe(RoutingRuleService.name, () => {
     let rule: RoutingRule;
     let mark: Mark;
     let ctr: Cluster
+    let manager: EntityManager
 
     beforeEach(async () => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
         fwcProduct = await new FwCloudFactory().make();
 
@@ -40,7 +42,7 @@ describe(RoutingRuleService.name, () => {
 
         fwCloud = fwcProduct.fwcloud;
 
-        ctr = await getRepository(Cluster).save(getRepository(Cluster).create({
+        ctr = await manager.getRepository(Cluster).save(manager.getRepository(Cluster).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }))
@@ -49,7 +51,7 @@ describe(RoutingRuleService.name, () => {
         firewall.clusterId = ctr.id;
         firewall.fwmaster = 1;
 
-        await getRepository(Firewall).save(firewall)
+        await manager.getRepository(Firewall).save(firewall)
 
         table = fwcProduct.routingTable;
         
@@ -73,7 +75,7 @@ describe(RoutingRuleService.name, () => {
 
         it('should reset firewall compiled flag', async () => {
             
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             
@@ -129,7 +131,7 @@ describe(RoutingRuleService.name, () => {
                     }]
                 });
 
-                table2 = await getRepository(RoutingTable).save({
+                table2 = await manager.getRepository(RoutingTable).save({
                     firewallId: firewall.id,
                     number: 2,
                     name: '2',
@@ -162,7 +164,7 @@ describe(RoutingRuleService.name, () => {
                     }]
                 });
 
-                rule = await getRepository(RoutingRule).findOne({
+                rule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule.id
                     },
@@ -181,7 +183,7 @@ describe(RoutingRuleService.name, () => {
                     }]
                 });
 
-                rule = await getRepository(RoutingRule).findOne({
+                rule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule.id
                     },
@@ -192,7 +194,7 @@ describe(RoutingRuleService.name, () => {
             })
             it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
                 
-                let fw1: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+                let fw1: Firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
                     name: StringHelper.randomize(10),
                     fwCloudId: fwCloud.id,   
                 }));
@@ -222,7 +224,7 @@ describe(RoutingRuleService.name, () => {
             let ipobj2: IPObj;
             
             beforeEach(async () => {
-                ipobj1 = await getRepository(IPObj).save(getRepository(IPObj).create({
+                ipobj1 = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
@@ -230,7 +232,7 @@ describe(RoutingRuleService.name, () => {
                     fwCloudId: fwCloud.id
                 }));
 
-                ipobj2 = await getRepository(IPObj).save(getRepository(IPObj).create({
+                ipobj2 = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
@@ -250,7 +252,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -260,7 +262,7 @@ describe(RoutingRuleService.name, () => {
             });
 
             it('should attach standard ipobj', async () => {
-                let standards: IPObj[] = await getRepository(IPObj).find({
+                let standards: IPObj[] = await manager.getRepository(IPObj).find({
                     where: {
                         fwCloudId: null
                     }
@@ -274,7 +276,7 @@ describe(RoutingRuleService.name, () => {
                     }))
                 });
                 
-                rule = await getRepository(RoutingRule).findOne({
+                rule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule.id
                     },
@@ -290,26 +292,26 @@ describe(RoutingRuleService.name, () => {
             let group2: IPObjGroup;
             
             beforeEach(async () => {
-                group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                group1 = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 20,
                     fwCloudId: fwCloud.id
                 }));
 
-                const _interface: Interface = await getRepository(Interface).save(getRepository(Interface).create({
+                const _interface: Interface = await manager.getRepository(Interface).save(manager.getRepository(Interface).create({
                     name: 'eth1',
                     type: '11',
                     interface_type: '11'
                 }));
 
-                const host = await getRepository(IPObj).save(getRepository(IPObj).create({
+                const host = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 8,
                     interfaceId: _interface.id
                 }));
 
-                await getRepository(InterfaceIPObj).save(getRepository(InterfaceIPObj).create({
+                await manager.getRepository(InterfaceIPObj).save(manager.getRepository(InterfaceIPObj).create({
                     interfaceId: _interface.id,
                     ipObjId: host.id,
                     interface_order: '1'
@@ -323,7 +325,7 @@ describe(RoutingRuleService.name, () => {
                     }
                 });
 
-                group2 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                group2 = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 20,
                     fwCloudId: fwCloud.id
@@ -347,7 +349,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -362,14 +364,14 @@ describe(RoutingRuleService.name, () => {
             let openVPN2: OpenVPN;
             
             beforeEach(async () => {
-                openVPN1 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                openVPN1 = await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                     firewallId: firewall.id,
                     parentId: fwcProduct.openvpnServer.id,
-                    crt: await getRepository(Crt).save(getRepository(Crt).create({
+                    crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
                         type: 1,
-                        ca: await getRepository(Ca).save(getRepository(Ca).create({
+                        ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
                             days: 100,
@@ -377,14 +379,14 @@ describe(RoutingRuleService.name, () => {
                     }))
                 }));
 
-                openVPN2 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                openVPN2 = await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                     firewallId: firewall.id,
                     parentId: fwcProduct.openvpnServer.id,
-                    crt: await getRepository(Crt).save(getRepository(Crt).create({
+                    crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
                         type: 1,
-                        ca: await getRepository(Ca).save(getRepository(Ca).create({
+                        ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
                             days: 100,
@@ -402,7 +404,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -417,15 +419,15 @@ describe(RoutingRuleService.name, () => {
             let openVPNPrefix2: OpenVPNPrefix;
             
             beforeEach(async () => {
-                openVPNPrefix = await getRepository(OpenVPNPrefix).save(getRepository(OpenVPNPrefix).create({
+                openVPNPrefix = await manager.getRepository(OpenVPNPrefix).save(manager.getRepository(OpenVPNPrefix).create({
                     name: StringHelper.randomize(10),
-                    openVPN: await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                    openVPN: await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                         firewallId: firewall.id,
-                        crt: await getRepository(Crt).save(getRepository(Crt).create({
+                        crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                             cn: StringHelper.randomize(10),
                             days: 100,
                             type: 0,
-                            ca: await getRepository(Ca).save(getRepository(Ca).create({
+                            ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                                 fwCloud: fwCloud,
                                 cn: StringHelper.randomize(10),
                                 days: 100,
@@ -434,15 +436,15 @@ describe(RoutingRuleService.name, () => {
                     }))
                 }));
 
-                openVPNPrefix2 = await getRepository(OpenVPNPrefix).save(getRepository(OpenVPNPrefix).create({
+                openVPNPrefix2 = await manager.getRepository(OpenVPNPrefix).save(manager.getRepository(OpenVPNPrefix).create({
                     name: StringHelper.randomize(10),
-                    openVPN: await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                    openVPN: await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                         firewallId: firewall.id,
-                        crt: await getRepository(Crt).save(getRepository(Crt).create({
+                        crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                             cn: StringHelper.randomize(10),
                             days: 100,
                             type: 0,
-                            ca: await getRepository(Ca).save(getRepository(Ca).create({
+                            ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                                 fwCloud: fwCloud,
                                 cn: StringHelper.randomize(10),
                                 days: 100,
@@ -461,7 +463,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -476,13 +478,13 @@ describe(RoutingRuleService.name, () => {
             let mark2: Mark;
             
             beforeEach(async () => {
-                mark1 = await getRepository(Mark).save(getRepository(Mark).create({
+                mark1 = await manager.getRepository(Mark).save(manager.getRepository(Mark).create({
                     fwCloudId: fwCloud.id,
                     code: 1,
                     name: '1',
                 }));
 
-                mark2 = await getRepository(Mark).save(getRepository(Mark).create({
+                mark2 = await manager.getRepository(Mark).save(manager.getRepository(Mark).create({
                     fwCloudId: fwCloud.id,
                     code: 2,
                     name: '2',
@@ -499,7 +501,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -546,7 +548,7 @@ describe(RoutingRuleService.name, () => {
         });
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -562,7 +564,7 @@ describe(RoutingRuleService.name, () => {
     describe('update', () => {
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -597,7 +599,7 @@ describe(RoutingRuleService.name, () => {
                     }]
                 });
 
-                expect((await getRepository(RoutingRule).findOne({
+                expect((await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule.id
                     },
@@ -623,7 +625,7 @@ describe(RoutingRuleService.name, () => {
                     }]
                 });
 
-                expect((await getRepository(RoutingRule).findOne({
+                expect((await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule.id
                     },
@@ -640,7 +642,7 @@ describe(RoutingRuleService.name, () => {
                     }]
                 });
 
-                expect((await getRepository(RoutingRule).findOne({
+                expect((await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule.id
                     },
@@ -650,7 +652,7 @@ describe(RoutingRuleService.name, () => {
 
             it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
 
-                let fw1: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+                let fw1: Firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
                     name: StringHelper.randomize(10),
                     fwCloudId: fwCloud.id,
                     
@@ -671,7 +673,7 @@ describe(RoutingRuleService.name, () => {
             let ipobj2: IPObj;
             
             beforeEach(async () => {
-                ipobj1 = await getRepository(IPObj).save(getRepository(IPObj).create({
+                ipobj1 = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
@@ -679,7 +681,7 @@ describe(RoutingRuleService.name, () => {
                     fwCloudId: fwCloud.id
                 }));
 
-                ipobj2 = await getRepository(IPObj).save(getRepository(IPObj).create({
+                ipobj2 = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
@@ -698,7 +700,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -722,7 +724,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -744,7 +746,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -754,7 +756,7 @@ describe(RoutingRuleService.name, () => {
             });
 
             it('should throw exception if the attachment is a host and is empty', async () => {
-                const host = await getRepository(IPObj).save({
+                const host = await manager.getRepository(IPObj).save({
                     name: 'host',
                     ipObjTypeId: 8,
                 });
@@ -772,26 +774,26 @@ describe(RoutingRuleService.name, () => {
             let group2: IPObjGroup;
             
             beforeEach(async () => {
-                group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                group1 = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 20,
                     fwCloudId: fwCloud.id
                 }));
 
-                const _interface: Interface = await getRepository(Interface).save(getRepository(Interface).create({
+                const _interface: Interface = await manager.getRepository(Interface).save(manager.getRepository(Interface).create({
                     name: 'eth1',
                     type: '11',
                     interface_type: '11'
                 }));
 
-                const host = await getRepository(IPObj).save(getRepository(IPObj).create({
+                const host = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 8,
                     interfaceId: _interface.id
                 }));
 
-                await getRepository(InterfaceIPObj).save(getRepository(InterfaceIPObj).create({
+                await manager.getRepository(InterfaceIPObj).save(manager.getRepository(InterfaceIPObj).create({
                     interfaceId: _interface.id,
                     ipObjId: host.id,
                     interface_order: '1'
@@ -805,7 +807,7 @@ describe(RoutingRuleService.name, () => {
                     }
                 });
 
-                group2 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                group2 = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 20,
                     fwCloudId: fwCloud.id
@@ -829,7 +831,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -853,7 +855,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -875,7 +877,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -885,7 +887,7 @@ describe(RoutingRuleService.name, () => {
             });
 
             it('should throw an exception if the group is empty', async () => {
-                group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                group1 = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 20,
                     fwCloudId: fwCloud.id
@@ -900,15 +902,15 @@ describe(RoutingRuleService.name, () => {
             });
 
             it('should not allow attach a service group', async () => {
-                let _service = await getRepository(IPObj).findOneOrFail({ where: { id: 10040 }});
+                let _service = await manager.getRepository(IPObj).findOneOrFail({ where: { id: 10040 }});
                 
-                let group = await getRepository(IPObjGroup).save({
+                let group = await manager.getRepository(IPObjGroup).save({
                     name: 'group',
                     type: 21,
                     fwCloudId: fwcProduct.fwcloud.id
                 });
 
-                await getRepository(IPObjToIPObjGroup).save({
+                await manager.getRepository(IPObjToIPObjGroup).save({
                     ipObjGroupId: group.id,
                     ipObjId: _service.id
                 });
@@ -926,14 +928,14 @@ describe(RoutingRuleService.name, () => {
             let openVPN2: OpenVPN;
             
             beforeEach(async () => {
-                openVPN1 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                openVPN1 = await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                     firewallId: firewall.id,
                     parentId: fwcProduct.openvpnServer.id,
-                    crt: await getRepository(Crt).save(getRepository(Crt).create({
+                    crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
                         type: 1,
-                        ca: await getRepository(Ca).save(getRepository(Ca).create({
+                        ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
                             days: 100,
@@ -941,14 +943,14 @@ describe(RoutingRuleService.name, () => {
                     }))
                 }));
 
-                openVPN2 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                openVPN2 = await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                     firewallId: firewall.id,
                     parentId: fwcProduct.openvpnServer.id,
-                    crt: await getRepository(Crt).save(getRepository(Crt).create({
+                    crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
                         type: 1,
-                        ca: await getRepository(Ca).save(getRepository(Ca).create({
+                        ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
                             days: 100,
@@ -965,7 +967,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -989,7 +991,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -1011,7 +1013,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -1026,15 +1028,15 @@ describe(RoutingRuleService.name, () => {
             let openVPNPrefix2: OpenVPNPrefix;
             
             beforeEach(async () => {
-                openVPNPrefix = await getRepository(OpenVPNPrefix).save(getRepository(OpenVPNPrefix).create({
+                openVPNPrefix = await manager.getRepository(OpenVPNPrefix).save(manager.getRepository(OpenVPNPrefix).create({
                     name: StringHelper.randomize(10),
-                    openVPN: await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                    openVPN: await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                         firewallId: firewall.id,
-                        crt: await getRepository(Crt).save(getRepository(Crt).create({
+                        crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                             cn: StringHelper.randomize(10),
                             days: 100,
                             type: 0,
-                            ca: await getRepository(Ca).save(getRepository(Ca).create({
+                            ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                                 fwCloud: fwCloud,
                                 cn: StringHelper.randomize(10),
                                 days: 100,
@@ -1043,15 +1045,15 @@ describe(RoutingRuleService.name, () => {
                     }))
                 }));
 
-                openVPNPrefix2 = await getRepository(OpenVPNPrefix).save(getRepository(OpenVPNPrefix).create({
+                openVPNPrefix2 = await manager.getRepository(OpenVPNPrefix).save(manager.getRepository(OpenVPNPrefix).create({
                     name: StringHelper.randomize(10),
-                    openVPN: await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                    openVPN: await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                         firewallId: firewall.id,
-                        crt: await getRepository(Crt).save(getRepository(Crt).create({
+                        crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                             cn: StringHelper.randomize(10),
                             days: 100,
                             type: 0,
-                            ca: await getRepository(Ca).save(getRepository(Ca).create({
+                            ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                                 fwCloud: fwCloud,
                                 cn: StringHelper.randomize(10),
                                 days: 100,
@@ -1069,7 +1071,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -1093,7 +1095,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -1115,7 +1117,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -1130,13 +1132,13 @@ describe(RoutingRuleService.name, () => {
             let mark2: Mark;
             
             beforeEach(async () => {
-                mark1 = await getRepository(Mark).save(getRepository(Mark).create({
+                mark1 = await manager.getRepository(Mark).save(manager.getRepository(Mark).create({
                     fwCloudId: fwCloud.id,
                     code: 1,
                     name: '1',
                 }));
 
-                mark2 = await getRepository(Mark).save(getRepository(Mark).create({
+                mark2 = await manager.getRepository(Mark).save(manager.getRepository(Mark).create({
                     fwCloudId: fwCloud.id,
                     code: 2,
                     name: '2',
@@ -1152,7 +1154,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -1176,7 +1178,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -1198,7 +1200,7 @@ describe(RoutingRuleService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(RoutingRule).findOne({
+                    (await manager.getRepository(RoutingRule).findOne({
                         where: {
                             id: rule.id
                         },
@@ -1216,7 +1218,7 @@ describe(RoutingRuleService.name, () => {
         let openVPNPrefix2: OpenVPNPrefix;
 
         beforeEach(async () => {
-            ipobj1 = await getRepository(IPObj).save(getRepository(IPObj).create({
+            ipobj1 = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 name: 'test',
                 address: '0.0.0.0',
                 ipObjTypeId: 0,
@@ -1224,18 +1226,18 @@ describe(RoutingRuleService.name, () => {
                 fwCloudId: fwCloud.id
             }));
 
-            group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+            group1 = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
                 name: StringHelper.randomize(10),
                 type: 1,
             }));
 
-            openVPN1 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+            openVPN1 = await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                 firewallId: firewall.id,
-                crt: await getRepository(Crt).save(getRepository(Crt).create({
+                crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                     cn: StringHelper.randomize(10),
                     days: 100,
                     type: 1,
-                    ca: await getRepository(Ca).save(getRepository(Ca).create({
+                    ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                         fwCloud: fwCloud,
                         cn: StringHelper.randomize(10),
                         days: 100,
@@ -1243,15 +1245,15 @@ describe(RoutingRuleService.name, () => {
                 }))
             }));
 
-            openVPNPrefix2 = await getRepository(OpenVPNPrefix).save(getRepository(OpenVPNPrefix).create({
+            openVPNPrefix2 = await manager.getRepository(OpenVPNPrefix).save(manager.getRepository(OpenVPNPrefix).create({
                 name: StringHelper.randomize(10),
-                openVPN: await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                openVPN: await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                     firewallId: firewall.id,
-                    crt: await getRepository(Crt).save(getRepository(Crt).create({
+                    crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
                         type: 1,
-                        ca: await getRepository(Ca).save(getRepository(Ca).create({
+                        ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
                             days: 100,
@@ -1260,7 +1262,7 @@ describe(RoutingRuleService.name, () => {
                 }))
             }));
 
-            rule = await getRepository(RoutingRule).save({
+            rule = await manager.getRepository(RoutingRule).save({
                 routingTableId: table.id,
                 openVPNPrefixes: [{id: openVPNPrefix2.id}],
                 openVPNs: [{id: openVPN1.id}],
@@ -1277,11 +1279,11 @@ describe(RoutingRuleService.name, () => {
                 id: rule.id
             });
 
-            expect(await getRepository(RoutingRule).findOne({ where: { id: rule.id }})).to.be.undefined;
+            expect(await manager.getRepository(RoutingRule).findOne({ where: { id: rule.id }})).to.be.null;
         });
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -1296,7 +1298,7 @@ describe(RoutingRuleService.name, () => {
 
     describe('bulkUpdate', () => {
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -1313,7 +1315,7 @@ describe(RoutingRuleService.name, () => {
 
     describe('move', () => {
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -1332,7 +1334,7 @@ describe(RoutingRuleService.name, () => {
         let mark2: Mark;
 
         beforeEach(async () => {
-            mark2 = await getRepository(Mark).save({
+            mark2 = await manager.getRepository(Mark).save({
                 code: 2,
                 name: 'test',
                 fwCloudId: fwcProduct.fwcloud.id
@@ -1373,13 +1375,13 @@ describe(RoutingRuleService.name, () => {
                     ipObjId: fwcProduct.ipobjs.get('address').id
                 });
 
-                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne({
+                const refreshedRule1: RoutingRule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule1.id
                     },
                     relations: ['routingRuleToIPObjs']
                 });
-                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne({
+                const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule2.id
                     },
@@ -1406,13 +1408,13 @@ describe(RoutingRuleService.name, () => {
                     ipObjGroupId: fwcProduct.ipobjGroup.id,
                 });
 
-                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne({
+                const refreshedRule1: RoutingRule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule1.id
                     },
                     relations: ['routingRuleToIPObjGroups']
                 });
-                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne({
+                const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule2.id
                     },
@@ -1439,13 +1441,13 @@ describe(RoutingRuleService.name, () => {
                     openVPNId: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
                 });
 
-                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne({
+                const refreshedRule1: RoutingRule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule1.id
                     },
                     relations: ['routingRuleToOpenVPNs']
                 });
-                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne({
+                const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule2.id
                     },
@@ -1472,13 +1474,13 @@ describe(RoutingRuleService.name, () => {
                     openVPNPrefixId: fwcProduct.openvpnPrefix.id,
                 });
 
-                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne({
+                const refreshedRule1: RoutingRule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule1.id
                     },
                     relations: ['routingRuleToOpenVPNPrefixes']
                 });
-                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne({
+                const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule2.id
                     },
@@ -1498,13 +1500,13 @@ describe(RoutingRuleService.name, () => {
                     markId: mark2.id
                 });
 
-                const refreshedRule1: RoutingRule = await getRepository(RoutingRule).findOne({
+                const refreshedRule1: RoutingRule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule1.id
                     },
                     relations: ['routingRuleToMarks']
                 });
-                const refreshedRule2: RoutingRule = await getRepository(RoutingRule).findOne({
+                const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
                     where: {
                         id: rule2.id
                     },
@@ -1525,11 +1527,11 @@ describe(RoutingRuleService.name, () => {
                 firewallId: firewall.id,
                 fwCloudId: fwCloud.id,
                 id: rule.id
-            })).to.be.undefined;
+            })).to.be.null;
         });
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();

@@ -22,7 +22,6 @@
 
 import { describeName, expect } from "../../../mocha/global-setup";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
@@ -31,6 +30,7 @@ import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
 import { populateRule } from "./utils";
 import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/policy/PolicyCompiler";
+import { EntityManager } from "typeorm";
 
 describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
   let fwcloud: number;
@@ -52,6 +52,7 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
       special: 0,
       options: 1    
   }
+  let manager: EntityManager;
 
   async function runTest(posData: [number, number][], cs: string): Promise<void> {
     for (let i=0; i<posData.length; i++)
@@ -71,9 +72,9 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
 
   before(async () => {
     dbCon = db.getQuery();
-
-    fwcloud = (await getRepository(FwCloud).save(getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id;
-    ruleData.firewall = (await getRepository(Firewall).save(getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
+    manager = db.getSource().manager;
+    fwcloud = (await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id;
+    ruleData.firewall = (await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
   });
   
   describe('Not allowed combinations (IPTables)', () => {

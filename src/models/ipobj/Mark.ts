@@ -21,11 +21,12 @@
 */
 
 import Model from "../Model";
-import { PrimaryGeneratedColumn, Column, Entity, getRepository, ManyToOne, JoinColumn, OneToMany, ManyToMany } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { FwCloud } from "../fwcloud/FwCloud";
 import { PolicyRule } from "../policy/PolicyRule";
 import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
 import { RoutingRuleToMark } from "../routing/routing-rule/routing-rule-to-mark.model";
+import db from "../../database/database-manager";
 
 const fwcError = require('../../utils/error_table');
 
@@ -165,7 +166,7 @@ export class Mark extends Model {
 
                 search.restrictions.MarkInRule = await this.searchMarkInRule(dbCon, fwcloud, mark);
 
-                search.restrictions.MarkInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+                search.restrictions.MarkInRoutingRule = await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('routing_rule')
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
                     .innerJoin('routing_rule.routingRuleToMarks', 'routingRuleToMarks')

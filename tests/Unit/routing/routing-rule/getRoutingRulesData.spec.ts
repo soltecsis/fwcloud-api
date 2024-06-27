@@ -21,7 +21,6 @@
 */
 
 import { before } from "mocha";
-import { getRepository } from "typeorm";
 import { RoutingRuleToIPObjGroup } from "../../../../src/models/routing/routing-rule/routing-rule-to-ipobj-group.model";
 import { RoutingRuleToIPObj } from "../../../../src/models/routing/routing-rule/routing-rule-to-ipobj.model";
 import { RoutingRuleToMark } from "../../../../src/models/routing/routing-rule/routing-rule-to-mark.model";
@@ -31,6 +30,8 @@ import { RoutingRulesData, RoutingRuleService } from "../../../../src/models/rou
 import { ItemForGrid, RoutingRuleItemForCompiler } from "../../../../src/models/routing/shared";
 import { expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 
 describe('Routing rules data fetch for compiler or grid', () => {
     let routingRuleService: RoutingRuleService;
@@ -38,8 +39,10 @@ describe('Routing rules data fetch for compiler or grid', () => {
 
     let routingRules: RoutingRulesData<RoutingRuleItemForCompiler>[] | RoutingRulesData<ItemForGrid>[];
     let items: RoutingRuleItemForCompiler[] | ItemForGrid[];
+    let manager: EntityManager;
 
     before(async () => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
         fwc = await (new FwCloudFactory()).make();
         routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
@@ -186,7 +189,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
                 item.id = fwc.ipobjs.get('address').id; item.type = 5; item.name = fwc.ipobjs.get('address').name;
                 item.host_id = null;
                 item.host_name = null;
-                item._order = (await getRepository(RoutingRuleToIPObj).findOneOrFail({
+                item._order = (await manager.getRepository(RoutingRuleToIPObj).findOneOrFail({
                     where: {
                         routingRuleId: fwc.routingRules.get('routing-rule-1').id,
                         ipObjId: item.id
@@ -199,7 +202,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
                 item.id = fwc.ipobjs.get('addressRange').id; item.type = 6; item.name = fwc.ipobjs.get('addressRange').name;
                 item.host_id = null;
                 item.host_name = null;
-                item._order = (await getRepository(RoutingRuleToIPObj).findOneOrFail({
+                item._order = (await manager.getRepository(RoutingRuleToIPObj).findOneOrFail({
                     where: {
                         routingRuleId: fwc.routingRules.get('routing-rule-1').id,
                         ipObjId: item.id
@@ -212,7 +215,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
                 item.id = fwc.ipobjs.get('network').id; item.type = 7; item.name = fwc.ipobjs.get('network').name;
                 item.host_id = null;
                 item.host_name = null;
-                item._order = (await getRepository(RoutingRuleToIPObj).findOneOrFail({
+                item._order = (await manager.getRepository(RoutingRuleToIPObj).findOneOrFail({
                     where: {
                         routingRuleId: fwc.routingRules.get('routing-rule-1').id,
                         ipObjId: item.id
@@ -225,7 +228,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
                 item.id = fwc.ipobjs.get('host').id; item.type = 8; item.name = fwc.ipobjs.get('host').name;
                 item.host_id = null;
                 item.host_name = null;
-                item._order = (await getRepository(RoutingRuleToIPObj).findOneOrFail({
+                item._order = (await manager.getRepository(RoutingRuleToIPObj).findOneOrFail({
                     where: {
                         routingRuleId: fwc.routingRules.get('routing-rule-1').id,
                         ipObjId: item.id
@@ -238,7 +241,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
                 item.id = fwc.openvpnClients.get('OpenVPN-Cli-3').id; item.type = 311; item.name = fwc.crts.get('OpenVPN-Cli-3').cn;
                 item.firewall_id = fwc.firewall.id;
                 item.firewall_name = fwc.firewall.name;
-                item._order = (await getRepository(RoutingRuleToOpenVPN).findOneOrFail({
+                item._order = (await manager.getRepository(RoutingRuleToOpenVPN).findOneOrFail({
                     where: {
                         routingRuleId: fwc.routingRules.get('routing-rule-1').id,
                         openVPNId: item.id
@@ -251,7 +254,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
                 item.id = fwc.openvpnPrefix.id; item.type = 401; item.name = fwc.openvpnPrefix.name;
                 item.firewall_id = fwc.firewall.id;
                 item.firewall_name = fwc.firewall.name;
-                item._order = (await getRepository(RoutingRuleToOpenVPNPrefix).findOneOrFail({
+                item._order = (await manager.getRepository(RoutingRuleToOpenVPNPrefix).findOneOrFail({
                     where: {
                         routingRuleId: fwc.routingRules.get('routing-rule-1').id,
                         openVPNPrefixId: item.id
@@ -264,7 +267,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
                 item.id = fwc.mark.id; item.type = 30; item.name = fwc.mark.name;
                 item.firewall_id = fwc.firewall.id;
                 item.firewall_name = fwc.firewall.name;
-                item._order = (await getRepository(RoutingRuleToMark).findOneOrFail({
+                item._order = (await manager.getRepository(RoutingRuleToMark).findOneOrFail({
                     where: {
                         routingRuleId: fwc.routingRules.get('routing-rule-1').id,
                         markId: item.id
@@ -291,7 +294,7 @@ describe('Routing rules data fetch for compiler or grid', () => {
 
             it('should include group', async () => {
                 item.id = fwc.ipobjGroup.id; item.type = 20; item.name = fwc.ipobjGroup.name;
-                item._order = (await getRepository(RoutingRuleToIPObjGroup).findOneOrFail({
+                item._order = (await manager.getRepository(RoutingRuleToIPObjGroup).findOneOrFail({
                     where: {
                         routingRuleId: fwc.routingRules.get('routing-rule-2').id,
                         ipObjGroupId: item.id

@@ -42,7 +42,7 @@ describe(describeName('MigrationRollbackCommand tests'), () => {
         await databaseService.emptyDatabase();
         await databaseService.runMigrations();
 
-        let queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
+        let queryRunner: QueryRunner = databaseService.dataSource.createQueryRunner();
         const migration = await queryRunner.query('SELECT count(*) FROM migrations');
         await queryRunner.release();
         
@@ -56,7 +56,7 @@ describe(describeName('MigrationRollbackCommand tests'), () => {
         });
 
         
-        queryRunner  = databaseService.connection.createQueryRunner();
+        queryRunner  = databaseService.dataSource.createQueryRunner();
         const afterMigration = await queryRunner.query('SELECT count(*) FROM migrations');
         await queryRunner.release();
         

@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getCustomRepository, getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { Application } from "../../../../../src/Application";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
@@ -46,6 +46,7 @@ import { RoutingRuleRepository } from "../../../../../src/models/routing/routing
 import { Offset } from "../../../../../src/offset";
 import { Mark } from "../../../../../src/models/ipobj/Mark";
 import { RoutingRuleMoveFromDto } from "../../../../../src/controllers/routing/routing-rule/dtos/move-from.dto";
+import db from "../../../../../src/database/database-manager";
 
 describe(describeName('Routing Rule E2E Tests'), () => {
     let app: Application;
@@ -59,9 +60,11 @@ describe(describeName('Routing Rule E2E Tests'), () => {
     let firewall: Firewall;
     let table: RoutingTable;
     let routingRuleService: RoutingRuleService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         loggedUser = await createUser({role: 0});
@@ -72,16 +75,16 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
         routingRuleService = await app.getService(RoutingRuleService.name);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
 
-        table = await getRepository(RoutingTable).save({
+        table = await manager.getRepository(RoutingTable).save({
             firewallId: firewall.id,
             number: 1,
             name: 'name',
@@ -96,7 +99,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
                     markIds: [{
-                        id: (await getRepository(Mark).save({
+                        id: (await manager.getRepository(Mark).save({
                             code: 1,
                             name: 'test',
                             fwCloudId: fwCloud.id
@@ -127,8 +130,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should see rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
-
+                await manager.getRepository(User).save(loggedUser);
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.index', {
                         fwcloud: fwCloud.id,
@@ -164,7 +166,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
                     markIds: [{
-                        id: (await getRepository(Mark).save({
+                        id: (await manager.getRepository(Mark).save({
                             code: 1,
                             name: 'test',
                             fwCloudId: fwCloud.id
@@ -195,7 +197,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should see a rules grid', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.grid', {
@@ -233,7 +235,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             let data: RoutingRuleControllerMoveDto;
 
             beforeEach(async () => {
-                const mark: Mark = await getRepository(Mark).save({
+                const mark: Mark = await manager.getRepository(Mark).save({
                     code: 1,
                     name: 'test',
                     fwCloudId: fwCloud.id
@@ -300,7 +302,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should move rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.move', {
@@ -336,13 +338,13 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             let data: RoutingRuleMoveFromDto;
 
             beforeEach(async () => {
-                const mark: Mark = await getRepository(Mark).save({
+                const mark: Mark = await manager.getRepository(Mark).save({
                     code: 1,
                     name: 'test',
                     fwCloudId: fwCloud.id
                 });
 
-                const mark2: Mark = await getRepository(Mark).save({
+                const mark2: Mark = await manager.getRepository(Mark).save({
                     code: 2,
                     name: 'test',
                     fwCloudId: fwCloud.id
@@ -393,7 +395,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should move from items between rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.moveFrom', {
@@ -432,7 +434,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
                     markIds: [{
-                        id: (await getRepository(Mark).save({
+                        id: (await manager.getRepository(Mark).save({
                             code: 1,
                             name: 'test',
                             fwCloudId: fwCloud.id
@@ -465,7 +467,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should see a rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.show', {
@@ -504,7 +506,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
                     markIds: [{
-                        id: (await getRepository(Mark).save({
+                        id: (await manager.getRepository(Mark).save({
                             code: 1,
                             name: 'test',
                             fwCloudId: fwCloud.id
@@ -537,7 +539,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should compile a rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.rules.compile', {
@@ -577,7 +579,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 					.send({
                         routingTableId: table.id,
                         markIds: [{
-                            id: (await getRepository(Mark).save({
+                            id: (await manager.getRepository(Mark).save({
                                 code: 1,
                                 name: 'test',
                                 fwCloudId: fwCloud.id
@@ -597,7 +599,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .send({
                         routingTableId: table.id,
                         markIds: [{
-                            id: (await getRepository(Mark).save({
+                            id: (await manager.getRepository(Mark).save({
                                 code: 1,
                                 name: 'test',
                                 fwCloudId: fwCloud.id
@@ -611,7 +613,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should create a rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.routing.rules.store', {
@@ -621,7 +623,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .send({
                         routingTableId: table.id,
                         markIds: [{
-                            id: (await getRepository(Mark).save({
+                            id: (await manager.getRepository(Mark).save({
                                 code: 1,
                                 name: 'test',
                                 fwCloudId: fwCloud.id
@@ -645,7 +647,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     .send({
                         routingTableId: table.id,
                         markIds: [{
-                            id: (await getRepository(Mark).save({
+                            id: (await manager.getRepository(Mark).save({
                                 code: 1,
                                 name: 'test',
                                 fwCloudId: fwCloud.id
@@ -669,7 +671,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             let data: RoutingRuleControllerCopyDto;
 
             beforeEach(async () => {
-                const mark: Mark = await getRepository(Mark).save({
+                const mark: Mark = await manager.getRepository(Mark).save({
                     code: 1,
                     name: 'test',
                     fwCloudId: fwCloud.id
@@ -695,7 +697,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
                 data = {
                     rules: [ruleOrder1.id, ruleOrder2.id],
-                    to: (await getCustomRepository(RoutingRuleRepository).getLastRoutingRuleInFirewall(table.firewallId)).id,
+                    to: (await new RoutingRuleRepository(manager).getLastRoutingRuleInFirewall(table.firewallId)).id,
                     offset: Offset.Below
                 }
             });
@@ -723,7 +725,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should copy rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.routing.rules.copy', {
@@ -737,8 +739,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(RoutingRule).count({where: {comment: 'comment1'}}))).to.eq(2);
-                expect((await getRepository(RoutingRule).count({where: {comment: 'comment2'}}))).to.eq(2);
+                expect((await manager.getRepository(RoutingRule).count({where: {comment: 'comment1'}}))).to.eq(2);
+                expect((await manager.getRepository(RoutingRule).count({where: {comment: 'comment2'}}))).to.eq(2);
             });
 
             it('admin user should copy rules', async () => {
@@ -754,8 +756,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(RoutingRule).count({where: {comment: 'comment1'}}))).to.eq(2);
-                expect((await getRepository(RoutingRule).count({where: {comment: 'comment2'}}))).to.eq(2);
+                expect((await manager.getRepository(RoutingRule).count({where: {comment: 'comment1'}}))).to.eq(2);
+                expect((await manager.getRepository(RoutingRule).count({where: {comment: 'comment2'}}))).to.eq(2);
             });
         });
 
@@ -767,7 +769,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
                     markIds: [{
-                        id: (await getRepository(Mark).save({
+                        id: (await manager.getRepository(Mark).save({
                             code: 1,
                             name: 'test',
                             fwCloudId: fwCloud.id
@@ -807,7 +809,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should update a rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.update', {
@@ -845,7 +847,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             });
 
             it('should thrown a validation exception if ipobj type is not valid', async () => {
-                const ipobj = await getRepository(IPObj).save(getRepository(IPObj).create({
+                const ipobj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
@@ -868,7 +870,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             });
 
             it('should thrown a validation exception if ipobj group type is not valid', async () => {
-                const group = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                const group = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
                     name: 'test',
                     type: 0
                 }));
@@ -889,25 +891,25 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             });
 
             it('should thrown a validation exception if openvpn certificate type is not valid', async () => {
-                const openvpn = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                const openvpn = await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                     firewallId: firewall.id,
-                    crt: await getRepository(Crt).save(getRepository(Crt).create({
+                    crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
                         type: 0,
-                        ca: await getRepository(Ca).save(getRepository(Ca).create({
+                        ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
                             days: 100,
                         }))
                     })),
-                    parent: await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                    parent: await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                         firewallId: firewall.id,
-                        crt: await getRepository(Crt).save(getRepository(Crt).create({
+                        crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                             cn: StringHelper.randomize(10),
                             days: 100,
                             type: 0,
-                            ca: await getRepository(Ca).save(getRepository(Ca).create({
+                            ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                                 fwCloud: fwCloud,
                                 cn: StringHelper.randomize(10),
                                 days: 100,
@@ -942,7 +944,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             }
             
             beforeEach(async () => {
-                const mark: Mark = await getRepository(Mark).save({
+                const mark: Mark = await manager.getRepository(Mark).save({
                     code: 1,
                     name: 'test',
                     fwCloudId: fwCloud.id
@@ -994,7 +996,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should bulk update rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.rules.bulkUpdate', {
@@ -1011,8 +1013,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id }})).style).to.eq('style!');
-                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id }})).style).to.eq('style!');
+                expect((await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id }})).style).to.eq('style!');
+                expect((await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id }})).style).to.eq('style!');
             });
 
             it('admin user should bulk update rules', async () => {
@@ -1031,8 +1033,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id }})).style).to.eq('style!');
-                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id }})).style).to.eq('style!');
+                expect((await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id }})).style).to.eq('style!');
+                expect((await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id }})).style).to.eq('style!');
             });
 
 
@@ -1045,7 +1047,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                 rule = await routingRuleService.create({
                     routingTableId: table.id,
                     markIds: [{
-                        id: (await getRepository(Mark).save({
+                        id: (await manager.getRepository(Mark).save({
                             code: 1,
                             name: 'test',
                             fwCloudId: fwCloud.id
@@ -1078,7 +1080,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should remove a rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.delete', {
@@ -1093,7 +1095,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     fwCloudId: fwCloud.id,
                     firewallId: firewall.id,
                     id: rule.id
-                })).to.be.undefined
+                })).to.be.null
             });
 
             it('admin user should remove a rule', async () => {
@@ -1110,7 +1112,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                     fwCloudId: fwCloud.id,
                     firewallId: firewall.id,
                     id: rule.id
-                })).to.be.undefined
+                })).to.be.null
             });
 
 
@@ -1121,7 +1123,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             let ruleOrder2: RoutingRule;
             
             beforeEach(async () => {
-                const mark: Mark = await getRepository(Mark).save({
+                const mark: Mark = await manager.getRepository(Mark).save({
                     code: 1,
                     name: 'test',
                     fwCloudId: fwCloud.id
@@ -1171,7 +1173,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should bulk remove rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.rules.bulkRemove', {
@@ -1187,8 +1189,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id }}))).to.be.undefined;
-                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id }}))).to.be.undefined;
+                expect((await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id }}))).to.be.null;
+                expect((await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id }}))).to.be.null;
             });
 
             it('admin user should bulk remove rules', async () => {
@@ -1206,8 +1208,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id }}))).to.be.undefined;
-                expect((await getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id }}))).to.be.undefined;
+                expect((await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id }}))).to.be.null;
+                expect((await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id }}))).to.be.null;
             });
 
             it('should throw validation error if query rules is not provided', async () => {

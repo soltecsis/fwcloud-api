@@ -1,4 +1,3 @@
-import { getRepository, QueryFailedError } from "typeorm";
 import { Application } from "../../../../src/Application";
 import { RoutingRuleController } from "../../../../src/controllers/routing/routing-rule/routing-rule.controller";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
@@ -17,6 +16,8 @@ import { Tree } from "../../../../src/models/tree/Tree";
 import { Authorization } from "../../../../src/fonaments/authorization/policy";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { Mark } from "../../../../src/models/ipobj/Mark";
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 
 describe(RoutingRuleController.name, () => {
     let controller: RoutingRuleController;
@@ -27,22 +28,24 @@ describe(RoutingRuleController.name, () => {
     let firewall: Firewall;
     let mark: Mark;
     let mark2: Mark;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         tableService = await app.getService<RoutingTableService>(RoutingTableService.name);
         ruleService = await app.getService<RoutingRuleService>(RoutingRuleService.name);
         fwcProduct = await (new FwCloudFactory()).make();
         
         firewall = fwcProduct.firewall;
 
-        mark = await getRepository(Mark).save({
+        mark = await manager.getRepository(Mark).save({
             code: 1,
             name: 'test',
             fwCloudId: fwcProduct.fwcloud.id
         });
 
-        mark2 = await getRepository(Mark).save({
+        mark2 = await manager.getRepository(Mark).save({
             code: 2,
             name: 'test',
             fwCloudId: fwcProduct.fwcloud.id
@@ -65,18 +68,18 @@ describe(RoutingRuleController.name, () => {
         let rule: RoutingRule;
 
         beforeEach(async () => {
-            rule = await getRepository(RoutingRule).save({
+            rule = await manager.getRepository(RoutingRule).save({
                 routingTableId: fwcProduct.routingTable.id,
                 rule_order: 1
             });
         });
 
         it('should throw an error if the firewall does not belongs to the fwcloud', async () => {
-            const newFwcloud: FwCloud = await getRepository(FwCloud).save({
+            const newFwcloud: FwCloud = await manager.getRepository(FwCloud).save({
                 name: StringHelper.randomize(10)
             });
 
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 fwCloudId: newFwcloud.id
             });
 
@@ -89,18 +92,18 @@ describe(RoutingRuleController.name, () => {
         });
 
         it('should throw an error if the rule does not belongs to a table which belongs to the firewall', async () => {
-            const newFirewall: Firewall = await getRepository(Firewall).save({
+            const newFirewall: Firewall = await manager.getRepository(Firewall).save({
                 name: 'firewall',
                 fwCloudId: fwcProduct.fwcloud.id
             });
 
-            const newTable: RoutingTable = await getRepository(RoutingTable).save({
+            const newTable: RoutingTable = await manager.getRepository(RoutingTable).save({
                 name: 'table',
                 number: 1,
                 firewallId: newFirewall.id
             });
 
-            const rule: RoutingRule = await getRepository(RoutingRule).save({
+            const rule: RoutingRule = await manager.getRepository(RoutingRule).save({
                 routingTableId: newTable.id,
                 rule_order: 1
             });
@@ -115,7 +118,7 @@ describe(RoutingRuleController.name, () => {
         });
 
         it('should not throw an error if the params are valid', async () => {
-            const rule: RoutingRule = await getRepository(RoutingRule).save({
+            const rule: RoutingRule = await manager.getRepository(RoutingRule).save({
                 routingTableId: fwcProduct.routingTable.id,
                 rule_order: 1
             });
@@ -185,11 +188,11 @@ describe(RoutingRuleController.name, () => {
 
             expect(await ruleService.findOneInPath({
                 id: rule1.id,
-            })).to.be.undefined;
+            })).to.be.null;
 
             expect(await ruleService.findOneInPath({
                 id: rule2.id,
-            })).to.be.undefined;
+            })).to.be.null;
         });
     })
 })

@@ -1,14 +1,17 @@
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { OpenVPNStatusHistory } from "../../../../../src/models/vpn/openvpn/status/openvpn-status-history";
 import { CreateOpenVPNStatusHistoryData, FindResponse, GraphDataResponse, OpenVPNStatusHistoryService } from "../../../../../src/models/vpn/openvpn/status/openvpn-status-history.service";
 import { describeName, expect, testSuite } from "../../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
+import db from "../../../../../src/database/database-manager";
 
 describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
     let fwcProduct: FwCloudProduct;
     let service: OpenVPNStatusHistoryService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
         fwcProduct = await new FwCloudFactory().make();
         service = await testSuite.app.getService<OpenVPNStatusHistoryService>(OpenVPNStatusHistoryService.name);
@@ -31,7 +34,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
         it('should save a record', async () => {
             await service.create(fwcProduct.openvpnServer.id, data);
 
-            const persisted: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).createQueryBuilder('history').getOneOrFail();
+            const persisted: OpenVPNStatusHistory = await manager.getRepository(OpenVPNStatusHistory).createQueryBuilder('history').getOneOrFail();
             expect(persisted.name).to.eq(data[0].name);
             expect(persisted.timestampInSeconds).to.eq(data[0].timestampInSeconds);
             expect(persisted.address).to.eq(data[0].address);
@@ -64,7 +67,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
             }]);
 
-            const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail({ where: { id: previous[0].id }});
+            const shouldDisconnect: OpenVPNStatusHistory = await manager.getRepository(OpenVPNStatusHistory).findOneOrFail({ where: { id: previous[0].id }});
             expect(persisted).to.have.length(1);
             expect(shouldDisconnect.disconnectedAtTimestampInSeconds).not.to.be.null;
         });
@@ -73,7 +76,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
             const previous: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, data);
             const persisted: OpenVPNStatusHistory[] = await service.create(fwcProduct.openvpnServer.id, []);
 
-            const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail({ where: { id: previous[0].id }});
+            const shouldDisconnect: OpenVPNStatusHistory = await manager.getRepository(OpenVPNStatusHistory).findOneOrFail({ where: { id: previous[0].id }});
             
             expect(persisted).to.have.length(0);
             expect(shouldDisconnect.disconnectedAtTimestampInSeconds).not.to.be.null;
@@ -90,7 +93,7 @@ describe(describeName(OpenVPNStatusHistoryService.name + " Unit Tests"), () => {
                 connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0))
             }]);
 
-            const shouldDisconnect: OpenVPNStatusHistory = await getRepository(OpenVPNStatusHistory).findOneOrFail({ where: { id: previous[0].id }});
+            const shouldDisconnect: OpenVPNStatusHistory = await manager.getRepository(OpenVPNStatusHistory).findOneOrFail({ where: { id: previous[0].id }});
 
             expect(persisted).to.have.length(1);
             expect(shouldDisconnect.disconnectedAtTimestampInSeconds).not.to.be.null;

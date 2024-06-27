@@ -1,4 +1,4 @@
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import db from "../../../../src/database/database-manager";
 import { Route } from "../../../../src/models/routing/route/route.model";
 import { RouteService } from "../../../../src/models/routing/route/route.service";
@@ -16,13 +16,14 @@ describe(OpenVPNPrefix.name, () => {
     
     let routeService: RouteService;
     let routingRuleService: RoutingRuleService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
-        fwcloudProduct = await (new FwCloudFactory()).make();
+        manager = db.getSource().manager;
+        fwcloudProduct = await new FwCloudFactory().make();
         routeService = await testSuite.app.getService<RouteService>(RouteService.name);
         routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
-
-        prefix = await getRepository(OpenVPNPrefix).save(getRepository(OpenVPNPrefix).create({
+        prefix = await manager.getRepository(OpenVPNPrefix).save(manager.getRepository(OpenVPNPrefix).create({
             openVPNId: fwcloudProduct.openvpnServer.id,
             name: 'OpenVPN-Cli-test',
         }))

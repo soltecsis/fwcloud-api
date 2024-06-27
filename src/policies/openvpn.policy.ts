@@ -20,20 +20,20 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import db from "../database/database-manager";
 import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { Firewall } from "../models/firewall/Firewall";
 import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
 import { OpenVPN } from "../models/vpn/openvpn/OpenVPN";
 
 export class OpenVPNPolicy extends Policy {
 
     static async installer(openvpn: OpenVPN, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        openvpn = await getRepository(OpenVPN).findOneOrFail({
+        openvpn = await db.getSource().manager.getRepository(OpenVPN).findOneOrFail({
             where: { id: openvpn.id },
             relations: ['firewall']
         });
@@ -43,7 +43,7 @@ export class OpenVPNPolicy extends Policy {
         }
 
         if (openvpn.firewall) {
-            const firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+            const firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
                 where: { id: openvpn.firewall.id },
                 relations: ['fwCloud']
             });
@@ -57,11 +57,11 @@ export class OpenVPNPolicy extends Policy {
     }
 
     static async history(openvpn: OpenVPN, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        openvpn = await getRepository(OpenVPN).findOneOrFail({
+        openvpn = await db.getSource().manager.getRepository(OpenVPN).findOneOrFail({
             where: { id: openvpn.id },
             relations: ['firewall']
         });
@@ -71,7 +71,7 @@ export class OpenVPNPolicy extends Policy {
         }
 
         if (openvpn.firewall) {
-            const firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+            const firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
                 where: { id: openvpn.firewall.id },
                 relations: ['fwCloud']
             });

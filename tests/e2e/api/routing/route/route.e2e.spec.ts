@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getCustomRepository, getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { Application } from "../../../../../src/Application";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
@@ -48,6 +48,7 @@ import { RouteMoveToDto } from "../../../../../src/controllers/routing/route/dto
 import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
 import { RouteMoveInterfaceDto } from "../../../../../src/controllers/routing/route/dtos/move-interface.dto";
 import { RouteMoveToGatewayDto } from "../../../../../src/controllers/routing/route/dtos/move-to-gateway.dto";
+import db from "../../../../../src/database/database-manager";
 
 describe(describeName('Route E2E Tests'), () => {
     let app: Application;
@@ -64,11 +65,13 @@ describe(describeName('Route E2E Tests'), () => {
     let gateway: IPObj;
 
     let routeService: RouteService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
-
+        
         loggedUser = await createUser({role: 0});
         loggedUserSessionId = generateSession(loggedUser);
 
@@ -85,7 +88,7 @@ describe(describeName('Route E2E Tests'), () => {
 
         gateway = fwcProduct.ipobjs.get('gateway');
 
-        table = await getRepository(RoutingTable).save({
+        table = await manager.getRepository(RoutingTable).save({
             firewallId: firewall.id,
             number: 1,
             name: 'name',
@@ -127,8 +130,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should see routes', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
-
+                await manager.getRepository(User).save(loggedUser);
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.tables.routes.index', {
                         fwcloud: fwCloud.id,
@@ -218,8 +220,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should move routes', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
-
+                await manager.getRepository(User).save(loggedUser);
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.move', {
                         fwcloud: fwCloud.id,
@@ -233,10 +234,10 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder1.id }})).route_order).to.eq(1);
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder2.id }})).route_order).to.eq(2);
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder3.id }})).route_order).to.eq(3);
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder4.id }})).route_order).to.eq(4);
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder1.id }})).route_order).to.eq(1);
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder2.id }})).route_order).to.eq(2);
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder3.id }})).route_order).to.eq(3);
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder4.id }})).route_order).to.eq(4);
             });
 
             it('admin user should move routes', async () => {
@@ -253,10 +254,10 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder1.id }})).route_order).to.eq(1);
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder2.id }})).route_order).to.eq(2);
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder3.id }})).route_order).to.eq(3);
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder4.id }})).route_order).to.eq(4);
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder1.id }})).route_order).to.eq(1);
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder2.id }})).route_order).to.eq(2);
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder3.id }})).route_order).to.eq(3);
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder4.id }})).route_order).to.eq(4);
             });
 
 
@@ -312,7 +313,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should move from items between rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveTo', {
@@ -353,7 +354,7 @@ describe(describeName('Route E2E Tests'), () => {
             let data: RouteMoveToGatewayDto;
             
             beforeEach(async () => {
-                gateway2 = await getRepository(IPObj).save({
+                gateway2 = await manager.getRepository(IPObj).save({
                     name: 'gateway',
                     address: '1.2.3.4',
                     ipObjTypeId: 5,
@@ -406,8 +407,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should move from items to gateway between rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
-
+                await manager.getRepository(User).save(loggedUser);
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveToGateway', {
                         fwcloud: fwCloud.id,
@@ -418,7 +418,7 @@ describe(describeName('Route E2E Tests'), () => {
                     .send(data)
                     .expect(200)
 
-                expect((await getRepository(Route).findOneOrFail({ where: { id: route2.id }})).gatewayId).to.eq(gateway.id);
+                expect((await manager.getRepository(Route).findOneOrFail({ where: { id: route2.id }})).gatewayId).to.eq(gateway.id);
             });
 
             it('admin user should move from items to gateway between rules', async () => {
@@ -432,7 +432,7 @@ describe(describeName('Route E2E Tests'), () => {
                     .send(data)
                     .expect(200)
 
-                expect((await getRepository(Route).findOneOrFail({ where: { id: route2.id }})).gatewayId).to.eq(gateway.id);
+                expect((await manager.getRepository(Route).findOneOrFail({ where: { id: route2.id }})).gatewayId).to.eq(gateway.id);
             });
 
 
@@ -486,7 +486,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should move interface items between rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.moveInterface', {
@@ -498,8 +498,8 @@ describe(describeName('Route E2E Tests'), () => {
                     .send(data)
                     .expect(200);
 
-                expect((await getRepository(Route).findOneOrFail({ where: { id: rule1.id }})).interfaceId).to.be.null;
-                expect((await getRepository(Route).findOneOrFail({ where: { id: rule2.id }})).interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
+                expect((await manager.getRepository(Route).findOneOrFail({ where: { id: rule1.id }})).interfaceId).to.be.null;
+                expect((await manager.getRepository(Route).findOneOrFail({ where: { id: rule2.id }})).interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
             });
 
             it('admin user should move from interface between rules', async () => {
@@ -513,8 +513,8 @@ describe(describeName('Route E2E Tests'), () => {
                     .send(data)
                     .expect(200)
                 
-                    expect((await getRepository(Route).findOneOrFail({ where: { id: rule1.id }})).interfaceId).to.be.null;
-                    expect((await getRepository(Route).findOneOrFail({ where: { id: rule2.id }})).interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
+                    expect((await manager.getRepository(Route).findOneOrFail({ where: { id: rule1.id }})).interfaceId).to.be.null;
+                    expect((await manager.getRepository(Route).findOneOrFail({ where: { id: rule2.id }})).interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
             });
 
 
@@ -555,7 +555,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should see a route', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.tables.routes.show', {
@@ -626,7 +626,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should compile a route', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.tables.routes.compile', {
@@ -688,7 +688,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should create a route', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.routing.tables.routes.store', {
@@ -746,7 +746,7 @@ describe(describeName('Route E2E Tests'), () => {
 
                 data = {
                     routes: [routeOrder1.id, routeOrder2.id],
-                    to: (await getCustomRepository(RouteRepository).getLastRouteInRoutingTable(table.id)).id,
+                    to: (await new RouteRepository(manager).getLastRouteInRoutingTable(table.id)).id,
                     offset: Offset.Below
                 }
             });
@@ -776,7 +776,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should copy routes', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.routing.tables.routes.copy', {
@@ -791,8 +791,8 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(Route).count({where: {comment: 'comment1'}}))).to.eq(2);
-                expect((await getRepository(Route).count({where: {comment: 'comment2'}}))).to.eq(2);
+                expect((await manager.getRepository(Route).count({where: {comment: 'comment1'}}))).to.eq(2);
+                expect((await manager.getRepository(Route).count({where: {comment: 'comment2'}}))).to.eq(2);
             });
 
             it('admin user should copy routes', async () => {
@@ -809,8 +809,8 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
             
-                expect((await getRepository(Route).count({where: {comment: 'comment1'}}))).to.eq(2);
-                expect((await getRepository(Route).count({where: {comment: 'comment2'}}))).to.eq(2);
+                expect((await manager.getRepository(Route).count({where: {comment: 'comment1'}}))).to.eq(2);
+                expect((await manager.getRepository(Route).count({where: {comment: 'comment2'}}))).to.eq(2);
             });
 
 
@@ -858,7 +858,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should update a route', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.update', {
@@ -898,7 +898,7 @@ describe(describeName('Route E2E Tests'), () => {
             });
 
             it('should thrown a validation exception if ipobj type is not valid', async () => {
-                const ipobj = await getRepository(IPObj).save(getRepository(IPObj).create({
+                const ipobj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
@@ -922,7 +922,7 @@ describe(describeName('Route E2E Tests'), () => {
             });
 
             it('should thrown a validation exception if ipobj group type is not valid', async () => {
-                const group = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                const group = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
                     name: 'test',
                     type: 0
                 }));
@@ -944,25 +944,25 @@ describe(describeName('Route E2E Tests'), () => {
             });
 
             it('should thrown a validation exception if openvpn type is not valid', async () => {
-                const openvpn = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                const openvpn = await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                     firewallId: firewall.id,
-                    crt: await getRepository(Crt).save(getRepository(Crt).create({
+                    crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
                         type: 0,
-                        ca: await getRepository(Ca).save(getRepository(Ca).create({
+                        ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
                             days: 100,
                         }))
                     })),
-                    parent: await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                    parent: await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                         firewallId: firewall.id,
-                        crt: await getRepository(Crt).save(getRepository(Crt).create({
+                        crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                             cn: StringHelper.randomize(10),
                             days: 100,
                             type: 0,
-                            ca: await getRepository(Ca).save(getRepository(Ca).create({
+                            ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                                 fwCloud: fwCloud,
                                 cn: StringHelper.randomize(10),
                                 days: 100,
@@ -1039,7 +1039,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should bulk update routes', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkUpdate', {
@@ -1057,8 +1057,8 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder1.id }})).style).to.eq('style!');
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder2.id }})).style).to.eq('style!');
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder1.id }})).style).to.eq('style!');
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder2.id }})).style).to.eq('style!');
             });
 
             it('admin user should bulk update routes', async () => {
@@ -1078,8 +1078,8 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder1.id }})).style).to.eq('style!');
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder2.id }})).style).to.eq('style!');
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder1.id }})).style).to.eq('style!');
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder2.id }})).style).to.eq('style!');
             });
 
 
@@ -1120,7 +1120,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should remove a route', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.tables.routes.delete', {
@@ -1137,7 +1137,7 @@ describe(describeName('Route E2E Tests'), () => {
                             firewallId: firewall.id,
                             routingTableId: table.id,
                             id: route.id
-                        })).to.be.undefined
+                        })).to.be.null
                     });
             });
 
@@ -1157,7 +1157,7 @@ describe(describeName('Route E2E Tests'), () => {
                             firewallId: firewall.id,
                             routingTableId: table.id,
                             id: route.id
-                        })).to.be.undefined
+                        })).to.be.null
                     });
             });
 
@@ -1209,7 +1209,7 @@ describe(describeName('Route E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should bulk remove routes', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkRemove', {
@@ -1224,9 +1224,8 @@ describe(describeName('Route E2E Tests'), () => {
                     .then(response => {
                         expect(response.body.data).to.have.length(2);
                     });
-
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder1.id }}))).to.be.undefined;
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder2.id }}))).to.be.undefined;
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder1.id }}))).to.be.null;
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder2.id }}))).to.be.null;
             });
 
             it('admin user should bulk remove routes', async () => {
@@ -1244,8 +1243,8 @@ describe(describeName('Route E2E Tests'), () => {
                         expect(response.body.data).to.have.length(2);
                     });
                 
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder1.id }}))).to.be.undefined;
-                expect((await getRepository(Route).findOne({ where: { id: routeOrder2.id }}))).to.be.undefined;
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder1.id }}))).to.be.null;
+                expect((await manager.getRepository(Route).findOne({ where: { id: routeOrder2.id }}))).to.be.null;
             });
 
             it('should throw validation error if query rules is not provided', async () => {

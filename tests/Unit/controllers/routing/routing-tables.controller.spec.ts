@@ -1,5 +1,4 @@
 import { Request } from "express";
-import { getRepository } from "typeorm";
 import { Application } from "../../../../src/Application";
 import { RoutingTableController } from "../../../../src/controllers/routing/routing-tables/routing-tables.controller";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
@@ -9,7 +8,8 @@ import { RoutingTableService } from "../../../../src/models/routing/routing-tabl
 import StringHelper from "../../../../src/utils/string.helper";
 import { expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
-import { QueryFailedError } from 'typeorm';
+import { EntityManager, QueryFailedError } from 'typeorm';
+import db from "../../../../src/database/database-manager";
 
 describe(RoutingTableController.name, () => {
     let firewall: Firewall;
@@ -20,6 +20,7 @@ describe(RoutingTableController.name, () => {
     let app: Application;
 
     let tableService: RoutingTableService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
@@ -31,11 +32,12 @@ describe(RoutingTableController.name, () => {
         table = product.routingTable;
 
         controller = new RoutingTableController(app);
+        manager = db.getSource().manager;
     });
 
     describe('make', () => {
         it('should throw error if the table does not belongs to the firewall', async () => {
-            const newFirewall: Firewall = await getRepository(Firewall).save({
+            const newFirewall: Firewall = await manager.getRepository(Firewall).save({
                 name: StringHelper.randomize(10),
                 fwCloudId: fwcloud.id
             });
@@ -48,7 +50,7 @@ describe(RoutingTableController.name, () => {
         });
 
         it('should throw an error if the firewall does not belongs to the fwcloud', async () => {
-            const newfwcloud = await getRepository(FwCloud).save({
+            const newfwcloud = await manager.getRepository(FwCloud).save({
                 name: StringHelper.randomize(10)
             });
 

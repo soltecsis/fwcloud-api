@@ -213,7 +213,7 @@ describe(describeName('Backup Unit tests'), () => {
 
             backup = await backup.restore();
 
-            const queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
+            const queryRunner: QueryRunner = databaseService.dataSource.createQueryRunner();
 
             expect(await queryRunner.hasTable('ca')).to.be.true;
 
@@ -229,7 +229,7 @@ describe(describeName('Backup Unit tests'), () => {
 
             backup = await backup.restore();
 
-            const queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
+            const queryRunner: QueryRunner = databaseService.dataSource.createQueryRunner();
 
             expect(await queryRunner.hasTable('ca')).to.be.true;
 

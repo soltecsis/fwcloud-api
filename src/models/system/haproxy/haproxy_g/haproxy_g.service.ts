@@ -15,12 +15,13 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindManyOptions, FindOneOptions, Repository, SelectQueryBuilder, getRepository } from "typeorm";
+import { FindManyOptions, FindOneOptions, Repository, SelectQueryBuilder } from "typeorm";
 import { Service } from "../../../../fonaments/services/service";
 import { Application } from "../../../../Application";
 import { HAProxyGroup } from "./haproxy_g.model";
 import { Firewall } from "../../../firewall/Firewall";
 import { HAProxyRule } from "../haproxy_r/haproxy_r.model";
+import db from "../../../../database/database-manager";
 
 interface IFindManyHAProxyGPath {
     fwcloudId?: number;
@@ -47,65 +48,59 @@ interface IUpdateHAProxyGroup {
 }
 
 export class HAProxyGroupService extends Service {
-    protected _repository: Repository<HAProxyGroup>;
 
     constructor(app: Application) {
-        super(app);
-        this._repository = getRepository(HAProxyGroup);
+        super(app);    
     }
 
     findManyInPath(path: IFindManyHAProxyGPath): Promise<HAProxyGroup[]> {
-        return this._repository.find(this.getFindInPathOptions(path));
+        return this.getFindInPathOptions(path).getMany();
     }
 
     findOneInPath(path: IFindOneHAProxyGPath): Promise<HAProxyGroup> {
-        return this._repository.findOne(this.getFindInPathOptions(path));
+        return this.getFindInPathOptions(path).getOne();
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneHAProxyGPath>, options: FindOneOptions<HAProxyGroup> | FindManyOptions<HAProxyGroup> = {}): FindOneOptions<HAProxyGroup> | FindManyOptions<HAProxyGroup> {
-        return Object.assign({
-            join: {
-                alias: 'group',
-                innerJoin: {
-                    firewall: 'group.firewall',
-                    fwcloud: 'firewall.fwCloud',
-                }
-            },
-            where: (qb: SelectQueryBuilder<HAProxyGroup>) => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
-                }
-                if (path.fwcloudId) {
-                    qb.andWhere('firewall.fwCloudId = :fwcloudId', { fwcloudId: path.fwcloudId });
-                }
-                if (path.id) {
-                    qb.andWhere('group.id = :id', { id: path.id });
-                }
-            }
-        }, options)
+    protected getFindInPathOptions(path: Partial<IFindOneHAProxyGPath>, options: FindOneOptions<HAProxyGroup> | FindManyOptions<HAProxyGroup> = {}): SelectQueryBuilder<HAProxyGroup> {
+        const qb: SelectQueryBuilder<HAProxyGroup> = db.getSource().manager.getRepository(HAProxyGroup).createQueryBuilder('group');
+        qb.innerJoin('group.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        .leftJoinAndSelect('group.rules', 'rules');
+        
+        if (path.firewallId) {
+            qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
+        }
+        if (path.fwcloudId) {
+            qb.andWhere('firewall.fwCloudId = :fwcloudId', { fwcloudId: path.fwcloudId });
+        }
+        if (path.id) {
+            qb.andWhere('group.id = :id', { id: path.id });
+        }
+
+        return qb;
     }
 
 
     async create(data: ICreateHAProxyGroup): Promise<HAProxyGroup> {
         const groupData: Partial<HAProxyGroup> = {
             name: data.name,
-            firewall: await getRepository(Firewall).findOne({ where: { id: data.firewallId }}) as unknown as Firewall,
+            firewall: await db.getSource().manager.getRepository(Firewall).findOne({ where: { id: data.firewallId }}) as unknown as Firewall,
             style: data.style,
         };
 
-        const group: HAProxyGroup = await this._repository.save(groupData);
-        return this._repository.findOne({ where: { id: group.id }});
+        const group: HAProxyGroup = await db.getSource().manager.getRepository(HAProxyGroup).save(groupData);
+        return db.getSource().manager.getRepository(HAProxyGroup).findOne({ where: { id: group.id }});
     }
 
     async update(id: number, data: IUpdateHAProxyGroup): Promise<HAProxyGroup> {
-        let group: HAProxyGroup | undefined = await this._repository.findOne({ where: { id: id }});
+        let group: HAProxyGroup | undefined = await db.getSource().manager.getRepository(HAProxyGroup).findOne({ where: { id: id }});
 
         if (!group) {
             throw new Error('HAProxyGroup not found');
         }
 
         Object.assign(group, data);
-        await this._repository.save(group);
+        await db.getSource().manager.getRepository(HAProxyGroup).save(group);
 
         return group;
     }
@@ -116,11 +111,11 @@ export class HAProxyGroupService extends Service {
             throw new Error('HAProxyGroup not found');
         }
         if (group.rules && group.rules.length > 0) {
-            await getRepository(HAProxyRule).update(group.rules.map(rule => rule.id), {
+            await db.getSource().manager.getRepository(HAProxyRule).update(group.rules.map(rule => rule.id), {
                 group: null
             });
         }
-        await this._repository.remove(group);
+        await db.getSource().manager.getRepository(HAProxyGroup).remove(group);
         return group;
     }
 }

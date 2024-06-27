@@ -26,11 +26,12 @@ import { DHCPRuleService, DHCPRulesData } from "../../../../../src/models/system
 import { DHCPRuleItemForCompiler } from "../../../../../src/models/system/dhcp/shared";
 import { testSuite } from "../../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { DHCPRule } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.model";
 import { IPObj } from "../../../../../src/models/ipobj/IPObj";
 import sinon from "sinon";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
+import db from "../../../../../src/database/database-manager";
 
 describe(DHCPCompiler.name, (): void => {
     let fwc: FwCloudProduct;
@@ -38,8 +39,10 @@ describe(DHCPCompiler.name, (): void => {
     let dhcpRuleService: DHCPRuleService;
     let compiler: DHCPCompiler = new DHCPCompiler;
     let rules: DHCPRulesData<DHCPRuleItemForCompiler>[];
+    let manager: EntityManager;
 
     beforeEach(async (): Promise<void> => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         fwc = await (new FwCloudFactory()).make();
@@ -49,27 +52,27 @@ describe(DHCPCompiler.name, (): void => {
         const testData: DHCPRule[] = [];
 
         for (let i = 0; i < 10; i++) {
-            let rule: DHCPRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            let rule: DHCPRule = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
                 id: 1,
                 rule_order: 1,
                 interface: null,
                 rule_type: 1,
                 firewall: fwc.firewall,
                 max_lease: 5,
-                network: await getRepository(IPObj).save(getRepository(IPObj).create({
+                network: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
                     netmask: '/24'
                 })),
-                range: await getRepository(IPObj).save(getRepository(IPObj).create({
+                range: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
                     range_start: '1',
                     range_end: '2',
                 })),
-                router: await getRepository(IPObj).save(getRepository(IPObj).create({
+                router: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,

@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import db from "./database/database-manager";
+import db  from "./database/database-manager";
 import { BodyParser } from "./middleware/BodyParser";
 import { Compression } from "./middleware/Compression";
 import { MethodOverride } from "./middleware/MethodOverride";
@@ -107,7 +107,7 @@ export class Application extends HTTPApplication {
         if (isMainThread) {
             this.logger().info(`------- Starting application -------`);
             this.logger().info(`FWCloud API v${this.version.tag} (PID=${process.pid}) (${this.config.get('env')}) | schema: v${this.version.schema}`);
-
+            this.logger().info('Database connection established');
             // If stdout log mode is not enabled, log messages are not shown in terminal.
             // As a result, user doesn't know when application has started.
             // So, we print out the message directly

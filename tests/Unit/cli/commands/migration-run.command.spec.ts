@@ -36,7 +36,7 @@ describe(describeName('MigrationRunCommand tests'), () => {
         let app: AbstractApplication = testSuite.app;
         let databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
 
-        let queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
+        let queryRunner: QueryRunner = databaseService.dataSource.createQueryRunner();
         const migration = await queryRunner.query('SELECT name FROM migrations');
         await queryRunner.release();
         await databaseService.emptyDatabase();
@@ -47,7 +47,7 @@ describe(describeName('MigrationRunCommand tests'), () => {
             _: []
         })});
 
-        queryRunner = databaseService.connection.createQueryRunner();
+        queryRunner = databaseService.dataSource.createQueryRunner();
         const afterMigration = await queryRunner.query('SELECT name FROM migrations');
         await queryRunner.release();
         

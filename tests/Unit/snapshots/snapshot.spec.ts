@@ -25,7 +25,6 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import { Application } from "../../../src/Application";
 import { Snapshot, snapshotDigestContent, SnapshotMetadata } from "../../../src/snapshots/snapshot";
-import { Repository, getRepository, Migration } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
@@ -216,7 +215,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             await snaphost.restore();
 
-            expect(await FwCloud.findOne({ where: { id: fwCloud.id }})).to.be.undefined;
+            expect(await FwCloud.findOne({ where: { id: fwCloud.id }})).to.be.null;
         });
 
         it('should remove the old fwcloud data directories', async () => {

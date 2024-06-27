@@ -1,4 +1,4 @@
-import { getCustomRepository, getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { RoutingGroup } from "../../../../src/models/routing/routing-group/routing-group.model";
@@ -11,6 +11,7 @@ import { Tree } from "../../../../src/models/tree/Tree";
 import { Offset } from "../../../../src/offset";
 import StringHelper from "../../../../src/utils/string.helper";
 import { expect, testSuite } from "../../../mocha/global-setup";
+import db from "../../../../src/database/database-manager";
 
 describe(RoutingRuleRepository.name, () => {
     let repository: RoutingRuleRepository;
@@ -20,20 +21,22 @@ describe(RoutingRuleRepository.name, () => {
     let tableService: RoutingTableService;
     let table: RoutingTable;
     let routingGroupService: RoutingGroupService;
+    let manager: EntityManager;
 
     beforeEach(async() => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
         
-        repository = getCustomRepository(RoutingRuleRepository);
+        repository = new RoutingRuleRepository(manager);
         tableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
         routingGroupService = await testSuite.app.getService<RoutingGroupService>(RoutingGroupService.name);
 
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));

@@ -24,11 +24,12 @@ import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import { IdManager } from "../../../../src/fwcloud-exporter/database-importer/terraformer/mapper/id-manager";
 import { DatabaseService } from "../../../../src/database/database.service";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { QueryRunner, getRepository } from "typeorm";
+import { EntityManager, QueryRunner } from "typeorm";
 import { before } from "mocha";
 
 describe(describeName('IdManager Unit tests'), () => {
     let queryRunner: QueryRunner;
+    let manager: EntityManager;
 
     before(async () => {
         const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
@@ -40,7 +41,8 @@ describe(describeName('IdManager Unit tests'), () => {
 
     beforeEach(async() => {
         const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
-        queryRunner = dbService.connection.createQueryRunner();
+        queryRunner = dbService.dataSource.createQueryRunner();
+        manager = dbService.dataSource.manager;
     });
 
     afterEach(async() => {
@@ -59,7 +61,7 @@ describe(describeName('IdManager Unit tests'), () => {
         });
 
         it('should set the next id = MAX()+1 if the table is not empty', async () => {
-            await getRepository(FwCloud).save({ id: 100, name: 'test' });
+            await manager.getRepository(FwCloud).save({ id: 100, name: 'test' });
 
             const idManger: IdManager = await IdManager.make(queryRunner, ['fwcloud']);
 
@@ -80,7 +82,7 @@ describe(describeName('IdManager Unit tests'), () => {
 
     describe('getNewId()', () => {
         it('should return the new id', async () => {
-            await  getRepository(FwCloud).save({ id: 100, name: 'test' });
+            await  manager.getRepository(FwCloud).save({ id: 100, name: 'test' });
 
             const idManger: IdManager = await IdManager.make(queryRunner, ['fwcloud']);
 
@@ -88,7 +90,7 @@ describe(describeName('IdManager Unit tests'), () => {
         });
 
         it('should increment the id', async () => {
-            await getRepository(FwCloud).save({ id: 100, name: 'test' });
+            await manager.getRepository(FwCloud).save({ id: 100, name: 'test' });
 
             const idManger: IdManager = await IdManager.make(queryRunner, ['fwcloud']);
 

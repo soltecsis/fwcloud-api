@@ -22,12 +22,11 @@
 
 import db from '../../database/database-manager';
 import Model from '../Model';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, ManyToOne, JoinColumn, OneToOne, getRepository } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, OneToMany, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { Ca } from '../vpn/pki/Ca';
 import { Customer } from './Customer';
 import { Tfa } from './Tfa';
-import { resolve } from 'path';
 
 const fwcError = require('../../utils/error_table');
 

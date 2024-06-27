@@ -20,12 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, SelectQueryBuilder } from "typeorm";
-import { Repository } from "../../database/repository";
+import { EntityManager, SelectQueryBuilder } from "typeorm";
 import { Mark } from "./Mark";
+import { Repository } from "../../database/repository";
 
-@EntityRepository(Mark)
+//@EntityRepository(Mark)
 export class MarkRepository extends Repository<Mark> {
+
+  constructor(manager?: EntityManager) {
+    super(Mark, manager);
+  }
+
   getMarksInRoutingRules(fwcloud: number, firewall: number, rules?: number[]): SelectQueryBuilder<Mark> {
     let q = this.createQueryBuilder("mark")
       .select("(select id from ipobj_type where id=30)","type").addSelect("null as address").addSelect("null as netmask")

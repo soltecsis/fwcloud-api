@@ -21,7 +21,6 @@
 */
 
 import { before } from "mocha";
-import { getRepository } from "typeorm";
 import { RouteToIPObjGroup } from "../../../../src/models/routing/route/route-to-ipobj-group.model";
 import { RouteToIPObj } from "../../../../src/models/routing/route/route-to-ipobj.model";
 import { RouteToOpenVPNPrefix } from "../../../../src/models/routing/route/route-to-openvpn-prefix.model";
@@ -31,6 +30,8 @@ import { RoutingTableService, RouteData } from "../../../../src/models/routing/r
 import { ItemForGrid, RouteItemForCompiler } from "../../../../src/models/routing/shared";
 import { expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 
 describe('Routing table data fetch for compiler or grid', () => {
     let routeService: RouteService;
@@ -39,11 +40,13 @@ describe('Routing table data fetch for compiler or grid', () => {
 
     let routes: RouteData<RouteItemForCompiler>[] | RouteData<ItemForGrid>[];
     let items: RouteItemForCompiler[] | ItemForGrid[];
+    let manager: EntityManager;
 
     before(async () => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
-        fwc = await (new FwCloudFactory()).make();
+        fwc = await new FwCloudFactory().make();
 
         routeService = await testSuite.app.getService<RouteService>(RouteService.name);
         routingTableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
@@ -183,7 +186,7 @@ describe('Routing table data fetch for compiler or grid', () => {
                 item.id = fwc.ipobjs.get('address').id; item.type = 5; item.name = fwc.ipobjs.get('address').name;
                 item.host_id = null;
                 item.host_name = null;
-                item._order = (await getRepository(RouteToIPObj).findOneOrFail({
+                item._order = (await manager.getRepository(RouteToIPObj).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route1').id,
                         ipObjId: item.id
@@ -196,7 +199,7 @@ describe('Routing table data fetch for compiler or grid', () => {
                 item.id = fwc.ipobjs.get('addressRange').id; item.type = 6; item.name = fwc.ipobjs.get('addressRange').name;
                 item.host_id = null;
                 item.host_name = null;
-                item._order = (await getRepository(RouteToIPObj).findOneOrFail({
+                item._order = (await manager.getRepository(RouteToIPObj).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route1').id,
                         ipObjId: item.id
@@ -209,7 +212,7 @@ describe('Routing table data fetch for compiler or grid', () => {
                 item.id = fwc.ipobjs.get('network').id; item.type = 7; item.name = fwc.ipobjs.get('network').name;
                 item.host_id = null;
                 item.host_name = null;
-                item._order = (await getRepository(RouteToIPObj).findOneOrFail({
+                item._order = (await manager.getRepository(RouteToIPObj).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route1').id,
                         ipObjId: item.id
@@ -222,7 +225,7 @@ describe('Routing table data fetch for compiler or grid', () => {
                 item.id = fwc.ipobjs.get('host').id; item.type = 8; item.name = fwc.ipobjs.get('host').name;
                 item.host_id = null;
                 item.host_name = null;
-                item._order = (await getRepository(RouteToIPObj).findOneOrFail({
+                item._order = (await manager.getRepository(RouteToIPObj).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route1').id,
                         ipObjId: item.id
@@ -235,7 +238,7 @@ describe('Routing table data fetch for compiler or grid', () => {
                 item.id = fwc.openvpnClients.get('OpenVPN-Cli-3').id; item.type = 311; item.name = fwc.crts.get('OpenVPN-Cli-3').cn;
                 item.firewall_id = fwc.firewall.id;
                 item.firewall_name = fwc.firewall.name;
-                item._order = (await getRepository(RouteToOpenVPN).findOneOrFail({
+                item._order = (await manager.getRepository(RouteToOpenVPN).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route1').id,
                         openVPNId: item.id
@@ -248,7 +251,7 @@ describe('Routing table data fetch for compiler or grid', () => {
                 item.id = fwc.openvpnPrefix.id; item.type = 401; item.name = fwc.openvpnPrefix.name;
                 item.firewall_id = fwc.firewall.id;
                 item.firewall_name = fwc.firewall.name;
-                item._order = (await getRepository(RouteToOpenVPNPrefix).findOneOrFail({
+                item._order = (await manager.getRepository(RouteToOpenVPNPrefix).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route1').id,
                         openVPNPrefixId: item.id
@@ -275,7 +278,7 @@ describe('Routing table data fetch for compiler or grid', () => {
 
             it('should include group', async() => {
                 item.id = fwc.ipobjGroup.id; item.type = 20; item.name = fwc.ipobjGroup.name;
-                item._order = (await getRepository(RouteToIPObjGroup).findOneOrFail({
+                item._order = (await manager.getRepository(RouteToIPObjGroup).findOneOrFail({
                     where: {
                         routeId: fwc.routes.get('route2').id,
                         ipObjGroupId: item.id

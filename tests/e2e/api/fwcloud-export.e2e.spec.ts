@@ -25,7 +25,7 @@ import request = require("supertest");
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import StringHelper from "../../../src/utils/string.helper";
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { User } from "../../../src/models/user/User";
 import { createUser, generateSession, attachSession, sleep } from "../../utils/utils";
 import { Application } from "../../../src/Application";
@@ -35,6 +35,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import { Snapshot } from "../../../src/snapshots/snapshot";
 import sinon from "sinon";
+import db from "../../../src/database/database-manager";
 
 describe(describeName('FwCloudExport E2E Tests'), () => {
     let app: Application;
@@ -45,10 +46,13 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
     let regularUser: User;
     let regularUserSessionId: string;
 
+    let manager: EntityManager;
+
     before(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
@@ -81,7 +85,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud can create a fwcloud export file', async () => {
                 regularUser.fwClouds = [fwCloud];
-                await getRepository(User).save(regularUser);
+                await manager.getRepository(User).save(regularUser);
 
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }))
@@ -121,7 +125,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
             });
 
             it('admin user should import a fwcloud export file', async () => {
-                const fwCloudCount: number = (await getRepository(FwCloud).find()).length;
+                const fwCloudCount: number = (await manager.getRepository(FwCloud).find()).length;
 
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.exports.import'))
@@ -129,7 +133,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
                     .set('Cookie', [attachSession(adminUserSessionId)])
                     .expect(201)
                     .then(async response => {
-                        expect((await getRepository(FwCloud).find()).length).to.be.deep.eq(fwCloudCount + 1);
+                        expect((await manager.getRepository(FwCloud).find()).length).to.be.deep.eq(fwCloudCount + 1);
                     });
             });
 

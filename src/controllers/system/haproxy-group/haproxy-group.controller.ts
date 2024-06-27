@@ -15,7 +15,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
 import { Controller } from "../../../fonaments/http/controller";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
@@ -28,6 +27,7 @@ import { HAProxyGroupPolicy } from "../../../policies/haproxy-group.policy";
 import { Validate } from "../../../decorators/validate.decorator";
 import { DHCPGroupControllerCreateDto } from "./dto/create.dto";
 import { DHCPGroupControllerUpdateDto } from "./dto/update.dto";
+import db from "../../../database/database-manager";
 
 export class HAProxyGroupController extends Controller {
     protected _haproxyGroupService: HAProxyGroupService;
@@ -45,8 +45,8 @@ export class HAProxyGroupController extends Controller {
             this._haproxyGroup = await this._haproxyGroupService.findOneInPath({ id: parseInt(request.params.haproxygroup) });
         }
 
-        this._firewall = await getRepository(Firewall).findOneOrFail({ where: { id: parseInt(request.params.firewall) }});
-        this._fwCloud = await getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
+        this._firewall = await await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: parseInt(request.params.firewall) }});
+        this._fwCloud = await await db.getSource().manager.getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
     }
 
     @Validate()

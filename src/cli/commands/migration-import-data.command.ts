@@ -23,8 +23,8 @@
 import * as yargs from "yargs";
 import { DatabaseService } from "../../database/database.service";
 import { Command, Option } from "../command";
-import { getRepository } from "typeorm";
 import { IPObj } from "../../models/ipobj/IPObj";
+import db from "../../database/database-manager";
 
 /**
  * Runs migration command.
@@ -38,7 +38,7 @@ export class MigrationImportDataCommand extends Command {
         const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
 
         // If at least a standard object already exists means data have been imported
-        if (forceFlag || !await getRepository(IPObj).findOne({ where: { id: 10000 }})) {
+        if (forceFlag || !await db.getSource().manager.getRepository(IPObj).findOne({ where: { id: 10000 }})) {
             await databaseService.feedDefaultData();
             this.output.success(`Default data imported.`);
         } else {

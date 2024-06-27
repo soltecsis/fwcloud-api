@@ -1,4 +1,4 @@
-import { getCustomRepository, getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { Application } from "../../../../src/Application";
 import rule from "../../../../src/middleware/joi_schemas/policy/rule";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
@@ -10,6 +10,7 @@ import { RoutingRuleRepository } from "../../../../src/models/routing/routing-ru
 import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
 import StringHelper from "../../../../src/utils/string.helper";
 import { expect, testSuite } from "../../../mocha/global-setup";
+import db from "../../../../src/database/database-manager";
 
 describe(RoutingGroupService.name, () => {
     let fwCloud: FwCloud;
@@ -19,33 +20,35 @@ describe(RoutingGroupService.name, () => {
     let rule: RoutingRule;
     let service: RoutingGroupService;
     let app: Application;
+    let repository: RoutingRuleRepository;
+    let manager: EntityManager;
     
     beforeEach(async () => {
         app = testSuite.app;
-        
+        manager = db.getSource().manager;
         service = await app.getService(RoutingGroupService.name);
-
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        repository = new RoutingRuleRepository(manager);
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
 
-        table = await getRepository(RoutingTable).save({
+        table = await manager.getRepository(RoutingTable).save({
             firewallId: firewall.id,
             number: 1,
             name: 'name',
         });
 
-        rule = await getCustomRepository(RoutingRuleRepository).save({
+        rule = await repository.save({
             routingTableId: table.id,
             rule_order: 1
         });
         
-        group = await getRepository(RoutingGroup).save({
+        group = await manager.getRepository(RoutingGroup).save({
             name: 'group',
             firewallId: firewall.id,
             routingRules: [rule]
@@ -61,7 +64,7 @@ describe(RoutingGroupService.name, () => {
                 fwCloudId: fwCloud.id,
                 firewallId: firewall.id,
                 id: group.id
-            })).to.be.undefined;
+            })).to.be.null;
         });
     })
 });

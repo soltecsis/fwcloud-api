@@ -25,9 +25,8 @@ import { Middleware } from "../fonaments/http/middleware/Middleware";
 import fwcError from '../utils/error_table';
 import { User } from '../models/user/User';
 import { Request, Response, NextFunction } from "express";
-import { getRepository } from "typeorm";
-import { logger } from "../fonaments/abstract-application";
-import { timeStamp } from "console";
+import { logger } from "../fonaments/abstract-application";;
+import db from "../database/database-manager";
 
 export class Authorization extends Middleware {
     public async handle(req: Request, res: Response, next: NextFunction) {
@@ -66,7 +65,7 @@ export class Authorization extends Middleware {
                 throw fwcError.SESSION_BAD;
             }
 
-            req.session.user = await getRepository(User).findOne({ where: { id: req.session.user_id }});
+            req.session.user = await db.getSource().manager.getRepository(User).findOne({ where: { id: req.session.user_id }});
             // If we arrive here, then the session is correct.
             logger().debug("USER AUTHORIZED (customer_id: " + req.session.customer_id + ", user_id: " + req.session.user_id + ", username: " + req.session.username + ")");
             

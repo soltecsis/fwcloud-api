@@ -23,7 +23,7 @@
 import { Snapshot } from "../../snapshots/snapshot";
 import { FwCloud } from "../../models/fwcloud/FwCloud";
 import { ExporterResult } from "../database-exporter/exporter-result";
-import { QueryRunner, DeepPartial, createQueryBuilder, getRepository } from "typeorm";
+import { QueryRunner } from "typeorm";
 import { app } from "../../fonaments/abstract-application";
 import { DatabaseService } from "../../database/database.service";
 import { IdManager } from "./terraformer/mapper/id-manager";
@@ -38,6 +38,7 @@ import { EventEmitter } from "events";
 import { Worker } from 'worker_threads';
 import { InputData, OutputData } from "./terraform_table.worker";
 import { ProgressNoticePayload } from "../../sockets/messages/socket-message";
+import db from "../../database/database-manager";
 
 export class DatabaseImporter {
     protected _mapper: ImportMapping;
@@ -56,7 +57,7 @@ export class DatabaseImporter {
 
     public async import(snapshot: Snapshot): Promise<FwCloud> {
         const promises: Promise<any>[] = [];
-        const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).connection.createQueryRunner();
+        const queryRunner: QueryRunner = (await app().getService<DatabaseService>(DatabaseService.name)).dataSource.createQueryRunner();
         let data: ExporterResult = new ExporterResult(JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME)).toString()));
         let fwCloudId: number = null;
 
@@ -104,7 +105,7 @@ export class DatabaseImporter {
         const fwCloud: FwCloud = await FwCloud.findOne({ where: { id: fwCloudId }});
 
         if (!snapshot.isHashCompatible()) {
-            await getRepository(Firewall).update({fwCloudId: fwCloud.id}, {
+            await db.getSource().manager.getRepository(Firewall).update({fwCloudId: fwCloud.id}, {
                 install_user: null,
                 install_pass: null
             });

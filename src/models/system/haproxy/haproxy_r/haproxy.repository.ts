@@ -15,10 +15,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, FindManyOptions, FindOneOptions, In, RemoveOptions, Repository, SelectQueryBuilder, getRepository } from "typeorm";
+import { EntityManager, FindManyOptions, FindOneOptions, In, RemoveOptions, SelectQueryBuilder } from "typeorm";
 import { HAProxyRule } from "./haproxy_r.model";
 import { Offset } from "../../../../offset";
 import { Firewall } from "../../../firewall/Firewall";
+import { Repository } from "../../../../database/repository";
+import db from "../../../../database/database-manager";
 
 interface IFindManyHAProxyRPath {
     fwcloudId?: number;
@@ -30,10 +32,14 @@ interface IFindOneHAProxyGPath extends IFindManyHAProxyRPath {
     id: number;
 }
 
-@EntityRepository(HAProxyRule)
 export class HAProxyRuleRepository extends Repository<HAProxyRule> {
+
+    constructor(manager?: EntityManager) {
+        super(HAProxyRule, manager);
+    }
+
     findManyInPath(path: IFindManyHAProxyRPath, options?: FindManyOptions<HAProxyRule>): Promise<HAProxyRule[]> {
-        return this.find(this.getFindInPathOptions(path, options));
+        return this.getFindInPathOptions(path, options).getMany();
     }
 
     async move(ids: number[], haproxyDestId: number, offset: Offset): Promise<HAProxyRule[]> {
@@ -157,34 +163,43 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
         return result;
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneHAProxyGPath>, options: FindOneOptions<HAProxyRule> | FindManyOptions<HAProxyRule> = {}): FindOneOptions<HAProxyRule> | FindManyOptions<HAProxyRule> {
-        return Object.assign({
-            join: {
-                alias: 'haproxy',
-                innerJoin: {
-                    firewall: 'haproxy.firewall',
-                    fwcloud: 'firewall.fwCloud',
-                }
-            },
-            where: (qb) => {
-                if (path.fwcloudId) {
-                    qb.andWhere('firewall.fwCloudId = :fwcloudId', { fwcloudId: path.fwcloudId });
-                }
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
-                }
-                if (path.haproxyGroupId) {
-                    qb.andWhere('group.id = :haproxyGroupId', { haproxyGroupId: path.haproxyGroupId });
-                }
-                if (path.id) {
-                    qb.andWhere('haproxy.id = :id', { id: path.id });
-                }
-            },
-        }), options;
+    protected getFindInPathOptions(path: Partial<IFindOneHAProxyGPath>, options: FindOneOptions<HAProxyRule> | FindManyOptions<HAProxyRule> = {}): SelectQueryBuilder<HAProxyRule> {
+        const qb: SelectQueryBuilder<HAProxyRule> =  db.getSource().manager.createQueryBuilder(HAProxyRule, 'haproxy');
+        qb.innerJoin('haproxy.firewall', 'firewall');
+        qb.innerJoin('firewall.fwCloud', 'fwcloud');
+
+        if (path.fwcloudId) {
+            qb.andWhere('firewall.fwCloudId = :fwcloudId', { fwcloudId: path.fwcloudId });
+        }
+        if (path.firewallId) {
+            qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
+        }
+        if (path.haproxyGroupId) {
+            qb.andWhere('group.id = :haproxyGroupId', { haproxyGroupId: path.haproxyGroupId });
+        }
+        if (path.id) {
+            qb.andWhere('haproxy.id = :id', { id: path.id });
+        }
+
+        // Aplica las opciones adicionales que se pasaron a la función
+        Object.entries(options).forEach(([key, value]) => {
+            switch (key) {
+                case 'where':
+                    qb.andWhere(value);
+                    break;
+                case 'relations':
+                    qb.leftJoinAndSelect(`haproxy.${value}`, `${value}`);
+                    break;
+                default:
+            }
+        });
+
+        return qb;
+
     }
 
     protected async refreshOrders(firewallId: number) {
-        const firewall: Firewall = await getRepository(Firewall).findOneOrFail({ where: { id: firewallId }});
+        const firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: firewallId }});
         const rules: HAProxyRule[] = await this.findManyInPath({
             fwcloudId: firewall.fwCloudId,
             firewallId: firewall.id,

@@ -1,5 +1,4 @@
 import { expect } from "chai";
-import { getRepository } from "typeorm";
 import db from "../../../../src/database/database-manager";
 import { Route } from "../../../../src/models/routing/route/route.model";
 import { RouteService } from "../../../../src/models/routing/route/route.service";
@@ -9,6 +8,7 @@ import { OpenVPN } from "../../../../src/models/vpn/openvpn/OpenVPN";
 import { Crt } from "../../../../src/models/vpn/pki/Crt";
 import { testSuite } from "../../../mocha/global-setup";
 import { FwCloudProduct, FwCloudFactory } from "../../../utils/fwcloud-factory";
+import { EntityManager } from "typeorm";
 
 describe(OpenVPN.name, () => {
     let fwcloudProduct: FwCloudProduct;
@@ -18,16 +18,17 @@ describe(OpenVPN.name, () => {
     
     let routeService: RouteService;
     let routingRuleService: RoutingRuleService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
-        fwcloudProduct = await (new FwCloudFactory()).make();
+        manager = db.getSource().manager;
+        fwcloudProduct = await new FwCloudFactory().make();
         routeService = await testSuite.app.getService<RouteService>(RouteService.name);
         routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
-
-        openvpn = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+        openvpn = await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
             parentId: fwcloudProduct.openvpnServer.id,
             firewallId: fwcloudProduct.firewall.id,
-            crtId: (await getRepository(Crt).save(getRepository(Crt).create({
+            crtId: (await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                 caId: fwcloudProduct.ca.id,
                 cn: 'test',
                 days: 1000,

@@ -20,10 +20,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, FindManyOptions, FindOneOptions, getConnection, In, QueryBuilder, QueryRunner, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
+import { EntityManager, FindManyOptions, FindOneOptions, In, RemoveOptions, SelectQueryBuilder } from "typeorm";
 import { Offset } from "../../../offset";
 import { RoutingTable } from "../routing-table/routing-table.model";
 import { Route } from "./route.model";
+import { Repository } from "../../../database/repository";
+import db from "../../../database/database-manager";
 
 interface IFindManyRoutePath {
     fwCloudId?: number;
@@ -35,8 +37,12 @@ interface IFindOneRoutePath extends IFindManyRoutePath {
     id: number;
 }
 
-@EntityRepository(Route)
+//@EntityRepository(Route)
 export class RouteRepository extends Repository<Route> {
+
+    constructor(manager?: EntityManager) {
+        super(Route, manager);
+    }
     /**
      * Finds routing rules which belongs to the given path
      *
@@ -44,7 +50,7 @@ export class RouteRepository extends Repository<Route> {
      * @returns 
      */
      findManyInPath(path: IFindManyRoutePath, options?: FindManyOptions<Route>): Promise<Route[]> {
-        return this.find(this.getFindInPathOptions(path, options));
+        return this.getFindInPathOptions(path, options).getMany();
     }
 
     /**
@@ -53,7 +59,7 @@ export class RouteRepository extends Repository<Route> {
      * @returns 
      */
     findOneInPath(path: IFindOneRoutePath): Promise<Route | undefined> {
-        return this.findOne(this.getFindInPathOptions(path));
+        return this.getFindInPathOptions(path).getOne();
     }
 
     /**
@@ -62,7 +68,7 @@ export class RouteRepository extends Repository<Route> {
      * @returns 
      */
     findOneInPathOrFail(path: IFindOneRoutePath): Promise<Route> {
-        return this.findOneOrFail(this.getFindInPathOptions(path));
+        return this.getFindInPathOptions(path).getOneOrFail();
     }
 
     async move(ids: number[], toRouteId: number, offset: Offset): Promise<Route[]> {
@@ -239,33 +245,41 @@ export class RouteRepository extends Repository<Route> {
         )
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneRoutePath>, options: FindOneOptions<Route> | FindManyOptions<Route> = {}): FindOneOptions<Route> | FindManyOptions<Route> {
-        return Object.assign({
-            join: {
-                alias: 'route',
-                innerJoin: {
-                    table: 'route.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
-                }
-            },
-            where: (qb: SelectQueryBuilder<Route>) => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewall', {firewall: path.firewallId})
-                }
+    protected getFindInPathOptions(path: Partial<IFindOneRoutePath>, options: FindOneOptions<Route> | FindManyOptions <Route> = {}): SelectQueryBuilder<Route> {
+        const qb: SelectQueryBuilder<Route> = this.createQueryBuilder('route');
+        qb.innerJoinAndSelect('route.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .innerJoin('firewall.fwCloud', 'fwcloud')
 
-                if (path.fwCloudId) {
-                    qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
-                }
+        if (path.firewallId) {
+            qb.andWhere('firewall.id = :firewall', { firewall: path.firewallId });
+        }
 
-                if (path.routingTableId) {
-                    qb.andWhere('table.id = :table', {table: path.routingTableId})
-                }
+        if (path.fwCloudId) {
+            qb.andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: path.fwCloudId });
+        }
 
-                if (path.id) {
-                    qb.andWhere('rule.id = :id', {id: path.id})
-                }
+        if (path.routingTableId) {
+            qb.andWhere('table.id = :table', { table: path.routingTableId });
+        }
+
+        if (path.id) {
+            qb.andWhere('route.id = :id', { id: path.id });
+        }
+
+        // Aplica las opciones adicionales que se pasaron a la función
+        Object.entries(options).forEach(([key, value]) => {
+            switch (key) {
+                case 'where':
+                    qb.andWhere(value);
+                    break;
+                case 'relations':
+                    qb.leftJoinAndSelect(`route.${value}`, `${value}`);
+                    break;
+                default:
             }
-        }, options)
+        });
+
+        return qb;
     }
 }

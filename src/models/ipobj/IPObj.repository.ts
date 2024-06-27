@@ -20,14 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {EntityRepository, SelectQueryBuilder} from "typeorm";
-import {Repository} from "../../database/repository";
+import { EntityManager, SelectQueryBuilder } from "typeorm";
 import {IPObj} from "./IPObj";
+import { Repository } from "../../database/repository";
 
 export type ValidEntities = 'route' | 'rule' | 'dhcp_r' | 'keepalived_r' | 'haproxy_r';
 
-@EntityRepository(IPObj)
+//@EntityRepository(IPObj)
 export class IPObjRepository extends Repository<IPObj> {
+
+  constructor(manager?: EntityManager) {
+    super(IPObj, manager);
+  }
 
   private routingSelects(entity: ValidEntities): SelectQueryBuilder<IPObj> {
     let q = this.createQueryBuilder("ipobj")

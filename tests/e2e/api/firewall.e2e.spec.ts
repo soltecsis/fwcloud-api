@@ -5,7 +5,7 @@ import request = require("supertest");
 import { createUser, generateSession, attachSession } from "../../utils/utils";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import StringHelper from "../../../src/utils/string.helper";
 import { Firewall, FirewallInstallCommunication } from "../../../src/models/firewall/Firewall";
 import { IPObj } from "../../../src/models/ipobj/IPObj";
@@ -32,8 +32,11 @@ describe(describeName('Firewall E2E Tests'), () => {
     let fwCloud: FwCloud;
     let firewall: Firewall;
 
+    let manager: EntityManager;
+
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
 
         loggedUser = await createUser({ role: 0 });
         loggedUserSessionId = generateSession(loggedUser);
@@ -41,13 +44,13 @@ describe(describeName('Firewall E2E Tests'), () => {
         adminUser = await createUser({ role: 1 });
         adminUserSessionId = generateSession(adminUser);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({name: StringHelper.randomize(10)}));
-        const ipObj: IPObj = await getRepository(IPObj).save(getRepository(IPObj).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({name: StringHelper.randomize(10)}));
+        const ipObj: IPObj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
             name: 'test',
             address: '0.0.0.0',
             ipObjTypeId: 0
         }));
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id,
             install_ipobj: ipObj.id
@@ -77,7 +80,7 @@ describe(describeName('Firewall E2E Tests'), () => {
 
         it('regular user should compile a firewall if it does belong to the fwcloud', async () => {
             loggedUser.fwClouds = [fwCloud];
-            await getRepository(User).save(loggedUser);
+            await manager.getRepository(User).save(loggedUser);
 
             return await request(app.express)
                 .post(_URL().getURL('firewalls.compile', {
@@ -133,7 +136,7 @@ describe(describeName('Firewall E2E Tests'), () => {
 
         it('regular user should install a firewall if it does belong to the fwcloud', async () => {
             loggedUser.fwClouds = [fwCloud];
-            await getRepository(User).save(loggedUser);
+            await manager.getRepository(User).save(loggedUser);
 
             return await request(app.express)
                 .post(_URL().getURL('firewalls.install', {
@@ -146,7 +149,7 @@ describe(describeName('Firewall E2E Tests'), () => {
 
         it('admin user should install a firewall if user belongs to the fwcloud', async () => {
             adminUser.fwClouds = [fwCloud];
-            await getRepository(User).save(adminUser);
+            await manager.getRepository(User).save(adminUser);
 
             return await request(app.express)
                 .post(_URL().getURL('firewalls.install', {
@@ -179,7 +182,7 @@ describe(describeName('Firewall E2E Tests'), () => {
             rule1 = await ruleService.create({
                 routingTableId: table.id,
                 markIds: [{
-                    id: (await getRepository(Mark).save({
+                    id: (await manager.getRepository(Mark).save({
                         code: 1,
                         name: 'test',
                         fwCloudId: fwCloud.id
@@ -191,7 +194,7 @@ describe(describeName('Firewall E2E Tests'), () => {
             rule2 = await ruleService.create({
                 routingTableId: table.id,
                 markIds: [{
-                    id: (await getRepository(Mark).save({
+                    id: (await manager.getRepository(Mark).save({
                         code: 2,
                         name: 'test',
                         fwCloudId: fwCloud.id
@@ -222,7 +225,7 @@ describe(describeName('Firewall E2E Tests'), () => {
 
         it('regular user should routing compile a firewall if it does belong to the fwcloud', async () => {
             loggedUser.fwClouds = [fwcProduct.fwcloud];
-            await getRepository(User).save(loggedUser);
+            await manager.getRepository(User).save(loggedUser);
 
             return await request(app.express)
                 .get(_URL().getURL('fwclouds.firewalls.routing.compile', {
@@ -270,26 +273,26 @@ describe(describeName('Firewall E2E Tests'), () => {
             fwCloud = fwcProduct.fwcloud;
             firewall = fwcProduct.firewall;
 
-            rule1 = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            rule1 = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
                 rule_order: 1,
                 interface: null,
                 rule_type: 1,
                 firewall: firewall,
                 max_lease: 5,
-                network: await getRepository(IPObj).save(getRepository(IPObj).create({
+                network: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
                     netmask: '/24'
                 })),
-                range: await getRepository(IPObj).save(getRepository(IPObj).create({
+                range: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
                     range_start: '1',
                     range_end: '2',
                 })),
-                router: await getRepository(IPObj).save(getRepository(IPObj).create({
+                router: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
@@ -297,26 +300,26 @@ describe(describeName('Firewall E2E Tests'), () => {
                 })),
             }));
 
-            rule2 = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            rule2 = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
                 rule_order: 2,
                 interface: null,
                 rule_type: 1,
                 firewall: firewall,
                 max_lease: 5,
-                network: await getRepository(IPObj).save(getRepository(IPObj).create({
+                network: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
                     netmask: '/24'
                 })),
-                range: await getRepository(IPObj).save(getRepository(IPObj).create({
+                range: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
                     range_start: '1',
                     range_end: '2',
                 })),
-                router: await getRepository(IPObj).save(getRepository(IPObj).create({
+                router: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
@@ -347,7 +350,7 @@ describe(describeName('Firewall E2E Tests'), () => {
 
         it('regular user should dhcp compile a firewall if it does belong to the fwcloud', async () => {
             loggedUser.fwClouds = [fwcProduct.fwcloud];
-            await getRepository(User).save(loggedUser);
+            await manager.getRepository(User).save(loggedUser);
 
             return await request(app.express)
                 .get(_URL().getURL('fwclouds.firewalls.system.dhcp.compile', {
@@ -395,17 +398,17 @@ describe(describeName('Firewall E2E Tests'), () => {
             fwCloud = fwcProduct.fwcloud;
             firewall = fwcProduct.firewall;
 
-            rule1 = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+            rule1 = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
                 rule_type: 1,
                 firewall: firewall,
-                frontendIp: await getRepository(IPObj).save(getRepository(IPObj).create({
+                frontendIp: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     address: `192.168.1.1`,
                     destination_port_start: 80,
                     destination_port_end: 80,
                     name: 'test',
                     ipObjTypeId: 0
                 })),
-                frontendPort: await getRepository(IPObj).save(getRepository(IPObj).create({
+                frontendPort: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     destination_port_start: 80,
                     destination_port_end: 80,
                     name: 'test',
@@ -413,17 +416,17 @@ describe(describeName('Firewall E2E Tests'), () => {
                 })),
                 rule_order: 1
             }));
-            rule2 = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+            rule2 = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
                 rule_type: 1,
                 firewall: firewall,
-                frontendIp: await getRepository(IPObj).save(getRepository(IPObj).create({
+                frontendIp: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     address: `192.168.1.1`,
                     destination_port_start: 80,
                     destination_port_end: 80,
                     name: 'test',
                     ipObjTypeId: 0
                 })),
-                frontendPort: await getRepository(IPObj).save(getRepository(IPObj).create({
+                frontendPort: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     destination_port_start: 80,
                     destination_port_end: 80,
                     name: 'test',
@@ -454,7 +457,7 @@ describe(describeName('Firewall E2E Tests'), () => {
 
         it('regular user should haproxy compile a firewall if it does belong to the fwcloud', async () => {
             loggedUser.fwClouds = [fwcProduct.fwcloud];
-            await getRepository(User).save(loggedUser);
+            await manager.getRepository(User).save(loggedUser);
 
             return await request(app.express)
                 .get(_URL().getURL('fwclouds.firewalls.system.haproxy.compile', {

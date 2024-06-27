@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { Application } from "../../../../../src/Application";
 import { RoutingTableController } from "../../../../../src/controllers/routing/routing-tables/routing-tables.controller";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
@@ -39,6 +39,7 @@ import { RouteService } from "../../../../../src/models/routing/route/route.serv
 import { Route } from "../../../../../src/models/routing/route/route.model";
 import { RoutingRuleService } from "../../../../../src/models/routing/routing-rule/routing-rule.service";
 import { RoutingRule } from "../../../../../src/models/routing/routing-rule/routing-rule.model";
+import db from "../../../../../src/database/database-manager";
 
 describe(describeName('Routing Table E2E Tests'), () => {
     let app: Application;
@@ -51,9 +52,11 @@ describe(describeName('Routing Table E2E Tests'), () => {
     let fwcProduct: FwCloudProduct;
     let fwCloud: FwCloud;
     let firewall: Firewall;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
         
         loggedUser = await createUser({role: 0});
@@ -104,7 +107,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should see tables', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.tables.index', {
@@ -172,7 +175,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should see the table', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.tables.show', {
@@ -242,7 +245,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should see the table grid', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.tables.grid', {
@@ -302,7 +305,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should create the table', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.routing.tables.store', {
@@ -390,7 +393,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should update the table', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.routing.tables.update', {
@@ -478,7 +481,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should see the table restrictions', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.tables.restrictions', {
@@ -547,7 +550,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should remove the table', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.routing.tables.delete', {
@@ -562,7 +565,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                             fwCloudId: fwCloud.id,
                             firewallId: firewall.id,
                             id: table.id
-                        })).to.be.undefined
+                        })).to.be.null
                     });
             });
 
@@ -580,7 +583,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
                             fwCloudId: fwCloud.id,
                             firewallId: firewall.id,
                             id: table.id
-                        })).to.be.undefined
+                        })).to.be.null
                     });
             });
 
@@ -635,7 +638,7 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
             it('regular user which belongs to the fwcloud should see the table grid', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.routing.tables.compile', {

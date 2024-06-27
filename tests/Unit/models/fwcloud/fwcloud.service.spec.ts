@@ -24,19 +24,22 @@ import { AbstractApplication } from "../../../../src/fonaments/abstract-applicat
 import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import { FwCloudService } from "../../../../src/models/fwcloud/fwcloud.service";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { createUser } from "../../../utils/utils";
 import { FwcTree } from "../../../../src/models/tree/fwc-tree.model";
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 
 
 let app: AbstractApplication;
 let service: FwCloudService;
+let manager: EntityManager;
 
 describe(describeName('FwCloudService Unit tests'), async() => {
 
     beforeEach(async() => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         service = await app.getService<FwCloudService>(FwCloudService.name);
     });
 
@@ -53,7 +56,7 @@ describe(describeName('FwCloudService Unit tests'), async() => {
                 name: StringHelper.randomize(10)
             });
 
-            expect(await getRepository(FwCloud).findOne({ where: { id: fwCloud.id }})).not.to.be.null;
+            expect(await manager.getRepository(FwCloud).findOne({ where: { id: fwCloud.id }})).not.to.be.null;
         });
 
         it('should grant access to all admin users', async () => {
@@ -64,7 +67,7 @@ describe(describeName('FwCloudService Unit tests'), async() => {
                 name: StringHelper.randomize(10)
             });
             
-            fwCloud = await getRepository(FwCloud).findOne({
+            fwCloud = await manager.getRepository(FwCloud).findOne({
                 where: { id: fwCloud.id },
                 relations: ['users']
             });
@@ -78,7 +81,7 @@ describe(describeName('FwCloudService Unit tests'), async() => {
                 name: StringHelper.randomize(10)
             });
 
-            expect(await getRepository(FwcTree).find({
+            expect(await manager.getRepository(FwcTree).find({
                 where: {
                     fwCloudId: fwCloud.id
                 }
@@ -90,7 +93,7 @@ describe(describeName('FwCloudService Unit tests'), async() => {
         let fwCloud: FwCloud;
 
         beforeEach(async () => {
-            fwCloud = await (getRepository(FwCloud).create({
+            fwCloud = await (manager.getRepository(FwCloud).create({
                 name: StringHelper.randomize(10)
             })).save();
         });

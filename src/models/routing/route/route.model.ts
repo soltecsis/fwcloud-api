@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Column, Entity, getRepository, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Interface } from "../../interface/Interface";
 import { IPObj } from "../../ipobj/IPObj";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
@@ -137,7 +137,7 @@ export class Route extends Model {
 
 
     public static async getRouteWhichLastAddressInHost(ipobjId: number, type: number, fwcloud:number): Promise<Route[]> {
-        const routeToIPObjs: RouteToIPObj[] = await getRepository(RouteToIPObj).createQueryBuilder('routeToIPObj')
+        const routeToIPObjs: RouteToIPObj[] = await db.getSource().manager.getRepository(RouteToIPObj).createQueryBuilder('routeToIPObj')
             .innerJoin('routeToIPObj.ipObj', 'ipobj')
             .innerJoin('ipobj.hosts', 'interfaceIPObj')
             .innerJoin('routeToIPObj.route', 'route')
@@ -171,7 +171,7 @@ export class Route extends Model {
             return [];
         }
 
-        return await getRepository(Route).createQueryBuilder('route')
+        return await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
             .distinct()
             .addSelect('firewall.id', 'firewall_id')
             .addSelect('firewall.name', 'firewall_name')
@@ -187,7 +187,7 @@ export class Route extends Model {
     }
 
     public static async getRouteWhichLastAddressInHostInGroup(ipobjId: number, type: number, fwcloud:number): Promise<Route[]> {
-        const routeToIPObjGroups: RouteToIPObjGroup[] = await getRepository(RouteToIPObjGroup).createQueryBuilder('routeToIPObjGroups')
+        const routeToIPObjGroups: RouteToIPObjGroup[] = await db.getSource().manager.getRepository(RouteToIPObjGroup).createQueryBuilder('routeToIPObjGroups')
             .innerJoinAndSelect('routeToIPObjGroups.ipObjGroup', 'ipObjGroup')
             .innerJoinAndSelect('ipObjGroup.ipObjToIPObjGroups', 'ipObjToIPObjGroups')
             .innerJoin('ipObjToIPObjGroups.ipObj', 'ipobj')
@@ -226,7 +226,7 @@ export class Route extends Model {
             return [];
         }
 
-        return await getRepository(Route).createQueryBuilder('route')
+        return await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
             .distinct()
             .addSelect('firewall.id', 'firewall_id')
             .addSelect('firewall.name', 'firewall_name')

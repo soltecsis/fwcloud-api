@@ -26,16 +26,19 @@ import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import { PolicyGroup } from "../../../../src/models/policy/PolicyGroup";
 import { PolicyGroupRepository } from "../../../../src/repositories/PolicyGroupRepository";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { getCustomRepository } from "typeorm";
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 
 let policyGroupRepository: PolicyGroupRepository;
 let app: AbstractApplication;
+let manager: EntityManager
 
 describe(describeName('PolicyGroupRepository tests'), () => {
 
     beforeEach(async () => {
         app = testSuite.app;
-        policyGroupRepository = getCustomRepository(PolicyGroupRepository);
+        manager = db.getSource().manager;
+        policyGroupRepository = new PolicyGroupRepository(manager);
     });
 
     describe(describeName('PolicyGroupRepository deleteIfEmpty'), () => {
@@ -51,7 +54,7 @@ describe(describeName('PolicyGroupRepository tests'), () => {
 
                 await policyGroupRepository.deleteIfEmpty(policyGroup);
 
-                expect(await policyGroupRepository.findOne({ where: { id: policyGroup.id }})).to.be.undefined;
+                expect(await policyGroupRepository.findOne({ where: { id: policyGroup.id }})).to.be.null;
             });
 
             it('should not delete a policyGroup if it is not empty', async () => {

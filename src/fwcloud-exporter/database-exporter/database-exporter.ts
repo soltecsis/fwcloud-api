@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Connection } from "typeorm";
+import { DataSource } from "typeorm";
 import { DatabaseService } from "../../database/database.service";
 import { app } from "../../fonaments/abstract-application";
 import { FwCloudExporter } from "./exporters/fwcloud.exporter";
@@ -123,13 +123,13 @@ export class DatabaseExporter {
 
     public async export(fwcloudId: number): Promise<ExporterResult> {
         const databaseService: DatabaseService = await app().getService<DatabaseService>(DatabaseService.name);
-        const connection: Connection = databaseService.connection;
+        const dataSource: DataSource = databaseService.dataSource;
         this._result = new ExporterResult();
 
         for(let i = 0; i < EXPORTERS.length; i++) {
             const exporter: TableExporter = EXPORTERS[i];
-            await exporter.bootstrap(connection, fwcloudId);
-            await exporter.export(this._result, connection, fwcloudId);
+            await exporter.bootstrap(dataSource, fwcloudId);
+            await exporter.export(this._result, dataSource, fwcloudId);
         }
 
 

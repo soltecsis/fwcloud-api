@@ -57,18 +57,18 @@ import { Firewall, FirewallInstallCommunication } from '../../models/firewall/Fi
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload } from '../../sockets/messages/socket-message';
 import { logger } from '../../fonaments/abstract-application';
-import { getRepository } from 'typeorm';
 var config = require('../../config/config');
 import * as path from 'path';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
+import db from '../../database/database-manager';
 
 /*----------------------------------------------------------------------------------------------------------------------*/
 router.post('/', async (req, res, next) => {
   try {
-    const firewall = await getRepository(Firewall).findOneOrFail(req.body.firewall);
+    const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail(req.body.firewall);
     let nodeId = firewall.id;
     if (firewall.clusterId && firewall.clusterId > 0) {
-      const masterNode = await getRepository(Firewall).createQueryBuilder('firewall')
+      const masterNode = await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
         .where('firewall.clusterId = :cluster', {cluster: firewall.clusterId})
         .andWhere('firewall.fwmaster = 1')
         .getOneOrFail();

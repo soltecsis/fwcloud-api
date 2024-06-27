@@ -1,4 +1,4 @@
-import { getRepository, QueryFailedError } from "typeorm";
+import { EntityManager, QueryFailedError } from "typeorm";
 import { Application } from "../../../../src/Application";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import StringHelper from "../../../../src/utils/string.helper";
@@ -8,6 +8,7 @@ import { Request } from 'express';
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { RoutingGroupController } from "../../../../src/controllers/routing/routing-group/routing-group.controller";
 import { RoutingGroup } from "../../../../src/models/routing/routing-group/routing-group.model";
+import db from "../../../../src/database/database-manager";
 
 describe(RoutingGroupController.name, () => {
     let controller: RoutingGroupController;
@@ -17,16 +18,18 @@ describe(RoutingGroupController.name, () => {
     let fwcloud: FwCloud;
     let firewall: Firewall;
     let group: RoutingGroup;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
         
         fwcProduct = await (new FwCloudFactory()).make();
         
         fwcloud = fwcProduct.fwcloud;
         firewall = fwcProduct.firewall;
-        group = getRepository(RoutingGroup).create({
+        group = manager.getRepository(RoutingGroup).create({
             name: '',
             firewallId: firewall.id
         })
@@ -35,7 +38,7 @@ describe(RoutingGroupController.name, () => {
 
     describe('make', () => {
         it('should throw error if the group does not belongs to the firewall', async () => {
-            const newFirewall: Firewall = await getRepository(Firewall).save({
+            const newFirewall: Firewall = await manager.getRepository(Firewall).save({
                 name: StringHelper.randomize(10),
                 fwCloudId: fwcloud.id
             });
@@ -48,7 +51,7 @@ describe(RoutingGroupController.name, () => {
         });
 
         it('should throw an error if the firewall does not belongs to the fwcloud', async () => {
-            const newfwcloud = await getRepository(FwCloud).save({
+            const newfwcloud = await manager.getRepository(FwCloud).save({
                 name: StringHelper.randomize(10)
             });
 

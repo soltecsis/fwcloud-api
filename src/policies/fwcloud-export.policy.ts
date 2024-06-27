@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import db from "../database/database-manager";
 import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { FwCloud } from "../models/fwcloud/FwCloud";
 import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
 
 export class FwCloudExportPolicy extends Policy {
     static async store(fwCloud: FwCloud, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });

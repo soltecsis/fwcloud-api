@@ -20,13 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityRepository, SelectQueryBuilder } from "typeorm";
-import { Repository } from "../../database/repository";
+import { EntityManager, SelectQueryBuilder } from "typeorm";
 import { ValidEntities } from "./IPObj.repository";
 import { IPObjGroup } from "./IPObjGroup";
+import { Repository } from "../../database/repository";
 
-@EntityRepository(IPObjGroup)
+//@EntityRepository(IPObjGroup)
 export class IPObjGroupRepository extends Repository<IPObjGroup> {
+
+  constructor(manager?: EntityManager) {
+    super(IPObjGroup, manager);
+  }
 
  getIpobjGroupsInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<IPObjGroup> {
     const query = this.createQueryBuilder("ipobjGroup")

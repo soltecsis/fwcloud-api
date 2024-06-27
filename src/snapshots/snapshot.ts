@@ -42,9 +42,10 @@ import { DatabaseImporter } from "../fwcloud-exporter/database-importer/database
 import { SnapshotService } from "./snapshot.service";
 import { BackupService } from "../backups/backup.service";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { getCustomRepository, getRepository, Migration } from "typeorm";
+import { Migration } from "typeorm";
 import { DatabaseService } from "../database/database.service";
 import * as crypto from 'crypto';
+import db from "../database/database-manager";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -85,6 +86,7 @@ export class Snapshot implements Responsable {
     protected _data: ExporterResult;
 
     protected _restoredFwCloud: FwCloud;
+    protected _firewallRepository: FirewallRepository;
 
     protected constructor() {
         this._id = null;
@@ -98,6 +100,7 @@ export class Snapshot implements Responsable {
         this._data = null;
         this._compatible = false;
         this._hash = null;
+        this._firewallRepository = new FirewallRepository(db.getSource().manager);
     }
 
     get name(): string {
@@ -417,7 +420,7 @@ export class Snapshot implements Responsable {
                 relations: ['clusters', 'firewalls']
             });
 
-            await getCustomRepository(FirewallRepository).markAsUncompiled(fwcloud.firewalls);
+            await this._firewallRepository.markAsUncompiled(fwcloud.firewalls);
 
             return resolve();
         });

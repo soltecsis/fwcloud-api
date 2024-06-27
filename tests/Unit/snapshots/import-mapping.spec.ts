@@ -25,7 +25,7 @@ import { ImportMapping } from "../../../src/fwcloud-exporter/database-importer/t
 import { IdManager } from "../../../src/fwcloud-exporter/database-importer/terraformer/mapper/id-manager";
 import { DatabaseService } from "../../../src/database/database.service";
 import { ExporterResult } from "../../../src/fwcloud-exporter/database-exporter/exporter-result";
-import { Repository, QueryRunner, SelectQueryBuilder } from "typeorm";
+import { QueryRunner, SelectQueryBuilder } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import StringHelper from "../../../src/utils/string.helper";
 
@@ -40,8 +40,8 @@ describe(describeName('Import mapping tests'), () => {
         });
 
         it('should map the old id with a new id', async () => {
-            const queryRunner: QueryRunner = databaseService.connection.createQueryRunner();
-            const queryBuilder: SelectQueryBuilder<unknown> = databaseService.connection.createQueryBuilder('fwcloud', 'fwcloud').select('MAX(id)', 'id');
+            const queryRunner: QueryRunner = databaseService.dataSource.createQueryRunner();
+            const queryBuilder: SelectQueryBuilder<unknown> = databaseService.dataSource.createQueryBuilder('fwcloud', 'fwcloud').select('MAX(id)', 'id');
 
             await FwCloud.save(FwCloud.create({name: StringHelper.randomize(10)}));
             const maxId : any = (await queryBuilder.execute())[0].id;
@@ -61,7 +61,7 @@ describe(describeName('Import mapping tests'), () => {
         it('should not map a new id if the id is not exported', async () => {
             const results: ExporterResult = new ExporterResult();
             results.addTableData('fwcloud', [{ id: 0 }])
-            const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), [
+            const mapper = new ImportMapping(await IdManager.make(databaseService.dataSource.createQueryRunner(), [
                 'fwcloud'
             ]), results);
 
@@ -73,7 +73,7 @@ describe(describeName('Import mapping tests'), () => {
         it('should not map a new id if the table is not exported', async () => {
             const results: ExporterResult = new ExporterResult();
 
-            const mapper = new ImportMapping(await IdManager.make(databaseService.connection.createQueryRunner(), []), results);
+            const mapper = new ImportMapping(await IdManager.make(databaseService.dataSource.createQueryRunner(), []), results);
 
             const newId: number = mapper.getMappedId('fwcloud', 'id', 1);
 

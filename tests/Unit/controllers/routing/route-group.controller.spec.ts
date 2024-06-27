@@ -1,4 +1,4 @@
-import { getRepository, QueryFailedError } from "typeorm";
+import { EntityManager, QueryFailedError } from "typeorm";
 import { Application } from "../../../../src/Application";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { RoutingTableService } from "../../../../src/models/routing/routing-table/routing-table.service";
@@ -16,6 +16,7 @@ import { RouteGroupService } from "../../../../src/models/routing/route-group/ro
 import { RouteGroupPolicy } from "../../../../src/policies/route-group.policy";
 import { RequestInputs } from "../../../../src/fonaments/http/request-inputs";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
+import db from "../../../../src/database/database-manager";
 
 describe(RouteGroupController.name, () => {
     let controller: RouteGroupController;
@@ -26,9 +27,11 @@ describe(RouteGroupController.name, () => {
     let routeGroupService: RouteGroupService;
     let firewall: Firewall;
     let fwcloud: FwCloud;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager
         tableService = await app.getService<RoutingTableService>(RoutingTableService.name);
         routeService = await app.getService<RouteService>(RouteService.name);
         routeGroupService = await app.getService<RouteGroupService>(RouteGroupService.name);
@@ -36,7 +39,7 @@ describe(RouteGroupController.name, () => {
         fwcProduct = await (new FwCloudFactory()).make();
         
         fwcloud = fwcProduct.fwcloud;
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwcProduct.fwcloud.id
         }));
@@ -52,14 +55,14 @@ describe(RouteGroupController.name, () => {
         let group: RouteGroup;
 
         beforeEach(async () => {
-            group = await getRepository(RouteGroup).save({
+            group = await manager.getRepository(RouteGroup).save({
                 firewallId: firewall.id,
                 name: 'group'
             })
         });
 
         it('should throw an error if the group does not belongs to the firewall', async () => {
-            const newFirewall: Firewall = await getRepository(Firewall).save({
+            const newFirewall: Firewall = await manager.getRepository(Firewall).save({
                 name: StringHelper.randomize(10),
                 fwCloudId: fwcloud.id
             });
@@ -74,7 +77,7 @@ describe(RouteGroupController.name, () => {
         });
 
         it('should throw an error if the firewall does not belongs to the fwcloud', async () => {
-            const newfwcloud = await getRepository(FwCloud).save({
+            const newfwcloud = await manager.getRepository(FwCloud).save({
                 name: StringHelper.randomize(10)
             });
 
@@ -138,7 +141,7 @@ describe(RouteGroupController.name, () => {
                 firewallId: firewall.id
             });
 
-            const spy: Sinon.SinonSpy = Sinon.stub(RouteGroupPolicy, 'update').resolves(Authorization.grant());
+            Sinon.stub(RouteGroupPolicy, 'update').resolves(Authorization.grant());
 
             await controller.make({
                 params: {
@@ -165,14 +168,12 @@ describe(RouteGroupController.name, () => {
                 } as unknown as Request)
             } as unknown as Request);
 
-
             expect((await routeGroupService.findOneInPath({
                 id: group.id,
             })).style).to.be.eq("#E6EE9C");
-
             expect((await routeGroupService.findOneInPath({
                 id: group.id,
-            }, {relations: ['routes']})).routes).to.have.length(1);
+            }, /**{relations: ['routes']} */)).routes).to.have.length(1);
         });
     })
 })

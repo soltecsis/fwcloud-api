@@ -29,6 +29,8 @@ import request = require("supertest");
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { FwCloudFactory, FwCloudProduct } from '../../utils/fwcloud-factory';
 import { CreateOpenVPNStatusHistoryData, OpenVPNStatusHistoryService } from '../../../src/models/vpn/openvpn/status/openvpn-status-history.service';
+import { EntityManager } from 'typeorm';
+import db from '../../../src/database/database-manager';
 
 let app: Application;
 let openVPNService: OpenVPNService;
@@ -39,11 +41,13 @@ let adminUser: User;
 let adminUserSessionId: string;
 let fwcProduct: FwCloudProduct;
 let data : CreateOpenVPNStatusHistoryData[];
+let manager: EntityManager;
 
 describe(describeName('OpenVPNArchive E2E tests'), () => {
     
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         fwcProduct = await (new FwCloudFactory()).make();

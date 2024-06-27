@@ -20,12 +20,15 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository, UpdateResult, DeleteResult, InsertResult, EntityRepository } from "typeorm";
+import { UpdateResult, DeleteResult, EntityManager } from "typeorm";
 import { PolicyGroup } from "../models/policy/PolicyGroup";
-import { PolicyRule } from "../models/policy/PolicyRule";
+import { Repository } from "../database/repository";
 
-@EntityRepository(PolicyGroup)
 export class PolicyGroupRepository extends Repository<PolicyGroup> {
+
+    constructor(manager?: EntityManager) {
+        super(PolicyGroup, manager);
+    }
 
     public async moveToFirewall(id: number, firewallId: number): Promise<UpdateResult> {
         return await this.update(id, {

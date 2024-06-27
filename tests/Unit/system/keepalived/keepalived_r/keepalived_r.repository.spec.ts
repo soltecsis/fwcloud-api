@@ -14,18 +14,18 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { getCustomRepository } from "typeorm";
 import { KeepalivedRule } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model";
 import { KeepalivedRepository } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived.repository";
 import { KeepalivedGroup } from "../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.model";
 import { IPObj } from "../../../../../src/models/ipobj/IPObj";
-import { getRepository } from "typeorm";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { testSuite, expect } from "../../../../mocha/global-setup";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
 import StringHelper from "../../../../../src/utils/string.helper";
 import sinon from "sinon";
 import { Offset } from "../../../../../src/offset";
+import { EntityManager } from "typeorm";
+import db from "../../../../../src/database/database-manager";
 
 describe(KeepalivedRepository.name, () => {
     let repository: KeepalivedRepository;
@@ -34,30 +34,32 @@ describe(KeepalivedRepository.name, () => {
     let gateway: IPObj;
     let group: KeepalivedGroup;
     let keepalivedRule: KeepalivedRule;
+    let manager: EntityManager;
 
     beforeEach(async () => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
-        repository = getCustomRepository(KeepalivedRepository);
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        repository = new KeepalivedRepository(manager);
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
-        gateway = await getRepository(IPObj).save(getRepository(IPObj).create({
+        gateway = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
             name: 'test',
             address: '0.0.0.0',
             ipObjTypeId: 0,
             interfaceId: null
         }));
 
-        group = await getRepository(KeepalivedGroup).save(getRepository(KeepalivedGroup).create({
+        group = await manager.getRepository(KeepalivedGroup).save(manager.getRepository(KeepalivedGroup).create({
             name: 'group',
             firewall: firewall,
         }));
 
-        keepalivedRule = await getRepository(KeepalivedRule).save(getRepository(KeepalivedRule).create({
+        keepalivedRule = await manager.getRepository(KeepalivedRule).save(manager.getRepository(KeepalivedRule).create({
             group: group,
             firewall: firewall,
             rule_order: 1,
@@ -69,11 +71,11 @@ describe(KeepalivedRepository.name, () => {
         it('should remove a single KeepalivedRule entity', async () => {
             const result = await repository.remove(keepalivedRule);
 
-            expect(await repository.findOne({ where: { id: keepalivedRule.id }})).to.be.undefined;
+            expect(await repository.findOne({ where: { id: keepalivedRule.id }})).to.be.null;
         });
 
         it('should remove multiple KeepalivedRule entities', async () => {
-            const keepalivedRule2 = await getRepository(KeepalivedRule).save(getRepository(KeepalivedRule).create({
+            const keepalivedRule2 = await manager.getRepository(KeepalivedRule).save(manager.getRepository(KeepalivedRule).create({
                 group: group,
                 firewall: firewall,
                 rule_order: 2,
@@ -82,8 +84,8 @@ describe(KeepalivedRepository.name, () => {
 
             const result = await repository.remove([keepalivedRule, keepalivedRule2]);
 
-            expect(await repository.findOne({ where: { id: keepalivedRule.id }})).to.be.undefined;
-            expect(await repository.findOne({ where: { id: keepalivedRule2.id }})).to.be.undefined;
+            expect(await repository.findOne({ where: { id: keepalivedRule.id }})).to.be.null;
+            expect(await repository.findOne({ where: { id: keepalivedRule2.id }})).to.be.null;
         });
 
         it('should refresh orders after remove', async () => {
@@ -119,7 +121,7 @@ describe(KeepalivedRepository.name, () => {
     describe('getLastKeepalivedRuleInGroup', () => {
         it('should return the last Keepalived rule in the group', async () => {
             const Keepalivedgid = group.id;
-            const expectedRule: KeepalivedRule = await getRepository(KeepalivedRule).save(getRepository(KeepalivedRule).create({
+            const expectedRule: KeepalivedRule = await manager.getRepository(KeepalivedRule).save(manager.getRepository(KeepalivedRule).create({
                 group: group,
                 firewall: firewall,
                 rule_order: 2,

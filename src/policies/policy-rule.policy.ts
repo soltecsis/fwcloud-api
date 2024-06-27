@@ -1,17 +1,17 @@
-import { getRepository } from 'typeorm';
 import { User } from './../models/user/User';
 import { Firewall } from './../models/firewall/Firewall';
 import { Policy, Authorization } from './../fonaments/authorization/policy';
+import db from '../database/database-manager';
 
 
 export class PolicyRulePolicy extends Policy {
 
     static async read(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        firewall = await getRepository(Firewall).findOneOrFail({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });
@@ -25,11 +25,11 @@ export class PolicyRulePolicy extends Policy {
         return match.length > 0 ? Authorization.grant() : Authorization.revoke();
     }
     static async download(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        firewall = await getRepository(Firewall).findOneOrFail({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });

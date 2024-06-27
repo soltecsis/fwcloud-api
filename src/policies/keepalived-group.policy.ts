@@ -1,13 +1,13 @@
-import { getRepository } from "typeorm";
 import { Authorization, Policy } from "../fonaments/authorization/policy";
 import { Firewall } from "../models/firewall/Firewall";
 import { User } from "../models/user/User";
 import { KeepalivedGroup } from "../models/system/keepalived/keepalived_g/keepalived_g.model";
+import db from "../database/database-manager";
 
 export class KeepalivedGroupPolicy extends Policy {
     static async index(firewall: Firewall, user: User): Promise<Authorization> {
         user = await this.getUser(user.id);
-        firewall = await getRepository(Firewall).findOne({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOne({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });
@@ -16,7 +16,7 @@ export class KeepalivedGroupPolicy extends Policy {
 
     static async show(group: KeepalivedGroup, user: User): Promise<Authorization> {
         user = await this.getUser(user.id);
-        const firewall = await getRepository(Firewall).findOne({
+        const firewall = await db.getSource().manager.getRepository(Firewall).findOne({
             where: { id: group.firewallId },
             relations: ['fwCloud']
         });
@@ -25,7 +25,7 @@ export class KeepalivedGroupPolicy extends Policy {
 
     static async create(firewall: Firewall, user: User): Promise<Authorization> {
         user = await this.getUser(user.id);
-        firewall = await getRepository(Firewall).findOne({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOne({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });
@@ -34,7 +34,7 @@ export class KeepalivedGroupPolicy extends Policy {
 
     static async update(group: KeepalivedGroup, user: User): Promise<Authorization> {
         user = await this.getUser(user.id);
-        const firewall = await getRepository(Firewall).findOne({
+        const firewall = await db.getSource().manager.getRepository(Firewall).findOne({
             where: { id: group.firewallId },
             relations: ['fwCloud']
         });
@@ -43,7 +43,7 @@ export class KeepalivedGroupPolicy extends Policy {
 
     static async remove(group: KeepalivedGroup, user: User): Promise<Authorization> {
         user = await this.getUser(user.id);
-        const firewall = await getRepository(Firewall).findOne({
+        const firewall = await db.getSource().manager.getRepository(Firewall).findOne({
             where: { id: group.firewallId },
             relations: ['fwCloud']
         });
@@ -61,7 +61,7 @@ export class KeepalivedGroupPolicy extends Policy {
     }
 
     protected static async getUser(id: number): Promise<User> {
-        return getRepository(User).findOneOrFail({
+        return db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id },
             relations: ['fwClouds']
         });

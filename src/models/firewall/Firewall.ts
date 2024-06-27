@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager'
-import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany, getRepository, Not, IsNull, In } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne, OneToMany, Not, IsNull, In } from "typeorm";
 
 import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
@@ -250,7 +250,7 @@ export class Firewall extends Model {
 	async getCommunication(custom: { sshuser?: string, sshpassword?: string } = {}): Promise<Communication<unknown>> {
 		if (this.install_communication === FirewallInstallCommunication.SSH) {
 			return new SSHCommunication({
-				host: (await getRepository(IPObj).findOneOrFail({ where: { id: this.install_ipobj }})).address,
+				host: (await db.getSource().manager.getRepository(IPObj).findOneOrFail({ where: { id: this.install_ipobj }})).address,
 				port: this.install_port,
 				username: custom.sshuser ?? utilsModel.decrypt(this.install_user),
 				password: custom.sshpassword ?? utilsModel.decrypt(this.install_pass),
@@ -260,7 +260,7 @@ export class Firewall extends Model {
 
 		return new AgentCommunication({
 			protocol: this.install_protocol,
-			host: (await getRepository(IPObj).findOneOrFail({ where: { id: this.install_ipobj }})).address,
+			host: (await db.getSource().manager.getRepository(IPObj).findOneOrFail({ where: { id: this.install_ipobj }})).address,
 			port: this.install_port,
 			apikey: utilsModel.decrypt(this.install_apikey)
 		});
@@ -279,14 +279,14 @@ export class Firewall extends Model {
 		this.compiled_at = null;
 		this.installed_at = null;
 
-		return await (await app().getService<DatabaseService>(DatabaseService.name)).connection.manager.save(this);
+		return await (await app().getService<DatabaseService>(DatabaseService.name)).dataSource.manager.save(this);
 	}
 
 	/**
 	 * Returns true if the firewall has at least one rule which is marked
 	 */
 	public async hasMarkedRules(): Promise<boolean> {
-		return (await getRepository(PolicyRule).find({
+		return (await db.getSource().manager.getRepository(PolicyRule).find({
 			where: {
 				firewallId: this.id,
 				markId: Not(IsNull())
@@ -746,7 +746,7 @@ export class Firewall extends Model {
 			return;
 		}
 
-		const ipObjs: IPObj[] = await getRepository(IPObj).find({
+		const ipObjs: IPObj[] = await db.getSource().manager.getRepository(IPObj).find({
 			where: {
 				id: In(ipObjIds),
 				fwCloudId: fwcloudId
@@ -757,7 +757,7 @@ export class Firewall extends Model {
 			return;
 		}
 
-		const query = getRepository(Firewall).createQueryBuilder('firewall')
+		const query = db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
 			.where('firewall.fwCloudId = :fwcloudId', { fwcloudId })
 			.andWhere((qb) => {
 				const subqueryPolicy = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
@@ -797,7 +797,7 @@ export class Firewall extends Model {
 		const firewalls = await query.getMany();
 
 		if (firewalls.length > 0) {
-			await getRepository(Firewall).update({
+			await db.getSource().manager.getRepository(Firewall).update({
 				id: In(firewalls.map(firewall => firewall.id))
 			}, {
 				status: 3,
@@ -807,7 +807,7 @@ export class Firewall extends Model {
 		}
 
 		//If the ipobj belongs to a group or groups, then update firewalls affected by these groups
-		const groupContainers: IPObjGroup[] = await getRepository(IPObjGroup).createQueryBuilder('group')
+		const groupContainers: IPObjGroup[] = await db.getSource().manager.getRepository(IPObjGroup).createQueryBuilder('group')
 			.innerJoin('group.ipObjToIPObjGroups', 'ipObjToIPObjGroups')
 			.innerJoin('ipObjToIPObjGroups.ipObj', 'ipobj', 'ipobj.id IN (:id)', {
 				id: ipObjs.map(item => item.id).join(',')
@@ -818,7 +818,7 @@ export class Firewall extends Model {
 		}
 
 		// We must see if the ADDRESS is part of a network interface and then update the status of the firewalls that use that network interface.
-		const interfacesUsingAddress: Interface[] = await getRepository(Interface).createQueryBuilder('interface')
+		const interfacesUsingAddress: Interface[] = await db.getSource().manager.getRepository(Interface).createQueryBuilder('interface')
 			.innerJoin('interface.ipObjs', 'ipobj', 'ipobj.id IN (:id)', {
 				id: ipObjs.map(item => item.id).join(',')
 			})
@@ -834,7 +834,7 @@ export class Firewall extends Model {
 			return;
 		}
 
-		const ipObjGroups: IPObjGroup[] = await getRepository(IPObjGroup).find({
+		const ipObjGroups: IPObjGroup[] = await db.getSource().manager.getRepository(IPObjGroup).find({
 			where: {
 				id: In(ipObjGroupIds),
 				fwCloudId: fwcloudId
@@ -845,7 +845,7 @@ export class Firewall extends Model {
 			return;
 		}
 
-		const query = getRepository(Firewall).createQueryBuilder('firewall')
+		const query = db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
 			.where('firewall.fwCloudId = :fwcloudId', { fwcloudId: fwcloudId })
 			.andWhere((qb) => {
 				const subqueryPolicy = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
@@ -871,7 +871,7 @@ export class Firewall extends Model {
 		const firewalls = await query.getMany();
 
 		if (firewalls.length > 0) {
-			await getRepository(Firewall).update({
+			await db.getSource().manager.getRepository(Firewall).update({
 				id: In(firewalls.map(firewall => firewall.id))
 			}, {
 				status: 3,
@@ -886,13 +886,13 @@ export class Firewall extends Model {
 			return;
 		}
 
-		const interfaces: Interface[] = await getRepository(Interface).createQueryBuilder('int')
+		const interfaces: Interface[] = await db.getSource().manager.getRepository(Interface).createQueryBuilder('int')
 			.innerJoin('int.firewall', 'firewall')
 			.innerJoin('firewall.fwCloud', 'fwcloud', 'fwcloud.id = :fwcloudId', { fwcloudId })
 			.where('int.id IN (:interfaceIds)', { interfaceIds }).getMany();
 
 		if (interfaces.length > 0) {
-			const query = getRepository(Firewall).createQueryBuilder('firewall')
+			const query = db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
 				.where('firewall.fwCloudId = :fwcloudId', { fwcloudId })
 				.andWhere((qb) => {
 					const subqueryPolicy = qb.subQuery().select('firewall.id').from(Firewall, 'firewall')
@@ -914,7 +914,7 @@ export class Firewall extends Model {
 
 			const firewalls = await query.getMany();
 			if (firewalls.length > 0) {
-				await getRepository(Firewall).update({
+				await db.getSource().manager.getRepository(Firewall).update({
 					id: In(firewalls.map(firewall => firewall.id))
 				}, {
 					status: 3,
@@ -925,7 +925,7 @@ export class Firewall extends Model {
 		}
 
 		// We must see too if the interface belongs to a host which is used by firewalls.
-		const hosts: IPObj[] = await getRepository(IPObj).createQueryBuilder('ipObj')
+		const hosts: IPObj[] = await db.getSource().manager.getRepository(IPObj).createQueryBuilder('ipObj')
 			.innerJoin('ipObj.hosts', 'hosts', 'hosts.hostInterface IN (:interfaceIds)', {
 				interfaceIds: interfaceIds
 			}).getMany();

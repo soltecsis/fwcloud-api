@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository, Repository } from "typeorm";
+import { EntityManager, Repository } from "typeorm";
 import { Firewall } from "../../src/models/firewall/Firewall";
 import { FwCloud } from "../../src/models/fwcloud/FwCloud";
 import { InterfaceIPObj } from "../../src/models/interface/InterfaceIPObj";
@@ -41,6 +41,7 @@ import { testSuite } from "../mocha/global-setup";
 import { RoutingRule } from "../../src/models/routing/routing-rule/routing-rule.model";
 import { RoutingRuleService } from "../../src/models/routing/routing-rule/routing-rule.service";
 import { Mark } from "../../src/models/ipobj/Mark";
+import db from "../../src/database/database-manager";
 
 export type FwCloudProduct = {
     dhcpGroup: any;
@@ -77,28 +78,30 @@ export class FwCloudFactory {
     private _routeRepository: Repository<Route>;
     private _routingRuleRepository: Repository<RoutingRule>;
     private _markRepository: Repository<Mark>;
+    private _manager :EntityManager;
 
     public fwc: FwCloudProduct;
 
     private _ipobjNextId: number;
 
     constructor() {
-        this._fwcloudRepository = getRepository(FwCloud);
-        this._firewallRepository = getRepository(Firewall);
-        this._ipobjRepository = getRepository(IPObj);
-        this._ipobjGroupRepository = getRepository(IPObjGroup);
-        this._interfaceRepository = getRepository(Interface);
-        this._interfaceIPObjRepository = getRepository(InterfaceIPObj);
-        this._ipobjToGroupRepository = getRepository(IPObjToIPObjGroup);
-        this._caRepository= getRepository(Ca);
-        this._crtRepository = getRepository(Crt);
-        this._openvpnRepository = getRepository(OpenVPN);
-        this._openvpnOptRepository = getRepository(OpenVPNOption);
-        this._openvpnPrefixRepository = getRepository(OpenVPNPrefix);
-        this._routingTableRepository = getRepository(RoutingTable);
-        this._routeRepository = getRepository(Route);
-        this._routingRuleRepository = getRepository(RoutingRule);
-        this._markRepository = getRepository(Mark);
+        this._manager = db.getSource().manager;
+        this._fwcloudRepository = this._manager.getRepository(FwCloud);
+        this._firewallRepository = this._manager.getRepository(Firewall);
+        this._ipobjRepository = this._manager.getRepository(IPObj);
+        this._ipobjGroupRepository = this._manager.getRepository(IPObjGroup);
+        this._interfaceRepository = this._manager.getRepository(Interface);
+        this._interfaceIPObjRepository = this._manager.getRepository(InterfaceIPObj);
+        this._ipobjToGroupRepository = this._manager.getRepository(IPObjToIPObjGroup);
+        this._caRepository= this._manager.getRepository(Ca);
+        this._crtRepository = this._manager.getRepository(Crt);
+        this._openvpnRepository = this._manager.getRepository(OpenVPN);
+        this._openvpnOptRepository = this._manager.getRepository(OpenVPNOption);
+        this._openvpnPrefixRepository = this._manager.getRepository(OpenVPNPrefix);
+        this._routingTableRepository = this._manager.getRepository(RoutingTable);
+        this._routeRepository = this._manager.getRepository(Route);
+        this._routingRuleRepository = this._manager.getRepository(RoutingRule);
+        this._markRepository = this._manager.getRepository(Mark);
 
         this.fwc = {} as FwCloudProduct;
         this.fwc.ipobjs = new Map<string, IPObj>();

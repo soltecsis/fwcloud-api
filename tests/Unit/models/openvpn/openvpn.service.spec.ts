@@ -46,9 +46,9 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
     beforeEach(async () => {
         app = testSuite.app;
         await testSuite.resetDatabaseData();
-        fwcProduct = await (new FwCloudFactory()).make();
-        openVPNService = await (await app.getService<OpenVPNService>(OpenVPNService.name));
-        openVPNStatusHistoryService = await (await app.getService<OpenVPNStatusHistoryService>(OpenVPNStatusHistoryService.name));
+        fwcProduct = await new FwCloudFactory().make();
+        openVPNService = await app.getService<OpenVPNService>(OpenVPNService.name);
+        openVPNStatusHistoryService = await app.getService<OpenVPNStatusHistoryService>(OpenVPNStatusHistoryService.name);
         
         data = [{
             timestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0)),

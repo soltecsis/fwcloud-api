@@ -20,11 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MigrationExecutor, Connection } from "typeorm";
+import { MigrationExecutor, DataSource } from "typeorm";
 
 export class FwCloudMigrationExecutor extends MigrationExecutor {
     
-    async undoAllMigrations(connection: Connection): Promise <void> {
+    async undoAllMigrations(connection: DataSource): Promise <void> {
         const queryRunner = this.queryRunner || this.connection.createQueryRunner("master");
 
         try {

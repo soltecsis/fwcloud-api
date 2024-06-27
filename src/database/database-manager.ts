@@ -21,16 +21,15 @@
 */
 
 
-import { Connection, QueryRunner } from "typeorm";
+import { DataSource, QueryRunner } from "typeorm";
 import * as config from "../config/config";
 import Query from "./Query";
 import { AbstractApplication } from '../fonaments/abstract-application';
 import { DatabaseService } from './database.service';
 
 export class DatabaseManager {
-
     private _connected: boolean = false;
-    private _connection: Connection = null;
+    private _dataSource: DataSource = null;
     private configDB: {
         host: string,
         user: string,
@@ -39,15 +38,15 @@ export class DatabaseManager {
         name: string
     } = config.get('db');
 
-    public async connect(app: AbstractApplication): Promise<Connection> {
+    public async connect(app: AbstractApplication): Promise<DataSource> {
         const databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
 
-        this._connection = databaseService.connection;
-        return this._connection;
+        this._dataSource = databaseService.dataSource;
+        return this._dataSource;
     }
 
     public get(done: (err, query: Query) => void) {
-        if (!this._connection) {
+        if (!this._dataSource) {
             done(new Error('Connection not found'), null);
         }
 
@@ -57,19 +56,26 @@ export class DatabaseManager {
     }
 
     public getQueryRunner(): QueryRunner {
-        if (!this._connection) {
+        if (!this._dataSource) {
             throw Error('Connection not found');
         }
 
-        return this._connection.createQueryRunner();
+        return this._dataSource.createQueryRunner();
     }
 
     public getQuery(): Query {
-        if (!this._connection) {
+        if (!this._dataSource) {
             throw Error('Connection not found');
         }
 
         return new Query();
+    }
+
+    public getSource(): DataSource {
+        if (!this. _dataSource) {
+            throw Error('Connection not found');
+        }
+        return this._dataSource;
     }
 }
 

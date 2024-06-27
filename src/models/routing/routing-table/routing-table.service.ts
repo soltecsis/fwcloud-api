@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindManyOptions, FindOneOptions, getCustomRepository, getRepository, Repository, SelectQueryBuilder } from "typeorm";
+import { FindManyOptions, FindOneOptions, Repository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
-import db from "../../../database/database-manager";
+import db, { DatabaseManager } from "../../../database/database-manager";
 import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
 import { Service } from "../../../fonaments/services/service";
 import { ErrorBag } from "../../../fonaments/validation/validator";
@@ -40,8 +40,9 @@ import { OpenVPNPrefixRepository } from "../../vpn/openvpn/OpenVPNPrefix.reposit
 import { Route } from "../route/route.model";
 import { RouteRepository } from "../route/route.repository";
 import { RouteService } from "../route/route.service";
-import { AvailableDestinations, ItemForGrid, RouteItemForCompiler, RoutingRuleItemForCompiler, RoutingUtils } from "../shared";
+import { AvailableDestinations, ItemForGrid, RouteItemForCompiler, RoutingUtils } from "../shared";
 import { RoutingTable } from "./routing-table.model";
+import { DatabaseService } from "../../../database/database.service";
 
 interface IFindManyRoutingTablePath {
     firewallId?: number,
@@ -68,70 +69,69 @@ interface IUpdateRoutingTable {
 export interface RouteData<T extends ItemForGrid | RouteItemForCompiler> extends Route {
     items: (T & { _order: number })[];
 }
-    
+
 export class RoutingTableService extends Service {
-    protected _repository: Repository<RoutingTable>;
     private _routeService: RouteService;
     private _routeRepository: RouteRepository;
     private _ipobjRepository: IPObjRepository;
-    private _ipobjGroupRepository: IPObjGroupRepository;   
+    private _ipobjGroupRepository: IPObjGroupRepository;
     private _openvpnRepository: OpenVPNRepository;
-    private _openvpnPrefixRepository: OpenVPNPrefixRepository; 
+    private _openvpnPrefixRepository: OpenVPNPrefixRepository;
     protected _firewallService: FirewallService;
-
+    protected _databaseService: DatabaseService;
     constructor(app: Application) {
         super(app);
-        this._repository = getRepository(RoutingTable);
-        this._ipobjRepository = getCustomRepository(IPObjRepository);
-        this._routeRepository = getCustomRepository(RouteRepository);
-        this._ipobjGroupRepository = getCustomRepository(IPObjGroupRepository);
-        this._openvpnRepository = getCustomRepository(OpenVPNRepository);
-        this._openvpnPrefixRepository = getCustomRepository(OpenVPNPrefixRepository);
     }
 
     public async build(): Promise<Service> {
         this._firewallService = await this._app.getService(FirewallService.name);
         this._routeService = await this._app.getService<RouteService>(RouteService.name);
-        
+        this._databaseService = await this._app.getService(DatabaseService.name);
+
+        this._ipobjRepository = new IPObjRepository(this._databaseService.dataSource.manager);
+        this._routeRepository = new RouteRepository(this._databaseService.dataSource.manager);
+        this._ipobjGroupRepository = new IPObjGroupRepository(this._databaseService.dataSource.manager);
+        this._openvpnRepository = new OpenVPNRepository(this._databaseService.dataSource.manager);
+        this._openvpnPrefixRepository = new OpenVPNPrefixRepository(this._databaseService.dataSource.manager);
+
         return this;
     }
 
     findManyInPath(path: IFindManyRoutingTablePath): Promise<RoutingTable[]> {
-        return this._repository.find(this.getFindInPathOptions(path));
+        return this.getFindInPathOptions(path).getMany();
     }
 
     findOneInPath(path: IFindOneRoutingTablePath): Promise<RoutingTable | undefined> {
-        return this._repository.findOne(this.getFindInPathOptions(path))
+        return this.getFindInPathOptions(path).getOne();
     }
 
     findOneInPathOrFail(path: IFindOneRoutingTablePath): Promise<RoutingTable> {
-        return this._repository.findOneOrFail(this.getFindInPathOptions(path));
+        return this.getFindInPathOptions(path).getOneOrFail();
     }
 
     async create(data: ICreateRoutingTable): Promise<RoutingTable> {
         await this.validateRoutingTableNumber(data);
-        const result: {id: number} = await this._repository.save(data);
-        const routingTable: RoutingTable = await this._repository.findOne({ where: { id: result.id }});
-
-        const firewall: Firewall = await getRepository(Firewall).findOne({
+        const result: { id: number } = await db.getSource().manager.getRepository(RoutingTable).save(data);
+        const routingTable: RoutingTable = await db.getSource().manager.getRepository(RoutingTable).findOne({ where: { id: result.id } });
+        const firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOne({
             where: { id: routingTable.firewallId },
             relations: ['fwCloud']
         });
 
-        const node: {id: number} = await Tree.getNodeUnderFirewall(db.getQuery(), firewall.fwCloud.id, firewall.id, 'RTS') as {id: number};
+        const node: { id: number } = await Tree.getNodeUnderFirewall(db.getQuery(), firewall.fwCloud.id, firewall.id, 'RTS') as { id: number };
         if (node && Object.prototype.hasOwnProperty.call(node, 'id')) {
             await Tree.newNode(db.getQuery(), firewall.fwCloud.id, routingTable.name, node.id, 'RT', routingTable.id, null);
         }
-        
+
         await this._firewallService.markAsUncompiled(routingTable.firewallId);
 
         return routingTable;
     }
 
     async update(id: number, data: IUpdateRoutingTable): Promise<RoutingTable> {
-        let table: RoutingTable = await this._repository.preload(Object.assign(data, {id}));
+        let table: RoutingTable = await db.getSource().manager.getRepository(RoutingTable).preload(Object.assign(data, { id }));
         await this.validateRoutingTableNumber(table);
-        await this._repository.save(table);
+        await db.getSource().manager.getRepository(RoutingTable).save(table);
 
         await this._firewallService.markAsUncompiled(table.firewallId);
 
@@ -139,8 +139,8 @@ export class RoutingTableService extends Service {
     }
 
     async remove(path: IFindOneRoutingTablePath): Promise<RoutingTable> {
-        const table: RoutingTable =  await this.findOneInPath(path);
-        const tableWithRules: RoutingTable = await this._repository.findOne({
+        const table: RoutingTable = await this.findOneInPath(path);
+        const tableWithRules: RoutingTable = await db.getSource().manager.getRepository(RoutingTable).findOne({
             where: { id: table.id },
             relations: ['routingRules', 'routes', 'firewall']
         });
@@ -154,9 +154,9 @@ export class RoutingTableService extends Service {
         if (tableWithRules.routes.length > 0) {
             await this._routeService.bulkRemove(tableWithRules.routes.map(item => item.id));
         }
-        
-        await this._repository.remove(table);
-        
+
+        await db.getSource().manager.getRepository(RoutingTable).remove(table);
+
         const nodes: any[] = await Tree.getNodeInfo(db.getQuery(), tableWithRules.firewall.fwCloudId, 'RT', tableWithRules.id) as any[];
         if (nodes.length > 0) {
             const node_id = nodes[0].id;
@@ -169,44 +169,27 @@ export class RoutingTableService extends Service {
         return table;
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneRoutingTablePath>): FindOneOptions<RoutingTable> | FindManyOptions<RoutingTable> {
-        const result: FindOneOptions<RoutingTable> | FindManyOptions<RoutingTable> = {
-            join: {
-                alias: 'table',
-                innerJoin: {
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
-                }
-            },
-            where: {}
-        }
+    protected getFindInPathOptions(path: Partial<IFindOneRoutingTablePath>): SelectQueryBuilder<RoutingTable> {
+        const qb: SelectQueryBuilder<RoutingTable> = db.getSource().manager.getRepository(RoutingTable).createQueryBuilder('table');
+        qb.innerJoin('table.firewall', 'firewall')
+            .innerJoin('firewall.fwCloud', 'fwcloud');
+        
 
-        if (path.firewallId) {
-            result.where = {
-                ...result.where,
-                firewallId: path.firewallId
+            if (path.firewallId) {
+                qb.andWhere('firewall.id = :firewall', {firewall: path.firewallId})
             }
-        }
-
-        if (path.fwCloudId) {
-            result.where = {
-                ...result.where,
-                firewall: {
-                    fwCloudId: path.fwCloudId
-                }
-            }
-        }
-
-        if (path.id) {
-            result.where = {
-                ...result.where,
-                id: path.id
-            }
-        }
-
-        return result;
-    }
     
+            if (path.fwCloudId) {
+                qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
+            }
+    
+            if (path.id) {
+                qb.andWhere('table.id = :id', {id: path.id})
+            }
+
+            return qb
+    }
+
 
     /**
      * Returns an array of routes and in each route an array of items containing the information
@@ -219,26 +202,26 @@ export class RoutingTableService extends Service {
      * @param routes 
      * @returns 
      */
-     public async getRoutingTableData<T extends ItemForGrid | RouteItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, routingTable: number, routes?: number[]): Promise<RouteData<T>[]> {
+    public async getRoutingTableData<T extends ItemForGrid | RouteItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, routingTable: number, routes?: number[]): Promise<RouteData<T>[]> {
         const routesData: RouteData<T>[] = await this._routeRepository.getRoutingTableRoutes(fwcloud, firewall, routingTable, routes) as RouteData<T>[];
-         
+
         // Init the map for access the objects array for each route.
         let ItemsArrayMap = new Map<number, T[]>();
-        for (let i=0; i<routesData.length; i++) {
-          routesData[i].items = [];
-    
-          // Map each route with it's corresponding items array.
-          // These items array will be filled with objects data in the Promise.all()
-          ItemsArrayMap.set(routesData[i].id, routesData[i].items);
+        for (let i = 0; i < routesData.length; i++) {
+            routesData[i].items = [];
+
+            // Map each route with it's corresponding items array.
+            // These items array will be filled with objects data in the Promise.all()
+            ItemsArrayMap.set(routesData[i].id, routesData[i].items);
         }
-    
-        const sqls = (dst === 'grid') ? 
-            this.buildSQLsForGrid(fwcloud, firewall, routingTable) : 
+
+        const sqls = (dst === 'grid') ?
+            this.buildSQLsForGrid(fwcloud, firewall, routingTable) :
             this.buildSQLsForCompiler(fwcloud, firewall, routingTable, routes);
-        await Promise.all(sqls.map(sql => RoutingUtils.mapEntityData<T>(sql,ItemsArrayMap)));
-        
+        await Promise.all(sqls.map(sql => RoutingUtils.mapEntityData<T>(sql, ItemsArrayMap)));
+
         return routesData.map(data => {
-            data.items = data.items.sort((a,b) => a._order - b._order);
+            data.items = data.items.sort((a, b) => a._order - b._order);
             return data;
         });;
     }
@@ -248,10 +231,10 @@ export class RoutingTableService extends Service {
      *  - Number is not already being used by other table in the same firewall
      * 
      */
-     protected async validateRoutingTableNumber(routingTable: Partial<RoutingTable>): Promise<void> {
+    protected async validateRoutingTableNumber(routingTable: Partial<RoutingTable>): Promise<void> {
         const errors: ErrorBag = {};
 
-        const tablesWithSameNumber: RoutingTable[] = await getRepository(RoutingTable).find({
+        const tablesWithSameNumber: RoutingTable[] = await db.getSource().manager.getRepository(RoutingTable).find({
             where: {
                 number: routingTable.number,
                 firewallId: routingTable.firewallId
@@ -279,7 +262,7 @@ export class RoutingTableService extends Service {
      * @returns 
      */
     public async moveToOtherFirewall(srcFW: number, dstFW: number): Promise<void> {
-        let routingTables: RoutingTable[] = await this._repository.find({
+        let routingTables: RoutingTable[] = await db.getSource().manager.getRepository(RoutingTable).find({
             where: {
                 firewallId: srcFW
             }
@@ -287,7 +270,7 @@ export class RoutingTableService extends Service {
 
         for (let table of routingTables) {
             table.firewallId = dstFW;
-            await this._repository.update(table.id, table);
+            await db.getSource().manager.getRepository(RoutingTable).update(table.id, table);
         }
     }
 
@@ -305,7 +288,7 @@ export class RoutingTableService extends Service {
         ];
     }
 
-    private buildSQLsForGrid(fwcloud: number, firewall: number, routingTable: number): SelectQueryBuilder<IPObj|IPObjGroup|OpenVPN|OpenVPNPrefix>[] {
+    private buildSQLsForGrid(fwcloud: number, firewall: number, routingTable: number): SelectQueryBuilder<IPObj | IPObjGroup | OpenVPN | OpenVPNPrefix>[] {
         return [
             this._ipobjRepository.getIpobjsInRouting_ForGrid('route', fwcloud, firewall, routingTable),
             this._ipobjGroupRepository.getIpobjGroupsInRouting_ForGrid('route', fwcloud, firewall, routingTable),

@@ -25,7 +25,6 @@ import { FwCloudExportService } from "../../../fwcloud-exporter/fwcloud-export.s
 import { Request } from "express";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { getRepository } from "typeorm";
 import { FwCloudExportPolicy } from "../../../policies/fwcloud-export.policy";
 import { FwCloudExport } from "../../../fwcloud-exporter/fwcloud-export";
 import { Validate } from "../../../decorators/validate.decorator";
@@ -33,6 +32,7 @@ import { FileInfo } from "../../../fonaments/http/files/file-info";
 import moment from "moment";
 import { Channel } from "../../../sockets/channels/channel";
 import { FwCloudExportControllerImportDto } from "./dtos/import.dto";
+import db from "../../../database/database-manager";
 
 const fwcError = require('../../../utils/error_table');
 
@@ -45,7 +45,7 @@ export class FwCloudExportController extends Controller {
 
     @Validate()
     public async store(request: Request): Promise<ResponseBuilder> {
-        const fwCloud: FwCloud = await getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
+        const fwCloud: FwCloud = await db.getSource().manager.getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
 
         (await FwCloudExportPolicy.store(fwCloud, request.session.user)).authorize();
 

@@ -1,16 +1,16 @@
-import { getRepository } from "typeorm";
 import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { User } from "../models/user/User";
 import { KeepalivedRule } from "../models/system/keepalived/keepalived_r/keepalived_r.model";
 import { Firewall } from "../models/firewall/Firewall";
+import db from "../database/database-manager";
 
 export class KeepalivedPolicy extends Policy {
     static async index(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        firewall = await getRepository(Firewall).findOneOrFail({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });
@@ -36,11 +36,11 @@ export class KeepalivedPolicy extends Policy {
     }
 
     static async create(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        firewall = await getRepository(Firewall).findOneOrFail({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });
@@ -67,11 +67,11 @@ export class KeepalivedPolicy extends Policy {
     }
 
     static async move(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail({
+        user = await db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: user.id },
             relations: ['fwClouds']
         });
-        firewall = await getRepository(Firewall).findOneOrFail({
+        firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: { id: firewall.id },
             relations: ['fwCloud']
         });
@@ -114,14 +114,14 @@ export class KeepalivedPolicy extends Policy {
     }
 
     private static getKeepalivedR(keepalivedId: number): Promise<KeepalivedRule> {
-        return getRepository(KeepalivedRule).findOneOrFail({
+        return db.getSource().manager.getRepository(KeepalivedRule).findOneOrFail({
             where: { id: keepalivedId },
             relations: ['group', 'firewall', 'firewall.fwCloud']
         });
     }
 
     private static getUser(userId: number): Promise<User> {
-        return getRepository(User).findOneOrFail({
+        return db.getSource().manager.getRepository(User).findOneOrFail({
             where: { id: userId },
             relations: ['fwClouds']
         });

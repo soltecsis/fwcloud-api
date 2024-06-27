@@ -27,11 +27,11 @@ import { KeepalivedController } from "../../../../../src/controllers/system/keep
 import request = require("supertest");
 import { _URL } from "../../../../../src/fonaments/http/router/router.service";
 import { KeepalivedGroup } from "../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.model";
-import { getCustomRepository, getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { KeepalivedRuleCopyDto } from "../../../../../src/controllers/system/keepalived/dto/copy.dto";
-import { KeepalivedRepository } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived.repository";
 import { Offset } from "../../../../../src/offset";
 import { KeepalivedRuleBulkUpdateDto } from "../../../../../src/controllers/system/keepalived/dto/bulk-update.dto";
+import db from "../../../../../src/database/database-manager";
 
 describe('KeepalivedRule E2E Tests', () => {
     let app: Application;
@@ -47,9 +47,11 @@ describe('KeepalivedRule E2E Tests', () => {
     let group: KeepalivedGroup;
 
     let keepalivedRuleServiceInstance: KeepalivedRuleService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         loggedUser = await createUser({ role: 0 });
@@ -66,7 +68,7 @@ describe('KeepalivedRule E2E Tests', () => {
 
         firewall = fwcProduct.firewall;
 
-        group = await getRepository(KeepalivedGroup).save(getRepository(KeepalivedGroup).create({
+        group = await manager.getRepository(KeepalivedGroup).save(manager.getRepository(KeepalivedGroup).create({
             name: 'group',
             firewall: firewall,
         }));
@@ -108,7 +110,7 @@ describe('KeepalivedRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should see Keepalived rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.keepalived.index', {
@@ -171,7 +173,7 @@ describe('KeepalivedRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should see Keepalived rules grid', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.keepalived.grid', {
@@ -235,7 +237,7 @@ describe('KeepalivedRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should create a Keepalived rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.system.keepalived.store', {
@@ -327,7 +329,7 @@ describe('KeepalivedRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should copy a Keepalived rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.system.keepalived.copy', {
@@ -403,7 +405,7 @@ describe('KeepalivedRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should update a Keepalived rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.system.keepalived.update', {
@@ -479,7 +481,7 @@ describe('KeepalivedRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should remove a Keepalived rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.system.keepalived.delete', {
@@ -545,7 +547,7 @@ describe('KeepalivedRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should see a Keepalived rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.keepalived.show', {
@@ -641,7 +643,7 @@ describe('KeepalivedRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should move a Keepalived rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.system.keepalived.move', {
@@ -655,10 +657,10 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule1.id }})).rule_order).to.equal(1);
-                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule2.id }})).rule_order).to.equal(2);
-                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule3.id }})).rule_order).to.equal(3);
-                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule4.id }})).rule_order).to.equal(4);
+                expect((await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule1.id }})).rule_order).to.equal(1);
+                expect((await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule2.id }})).rule_order).to.equal(2);
+                expect((await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule3.id }})).rule_order).to.equal(3);
+                expect((await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule4.id }})).rule_order).to.equal(4);
             });
 
             it('admin user should move a Keepalived rule', async () => {
@@ -674,10 +676,10 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule1.id }})).rule_order).to.equal(1);
-                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule2.id }})).rule_order).to.equal(2);
-                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule3.id }})).rule_order).to.equal(3);
-                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule4.id }})).rule_order).to.equal(4);
+                expect((await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule1.id }})).rule_order).to.equal(1);
+                expect((await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule2.id }})).rule_order).to.equal(2);
+                expect((await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule3.id }})).rule_order).to.equal(3);
+                expect((await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: KeepalivedRule4.id }})).rule_order).to.equal(4);
             });
         });
 
@@ -735,7 +737,7 @@ describe('KeepalivedRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should bulk update a Keepalived rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.system.keepalived.bulkUpdate', {
@@ -752,8 +754,8 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule1.id }})).active).to.equal(false);
-                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule2.id }})).active).to.equal(false);
+                expect((await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule1.id }})).active).to.equal(false);
+                expect((await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule2.id }})).active).to.equal(false);
             });
 
             it('admin user should bulk update a Keepalived rule', async () => {
@@ -772,8 +774,8 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule1.id }})).active).to.equal(false);
-                expect((await getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule2.id }})).active).to.equal(false);
+                expect((await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule1.id }})).active).to.equal(false);
+                expect((await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule2.id }})).active).to.equal(false);
             });
         });
 
@@ -825,7 +827,7 @@ describe('KeepalivedRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should bulk remove a Keepalived rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.system.keepalived.bulkRemove', {
@@ -841,8 +843,8 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect(await getRepository(KeepalivedRule).findOne({ where: { id: rule1.id }})).to.be.undefined;
-                expect(await getRepository(KeepalivedRule).findOne({ where: { id: rule2.id }})).to.be.undefined;
+                expect(await manager.getRepository(KeepalivedRule).findOne({ where: { id: rule1.id }})).to.be.null;
+                expect(await manager.getRepository(KeepalivedRule).findOne({ where: { id: rule2.id }})).to.be.null;
             });
 
             it('admin user should bulk remove a Keepalived rule', async () => {
@@ -860,8 +862,8 @@ describe('KeepalivedRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect(await getRepository(KeepalivedRule).findOne({ where: { id: rule1.id }})).to.be.undefined;
-                expect(await getRepository(KeepalivedRule).findOne({ where: { id: rule2.id }})).to.be.undefined;
+                expect(await manager.getRepository(KeepalivedRule).findOne({ where: { id: rule1.id }})).to.be.null;
+                expect(await manager.getRepository(KeepalivedRule).findOne({ where: { id: rule2.id }})).to.be.null;
             });
         });
     });

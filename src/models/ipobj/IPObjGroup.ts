@@ -27,7 +27,7 @@ import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { IPObjToIPObjGroup } from '../../models/ipobj/IPObjToIPObjGroup';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-import { Entity, Column, getRepository, PrimaryGeneratedColumn, OneToMany, ManyToMany, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToMany, ManyToOne, JoinColumn } from "typeorm";
 import { logger } from "../../fonaments/abstract-application";
 import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
 import { Route } from "../routing/route/route.model";
@@ -149,7 +149,7 @@ export class IPObjGroup extends Model {
                     // If this is not an IP objects group then finish without IP version.
                     if (result[0].type !== 20) return resolve(ipVersions);
 
-                    const ipObjs: IPObj[] = await getRepository(IPObj)
+                    const ipObjs: IPObj[] = await db.getSource().manager.getRepository(IPObj)
                         .createQueryBuilder('ipobj')
                         .where((qb) => {
                             const query: string = qb.subQuery()
@@ -355,7 +355,7 @@ export class IPObjGroup extends Model {
                 search.restrictions = {};
                 //search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
                 search.restrictions.GroupInRule = await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
-                search.restrictions.GroupInRoute = await getRepository(Route).createQueryBuilder('route')
+                search.restrictions.GroupInRoute = await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
                     .innerJoinAndSelect('route.routingTable', 'table')
@@ -366,7 +366,7 @@ export class IPObjGroup extends Model {
                     .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
                     .getRawMany();
                 
-                search.restrictions.GroupInRoutingRule = await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+                search.restrictions.GroupInRoutingRule = await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('routing_rule')
                     .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
                     .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
                     .innerJoin('routing_rule.routingTable', 'table')

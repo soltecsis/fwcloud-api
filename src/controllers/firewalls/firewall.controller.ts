@@ -23,7 +23,6 @@
 
 import { Controller } from "../../fonaments/http/controller";
 import { Firewall, FirewallInstallCommunication } from "../../models/firewall/Firewall";
-import { getRepository } from "typeorm";
 import { Request } from "express";
 import { ResponseBuilder } from "../../fonaments/http/response-builder";
 import { FirewallService, SSHConfig } from "../../models/firewall/firewall.service";
@@ -54,6 +53,7 @@ import {DHCPCompiled, DHCPCompiler} from "../../compiler/system/dhcp/DHCPCompile
 import { KeepalivedRuleService, KeepalivedRulesData } from "../../models/system/keepalived/keepalived_r/keepalived_r.service";
 import { KeepalivedCompiler } from "../../compiler/system/keepalived/KeepalivedCompiler";
 import { KeepalivedRuleItemForCompiler } from "../../models/system/keepalived/shared";
+import db from "../../database/database-manager";
 
 
 export class FirewallController extends Controller {
@@ -67,7 +67,7 @@ export class FirewallController extends Controller {
 
     public async make(request: Request): Promise<void> {
         //Get the fwcloud from the URL which contains the firewall
-        this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
+        this._fwCloud = await db.getSource().manager.getRepository(FwCloud).createQueryBuilder('fwcloud')
             .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
             .getOneOrFail();
 
@@ -83,7 +83,7 @@ export class FirewallController extends Controller {
         /**
          * This method is not used temporarily
          */
-        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+        let firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: {
                 id: parseInt(request.params.firewall),
                 fwCloudId: parseInt(request.params.fwcloud)
@@ -106,7 +106,7 @@ export class FirewallController extends Controller {
         /**
          * This method is not used temporarily
          */
-        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+        let firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: {
                 id: parseInt(request.params.firewall),
                 fwCloudId: parseInt(request.params.fwcloud)
@@ -132,7 +132,7 @@ export class FirewallController extends Controller {
     @Validate()
     @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
     async compileRoutingRules(request: Request): Promise<ResponseBuilder> {
-        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+        let firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: {
                 id: parseInt(request.params.firewall),
                 fwCloudId: parseInt(request.params.fwcloud)
@@ -156,7 +156,7 @@ export class FirewallController extends Controller {
     @Validate()
     @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
     async compileHAProxyRules(request: Request): Promise<ResponseBuilder> {
-        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+        let firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: {
                 id: parseInt(request.params.firewall),
                 fwCloudId: parseInt(request.params.fwcloud)
@@ -180,7 +180,7 @@ export class FirewallController extends Controller {
     @Validate()
     @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
     async compileDHCPRules(req: Request): Promise<ResponseBuilder> {
-        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+        let firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: {
                 id: parseInt(req.params.firewall),
                 fwCloudId: parseInt(req.params.fwcloud)
@@ -204,7 +204,7 @@ export class FirewallController extends Controller {
     @Validate()
     @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
     async compileKeepalivedRules(request: Request): Promise<ResponseBuilder> {
-        let firewall: Firewall = await getRepository(Firewall).findOneOrFail({
+        let firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
             where: {
                 id: parseInt(request.params.firewall),
                 fwCloudId: parseInt(request.params.fwcloud)

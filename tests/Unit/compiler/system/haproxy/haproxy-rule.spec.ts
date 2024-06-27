@@ -15,7 +15,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
 import { HAProxyCompiled, HAProxyCompiler } from "../../../../../src/compiler/system/haproxy/HAProxyCompiler";
 import { HAProxyRule } from "../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.model";
 import { HAProxyRuleService, HAProxyRulesData } from "../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.service";
@@ -26,6 +25,8 @@ import { expect } from "chai";
 import { IPObj } from "../../../../../src/models/ipobj/IPObj";
 import { EventEmitter } from "events";
 import sinon from "sinon";
+import { EntityManager } from "typeorm";
+import db from "../../../../../src/database/database-manager";
 
 describe(HAProxyCompiler.name, () => {
     let fwc: FwCloudProduct;
@@ -33,10 +34,11 @@ describe(HAProxyCompiler.name, () => {
     let haproxyService: HAProxyRuleService;
     let compiler: HAProxyCompiler = new HAProxyCompiler();
     let rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[];
+    let manager: EntityManager;
 
     beforeEach(async () => {
         await testSuite.resetDatabaseData();
-
+        manager = db.getSource().manager;
         fwc = await (new FwCloudFactory()).make();
 
         haproxyService = await testSuite.app.getService<HAProxyRuleService>(HAProxyRuleService.name);
@@ -44,18 +46,18 @@ describe(HAProxyCompiler.name, () => {
         const testData: HAProxyRule[] = [];
 
         for (let i = 0; i < 10; i++) {
-            const rule: HAProxyRule = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+            const rule: HAProxyRule = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
                 rule_order: i + 1,
                 rule_type: 1,
                 firewall: fwc.firewall,
-                frontendIp: await getRepository(IPObj).save(getRepository(IPObj).create({
+                frontendIp: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     address: `192.168.1.${i}`,
                     destination_port_start: 80,
                     destination_port_end: 80,
                     name: 'test',
                     ipObjTypeId: 0
                 })),
-                frontendPort: await getRepository(IPObj).save(getRepository(IPObj).create({
+                frontendPort: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     destination_port_start: 80,
                     destination_port_end: 80,
                     name: 'test',

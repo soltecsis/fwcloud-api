@@ -29,6 +29,7 @@ import * as path from "path";
 import sinon from "sinon";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
+import db from "../../../../src/database/database-manager";
 
 
 let app: AbstractApplication;
@@ -39,7 +40,11 @@ describe(describeName('FwCloud Unit Tests'), () => {
     before(async () => {
         app = testSuite.app;
         await testSuite.resetDatabaseData();
-        fwc = await (new FwCloudFactory()).make();
+        fwc = await new FwCloudFactory().make();
+    });
+
+    after(async () => {
+        await testSuite.closeApplication();
     });
 
     describe('removeDataDirectories()', () => {
@@ -94,7 +99,7 @@ describe(describeName('FwCloud Unit Tests'), () => {
             await fwCloud.remove();
 
             fwCloud = await FwCloud.findOne({ where: { id: fwc.fwcloud.id }});
-            expect(fwCloud).to.be.undefined;
+            expect(fwCloud).to.be.null;
         });
     });
 

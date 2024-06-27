@@ -21,7 +21,6 @@
 */
 
 import { Application } from "../../../../../src/Application";
-import { getRepository } from "typeorm";
 import { DhcpGroupController } from "../../../../../src/controllers/system/dhcp-group/dhcp-group.controller";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
@@ -32,6 +31,8 @@ import sinon from "sinon";
 import { Request } from 'express';
 import { expect } from "chai";
 import { DHCPGroupService } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.service";
+import { EntityManager } from "typeorm";
+import db from "../../../../../src/database/database-manager";
 
 describe(DhcpGroupController.name, () => {
     let firewall: Firewall;
@@ -40,23 +41,25 @@ describe(DhcpGroupController.name, () => {
 
     let controller: DhcpGroupController;
     let app: Application;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         controller = new DhcpGroupController(app);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
 
-        dhcpgroup = await getRepository(DHCPGroup).save({
+        dhcpgroup = await manager.getRepository(DHCPGroup).save({
             name: StringHelper.randomize(10),
             firewall: firewall
         });
@@ -78,8 +81,8 @@ describe(DhcpGroupController.name, () => {
             } as unknown as Request;
 
             const dhcpGroupServiceStub = sinon.stub(DHCPGroupService.prototype, 'findOneInPath').resolves(dhcpgroup);
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail').resolves(firewall);
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
+            const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail').resolves(firewall);
+            const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
 
             await controller.make(requestMock);
 
@@ -101,8 +104,8 @@ describe(DhcpGroupController.name, () => {
             } as unknown as Request;
 
             const dhcpGroupServiceStub = sinon.stub(DHCPGroupService.prototype, 'findOneInPath')
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail');
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail');
+            const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail');
+            const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail');
 
             await controller.make(requestMock);
 

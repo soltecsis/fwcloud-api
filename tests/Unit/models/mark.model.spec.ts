@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import db from "../../../src/database/database-manager";
 import { Mark } from "../../../src/models/ipobj/Mark";
 import { RouteService } from "../../../src/models/routing/route/route.service";
@@ -36,13 +36,14 @@ describe(Mark.name, () => {
     
     let routeService: RouteService;
     let routingRuleService: RoutingRuleService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
-        fwcloudProduct = await (new FwCloudFactory()).make();
+        manager = db.getSource().manager;
+        fwcloudProduct = await new FwCloudFactory().make();
         routeService = await testSuite.app.getService<RouteService>(RouteService.name);
         routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
-
-        mark = await getRepository(Mark).save(getRepository(Mark).create({
+        mark = await manager.getRepository(Mark).save(manager.getRepository(Mark).create({
             code: 1,
             name: 'mark',
             fwCloudId: fwcloudProduct.fwcloud.id

@@ -26,16 +26,19 @@ import { AbstractApplication } from "../../../../src/fonaments/abstract-applicat
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import { PolicyGroup } from "../../../../src/models/policy/PolicyGroup";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { getCustomRepository } from "typeorm";
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 
 let policyRuleRepository: PolicyRuleRepository;
 let app: AbstractApplication;
+let manager: EntityManager;
 
 describe(describeName('PolicyRuleRepository Unit tests'), () => {
 
     before(async () => {
         app = testSuite.app;
-        policyRuleRepository = getCustomRepository(PolicyRuleRepository);
+        manager = db.getSource().manager;
+        policyRuleRepository = new PolicyRuleRepository(manager);
     });
 
     describe('updateActive()', () => {

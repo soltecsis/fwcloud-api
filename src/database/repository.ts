@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository as TypeORMRepository, In, FindOperator, FindOptionsWhere } from "typeorm";
-import { isArray } from "util";
+import { isArray } from "class-validator";
+import { Repository as TypeORMRepository, In, FindOptionsWhere } from "typeorm";
 
 export class Repository<T extends { id: any }> extends TypeORMRepository<T> {
     /**
@@ -38,7 +38,7 @@ export class Repository<T extends { id: any }> extends TypeORMRepository<T> {
             });
         }
 
-        return this.findOne((<any>oneOrMany).id);
+        return this.findOne({where: {id:(<any>oneOrMany).id}});
     }
 
     /**

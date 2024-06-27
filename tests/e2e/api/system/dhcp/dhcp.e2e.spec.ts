@@ -32,13 +32,14 @@ import { DhcpController } from "../../../../../src/controllers/system/dhcp/dhcp.
 import request = require("supertest");
 import { _URL } from "../../../../../src/fonaments/http/router/router.service";
 import { DHCPGroup } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model";
-import { getCustomRepository, getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { DHCPRuleCopyDto } from "../../../../../src/controllers/system/dhcp/dto/copy.dto";
 import { DHCPRepository } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp.repository";
 import { Offset } from "../../../../../src/offset";
 import { DhcpRuleBulkUpdateDto } from "../../../../../src/controllers/system/dhcp/dto/bulk-update.dto";
 import { IPObj } from "../../../../../src/models/ipobj/IPObj";
 import { DHCPRuleMoveFromDto } from "../../../../../src/controllers/system/dhcp/dto/move-from.dto";
+import db from "../../../../../src/database/database-manager";
 
 describe('DHCPRule E2E Tests', () => {
     let app: Application;
@@ -54,9 +55,11 @@ describe('DHCPRule E2E Tests', () => {
     let group: DHCPGroup;
 
     let DHCPRuleServiceInstance: DHCPRuleService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         loggedUser = await createUser({ role: 0 });
@@ -73,7 +76,7 @@ describe('DHCPRule E2E Tests', () => {
 
         firewall = fwcProduct.firewall;
 
-        group = await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+        group = await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
             name: 'group',
             firewall: firewall,
         }));
@@ -117,7 +120,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should see a dhcp rules', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.dhcp.index', {
@@ -184,7 +187,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should see a dhcp rules grid', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.dhcp.grid', {
@@ -252,7 +255,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should create a dhcp rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.system.dhcp.store', {
@@ -350,7 +353,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should copy a dhcp rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.system.dhcp.copy', {
@@ -432,7 +435,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should update a dhcp rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.update', {
@@ -514,7 +517,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should remove a dhcp rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.delete', {
@@ -582,7 +585,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should see a dhcp rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.show', {
@@ -686,7 +689,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should move a dhcp rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.system.dhcp.move', {
@@ -722,7 +725,7 @@ describe('DHCPRule E2E Tests', () => {
             let data: DHCPRuleMoveFromDto;
 
             beforeEach(async () => {
-                const ipobj = await getRepository(IPObj).save(getRepository(IPObj).create({
+                const ipobj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0
@@ -778,7 +781,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should move a dhcp rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.system.dhcp.moveFrom', {
@@ -807,27 +810,27 @@ describe('DHCPRule E2E Tests', () => {
             let dhcpRule: DHCPRule;
 
             beforeEach(async () => {
-                dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+                dhcpRule = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
                     id: 1,
                     rule_order: 1,
                     interface: null,
                     rule_type: 1,
                     firewall: firewall,
                     max_lease: 5,
-                    network: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    network: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                         name: 'test',
                         address: '0.0.0.0',
                         ipObjTypeId: 0,
                         netmask: '/24'
                     })),
-                    range: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    range: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                         name: 'test',
                         address: '0.0.0.0',
                         ipObjTypeId: 0,
                         range_start: '1',
                         range_end: '2',
                     })),
-                    router: await getRepository(IPObj).save(getRepository(IPObj).create({
+                    router: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                         name: 'test',
                         address: '0.0.0.0',
                         ipObjTypeId: 0,
@@ -859,7 +862,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should compile a dhcp rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.dhcp.rules.compile', {
@@ -941,7 +944,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should bulk update a dhcp rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.system.dhcp.bulkUpdate', {
@@ -958,8 +961,8 @@ describe('DHCPRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(DHCPRule).findOneOrFail({ where: { id: rule1.id }})).active).to.equal(false);
-                expect((await getRepository(DHCPRule).findOneOrFail({ where: { id: rule2.id }})).active).to.equal(false);
+                expect((await manager.getRepository(DHCPRule).findOneOrFail({ where: { id: rule1.id }})).active).to.equal(false);
+                expect((await manager.getRepository(DHCPRule).findOneOrFail({ where: { id: rule2.id }})).active).to.equal(false);
             });
 
             it('admin user should bulk update a dhcp rule', async () => {
@@ -978,8 +981,8 @@ describe('DHCPRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect((await getRepository(DHCPRule).findOneOrFail({ where: { id: rule1.id }})).active).to.equal(false);
-                expect((await getRepository(DHCPRule).findOneOrFail({ where: { id: rule2.id }})).active).to.equal(false);
+                expect((await manager.getRepository(DHCPRule).findOneOrFail({ where: { id: rule1.id }})).active).to.equal(false);
+                expect((await manager.getRepository(DHCPRule).findOneOrFail({ where: { id: rule2.id }})).active).to.equal(false);
             });
         });
 
@@ -1035,7 +1038,7 @@ describe('DHCPRule E2E Tests', () => {
 
             it('regular user which belongs to the fwcloud should bulk remove a dhcp rule', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.bulkRemove', {
@@ -1051,8 +1054,8 @@ describe('DHCPRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect(await getRepository(DHCPRule).findOne({ where: { id: rule1.id }})).to.be.undefined;
-                expect(await getRepository(DHCPRule).findOne({ where: { id: rule2.id }})).to.be.undefined;
+                expect(await manager.getRepository(DHCPRule).findOne({ where: { id: rule1.id }})).to.be.null;
+                expect(await manager.getRepository(DHCPRule).findOne({ where: { id: rule2.id }})).to.be.null;
             });
 
             it('admin user should bulk remove a dhcp rule', async () => {
@@ -1070,8 +1073,8 @@ describe('DHCPRule E2E Tests', () => {
                         expect(response.body.data).to.have.length(2);
                     });
 
-                expect(await getRepository(DHCPRule).findOne({ where: { id: rule1.id }})).to.be.undefined;
-                expect(await getRepository(DHCPRule).findOne({ where: { id: rule2.id }})).to.be.undefined;
+                expect(await manager.getRepository(DHCPRule).findOne({ where: { id: rule1.id }})).to.be.null;
+                expect(await manager.getRepository(DHCPRule).findOne({ where: { id: rule2.id }})).to.be.null;
             });
         });
     });

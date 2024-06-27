@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { Application } from "../../../../../src/Application";
 import { KeepalivedGroupController } from "../../../../../src/controllers/system/keepalived-group/keepalived-group.controller";
 import { _URL } from "../../../../../src/fonaments/http/router/router.service";
@@ -27,6 +27,7 @@ import { expect, testSuite } from "../../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
 import { attachSession, createUser, generateSession } from "../../../../utils/utils";
 import request = require("supertest");
+import db from "../../../../../src/database/database-manager";
 
 describe('keepalivedGroup E2E Tests', () => {
     let app: Application;
@@ -41,9 +42,11 @@ describe('keepalivedGroup E2E Tests', () => {
     let fwCloud: FwCloud;
 
     let keepalivedGroupService: KeepalivedGroupService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         loggedUser = await createUser({ role: 0 });
@@ -66,7 +69,7 @@ describe('keepalivedGroup E2E Tests', () => {
             let group: KeepalivedGroup;
 
             beforeEach(async () => {
-                group = await getRepository(KeepalivedGroup).save(getRepository(KeepalivedGroup).create({
+                group = await manager.getRepository(KeepalivedGroup).save(manager.getRepository(KeepalivedGroup).create({
                     firewall: firewall,
                     name: 'group',
                     style: 'style'
@@ -95,7 +98,7 @@ describe('keepalivedGroup E2E Tests', () => {
 
             it('regular user which belongs to the firewall should be able to list Keepalived groups', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.keepalived.groups.index', {
@@ -151,7 +154,7 @@ describe('keepalivedGroup E2E Tests', () => {
 
             it('regular user which belongs to the firewall should be able to create a Keepalived group', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.system.keepalived.groups.store', {
@@ -183,7 +186,7 @@ describe('keepalivedGroup E2E Tests', () => {
             let keepalivedGroup: KeepalivedGroup;
 
             beforeEach(async () => {
-                keepalivedGroup = await getRepository(KeepalivedGroup).save(getRepository(KeepalivedGroup).create({
+                keepalivedGroup = await manager.getRepository(KeepalivedGroup).save(manager.getRepository(KeepalivedGroup).create({
                     firewall: firewall,
                     name: 'group',
                     style: 'style'
@@ -213,7 +216,7 @@ describe('keepalivedGroup E2E Tests', () => {
 
             it('regular user which belongs to the firewall should be able to show a Keepalived group', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.keepalived.groups.show', {
@@ -277,7 +280,7 @@ describe('keepalivedGroup E2E Tests', () => {
 
             it('regular user which belongs to the firewall should be able to update a Keepalived group', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.system.keepalived.groups.update', {
@@ -341,7 +344,7 @@ describe('keepalivedGroup E2E Tests', () => {
 
             it('regular user which belongs to the firewall should be able to remove a Keepalived group', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.system.keepalived.groups.delete', {

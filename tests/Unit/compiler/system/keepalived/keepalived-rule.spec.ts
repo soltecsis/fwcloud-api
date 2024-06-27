@@ -16,7 +16,7 @@
 */
 
 import sinon from "sinon";
-import { DeepPartial, getRepository } from "typeorm";
+import { DeepPartial, EntityManager } from "typeorm";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 import { KeepalivedCompiled, KeepalivedCompiler } from "../../../../../src/compiler/system/keepalived/KeepalivedCompiler";
 import { IPObj } from "../../../../../src/models/ipobj/IPObj";
@@ -25,6 +25,7 @@ import { KeepalivedRuleService, KeepalivedRulesData } from "../../../../../src/m
 import { KeepalivedRuleItemForCompiler } from "../../../../../src/models/system/keepalived/shared";
 import { expect, testSuite } from "../../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
+import db from "../../../../../src/database/database-manager";
 
 describe(KeepalivedCompiler.name, () => {
     let fwc: FwCloudProduct;
@@ -32,8 +33,10 @@ describe(KeepalivedCompiler.name, () => {
     let keepalivedRuleService: KeepalivedRuleService;
     let compiler: KeepalivedCompiler = new KeepalivedCompiler();
     let rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[];
+    let manager: EntityManager;
 
     beforeEach(async () => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         fwc = await (new FwCloudFactory()).make();
@@ -43,7 +46,7 @@ describe(KeepalivedCompiler.name, () => {
         const testData: KeepalivedRule[] = [];
 
         for (let i = 0; i < 10; i++) {
-            let rule: KeepalivedRule = await getRepository(KeepalivedRule).save(getRepository(KeepalivedRule).create({
+            let rule: KeepalivedRule = await manager.getRepository(KeepalivedRule).save(manager.getRepository(KeepalivedRule).create({
                 id: 1,
                 rule_order: 1,
                 rule_type: 1,

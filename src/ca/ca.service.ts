@@ -1,7 +1,8 @@
-import { getRepository, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Application } from './../cli/Application';
 import { Service } from "../fonaments/services/service";
 import { Ca } from '../models/vpn/pki/Ca';
+import db from '../database/database-manager';
 
 interface IUpdateCa {
     comment?: string;
@@ -13,8 +14,9 @@ export class CaService extends Service {
     
     constructor(app: Application) {
         super(app);
-        this._repository = getRepository(Ca);
+        this._repository = db.getSource().getRepository(Ca);
     }
+
 
     public async update(id:number, data: IUpdateCa): Promise<Ca> {
 

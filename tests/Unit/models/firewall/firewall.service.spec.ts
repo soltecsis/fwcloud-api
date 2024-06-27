@@ -24,7 +24,6 @@ import { describeName, testSuite, expect } from "../../../mocha/global-setup";
 import { Application } from "../../../../src/Application";
 import { FirewallService } from "../../../../src/models/firewall/firewall.service";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { Repository, getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { FSHelper } from "../../../../src/utils/fs-helper";
@@ -34,19 +33,23 @@ import { Installer } from "../../../../src/models/firewall/installer";
 import sinon from "sinon";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
 import sshTools from '../../../../src/utils/ssh';
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 
 describe.skip(describeName('Firewall Service Unit Tests'), () => {
     let app: Application;
     let service: FirewallService;
     let firewall: Firewall;
+    let manager: EntityManager;
     
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         service = await app.getService<FirewallService>(FirewallService.name);
         
         firewall = await Firewall.save(Firewall.create({
             name: StringHelper.randomize(10),
-            fwCloudId: (await getRepository(FwCloud).save(getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id
+            fwCloudId: (await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id
         }));
     });
 
@@ -124,7 +127,7 @@ describe.skip(describeName('Firewall Service Unit Tests'), () => {
             firewall.install_port = 9999;
             firewall.install_user = 'user';
 
-            const ipObj: IPObj = await getRepository(IPObj).save(getRepository(IPObj).create({
+            const ipObj: IPObj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 name: 'test',
                 address: '0.0.0.0',
                 ipObjTypeId: 0,

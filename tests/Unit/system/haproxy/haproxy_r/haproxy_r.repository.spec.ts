@@ -15,7 +15,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getCustomRepository, getRepository } from "typeorm";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
 import { HAProxyGroup } from "../../../../../src/models/system/haproxy/haproxy_g/haproxy_g.model";
@@ -26,6 +25,8 @@ import StringHelper from "../../../../../src/utils/string.helper";
 import { expect } from "chai";
 import sinon from "sinon";
 import { Offset } from "../../../../../src/offset";
+import { EntityManager } from "typeorm";
+import db from "../../../../../src/database/database-manager";
 
 describe(HAProxyRuleRepository.name, () => {
     let repository: HAProxyRuleRepository;
@@ -33,22 +34,24 @@ describe(HAProxyRuleRepository.name, () => {
     let firewall: Firewall;
     let group: HAProxyGroup;
     let haproxyRule: HAProxyRule;
+    let manager: EntityManager;
 
     beforeEach(async () => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
-        repository = getCustomRepository(HAProxyRuleRepository);
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        repository = new HAProxyRuleRepository(manager);
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
-        group = await getRepository(HAProxyGroup).save(getRepository(HAProxyGroup).create({
+        group = await manager.getRepository(HAProxyGroup).save(manager.getRepository(HAProxyGroup).create({
             name: StringHelper.randomize(10),
             firewall: firewall
         }));
-        haproxyRule = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+        haproxyRule = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
             group: group,
             firewall: firewall,
             rule_order: 1,
@@ -60,11 +63,11 @@ describe(HAProxyRuleRepository.name, () => {
             const result = await repository.remove(haproxyRule);
 
             expect(result).to.deep.equal(haproxyRule);
-            expect(await repository.findOne({ where: { id: haproxyRule.id }})).to.be.undefined;
+            expect(await repository.findOne({ where: { id: haproxyRule.id }})).to.be.null;
         });
 
         it('should remove multiple HAProxyRules', async () => {
-            const haproxyRule2 = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+            const haproxyRule2 = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
                 group: group,
                 firewall: firewall,
                 rule_order: 2,
@@ -73,8 +76,8 @@ describe(HAProxyRuleRepository.name, () => {
             const result = await repository.remove([haproxyRule, haproxyRule2]);
 
             expect(result).to.deep.equal([haproxyRule, haproxyRule2]);
-            expect(await repository.findOne({ where: { id: haproxyRule.id }})).to.be.undefined;
-            expect(await repository.findOne({ where: { id: haproxyRule2.id }})).to.be.undefined;
+            expect(await repository.findOne({ where: { id: haproxyRule.id }})).to.be.null;
+            expect(await repository.findOne({ where: { id: haproxyRule2.id }})).to.be.null;
         });
 
         it('should refresh orders after remove', async () => {
@@ -86,12 +89,12 @@ describe(HAProxyRuleRepository.name, () => {
         });
 
         it('should refresh orders for each group after removing multiple Rules', async () => {
-            const group2 = await getRepository(HAProxyGroup).save(getRepository(HAProxyGroup).create({
+            const group2 = await manager.getRepository(HAProxyGroup).save(manager.getRepository(HAProxyGroup).create({
                 name: 'group2',
                 firewall: firewall
             }));
 
-            const haproxyRule2 = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+            const haproxyRule2 = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
                 group: group2,
                 firewall: firewall,
                 rule_order: 1,

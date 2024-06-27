@@ -31,7 +31,7 @@ import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { RoutingGroup } from "../../../models/routing/routing-group/routing-group.model";
 import { RoutingGroupControllerUpdateDto } from "./dtos/update.dto";
 import { RoutingGroupControllerCreateDto } from "./dtos/create.dto";
-import { getRepository } from "typeorm";
+import db from "../../../database/database-manager";
 
 export class RoutingGroupController extends Controller {
     protected _routingGroupService: RoutingGroupService;
@@ -44,18 +44,18 @@ export class RoutingGroupController extends Controller {
         this._routingGroupService = await this._app.getService<RoutingGroupService>(RoutingGroupService.name);
         
         if (request.params.routingGroup) {
-            this._routingGroup = await getRepository(RoutingGroup).findOneOrFail({ where: { id: parseInt(request.params.routingGroup) }});
+            this._routingGroup = await db.getSource().manager.getRepository(RoutingGroup).findOneOrFail({ where: { id: parseInt(request.params.routingGroup) }});
         }
 
         //Get the firewall from the URL which contains the routing group 
-        const firewallQueryBuilder = getRepository(Firewall).createQueryBuilder('firewall').where('firewall.id = :id', {id: parseInt(request.params.firewall)});
+        const firewallQueryBuilder = db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall').where('firewall.id = :id', {id: parseInt(request.params.firewall)});
         if (request.params.routingGroup) {
             firewallQueryBuilder.innerJoin('firewall.routingGroups', 'group', 'group.id = :groupId', {groupId: parseInt(request.params.routingGroup)})
         }
         this._firewall = await firewallQueryBuilder.getOneOrFail();
 
         //Get the fwcloud from the URL which contains the firewall
-        this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
+        this._fwCloud = await db.getSource().manager.getRepository(FwCloud).createQueryBuilder('fwcloud')
             .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {firewallId: this._firewall.id})
             .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)}).getOneOrFail();        
     }

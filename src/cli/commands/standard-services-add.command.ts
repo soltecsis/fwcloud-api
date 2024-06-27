@@ -20,14 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as process from "process";
+
 import * as yargs from "yargs";
-import { Connection, ConnectionOptionsReader, createConnection, MigrationExecutor, QueryRunner } from "typeorm";
-import * as config from "../../config/config"
-import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
-import { logger } from "../../fonaments/abstract-application";
 import { Command } from "../command";
+import { DataSource } from "typeorm";
 
 
 /**
@@ -49,7 +46,7 @@ export class StandardServicesAddCommand extends Command {
         { id: 20099, name: "dnssafety-ui", port: 8096, comment: "DNS Safety user interface" },
     ];
 
-    private connection: Connection;
+    private dataSource: DataSource;
 
     private async getTreeNodes(): Promise<any> {
         const sql = `select SOON.id from fwc_tree SOON 
@@ -61,13 +58,13 @@ export class StandardServicesAddCommand extends Command {
             and SOON.id_obj is null and SOON.obj_type is null 
             and SOON.fwcloud is not null`;
     
-        return await this.connection.query(sql);
+        return await this.dataSource.query(sql);
     }
 
     private async addStandardTCPServices(): Promise<void> {
         for (let service of this.TCP_services) {
             // Make sure that the service doesn't exists.
-            let exists = await this.connection.query(`SELECT id from ipobj where id=${service.id}`);
+            let exists = await this.dataSource.query(`SELECT id from ipobj where id=${service.id}`);
 
             // If service already exists, then don't create it.
             if (exists.length) {
@@ -75,7 +72,7 @@ export class StandardServicesAddCommand extends Command {
             }
 
             this.output.success(`Creating new standard TCP service: ${service.name}`);
-            await this.connection.query(`INSERT INTO ipobj VALUES(${service.id},NULL,NULL,'${service.name}',2,6,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,${service.port},${service.port},NULL,'${service.comment}',NOW(),NOW(),0,0)`);
+            await this.dataSource.query(`INSERT INTO ipobj VALUES(${service.id},NULL,NULL,'${service.name}',2,6,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,${service.port},${service.port},NULL,'${service.comment}',NOW(),NOW(),0,0)`);
         }
 
         // Add new TCP services to the TCP Standard node of al fwcloud's services tree.
@@ -85,7 +82,7 @@ export class StandardServicesAddCommand extends Command {
                 // Make sure that we don't already have a node for this TCP service.
                 let sql = `SELECT id from fwc_tree
                     where id_parent=${node.id} and id_obj=${service.id}`;
-                let exists = await this.connection.query(sql);
+                let exists = await this.dataSource.query(sql);
                 
                 // If the node for this service object already exists, then don't create it.
                 if (exists.length) {
@@ -95,14 +92,14 @@ export class StandardServicesAddCommand extends Command {
                 sql = `INSERT INTO fwc_tree
                     (name, id_parent, node_type, id_obj, obj_type) 
                     VALUES ('${service.name}', ${node.id}, 'SOT', ${service.id}, 2)`
-                await this.connection.query(sql);
+                await this.dataSource.query(sql);
             }    
         }
     }
 
     async handle(args: yargs.Arguments) {
         const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
-        this.connection = await databaseService.getConnection({name: 'cli'});
+        this.dataSource = await databaseService.getDataSource({name: 'cli'});
 
         await this.addStandardTCPServices();
     }

@@ -6,9 +6,10 @@ import { createUser, generateSession, attachSession, sleep } from "../../../util
 import { Application } from "../../../../src/Application";
 import fwc_tree_node = require("../../../../src/models/tree/node");
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloudService } from "../../../../src/models/fwcloud/fwcloud.service";
+import db from "../../../../src/database/database-manager";
 
 describe(describeName('FwCloud Management E2E Tests'), () => {
 	let app: Application;
@@ -17,6 +18,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 	let adminUserSessionId: string;
 	let regularUser: User;
 	let regularUserSessionId: string;
+	let manager: EntityManager;
 
 	const fwcloudCreationSchema = {
 		title: 'fwcloud management schema',
@@ -61,6 +63,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 
 	before(async () => {
 		app = testSuite.app;
+		manager = db.getSource().manager;
 		regularUser = await createUser({role: 0});
 		adminUser = await createUser({role: 1});
 	});
@@ -146,13 +149,13 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 			});
 
 			it("delete fwcloud that doesn't exists", async () => {
-				fwCloud = await getRepository(FwCloud).save({
+				fwCloud = await manager.getRepository(FwCloud).save({
 					name: StringHelper.randomize(10)
 				});
 
 				const id: number = fwCloud.id;
 
-				await getRepository(FwCloud).remove(fwCloud);
+				await manager.getRepository(FwCloud).remove(fwCloud);
 
 				return await request(app.express)
 					.put('/fwcloud/del')

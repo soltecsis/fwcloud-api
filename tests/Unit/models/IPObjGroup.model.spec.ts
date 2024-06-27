@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import db from "../../../src/database/database-manager";
 import { Interface } from "../../../src/models/interface/Interface";
 import { InterfaceIPObj } from "../../../src/models/interface/InterfaceIPObj";
@@ -42,32 +42,33 @@ describe(IPObjGroup.name, () => {
 
     let routeService: RouteService;
     let routingRuleService: RoutingRuleService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
-        fwcloudProduct = await (new FwCloudFactory()).make();
+        manager = db.getSource().manager;
+        fwcloudProduct = await new FwCloudFactory().make();
         routeService = await testSuite.app.getService<RouteService>(RouteService.name);
         routingRuleService = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
-
-        const _interface: Interface = await getRepository(Interface).save(getRepository(Interface).create({
+        const _interface: Interface = await manager.getRepository(Interface).save(manager.getRepository(Interface).create({
             name: 'eth1',
             type: '11',
             interface_type: '11'
         }));
 
-        const host = await getRepository(IPObj).save(getRepository(IPObj).create({
+        const host = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
             name: 'test',
             address: '0.0.0.0',
             ipObjTypeId: 8,
             interfaceId: _interface.id
         }));
 
-        await getRepository(InterfaceIPObj).save(getRepository(InterfaceIPObj).create({
+        await manager.getRepository(InterfaceIPObj).save(manager.getRepository(InterfaceIPObj).create({
             interfaceId: _interface.id,
             ipObjId: host.id,
             interface_order: '1'
         }));
         
-        ipobjGroup = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+        ipobjGroup = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
             name: 'ipobjs group',
             type: 20,
             fwCloudId: fwcloudProduct.fwcloud.id

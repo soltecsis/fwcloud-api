@@ -27,6 +27,8 @@ import { expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 import ip from 'ip';
 import { RoutingRuleService } from "../../../../src/models/routing/routing-rule/routing-rule.service";
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 
 describe('Routing rule compiler', () => {
   let fwc: FwCloudProduct;
@@ -42,8 +44,10 @@ describe('Routing rule compiler', () => {
   let cs_end: string;
   const head = '$IP rule add from';
   let tail: string;
+  let manager: EntityManager;
 
   before(async () => {
+    manager = db.getSource().manager
     await testSuite.resetDatabaseData();
 
     fwc = await (new FwCloudFactory()).make();
