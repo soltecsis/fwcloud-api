@@ -55,7 +55,10 @@ describe(describeName('MigrationRollbackCommand tests'), () => {
             })
         });
 
-        
+        if (!databaseService.dataSource.isInitialized) {
+            await databaseService.dataSource.initialize();
+        }
+
         queryRunner  = databaseService.dataSource.createQueryRunner();
         const afterMigration = await queryRunner.query('SELECT count(*) FROM migrations');
         await queryRunner.release();

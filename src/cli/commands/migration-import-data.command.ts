@@ -24,7 +24,6 @@ import * as yargs from "yargs";
 import { DatabaseService } from "../../database/database.service";
 import { Command, Option } from "../command";
 import { IPObj } from "../../models/ipobj/IPObj";
-import db from "../../database/database-manager";
 
 /**
  * Runs migration command.
@@ -36,9 +35,10 @@ export class MigrationImportDataCommand extends Command {
     async handle(args: yargs.Arguments) {
         const forceFlag: boolean = (args.force ?? false) as boolean;
         const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
+        const dataSource = databaseService.dataSource;
 
         // If at least a standard object already exists means data have been imported
-        if (forceFlag || !await db.getSource().manager.getRepository(IPObj).findOne({ where: { id: 10000 }})) {
+        if (forceFlag || !await dataSource.manager.getRepository(IPObj).findOne({ where: { id: 10000 }})) {
             await databaseService.feedDefaultData();
             this.output.success(`Default data imported.`);
         } else {

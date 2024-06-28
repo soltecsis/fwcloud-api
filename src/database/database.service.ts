@@ -329,8 +329,7 @@ export class DatabaseService extends Service {
                 KeepalivedRule,
                 KeepalivedGroup,
                 KeepalivedToIPObj
-            ],
-            connectTimeout: 60000
+            ]
         }
     }
 

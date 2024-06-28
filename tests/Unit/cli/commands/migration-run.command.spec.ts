@@ -29,10 +29,10 @@ import { runCLICommandIsolated } from "../../../utils/utils";
 
 describe(describeName('MigrationRunCommand tests'), () => {
 
-    after(async() => {
+    after(async () => {
         await testSuite.resetDatabaseData();
     })
-    it('should run the migrations', async() => {
+    it('should run the migrations', async () => {
         let app: AbstractApplication = testSuite.app;
         let databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
 
@@ -44,8 +44,13 @@ describe(describeName('MigrationRunCommand tests'), () => {
         await runCLICommandIsolated(testSuite, async () => {
             return new MigrationRunCommand().safeHandle({
                 $0: "migration:run",
-            _: []
-        })});
+                _: []
+            });
+        });
+
+        if (!databaseService.dataSource.isInitialized) {
+            await databaseService.dataSource.initialize();
+        }
 
         queryRunner = databaseService.dataSource.createQueryRunner();
         const afterMigration = await queryRunner.query('SELECT name FROM migrations');

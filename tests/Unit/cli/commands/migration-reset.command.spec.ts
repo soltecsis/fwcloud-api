@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Table, Connection, QueryRunner, DataSource } from "typeorm";
+import { Table, QueryRunner, DataSource } from "typeorm";
 import { MigrationResetCommand } from "../../../../src/cli/commands/migration-reset-command"
 import { Application } from "../../../../src/Application";
 import { expect, testSuite, describeName } from "../../../mocha/global-setup";
@@ -29,16 +29,16 @@ import { runCLICommandIsolated } from "../../../utils/utils";
 
 describe(describeName('MigrationResetCommand tests'), () => {
     let app: Application;
-    
+
     before(async () => {
         app = testSuite.app;
     });
 
-    after(async() => {
+    after(async () => {
         await testSuite.resetDatabaseData();
     });
 
-    it('should reset the database', async() => {
+    it('should reset the database', async () => {
         let dataSource: DataSource = (await app.getService<DatabaseService>(DatabaseService.name)).dataSource;
         let queryRunner: QueryRunner = dataSource.createQueryRunner();
 
@@ -47,13 +47,15 @@ describe(describeName('MigrationResetCommand tests'), () => {
 
         await runCLICommandIsolated(testSuite, async () => {
             return new MigrationResetCommand().safeHandle({
-            $0: "migration:run",
-            _: []
-        })});
-
-        dataSource = (await app.getService<DatabaseService>(DatabaseService.name)).dataSource;
+                $0: "migration:run",
+                _: []
+            })
+        });
+        if (!dataSource.isInitialized) {
+            await dataSource.initialize();
+        }
         queryRunner = dataSource.createQueryRunner();
-        
+
         expect(await queryRunner.getTable('ca')).to.be.undefined;
         expect(await queryRunner.getTable('user__fwcloud')).to.be.undefined;
 

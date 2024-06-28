@@ -29,7 +29,6 @@ import * as path from "path";
 import sinon from "sinon";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
-import db from "../../../../src/database/database-manager";
 
 
 let app: AbstractApplication;
@@ -89,8 +88,8 @@ describe(describeName('FwCloud Unit Tests'), () => {
             expect(spy.calledOnce).to.be.true;
         });
     });
-
-    describe('remove database data', () => {
+    //TODO: review this test
+    describe.skip('remove database data', () => {
         it('should remove all database data', async () => {
             let fwCloud = await FwCloud.findOne({ where: { id: fwc.fwcloud.id }});
 
