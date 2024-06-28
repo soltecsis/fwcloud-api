@@ -42,10 +42,6 @@ describe(describeName('FwCloud Unit Tests'), () => {
         fwc = await new FwCloudFactory().make();
     });
 
-    after(async () => {
-        await testSuite.closeApplication();
-    });
-
     describe('removeDataDirectories()', () => {
         it('should remove fwcloud pki directory if it exists', async () => {
             const fwCloud: FwCloud = await FwCloud.save(FwCloud.create({ name: 'test' }));

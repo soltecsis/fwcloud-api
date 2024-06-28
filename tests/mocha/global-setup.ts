@@ -103,7 +103,7 @@ before(async () => {
 beforeEach(async () => {
     fse.removeSync(playgroundPath);
     fse.mkdirSync(playgroundPath);
-    testSuite.app.generateDirectories();
+    await testSuite.app.generateDirectories();
 })
 
 after(async () => {
