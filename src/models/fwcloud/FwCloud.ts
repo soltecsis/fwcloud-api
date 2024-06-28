@@ -224,7 +224,7 @@ export class FwCloud extends Model {
 				`delete from ipobj_g where fwcloud=${this.id};`,
 
         	// Host interfaces IPs and hosts interfaces.
-				`DELETE FROM ipobj WHERE id IN (SELECT OBJ.id FROM interface__ipobj II INNER JOIN interface I ON I.id = II.interface INNER JOIN ipobj OBJ ON OBJ.interface = I.id WHERE OBJ.fwcloud = ${this.id});`,
+				`delete OBJ from interface__ipobj II inner join interface I on I.id=II.interface inner join ipobj OBJ on OBJ.interface=I.id where OBJ.fwcloud=${this.id};`,
 				`delete II from interface__ipobj II inner join ipobj OBJ on OBJ.id=II.ipobj where OBJ.fwcloud=${this.id};`,
 				`delete from interface where firewall is null and id not in (select interface from interface__ipobj);`,
 
