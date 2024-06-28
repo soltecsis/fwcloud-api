@@ -30,16 +30,15 @@ import { FwcTree } from "../../../../src/models/tree/fwc-tree.model";
 import { EntityManager } from "typeorm";
 import db from "../../../../src/database/database-manager";
 
+let app: AbstractApplication;
+let service: FwCloudService;
+let manager: EntityManager;
 
 describe(describeName('FwCloudService Unit tests'), async() => {
    
-    let app: AbstractApplication;
-    let service: FwCloudService;
-    let manager: EntityManager;
     
     beforeEach(async() => {
         app = testSuite.app;
-        await testSuite.resetDatabaseData();
         manager = db.getSource().manager;
         service = await app.getService<FwCloudService>(FwCloudService.name);
     });

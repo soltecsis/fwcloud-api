@@ -359,19 +359,14 @@ describe(describeName('Snapshot E2E tests'), () => {
             it('regular user should restore an snapshot if the user belongs to the fwcloud', async () => {
                 loggedUser.fwClouds = [fwCloud];
                 await manager.getRepository(User).save(loggedUser);
-                try{
-
-                    await request(app.express)
-                        .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
-                        .set('Cookie', attachSession(loggedUserSessionId))
-                        .expect(200)
-                        .then(async (response) => {
-                            expect(response.body.data.id).to.be.an("number");
-                            expect(response.body.data.name).to.be.deep.eq(fwCloud.name);
-                        });
-                } catch (e) {
-                    console.log(e);
-                }
+                await request(app.express)
+                    .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
+                    .set('Cookie', attachSession(loggedUserSessionId))
+                    .expect(200)
+                    .then(async (response) => {
+                        expect(response.body.data.id).to.be.an("number");
+                        expect(response.body.data.name).to.be.deep.eq(fwCloud.name);
+                    });
             });
 
             it('admin user should restore an snapshot', async () => {

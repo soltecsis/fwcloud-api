@@ -141,15 +141,12 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
 			});
 
 			it('admin user should delete empty fwcloud', async () => {
-				try{
-					return await request(app.express)
-					.put('/fwcloud/del')
-					.send({ fwcloud: fwCloud.id })
-						.set('Cookie', [attachSession(adminUserSessionId)])
-						.expect(204);
-				} catch (error) {
-					console.log(error);
-				}
+				
+				return await request(app.express)
+				.put('/fwcloud/del')
+				.send({ fwcloud: fwCloud.id })
+					.set('Cookie', [attachSession(adminUserSessionId)])
+					.expect(204);
 			});
 
 			it("delete fwcloud that doesn't exists", async () => {
