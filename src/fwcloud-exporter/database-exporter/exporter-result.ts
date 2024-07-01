@@ -44,9 +44,7 @@ export class ExporterResult {
   }
 
   public getTableResults(tableName: string): Array<object> {
-    return this._results.hasOwnProperty(tableName)
-      ? this._results[tableName]
-      : null;
+    return tableName in this._results ? this._results[tableName] : null;
   }
 
   public getTableNames(): Array<string> {

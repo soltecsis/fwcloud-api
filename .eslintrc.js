@@ -34,11 +34,8 @@ module.exports = {
     'no-control-regex': 'off',
     '@typescript-eslint/no-unsafe-return': 'off',
     'no-async-promise-executor': 'off',
-    'no-prototype-builtins': 'off',
-    '@typescript-eslint/ban-types': 'off',
-    '@typescript-eslint/restrict-plus-operands': 'off',
-    'no-prototype-builtins': 'off',
-    '@typescript-eslint/ban-types': 'off',
+    // 'no-prototype-builtins': 'off', // acabado
+    '@typescript-eslint/ban-types': 'off', // faltan 3 del mismo archivo,
 
     //'@typescript-eslint/await-thenable': 'off',
     //'no-useless-escape': 'off',

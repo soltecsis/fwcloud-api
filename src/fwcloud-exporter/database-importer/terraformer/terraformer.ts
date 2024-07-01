@@ -68,7 +68,7 @@ export class Terraformer {
   protected async getTerraformer(
     tableName: string,
   ): Promise<typeof TableTerraformer> {
-    if (TERRAFORMERS.hasOwnProperty(tableName)) {
+    if (tableName in TERRAFORMERS) {
       return TERRAFORMERS[tableName];
     }
 

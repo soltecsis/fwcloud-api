@@ -147,7 +147,7 @@ export class User extends Model {
 
   //Add new user
   public static _insert(req) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       //New object with customer data
       const salt = bcrypt.genSaltSync(10);
       const userData = {
@@ -181,7 +181,7 @@ export class User extends Model {
   }
 
   public static existsCustomerUserName(dbCon, customer, username) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where customer=${customer} and username=${dbCon.escape(username)}`,
         (error, result) => {
@@ -194,7 +194,7 @@ export class User extends Model {
   }
 
   public static existsCustomerUserNameOtherId(dbCon, customer, username, user) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where customer=${customer} and username=${dbCon.escape(username)} and id!=${user}`,
         (error, result) => {
@@ -207,7 +207,7 @@ export class User extends Model {
   }
 
   public static existsCustomerUserId(dbCon, customer, user) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where customer=${customer} and id=${user}`,
         (error, result) => {
@@ -220,7 +220,7 @@ export class User extends Model {
   }
 
   public static isAdmin(req) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select role from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`,
         (error, result) => {
@@ -252,7 +252,7 @@ export class User extends Model {
   }
 
   public static _update(req): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       let crypt_pass = '';
       if (req.body.password) {
         const salt = bcrypt.genSaltSync(10);
@@ -279,7 +279,7 @@ export class User extends Model {
   }
 
   public static changeLoggedUserPass(req): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const salt = bcrypt.genSaltSync(10);
       const crypt_pass = bcrypt.hashSync(
         req.session.customer_id + req.session.username + req.body.password,
@@ -297,7 +297,7 @@ export class User extends Model {
   }
 
   public static get(req) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       let sql = '';
 
       if (req.body.user)
@@ -312,7 +312,7 @@ export class User extends Model {
   }
 
   public static _delete(req): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       req.dbCon.query(
         `delete from user__fwcloud where user=${req.body.user}`,
         (error, result) => {
@@ -346,7 +346,7 @@ export class User extends Model {
   }
 
   public static allowFwcloudAccess(dbCon, user, fwcloud) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(
         `INSERT IGNORE user__fwcloud values(${user},${fwcloud})`,
         (error, result) => {
@@ -358,7 +358,7 @@ export class User extends Model {
   }
 
   public static allowAllFwcloudAccess(dbCon, user): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(`select id from fwcloud`, async (error, result) => {
         if (error) return reject(error);
 
@@ -376,7 +376,7 @@ export class User extends Model {
   }
 
   public static disableFwcloudAccess(dbCon, user, fwcloud): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(
         `delete from user__fwcloud where user=${user} and fwcloud=${fwcloud}`,
         (error, result) => {

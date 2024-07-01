@@ -96,18 +96,21 @@ export async function sleep(ms: number): Promise<void> {
  * @param testSuite
  * @param fn
  */
-export async function runCLICommandIsolated(
+export function runCLICommandIsolated(
   testSuite: TestSuite,
   fn: () => Promise<number>,
 ): Promise<void> {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const _f = await fn();
-      await testSuite.runApplication();
-      return resolve();
-    } catch (e) {
-      return reject(e);
-    }
+  return new Promise((resolve, reject) => {
+    fn()
+      .then((_f) => {
+        return testSuite.runApplication();
+      })
+      .then(() => {
+        resolve();
+      })
+      .catch((e) => {
+        reject(e);
+      });
   });
 }
 

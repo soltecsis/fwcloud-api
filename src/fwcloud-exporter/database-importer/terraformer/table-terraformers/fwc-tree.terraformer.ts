@@ -120,9 +120,9 @@ export class FwcTreeTerraformer extends TableTerraformer {
      */
     result['id_obj'] = (mapper: ImportMapping, row: any, value: any) => {
       if (
-        row.hasOwnProperty('node_type') &&
+        'node_type' in row &&
         row.node_type !== null &&
-        this._typeToTableNameMapping.hasOwnProperty(row.node_type) &&
+        row.node_type in this._typeToTableNameMapping &&
         this._typeToTableNameMapping[row.node_type] !== null
       ) {
         const referencedEntity: typeof Model =

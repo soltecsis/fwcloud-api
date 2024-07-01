@@ -22,14 +22,7 @@
 
 import { DatabaseService } from '../database/database.service';
 import { app } from '../fonaments/abstract-application';
-import {
-  QueryRunner,
-  getMetadataArgsStorage,
-  DeepPartial,
-  DeleteResult,
-  Repository,
-  EntityRepository,
-} from 'typeorm';
+import { QueryRunner } from 'typeorm';
 import Model from '../models/Model';
 import { ExporterResultData } from '../fwcloud-exporter/database-exporter/exporter-result';
 
@@ -42,7 +35,9 @@ export class BulkDatabaseDelete {
   }
 
   public async run(): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    let qr: QueryRunner | undefined;
+
+    try {
       this._databaseService = await app().getService<DatabaseService>(
         DatabaseService.name,
       );
@@ -50,33 +45,34 @@ export class BulkDatabaseDelete {
         this._databaseService.dataSource.createQueryRunner();
 
       await qr.startTransaction();
+      await qr.query('SET FOREIGN_KEY_CHECKS = 0');
 
-      try {
-        await qr.query('SET FOREIGN_KEY_CHECKS = 0');
+      for (const tableName in this._data) {
+        const entity: typeof Model = Model.getEntitiyDefinition(tableName);
+        const rows: Array<object> = this._data[tableName];
 
-        for (const tableName in this._data) {
-          const entity: typeof Model = Model.getEntitiyDefinition(tableName);
-          const rows: Array<object> = this._data[tableName];
-
-          if (entity) {
-            await this.processEntityRows(qr, tableName, entity, rows);
-          } else {
-            await this.processRows(qr, tableName, rows);
-          }
+        if (entity) {
+          await this.processEntityRows(qr, tableName, entity, rows);
+        } else {
+          await this.processRows(qr, tableName, rows);
         }
-
-        await qr.query('SET FOREIGN_KEY_CHECKS = 1');
-        await qr.commitTransaction();
-        await qr.release();
-      } catch (e) {
-        await qr.rollbackTransaction();
-        await qr.query('SET FOREIGN_KEY_CHECKS = 1');
-        qr.release();
-        return reject(e);
       }
 
-      resolve();
-    });
+      await qr.query('SET FOREIGN_KEY_CHECKS = 1');
+      await qr.commitTransaction();
+      await qr.release();
+    } catch (error) {
+      if (qr) {
+        try {
+          await qr.rollbackTransaction();
+          await qr.query('SET FOREIGN_KEY_CHECKS = 1');
+          await qr.release();
+        } catch (rollbackError) {
+          console.error('Error rolling back transaction:', rollbackError);
+        }
+      }
+      throw error;
+    }
   }
 
   protected async processEntityRows(

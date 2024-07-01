@@ -99,7 +99,7 @@ export default abstract class Model extends BaseEntity implements IModel {
 
     for (let i = 0; i < propertyReferences.length; i++) {
       const propertyName: string = propertyReferences[i].propertyName;
-      if (this.hasOwnProperty(propertyName) && this[propertyName] !== null) {
+      if (propertyName in this && this[propertyName] !== null) {
         let value: any = this[propertyName];
 
         if (value instanceof Date) {
@@ -111,7 +111,7 @@ export default abstract class Model extends BaseEntity implements IModel {
       }
 
       if (
-        this.hasOwnProperty(propertyName) &&
+        propertyName in this &&
         !this[propertyName] &&
         options.removeNullFields === false
       ) {

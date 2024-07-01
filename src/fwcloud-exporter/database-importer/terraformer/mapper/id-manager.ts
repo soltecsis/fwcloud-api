@@ -23,6 +23,7 @@
 import Model from '../../../../models/Model';
 import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs';
 import { QueryRunner } from 'typeorm';
+import { ColumnOptions } from 'typeorm';
 
 export type TableIdState = {
   [tableName: string]: { [propertyName: string]: number };
@@ -75,7 +76,9 @@ export class IdManager {
 
         for (let i = 0; i < primaryKeys.length; i++) {
           if (!entity.isJoinColumn(primaryKeys[i].propertyName)) {
-            if ((<Function>primaryKeys[i].options.type).name === 'Number') {
+            if (
+              (<ColumnOptions>primaryKeys[i].options.type).name === 'Number'
+            ) {
               const primaryKeyPropertyName: string =
                 primaryKeys[i].propertyName;
               // TypeORM might apply some kind of propertyName mapping.
