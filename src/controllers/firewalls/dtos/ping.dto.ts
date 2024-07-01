@@ -20,32 +20,35 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
-import { FirewallInstallCommunication, FirewallInstallProtocol } from "../../../models/firewall/Firewall";
+import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  FirewallInstallCommunication,
+  FirewallInstallProtocol,
+} from '../../../models/firewall/Firewall';
 
 export class PingDto {
-    @IsEnum(FirewallInstallCommunication)
-    communication: FirewallInstallCommunication;
+  @IsEnum(FirewallInstallCommunication)
+  communication: FirewallInstallCommunication;
 
-    @IsString()
-    host: string;
+  @IsString()
+  host: string;
 
-    @IsNumber()
-    port: number;
+  @IsNumber()
+  port: number;
 
-    @IsOptional()
-    @IsString()
-    username?: string;
+  @IsOptional()
+  @IsString()
+  username?: string;
 
-    @IsOptional()
-    @IsString()
-    password?: string;
+  @IsOptional()
+  @IsString()
+  password?: string;
 
-    @IsOptional()
-    @IsEnum(FirewallInstallProtocol)
-    protocol?: FirewallInstallProtocol;
+  @IsOptional()
+  @IsEnum(FirewallInstallProtocol)
+  protocol?: FirewallInstallProtocol;
 
-    @IsOptional()
-    @IsString()
-    apikey?: string;
+  @IsOptional()
+  @IsString()
+  apikey?: string;
 }

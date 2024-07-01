@@ -20,15 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../abstract-application";
-import { Request } from "express";
+import { AbstractApplication } from '../abstract-application';
+import { Request } from 'express';
 
 export class Controller {
-    constructor(protected _app: AbstractApplication) { }
+  constructor(protected _app: AbstractApplication) {}
 
-    public async make(request: Request): Promise<void> {}
+  public async make(request: Request): Promise<void> {}
 
-    public static methodExists(method: string): boolean {
-        return typeof this[method] === 'function' || typeof this.prototype[method] === 'function';
-    }
+  public static methodExists(method: string): boolean {
+    return (
+      typeof this[method] === 'function' ||
+      typeof this.prototype[method] === 'function'
+    );
+  }
 }

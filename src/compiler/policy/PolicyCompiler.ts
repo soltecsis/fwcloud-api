@@ -20,46 +20,59 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IPTablesCompiler } from './iptables/iptables-compiler'
-import { NFTablesCompiler } from './nftables/nftables-compiler'
-import { RuleCompilationResult } from './PolicyCompilerTools'
+import { IPTablesCompiler } from './iptables/iptables-compiler';
+import { NFTablesCompiler } from './nftables/nftables-compiler';
+import { RuleCompilationResult } from './PolicyCompilerTools';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
 import { PolicyRule } from '../../models/policy/PolicyRule';
 
-export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler;
+export type PolicyCompilerClasses = IPTablesCompiler | NFTablesCompiler;
 export type AvailablePolicyCompilers = 'IPTables' | 'NFTables';
- 
-export class PolicyCompiler {
 
-  public static compile(compileFor: AvailablePolicyCompilers, rulesData: any, eventEmitter?: EventEmitter): Promise<RuleCompilationResult[]> {
-    return new Promise(async (resolve, reject) => {
+export class PolicyCompiler {
+  public static compile(
+    compileFor: AvailablePolicyCompilers,
+    rulesData: any,
+    eventEmitter?: EventEmitter,
+  ): Promise<RuleCompilationResult[]> {
+    return new Promise((resolve, reject) => {
       try {
-        let result: RuleCompilationResult[] = [];
-        
+        const result: RuleCompilationResult[] = [];
+
         if (!rulesData) return resolve(result);
 
-        for (let i=0; i<rulesData.length; i++) {
-          if (eventEmitter) eventEmitter.emit('message', new ProgressNoticePayload(`Rule ${i+1} (ID: ${rulesData[i].id})${!(rulesData[i].active) ? ' [DISABLED]' : ''}`));
+        for (let i = 0; i < rulesData.length; i++) {
+          if (eventEmitter)
+            eventEmitter.emit(
+              'message',
+              new ProgressNoticePayload(
+                `Rule ${i + 1} (ID: ${rulesData[i].id})${!rulesData[i].active ? ' [DISABLED]' : ''}`,
+              ),
+            );
 
           let compiler: PolicyCompilerClasses;
 
           if (compileFor == 'IPTables')
             compiler = new IPTablesCompiler(rulesData[i]);
-          else // NFTables
-            compiler = new NFTablesCompiler(rulesData[i]);
+          // NFTables
+          else compiler = new NFTablesCompiler(rulesData[i]);
 
           result.push({
             id: rulesData[i].id,
             active: rulesData[i].active,
             comment: rulesData[i].comment,
-            cs: (rulesData[i].active || rulesData.length===1) ? compiler.ruleCompile() : ''
+            cs:
+              rulesData[i].active || rulesData.length === 1
+                ? compiler.ruleCompile()
+                : '',
           });
         }
 
         resolve(result);
-      } catch (error) { return reject(error) }
+      } catch (error) {
+        return reject(error);
+      }
     });
   }
-  
- }
+}

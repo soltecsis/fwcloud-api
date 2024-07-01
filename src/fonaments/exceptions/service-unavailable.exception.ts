@@ -20,11 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { HttpException } from "./http/http-exception";
+import { HttpException } from './http/http-exception';
 
 export class ServiceUnavailableException extends HttpException {
-    constructor() {
-        super();
-        this.status = 503;
-    }
+  constructor() {
+    super();
+    this.status = 503;
+  }
 }

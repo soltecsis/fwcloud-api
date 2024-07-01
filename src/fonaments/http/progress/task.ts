@@ -20,84 +20,95 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as uuid from "uuid";
-import { TasksEventEmitter } from "./progress";
-import { EventEmitter } from "events";
+import * as uuid from 'uuid';
+import { TasksEventEmitter } from './progress';
+import { EventEmitter } from 'events';
 
-export type TaskDescription = (eventEmitter: InternalTaskEventEmitter) => Promise<any>;
-export type GroupDescription = (task: Task) => void
+export type TaskDescription = (
+  eventEmitter: InternalTaskEventEmitter,
+) => Promise<any>;
+export type GroupDescription = (task: Task) => void;
 
 export interface InternalTaskEventEmitter extends EventEmitter {
-    emit(event: 'info', ...args: any[]): boolean;
-    on(event: 'info', listener: (...args: any[]) => void): this;
+  emit(event: 'info', ...args: any[]): boolean;
+  on(event: 'info', listener: (...args: any[]) => void): this;
 }
 
 export interface ITask {
-    run(): Promise<any>;
-    addTask(task: TaskDescription, finishedText: string, stepable: boolean): void;
-    parallel(fn: GroupDescription, finishedText: string): void;
-    sequence(fn: GroupDescription, finishedText: string): void;
+  run(): Promise<any>;
+  addTask(task: TaskDescription, finishedText: string, stepable: boolean): void;
+  parallel(fn: GroupDescription, finishedText: string): void;
+  sequence(fn: GroupDescription, finishedText: string): void;
 }
 export class Task implements ITask {
-    protected _id: string;
-    protected _tasks: Array<Task>;
-    protected _fn: TaskDescription;
-    readonly description: string;
-    protected _eventEmitter: TasksEventEmitter;
+  protected _id: string;
+  protected _tasks: Array<Task>;
+  protected _fn: TaskDescription;
+  readonly description: string;
+  protected _eventEmitter: TasksEventEmitter;
 
-    protected _internalEmitter: InternalTaskEventEmitter;
+  protected _internalEmitter: InternalTaskEventEmitter;
 
-    constructor(eventEmitter: TasksEventEmitter, fn: TaskDescription, description: string) {
-        this._id = uuid.v1();
-        this._eventEmitter = eventEmitter;
-        this._internalEmitter = new EventEmitter();
-        this.description = description;
-        this._fn = fn;
-        this._tasks = [];
-    }
+  constructor(
+    eventEmitter: TasksEventEmitter,
+    fn: TaskDescription,
+    description: string,
+  ) {
+    this._id = uuid.v1();
+    this._eventEmitter = eventEmitter;
+    this._internalEmitter = new EventEmitter();
+    this.description = description;
+    this._fn = fn;
+    this._tasks = [];
+  }
 
-    get id(): string {
-        return this._id;
-    }
+  get id(): string {
+    return this._id;
+  }
 
-    addTask(task: TaskDescription, finishedText: string = null, stepable: boolean = true): void {
-        throw new Error("Method not implemented.");
-    }
-    parallel(fn: GroupDescription, finishedText: string = null): void {
-        throw new Error("Method not implemented.");
-    }
-    sequence(fn: GroupDescription, finishedText: string = null): void {
-        throw new Error("Method not implemented.");
-    }
+  addTask(
+    task: TaskDescription,
+    finishedText: string = null,
+    stepable: boolean = true,
+  ): void {
+    throw new Error('Method not implemented.');
+  }
+  parallel(fn: GroupDescription, finishedText: string = null): void {
+    throw new Error('Method not implemented.');
+  }
+  sequence(fn: GroupDescription, finishedText: string = null): void {
+    throw new Error('Method not implemented.');
+  }
 
-    public async run(): Promise<any> {
+  public async run(): Promise<any> {
+    this._internalEmitter.on('info', (message: string) => {
+      this.emitInfoTask(this, message);
+    });
 
-        this._internalEmitter.on('info', (message: string) => {
-            this.emitInfoTask(this, message);
-        });
+    this.emitStartedTask(this);
+    return this._fn(this._internalEmitter)
+      .then(() => {
+        this.emitFinishedTask(this);
+      })
+      .catch((e) => {
+        this.emitErrorTask(this, e);
+        throw e;
+      });
+  }
 
-        this.emitStartedTask(this);
-        return this._fn(this._internalEmitter).then(() => {
-            this.emitFinishedTask(this);
-        }).catch(e => {
-            this.emitErrorTask(this, e);
-            throw e;
-        });
-    }
+  protected emitInfoTask(task: Task, message: string): void {
+    this._eventEmitter.emit('info', task, message);
+  }
 
-    protected emitInfoTask(task: Task, message: string): void {
-        this._eventEmitter.emit('info', task, message);
-    }
+  protected emitStartedTask(task: Task): void {
+    this._eventEmitter.emit('start', task);
+  }
 
-    protected emitStartedTask(task: Task): void {
-        this._eventEmitter.emit('start', task);
-    }
+  protected emitFinishedTask(task: Task): void {
+    this._eventEmitter.emit('end', task);
+  }
 
-    protected emitFinishedTask(task: Task): void {
-       this._eventEmitter.emit('end', task);
-    }
-
-    protected emitErrorTask(task: Task, error: Error): void {
-        this._eventEmitter.emit('error', task, error);
-    }
+  protected emitErrorTask(task: Task, error: Error): void {
+    this._eventEmitter.emit('error', task, error);
+  }
 }

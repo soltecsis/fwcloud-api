@@ -20,19 +20,22 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { HttpException } from "./http/http-exception";
-import { ErrorPayload } from "../http/response-builder";
-import { ErrorBag } from "../validation/validator";
+import { HttpException } from './http/http-exception';
+import { ErrorPayload } from '../http/response-builder';
+import { ErrorBag } from '../validation/validator';
 
 export class ValidationException extends HttpException {
-    constructor(message: string = "The given data was invalid", protected readonly _errors: ErrorBag) {
-        super(message, 422);
-    }
+  constructor(
+    message: string = 'The given data was invalid',
+    protected readonly _errors: ErrorBag,
+  ) {
+    super(message, 422);
+  }
 
-    public toResponse(): ErrorPayload {
-        const obj = super.toResponse();
-        obj.errors = this._errors;
+  public toResponse(): ErrorPayload {
+    const obj = super.toResponse();
+    obj.errors = this._errors;
 
-        return obj;
-    }
+    return obj;
+  }
 }

@@ -20,14 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Snapshot } from "../snapshot";
-import { app } from "../../fonaments/abstract-application";
-import { HttpException } from "../../fonaments/exceptions/http/http-exception";
+import { Snapshot } from '../snapshot';
+import { app } from '../../fonaments/abstract-application';
+import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 
 export class SnapshotNotCompatibleException extends HttpException {
-    public snapshot: Snapshot;
-    constructor(snapshot: Snapshot) {
-        super(`Snapshot version not compatible`, 400);
-        this.snapshot = snapshot;
-    }
+  public snapshot: Snapshot;
+  constructor(snapshot: Snapshot) {
+    super(`Snapshot version not compatible`, 400);
+    this.snapshot = snapshot;
+  }
 }

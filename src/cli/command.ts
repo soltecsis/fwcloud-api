@@ -20,50 +20,55 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import yargs, { PositionalOptionsType } from "yargs";
-import { Application } from "./Application";
-import { Output } from "./output";
+import yargs, { PositionalOptionsType } from 'yargs';
+import { Application } from './Application';
+import { Output } from './output';
 
-export type Option = {name: string, alias?: string, description: string, type?: "array" | "count" | PositionalOptionsType, required?: boolean, default?: any}
-export type Argument = {name: string, description: string, required: boolean };
+export type Option = {
+  name: string;
+  alias?: string;
+  description: string;
+  type?: 'array' | 'count' | Omit<PositionalOptionsType, any>;
+  required?: boolean;
+  default?: any;
+};
+export type Argument = { name: string; description: string; required: boolean };
 
 export abstract class Command {
-    protected output: Output;
-    protected _app: Application;
+  protected output: Output;
+  protected _app: Application;
 
-    public abstract name: string;
-    public abstract description: string;
+  public abstract name: string;
+  public abstract description: string;
 
-    public abstract handle(args: yargs.Arguments): Promise<void>;
+  public abstract handle(args: yargs.Arguments): Promise<void>;
 
-    public async safeHandle(args: yargs.Arguments): Promise<number> {
-        this._app = await Application.run();
-        this.output = new Output(this._app.config.get('env') !== 'test' ? console.log : () => {});
+  public async safeHandle(args: yargs.Arguments): Promise<number> {
+    this._app = await Application.run();
+    this.output = new Output(
+      this._app.config.get('env') !== 'test' ? console.log : () => {},
+    );
 
-        try {
+    try {
+      await this.handle(args);
+      await this._app.close();
 
-            await this.handle(args);
-            await this._app.close();
-            
-            return 0;
+      return 0;
+    } catch (err) {
+      this.output.error('Unexpected error: ' + err.message);
 
-        } catch (err) {
-            this.output.error('Unexpected error: ' + err.message);
-            
-            if(this._app.config.get('env') === 'test') { 
-                throw err;
-            }
-            
-            return 1;
-        }
+      if (this._app.config.get('env') === 'test') {
+        throw err;
+      }
+
+      return 1;
     }
-    public getArguments(): Argument[]
-    {
-        return [];
-    }
+  }
+  public getArguments(): Argument[] {
+    return [];
+  }
 
-    public getOptions(): Option[]
-    {
-        return [];
-    }
+  public getOptions(): Option[] {
+    return [];
+  }
 }

@@ -20,104 +20,113 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
-import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { FwCloudService } from "../../../../src/models/fwcloud/fwcloud.service";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { getRepository } from "typeorm";
-import StringHelper from "../../../../src/utils/string.helper";
-import { createUser } from "../../../utils/utils";
-import { FwcTree } from "../../../../src/models/tree/fwc-tree.model";
-
+import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
+import { describeName, testSuite, expect } from '../../../mocha/global-setup';
+import { FwCloudService } from '../../../../src/models/fwcloud/fwcloud.service';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
+import { getRepository } from 'typeorm';
+import StringHelper from '../../../../src/utils/string.helper';
+import { createUser } from '../../../utils/utils';
+import { FwcTree } from '../../../../src/models/tree/fwc-tree.model';
 
 let app: AbstractApplication;
 let service: FwCloudService;
 
-describe(describeName('FwCloudService Unit tests'), async() => {
+describe(describeName('FwCloudService Unit tests'), async () => {
+  beforeEach(async () => {
+    app = testSuite.app;
+    service = await app.getService<FwCloudService>(FwCloudService.name);
+  });
 
-    beforeEach(async() => {
-        app = testSuite.app;
-        service = await app.getService<FwCloudService>(FwCloudService.name);
+  describe('Bootstrap', () => {
+    it('service is instantiated in during bootstrap process', async () => {
+      expect(
+        await app.getService<FwCloudService>(FwCloudService.name),
+      ).to.be.instanceof(FwCloudService);
+    });
+  });
+
+  describe('store()', () => {
+    it('should create a fwcloud', async () => {
+      const fwCloud: FwCloud = await service.store({
+        name: StringHelper.randomize(10),
+      });
+
+      expect(await getRepository(FwCloud).findOne(fwCloud.id)).not.to.be.null;
     });
 
+    it('should grant access to all admin users', async () => {
+      const admin = await createUser({ role: 1 });
+      const regular = await createUser({ role: 0 });
 
-    describe('Bootstrap', () => {
-        it('service is instantiated in during bootstrap process', async() => {
-            expect(await app.getService<FwCloudService>(FwCloudService.name)).to.be.instanceof(FwCloudService);
-        });
+      let fwCloud: FwCloud = await service.store({
+        name: StringHelper.randomize(10),
+      });
+
+      fwCloud = await getRepository(FwCloud).findOne(fwCloud.id, {
+        relations: ['users'],
+      });
+
+      expect(
+        fwCloud.users.filter((user) => user.id === regular.id),
+      ).to.have.length(0);
+      expect(
+        fwCloud.users.filter((user) => user.id === admin.id),
+      ).to.have.length(1);
     });
 
-    describe('store()', () => {
-        it('should create a fwcloud', async () => {
-            const fwCloud: FwCloud = await service.store({
-                name: StringHelper.randomize(10)
-            });
+    it('should create the fwcloud tree node', async () => {
+      const fwCloud: FwCloud = await service.store({
+        name: StringHelper.randomize(10),
+      });
 
-            expect(await getRepository(FwCloud).findOne(fwCloud.id)).not.to.be.null;
-        });
+      expect(
+        await getRepository(FwcTree).find({
+          where: {
+            fwCloudId: fwCloud.id,
+          },
+        }),
+      ).not.to.have.length(0);
+    });
+  });
 
-        it('should grant access to all admin users', async () => {
-            const admin = await createUser({ role: 1 });
-            const regular = await createUser({ role: 0 });
+  describe('update()', () => {
+    let fwCloud: FwCloud;
 
-            let fwCloud: FwCloud = await service.store({
-                name: StringHelper.randomize(10)
-            });
-            
-            fwCloud = await getRepository(FwCloud).findOne(fwCloud.id, {relations: ['users']});
-
-            expect(fwCloud.users.filter(user => user.id === regular.id)).to.have.length(0);
-            expect(fwCloud.users.filter(user => user.id === admin.id)).to.have.length(1);
-        });
-
-        it('should create the fwcloud tree node', async () => {
-            const fwCloud: FwCloud = await service.store({
-                name: StringHelper.randomize(10)
-            });
-
-            expect(await getRepository(FwcTree).find({
-                where: {
-                    fwCloudId: fwCloud.id
-                }
-            })).not.to.have.length(0);
-        });
+    beforeEach(async () => {
+      fwCloud = await getRepository(FwCloud)
+        .create({
+          name: StringHelper.randomize(10),
+        })
+        .save();
     });
 
-    describe('update()', () => {
-        let fwCloud: FwCloud;
+    it('should update a fwcloud', async () => {
+      const newName: string = StringHelper.randomize(10);
+      const newComment: string = StringHelper.randomize(10);
 
-        beforeEach(async () => {
-            fwCloud = await (getRepository(FwCloud).create({
-                name: StringHelper.randomize(10)
-            })).save();
-        });
+      await service.update(fwCloud, {
+        name: newName,
+        comment: newComment,
+      });
 
-        it('should update a fwcloud', async () => {
-            const newName: string = StringHelper.randomize(10);
-            const newComment: string = StringHelper.randomize(10);
+      fwCloud = await FwCloud.findOne(fwCloud.id);
 
-            await service.update(fwCloud, {
-                name: newName,
-                comment: newComment
-            });
-
-            fwCloud = await FwCloud.findOne(fwCloud.id);
-
-            expect(fwCloud.name).to.be.eq(newName);
-            expect(fwCloud.comment).to.be.eq(newComment);
-        });
-
-        it('should return the updated fwcloud', async () => {
-            const newName: string = StringHelper.randomize(10);
-            const newComment: string = StringHelper.randomize(10);
-
-            fwCloud = await service.update(fwCloud, {
-                name: newName,
-                comment: newComment
-            });
-
-            expect(fwCloud.name).to.be.eq(newName);
-            expect(fwCloud.comment).to.be.eq(newComment);
-        });
+      expect(fwCloud.name).to.be.eq(newName);
+      expect(fwCloud.comment).to.be.eq(newComment);
     });
+
+    it('should return the updated fwcloud', async () => {
+      const newName: string = StringHelper.randomize(10);
+      const newComment: string = StringHelper.randomize(10);
+
+      fwCloud = await service.update(fwCloud, {
+        name: newName,
+        comment: newComment,
+      });
+
+      expect(fwCloud.name).to.be.eq(newName);
+      expect(fwCloud.comment).to.be.eq(newComment);
+    });
+  });
 });

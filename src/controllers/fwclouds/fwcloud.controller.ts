@@ -20,86 +20,95 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
-import { Controller } from "../../fonaments/http/controller";
-import { Request } from "express";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { FwCloudService } from "../../models/fwcloud/fwcloud.service";
-import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { colorUsage } from "../../models/fwcloud/FwCloud-colors";
-import { Validate } from "../../decorators/validate.decorator";
-import { FwCloudPolicy } from "../../policies/fwcloud.policy";
-import { FwCloudControllerStoreDto } from "./dtos/store.dto";
-import { FwCloudControllerUpdateDto } from "./dtos/update.dto";
+import { Controller } from '../../fonaments/http/controller';
+import { Request } from 'express';
+import { ResponseBuilder } from '../../fonaments/http/response-builder';
+import { FwCloudService } from '../../models/fwcloud/fwcloud.service';
+import { FwCloud } from '../../models/fwcloud/FwCloud';
+import { colorUsage } from '../../models/fwcloud/FwCloud-colors';
+import { Validate } from '../../decorators/validate.decorator';
+import { FwCloudPolicy } from '../../policies/fwcloud.policy';
+import { FwCloudControllerStoreDto } from './dtos/store.dto';
+import { FwCloudControllerUpdateDto } from './dtos/update.dto';
 
 const fwcError = require('../../utils/error_table');
 
 export class FwCloudController extends Controller {
-    protected _fwCloudService: FwCloudService;
+  protected _fwCloudService: FwCloudService;
 
-    public async make(request: Request): Promise<void> {
-        this._fwCloudService = await this._app.getService<FwCloudService>(FwCloudService.name);
+  public async make(request: Request): Promise<void> {
+    this._fwCloudService = await this._app.getService<FwCloudService>(
+      FwCloudService.name,
+    );
+  }
+
+  @Validate(FwCloudControllerStoreDto)
+  public async store(request: Request): Promise<ResponseBuilder> {
+    let errorLimit: boolean = false;
+
+    (await FwCloudPolicy.store(request.session.user)).authorize();
+
+    await FwCloud.getFwclouds(request.dbCon, request.session.user_id).then(
+      (result: FwCloud[]) => {
+        errorLimit =
+          this._app.config.get('limits').fwclouds > 0 &&
+          result.length >= this._app.config.get('limits').fwclouds;
+      },
+    );
+
+    if (errorLimit) {
+      return ResponseBuilder.buildResponse()
+        .status(403)
+        .body(fwcError.LIMIT_FWCLOUDS);
+    } else {
+      const fwCloud: FwCloud = await this._fwCloudService.store({
+        name: request.body.name,
+        image: request.body.image,
+        comment: request.body.comment,
+      });
+
+      return ResponseBuilder.buildResponse().status(201).body(fwCloud);
+    }
+  }
+
+  @Validate(FwCloudControllerUpdateDto)
+  public async update(request: Request): Promise<ResponseBuilder> {
+    (await FwCloudPolicy.update(request.session.user)).authorize();
+
+    let fwCloud: FwCloud = await FwCloud.findOneOrFail(request.params.fwcloud);
+
+    fwCloud = await this._fwCloudService.update(fwCloud, {
+      name: request.body.name,
+      image: request.body.image,
+      comment: request.body.comment,
+    });
+
+    return ResponseBuilder.buildResponse().status(200).body(fwCloud);
+  }
+
+  @Validate()
+  public async colors(request: Request): Promise<ResponseBuilder> {
+    const fwCloud: FwCloud = await FwCloud.findOneOrFail(
+      request.params.fwcloud,
+    );
+
+    (await FwCloudPolicy.colors(request.session.user, fwCloud)).authorize();
+
+    const colors: colorUsage[] = await this._fwCloudService.colors(fwCloud);
+
+    return ResponseBuilder.buildResponse().status(200).body(colors);
+  }
+
+  @Validate()
+  public async getConfig(): Promise<ResponseBuilder> {
+    let availablecommunications: string[] = ['agent'];
+
+    if (this._app.config.get('firewall_communication').ssh_enable) {
+      availablecommunications = ['agent', 'ssh'];
     }
 
-    @Validate(FwCloudControllerStoreDto)
-    public async store(request: Request): Promise<ResponseBuilder> {
-        let errorLimit:boolean = false;
-        
-        (await FwCloudPolicy.store(request.session.user)).authorize();
-
-        await FwCloud.getFwclouds(request.dbCon, request.session.user_id).then((result: FwCloud[]) => {
-            errorLimit = (this._app.config.get('limits').fwclouds > 0 && result.length >= this._app.config.get('limits').fwclouds)
-        });
-
-        if(errorLimit) {
-            return ResponseBuilder.buildResponse().status(403).body(fwcError.LIMIT_FWCLOUDS)
-        } else {
-            const fwCloud: FwCloud = await this._fwCloudService.store({
-                name: request.body.name,
-                image: request.body.image,
-                comment: request.body.comment
-            });
-
-            return ResponseBuilder.buildResponse().status(201).body(fwCloud);
-        }
-    }
-
-    @Validate(FwCloudControllerUpdateDto)
-    public async update(request: Request): Promise<ResponseBuilder> {
-
-        (await FwCloudPolicy.update(request.session.user)).authorize();
-        
-        let fwCloud: FwCloud = await FwCloud.findOneOrFail(request.params.fwcloud);
-
-        fwCloud = await this._fwCloudService.update(fwCloud, {
-            name: request.body.name,
-            image: request.body.image,
-            comment: request.body.comment
-        });
-
-        return ResponseBuilder.buildResponse().status(200).body(fwCloud);
-    }
-
-    @Validate()
-    public async colors(request: Request): Promise<ResponseBuilder> {
-       
-        let fwCloud: FwCloud = await FwCloud.findOneOrFail(request.params.fwcloud);
-
-        (await FwCloudPolicy.colors(request.session.user, fwCloud)).authorize();
-
-        let colors: colorUsage[] = await this._fwCloudService.colors(fwCloud);
-
-        return ResponseBuilder.buildResponse().status(200).body(colors);
-    }
-
-    @Validate()
-    public async getConfig(): Promise<ResponseBuilder> {
-        let availablecommunications: string[] = ['agent'];
-
-        if(this._app.config.get('firewall_communication').ssh_enable) {
-            availablecommunications = ['agent', 'ssh']
-        }
-
-        return ResponseBuilder.buildResponse().status(200).body({availablecommunications});
-    }
+    return ResponseBuilder.buildResponse()
+      .status(200)
+      .body({ availablecommunications });
+  }
 }

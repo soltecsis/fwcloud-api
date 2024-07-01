@@ -20,138 +20,139 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { HttpMethod } from "./router.service";
-import { PathParams } from "express-serve-static-core"
-import { Controller } from "../controller";
-import { Request, Response } from "express";
-import { Gate } from "./gate";
-import { AbstractApplication, app } from "../../abstract-application";
-import { ParamNotValidException } from "./exceptions/param-not-valid.exception";
-import { ParamMissingException } from "./exceptions/param-missing.exception";
-import { HTTPApplication } from "../../http-application";
+import { HttpMethod } from './router.service';
+import { PathParams } from 'express-serve-static-core';
+import { Controller } from '../controller';
+import { Request, Response } from 'express';
+import { Gate } from './gate';
+import { AbstractApplication, app } from '../../abstract-application';
+import { ParamNotValidException } from './exceptions/param-not-valid.exception';
+import { ParamMissingException } from './exceptions/param-missing.exception';
+import { HTTPApplication } from '../../http-application';
 
 export class ControllerHandlerSignature {
-    controller: typeof Controller;
-    method: string
-};
+  controller: typeof Controller;
+  method: string;
+}
 
-export type RequestHandlerCallback = (request: Request, response: Response) => void;
+export type RequestHandlerCallback = (
+  request: Request,
+  response: Response,
+) => void;
 
 export class Route {
+  protected _app: AbstractApplication;
+  protected _router: Express.Application;
 
-    protected _app: AbstractApplication;
-    protected _router: Express.Application;
+  protected _pathParams: PathParams;
+  protected _httpMethod: HttpMethod;
+  protected _controllerSignature?: ControllerHandlerSignature;
+  protected _callback?: RequestHandlerCallback;
+  protected _validator?: any; //TODO
+  protected _gates: Array<typeof Gate>;
+  protected _name: string;
 
-    protected _pathParams: PathParams;
-    protected _httpMethod: HttpMethod;
-    protected _controllerSignature?: ControllerHandlerSignature
-    protected _callback?: RequestHandlerCallback;
-    protected _validator?: any; //TODO
-    protected _gates: Array<typeof Gate>;
-    protected _name: string;
+  constructor() {
+    this._httpMethod = null;
+    this._pathParams = null;
+    this._controllerSignature = null;
+    this._validator = null;
+    this._gates = [];
+    this._name = null;
+    this._app = app();
+    this._router = app<HTTPApplication>().express;
+  }
 
-    constructor() {
+  get name(): string {
+    return this._name;
+  }
 
-        this._httpMethod = null;
-        this._pathParams = null;
-        this._controllerSignature = null;
-        this._validator = null;
-        this._gates = [];
-        this._name = null;
-        this._app = app();
-        this._router = app<HTTPApplication>().express;
-    }
+  get gates(): Array<typeof Gate> {
+    return this._gates;
+  }
 
-    get name(): string {
-        return this._name;
-    }
+  get validator(): any {
+    return this._validator;
+  }
 
-    get gates(): Array<typeof Gate> {
-        return this._gates;
-    }
+  get httpMethod(): HttpMethod {
+    return this._httpMethod;
+  }
 
-    get validator(): any {
-        return this._validator;
-    }
+  get pathParams(): PathParams {
+    return this._pathParams;
+  }
 
-    get httpMethod(): HttpMethod {
-        return this._httpMethod;
-    }
+  get controllerSignature(): ControllerHandlerSignature {
+    return this._controllerSignature;
+  }
 
-    get pathParams(): PathParams {
-        return this._pathParams;
-    }
+  get callback(): RequestHandlerCallback {
+    return this._callback;
+  }
 
-    get controllerSignature(): ControllerHandlerSignature {
-        return this._controllerSignature;
-    }
+  public setHttpMethod(httpMethod: HttpMethod): Route {
+    this._httpMethod = httpMethod;
+    return this;
+  }
 
-    get callback(): RequestHandlerCallback {
-        return this._callback;
-    }
+  public setPathParams(pathParams: PathParams): Route {
+    this._pathParams = pathParams;
+    return this;
+  }
 
-    public setHttpMethod(httpMethod: HttpMethod): Route {
-        this._httpMethod = httpMethod;
-        return this;
-    }
+  public setControllerHandler(
+    controllerHandler: ControllerHandlerSignature,
+  ): Route {
+    this._controllerSignature = controllerHandler;
+    return this;
+  }
 
-    public setPathParams(pathParams: PathParams): Route {
-        this._pathParams = pathParams;
-        return this;
-    }
+  public setCallbackHandler(callback: RequestHandlerCallback): Route {
+    this._callback = callback;
+    return this;
+  }
 
-    public setControllerHandler(controllerHandler: ControllerHandlerSignature): Route {
-        this._controllerSignature = controllerHandler;
-        return this;
-    }
+  public setName(name: string): Route {
+    this._name = name;
+    return this;
+  }
 
-    public setCallbackHandler(callback: RequestHandlerCallback): Route {
-        this._callback = callback;
-        return this;
-    }
+  public isCallbackHandler(): boolean {
+    return this._controllerSignature === null;
+  }
 
-    public setName(name: string): Route {
-        this._name = name;
-        return this;
-    }
+  public isControllerHandler(): boolean {
+    return this._controllerSignature !== null;
+  }
 
-    public isCallbackHandler(): boolean {
-        return this._controllerSignature === null;
-    }
+  public setGates(gates: Array<typeof Gate>): Route {
+    this._gates = gates;
+    return this;
+  }
 
-    public isControllerHandler(): boolean {
-        return this._controllerSignature !== null;
-    }
+  public generateURL(params: object = {}): string {
+    let url: string = this._pathParams.toString();
 
-    public setGates(gates: Array<typeof Gate>): Route {
-        this._gates = gates;
-        return this;
-    }
-
-    public generateURL(params: object = {}): string {
-        let url: string = this._pathParams.toString();
-
-        for (let param in params) {
-            if (Object.prototype.hasOwnProperty.call(params, param)) {
-
-                if (new RegExp('\/').test(params[param])) {
-                    throw new ParamNotValidException(param, params[param], this);
-                }
-
-                url = url.replace(new RegExp('\:' + param), params[param]);
-
-            }
+    for (const param in params) {
+      if (Object.prototype.hasOwnProperty.call(params, param)) {
+        if (new RegExp('/').test(params[param])) {
+          throw new ParamNotValidException(param, params[param], this);
         }
 
-        //TODO: Should use the regexp path restrictions in order to validate params
-        // are valid
-        url = url.replace(/ *\([^)]*\)*/g, "");
-
-        const occurrences = url.match(new RegExp('\:[A-Za-z0-9]+'));
-        if (occurrences && occurrences.length > 0) {
-            throw new ParamMissingException(occurrences, this);
-        }
-
-        return url;
+        url = url.replace(new RegExp(':' + param), params[param]);
+      }
     }
+
+    //TODO: Should use the regexp path restrictions in order to validate params
+    // are valid
+    url = url.replace(/ *\([^)]*\)*/g, '');
+
+    const occurrences = url.match(new RegExp(':[A-Za-z0-9]+'));
+    if (occurrences && occurrences.length > 0) {
+      throw new ParamMissingException(occurrences, this);
+    }
+
+    return url;
+  }
 }

@@ -1,14 +1,22 @@
-import { registerDecorator, ValidationArguments, ValidationOptions, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
+import {
+  registerDecorator,
+  ValidationArguments,
+  ValidationOptions,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
 
 @ValidatorConstraint({ async: true })
-export class IsRoutingTableNumberConstraint implements ValidatorConstraintInterface {
+export class IsRoutingTableNumberConstraint
+  implements ValidatorConstraintInterface
+{
   validate(number: number) {
     return number === 254 || (number > 0 && number <= 250);
   }
 }
 
 export function IsRoutingTableNumber(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isRoutingTableNumber',
       target: object.constructor,

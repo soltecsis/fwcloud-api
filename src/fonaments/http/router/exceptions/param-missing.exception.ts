@@ -20,12 +20,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Route } from "../route";
+import { Route } from '../route';
 
 export class ParamMissingException extends Error {
-    constructor(params: Array<string>, route: Route) {
-        const message: string = `Params ${params} missing when generating URL for ${route.pathParams}`;
+  constructor(params: Array<string>, route: Route) {
+    const message: string = `Params ${params.toString()} missing when generating URL for ${route.pathParams.toString()}`;
 
-        super(message);
-    }
+    super(message);
+  }
 }

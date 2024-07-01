@@ -24,33 +24,33 @@ import StringHelper from '../../../src/utils/string.helper';
 import { expect, describeName } from '../../mocha/global-setup';
 
 describe(describeName('StringHelper Unit Tests'), () => {
-
-    describe('toCamelCase()', () => {
-
-        it('toCamelCase should return empty string if only an empty string is provided', () => {
-            expect(StringHelper.toCamelCase("")).to.be.deep.equal("");
-        });
-
-        it('toCamelCase should return the same word if only one word is provided', () => {
-            expect(StringHelper.toCamelCase("test")).to.be.deep.equal("test");
-        });
-
-        it('toCamelCase should return camelcased word', () => {
-            expect(StringHelper.toCamelCase("test", "test")).to.be.deep.equal("testTest");
-        })
-
-        it('capitalize should return capitalized word', () => {
-            expect(StringHelper.capitalize("test")).to.be.deep.equal('Test');
-        });
+  describe('toCamelCase()', () => {
+    it('toCamelCase should return empty string if only an empty string is provided', () => {
+      expect(StringHelper.toCamelCase('')).to.be.deep.equal('');
     });
 
-    describe('randomize()', () => {
-        it('should generate a random string', () => {
-            const result: string = StringHelper.randomize();
-            
-            expect(result).to.be.string;
-            expect(result).to.have.length(50);
-            expect(StringHelper.randomize()).not.to.be.deep.eq(result);
-        });
-    })
+    it('toCamelCase should return the same word if only one word is provided', () => {
+      expect(StringHelper.toCamelCase('test')).to.be.deep.equal('test');
+    });
+
+    it('toCamelCase should return camelcased word', () => {
+      expect(StringHelper.toCamelCase('test', 'test')).to.be.deep.equal(
+        'testTest',
+      );
+    });
+
+    it('capitalize should return capitalized word', () => {
+      expect(StringHelper.capitalize('test')).to.be.deep.equal('Test');
+    });
+  });
+
+  describe('randomize()', () => {
+    it('should generate a random string', () => {
+      const result: string = StringHelper.randomize();
+
+      expect(result).to.be.string;
+      expect(result).to.have.length(50);
+      expect(StringHelper.randomize()).not.to.be.deep.eq(result);
+    });
+  });
 });

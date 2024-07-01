@@ -1,30 +1,29 @@
-import { IsNumber, IsOptional } from "class-validator";
+import { IsNumber, IsOptional } from 'class-validator';
 
 export class RouteMoveToDto {
-    @IsNumber()
-    fromId: number;
-    
-    @IsNumber()
-    toId: number;
+  @IsNumber()
+  fromId: number;
 
-    @IsNumber()
-    @IsOptional()
-    ipObjId?: number;
+  @IsNumber()
+  toId: number;
 
-    @IsNumber()
-    @IsOptional()
-    ipObjGroupId?: number;
+  @IsNumber()
+  @IsOptional()
+  ipObjId?: number;
 
-    @IsNumber()
-    @IsOptional()
-    openVPNId?: number;
-    
-    @IsNumber()
-    @IsOptional()
-    openVPNPrefixId?: number;
+  @IsNumber()
+  @IsOptional()
+  ipObjGroupId?: number;
 
-    @IsNumber()
-    @IsOptional()
-    markId?: number;
+  @IsNumber()
+  @IsOptional()
+  openVPNId?: number;
 
+  @IsNumber()
+  @IsOptional()
+  openVPNPrefixId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  markId?: number;
 }

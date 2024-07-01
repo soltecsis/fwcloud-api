@@ -20,25 +20,32 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { SelectQueryBuilder } from "typeorm";
-import { RouteToIPObj } from "../../../models/routing/route/route-to-ipobj.model";
-import { Route } from "../../../models/routing/route/route.model";
-import { RouteExporter } from "./route.exporter";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { SelectQueryBuilder } from 'typeorm';
+import { RouteToIPObj } from '../../../models/routing/route/route-to-ipobj.model';
+import { Route } from '../../../models/routing/route/route.model';
+import { RouteExporter } from './route.exporter';
 
 export class RouteToIPObjExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return RouteToIPObj;
-    }
+  protected getEntity(): typeof Model {
+    return RouteToIPObj;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where((qb) => {
-            const subquery = qb.subQuery().from(Route, 'route').select('route.id');
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where((qb) => {
+      const subquery = qb.subQuery().from(Route, 'route').select('route.id');
 
-            return `${alias}.routeId IN` + new RouteExporter()
-                .getFilterBuilder(subquery, 'route', fwCloudId).getQuery()
-        });
-    }
+      return (
+        `${alias}.routeId IN` +
+        new RouteExporter()
+          .getFilterBuilder(subquery, 'route', fwCloudId)
+          .getQuery()
+      );
+    });
+  }
 }

@@ -20,20 +20,19 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../fonaments/http/controller";
-import { Request, Response } from "express";
-import { app } from "../fonaments/abstract-application";
-import { Application } from "../Application";
-import { Version } from "../version/version";
-import { ResponseBuilder } from "../fonaments/http/response-builder";
-import { Validate } from "../decorators/validate.decorator";
+import { Controller } from '../fonaments/http/controller';
+import { Request, Response } from 'express';
+import { app } from '../fonaments/abstract-application';
+import { Application } from '../Application';
+import { Version } from '../version/version';
+import { ResponseBuilder } from '../fonaments/http/response-builder';
+import { Validate } from '../decorators/validate.decorator';
 
 export class VersionController extends Controller {
-    
-    @Validate()
-    public async show(request: Request): Promise<ResponseBuilder> {
-        const version: Version = app<Application>().version
-        
-        return ResponseBuilder.buildResponse().status(200).body(version);
-    }
+  @Validate()
+  public async show(request: Request): Promise<ResponseBuilder> {
+    const version: Version = app<Application>().version;
+
+    return ResponseBuilder.buildResponse().status(200).body(version);
+  }
 }

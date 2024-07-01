@@ -20,66 +20,80 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Policy, Authorization } from "../fonaments/authorization/policy";
-import { Firewall } from "../models/firewall/Firewall";
-import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
-import { FwCloud } from "../models/fwcloud/FwCloud";
+import { Policy, Authorization } from '../fonaments/authorization/policy';
+import { Firewall } from '../models/firewall/Firewall';
+import { User } from '../models/user/User';
+import { getRepository } from 'typeorm';
+import { FwCloud } from '../models/fwcloud/FwCloud';
 
 export class FirewallPolicy extends Policy {
+  static async compile(firewall: Firewall, user: User): Promise<Authorization> {
+    user = await getRepository(User).findOneOrFail(user.id, {
+      relations: ['fwClouds'],
+    });
 
-    static async compile(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
-        
-        if (user.role === 1) {
-            return Authorization.grant();
-        }
-
-        if (firewall.fwCloudId) {
-            const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === firewall.fwCloudId});
-
-            return match.length > 0 ? Authorization.grant() : Authorization.revoke();
-        }
-        return Authorization.revoke();
+    if (user.role === 1) {
+      return Authorization.grant();
     }
 
-    static async ping(fwcloud: FwCloud, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+    if (firewall.fwCloudId) {
+      const match = user.fwClouds.filter((fwcloud) => {
+        return fwcloud.id === firewall.fwCloudId;
+      });
 
-        if (user.role === 1) {
-            return Authorization.grant();
-        }
+      return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    }
+    return Authorization.revoke();
+  }
 
-        const match = user.fwClouds.filter(item => { return item.id === fwcloud.id});
+  static async ping(fwcloud: FwCloud, user: User): Promise<Authorization> {
+    user = await getRepository(User).findOneOrFail(user.id, {
+      relations: ['fwClouds'],
+    });
 
-        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    if (user.role === 1) {
+      return Authorization.grant();
     }
 
-    static async info(fwcloud: FwCloud, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
+    const match = user.fwClouds.filter((item) => {
+      return item.id === fwcloud.id;
+    });
 
-        if (user.role === 1) {
-            return Authorization.grant();
-        }
+    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+  }
 
-        const match = user.fwClouds.filter(item => { return item.id === fwcloud.id});
+  static async info(fwcloud: FwCloud, user: User): Promise<Authorization> {
+    user = await getRepository(User).findOneOrFail(user.id, {
+      relations: ['fwClouds'],
+    });
 
-        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    if (user.role === 1) {
+      return Authorization.grant();
     }
 
+    const match = user.fwClouds.filter((item) => {
+      return item.id === fwcloud.id;
+    });
 
-    static async install(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await getRepository(User).findOneOrFail(user.id, {relations: ['fwClouds']});
-        
-        if (user.role === 1) {
-            return Authorization.grant();
-        }
+    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+  }
 
-        if (firewall.fwCloudId) {
-            const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === firewall.fwCloudId});
+  static async install(firewall: Firewall, user: User): Promise<Authorization> {
+    user = await getRepository(User).findOneOrFail(user.id, {
+      relations: ['fwClouds'],
+    });
 
-            return match.length > 0 ? Authorization.grant() : Authorization.revoke();
-        }
-        return Authorization.revoke();
+    if (user.role === 1) {
+      return Authorization.grant();
     }
+
+    if (firewall.fwCloudId) {
+      const match = user.fwClouds.filter((fwcloud) => {
+        return fwcloud.id === firewall.fwCloudId;
+      });
+
+      return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+    }
+    return Authorization.revoke();
+  }
 }

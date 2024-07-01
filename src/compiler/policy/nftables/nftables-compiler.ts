@@ -23,36 +23,34 @@
 import { PolicyCompilerTools } from '../PolicyCompilerTools';
 
 export class NFTablesCompiler extends PolicyCompilerTools {
-	
-	constructor(ruleData: any) {
-		super();
+  constructor(ruleData: any) {
+    super();
 
-		this._compiler = 'NFTables';
-		this._ruleData = ruleData;
-		this._policyType = ruleData.type;
-		this._cmd = '$NFT';
-		this._cs = `${this._cmd} `; // Compilation string.
-		this._comment = this.ruleComment();
-	}
-
+    this._compiler = 'NFTables';
+    this._ruleData = ruleData;
+    this._policyType = ruleData.type;
+    this._cmd = '$NFT';
+    this._cs = `${this._cmd} `; // Compilation string.
+    this._comment = this.ruleComment();
+  }
 
   public ruleCompile(): string {
-		// Prepare for compilation.
-		this.beforeCompilation();
+    // Prepare for compilation.
+    this.beforeCompilation();
 
-		// Compile special rules.
-		this.specialRuleCompilation();
+    // Compile special rules.
+    this.specialRuleCompilation();
 
-		// Compile items of each rule position.
-		this.compileRulePositions();
+    // Compile items of each rule position.
+    this.compileRulePositions();
 
-		// Generate the compilation string.
-		this._cs = this.generateCompilationString(this._ruleData.id, this._cs);
+    // Generate the compilation string.
+    this._cs = this.generateCompilationString(this._ruleData.id, this._cs);
 
-		this.addAccounting();
-		this.addLog();
-		this.addMark();
-		
-		return this.afterCompilation();
-	}
+    this.addAccounting();
+    this.addLog();
+    this.addMark();
+
+    return this.afterCompilation();
+  }
 }

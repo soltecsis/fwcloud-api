@@ -20,22 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import { SelectQueryBuilder } from "typeorm";
-import Model from "../../../models/Model";
-import { CaPrefix } from "../../../models/vpn/pki/CaPrefix";
+import { TableExporter } from './table-exporter';
+import { SelectQueryBuilder } from 'typeorm';
+import Model from '../../../models/Model';
+import { CaPrefix } from '../../../models/vpn/pki/CaPrefix';
 
 export class CaPrefixExporter extends TableExporter {
-    
-    protected getEntity(): typeof Model {
-        return CaPrefix;
-    }
+  protected getEntity(): typeof Model {
+    return CaPrefix;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .innerJoin(`${alias}.ca`, "ca")
-        .where("ca.fwCloudId = :id", {
-            id: fwCloudId
-        });
-    }
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.innerJoin(`${alias}.ca`, 'ca').where('ca.fwCloudId = :id', {
+      id: fwCloudId,
+    });
+  }
 }

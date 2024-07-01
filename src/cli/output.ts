@@ -20,58 +20,60 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import chalk from "chalk";
+import chalk from 'chalk';
 
-export class Output
-{
-    protected _stdout;
+export class Output {
+  protected _stdout;
 
-    constructor(stdout = console.log)
+  constructor(stdout = console.log) {
+    this._stdout = stdout;
+  }
+
+  public writeln(message: string): void {
+    this._stdout(message);
+  }
+
+  public writeLine(lines: number = 1): void {
+    if (lines > 0) {
+      for (let i = 0; i < lines; i++) {
+        this.writeln('');
+      }
+    }
+  }
+
+  public success(message: string, margin: number = 1): void {
+    this.writeLine(margin);
+    this.writeln(chalk.bgGreen.bold.white(`${Output.symbols().ok} ${message}`));
+    this.writeLine(margin);
+  }
+
+  public warn(message: string, margin: number = 1): void {
+    this.writeLine(margin);
+    this.writeln(
+      chalk.bgYellow.bold.black(`${Output.symbols().warning} ${message}`),
+    );
+    this.writeLine(margin);
+  }
+
+  public error(message: string): void {
+    this.writeln(
+      chalk.bgRed.bold.white(`${Output.symbols().error} ${message}`),
+    );
+  }
+
+  public static symbols(): { ok: string; error: string; warning: string } {
+    return {
+      ok: process.platform === 'win32' ? '\u221A' : '✓',
+      error: process.platform === 'win32' ? '\u00D7' : '✖',
+      warning: '!',
+    };
+  }
+
+  public static colors(): any {
     {
-        this._stdout = stdout;
+      return {
+        green: 32,
+      };
     }
-
-    public writeln(message: string): void {
-        this._stdout(message);
-    }
-
-    public writeLine(lines: number = 1): void {
-        if (lines > 0) {
-            for(let i = 0; i < lines; i++) {
-                this.writeln('');
-            }
-        }
-    }
-
-    public success(message: string, margin: number = 1): void {
-        this.writeLine(margin);
-        this.writeln(chalk.bgGreen.bold.white(`${Output.symbols().ok} ${message}`));
-        this.writeLine(margin);
-    }
-
-    public warn(message: string, margin: number = 1): void {
-        this.writeLine(margin);
-        this.writeln(chalk.bgYellow.bold.black(`${Output.symbols().warning} ${message}`));
-        this.writeLine(margin);
-    }
-
-    public error(message: string): void {
-        this.writeln(chalk.bgRed.bold.white(`${Output.symbols().error} ${message}`));
-    }
-
-    public static symbols(): {ok: string, error: string, warning: string} {
-        return {
-            ok: process.platform === 'win32' ? '\u221A' : '✓',
-            error: process.platform === 'win32' ? '\u00D7': '✖',
-            warning: '!'
-        }
-    }
-
-    public static colors(): any {
-        {
-            return {
-                green: 32
-            }
-        }
-    }
+  }
 }
