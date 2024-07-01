@@ -426,11 +426,11 @@ export class DatabaseService extends Service {
     );
 
     const tables: Array<string> = result.map((row) => {
-      if (row.hasOwnProperty('table_name')) {
+      if ('table_name' in row) {
         return row.table_name;
       }
 
-      if (row.hasOwnProperty('TABLE_NAME')) {
+      if ('TABLE_NAME' in row) {
         return row.TABLE_NAME;
       }
     });

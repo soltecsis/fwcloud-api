@@ -49,11 +49,12 @@ export type HttpMethod =
   | 'DELETE'
   | 'OPTIONS'
   | 'HEAD';
-export type ArgumentTypes<F extends Function> = F extends (
+export type ArgumentTypes<F extends (...args: any) => any> = F extends (
   ...args: infer A
 ) => any
   ? A
   : never;
+
 declare function optionalParams(params: number, params2: string): void;
 
 let _runningURLHelper: URLHelper = null;

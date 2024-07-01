@@ -139,10 +139,10 @@ export class CaPrefix extends Model {
 
   // Apply CRT prefix to tree node.
   public static applyCrtPrefixes(req, ca): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         // Search for the CA node tree.
-        const node: any = await Tree.getNodeInfo(
+        const node: any = Tree.getNodeInfo(
           req.dbCon,
           req.body.fwcloud,
           'CA',
@@ -153,12 +153,12 @@ export class CaPrefix extends Model {
         const node_id = node[0].id;
 
         // Remove all nodes under the CA node.
-        await Tree.deleteNodesUnderMe(req.dbCon, req.body.fwcloud, node_id);
+        Tree.deleteNodesUnderMe(req.dbCon, req.body.fwcloud, node_id);
 
         // Generate all the CRT tree nodes under the CA node.
-        const crt_list: any = await Crt.getCRTlist(req.dbCon, ca);
+        const crt_list: any = Crt.getCRTlist(req.dbCon, ca);
         for (const crt of crt_list)
-          await Tree.newNode(
+          Tree.newNode(
             req.dbCon,
             req.body.fwcloud,
             crt.cn,
@@ -169,9 +169,9 @@ export class CaPrefix extends Model {
           );
 
         // Create the nodes for all the prefixes.
-        const prefix_list: any = await this.getPrefixes(req.dbCon, ca);
+        const prefix_list: any = this.getPrefixes(req.dbCon, ca);
         for (const prefix of prefix_list) {
-          const id = await Tree.newNode(
+          const id = Tree.newNode(
             req.dbCon,
             req.body.fwcloud,
             prefix.name,
@@ -180,7 +180,7 @@ export class CaPrefix extends Model {
             prefix.id,
             400,
           );
-          await this.fillPrefixNodeCA(
+          this.fillPrefixNodeCA(
             req.dbCon,
             req.body.fwcloud,
             ca,

@@ -42,10 +42,10 @@ export class PgpHelper {
     return this._privateKey;
   }
 
-  public async init(rsaBits: number): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+  public init(rsaBits: number): Promise<void> {
+    return new Promise((resolve, reject) => {
       try {
-        const { privateKey, publicKey } = await openpgp.generateKey({
+        const { privateKey, publicKey } = openpgp.generateKey({
           userIDs: [{ name: 'FWCloud.net', email: 'info@fwcloud.net' }],
           rsaBits: rsaBits,
           format: 'binary', // Change the format to 'binary'
@@ -63,14 +63,14 @@ export class PgpHelper {
   }
 
   public encrypt(msg: string): Promise<string> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
-        const publicKey = await openpgp.readKey({
+        const publicKey = openpgp.readKey({
           armoredKey: this._publicKey,
         });
 
-        const msgEncrypted = await openpgp.encrypt({
-          message: await openpgp.createMessage({ text: msg }),
+        const msgEncrypted = openpgp.encrypt({
+          message: openpgp.createMessage({ text: msg }),
           encryptionKeys: publicKey,
         });
 
@@ -82,16 +82,16 @@ export class PgpHelper {
   }
 
   public decrypt(msgEncrypted: string): Promise<string> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
-        const privateKey = await openpgp.decryptKey({
-          privateKey: await openpgp.readPrivateKey({
+        const privateKey = openpgp.decryptKey({
+          privateKey: openpgp.readPrivateKey({
             armoredKey: this._privateKey,
           }),
         });
 
-        const msg = await openpgp.decrypt({
-          message: await openpgp.readMessage({ armoredMessage: msgEncrypted }),
+        const msg = openpgp.decrypt({
+          message: openpgp.readMessage({ armoredMessage: msgEncrypted }),
           decryptionKeys: privateKey,
         });
 

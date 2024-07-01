@@ -259,7 +259,7 @@ export class TableTerraformer {
    * @param attributeName
    */
   protected hasCustomHandler(attributeName: string) {
-    return this._customHandlers.hasOwnProperty(attributeName);
+    return attributeName in this._customHandlers;
   }
 
   /**

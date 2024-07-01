@@ -92,7 +92,7 @@ export const HTTP_CODES: { [code: number]: string } = {
 
 export class HttpCodeResponse {
   public static get(code: number): string {
-    if (HTTP_CODES.hasOwnProperty(code)) {
+    if (code in HTTP_CODES) {
       return HTTP_CODES[code];
     }
 

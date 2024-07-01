@@ -17,7 +17,7 @@ module.exports = {
     es6: true,
   },
   rules: {
-    'prettier/prettier': 'error',
+    //'prettier/prettier': 'error',
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
@@ -36,8 +36,8 @@ module.exports = {
     'no-control-regex': 'off',
     '@typescript-eslint/no-unsafe-return': 'off',
     'no-async-promise-executor': 'off',
-    'no-prototype-builtins': 'off',
-    '@typescript-eslint/ban-types': 'off',
+    // 'no-prototype-builtins': 'off', // acabado
+    '@typescript-eslint/ban-types': 'off', // faltan 3 del mismo archivo
 
 
   },

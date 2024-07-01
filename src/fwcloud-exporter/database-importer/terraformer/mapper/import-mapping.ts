@@ -81,9 +81,7 @@ export class ImportMapping {
     if (tableData) {
       return (
         this._data.getTableResults(tableName).filter((item: object) => {
-          return (
-            item.hasOwnProperty(propertyName) && item[propertyName] === value
-          );
+          return propertyName in item && item[propertyName] === value;
         }).length > 0
       );
     }

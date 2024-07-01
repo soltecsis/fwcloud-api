@@ -492,18 +492,20 @@ export class Snapshot implements Responsable {
   /**
    * Resets the firewalls compilation & installation status
    */
-  protected async resetCompiledStatus(): Promise<void> {
-    return new Promise<void>(async (resolve, reject) => {
-      const fwcloud: FwCloud = await FwCloud.findOneOrFail(
-        this._restoredFwCloud.id,
-        { relations: ['clusters', 'firewalls'] },
-      );
-
-      await getCustomRepository(FirewallRepository).markAsUncompiled(
-        fwcloud.firewalls,
-      );
-
-      return resolve();
+  protected resetCompiledStatus(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      FwCloud.findOneOrFail(this._restoredFwCloud.id, {
+        relations: ['clusters', 'firewalls'],
+      })
+        .then(async (fwcloud: FwCloud) => {
+          await getCustomRepository(FirewallRepository).markAsUncompiled(
+            fwcloud.firewalls,
+          );
+          resolve();
+        })
+        .catch((error) => {
+          reject(error);
+        });
     });
   }
 
