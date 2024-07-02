@@ -454,13 +454,14 @@ export class PolicyRule extends Model {
 
         try {
           // Positions will be always the same for all rules into the same policy type.
-          const positions: PositionNode[] = await PolicyPosition.getRulePositions(
-            dbCon,
-            fwcloud,
-            rulesData[0].firewall,
-            rulesData[0].id,
-            rulesData[0].type,
-          );
+          const positions: PositionNode[] =
+            await PolicyPosition.getRulePositions(
+              dbCon,
+              fwcloud,
+              rulesData[0].firewall,
+              rulesData[0].id,
+              rulesData[0].type,
+            );
 
           // Init the map for access the position objects array for each rule and position.
           const rulePositionsMap: RulePosMap = new Map<string, []>();
@@ -1335,9 +1336,11 @@ export class PolicyRule extends Model {
         let negate;
         if (!result[0].negate) negate = `${position}`;
         else {
-          const negate_position_list = result[0].negate.split(' ').map((val) => {
-            return parseInt(val);
-          });
+          const negate_position_list = result[0].negate
+            .split(' ')
+            .map((val) => {
+              return parseInt(val);
+            });
           // If the position that we want negate is already in the list, don't add again to the list.
           for (const pos of negate_position_list) {
             if (pos === position) return resolve();

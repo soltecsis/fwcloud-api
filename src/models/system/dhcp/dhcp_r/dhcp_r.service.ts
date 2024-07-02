@@ -423,7 +423,7 @@ export class DHCPRuleService extends Service {
 
   protected async getFindInPathOptions(
     path: Partial<IFindOneDHCPRulePath>,
-    options: FindOneOptions<DHCPRule>   = {},
+    options: FindOneOptions<DHCPRule> = {},
   ): Promise<SelectQueryBuilder<DHCPRule>> {
     const qb = this._repository.manager
       .getRepository(DHCPRule)

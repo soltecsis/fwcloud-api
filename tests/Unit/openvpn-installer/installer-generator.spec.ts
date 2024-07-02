@@ -27,9 +27,12 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
 
     // @ts-ignore
     stubGenerateCommand = sinon
-      .stub(InstallerGenerator.prototype, 'generateExecutable')
+      .stub(
+        InstallerGenerator.prototype,
+        'generateExecutable' as keyof InstallerGenerator,
+      )
       .callsFake(() => {
-        fs.writeFileSync(
+        return fs.writeFileSync(
           path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'),
           '',
         );
@@ -220,7 +223,10 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
     it('should generate the ovpn file which filename is the connection name', () => {
       //@ts-ignore
       const removeStub = sinon
-        .stub(InstallerGenerator.prototype, 'removeConfigFile')
+        .stub(
+          InstallerGenerator.prototype,
+          'removeConfigFile' as keyof InstallerGenerator,
+        )
         .returns(null);
       generator = new InstallerGenerator(
         workspace,
@@ -286,7 +292,10 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
       stubGenerateCommand.restore();
       //@ts-ignore
       stubGenerateCommand = sinon
-        .stub(InstallerGenerator.prototype, 'generateExecutable')
+        .stub(
+          InstallerGenerator.prototype,
+          'generateExecutable' as keyof InstallerGenerator,
+        )
         .callsFake(() => {
           throw new Error();
         });
@@ -320,9 +329,12 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
         .returns(true);
       //@ts-ignore
       const stubSignCommand = sinon
-        .stub(InstallerGenerator.prototype, 'signExecutable')
+        .stub(
+          InstallerGenerator.prototype,
+          'signExecutable' as keyof InstallerGenerator,
+        )
         .callsFake(() => {
-          fs.writeFileSync(
+          return fs.writeFileSync(
             path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'),
             'signed',
           );
@@ -374,9 +386,12 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
         .returns(true);
       //@ts-ignore
       const stubSignCommand = sinon
-        .stub(InstallerGenerator.prototype, 'signExecutable')
+        .stub(
+          InstallerGenerator.prototype,
+          'signExecutable' as keyof InstallerGenerator,
+        )
         .callsFake(() => {
-          fs.writeFileSync(
+          return fs.writeFileSync(
             path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'),
             'signed',
           );

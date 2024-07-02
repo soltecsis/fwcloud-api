@@ -200,59 +200,43 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
         )
     ).id;
     const ca = (
-      await manager
-        .getRepository(Ca)
-        .save(
-          manager
-            .getRepository(Ca)
-            .create({
-              cn: StringHelper.randomize(10),
-              fwCloudId: fwcloud,
-              days: 18250,
-            }),
-        )
+      await manager.getRepository(Ca).save(
+        manager.getRepository(Ca).create({
+          cn: StringHelper.randomize(10),
+          fwCloudId: fwcloud,
+          days: 18250,
+        }),
+      )
     ).id;
     const crtSrv = (
-      await manager
-        .getRepository(Crt)
-        .save(
-          manager
-            .getRepository(Crt)
-            .create({
-              caId: ca,
-              cn: StringHelper.randomize(10),
-              days: 18250,
-              type: 2,
-            }),
-        )
+      await manager.getRepository(Crt).save(
+        manager.getRepository(Crt).create({
+          caId: ca,
+          cn: StringHelper.randomize(10),
+          days: 18250,
+          type: 2,
+        }),
+      )
     ).id;
     const crtCli1 = (
-      await manager
-        .getRepository(Crt)
-        .save(
-          manager
-            .getRepository(Crt)
-            .create({
-              caId: ca,
-              cn: `SOLTECSIS-${StringHelper.randomize(10)}`,
-              days: 18250,
-              type: 1,
-            }),
-        )
+      await manager.getRepository(Crt).save(
+        manager.getRepository(Crt).create({
+          caId: ca,
+          cn: `SOLTECSIS-${StringHelper.randomize(10)}`,
+          days: 18250,
+          type: 1,
+        }),
+      )
     ).id;
     crtCli2 = (
-      await manager
-        .getRepository(Crt)
-        .save(
-          manager
-            .getRepository(Crt)
-            .create({
-              caId: ca,
-              cn: `SOLTECSIS-${StringHelper.randomize(10)}`,
-              days: 18250,
-              type: 1,
-            }),
-        )
+      await manager.getRepository(Crt).save(
+        manager.getRepository(Crt).create({
+          caId: ca,
+          cn: `SOLTECSIS-${StringHelper.randomize(10)}`,
+          days: 18250,
+          type: 1,
+        }),
+      )
     ).id;
     vpnSrv = (
       await manager
@@ -273,62 +257,46 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
         )
     ).id;
     vpnCli1 = (
-      await manager
-        .getRepository(OpenVPN)
-        .save(
-          manager
-            .getRepository(OpenVPN)
-            .create({
-              firewallId: ruleData.firewall,
-              crtId: crtCli1,
-              parentId: vpnSrv,
-            }),
-        )
+      await manager.getRepository(OpenVPN).save(
+        manager.getRepository(OpenVPN).create({
+          firewallId: ruleData.firewall,
+          crtId: crtCli1,
+          parentId: vpnSrv,
+        }),
+      )
     ).id;
     vpnCli1IP = (
-      await manager
-        .getRepository(IPObj)
-        .save(
-          manager
-            .getRepository(IPObj)
-            .create({
-              fwCloudId: fwcloud,
-              name: '10.20.30.2',
-              ipObjTypeId: 5,
-              address: '10.20.30.2',
-              netmask: '/32',
-              ip_version: 4,
-            }),
-        )
+      await manager.getRepository(IPObj).save(
+        manager.getRepository(IPObj).create({
+          fwCloudId: fwcloud,
+          name: '10.20.30.2',
+          ipObjTypeId: 5,
+          address: '10.20.30.2',
+          netmask: '/32',
+          ip_version: 4,
+        }),
+      )
     ).id;
-    await manager
-      .getRepository(OpenVPNOption)
-      .save(
-        manager
-          .getRepository(OpenVPNOption)
-          .create({
-            openVPNId: vpnCli1,
-            ipObjId: vpnCli1IP,
-            name: 'ifconfig-push',
-            order: 1,
-            scope: 0,
-          }),
-      );
+    await manager.getRepository(OpenVPNOption).save(
+      manager.getRepository(OpenVPNOption).create({
+        openVPNId: vpnCli1,
+        ipObjId: vpnCli1IP,
+        name: 'ifconfig-push',
+        order: 1,
+        scope: 0,
+      }),
+    );
     natIP = (
-      await manager
-        .getRepository(IPObj)
-        .save(
-          manager
-            .getRepository(IPObj)
-            .create({
-              fwCloudId: fwcloud,
-              name: '192.168.0.50',
-              ipObjTypeId: 5,
-              address: '192.168.0.50',
-              netmask: '/32',
-              ip_version: 4,
-            }),
-        )
+      await manager.getRepository(IPObj).save(
+        manager.getRepository(IPObj).create({
+          fwCloudId: fwcloud,
+          name: '192.168.0.50',
+          ipObjTypeId: 5,
+          address: '192.168.0.50',
+          netmask: '/32',
+          ip_version: 4,
+        }),
+      )
     ).id;
   });
 
@@ -599,17 +567,13 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
       useGroup = true;
       usePrefix = false;
       group = (
-        await manager
-          .getRepository(IPObjGroup)
-          .save(
-            manager
-              .getRepository(IPObjGroup)
-              .create({
-                name: StringHelper.randomize(10),
-                type: 21,
-                fwCloudId: fwcloud,
-              }),
-          )
+        await manager.getRepository(IPObjGroup).save(
+          manager.getRepository(IPObjGroup).create({
+            name: StringHelper.randomize(10),
+            type: 21,
+            fwCloudId: fwcloud,
+          }),
+        )
       ).id;
       await OpenVPN.addToGroup(dbCon, vpnCli1, group);
     });
@@ -743,17 +707,13 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
       useGroup = true;
       usePrefix = false;
       group = (
-        await manager
-          .getRepository(IPObjGroup)
-          .save(
-            manager
-              .getRepository(IPObjGroup)
-              .create({
-                name: StringHelper.randomize(10),
-                type: 21,
-                fwCloudId: fwcloud,
-              }),
-          )
+        await manager.getRepository(IPObjGroup).save(
+          manager.getRepository(IPObjGroup).create({
+            name: StringHelper.randomize(10),
+            type: 21,
+            fwCloudId: fwcloud,
+          }),
+        )
       ).id;
       await OpenVPN.addToGroup(dbCon, vpnCli1, group);
     });
@@ -1147,17 +1107,13 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
       useGroup = true;
       usePrefix = true;
       group = (
-        await manager
-          .getRepository(IPObjGroup)
-          .save(
-            manager
-              .getRepository(IPObjGroup)
-              .create({
-                name: StringHelper.randomize(10),
-                type: 21,
-                fwCloudId: fwcloud,
-              }),
-          )
+        await manager.getRepository(IPObjGroup).save(
+          manager.getRepository(IPObjGroup).create({
+            name: StringHelper.randomize(10),
+            type: 21,
+            fwCloudId: fwcloud,
+          }),
+        )
       ).id;
       await OpenVPNPrefix.addPrefixToGroup(dbCon, vpnPrefix, group);
     });
@@ -1291,17 +1247,13 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
       useGroup = true;
       usePrefix = true;
       group = (
-        await manager
-          .getRepository(IPObjGroup)
-          .save(
-            manager
-              .getRepository(IPObjGroup)
-              .create({
-                name: StringHelper.randomize(10),
-                type: 21,
-                fwCloudId: fwcloud,
-              }),
-          )
+        await manager.getRepository(IPObjGroup).save(
+          manager.getRepository(IPObjGroup).create({
+            name: StringHelper.randomize(10),
+            type: 21,
+            fwCloudId: fwcloud,
+          }),
+        )
       ).id;
       await OpenVPNPrefix.addPrefixToGroup(dbCon, vpnPrefix, group);
     });
@@ -1431,47 +1383,35 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
   describe('OpenVPN prefix with several IPs', () => {
     before(async () => {
       vpnCli2 = (
-        await manager
-          .getRepository(OpenVPN)
-          .save(
-            manager
-              .getRepository(OpenVPN)
-              .create({
-                firewallId: ruleData.firewall,
-                crtId: crtCli2,
-                parentId: vpnSrv,
-              }),
-          )
+        await manager.getRepository(OpenVPN).save(
+          manager.getRepository(OpenVPN).create({
+            firewallId: ruleData.firewall,
+            crtId: crtCli2,
+            parentId: vpnSrv,
+          }),
+        )
       ).id;
       vpnCli2IP = (
-        await manager
-          .getRepository(IPObj)
-          .save(
-            manager
-              .getRepository(IPObj)
-              .create({
-                fwCloudId: fwcloud,
-                name: '10.20.30.3',
-                ipObjTypeId: 5,
-                address: '10.20.30.3',
-                netmask: '/32',
-                ip_version: 4,
-              }),
-          )
+        await manager.getRepository(IPObj).save(
+          manager.getRepository(IPObj).create({
+            fwCloudId: fwcloud,
+            name: '10.20.30.3',
+            ipObjTypeId: 5,
+            address: '10.20.30.3',
+            netmask: '/32',
+            ip_version: 4,
+          }),
+        )
       ).id;
-      await manager
-        .getRepository(OpenVPNOption)
-        .save(
-          manager
-            .getRepository(OpenVPNOption)
-            .create({
-              openVPNId: vpnCli2,
-              ipObjId: vpnCli2IP,
-              name: 'ifconfig-push',
-              order: 1,
-              scope: 0,
-            }),
-        );
+      await manager.getRepository(OpenVPNOption).save(
+        manager.getRepository(OpenVPNOption).create({
+          openVPNId: vpnCli2,
+          ipObjId: vpnCli2IP,
+          name: 'ifconfig-push',
+          order: 1,
+          scope: 0,
+        }),
+      );
     });
 
     describe('IPTables compiler', () => {

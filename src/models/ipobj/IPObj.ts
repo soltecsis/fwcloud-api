@@ -496,7 +496,9 @@ export class IPObj extends Model {
                             data_interface.interface_type,
                         );
 
-                        const interface_node = new interface_Data(data_interface);
+                        const interface_node = new interface_Data(
+                          data_interface,
+                        );
                         const idinterface = data_interface.id;
 
                         interface_node.ipobjs = [];
