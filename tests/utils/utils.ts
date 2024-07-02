@@ -26,15 +26,13 @@ import * as fs from "fs";
 import moment from "moment";
 import cookie from "cookie";
 import signature from "cookie-signature";
-import { DeepPartial, getRepository } from "typeorm";
+import { DeepPartial } from "typeorm";
 import { testSuite, TestSuite} from "../mocha/global-setup";
 import StringHelper from "../../src/utils/string.helper";
-import { Channel } from "../../src/sockets/channels/channel";
-import { WebSocketService } from "../../src/sockets/web-socket.service";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
+import db from "../../src/database/database-manager";
 
 export async function createUser(user: DeepPartial<User>): Promise<User> {
-    const result: User = getRepository(User).create({
+    const result: User = db.getSource().manager.getRepository(User).create({
         username: user.username ? user.username : StringHelper.randomize(10),
         email: StringHelper.randomize(10) + '@fwcloud.test',
         password: StringHelper.randomize(10),
@@ -44,7 +42,7 @@ export async function createUser(user: DeepPartial<User>): Promise<User> {
         confirmation_token: StringHelper.randomize(10)
     });
 
-    return await getRepository(User).save(result);
+    return await db.getSource().manager.getRepository(User).save(result);
 }
 
 export function generateSession(user: User): string {

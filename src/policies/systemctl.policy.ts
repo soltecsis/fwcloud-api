@@ -23,7 +23,6 @@
 import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { Firewall } from "../models/firewall/Firewall";
 import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
 import { FwCloud } from "../models/fwcloud/FwCloud";
 
 export class SystemctlPolicy extends Policy {

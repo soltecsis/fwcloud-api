@@ -16,7 +16,6 @@
 */
 import { expect } from "chai";
 import { Application } from "../../../../../src/Application";
-import { getRepository } from "typeorm";
 import { KeepalivedController } from "../../../../../src/controllers/system/keepalived/keepalived.controller";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
@@ -26,6 +25,8 @@ import { testSuite } from "../../../../mocha/global-setup";
 import { Request } from 'express';
 import StringHelper from "../../../../../src/utils/string.helper";
 import sinon from "sinon";
+import { EntityManager } from "typeorm";
+import db from "../../../../../src/database/database-manager";
 
 describe(KeepalivedController.name, () => {
     let firewall: Firewall;
@@ -35,30 +36,32 @@ describe(KeepalivedController.name, () => {
 
     let controller: KeepalivedController;
     let app: Application;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         controller = new KeepalivedController(app);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
 
-        keepalivedgroup = await getRepository(KeepalivedGroup).save({
+        keepalivedgroup = await manager.getRepository(KeepalivedGroup).save({
             name: StringHelper.randomize(10),
             firewall: firewall,
         });
 
-        Keepalivedrule = await getRepository(KeepalivedRule).save(getRepository(KeepalivedRule).create({
+        Keepalivedrule = await manager.getRepository(KeepalivedRule).save(manager.getRepository(KeepalivedRule).create({
             id: 1,
-            group: await getRepository(KeepalivedGroup).save(getRepository(KeepalivedGroup).create({
+            group: await manager.getRepository(KeepalivedGroup).save(manager.getRepository(KeepalivedGroup).create({
                 name: 'group',
                 firewall: firewall,
             })),
@@ -82,9 +85,9 @@ describe(KeepalivedController.name, () => {
                 }
             } as unknown as Request;
 
-            const KeepalivedruleStub = sinon.stub(getRepository(KeepalivedRule), 'findOneOrFail').resolves(Keepalivedrule);
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail').resolves(firewall);
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
+            const KeepalivedruleStub = sinon.stub(manager.getRepository(KeepalivedRule), 'findOneOrFail').resolves(Keepalivedrule);
+            const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail').resolves(firewall);
+            const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
 
             await controller.make(requestMock);
 
@@ -105,10 +108,10 @@ describe(KeepalivedController.name, () => {
                 }
             } as unknown as Request;
 
-            const KeepalivedruleStub = sinon.stub(getRepository(KeepalivedRule), 'findOneOrFail');
-            const KeepalivedgroupStub = sinon.stub(getRepository(KeepalivedGroup), 'findOneOrFail');
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail');
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail');
+            const KeepalivedruleStub = sinon.stub(manager.getRepository(KeepalivedRule), 'findOneOrFail');
+            const KeepalivedgroupStub = sinon.stub(manager.getRepository(KeepalivedGroup), 'findOneOrFail');
+            const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail');
+            const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail');
 
             await controller.make(requestMock);
 
@@ -132,7 +135,7 @@ describe(KeepalivedController.name, () => {
                 }
             } as unknown as Request;
 
-            const KeepalivedruleStub = sinon.stub(getRepository(KeepalivedRule), 'findOneOrFail').throws(new Error('KeepalivedRule not found'));
+            const KeepalivedruleStub = sinon.stub(manager.getRepository(KeepalivedRule), 'findOneOrFail').throws(new Error('KeepalivedRule not found'));
 
             await expect(controller.make(requestMock)).to.be.rejectedWith('KeepalivedRule not found');
 
@@ -147,8 +150,8 @@ describe(KeepalivedController.name, () => {
                 }
             } as unknown as Request;
 
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail').resolves(firewall);
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
+            const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail').resolves(firewall);
+            const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
 
             await controller.make(requestMock);
 

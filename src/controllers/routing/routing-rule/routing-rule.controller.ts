@@ -34,7 +34,6 @@ import { RoutingRuleControllerUpdateDto } from "./dtos/update.dto";
 import { RoutingTableService } from "../../../models/routing/routing-table/routing-table.service";
 import { RoutingRuleItemForCompiler } from "../../../models/routing/shared";
 import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
-import { getRepository, In, SelectQueryBuilder } from "typeorm";
 import { RoutingRuleControllerMoveDto } from "./dtos/move.dto";
 import { HttpException } from "../../../fonaments/exceptions/http/http-exception";
 import { RoutingRuleControllerBulkUpdateDto } from "./dtos/bulk-update.dto";
@@ -42,12 +41,13 @@ import { RoutingRuleControllerBulkRemoveQueryDto } from "./dtos/bulk-remove.dto"
 import { RoutingRuleControllerCopyDto } from "./dtos/copy.dto";
 import { RoutingRuleMoveFromDto } from "./dtos/move-from.dto";
 import { Offset } from "../../../offset";
+import db from "../../../database/database-manager";
 
 export class RoutingRuleController extends Controller {
-    
+
     protected routingRuleService: RoutingRuleService;
     protected routingTableService: RoutingTableService;
-    
+
     protected _firewall: Firewall;
     protected _fwCloud: FwCloud;
     protected _routingRule: RoutingRule;
@@ -57,40 +57,40 @@ export class RoutingRuleController extends Controller {
         this.routingRuleService = await this._app.getService<RoutingRuleService>(RoutingRuleService.name);
 
         if (request.params.routingRule) {
-            this._routingRule = await getRepository(RoutingRule).findOneOrFail(parseInt(request.params.routingRule));
+            this._routingRule = await await db.getSource().manager.getRepository(RoutingRule).findOneOrFail({ where: { id: parseInt(request.params.routingRule) } });
         }
 
         //Get the firewall from the URL which contains the route group 
-        const firewallQueryBuilder = getRepository(Firewall).createQueryBuilder('firewall').where('firewall.id = :id', {id: parseInt(request.params.firewall)});
+        const firewallQueryBuilder = await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall').where('firewall.id = :id', { id: parseInt(request.params.firewall) });
         if (request.params.routingRule) {
             firewallQueryBuilder
-            .innerJoin('firewall.routingTables', 'table')
-            .innerJoin('table.routingRules', 'rule', 'rule.id = :ruleId', {ruleId: parseInt(request.params.routingRule)})
+                .innerJoin('firewall.routingTables', 'table')
+                .innerJoin('table.routingRules', 'rule', 'rule.id = :ruleId', { ruleId: parseInt(request.params.routingRule) })
         }
         this._firewall = await firewallQueryBuilder.getOneOrFail();
 
         //Get the fwcloud from the URL which contains the firewall
-        this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
-            .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {firewallId: this._firewall.id})
-            .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)}).getOneOrFail();
+        this._fwCloud = await await db.getSource().manager.getRepository(FwCloud).createQueryBuilder('fwcloud')
+            .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', { firewallId: this._firewall.id })
+            .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) }).getOneOrFail();
     }
 
     @Validate()
     async index(request: Request): Promise<ResponseBuilder> {
         (await RoutingRulePolicy.index(this._firewall, request.session.user)).authorize();
-        
+
         const tables: RoutingRule[] = await this.routingRuleService.findManyInPath({
             fwCloudId: this._fwCloud.id,
             firewallId: this._firewall.id
         });
 
-        return ResponseBuilder.buildResponse().status(200).body(tables); 
+        return ResponseBuilder.buildResponse().status(200).body(tables);
     }
 
     @Validate()
     async grid(request: Request): Promise<ResponseBuilder> {
         (await RoutingRulePolicy.index(this._firewall, request.session.user)).authorize();
-        
+
         const grid = await this.routingRuleService.getRoutingRulesData('grid', this._firewall.fwCloudId, this._firewall.id);
 
 
@@ -120,16 +120,16 @@ export class RoutingRuleController extends Controller {
         const rules: RoutingRule[] = [];
 
         const ids: string[] = request.inputs.get('rules');
-        
-        for(let id of ids) {
+
+        for (let id of ids) {
             const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
                 fwCloudId: this._fwCloud.id,
                 firewallId: this._firewall.id,
                 id: parseInt(id)
             });
 
-            (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();    
-        
+            (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();
+
             rules.push(rule);
         }
 
@@ -152,16 +152,16 @@ export class RoutingRuleController extends Controller {
         const rules: RoutingRule[] = [];
 
         const ids: string[] = request.query.rules as string[] || [];
-        
-        for(let id of ids) {
+
+        for (let id of ids) {
             const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
                 fwCloudId: this._fwCloud.id,
                 firewallId: this._firewall.id,
                 id: parseInt(id)
             });
 
-            (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();    
-        
+            (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();
+
             rules.push(rule);
         }
 
@@ -177,22 +177,16 @@ export class RoutingRuleController extends Controller {
     @Validate(RoutingRuleControllerMoveDto)
     async move(request: Request): Promise<ResponseBuilder> {
         (await RoutingRulePolicy.index(this._firewall, request.session.user)).authorize();
-        
-        const rules: RoutingRule[] = await getRepository(RoutingRule).find({
-            join: {
-                alias: 'rule',
-                innerJoin: {
-                    table: 'rule.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
-                }
-            },
-            where: (qb: SelectQueryBuilder<RoutingRule>) => {
-                qb.whereInIds(request.inputs.get('rules'))
-                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
-                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
-            }
-        });
+
+        const rules: RoutingRule[] = await await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('rule')
+            .innerJoin('rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .innerJoin('firewall.fwCloud', 'fwcloud')
+            .where('rule.id IN (:...ids)', { ids: request.inputs.get('rules') })
+            .andWhere('firewall.id = :firewallId', { firewallId: this._firewall.id })
+            .andWhere('firewall.fwCloudId = :fwCloudId', { fwCloudId: this._fwCloud.id })
+            .getMany();
+
         const result: RoutingRule[] = await this.routingRuleService.move(rules.map(item => item.id), request.inputs.get('to'), request.inputs.get<Offset>('offset'));
 
         return ResponseBuilder.buildResponse().status(200).body(result);
@@ -202,37 +196,23 @@ export class RoutingRuleController extends Controller {
     async moveFrom(request: Request): Promise<ResponseBuilder> {
         (await RoutingRulePolicy.index(this._firewall, request.session.user)).authorize();
 
-        const fromRule: RoutingRule = await getRepository(RoutingRule).findOneOrFail({
-            join: {
-                alias: 'rule',
-                innerJoin: {
-                    table: 'rule.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
-                }
-            },
-            where: (qb: SelectQueryBuilder<RoutingRule>) => {
-                qb.where('rule.id = :id', {id: request.inputs.get('fromId')})
-                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
-                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
-            }
-        });
+        const fromRule: RoutingRule = await await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('rule')
+            .innerJoin('rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .innerJoin('firewall.fwCloud', 'fwcloud')
+            .where('rule.id = :id', { id: request.inputs.get('fromId') })
+            .andWhere('firewall.id = :firewallId', { firewallId: this._firewall.id })
+            .andWhere('firewall.fwCloudId = :fwCloudId', { fwCloudId: this._fwCloud.id })
+            .getOneOrFail();
 
-        const toRule: RoutingRule = await getRepository(RoutingRule).findOneOrFail({
-            join: {
-                alias: 'rule',
-                innerJoin: {
-                    table: 'rule.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
-                }
-            },
-            where: (qb: SelectQueryBuilder<RoutingRule>) => {
-                qb.where('rule.id = :id', {id: request.inputs.get('toId')})
-                    .andWhere('firewall.id = :firewall', {firewall: this._firewall.id})
-                    .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: this._fwCloud.id})
-            }
-        });
+        const toRule: RoutingRule = await await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('rule')
+            .innerJoin('rule.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .innerJoin('firewall.fwCloud', 'fwcloud')
+            .where('rule.id = :id', { id: request.inputs.get('toId') })
+            .andWhere('firewall.id = :firewallId', { firewallId: this._firewall.id })
+            .andWhere('firewall.fwCloudId = :fwCloudId', { fwCloudId: this._fwCloud.id })
+            .getOneOrFail();
 
         const result: RoutingRule[] = await this.routingRuleService.moveFrom(fromRule.id, toRule.id, request.inputs.all());
 
@@ -246,10 +226,10 @@ export class RoutingRuleController extends Controller {
         const rules: RoutingRulesData<RoutingRuleItemForCompiler>[] = await this.routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>('compiler', this._fwCloud.id, this._firewall.id, [this._routingRule.id]);
 
         const compilation = new RoutingCompiler().compile('Rule', rules);
-        
+
         return ResponseBuilder.buildResponse().status(200).body(compilation);
     }
-    
+
     @Validate()
     async remove(request: Request): Promise<ResponseBuilder> {
         (await RoutingRulePolicy.delete(this._routingRule, request.session.user)).authorize();
@@ -268,16 +248,16 @@ export class RoutingRuleController extends Controller {
         const rules: RoutingRule[] = [];
 
         const ids: string[] = request.query.rules as string[] || [];
-        
-        for(let id of ids) {
+
+        for (let id of ids) {
             const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
                 fwCloudId: this._fwCloud.id,
                 firewallId: this._firewall.id,
                 id: parseInt(id)
             });
 
-            (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();    
-        
+            (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();
+
             rules.push(rule);
         }
 

@@ -22,13 +22,13 @@
 
 import { describeName, expect } from "../../../mocha/global-setup";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import db from "../../../../src/database/database-manager";
 import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
 import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/policy/PolicyCompiler";
+import { EntityManager } from "typeorm";
 
 describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control'), () => {
   let fwcloud: number;
@@ -45,6 +45,7 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
       special: 0,
       options: 1    
   }
+  let manager: EntityManager;
 
   async function populateRule(type: 'TCP' | 'UDP', amount: number): Promise<void> {
     for (let i=1; i<=amount; i++){ 
@@ -62,9 +63,9 @@ describe(describeName('Policy Compiler Unit Tests - TCP/UDP ports amount control
 
   before(async () => {
     dbCon = db.getQuery();
-
-    fwcloud = (await getRepository(FwCloud).save(getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id;
-    ruleData.firewall = (await getRepository(Firewall).save(getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
+    manager = db.getSource().manager;
+    fwcloud = (await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id;
+    ruleData.firewall = (await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
   });
   
   beforeEach(async () => {

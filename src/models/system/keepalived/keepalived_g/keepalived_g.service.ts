@@ -14,12 +14,13 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { FindManyOptions, FindOneOptions, Repository, SelectQueryBuilder, getRepository } from "typeorm";
+import { FindManyOptions, FindOneOptions, Repository, SelectQueryBuilder } from "typeorm";
 import { Service } from "../../../../fonaments/services/service";
 import { KeepalivedRule } from "../keepalived_r/keepalived_r.model";
 import { KeepalivedGroup } from "./keepalived_g.model";
 import { Firewall } from "../../../firewall/Firewall";
 import { Application } from "../../../../Application";
+import db from "../../../../database/database-manager";
 
 interface IFindManyKeepalivedGPath {
     fwcloudId?: number;
@@ -46,65 +47,72 @@ interface IUpdateKeepalivedGroup {
 }
 
 export class KeepalivedGroupService extends Service {
-    protected _repository: Repository<KeepalivedGroup>;
 
     constructor(app: Application) {
         super(app);
-        this._repository = getRepository(KeepalivedGroup);
     }
 
     findManyInPath(path: IFindManyKeepalivedGPath): Promise<KeepalivedGroup[]> {
-        return this._repository.find(this.getFindInPathOptions(path));
+        return this.getFindInPathOptions(path).getMany();
     }
 
     findOneInPath(path: IFindOneKeepalivedGPath, options?: FindOneOptions<KeepalivedGroup>): Promise<KeepalivedGroup | undefined> {
-        return this._repository.findOne(this.getFindInPathOptions(path, options));
+        return this.getFindInPathOptions(path, options).getOne();
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneKeepalivedGPath>, options: FindOneOptions<KeepalivedGroup> | FindManyOptions<KeepalivedGroup> = {}): FindOneOptions<KeepalivedGroup> | FindManyOptions<KeepalivedGroup> {
-        return Object.assign({
-            join: {
-                alias: 'group',
-                innerJoin: {
-                    firewall: 'group.firewall',
-                    fwcloud: 'firewall.fwCloud',
-                }
-            },
-            where: (qb: SelectQueryBuilder<KeepalivedGroup>) => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
-                }
-                if (path.fwcloudId) {
-                    qb.andWhere('firewall.fwCloudId = :fwcloudId', { fwcloudId: path.fwcloudId });
-                }
-                if (path.id) {
-                    qb.andWhere('group.id = :id', { id: path.id });
-                }
+    protected getFindInPathOptions(path: Partial<IFindOneKeepalivedGPath>, options: FindOneOptions<KeepalivedGroup> | FindManyOptions<KeepalivedGroup> = {}): SelectQueryBuilder<KeepalivedGroup> {
+        const qb: SelectQueryBuilder<KeepalivedGroup> = db.getSource().manager.getRepository(KeepalivedGroup).createQueryBuilder('group');
+        qb.innerJoin('group.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        .leftJoinAndSelect('group.rules', 'rules');
+
+        if (path.firewallId) {
+            qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
+        }
+        if (path.fwcloudId) {
+            qb.andWhere('firewall.fwCloudId = :fwcloudId', { fwcloudId: path.fwcloudId });
+        }
+        if (path.id) {
+            qb.andWhere('group.id = :id', { id: path.id });
+        }
+        
+        // Aplica las opciones adicionales que se pasaron a la función
+        Object.entries(options).forEach(([key, value]) => {
+            switch (key) {
+                case 'where':
+                    qb.andWhere(value);
+                    break;
+                case 'relations':
+                    qb.leftJoinAndSelect(`group.${value}`, `${value}`);
+                    break;
+                default:
             }
-        }, options)
+        }); 
+
+        return qb
     }
 
 
     async create(data: ICreateKeepalivedGroup): Promise<KeepalivedGroup> {
         const groupData: Partial<KeepalivedGroup> = {
             name: data.name,
-            firewall: await getRepository(Firewall).findOne(data.firewallId) as unknown as Firewall,
+            firewall: await db.getSource().manager.getRepository(Firewall).findOne({ where: { id: data.firewallId } }) as unknown as Firewall,
             style: data.style,
         };
 
-        const group: KeepalivedGroup = await this._repository.save(groupData);
-        return this._repository.findOne(group.id);
+        const group: KeepalivedGroup = await db.getSource().manager.getRepository(KeepalivedGroup).save(groupData);
+        return db.getSource().manager.getRepository(KeepalivedGroup).findOne({ where: { id: group.id } });
     }
 
     async update(id: number, data: IUpdateKeepalivedGroup): Promise<KeepalivedGroup> {
-        let group: KeepalivedGroup | undefined = await this._repository.findOne(id);
+        let group: KeepalivedGroup | undefined = await db.getSource().manager.getRepository(KeepalivedGroup).findOne({ where: { id: id } });
 
         if (!group) {
             throw new Error('KeepalivedGroup not found');
         }
 
         Object.assign(group, data);
-        await this._repository.save(group);
+        await db.getSource().manager.getRepository(KeepalivedGroup).save(group);
 
         return group;
     }
@@ -115,11 +123,11 @@ export class KeepalivedGroupService extends Service {
             throw new Error('KeepalivedGroup not found');
         }
         if (group.rules && group.rules.length > 0) {
-            await getRepository(KeepalivedRule).update(group.rules.map(rule => rule.id), {
+            await db.getSource().manager.getRepository(KeepalivedRule).update(group.rules.map(rule => rule.id), {
                 group: null
             });
         }
-        await this._repository.remove(group);
+        await db.getSource().manager.getRepository(KeepalivedGroup).remove(group);
         return group;
     }
 }

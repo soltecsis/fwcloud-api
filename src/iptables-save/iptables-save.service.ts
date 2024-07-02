@@ -32,9 +32,9 @@ import { PolicyRule } from '../models/policy/PolicyRule';
 import { SSHCommunication } from "../communications/ssh.communication";
 import { Communication } from "../communications/communication";
 import { AgentCommunication } from "../communications/agent.communication";
-import { getRepository } from "typeorm";
 import { PgpHelper } from "../utils/pgp";
 import { IPObj } from "../models/ipobj/IPObj";
+import db from "../database/database-manager";
 var utilsModel = require("../utils/utils.js");
 
 export class IptablesSaveService extends IptablesSaveToFWCloud {
@@ -145,14 +145,14 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     let result: any;
 
     try {
-      const firewall: Firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+      const firewall: Firewall = await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
         .where('firewall.id = :id', {id: request.body.firewall})
         .andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: request.body.fwcloud}).getOneOrFail();
       let communication: Communication<unknown>;
 
       if (firewall.install_communication === FirewallInstallCommunication.SSH) {
         communication = new SSHCommunication({
-          host: Object.prototype.hasOwnProperty.call(request.body, "host") ? request.body.host : (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
+          host: Object.prototype.hasOwnProperty.call(request.body, "host") ? request.body.host : (await db.getSource().manager.getRepository(IPObj).findOneOrFail({ where: { id: firewall.install_ipobj }})).address,
           port: Object.prototype.hasOwnProperty.call(request.body, "port") ? request.body.port : firewall.install_port,
           username: Object.prototype.hasOwnProperty.call(request.body, "sshuser") ? request.body.sshuser : utilsModel.decrypt(firewall.install_user),
           password: Object.prototype.hasOwnProperty.call(request.body, "sshpass") ? request.body.sshpass : utilsModel.decrypt(firewall.install_pass),

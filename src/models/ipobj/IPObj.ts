@@ -27,7 +27,7 @@ import {InterfaceIPObj} from '../../models/interface/InterfaceIPObj';
 import {IPObjToIPObjGroup} from '../../models/ipobj/IPObjToIPObjGroup';
 import {Interface} from '../../models/interface/Interface';
 import Model from '../Model';
-import {Column, Entity, getRepository, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
+import {Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
 import {FwCloud} from '../fwcloud/FwCloud';
 import {logger} from '../../fonaments/abstract-application';
 import {IPObjType} from './IPObjType';
@@ -1024,7 +1024,7 @@ export class IPObj extends Model {
     };
 
     public static async searchIpobjInRoute(ipobj: number, fwcloud: number): Promise<any> {
-        return await getRepository(Route).createQueryBuilder('route')
+        return await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .addSelect('ipObj.id', 'ipobj_id').addSelect('ipObj.type', 'ipobj_type')
@@ -1038,7 +1038,7 @@ export class IPObj extends Model {
     };
 
     public static async searchIpobjInRouteAsGateway(ipobj: number, fwcloud: number): Promise<any> {
-        return await getRepository(Route).createQueryBuilder('route')
+        return await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .addSelect('gateway.id', 'gateway_id').addSelect('gateway.type', 'gateway_type')
@@ -1051,7 +1051,7 @@ export class IPObj extends Model {
     };
 
     public static async searchIpobjInRoutingRule(ipobj: number, fwcloud: number): Promise<any> {
-        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+        return await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('routing_rule')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoin('routing_rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
@@ -1064,7 +1064,7 @@ export class IPObj extends Model {
     };
 
     public static async searchIPObjInDhcpRule(IPObj: number, FWCloud: number): Promise<any> {
-        const resultAsRouter = await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
+        const resultAsRouter = await db.getSource().manager.getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
             .addSelect('network.id', 'network_id').addSelect('network.name', 'network_name')
             .addSelect('range.id', 'range_id').addSelect('range.name', 'range_name')
             .addSelect('router.id', 'router_id').addSelect('router.name', 'router_name')
@@ -1079,7 +1079,7 @@ export class IPObj extends Model {
             .leftJoin('firewall.cluster', 'cluster')
             .where(`firewall.fwCloudId = :FWCloud AND (network.id IS NOT NULL OR range.id IS NOT NULL OR router.id IS NOT NULL)`, { FWCloud: FWCloud })
             .getRawMany();
-        const resultAsIpObj = await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
+        const resultAsIpObj = await db.getSource().manager.getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
             .addSelect('network.id', 'network_id').addSelect('network.name', 'network_name')
             .addSelect('ipObj.id', 'ipObj_id').addSelect('ipObj.name', 'ipObj_name')
             .addSelect('range.id', 'range_id').addSelect('range.name', 'range_name')
@@ -1099,7 +1099,7 @@ export class IPObj extends Model {
     }
 
     public static async searchIpobjInKeepalivedRule(id: number, fwcloud: number): Promise<any> {
-        return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
+        return await db.getSource().manager.getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .leftJoin('keepalived_rule.virtualIps', 'virtualIps')
@@ -1111,7 +1111,7 @@ export class IPObj extends Model {
     };
 
     public static async searchIPObjInHAProxyRule(id: number, fwcloud: number): Promise<any> {
-        const resultAsFrontendIpAndPort = await getRepository(HAProxyRule).createQueryBuilder('haproxy_rule')
+        const resultAsFrontendIpAndPort = await db.getSource().manager.getRepository(HAProxyRule).createQueryBuilder('haproxy_rule')
             .addSelect('frontendIp.id', 'frontendIp_id').addSelect('frontendIp.name', 'frontendIp_name')
             .addSelect('frontendPort.id', 'frontendPort_id').addSelect('frontendPort.name', 'frontendPort_name')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
@@ -1123,7 +1123,7 @@ export class IPObj extends Model {
             .where(`firewall.fwCloudId = :fwcloud AND ( frontendIp.id IS NOT NULL OR frontendPort.id IS NOT NULL)`, { fwcloud: fwcloud })
             .getRawMany();
 
-        const resultAsBackendIpAndPort = await getRepository(HAProxyRule).createQueryBuilder('haproxy_rule')
+        const resultAsBackendIpAndPort = await db.getSource().manager.getRepository(HAProxyRule).createQueryBuilder('haproxy_rule')
             .addSelect('backendPort.id', 'backendPort_id').addSelect('backendPort.name', 'backendPort_name')
             .addSelect('ipObj.id', 'backendIps_id').addSelect('ipObj.name', 'backendIps_name')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
@@ -1140,7 +1140,7 @@ export class IPObj extends Model {
     };
 
     public static async searchIpobjInGroupInRoute(ipobj: number, fwcloud: number): Promise<any> {
-        return await getRepository(Route).createQueryBuilder('route')
+        return await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoinAndSelect('route.routingTable', 'table')
@@ -1154,7 +1154,7 @@ export class IPObj extends Model {
     };
 
     public static async searchIpobjInGroupInRoutingRule(ipobj: number, fwcloud: number): Promise<any> {
-        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+        return await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('routing_rule')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
@@ -1259,7 +1259,7 @@ export class IPObj extends Model {
     };
 
     public static async searchInterfaceHostInDhcpRule(dbCon: any, fwcloud: number, id: number): Promise<any> {
-        return await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
+        return await db.getSource().manager.getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
             .addSelect('dhcp_rule.id', 'dhcp_rule_id').addSelect('dhcp_rule.rule_type', 'dhcp_rule_type')
             .addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
@@ -1275,7 +1275,7 @@ export class IPObj extends Model {
     }
 
     public static async searchInterfaceHostInKeepalivedRule(dbCon: any, fwcloid: number, id: number) {
-        return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
+        return await db.getSource().manager.getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
             .innerJoin('keepalived_rule.interface', 'interface')
             .innerJoin('interface.hosts', 'hosts')
             .innerJoin('hosts.hostIPObj', 'ipObj', 'ipObj.id = :id', { id })
@@ -1286,7 +1286,7 @@ export class IPObj extends Model {
     }
 
     public static async searchInterfaceHostInHAProxyRule(dbCon: any, fwcloud: number, ipObjId: number): Promise<any> {
-        return await getRepository(HAProxyRule).createQueryBuilder('haproxy_rule')
+        return await db.getSource().manager.getRepository(HAProxyRule).createQueryBuilder('haproxy_rule')
             .addSelect('haproxy_rule.id', 'haproxy_rule_id')
             .addSelect('haproxy_rule.rule_type', 'haproxy_rule_type')
             .addSelect('haproxy_rule.rule_order', 'haproxy_rule_order')

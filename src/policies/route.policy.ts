@@ -22,9 +22,9 @@
 
 import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
 import { RoutingTable } from "../models/routing/routing-table/routing-table.model";
 import { Route } from "../models/routing/route/route.model";
+import db from "../database/database-manager";
 
 export class RoutePolicy extends Policy {
 
@@ -94,11 +94,15 @@ export class RoutePolicy extends Policy {
     }
 
     protected static getUser(userId: number): Promise<User> {
-        return getRepository(User).findOneOrFail(userId, {relations: ['fwClouds']});
+        return db.getSource().manager.getRepository(User).findOneOrFail({
+            where: { id: userId },
+            relations: ['fwClouds']
+        });
     }
 
     protected static getRoutingTable(routingTableId: number): Promise<RoutingTable> {
-        return getRepository(RoutingTable).findOne(routingTableId, {
+        return db.getSource().manager.getRepository(RoutingTable).findOne({
+            where: { id: routingTableId },
             relations: [
                 'firewall',
                 'firewall.fwCloud'
@@ -107,7 +111,8 @@ export class RoutePolicy extends Policy {
     }
 
     protected static getRoute(routeId: number): Promise<Route> {
-        return getRepository(Route).findOne(routeId, {
+        return db.getSource().manager.getRepository(Route).findOne({
+            where: { id: routeId },
             relations: [
                 'routingTable',
                 'routingTable.firewall',

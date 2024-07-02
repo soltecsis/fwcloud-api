@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import db from "../../../src/database/database-manager";
 import { IPObj } from "../../../src/models/ipobj/IPObj";
 import { expect } from "../../mocha/global-setup";
@@ -28,9 +28,11 @@ import { FwCloudFactory, FwCloudProduct } from "../../utils/fwcloud-factory";
 
 describe(IPObj.name, () => {
     let fwcloudProduct: FwCloudProduct;
+    let manager: EntityManager;
 
     beforeEach(async () => {
-        fwcloudProduct = await (new FwCloudFactory()).make();
+        manager = db.getSource().manager;
+        fwcloudProduct = await new FwCloudFactory().make();
     });
 
     describe('searchIpobjUsage', () => {
@@ -61,8 +63,8 @@ describe(IPObj.name, () => {
             });
 
             it('should detect last addr in host in route', async () => {
-                await getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr1').id})
-                await getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr2').id})
+                await manager.getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr1').id})
+                await manager.getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr2').id})
                 const whereUsed: any = await IPObj.searchIpobjUsage(db.getQuery(), fwcloudProduct.fwcloud.id, fwcloudProduct.ipobjs.get('host-eth2-addr1').id, 5);
                 expect(whereUsed.restrictions.LastAddrInHostInRoute).to.have.length(2);
             })
@@ -95,8 +97,8 @@ describe(IPObj.name, () => {
             });
 
             it('should detect should detect last addr in host in routing rule', async () => {
-                await getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr1').id})
-                await getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr2').id})
+                await manager.getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr1').id})
+                await manager.getRepository(IPObj).delete({id: fwcloudProduct.ipobjs.get('host-eth3-addr2').id})
                 const whereUsed: any = await IPObj.searchIpobjUsage(db.getQuery(), fwcloudProduct.fwcloud.id, fwcloudProduct.ipobjs.get('host-eth2-addr1').id, 5);
                 expect(whereUsed.restrictions.LastAddrInHostInRoutingRule.map(rule => rule.routing_rule_id)).to.contains(fwcloudProduct.routingRules.get('routing-rule-1').id);
             })

@@ -23,11 +23,10 @@
 
 import db from '../../database/database-manager';
 import Model from "../Model";
-import { PrimaryGeneratedColumn, Column, Entity, In, Not, Like, Between, IsNull, getRepository, SelectQueryBuilder } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, SelectQueryBuilder } from 'typeorm';
 import Query from '../../database/Query';
 import { logger } from '../../fonaments/abstract-application';
 import { FwCloud } from '../fwcloud/FwCloud';
-import { OpenVPN } from '../vpn/openvpn/OpenVPN';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { IPObj } from '../ipobj/IPObj';
 const fwcError = require('../../utils/error_table');
@@ -333,7 +332,7 @@ export class Tree extends Model {
     }
 
     private static async addSearchInfoOpenVPN(node: OpenVPNNode): Promise<OpenVPNNode> {
-        const qb: SelectQueryBuilder<IPObj> = getRepository(IPObj).createQueryBuilder('ipobj')
+        const qb: SelectQueryBuilder<IPObj> = db.getSource().manager.getRepository(IPObj).createQueryBuilder('ipobj')
             .innerJoin(OpenVPNOption, 'option', 'option.ipObj = ipobj.id')
             .where('fwcloud = :fwcloud', { fwcloud: node.fwcloud })
             .andWhere('option.openVPNId = :id', { id: node.id_obj });

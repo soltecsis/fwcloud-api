@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { FindOneOptions, In, SelectQueryBuilder, getCustomRepository, getRepository } from "typeorm";
+import { FindOneOptions, FindOptionsOrder, FindOptionsRelations, FindOptionsSelect, In, SelectQueryBuilder } from "typeorm";
 import { KeepalivedRule } from "./keepalived_r.model";
 import { KeepalivedRepository } from "./keepalived.repository";
 import { IPObj } from "../../../ipobj/IPObj";
@@ -32,6 +32,8 @@ import { ErrorBag } from "../../../../fonaments/validation/validator";
 import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
 import { KeepalivedGroupService } from "../keepalived_g/keepalived_g.service";
 import { IPObjGroup } from "../../../ipobj/IPObjGroup";
+import db from "../../../../database/database-manager";
+import { DatabaseService } from "../../../../database/database.service";
 
 
 interface IFindManyKeepalivedRulePath {
@@ -85,13 +87,21 @@ export class KeepalivedRuleService extends Service {
     private _repository: KeepalivedRepository;
     private _ipobjRepository: IPObjRepository;
     private _groupService: KeepalivedGroupService;
+    private _databaseService: DatabaseService;
 
     constructor(app: Application) {
         super(app)
-        this._repository = getCustomRepository(KeepalivedRepository);
-        this._ipobjRepository = getCustomRepository(IPObjRepository);
         this._groupService = new KeepalivedGroupService(app);
+        }
+        
+        public async build(): Promise<Service> {
+        this._databaseService = await this._app.getService(DatabaseService.name);
+        this._repository = new KeepalivedRepository(this._databaseService.dataSource.manager);
+        this._ipobjRepository = new IPObjRepository(this._databaseService.dataSource.manager);
+
+        return this
     }
+
 
     async store(data: ICreateKeepalivedRule): Promise<KeepalivedRule> {
         const keepalivedRuleData: Partial<KeepalivedRule> = {
@@ -103,20 +113,20 @@ export class KeepalivedRuleService extends Service {
         };
 
         if (data.group) {
-            keepalivedRuleData.group = await getRepository(KeepalivedGroup).findOneOrFail(data.group) as KeepalivedGroup;
+            keepalivedRuleData.group = await db.getSource().manager.getRepository(KeepalivedGroup).findOneOrFail({ where: { id: data.group }}) as KeepalivedGroup;
         }
         if (data.interfaceId) {
-            let interfaceData = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
+            let interfaceData = await db.getSource().manager.getRepository(Interface).findOneOrFail({ where: { id: data.interfaceId }}) as Interface;
             if (!interfaceData.mac || interfaceData.mac === '') {
                 throw new Error('Interface mac is not defined');
             }
             keepalivedRuleData.interface = interfaceData;
         }
         if (data.masterNodeId) {
-            keepalivedRuleData.masterNode = await getRepository(Firewall).findOneOrFail(data.masterNodeId) as Firewall;
+            keepalivedRuleData.masterNode = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: data.masterNodeId }}) as Firewall;
         }
         if (data.firewallId) {
-            keepalivedRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
+            keepalivedRuleData.firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: data.firewallId }}) as Firewall;
         }
 
         const lastKeepalivedRule = await this._repository.getLastKeepalivedRuleInFirewall(data.firewallId) as KeepalivedRule;
@@ -130,7 +140,7 @@ export class KeepalivedRuleService extends Service {
                 order: item.order
             }) as unknown as KeepalivedToIPObj);
 
-            const hasMatchingIpVersion = persisted.virtualIps.some(async virtualIp => (await getRepository(IPObj).findOneOrFail(virtualIp.ipObj)).ip_version === (await getRepository(IPObj).findOneOrFail(persisted.virtualIps[0].ipObj)).ip_version);
+            const hasMatchingIpVersion = persisted.virtualIps.some(async virtualIp => (await db.getSource().manager.getRepository(IPObj).findOneOrFail(virtualIp.ipObj)).ip_version === (await db.getSource().manager.getRepository(IPObj).findOneOrFail(persisted.virtualIps[0].ipObj)).ip_version);
             if (!hasMatchingIpVersion) {
                 this._repository.remove(persisted);
                 throw new Error('IP version mismatch');
@@ -172,13 +182,29 @@ export class KeepalivedRuleService extends Service {
     }
 
     async moveFrom(fromId: number, toId: number, data: IMoveFromKeepalivedRule): Promise<[KeepalivedRule, KeepalivedRule]> {
-        const fromRule: KeepalivedRule = await this._repository.findOneOrFail(fromId, { relations: ['firewall', 'firewall.fwCloud', 'virtualIps'] });
-        const toRule: KeepalivedRule = await this._repository.findOneOrFail(toId, { relations: ['firewall', 'firewall.fwCloud', 'virtualIps'] });
+        
+        const fromRule: KeepalivedRule = await this._repository.createQueryBuilder('keepalived')
+        .innerJoin('keepalived.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        .leftJoinAndSelect('keepalived.group', 'group')
+        .leftJoinAndSelect('group.rules', 'rules')
+        .leftJoinAndSelect('keepalived.virtualIps', 'virtualIps')
+        .where('keepalived.id = :id', { id: fromId })
+        .getOneOrFail();
+
+        const toRule: KeepalivedRule = await this._repository.createQueryBuilder('keepalived')
+        .innerJoin('keepalived.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        .leftJoinAndSelect('keepalived.group', 'group')
+        .leftJoinAndSelect('group.rules', 'rules')
+        .leftJoinAndSelect('keepalived.virtualIps', 'virtualIps')
+        .where('keepalived.id = :id', { id: toId })
+        .getOneOrFail();
+
 
         let lastPosition = 0;
-
-        [].concat(toRule.virtualIps).forEach((item) => {
-            lastPosition < item.order ? lastPosition = item.order : null;
+            [].concat(toRule.virtualIps).forEach((item) => {
+                lastPosition < item.order ? lastPosition = item.order : null;
         });
 
         if (data.ipObjId !== undefined) {
@@ -197,7 +223,12 @@ export class KeepalivedRuleService extends Service {
     }
 
     async update(id: number, data: Partial<ICreateKeepalivedRule>): Promise<KeepalivedRule> {
-        const keepalivedRule: KeepalivedRule | undefined = await this._repository.findOne(id, { relations: ['group', 'firewall', 'interface', 'virtualIps', 'masterNode'] });
+        const keepalivedRule: KeepalivedRule | undefined = await this._repository.findOne({
+            where: {
+                id: id,
+            },
+            relations: ['group', 'firewall', 'interface', 'virtualIps', 'masterNode'],
+        });
 
         if (!keepalivedRule) {
             throw new Error('keepalivedRule not found');
@@ -212,7 +243,7 @@ export class KeepalivedRuleService extends Service {
         });
 
         if (data.group !== undefined) {
-            keepalivedRule.group = data.group ? await getRepository(KeepalivedGroup).findOne(data.group) : null;
+            keepalivedRule.group = data.group ? await db.getSource().manager.getRepository(KeepalivedGroup).findOne({ where: { id: data.group }}) : null;
         } else if (data.virtualIpsIds) {
             await this.validateVirtualIps(keepalivedRule.firewall, data);
             keepalivedRule.virtualIps = data.virtualIpsIds.map(item => ({
@@ -220,7 +251,7 @@ export class KeepalivedRuleService extends Service {
                 ipObjId: item.id,
                 order: item.order
             }) as KeepalivedToIPObj);
-            const hasMatchingIpVersion = keepalivedRule.virtualIps.some(async virtualIp => (await getRepository(IPObj).findOneOrFail(virtualIp.ipObj)).ip_version === (await getRepository(IPObj).findOneOrFail(keepalivedRule.virtualIps[0].ipObj)).ip_version);
+            const hasMatchingIpVersion = keepalivedRule.virtualIps.some(async virtualIp => (await db.getSource().manager.getRepository(IPObj).findOneOrFail(virtualIp.ipObj)).ip_version === (await db.getSource().manager.getRepository(IPObj).findOneOrFail(keepalivedRule.virtualIps[0].ipObj)).ip_version);
             if (!hasMatchingIpVersion) {
                 throw new Error('IP version mismatch');
             }
@@ -230,15 +261,15 @@ export class KeepalivedRuleService extends Service {
             for (const field of fieldsToUpdate) {
                 if (data[field]) {
                     if (field === 'interfaceId') {
-                        let interfaceData = await getRepository(Interface).findOneOrFail(data[field]) as Interface;
+                        let interfaceData = await db.getSource().manager.getRepository(Interface).findOneOrFail({ where: { id: data[field] }}) as Interface;
                         if (!interfaceData.mac || interfaceData.mac === '') {
                             throw new Error('Interface mac is not defined');
                         }
                         keepalivedRule[field.slice(0, -2)] = interfaceData;
                     } else if (field === 'masterNodeId') {
-                        keepalivedRule[field.slice(0, -2)] = await getRepository(Firewall).findOneOrFail(data[field]) as Firewall;
+                        keepalivedRule[field.slice(0, -2)] = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: data[field] }}) as Firewall;
                     } else if (field === 'firewallId') {
-                        keepalivedRule[field.slice(0, -2)] = await getRepository(Firewall).findOneOrFail(data[field]) as Firewall;
+                        keepalivedRule[field.slice(0, -2)] = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: data[field] }}) as Firewall;
                     }
                 }
             }
@@ -250,12 +281,12 @@ export class KeepalivedRuleService extends Service {
     }
 
     async remove(path: IFindOneKeepalivedRulePath): Promise<KeepalivedRule> {
-        const keepalivedRule: KeepalivedRule = await this.findOneInPath(path, { relations: ['group'] });
+        
+        const keepalivedRule: KeepalivedRule = await this.findOneInPath(path, /**{ relations: ['group'] } */);
 
         keepalivedRule.virtualIps = [];
 
         await this._repository.save(keepalivedRule);
-
         if (keepalivedRule.group && keepalivedRule.group.rules.length === 1) {
             await this._groupService.remove({ id: keepalivedRule.group.id });
         }
@@ -266,30 +297,42 @@ export class KeepalivedRuleService extends Service {
     }
 
     findOneInPath(path: IFindOneKeepalivedRulePath, options?: FindOneOptions<KeepalivedRule>): Promise<KeepalivedRule | undefined> {
-        return this._repository.findOneOrFail(this.getFindInPathOptions(path, options));
+        return this.getFindInPathOptions(path, options).getOneOrFail();
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneKeepalivedRulePath>, options: FindOneOptions<KeepalivedRule> = {}): FindOneOptions<KeepalivedRule> {
-        return Object.assign({
-            join: {
-                alias: 'keepalived',
-                innerJoin: {
-                    firewall: 'keepalived.firewall',
-                    fwcloud: 'firewall.fwCloud',
-                }
-            },
-            where: (qb: SelectQueryBuilder<KeepalivedRule>) => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
-                }
-                if (path.fwcloudId) {
-                    qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
-                }
-                if (path.id) {
-                    qb.andWhere('keepalived.id = :id', { id: path.id });
-                }
-            },
-        }, options);
+    protected getFindInPathOptions(path: Partial<IFindOneKeepalivedRulePath>, options: FindOneOptions<KeepalivedRule> = {}): SelectQueryBuilder<KeepalivedRule> {
+        
+        const qb: SelectQueryBuilder<KeepalivedRule> = this._repository.createQueryBuilder('keepalived');
+        qb.innerJoin('keepalived.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        .leftJoinAndSelect('keepalived.group', 'group')
+        .leftJoinAndSelect('group.rules', 'rules')
+        
+
+        if (path.firewallId) {
+            qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
+        }
+        if (path.fwcloudId) {
+            qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
+        }
+        if (path.id) {
+            qb.andWhere('keepalived.id = :id', { id: path.id });
+        }
+        
+        // Aplica las opciones adicionales que se pasaron a la función
+        Object.entries(options).forEach(([key, value]) => {
+            switch (key) {
+                case 'where':
+                    qb.andWhere(value);
+                    break;
+                case 'relations':
+                    qb.leftJoinAndSelect(`keepalived.${value}`, `${value}`);
+                    break;
+                default:
+            }
+        });
+        
+        return qb
     }
 
     public async getKeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, rules?: number[]): Promise<KeepalivedRulesData<T>[]> {
@@ -331,7 +374,12 @@ export class KeepalivedRuleService extends Service {
                 id: In(ids),
             }, { ...data, group: { id: data.group } });
         } else {
-            const group: KeepalivedGroup = (await this._repository.findOne(ids[0], { relations: ['group'] }) as KeepalivedRule).group;
+            const group: KeepalivedGroup = (await this._repository.findOne({
+                where: {
+                    id: ids[0],
+                },
+                relations: ['group'],
+            }) as KeepalivedRule).group;
             if (data.group !== undefined && group && (group.rules.length - ids.length) < 1) {
                 await this._groupService.remove({ id: group.id });
             }

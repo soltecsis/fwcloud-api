@@ -16,7 +16,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { Request } from 'express';
-import { SelectQueryBuilder, getRepository } from "typeorm";
 import { Validate, ValidateQuery } from "../../../decorators/validate.decorator";
 import { Controller } from "../../../fonaments/http/controller";
 import { Firewall } from "../../../models/firewall/Firewall";
@@ -39,6 +38,7 @@ import { HAProxyCompiler } from '../../../compiler/system/haproxy/HAProxyCompile
 import { Channel } from '../../../sockets/channels/channel';
 import { Communication } from '../../../communications/communication';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
+import db from '../../../database/database-manager';
 
 export class HAProxyController extends Controller {
   protected _haproxyRuleService: HAProxyRuleService;
@@ -50,13 +50,13 @@ export class HAProxyController extends Controller {
   public async make(request: Request): Promise<void> {
     this._haproxyRuleService = await this._app.getService<HAProxyRuleService>(HAProxyRuleService.name);
     if (request.params.haproxy) {
-      this._haproxyRule = await getRepository(HAProxyRule).findOneOrFail(request.params.haproxy);
+      this._haproxyRule = await await db.getSource().manager.getRepository(HAProxyRule).findOneOrFail({ where: { id: parseInt(request.params.haproxy) }});
     }
     if (request.params.haproxygroup) {
-      this._haproxyGroup = await getRepository(HAProxyGroup).findOneOrFail(request.params.haproxygroup);
+      this._haproxyGroup = await await db.getSource().manager.getRepository(HAProxyGroup).findOneOrFail({ where: { id: parseInt(request.params.haproxygroup) }});
     }
-    this._firewall = await getRepository(Firewall).findOneOrFail(request.params.firewall);
-    this._fwCloud = await getRepository(FwCloud).findOneOrFail(request.params.fwcloud);
+    this._firewall = await await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: parseInt(request.params.firewall) }});
+    this._fwCloud = await await db.getSource().manager.getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
   }
 
   @Validate()
@@ -95,7 +95,7 @@ export class HAProxyController extends Controller {
   public async copy(request: Request): Promise<ResponseBuilder> {
     const ids: number[] = request.inputs.get<number[]>('rules');
     for (const id of ids) {
-      const rule: HAProxyRule = await getRepository(HAProxyRule).findOneOrFail(id);
+      const rule: HAProxyRule = await await db.getSource().manager.getRepository(HAProxyRule).findOneOrFail({ where: { id: id }});
       (await HAProxyPolicy.show(rule, request.session.user)).authorize();
     }
 
@@ -140,18 +140,12 @@ export class HAProxyController extends Controller {
   public async move(request: Request): Promise<ResponseBuilder> {
     (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
 
-    const rules: HAProxyRule[] = await getRepository(HAProxyRule).find({
-      join: {
-        alias: 'rule',
-        innerJoin: {
-          firewall: 'rule.firewall',
-          fwcloud: 'firewall.fwCloud'
+    const rules: HAProxyRule[] = await await db.getSource().manager.getRepository(HAProxyRule).find({
+      where: { 
+        firewall: {
+          id: this._firewall.id,
+          fwCloudId: this._fwCloud.id
         }
-      },
-      where: (qb) => {
-        qb.whereInIds(request.inputs.get('rules'))
-          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
-          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
       }
     });
 
@@ -185,9 +179,9 @@ export class HAProxyController extends Controller {
     const channel: Channel = await Channel.fromRequest(req);
     let firewallId: number;
 
-    let firewall: Firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
+    let firewall: Firewall = await await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: this._firewall.id }});
     if (firewall.clusterId) {
-      firewallId = (await getRepository(Firewall).createQueryBuilder('firewall')
+      firewallId = (await await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
         .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
         .andWhere('firewall.fwmaster = 1')
         .getOneOrFail()).id;

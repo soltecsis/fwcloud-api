@@ -14,10 +14,11 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { EntityRepository, FindManyOptions, FindOneOptions, In, RemoveOptions, Repository, SelectQueryBuilder, getRepository } from "typeorm";
+import { EntityManager, FindManyOptions, FindOneOptions, In, RemoveOptions, Repository, SelectQueryBuilder } from "typeorm";
 import { Offset } from "../../../../offset";
 import { KeepalivedRule } from "./keepalived_r.model";
 import { Firewall } from "../../../firewall/Firewall";
+import db from "../../../../database/database-manager";
 
 interface IFindManyKeepalivedRPath {
     fwcloudId?: number;
@@ -27,8 +28,12 @@ interface IFindManyKeepalivedRPath {
 interface IFindOneKeepalivedRPath extends IFindManyKeepalivedRPath {
     id: number;
 }
-@EntityRepository(KeepalivedRule)
 export class KeepalivedRepository extends Repository<KeepalivedRule> {
+
+    constructor(manager?: EntityManager) {
+        super(KeepalivedRule, manager);
+    }
+
     /**
      * Finds multiple Keepalived records in a given path.
      * 
@@ -37,7 +42,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
      * @returns A promise that resolves to an array of keepalived records.
      */
     async findManyInPath(path: IFindManyKeepalivedRPath, options?: FindManyOptions<KeepalivedRule>): Promise<KeepalivedRule[]> {
-        return this.find(this.getFindInPathOptions(path, options));
+        return this.getFindInPathOptions(path, options).getMany();
     }
 
     /**
@@ -208,30 +213,37 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
      * @param options - The additional options for the find operation.
      * @returns The options for finding Keepalived records.
      */
-    protected getFindInPathOptions(path: Partial<IFindOneKeepalivedRPath>, options: FindOneOptions<KeepalivedRule> | FindManyOptions<KeepalivedRule> = {}): FindOneOptions<KeepalivedRule> | FindManyOptions<KeepalivedRule> {
-        return Object.assign({
-            join: {
-                alias: 'keepalived',
-                innerJoin: {
-                    firewall: 'keepalived.firewall',
-                    fwcloud: 'firewall.fwCloud',
-                }
-            },
-            where: (qb: SelectQueryBuilder<KeepalivedRule>) => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
-                }
-                if (path.fwcloudId) {
-                    qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
-                }
-                if (path.keepalivedGroupId) {
-                    qb.andWhere('group.id = :keepalivedGroupId', { keepalivedGroupId: path.keepalivedGroupId });
-                }
-                if (path.id) {
-                    qb.andWhere('keepalived.id = :id', { id: path.id });
-                }
-            },
-        }, options)
+    protected getFindInPathOptions(path: Partial<IFindOneKeepalivedRPath>, options: FindOneOptions<KeepalivedRule> | FindManyOptions<KeepalivedRule> = {}): SelectQueryBuilder<KeepalivedRule> {
+        const qb: SelectQueryBuilder<KeepalivedRule> = db.getSource().manager.getRepository(KeepalivedRule).createQueryBuilder('keepalived');
+        qb.innerJoin('keepalived.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+
+        if (path.firewallId) {
+            qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
+        }
+        if (path.fwcloudId) {
+            qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
+        }
+        if (path.keepalivedGroupId) {
+            qb.andWhere('group.id = :keepalivedGroupId', { keepalivedGroupId: path.keepalivedGroupId });
+        }
+        if (path.id) {
+            qb.andWhere('keepalived.id = :id', { id: path.id });
+        }
+
+        // Aplica las opciones adicionales que se pasaron a la función
+        Object.entries(options).forEach(([key, value]) => {
+            switch (key) {
+                case 'where':
+                    qb.andWhere(value);
+                    break;
+                case 'relations':
+                    qb.leftJoinAndSelect(`keepalived.${value}`, `${value}`);
+                    break;
+                default:
+            }
+        });
+        return qb
     }
 
     /**
@@ -240,7 +252,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
      * @returns A Promise that resolves when the orders are successfully refreshed.
      */
     protected async refreshOrders(firewallId: number): Promise<void> {
-        const firewall: Firewall = await getRepository(Firewall).findOneOrFail(firewallId);
+        const firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: firewallId }});
         const rules: KeepalivedRule[] = await this.findManyInPath({
             fwcloudId: firewall.fwCloudId,
             firewallId: firewall.id,

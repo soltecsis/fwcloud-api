@@ -1,4 +1,3 @@
-import { getRepository } from "typeorm";
 import { Application } from "../../../../Application";
 import { AgentCommunication } from "../../../../communications/agent.communication";
 import { OpenVPNHistoryRecord } from "../../../../communications/communication";
@@ -13,7 +12,7 @@ async function iterate(application: Application): Promise<void> {
         const service: OpenVPNStatusHistoryService = await application.getService(OpenVPNStatusHistoryService.name);
 
         // List of all OpenVPN servers with which we have to communicate.
-        const openvpns: OpenVPN[] = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+        const openvpns: OpenVPN[] = await db.getSource().getRepository(OpenVPN).createQueryBuilder('openvpn')
             .innerJoin('openvpn.crt', 'crt')
             .innerJoinAndSelect('openvpn.firewall', 'firewall')
             .where('openvpn.parentId IS NULL')
@@ -25,7 +24,7 @@ async function iterate(application: Application): Promise<void> {
         for(let openvpn of openvpns) {
             try {
                 const firewalls: Firewall[] = openvpn.firewall.clusterId
-                    ? await getRepository(Firewall).createQueryBuilder('firewall')
+                    ? await db.getSource().getRepository(Firewall).createQueryBuilder('firewall')
                         .where('firewall.clusterId = :cluster', {cluster: openvpn.firewall.clusterId})
                         .andWhere('firewall.install_communication = :communication', {
                             communication: FirewallInstallCommunication.Agent

@@ -24,7 +24,7 @@ import Model from "../../Model";
 import { Firewall } from '../../../models/firewall/Firewall';
 import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
 import { Interface } from '../../../models/interface/Interface';
-import { PrimaryGeneratedColumn, Column, Entity, OneToOne, ManyToOne, JoinColumn, OneToMany, ManyToMany, JoinTable, getRepository } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany, ManyToMany, JoinTable } from "typeorm";
 const config = require('../../../config/config');
 import { IPObj } from '../../ipobj/IPObj';
 const readline = require('readline');
@@ -32,13 +32,13 @@ import { Tree } from '../../../models/tree/Tree';
 import { Crt } from "../pki/Crt";
 import { OpenVPNOption } from "./openvpn-option.model";
 import { IPObjGroup } from "../../ipobj/IPObjGroup";
-import sshTools from '../../../utils/ssh';
 import { OpenVPNPrefix } from "./OpenVPNPrefix";
 import { RoutingRule } from "../../routing/routing-rule/routing-rule.model";
 import { Route } from "../../routing/route/route.model";
 import { RouteToOpenVPN } from "../../routing/route/route-to-openvpn.model";
 import { RoutingRuleToOpenVPN } from "../../routing/routing-rule/routing-rule-to-openvpn.model";
 import { OpenVPNStatusHistory } from "./status/openvpn-status-history";
+import db from "../../../database/database-manager";
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -599,7 +599,7 @@ export class OpenVPN extends Model {
     };
 
     public static async searchOpenVPNInRoute(fwcloud: number, openvpn: number): Promise<any> {
-        return await getRepository(Route).createQueryBuilder('route')
+        return await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoin('route.routeToOpenVPNs', 'routeToOpenVPNs')
@@ -612,7 +612,7 @@ export class OpenVPN extends Model {
     }
 
     public static async searchOpenVPNInRoutingRule(fwcloud: number, openvpn: number): Promise<any> {
-        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+        return await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('routing_rule')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoin('routing_rule.routingRuleToOpenVPNs', 'routingRuleToOpenVPNs')
@@ -625,7 +625,7 @@ export class OpenVPN extends Model {
     }
 
     public static async searchOpenVPNInGroupInRoute(fwcloud: number, openvpn: number): Promise<any> {
-        return await getRepository(Route).createQueryBuilder('route')
+        return await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoinAndSelect('route.routingTable', 'table')
@@ -639,7 +639,7 @@ export class OpenVPN extends Model {
     }
 
     public static async searchOpenVPNInGroupInRoutingRule(fwcloud: number, openvpn: number): Promise<any> {
-        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+        return await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('routing_rule')
             .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
             .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
             .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')

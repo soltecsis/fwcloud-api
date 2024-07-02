@@ -22,16 +22,19 @@
 
 import { Policy, Authorization } from "../fonaments/authorization/policy";
 import { User } from "../models/user/User";
-import { getRepository } from "typeorm";
 import { RoutingTable } from "../models/routing/routing-table/routing-table.model";
 import { Firewall } from "../models/firewall/Firewall";
 import { RoutingGroup } from "../models/routing/routing-group/routing-group.model";
+import db from "../database/database-manager";
 
 export class RoutingGroupPolicy extends Policy {
 
     static async create(firewall: Firewall, user: User): Promise<Authorization> {
         user = await this.getUser(user.id);
-        firewall = await getRepository(Firewall).findOne(firewall.id, {relations: ['fwCloud']});
+        firewall = await db.getSource().manager.getRepository(Firewall).findOne({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
         if (user.role === 1) {
             return Authorization.grant();
         }
@@ -43,7 +46,10 @@ export class RoutingGroupPolicy extends Policy {
 
     static async index(firewall: Firewall, user: User): Promise<Authorization> {
         user = await this.getUser(user.id);
-        firewall = await getRepository(Firewall).findOne(firewall.id, {relations: ['fwCloud']});
+        firewall = await db.getSource().manager.getRepository(Firewall).findOne({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
+        });
         if (user.role === 1) {
             return Authorization.grant();
         }
@@ -93,11 +99,15 @@ export class RoutingGroupPolicy extends Policy {
     }
 
     protected static getUser(userId: number): Promise<User> {
-        return getRepository(User).findOneOrFail(userId, {relations: ['fwClouds']});
+        return db.getSource().manager.getRepository(User).findOneOrFail({
+            where: { id: userId },
+            relations: ['fwClouds']
+        });
     }
 
     protected static getRoutingTable(routingTableId: number): Promise<RoutingTable> {
-        return getRepository(RoutingTable).findOne(routingTableId, {
+        return db.getSource().manager.getRepository(RoutingTable).findOne({
+            where: { id: routingTableId },
             relations: [
                 'firewall',
                 'firewall.fwCloud'
@@ -106,7 +116,8 @@ export class RoutingGroupPolicy extends Policy {
     }
 
     protected static getGroup(groupId: number): Promise<RoutingGroup> {
-        return getRepository(RoutingGroup).findOne(groupId, {
+        return db.getSource().manager.getRepository(RoutingGroup).findOne({
+            where: { id: groupId },
             relations: [
                 'firewall',
                 'firewall.fwCloud'

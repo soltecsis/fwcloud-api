@@ -22,7 +22,6 @@
 
 import { describeName, expect } from "../../../mocha/global-setup";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { getRepository } from "typeorm";
 import StringHelper from "../../../../src/utils/string.helper";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
@@ -30,6 +29,7 @@ import db from "../../../../src/database/database-manager";
 import { RuleActionsMap, POLICY_TYPE, CompilerAction } from '../../../../src/compiler/policy/PolicyCompilerTools';
 import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
 import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/policy/PolicyCompiler";
+import { EntityManager } from "typeorm";
 
 describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     let fwcloud: number;
@@ -48,6 +48,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
         special: 0,
         options: 0    
     }
+    let manager: EntityManager
 
     async function runTest(policyType: number): Promise<void> {
         ruleData.type = policyType;
@@ -113,9 +114,9 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     
     before(async () => {
         dbCon = db.getQuery();
-
-        fwcloud = (await getRepository(FwCloud).save(getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id;
-        ruleData.firewall = (await getRepository(Firewall).save(getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
+        manager = db.getSource().manager;
+        fwcloud = (await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))).id;
+        ruleData.firewall = (await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({ name: StringHelper.randomize(10), fwCloudId: fwcloud }))).id;
     });
         
 

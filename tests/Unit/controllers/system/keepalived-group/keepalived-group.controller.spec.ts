@@ -16,7 +16,6 @@
 */
 
 import { Application } from "../../../../../src/Application";
-import { getRepository } from "typeorm";
 import { KeepalivedGroupController } from "../../../../../src/controllers/system/keepalived-group/keepalived-group.controller";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
@@ -27,6 +26,8 @@ import sinon from "sinon";
 import { Request } from 'express';
 import { expect } from "chai";
 import { KeepalivedGroupService } from "../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.service";
+import { EntityManager } from "typeorm";
+import db from "../../../../../src/database/database-manager";
 
 describe(KeepalivedGroupController.name, () => {
     let firewall: Firewall;
@@ -35,23 +36,25 @@ describe(KeepalivedGroupController.name, () => {
 
     let controller: KeepalivedGroupController;
     let app: Application;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         controller = new KeepalivedGroupController(app);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
 
-        Keepalivedgroup = await getRepository(KeepalivedGroup).save({
+        Keepalivedgroup = await manager.getRepository(KeepalivedGroup).save({
             name: StringHelper.randomize(10),
             firewall: firewall
         });
@@ -73,8 +76,8 @@ describe(KeepalivedGroupController.name, () => {
             } as unknown as Request;
 
             const KeepalivedGroupServiceStub = sinon.stub(KeepalivedGroupService.prototype, 'findOneInPath').resolves(Keepalivedgroup);
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail').resolves(firewall);
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
+            const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail').resolves(firewall);
+            const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
 
             await controller.make(requestMock);
 
@@ -96,8 +99,8 @@ describe(KeepalivedGroupController.name, () => {
             } as unknown as Request;
 
             const KeepalivedGroupServiceStub = sinon.stub(KeepalivedGroupService.prototype, 'findOneInPath')
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail');
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail');
+            const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail');
+            const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail');
 
             await controller.make(requestMock);
 

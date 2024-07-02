@@ -15,7 +15,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindOneOptions, In, SelectQueryBuilder, getCustomRepository, getRepository } from "typeorm";
+import { FindOneOptions, In, SelectQueryBuilder } from "typeorm";
 import { Service } from "../../../../fonaments/services/service";
 import { Offset } from "../../../../offset";
 import { HAProxyRuleRepository } from "./haproxy.repository";
@@ -34,6 +34,8 @@ import { HAProxyRuleItemForCompiler, HAProxyUtils, ItemForGrid } from "../shared
 import { HAProxyGroupService } from "../haproxy_g/haproxy_g.service";
 import { IPObjGroup } from "../../../ipobj/IPObjGroup";
 import { AvailableDestinations } from "../../haproxy/shared";
+import db from "../../../../database/database-manager";
+import { DatabaseService } from "../../../../database/database.service";
 
 interface IFindManyHAProxyRPath {
     fwcloudId?: number;
@@ -91,12 +93,20 @@ export class HAProxyRuleService extends Service {
     private _repository: HAProxyRuleRepository;
     private _ipobjRepository: IPObjRepository;
     private _groupService: HAProxyGroupService;
+    private _databaseService: DatabaseService;
 
     constructor(app: Application) {
         super(app);
-        this._repository = getCustomRepository(HAProxyRuleRepository);
-        this._ipobjRepository = getCustomRepository(IPObjRepository);
+
         this._groupService = new HAProxyGroupService(app);
+    }
+
+    public async build(): Promise<Service> {
+        this._databaseService = await this._app.getService(DatabaseService.name);
+        this._repository = new HAProxyRuleRepository(this._databaseService.dataSource.manager);
+        this._ipobjRepository = new IPObjRepository(this._databaseService.dataSource.manager);
+
+        return this;
     }
 
     async store(data: ICreateHAProxyRule): Promise<HAProxyRule> {
@@ -109,19 +119,19 @@ export class HAProxyRuleService extends Service {
         };
 
         if (data.group) {
-            haProxyRule.group = await getRepository(HAProxyGroup).findOneOrFail(data.group);
+            haProxyRule.group = await db.getSource().manager.getRepository(HAProxyGroup).findOneOrFail({ where: { id: data.group }});
         }
         if (data.frontendIpId) {
-            haProxyRule.frontendIp = await this._ipobjRepository.findOneOrFail({ id: data.frontendIpId });
+            haProxyRule.frontendIp = await this._ipobjRepository.findOneOrFail({ where: { id: data.frontendIpId }});
         }
         if (data.frontendPortId) {
-            haProxyRule.frontendPort = await this._ipobjRepository.findOneOrFail({ id: data.frontendPortId });
+            haProxyRule.frontendPort = await this._ipobjRepository.findOneOrFail({ where: { id: data.frontendPortId }});
         }
         if (data.backendPortId) {
-            haProxyRule.backendPort = await this._ipobjRepository.findOneOrFail({ id: data.backendPortId });
+            haProxyRule.backendPort = await this._ipobjRepository.findOneOrFail({ where: { id: data.backendPortId }});
         }
         if (data.firewallId) {
-            haProxyRule.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId);
+            haProxyRule.firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: data.firewallId }});
         }
         if (data.backendIpsIds) {
             await this.validateBackendIps(haProxyRule.firewall, data);
@@ -137,7 +147,7 @@ export class HAProxyRuleService extends Service {
             const frontendIpVersion = haProxyRule.frontendIp.ip_version;
             const backendIpVersions = await Promise.all(
                 haProxyRule.backendIps.map(async backendIp => {
-                    const ipObj = await getRepository(IPObj).findOneOrFail(backendIp.ipObjId);
+                    const ipObj = await db.getSource().manager.getRepository(IPObj).findOneOrFail({ where: { id: backendIp.ipObjId }});
                     return ipObj.ip_version;
                 })
             );
@@ -193,13 +203,14 @@ export class HAProxyRuleService extends Service {
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<HAProxyRule[]> {
-        const destinatationRule: HAProxyRule = await this._repository.findOneOrFail(destRule, {
-            relations: ['group']
+        const destinatationRule: HAProxyRule = await this._repository.findOneOrFail({
+            where: {
+                id: destRule,
+            },
+            relations: ['group'],
         });
 
-        const sourceRules: HAProxyRule[] = await this._repository.findByIds(ids, {
-            relations: ['group']
-        });
+        const sourceRules: HAProxyRule[] = await this._repository.findBy({id: In(ids)});
 
         const movedRules = await this._repository.move(ids, destRule, offset);
 
@@ -211,12 +222,18 @@ export class HAProxyRuleService extends Service {
     }
 
     async moveFrom(fromId: number, toId: number, data: IMoveFromHaProxyRule): Promise<[HAProxyRule, HAProxyRule]> {
-        const fromRule: HAProxyRule = await this._repository.findOneOrFail(fromId, {
-            relations: ['firewall', 'firewall.fwCloud', 'backendIps']
+        const fromRule: HAProxyRule = await this._repository.findOneOrFail({
+            where: {
+                id: fromId,
+            },
+            relations: ['firewall', 'firewall.fwCloud', 'backendIps'],
         });
 
-        const toRule: HAProxyRule = await this._repository.findOneOrFail(toId, {
-            relations: ['firewall', 'firewall.fwCloud', 'backendIps']
+        const toRule: HAProxyRule = await this._repository.findOneOrFail({
+            where: {
+                id: toId,
+            },
+            relations: ['firewall', 'firewall.fwCloud', 'backendIps'],
         });
 
         let lastPosition = 0;
@@ -241,7 +258,10 @@ export class HAProxyRuleService extends Service {
     }
 
     async update(id: number, data: Partial<ICreateHAProxyRule>): Promise<HAProxyRule> {
-        let haProxyRule: HAProxyRule | undefined = await this._repository.findOneOrFail(id, {
+        let haProxyRule: HAProxyRule | undefined = await this._repository.findOneOrFail({
+            where: {
+                id,
+            },
             relations: ['group', 'frontendIp', 'frontendPort', 'backendIps', 'backendPort', 'firewall']
         });
         if (!haProxyRule) {
@@ -260,7 +280,7 @@ export class HAProxyRuleService extends Service {
             if (haProxyRule.group && !data.group && haProxyRule.group.rules.length === 1) {
                 await this._groupService.remove({ id: haProxyRule.group.id });
             }
-            haProxyRule.group = data.group ? await getRepository(HAProxyGroup).findOne(data.group) : null;
+            haProxyRule.group = data.group ? await db.getSource().manager.getRepository(HAProxyGroup).findOne({ where: { id: data.group }}) : null;
         } else if (data.backendIpsIds) {
             await this.validateBackendIps(haProxyRule.firewall, data);
             haProxyRule.backendIps = data.backendIpsIds.map(item => ({
@@ -273,7 +293,7 @@ export class HAProxyRuleService extends Service {
 
             for (const field of fieldsToUpdate) {
                 if (data[field] !== undefined) {
-                    haProxyRule[field.slice(0, -2)] = await getRepository(field === 'firewallId' ? Firewall : IPObj).findOneOrFail(data[field]) as Firewall | IPObj;
+                    haProxyRule[field.slice(0, -2)] = await db.getSource().manager.getRepository(field === 'firewallId' ? Firewall : IPObj).findOneOrFail(data[field]) as Firewall | IPObj;
                 }
             }
         }
@@ -283,7 +303,7 @@ export class HAProxyRuleService extends Service {
 
             const backendIpVersions = await Promise.all(
                 haProxyRule.backendIps.map(async backEndIp => {
-                    const ipObj = await getRepository(IPObj).findOne(backEndIp.ipObjId);
+                    const ipObj = await db.getSource().manager.getRepository(IPObj).findOne({ where: { id: backEndIp.ipObjId }});
                     return ipObj.ip_version;
                 })
             );
@@ -309,7 +329,12 @@ export class HAProxyRuleService extends Service {
     }
 
     async remove(path: IFindOneHAProxyRPath): Promise<HAProxyRule> {
-        const haProxyRule: HAProxyRule = await this._repository.findOne(path.id, { relations: ['group', 'firewall'] });
+        const haProxyRule: HAProxyRule = await this._repository.findOne({
+            where: {
+                id: path.id,
+            },
+            relations: ['group', 'firewall'],
+        });
 
         haProxyRule.backendIps = [];
 
@@ -325,30 +350,39 @@ export class HAProxyRuleService extends Service {
     }
 
     findOneInPath(path: IFindOneHAProxyRPath, options?: FindOneOptions<HAProxyRule>): Promise<HAProxyRule> {
-        return this._repository.findOneOrFail(this.getFindInPathOptions(path, options))
+        return this.getFindInPathOptions(path, options).getOne();
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneHAProxyRPath>, options: FindOneOptions<HAProxyRule> = {}): FindOneOptions<HAProxyRule> {
-        return Object.assign({
-            join: {
-                alias: 'haproxy',
-                innerJoin: {
-                    firewall: 'haproxy.firewall',
-                    fwcloud: 'firewall.fwCloud',
-                }
-            },
-            where: (qb) => {
-                if (path.fwcloudId) {
-                    qb.andWhere('firewall.fwCloudId = :fwcloudId', { fwcloudId: path.fwcloudId });
-                }
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
-                }
-                if (path.id) {
-                    qb.andWhere('haproxy.id = :id', { id: path.id });
-                }
-            },
-        }, options);
+    protected getFindInPathOptions(path: Partial<IFindOneHAProxyRPath>, options: FindOneOptions<HAProxyRule> = {}): SelectQueryBuilder<HAProxyRule> {
+        const qb: SelectQueryBuilder<HAProxyRule> = db.getSource().manager.getRepository(HAProxyRule).createQueryBuilder('haproxy');
+        qb.innerJoin('haproxy.firewall', 'firewall')
+        .innerJoin('firewall.fwCloud', 'fwcloud')
+        
+        if (path.fwcloudId) {
+            qb.andWhere('firewall.fwCloudId = :fwcloudId', { fwcloudId: path.fwcloudId });
+        }
+        if (path.firewallId) {
+            qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
+        }
+        if (path.id) {
+            qb.andWhere('haproxy.id = :id', { id: path.id });
+        }
+
+        // Aplica las opciones adicionales que se pasaron a la función
+        Object.entries(options).forEach(([key, value]) => {
+            switch (key) {
+                case 'where':
+                    qb.andWhere(value);
+                    break;
+                case 'relations':
+                    qb.leftJoinAndSelect(`haproxy.${value}`, `${value}`);
+                    break;
+                default:
+            }
+        });
+
+        return qb;
+
     }
 
     public async getHAProxyRulesData<T extends ItemForGrid | HAProxyRuleItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, rules?: number[]): Promise<HAProxyRulesData<T>[]> {
@@ -389,7 +423,12 @@ export class HAProxyRuleService extends Service {
                 id: In(ids),
             }, { ...data, group: { id: data.group } })
         } else {
-            const group = (await this._repository.findOne(ids[0], { relations: ['group'] })).group;
+            const group = (await this._repository.findOne({
+                where: {
+                    id: ids[0],
+                },
+                relations: ['group'],
+            })).group;
             if (data.group !== undefined && group && (group.rules.length - ids.length) < 1) {
                 await this._groupService.remove({ id: group.id });
             }
@@ -439,7 +478,7 @@ export class HAProxyRuleService extends Service {
             return;
         }
 
-        const ipObjs: IPObj[] = await getRepository(IPObj).find({
+        const ipObjs: IPObj[] = await db.getSource().manager.getRepository(IPObj).find({
             where: {
                 id: In(data.backendIpsIds.map(item => item.id)),
                 ipObjTypeId: 5,

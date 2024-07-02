@@ -23,7 +23,7 @@
 import { describeName, testSuite, expect } from "../../mocha/global-setup";
 import { AbstractApplication } from "../../../src/fonaments/abstract-application";
 import { DatabaseService } from "../../../src/database/database.service";
-import { Connection, Migration } from "typeorm";
+import { DataSource, Migration } from "typeorm";
 
 let app: AbstractApplication;
 let databaseService: DatabaseService;
@@ -35,14 +35,14 @@ describe(describeName('Database Service tests'), () => {
     });
 
     describe('getAppliedMigrations()', async () => {
-        let connection: Connection;
+        let dataSource: DataSource;
         
         beforeEach(async () => {
-            connection = databaseService.connection
+            dataSource = databaseService.dataSource
         });
 
         it('should return all migrations', async () => {
-            const migrations = (await connection.query('SELECT * from migrations ORDER BY id DESC')).map((row: any) => {
+            const migrations = (await dataSource.query('SELECT * from migrations ORDER BY id DESC')).map((row: any) => {
                 return {
                     id: row.id,
                     timestamp: parseInt(row.timestamp),

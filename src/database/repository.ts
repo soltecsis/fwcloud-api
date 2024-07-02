@@ -20,10 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository as TypeORMRepository, In } from "typeorm";
-import { isArray } from "util";
+import { isArray } from "class-validator";
+import { Repository as TypeORMRepository, In, FindOptionsWhere } from "typeorm";
 
-export class Repository<T> extends TypeORMRepository<T> {
+export class Repository<T extends { id: any }> extends TypeORMRepository<T> {
     /**
      * Reloads an entitiy or an array of them
      * 
@@ -34,11 +34,11 @@ export class Repository<T> extends TypeORMRepository<T> {
             return await this.find({
                 where: {
                     id: In(this.getIdsFromEntityCollection(oneOrMany))
-                }
+                } as FindOptionsWhere<T> // Cast the 'id' property to the correct type
             });
         }
 
-        return this.findOne((<any>oneOrMany).id);
+        return this.findOne({where: {id:(<any>oneOrMany).id}});
     }
 
     /**

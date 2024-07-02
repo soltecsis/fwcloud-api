@@ -6,7 +6,6 @@ import { FwCloudService } from "../../../../src/models/fwcloud/fwcloud.service";
 import { Tree } from "../../../../src/models/tree/Tree";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
 import StringHelper from "../../../../src/utils/string.helper";
-import { getRepository } from "typeorm";
 import { User } from "../../../../src/models/user/User";
 import { createUser, generateSession, attachSession, sleep } from "../../../utils/utils";
 import { Application } from "../../../../src/Application";

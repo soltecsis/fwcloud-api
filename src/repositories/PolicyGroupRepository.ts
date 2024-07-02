@@ -20,12 +20,15 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository, UpdateResult, DeleteResult, InsertResult, EntityRepository } from "typeorm";
+import { UpdateResult, DeleteResult, EntityManager } from "typeorm";
 import { PolicyGroup } from "../models/policy/PolicyGroup";
-import { PolicyRule } from "../models/policy/PolicyRule";
+import { Repository } from "../database/repository";
 
-@EntityRepository(PolicyGroup)
 export class PolicyGroupRepository extends Repository<PolicyGroup> {
+
+    constructor(manager?: EntityManager) {
+        super(PolicyGroup, manager);
+    }
 
     public async moveToFirewall(id: number, firewallId: number): Promise<UpdateResult> {
         return await this.update(id, {
@@ -49,7 +52,7 @@ export class PolicyGroupRepository extends Repository<PolicyGroup> {
     public async deleteIfEmpty(policyGroup: PolicyGroup): Promise<PolicyGroup>
     {
         if((await this.createQueryBuilder().relation(PolicyGroup, "policyRules").of(policyGroup).loadMany()).length === 0) {
-            await this.delete(policyGroup);
+            await this.delete({ id: policyGroup.id }); // Modify the argument passed to the delete method
             return policyGroup;
         }
 
@@ -74,7 +77,11 @@ export class PolicyGroupRepository extends Repository<PolicyGroup> {
     }
 
     public async cloneFirewallPolicyGroups(firewallId: number): Promise<any> {
-        const policyGroups: Array<PolicyGroup> = await this.find({ firewall: { id: firewallId } });
+        const policyGroups: Array<PolicyGroup> = await this.find({
+            where: { 
+                firewall: { id: firewallId } 
+            }
+        });
 
         return await Promise.all(policyGroups.map((policyGroup: PolicyGroup) => {
             this.clone(policyGroup);
@@ -82,6 +89,6 @@ export class PolicyGroupRepository extends Repository<PolicyGroup> {
     }
 
     public async isEmpty(firewallId: number, groupId: number): Promise<boolean> {
-        return (await this.find({ firewallId: firewallId, parentId: groupId })).length > 0
+        return (await this.find({ where : { firewallId: firewallId, parentId: groupId }})).length > 0
     }
 }

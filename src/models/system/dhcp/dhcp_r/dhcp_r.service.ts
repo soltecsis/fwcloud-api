@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { FindOneOptions, In, SelectQueryBuilder, getCustomRepository, getRepository } from "typeorm";
+import { FindOneOptions, In, SelectQueryBuilder } from "typeorm";
 import { DHCPRule } from "./dhcp_r.model";
 import { DHCPRepository } from "./dhcp.repository";
 import { IPObj } from "../../../ipobj/IPObj";
@@ -37,6 +37,8 @@ import { ErrorBag } from "../../../../fonaments/validation/validator";
 import { ValidationException } from "../../../../fonaments/exceptions/validation-exception";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { DHCPGroupService } from "../dhcp_g/dhcp_g.service";
+import db from "../../../../database/database-manager";
+import { DatabaseService } from "../../../../database/database.service";
 
 interface IFindManyDHCPRulePath {
     fwcloudId?: number;
@@ -95,12 +97,19 @@ export class DHCPRuleService extends Service {
     private _repository: DHCPRepository;
     private _ipobjRepository: IPObjRepository;
     private _groupService: DHCPGroupService;
+    private _databaseService: DatabaseService;
 
     constructor(app: Application) {
         super(app)
-        this._repository = getCustomRepository(DHCPRepository);
-        this._ipobjRepository = getCustomRepository(IPObjRepository);
         this._groupService = new DHCPGroupService(app);
+    }
+
+    public async build(): Promise<Service> {
+        this._databaseService = await this._app.getService(DatabaseService.name);
+        this._repository = new DHCPRepository(this._databaseService.dataSource.manager);
+        this._ipobjRepository = new IPObjRepository(this._databaseService.dataSource.manager);
+
+        return this
     }
 
     async store(data: ICreateDHCPRule): Promise<DHCPRule> {
@@ -114,26 +123,26 @@ export class DHCPRuleService extends Service {
         };
 
         if (data.group) {
-            dhcpRuleData.group = await getRepository(DHCPGroup).findOneOrFail(data.group) as DHCPGroup;
+            dhcpRuleData.group = await db.getSource().manager.getRepository(DHCPGroup).findOneOrFail({ where: { id: data.group } }) as DHCPGroup;
         }
         if (data.networkId) {
-            dhcpRuleData.network = await getRepository(IPObj).findOneOrFail(data.networkId) as IPObj;
+            dhcpRuleData.network = await db.getSource().manager.getRepository(IPObj).findOneOrFail({ where: { id: data.networkId } }) as IPObj;
         }
         if (data.rangeId) {
-            dhcpRuleData.range = await getRepository(IPObj).findOneOrFail(data.rangeId) as IPObj;
+            dhcpRuleData.range = await db.getSource().manager.getRepository(IPObj).findOneOrFail({ where: { id: data.rangeId } }) as IPObj;
         }
         if (data.routerId) {
-            dhcpRuleData.router = await getRepository(IPObj).findOneOrFail(data.routerId) as IPObj;
+            dhcpRuleData.router = await db.getSource().manager.getRepository(IPObj).findOneOrFail({ where: { id: data.routerId } }) as IPObj;
         }
         if (data.interfaceId) {
-            let interfaceData: Interface = await getRepository(Interface).findOneOrFail(data.interfaceId) as Interface;
+            let interfaceData: Interface = await db.getSource().manager.getRepository(Interface).findOneOrFail({ where: { id: data.interfaceId } }) as Interface;
             if (!interfaceData.mac || interfaceData.mac === '') {
                 throw new Error('Interface mac is not defined');
             }
             dhcpRuleData.interface = interfaceData;
         }
         if (data.firewallId) {
-            dhcpRuleData.firewall = await getRepository(Firewall).findOneOrFail(data.firewallId) as Firewall;
+            dhcpRuleData.firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: data.firewallId } }) as Firewall;
         }
 
         if (
@@ -165,7 +174,7 @@ export class DHCPRuleService extends Service {
         });
 
         const lastRule: DHCPRule = await this._repository.getLastDHCPRuleInFirewall(dhcp_rs[0].firewallId);
-        
+
         dhcp_rs.map((item, index) => {
             item.id = undefined;
             item.rule_order = lastRule.rule_order + index + 1;
@@ -178,16 +187,14 @@ export class DHCPRuleService extends Service {
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
-        const destinationRule: DHCPRule = await this._repository.findOneOrFail(destRule, {
+        const destinationRule: DHCPRule = await this._repository.findOneOrFail({
+            where: { id: destRule },
             relations: ['group']
         });
 
-        const sourceRules: DHCPRule[] = await this._repository.findByIds(ids, {
-            relations: ['group']
-        });
+        const sourceRules: DHCPRule[] = await this._repository.findBy({ id: In(ids) });
 
         const movedRules = await this._repository.move(ids, destRule, offset);
-
         if (!destinationRule.group && sourceRules[0].group && (sourceRules[0].group.rules.length - ids.length) < 1) {
             await this._groupService.remove({ id: sourceRules[0].group.id });
         }
@@ -196,10 +203,12 @@ export class DHCPRuleService extends Service {
     }
 
     async moveFrom(fromId: number, toId: number, data: IMoveFromDHCPRule): Promise<[DHCPRule, DHCPRule]> {
-        const fromRule: DHCPRule = await this._repository.findOneOrFail(fromId, {
+        const fromRule: DHCPRule = await this._repository.findOneOrFail({
+            where: { id: fromId },
             relations: ['firewall', 'firewall.fwCloud', 'dhcpRuleToIPObjs']
         });
-        const toRule: DHCPRule = await this._repository.findOneOrFail(toId, {
+        const toRule: DHCPRule = await this._repository.findOneOrFail({
+            where: { id: toId },
             relations: ['firewall', 'firewall.fwCloud', 'dhcpRuleToIPObjs']
         });
 
@@ -226,7 +235,11 @@ export class DHCPRuleService extends Service {
     }
 
     async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
-        let dhcpRule: DHCPRule | undefined = await this._repository.findOne(id, { relations: ['group', 'firewall', 'network', 'range', 'router'] });
+        let dhcpRule: DHCPRule | undefined = await this._repository.findOne({
+            where: { id: id },
+            relations: ['group', 'firewall', 'network', 'range', 'router']
+        });
+
         if (!dhcpRule) {
             throw new Error('DHCPRule not found');
         }
@@ -244,7 +257,7 @@ export class DHCPRuleService extends Service {
             if (dhcpRule.group && !data.group && dhcpRule.group.rules.length === 1) {
                 await this._groupService.remove({ id: dhcpRule.group.id });
             }
-            dhcpRule.group = data.group ? await getRepository(DHCPGroup).findOne(data.group) : null;
+            dhcpRule.group = data.group ? await db.getSource().manager.getRepository(DHCPGroup).findOne({ where: { id: data.group } }) : null;
         } else if (data.ipObjIds) {
             await this.validateUpdateIpObjIds(dhcpRule.firewall, data);
             dhcpRule.dhcpRuleToIPObjs = data.ipObjIds.map(item => ({
@@ -258,13 +271,13 @@ export class DHCPRuleService extends Service {
             for (const field of fieldsToUpdate) {
                 if (data[field]) {
                     if (field === 'interfaceId') {
-                        let interfaceData = await getRepository(Interface).findOneOrFail(data[field]) as Interface;
+                        let interfaceData = await db.getSource().manager.getRepository(Interface).findOneOrFail({ where: { id: data[field] } }) as Interface;
                         if (interfaceData.mac === '' || !interfaceData.mac) {
                             throw new Error('Interface mac is not defined');
                         }
                         dhcpRule[field.slice(0, -2)] = interfaceData;
                     } else {
-                        dhcpRule[field.slice(0, -2)] = await getRepository(field === 'firewallId' ? Firewall : IPObj).findOneOrFail(data[field]) as Firewall | IPObj;
+                        dhcpRule[field.slice(0, -2)] = await db.getSource().manager.getRepository(field === 'firewallId' ? Firewall : IPObj).findOneOrFail({ where: { id: data[field] } }) as Firewall | IPObj;
                     }
                 }
             }
@@ -285,46 +298,52 @@ export class DHCPRuleService extends Service {
     }
 
     async remove(path: IFindOneDHCPRulePath): Promise<DHCPRule> {
-        const dhcpRule: DHCPRule = await this._repository.findOne(path.id, { relations: ['group', 'firewall'] });
+        const dhcpRule: DHCPRule = await this._repository.findOne({
+            where: { id: path.id },
+            relations: ['group', 'firewall']
+        });
 
         dhcpRule.dhcpRuleToIPObjs = [];
 
         await this._repository.save(dhcpRule);
-
         if (dhcpRule.group && dhcpRule.group.rules.length === 1) {
             await this._groupService.remove({ id: dhcpRule.group.id });
         }
-
         await this._repository.remove(dhcpRule);
 
         return dhcpRule;
     }
 
-    findOneInPath(path: IFindOneDHCPRulePath, options?: FindOneOptions<DHCPRule>): Promise<DHCPRule | undefined> {
-        return this._repository.findOneOrFail(this.getFindInPathOptions(path, options));
+    async findOneInPath(path: IFindOneDHCPRulePath, options?: FindOneOptions<DHCPRule>): Promise<DHCPRule | undefined> {
+        const result: SelectQueryBuilder<DHCPRule> =  await this.getFindInPathOptions(path, options);
+        return result.getOne()
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneDHCPRulePath>, options: FindOneOptions<DHCPRule> = {}): FindOneOptions<DHCPRule> {
-        return Object.assign({
-            join: {
-                alias: 'dhcp',
-                innerJoinAndSelect: {
-                    firewall: 'dhcp.firewall',
-                    fwcloud: 'firewall.fwCloud',
-                }
-            },
-            where: (qb: SelectQueryBuilder<DHCPRule>): void => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
-                }
-                if (path.fwcloudId) {
-                    qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
-                }
-                if (path.id) {
-                    qb.andWhere('dhcp.id = :id', { id: path.id });
-                }
-            },
-        }, options);
+    protected async getFindInPathOptions(
+        path: Partial<IFindOneDHCPRulePath>,
+        options: FindOneOptions<DHCPRule> | FindOneOptions<DHCPRule> = {},
+    ): Promise<SelectQueryBuilder<DHCPRule>> {
+        const qb = this._repository.manager.getRepository(DHCPRule).createQueryBuilder('dhcp')
+            .innerJoinAndSelect('dhcp.firewall', 'firewall')
+            .innerJoinAndSelect('firewall.fwCloud', 'fwcloud');
+    
+        if (path.firewallId) {
+            qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
+        }
+    
+        if (path.fwcloudId) {
+            qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
+        }
+    
+        if (path.id) {
+            qb.andWhere('dhcp.id = :id', { id: path.id });
+        }
+
+        Object.entries(options).forEach(([key, value]) => {
+            (qb as any)[key](value);
+        });
+    
+        return qb;
     }
 
     public async getDHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler>(dst: AvailableDestinations, fwcloud: number, firewall: number, rules?: number[]): Promise<DHCPRulesData<T>[]> {
@@ -370,7 +389,12 @@ export class DHCPRuleService extends Service {
                 id: In(ids),
             }, { ...data, group: { id: data.group } });
         } else {
-            const group: DHCPGroup = (await this._repository.findOne(ids[0], { relations: ['group'] })).group;
+            const group: DHCPGroup = (await this._repository.findOne({
+                where: {
+                    id: ids[0],
+                },
+                relations: ['group']
+            })).group;
             if (data.group !== undefined && group && (group.rules.length - ids.length) < 1) {
                 await this._groupService.remove({ id: group.id });
             }
@@ -420,7 +444,7 @@ export class DHCPRuleService extends Service {
             return;
         }
 
-        const ipObjs: IPObj[] = await getRepository(IPObj).find({
+        const ipObjs: IPObj[] = await db.getSource().manager.getRepository(IPObj).find({
             where: {
                 id: In(data.ipObjIds.map(item => item.id)),
                 ipObjTypeId: 9, // DNS

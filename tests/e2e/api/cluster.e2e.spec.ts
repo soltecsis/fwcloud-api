@@ -7,11 +7,9 @@ import { attachSession, createUser, generateSession } from "../../utils/utils";
 import request = require("supertest");
 import { _URL } from "../../../src/fonaments/http/router/router.service";
 import StringHelper from "../../../src/utils/string.helper";
-import { getRepository } from "typeorm";
-import { Firewall, FirewallInstallCommunication, FirewallInstallProtocol } from "../../../src/models/firewall/Firewall";
-import { response } from "express";
 import { Tree, TreeNode } from "../../../src/models/tree/Tree";
 import db from "../../../src/database/database-manager";
+import { EntityManager } from "typeorm";
 
 describe(describeName('Cluster E2E test'),()=>{
     let app: Application;
@@ -22,9 +20,11 @@ describe(describeName('Cluster E2E test'),()=>{
     let cluster: Cluster;
 
     let tree: TreeNode;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
 
         adminUser = await createUser({role:1});
         adminUserSessionId = generateSession(adminUser);
@@ -40,7 +40,7 @@ describe(describeName('Cluster E2E test'),()=>{
                 .then(response => {
                     fwCloud = response.body.data
                 });
-        cluster = await getRepository(Cluster).save(getRepository(Cluster).create({
+        cluster = await manager.getRepository(Cluster).save(manager.getRepository(Cluster).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }))
@@ -51,7 +51,7 @@ describe(describeName('Cluster E2E test'),()=>{
     describe('ClusterController@limit',()=>{
         it('the limit is greater than the number of clusters',async()=>{
             let numberClusters:number
-            await getRepository(Cluster).save(getRepository(Cluster).create({
+            await manager.getRepository(Cluster).save(manager.getRepository(Cluster).create({
                 name: StringHelper.randomize(10),
                 fwCloudId: fwCloud.id
             }))
@@ -89,7 +89,7 @@ describe(describeName('Cluster E2E test'),()=>{
         });
         it('the limit is equals than the number of clusters',async () =>{
             let numberClusters:number
-            await getRepository(Cluster).save(getRepository(Cluster).create({
+            await manager.getRepository(Cluster).save(manager.getRepository(Cluster).create({
                 name: StringHelper.randomize(10),
                 fwCloudId: fwCloud.id
             }))
@@ -127,7 +127,7 @@ describe(describeName('Cluster E2E test'),()=>{
         });
         it('the limit is less than the number of clusters', async ()=> {
             let numberClusters:number
-            await getRepository(Cluster).save(getRepository(Cluster).create({
+            await manager.getRepository(Cluster).save(manager.getRepository(Cluster).create({
                 name: StringHelper.randomize(10),
                 fwCloudId: fwCloud.id
             }))

@@ -24,7 +24,6 @@ import { Controller } from "../../../fonaments/http/controller";
 import { Request } from "express";
 import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { OpenVPNPolicy } from "../../../policies/openvpn.policy";
-import { getRepository } from "typeorm";
 import { OpenVPN } from "../../../models/vpn/openvpn/OpenVPN";
 import { NotFoundException } from "../../../fonaments/exceptions/not-found-exception";
 import { OpenVPNService } from "../../../models/vpn/openvpn/openvpn.service";
@@ -39,6 +38,7 @@ import { FwCloud } from "../../../models/fwcloud/FwCloud";
 import { FindOpenVPNStatusHistoryOptions, FindResponse, GraphDataResponse, GraphOpenVPNStatusHistoryOptions, OpenVPNStatusHistoryService } from "../../../models/vpn/openvpn/status/openvpn-status-history.service";
 import { HistoryQueryDto } from "./dtos/history-query.dto";
 import { GraphQueryDto } from "./dtos/graph-query.dto";
+import db from "../../../database/database-manager";
 
 export class OpenVPNController extends Controller {
     protected _openvpn: OpenVPN;
@@ -47,17 +47,17 @@ export class OpenVPNController extends Controller {
 
     public async make(request: Request): Promise<void> {
         if (request.params.openvpn) {
-            this._openvpn = await getRepository(OpenVPN).findOneOrFail(parseInt(request.params.openvpn));
+            this._openvpn = await db.getSource().manager.getRepository(OpenVPN).findOneOrFail({ where: { id: parseInt(request.params.openvpn) }});
         }
 
-        const firewallQueryBuilder = getRepository(Firewall).createQueryBuilder('firewall')
+        const firewallQueryBuilder = db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
             .where('firewall.id = :id', {id: parseInt(request.params.firewall)});
         if (request.params.openvpn) {
             firewallQueryBuilder.innerJoin('firewall.openVPNs', 'openvpn', 'openvpn.id = :openvpn', {openvpn: parseInt(request.params.openvpn)})
         }
         this._firewall = await firewallQueryBuilder.getOneOrFail();
 
-        this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
+        this._fwCloud = await db.getSource().manager.getRepository(FwCloud).createQueryBuilder('fwcloud')
             .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {firewallId: parseInt(request.params.firewall)})
             .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)})
             .getOneOrFail();
@@ -65,7 +65,7 @@ export class OpenVPNController extends Controller {
 
     @Validate(OpenVPNControllerInstallerDto)
     public async installer(req: Request): Promise<ResponseBuilder> {
-        const openVPN: OpenVPN = await getRepository(OpenVPN).createQueryBuilder("openvpn")
+        const openVPN: OpenVPN = await db.getSource().manager.getRepository(OpenVPN).createQueryBuilder("openvpn")
             .leftJoinAndSelect("openvpn.firewall", "firewall")
             .leftJoinAndSelect("firewall.fwCloud", "fwcloud")
             .where("fwcloud.id = :fwcloudId", {fwcloudId: parseInt(req.params.fwcloud)})
@@ -78,7 +78,7 @@ export class OpenVPNController extends Controller {
             throw new NotFoundException();
         }
 
-        const serverOpenVPN: OpenVPN = await getRepository(OpenVPN).createQueryBuilder("openvpn")
+        const serverOpenVPN: OpenVPN = await db.getSource().manager.getRepository(OpenVPN).createQueryBuilder("openvpn")
             .leftJoinAndSelect("openvpn.firewall", "firewall")
             .leftJoinAndSelect("firewall.fwCloud", "fwcloud")
             .where("fwcloud.id = :fwcloudId", {fwcloudId: parseInt(req.params.fwcloud)})
@@ -157,7 +157,7 @@ export class OpenVPNController extends Controller {
     }
 
     protected getOpenVPNServerOrFail(fwcloudId: number, firewallId: number, openVPNId: number): Promise<OpenVPN> {
-        return getRepository(OpenVPN).createQueryBuilder("openvpn")
+        return db.getSource().manager.getRepository(OpenVPN).createQueryBuilder("openvpn")
         .innerJoinAndSelect("openvpn.firewall", "firewall")
         .innerJoinAndSelect("firewall.fwCloud", "fwcloud")
         .innerJoin('openvpn.crt', 'crt')

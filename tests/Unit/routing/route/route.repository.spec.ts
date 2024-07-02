@@ -1,4 +1,5 @@
-import { getCustomRepository, getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
@@ -22,19 +23,21 @@ describe(RouteRepository.name, () => {
     let tableService: RoutingTableService;
     let table: RoutingTable;
     let routeGroupService: RouteGroupService;
+    let manager: EntityManager;
 
     beforeEach(async() => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
         
-        repository = getCustomRepository(RouteRepository);
+        repository = new RouteRepository(manager);
         tableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
         routeGroupService = await testSuite.app.getService<RouteGroupService>(RouteGroupService.name);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
@@ -50,7 +53,7 @@ describe(RouteRepository.name, () => {
             comment: null
         });
 
-        gateway = await getRepository(IPObj).save(getRepository(IPObj).create({
+        gateway = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
             name: 'test',
             address: '0.0.0.0',
             ipObjTypeId: 0,
@@ -83,10 +86,10 @@ describe(RouteRepository.name, () => {
 
             await repository.move([routeOrder2.id], routeOrder4.id, Offset.Below);
 
-            expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
-            expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(4);
-            expect((await repository.findOne(routeOrder3.id)).route_order).to.eq(2);
-            expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(3);
+            expect((await repository.findOne({ where: { id: routeOrder1.id }})).route_order).to.eq(1);
+            expect((await repository.findOne({ where: { id: routeOrder2.id }})).route_order).to.eq(4);
+            expect((await repository.findOne({ where: { id: routeOrder3.id }})).route_order).to.eq(2);
+            expect((await repository.findOne({ where: { id: routeOrder4.id }})).route_order).to.eq(3);
         });
 
         it('should manage route_order backward changes', async () => {
@@ -113,10 +116,10 @@ describe(RouteRepository.name, () => {
 
             await repository.move([routeOrder4.id], routeOrder2.id, Offset.Above);
 
-            expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
-            expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);
-            expect((await repository.findOne(routeOrder3.id)).route_order).to.eq(4);
-            expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(2);
+            expect((await repository.findOne({ where: { id: routeOrder1.id }})).route_order).to.eq(1);
+            expect((await repository.findOne({ where: { id: routeOrder2.id }})).route_order).to.eq(3);
+            expect((await repository.findOne({ where: { id: routeOrder3.id }})).route_order).to.eq(4);
+            expect((await repository.findOne({ where: { id: routeOrder4.id }})).route_order).to.eq(2);
         });
 
         it('should add to a group is destination belongs to a group', async () => {
@@ -144,8 +147,8 @@ describe(RouteRepository.name, () => {
 
             await repository.move([routeOrder3.id], routeOrder2.id, Offset.Above);
 
-            expect((await repository.findOne(routeOrder3.id)).routeGroupId).to.eq(group.id);
-            expect((await repository.findOne(routeOrder3.id)).routeGroupId).to.eq(group.id);
+            expect((await repository.findOne({ where: { id: routeOrder3.id }})).routeGroupId).to.eq(group.id);
+            expect((await repository.findOne({ where: { id: routeOrder3.id }})).routeGroupId).to.eq(group.id);
         });
 
         describe('bulk', () => {
@@ -173,10 +176,10 @@ describe(RouteRepository.name, () => {
     
                 await repository.move([routeOrder1.id, routeOrder2.id], routeOrder4.id, Offset.Above);
     
-                expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(2);
-                expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(3);
-                expect((await repository.findOne(routeOrder3.id)).route_order).to.eq(1);
-                expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(4);
+                expect((await repository.findOne({ where: { id: routeOrder1.id }})).route_order).to.eq(2);
+                expect((await repository.findOne({ where: { id: routeOrder2.id }})).route_order).to.eq(3);
+                expect((await repository.findOne({ where: { id: routeOrder3.id }})).route_order).to.eq(1);
+                expect((await repository.findOne({ where: { id: routeOrder4.id }})).route_order).to.eq(4);
             });
     
             it('should manage route_order backward changes', async () => {
@@ -203,10 +206,10 @@ describe(RouteRepository.name, () => {
     
                 await repository.move([routeOrder3.id, routeOrder4.id], routeOrder2.id, Offset.Above);
     
-                expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
-                expect((await repository.findOne(routeOrder2.id)).route_order).to.eq(4);
-                expect((await repository.findOne(routeOrder3.id)).route_order).to.eq(2);
-                expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(3);
+                expect((await repository.findOne({ where: { id: routeOrder1.id }})).route_order).to.eq(1);
+                expect((await repository.findOne({ where: { id: routeOrder2.id }})).route_order).to.eq(4);
+                expect((await repository.findOne({ where: { id: routeOrder3.id }})).route_order).to.eq(2);
+                expect((await repository.findOne({ where: { id: routeOrder4.id }})).route_order).to.eq(3);
             });
 
             it('should add to a group is destination belongs to a group', async () => {
@@ -234,8 +237,8 @@ describe(RouteRepository.name, () => {
     
                 await repository.move([routeOrder2.id, routeOrder3.id], routeOrder1.id, Offset.Above);
     
-                expect((await repository.findOne(routeOrder3.id)).routeGroupId).to.eq(group.id);
-                expect((await repository.findOne(routeOrder3.id)).routeGroupId).to.eq(group.id);
+                expect((await repository.findOne({ where: { id: routeOrder3.id }})).routeGroupId).to.eq(group.id);
+                expect((await repository.findOne({ where: { id: routeOrder3.id }})).routeGroupId).to.eq(group.id);
             });
         });
         
@@ -266,8 +269,8 @@ describe(RouteRepository.name, () => {
 
             await repository.remove([routeOrder2, routeOrder3]);
 
-            expect((await repository.findOne(routeOrder1.id)).route_order).to.eq(1);
-            expect((await repository.findOne(routeOrder4.id)).route_order).to.eq(2);
+            expect((await repository.findOne({ where: { id: routeOrder1.id }})).route_order).to.eq(1);
+            expect((await repository.findOne({ where: { id: routeOrder4.id }})).route_order).to.eq(2);
         });
     });
 });

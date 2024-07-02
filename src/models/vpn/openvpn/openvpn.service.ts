@@ -25,7 +25,7 @@ import { Service } from "../../../fonaments/services/service";
 import { OpenVPN } from "./OpenVPN";
 import db from "../../../database/database-manager";
 import { InstallerGenerator } from "../../../openvpn-installer/installer-generator";
-import { getMetadataArgsStorage, getRepository, SelectQueryBuilder } from "typeorm";
+import { getMetadataArgsStorage, SelectQueryBuilder } from "typeorm";
 import { Firewall } from "../../firewall/Firewall";
 import { CronService } from "../../../backups/cron/cron.service";
 import { CronJob } from "cron";
@@ -108,7 +108,10 @@ export class OpenVPNService extends Service {
 
         try {
             const openVPNId: number = openVPN.id;
-            const firewall: Firewall = await getRepository(Firewall).findOne(openVPN.firewallId, { relations: ['fwCloud']});
+            const firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOne({
+                where: {id: openVPN.firewallId},
+                relations: ['fwCloud']
+            });
             const fwCloudId: number = firewall.fwCloudId;
             
             configData = (await OpenVPN.dumpCfg(db.getQuery(), fwCloudId, openVPNId) as any).cfg;
@@ -140,7 +143,7 @@ export class OpenVPNService extends Service {
     public async archiveHistory(eventEmitter: EventEmitter = new EventEmitter): Promise<number> {
         
         function getExpiredStatusHistoryQuery(expirationInSeconds: number): SelectQueryBuilder<OpenVPNStatusHistory> {
-            return getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
+            return db.getSource().manager.getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
                 .where('history.timestampInSeconds <= :timestamp', {timestamp: (Date.now() - expirationInSeconds * 1000) / 1000});
         }
         try{
@@ -224,7 +227,7 @@ export class OpenVPNService extends Service {
                                     return reject(err);
                                 }
                                 try {
-                                    await getRepository(OpenVPNStatusHistory).delete(history.map(item => item.id));
+                                    await db.getSource().manager.getRepository(OpenVPNStatusHistory).delete(history.map(item => item.id));
                                     return resolve();
                                 } catch(err) {
                                     return reject(err);

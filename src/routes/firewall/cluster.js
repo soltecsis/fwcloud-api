@@ -494,7 +494,7 @@ router.put('/fwtocluster', async(req, res) => {
 			try {
 				await Firewall.updateFirewallCluster(firewallData);
 				await Firewall.updateFWMaster(iduser, fwcloud, clusterId, firewall, 1);
-				res.status(200).json(data);
+				res.status(200).json({"result": true, "insertId": clusterId });
 			} catch(error) { return res.status(400).json(error);} 
 		} else {
 			logger().error('Error updating firewall cluster: ' + JSON.stringify(error));

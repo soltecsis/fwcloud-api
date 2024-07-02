@@ -19,7 +19,6 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { getRepository } from "typeorm";
 import { Controller } from "../../../fonaments/http/controller";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
@@ -32,6 +31,7 @@ import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { DHCPGroupControllerCreateDto } from "./dto/create.dto";
 import { DHCPGroupUpdateDto } from "./dto/update.dto";
 import { DHCPRuleService } from "../../../models/system/dhcp/dhcp_r/dhcp_r.service";
+import db from "../../../database/database-manager";
 
 export class DhcpGroupController extends Controller {
   protected _dhcpGroupService: DHCPGroupService;
@@ -49,8 +49,8 @@ export class DhcpGroupController extends Controller {
       this._dhcpGroup = await this._dhcpGroupService.findOneInPath({ id: parseInt(request.params.dhcpgroup) });
     }
 
-    this._firewall = await getRepository(Firewall).findOneOrFail(request.params.firewall);
-    this._fwCloud = await getRepository(FwCloud).findOneOrFail(request.params.fwcloud);
+    this._firewall = await await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: parseInt(request.params.firewall) }});
+    this._fwCloud = await await db.getSource().manager.getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
   }
 
   @Validate()

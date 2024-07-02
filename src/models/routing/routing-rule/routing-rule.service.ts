@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getCustomRepository, getRepository, In, Repository, SelectQueryBuilder } from "typeorm";
+import { In, Repository, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import db from "../../../database/database-manager";
 import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
@@ -53,6 +53,7 @@ import { RoutingRule } from "./routing-rule.model";
 import { IFindManyRoutingRulePath, IFindOneRoutingRulePath, RoutingRuleRepository } from "./routing-rule.repository";
 import { RoutingGroup } from "../routing-group/routing-group.model";
 import { RoutingGroupService } from "../routing-group/routing-group.service";
+import { DatabaseService } from "../../../database/database.service";
 
 export interface ICreateRoutingRule {
     routingTableId: number;
@@ -113,21 +114,23 @@ export class RoutingRuleService extends Service {
     private _routingTableRepository: Repository<RoutingTable>;
     protected _firewallService: FirewallService;
     private _groupService: RoutingGroupService;
+    private _databaseService: DatabaseService;
 
     constructor(app: Application) {
         super(app);
-        this._repository = getCustomRepository(RoutingRuleRepository);
-        this._ipobjRepository = getCustomRepository(IPObjRepository);
-        this._ipobjGroupRepository = getCustomRepository(IPObjGroupRepository);
-        this._openvpnRepository = getCustomRepository(OpenVPNRepository);
-        this._openvpnPrefixRepository = getCustomRepository(OpenVPNPrefixRepository);
-        this._markRepository = getCustomRepository(MarkRepository);
-        this._routingTableRepository = getRepository(RoutingTable);
         this._groupService = new RoutingGroupService(app);
-    }
-
-    public async build(): Promise<Service> {
-        this._firewallService = await this._app.getService(FirewallService.name);
+        }
+        
+        public async build(): Promise<Service> {
+            this._databaseService = await this._app.getService(DatabaseService.name);
+            this._repository = new RoutingRuleRepository(this._databaseService.dataSource.manager);
+            this._ipobjRepository = new IPObjRepository(this._databaseService.dataSource.manager);
+            this._ipobjGroupRepository = new IPObjGroupRepository(this._databaseService.dataSource.manager);
+            this._openvpnRepository = new OpenVPNRepository(this._databaseService.dataSource.manager);
+            this._openvpnPrefixRepository = new OpenVPNPrefixRepository(this._databaseService.dataSource.manager);
+            this._markRepository = new MarkRepository(this._databaseService.dataSource.manager);
+            this._routingTableRepository = this._databaseService.dataSource.manager.getRepository(RoutingTable);
+            this._firewallService = await this._app.getService(FirewallService.name);
         return this;
     }
 
@@ -144,7 +147,10 @@ export class RoutingRuleService extends Service {
     }
 
     async create(data: ICreateRoutingRule): Promise<RoutingRule> {
-        const routingTable: RoutingTable = await this._routingTableRepository.findOneOrFail(data.routingTableId, {
+        const routingTable: RoutingTable = await this._routingTableRepository.findOneOrFail({
+            where: {
+                id: data.routingTableId
+            },
             relations: ['firewall']
         });
         const firewall: Firewall = routingTable.firewall;
@@ -219,7 +225,10 @@ export class RoutingRuleService extends Service {
             comment: data.comment,
         }, {id}));
 
-        const firewall: Firewall = (await this._repository.findOne(rule.id, {relations: ['routingTable', 'routingTable.firewall']})).routingTable.firewall;
+        const firewall: Firewall = (await this._repository.findOne({
+            where: {id: rule.id },
+            relations: ['routingTable', 'routingTable.firewall']
+        })).routingTable.firewall;
 
         await this.validateFromRestriction(rule.id, data);
 
@@ -285,9 +294,12 @@ export class RoutingRuleService extends Service {
     }
 
     protected async reorderFrom(ruleId: number): Promise<void> {
-        const rule: RoutingRule = await this._repository.findOneOrFail(ruleId, {relations: [
-            'routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes'
-        ]})
+        const rule: RoutingRule = await this._repository.findOneOrFail({
+            where: {id: ruleId},
+            relations: [
+                'routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes'
+            ]
+        });
 
         const items: {order: number}[] = [].concat(
             rule.routingRuleToIPObjs,
@@ -311,7 +323,10 @@ export class RoutingRuleService extends Service {
                 id: In(ids)
             }, { ...data, routingGroupId: data.routingGroupId });
         } else {
-            const group: RoutingGroup = (await this._repository.findOneOrFail(ids[0], { relations: ['routingGroup'] })).routingGroup;
+            const group: RoutingGroup = (await this._repository.findOneOrFail({
+                where: { id: ids[0] },
+                relations: ['routingGroup']
+            })).routingGroup;
             if (data.routingGroupId !== undefined && group && (group.routingRules.length - ids.length) < 1) {
                 await this._groupService.remove({ id: group.id });
             }
@@ -321,17 +336,12 @@ export class RoutingRuleService extends Service {
             }, data);
         }
 
-        const firewallIds: number[] = (await this._repository.find({
-            where: {
-                id: In(ids),
-            },
-            join: {
-                alias: 'rule',
-                innerJoinAndSelect: {
-                    table: 'rule.routingTable',
-                }
-            }
-        })).map(rule => rule.routingTable.firewallId);
+        const firewallIds: number[] = (await this._repository.createQueryBuilder('rule')
+        .innerJoinAndSelect('rule.routingTable', 'table')
+        .where('rule.id IN (:...ids)', { ids })
+        .getMany())
+        .map(rule => rule.routingTable.firewallId);
+
 
         await this._firewallService.markAsUncompiled(firewallIds);
 
@@ -343,27 +353,22 @@ export class RoutingRuleService extends Service {
     }
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<RoutingRule[]> {
-        const destinationRule: RoutingRule = await this._repository.findOneOrFail(destRule, {
+        const destinationRule: RoutingRule = await this._repository.findOneOrFail({
+            where: {
+                id: destRule
+            },
             relations: ['routingGroup']
         });
 
-        const sourceRules: RoutingRule[] = await this._repository.findByIds(ids, {
-            relations: ['routingGroup']
-        });
+        const sourceRules: RoutingRule[] = await this._repository.findBy({id: In(ids)});
 
         const rules: RoutingRule[] = await this._repository.move(ids, destRule, offset);
 
-        const firewallIds: number[] = (await this._repository.find({
-            where: {
-                id: In(ids),
-            },
-            join: {
-                alias: 'rule',
-                innerJoinAndSelect: {
-                    table: 'rule.routingTable',
-                }
-            }
-        })).map(rule => rule.routingTable.firewallId);
+        const firewallIds: number[] = (await this._repository.createQueryBuilder('rule')
+        .innerJoinAndSelect('rule.routingTable', 'table')
+        .where('rule.id IN (:...ids)', { ids })
+        .getMany())
+        .map(rule => rule.routingTable.firewallId);
 
         await this._firewallService.markAsUncompiled(firewallIds);
 
@@ -375,10 +380,12 @@ export class RoutingRuleService extends Service {
     }
 
     async moveFrom(fromId: number, toId: number, data: IMoveFromRoutingRule): Promise<[RoutingRule, RoutingRule]> {
-        const fromRule: RoutingRule = await getRepository(RoutingRule).findOneOrFail(fromId, {
+        const fromRule: RoutingRule = await db.getSource().manager.getRepository(RoutingRule).findOneOrFail({
+            where: { id: fromId },
             relations: ['routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
         });
-        const toRule: RoutingRule = await getRepository(RoutingRule).findOneOrFail(toId, {
+        const toRule: RoutingRule = await db.getSource().manager.getRepository(RoutingRule).findOneOrFail({
+            where: { id: toId },
             relations: ['routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
         });
         
@@ -462,7 +469,7 @@ export class RoutingRuleService extends Service {
 
     async remove(path: IFindOneRoutingRulePath): Promise<RoutingRule> {
         const rule: RoutingRule = await this.findOneInPath(path);
-        const firewall: Firewall = await getRepository(Firewall)
+        const firewall: Firewall = await db.getSource().manager.getRepository(Firewall)
             .createQueryBuilder('firewall')
             .innerJoin('firewall.routingTables', 'table')
             .innerJoin('table.routingRules', 'rule', 'rule.id = :id', {id: rule.id}).getOne();
@@ -548,7 +555,7 @@ export class RoutingRuleService extends Service {
             return;
         }
         
-        const ipObjs: IPObj[] = await getRepository(IPObj).find({
+        const ipObjs: IPObj[] = await db.getSource().manager.getRepository(IPObj).find({
             where: {
                 id: In(data.ipObjIds.map(item => item.id)),
                 ipObjTypeId: In([
@@ -591,10 +598,11 @@ export class RoutingRuleService extends Service {
      * @returns 
      */
     protected async validateFromRestriction(ruleId: number, data: IUpdateRoutingRule): Promise<void> {
-        const rule = await this._repository.findOneOrFail(ruleId, {
+        const rule = await this._repository.findOneOrFail({
+            where: {id: ruleId},
             relations: ['routingRuleToMarks', 'routingRuleToIPObjs', 'routingRuleToIPObjGroups', 'routingRuleToOpenVPNs', 'routingRuleToOpenVPNPrefixes']
         });
-
+        
         const errors: ErrorBag = {};
         const marks: number = data.markIds ? data.markIds.length : rule.routingRuleToMarks.length;
         const ipObjs: number = data.ipObjIds ? data.ipObjIds.length: rule.routingRuleToIPObjs.length;
@@ -638,7 +646,7 @@ export class RoutingRuleService extends Service {
             return;
         }
         
-        const ipObjGroups: IPObjGroup[] = await getRepository(IPObjGroup).find({
+        const ipObjGroups: IPObjGroup[] = await db.getSource().manager.getRepository(IPObjGroup).find({
             where: {
                 id: In(data.ipObjGroupIds.map(item => item.id)),
             },
@@ -669,7 +677,7 @@ export class RoutingRuleService extends Service {
             return;
         }
         
-        const openvpns: OpenVPN[] = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+        const openvpns: OpenVPN[] = await db.getSource().manager.getRepository(OpenVPN).createQueryBuilder('openvpn')
             .innerJoin('openvpn.crt', 'crt')
             .innerJoin('openvpn.firewall', 'firewall')
             .whereInIds(data.openVPNIds.map(item => item.id))
@@ -697,7 +705,7 @@ export class RoutingRuleService extends Service {
             return;
         }
         
-        const openvpnprefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).createQueryBuilder('prefix')
+        const openvpnprefixes: OpenVPNPrefix[] = await db.getSource().manager.getRepository(OpenVPNPrefix).createQueryBuilder('prefix')
             .innerJoin('prefix.openVPN', 'openvpn')
             .innerJoin('openvpn.firewall', 'firewall')
             .whereInIds(data.openVPNPrefixIds.map(item => item.id))
@@ -724,7 +732,7 @@ export class RoutingRuleService extends Service {
             return;
         } 
 
-        const firewallApplyToId: Firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+        const firewallApplyToId: Firewall = await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
         .where("firewall.id = :id", { id: data.firewallApplyToId })
         .getOne()
 
@@ -746,7 +754,7 @@ export class RoutingRuleService extends Service {
             return;
         }
         
-        const marks: Mark[] = await getRepository(Mark).createQueryBuilder('mark')
+        const marks: Mark[] = await db.getSource().manager.getRepository(Mark).createQueryBuilder('mark')
             .innerJoin('mark.fwCloud', 'fwcloud')
             .innerJoin('fwcloud.firewalls', 'firewall')
             .whereInIds(data.markIds.map(item => item.id))

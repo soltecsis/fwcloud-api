@@ -30,11 +30,11 @@ import { IPObj } from '../models/ipobj/IPObj';
 import { PolicyRuleToIPObj } from "../models/policy/PolicyRuleToIPObj";
 import { IPObjGroup } from '../models/ipobj/IPObjGroup';
 import { StdChains, TcpFlags, NetfilterTablePolicyTypeMap, PositionMap, GroupablePositionMap, ModulesIgnoreMap, IptablesSaveStats } from './iptables-save.data';
-import { getRepository } from 'typeorm';
 import { PolicyGroup } from '../models/policy/PolicyGroup';
 import { PolicyRuleToOpenVPN } from '../models/policy/PolicyRuleToOpenVPN';
 import moment from "moment";
 import { PolicyCompilerTools } from "../compiler/policy/PolicyCompilerTools";
+import db from "../database/database-manager";
 const Joi = require('joi');
 const sharedSch = require('../middleware/joi_schemas/shared');
 
@@ -561,7 +561,7 @@ export class IptablesSaveToFWCloud extends Service {
           if (this.ruleGroupName && this.ruleGroupName===ruleMetadata['fwc_rgn'])
             policy_rData['idgroup'] = this.ruleGroupId;
           else { // Create new rules group.
-            const policyGroupRepository = getRepository(PolicyGroup);
+            const policyGroupRepository = db.getSource().manager.getRepository(PolicyGroup);
             let policyGroup = policyGroupRepository.create({
               name: ruleMetadata['fwc_rgn'],
               firewallId: this.req.body.firewall

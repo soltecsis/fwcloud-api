@@ -22,7 +22,7 @@
 
 import * as yargs from "yargs";
 import { DatabaseService } from "../../database/database.service";
-import { Connection } from "typeorm";
+import { DataSource } from "typeorm";
 import { Command } from "../command";
 
 
@@ -36,9 +36,9 @@ export class MigrationResetCommand extends Command {
 
     async handle(args: yargs.Arguments) {
         const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
-        const connection: Connection = await databaseService.getConnection({name: 'cli'}) 
+        const dataSource: DataSource = await databaseService.getDataSource({name: 'cli'}) 
         
-        await databaseService.resetMigrations(connection);
+        await databaseService.resetMigrations(dataSource);
         this.output.success(`Database wiped out.`);
     }
 

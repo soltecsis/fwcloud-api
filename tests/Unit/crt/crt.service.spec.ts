@@ -2,11 +2,12 @@ import { describeName, testSuite, expect } from './../../mocha/global-setup';
 import { FwCloud } from './../../../src/models/fwcloud/FwCloud';
 import { Application } from '../../../src/Application';
 import { beforeEach } from 'mocha';
-import { getRepository } from 'typeorm';
 import StringHelper from '../../../src/utils/string.helper';
 import { CrtService } from '../../../src/crt/crt.service';
 import { Crt } from '../../../src/models/vpn/pki/Crt';
 import { Ca } from '../../../src/models/vpn/pki/Ca';
+import { EntityManager } from 'typeorm';
+import db from '../../../src/database/database-manager';
 
 describe(describeName('Crt Service Unit Test'), () =>{
     let app: Application;
@@ -15,19 +16,21 @@ describe(describeName('Crt Service Unit Test'), () =>{
     let crt: Crt;
     let ca: Ca;
     let changeComment: string;
+    let manager: EntityManager
 
     beforeEach(async ()=>{
         app = testSuite.app;
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        manager = db.getSource().manager;
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: 'fwcloudTest'
         }));
-        ca = await getRepository(Ca).save(getRepository(Ca).create({
+        ca = await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
             fwCloudId: fwCloud.id,
             cn: 'caTest',
             days: 1000,
             comment: 'testcomment'
         }));
-        crt = await getRepository(Crt).save(getRepository(Crt).create({
+        crt = await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
             caId: ca.id,
             cn: 'crtTtest',
             days: 1000,
@@ -45,7 +48,7 @@ describe(describeName('Crt Service Unit Test'), () =>{
 
             await service.update(crt.id, {comment:changeComment});
 
-            crt = await getRepository(Crt).findOne(crt.id);
+            crt = await manager.getRepository(Crt).findOne({ where: { id: crt.id }});
 
             expect(await crt.comment).to.be.equal(changeComment);
         })

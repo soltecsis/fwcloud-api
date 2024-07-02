@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindManyOptions, FindOneOptions, getCustomRepository, getRepository, In, Not, SelectQueryBuilder } from "typeorm";
+import { FindManyOptions, FindOneOptions, In, Not, SelectQueryBuilder } from "typeorm";
 import { Application } from "../../../Application";
 import db from "../../../database/database-manager";
 import { ValidationException } from "../../../fonaments/exceptions/validation-exception";
@@ -41,6 +41,7 @@ import { RouteToOpenVPNPrefix } from "./route-to-openvpn-prefix.model";
 import { RouteToOpenVPN } from "./route-to-openvpn.model";
 import { Route } from "./route.model";
 import { RouteRepository } from "./route.repository";
+import { DatabaseService } from "../../../database/database.service";
 
 interface IFindManyRoutePath {
     firewallId?: number;
@@ -110,28 +111,30 @@ interface IMoveInterfaceRoute {
 export class RouteService extends Service {
     protected _repository: RouteRepository;
     protected _firewallService: FirewallService;
+    protected _databaseService: DatabaseService;
 
     constructor(app: Application) {
         super(app);
-        this._repository = getCustomRepository(RouteRepository);
-    }
-
-    public async build(): Promise<RouteService> {
-        this._firewallService = await this._app.getService(FirewallService.name);
+        }
+        
+        public async build(): Promise<RouteService> {
+            this._firewallService = await this._app.getService(FirewallService.name);
+            this._databaseService = await this._app.getService(DatabaseService.name);
+            this._repository = new RouteRepository(this._databaseService.dataSource.manager);
         
         return this;
     }
 
     findManyInPath(path: IFindManyRoutePath): Promise<Route[]> {
-        return this._repository.find(this.getFindInPathOptions(path));
+        return this.getFindInPathOptions(path).getMany();
     }
 
     findOneInPath(path: IFindOneRoutePath, options?: FindOneOptions<Route>): Promise<Route | undefined> {
-        return this._repository.findOne(this.getFindInPathOptions(path, options));
+        return this.getFindInPathOptions(path, options).getOne();
     }
 
     findOneInPathOrFail(path: IFindOneRoutePath): Promise<Route> {
-        return this._repository.findOneOrFail(this.getFindInPathOptions(path));
+        return this.getFindInPathOptions(path).getOneOrFail();
     }
 
     async create(data: ICreateRoute): Promise<Route> {
@@ -176,7 +179,12 @@ export class RouteService extends Service {
             style: data.style,
         }, {id}));
 
-        const firewall: Firewall = (await this._repository.findOne(route.id, {relations: ['routingTable', 'routingTable.firewall']})).routingTable.firewall;
+        const firewall: Firewall = (await this._repository.findOne({
+            relations: ['routingTable', 'routingTable.firewall'],
+            where: {
+                id: route.id
+            }
+        })).routingTable.firewall;
 
         if (data.ipObjIds) {
             await this.validateUpdateIPObjs(firewall, data);
@@ -239,9 +247,14 @@ export class RouteService extends Service {
     }
 
     protected async reorderTo(ruleId: number): Promise<void> {
-        const route: Route = await this._repository.findOneOrFail(ruleId, {relations: [
-            'routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes'
-        ]})
+        const route: Route = await this._repository.findOneOrFail({
+            where: {
+                id: ruleId
+            },
+            relations: [
+                'routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes'
+            ]
+        });
 
         const items: {order: number}[] = [].concat(
             route.routeToIPObjs,
@@ -275,7 +288,7 @@ export class RouteService extends Service {
 
         const persisted: Route[] = await this._repository.save(routes);
 
-        const firewalls: Firewall[] = await getRepository(Firewall).find({
+        const firewalls: Firewall[] = await db.getSource().manager.getRepository(Firewall).find({
             where: {
                 id: In(routes.map(route => route.routingTable.firewallId))
             }
@@ -291,17 +304,12 @@ export class RouteService extends Service {
             id: In(ids)
         }, data);
 
-        const firewallIds: number[] = (await this._repository.find({
-            where: {
-                id: In(ids),
-            },
-            join: {
-                alias: 'route',
-                innerJoinAndSelect: {
-                    table: 'route.routingTable',
-                }
-            }
-        })).map(route => route.routingTable.firewallId);
+        const firewallIds: number[] = (await this._repository.createQueryBuilder('route')
+        .innerJoinAndSelect('route.routingTable', 'table')
+        .where('route.id IN (:...ids)', { ids })
+        .getMany())
+        .map(route => route.routingTable.firewallId);
+
 
         await this._firewallService.markAsUncompiled(firewallIds);
 
@@ -314,17 +322,12 @@ export class RouteService extends Service {
 
     async move(ids: number[], destRule: number, offset: Offset): Promise<Route[]> {
         const routes: Route[] = await this._repository.move(ids, destRule, offset);
-        const firewallIds: number[] = (await this._repository.find({
-            where: {
-                id: In(ids),
-            },
-            join: {
-                alias: 'route',
-                innerJoinAndSelect: {
-                    table: 'route.routingTable',
-                }
-            }
-        })).map(route => route.routingTable.firewallId);
+        const firewallIds: number[] = (await this._repository.createQueryBuilder('route')
+            .innerJoinAndSelect('route.routingTable', 'table')
+            .where('route.id IN (:...ids)', { ids })
+            .getMany()
+        ).map(route => route.routingTable.firewallId);
+
         
         await this._firewallService.markAsUncompiled(firewallIds);
 
@@ -332,10 +335,16 @@ export class RouteService extends Service {
     }
 
     async moveTo(fromId: number, toId: number, data: IMoveToRoute): Promise<[Route, Route]> {
-        const fromRule: Route = await getRepository(Route).findOneOrFail(fromId, {
+        const fromRule: Route = await db.getSource().manager.getRepository(Route).findOneOrFail({
+            where: {
+                id: fromId
+            },
             relations: ['routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes']
         });
-        const toRule: Route = await getRepository(Route).findOneOrFail(toId, {
+        const toRule: Route = await db.getSource().manager.getRepository(Route).findOneOrFail({
+            where: {
+                id: toId
+            },
             relations: ['routeToIPObjs', 'routeToIPObjGroups', 'routeToOpenVPNs', 'routeToOpenVPNPrefixes']
         });
         
@@ -405,11 +414,13 @@ export class RouteService extends Service {
     }
 
     async moveToGateway(fromId: number, toId: number, data: IMoveToGatewayRoute): Promise<[Route, Route]> {
-        const fromRule: Route = await getRepository(Route).findOneOrFail(fromId, {
+        const fromRule: Route = await db.getSource().manager.getRepository(Route).findOneOrFail({
+            where: {
+                id: fromId
+            },
             relations: ['routeToIPObjs']
         });
-        const toRule: Route = await getRepository(Route).findOneOrFail(toId);
-        
+        const toRule: Route = await db.getSource().manager.getRepository(Route).findOneOrFail({ where: { id: toId }});
         if (data.ipObjId !== undefined) {
             const index: number = fromRule.routeToIPObjs.findIndex(item => item.ipObjId === data.ipObjId);
             if (index >= 0) {
@@ -422,8 +433,8 @@ export class RouteService extends Service {
     }
 
     async moveInterface(fromId: number, toId: number, data: IMoveInterfaceRoute): Promise<[Route, Route]> {
-        const fromRule: Route = await getRepository(Route).findOneOrFail(fromId);
-        const toRule: Route = await getRepository(Route).findOneOrFail(toId);
+        const fromRule: Route = await db.getSource().manager.getRepository(Route).findOneOrFail({ where: { id: fromId }});
+        const toRule: Route = await db.getSource().manager.getRepository(Route).findOneOrFail({ where: { id: toId }});
         
         if (fromRule.interfaceId === data.interfaceId) {
             toRule.interfaceId = fromRule.interfaceId;
@@ -435,7 +446,7 @@ export class RouteService extends Service {
 
     async remove(path: IFindOneRoutePath): Promise<Route> {
         const route: Route =  await this.findOneInPath(path);
-        const firewall: Firewall = await getRepository(Firewall)
+        const firewall: Firewall = await db.getSource().manager.getRepository(Firewall)
             .createQueryBuilder('firewall')
             .innerJoin('firewall.routingTables', 'table')
             .innerJoin('table.routes', 'route', 'route.id = :id', {id: route.id}).getOne();
@@ -484,7 +495,7 @@ export class RouteService extends Service {
             return;
         }
         
-        const ipObjs: IPObj[] = await getRepository(IPObj).find({
+        const ipObjs: IPObj[] = await db.getSource().manager.getRepository(IPObj).find({
             where: {
                 id: In(data.ipObjIds.map(item => item.id)),
                 ipObjTypeId: In([
@@ -532,7 +543,7 @@ export class RouteService extends Service {
             return;
         }
         
-        const ipObjGroups: IPObjGroup[] = await getRepository(IPObjGroup).find({
+        const ipObjGroups: IPObjGroup[] = await db.getSource().manager.getRepository(IPObjGroup).find({
             where: {
                 id: In(data.ipObjGroupIds.map(item => item.id))
             },
@@ -587,7 +598,7 @@ export class RouteService extends Service {
             return;
         }
         
-        const openvpns: OpenVPN[] = await getRepository(OpenVPN).createQueryBuilder('openvpn')
+        const openvpns: OpenVPN[] = await db.getSource().manager.getRepository(OpenVPN).createQueryBuilder('openvpn')
             .innerJoin('openvpn.crt', 'crt')
             .innerJoin('openvpn.firewall', 'firewall')
             .whereInIds(data.openVPNIds.map(item => item.id))
@@ -615,7 +626,7 @@ export class RouteService extends Service {
             return;
         }
         
-        const openvpnprefixes: OpenVPNPrefix[] = await getRepository(OpenVPNPrefix).createQueryBuilder('prefix')
+        const openvpnprefixes: OpenVPNPrefix[] = await db.getSource().manager.getRepository(OpenVPNPrefix).createQueryBuilder('prefix')
             .innerJoin('prefix.openVPN', 'openvpn')
             .innerJoin('openvpn.firewall', 'firewall')
             .whereInIds(data.openVPNPrefixIds.map(item => item.id))
@@ -642,7 +653,7 @@ export class RouteService extends Service {
             return;
         } 
 
-        const firewallApplyToId: Firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+        const firewallApplyToId: Firewall = await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
         .where("firewall.id = :id", { id: data.firewallApplyToId })
         .getOne()
 
@@ -662,7 +673,7 @@ export class RouteService extends Service {
             return;
         }
         
-        const intr: Interface = await getRepository(Interface).createQueryBuilder('interface')
+        const intr: Interface = await db.getSource().manager.getRepository(Interface).createQueryBuilder('interface')
             .where('interface.id = :id', {id: data.interfaceId})
             .andWhere('interface.firewallId = :firewallId', {firewallId: firewall.id})
             .getOne()
@@ -675,33 +686,40 @@ export class RouteService extends Service {
         throw new ValidationException('The given data was invalid', errors);
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneRoutePath>, options: FindOneOptions<Route> | FindManyOptions <Route> = {}): FindOneOptions<Route> | FindManyOptions<Route> {
-        return Object.assign({
-            join: {
-                alias: 'route',
-                innerJoin: {
-                    table: 'route.routingTable',
-                    firewall: 'table.firewall',
-                    fwcloud: 'firewall.fwCloud'
-                }
-            },
-            where: (qb: SelectQueryBuilder<Route>) => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewall', {firewall: path.firewallId})
-                }
+    protected getFindInPathOptions(path: Partial<IFindOneRoutePath>, options: FindOneOptions<Route> | FindManyOptions <Route> = {}): SelectQueryBuilder<Route> {
+        const qb: SelectQueryBuilder<Route> = this._repository.createQueryBuilder('route');
+        qb.innerJoin('route.routingTable', 'table')
+            .innerJoin('table.firewall', 'firewall')
+            .innerJoin('firewall.fwCloud', 'fwcloud');
 
-                if (path.fwCloudId) {
-                    qb.andWhere('firewall.fwCloudId = :fwcloud', {fwcloud: path.fwCloudId})
-                }
+        if (path.firewallId) {
+            qb.andWhere('firewall.id = :firewall', { firewall: path.firewallId });
+        }
 
-                if(path.routingTableId) {
-                    qb.andWhere('table.id = :table', {table: path.routingTableId})
-                }
+        if (path.fwCloudId) {
+            qb.andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: path.fwCloudId });
+        }
 
-                if (path.id) {
-                    qb.andWhere('route.id = :id', {id: path.id})
-                }
-            }
-        }, options)
+        if (path.routingTableId) {
+            qb.andWhere('table.id = :table', { table: path.routingTableId });
+        }
+
+        if (path.id) {
+            qb.andWhere('route.id = :id', { id: path.id });
+        }
+
+       // Aplica las opciones adicionales que se pasaron a la función
+       Object.entries(options).forEach(([key, value]) => {
+        switch (key) {
+            case 'where':
+                qb.andWhere(value);
+                break;
+            case 'relations':
+                qb.leftJoinAndSelect(`route.${value}`, `${value}`);
+                break;
+            default:
+        }
+    });
+        return qb
     }
 }

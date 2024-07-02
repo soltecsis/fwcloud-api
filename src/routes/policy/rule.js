@@ -29,7 +29,7 @@ import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface
 import { PolicyRuleToOpenVPNPrefix } from '../../models/policy/PolicyRuleToOpenVPNPrefix';
 import { PolicyPosition } from '../../models/policy/PolicyPosition';
 import { PolicyRuleToOpenVPN } from '../../models/policy/PolicyRuleToOpenVPN';
-import { In, getCustomRepository } from 'typeorm';
+import { In } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyRuleRepository } from '../../models/policy/policy-rule.repository';
 import { PolicyGroupRepository } from '../../repositories/PolicyGroupRepository'

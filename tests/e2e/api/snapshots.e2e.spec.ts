@@ -34,8 +34,9 @@ import * as path from "path";
 import Sinon from "sinon";
 import sinon from "sinon";
 import { ExporterResult } from "../../../src/fwcloud-exporter/database-exporter/exporter-result";
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import StringHelper from "../../../src/utils/string.helper";
+import db from "../../../src/database/database-manager";
 
 let app: Application;
 let loggedUser: User;
@@ -46,15 +47,19 @@ let adminUserSessionId: string;
 let fwCloud: FwCloud;
 let snapshotService: SnapshotService;
 
+let manager: EntityManager;
+
 describe(describeName('Snapshot E2E tests'), () => {
     let stubExportDatabase: Sinon.SinonStub;
     
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
+
         snapshotService = await app.getService<SnapshotService>(SnapshotService.name);
         
-        fwCloud = await getRepository(FwCloud).save(
-            getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(
+            manager.getRepository(FwCloud).create({
                 name: StringHelper.randomize(10)
             })
         );
@@ -105,16 +110,16 @@ describe(describeName('Snapshot E2E tests'), () => {
             });
 
             it('regular user should see the snapshot which cloud is assigned to the user', async () => {
-                let fwCloud2: FwCloud = getRepository(FwCloud).create({
+                let fwCloud2: FwCloud = manager.getRepository(FwCloud).create({
                     name: 'fwcloud_test'
                 });
-                fwCloud2 = await getRepository(FwCloud).save(fwCloud2);
+                fwCloud2 = await manager.getRepository(FwCloud).save(fwCloud2);
 
                 const s1: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test', null)
                 const s2: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud2, 'test2', null)
 
                 loggedUser.fwClouds = [fwCloud2];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .get(_URL().getURL('snapshots.index', { fwcloud: fwCloud2.id }))
@@ -166,7 +171,7 @@ describe(describeName('Snapshot E2E tests'), () => {
 
             it('regular user should see a snapshot if regular user belongs to the fwcloud', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 const url = _URL().getURL('snapshots.show', { fwcloud: fwCloud.id, snapshot: s1.id });
 
@@ -223,7 +228,7 @@ describe(describeName('Snapshot E2E tests'), () => {
 
             it('regular user should create a new snapshot if the user belongs to the fwcloud', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .post(_URL().getURL('snapshots.store', { fwcloud: fwCloud.id }))
@@ -295,7 +300,7 @@ describe(describeName('Snapshot E2E tests'), () => {
 
             it('regular user should update an snapshot if the user belongs to the fwcloud', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .put(_URL().getURL('snapshots.update', { fwcloud: fwCloud.id, snapshot: s1.id }))
@@ -353,8 +358,7 @@ describe(describeName('Snapshot E2E tests'), () => {
 
             it('regular user should restore an snapshot if the user belongs to the fwcloud', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
-
+                await manager.getRepository(User).save(loggedUser);
                 await request(app.express)
                     .post(_URL().getURL('snapshots.restore', { fwcloud: fwCloud.id, snapshot: s1.id }))
                     .set('Cookie', attachSession(loggedUserSessionId))
@@ -424,7 +428,7 @@ describe(describeName('Snapshot E2E tests'), () => {
 
             it('regular user should destroy an snapshot if the user belongs to the fwcloud', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 await request(app.express)
                     .delete(_URL().getURL('snapshots.destroy', { fwcloud: fwCloud.id, snapshot: s1.id }))

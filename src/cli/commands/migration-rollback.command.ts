@@ -21,9 +21,8 @@
 */
 
 import * as yargs from "yargs";
-import { Application } from "../Application";
 import { DatabaseService } from "../../database/database.service";
-import { Connection } from "typeorm";
+import { DataSource } from "typeorm";
 import { Command, Option } from "../command";
 
 /**
@@ -36,9 +35,9 @@ export class MigrationRollbackCommand extends Command {
 
     async handle(args: yargs.Arguments) {
         const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
-        const connection: Connection = await databaseService.getConnection({name: 'cli'});
+        const dataSource: DataSource = await databaseService.getDataSource({name: 'cli'});
 
-        await databaseService.rollbackMigrations(args.steps as number, connection);
+        await databaseService.rollbackMigrations(args.steps as number, dataSource);
 
         this.output.success(`Rollback ${args.steps as number} migration(s).`)
     }

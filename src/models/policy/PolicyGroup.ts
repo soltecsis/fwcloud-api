@@ -21,7 +21,7 @@
 */
 
 
-import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, getRepository, ManyToOne, JoinColumn, OneToMany, BeforeRemove, getCustomRepository } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn, ManyToOne, JoinColumn, OneToMany, BeforeRemove } from 'typeorm';
 import db from '../../database/database-manager';
 
 import Model from '../Model';

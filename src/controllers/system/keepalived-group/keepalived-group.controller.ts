@@ -14,7 +14,6 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { getRepository } from "typeorm";
 import { Controller } from "../../../fonaments/http/controller";
 import { Firewall } from "../../../models/firewall/Firewall";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
@@ -27,6 +26,7 @@ import { ResponseBuilder } from "../../../fonaments/http/response-builder";
 import { KeepalivedGroupControllerCreateDto } from "./dto/create.dto";
 import { KeepalivedGroupUpdateDto } from "./dto/update.dto";
 import { KeepalivedRuleService } from "../../../models/system/keepalived/keepalived_r/keepalived_r.service";
+import db from "../../../database/database-manager";
 
 export class KeepalivedGroupController extends Controller {
   protected _keepalivedGroupService: KeepalivedGroupService;
@@ -50,8 +50,8 @@ export class KeepalivedGroupController extends Controller {
       this._keepalivedGroup = await this._keepalivedGroupService.findOneInPath({ id: parseInt(request.params.keepalivedgroup) });
     }
 
-    this._firewall = await getRepository(Firewall).findOneOrFail(request.params.firewall);
-    this._fwCloud = await getRepository(FwCloud).findOneOrFail(request.params.fwcloud);
+    this._firewall = await await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: parseInt(request.params.firewall) }});
+    this._fwCloud = await await db.getSource().manager.getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
   }
 
   @Validate()

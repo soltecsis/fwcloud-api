@@ -14,8 +14,6 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-
-import { getRepository } from "typeorm";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
 import { HAProxyRule } from "../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.model";
@@ -27,28 +25,32 @@ import { expect } from "chai";
 import sinon from "sinon";
 import { HAProxyGroup } from "../../../../../src/models/system/haproxy/haproxy_g/haproxy_g.model";
 import { Offset } from "../../../../../src/offset";
+import { EntityManager } from "typeorm";
+import db from "../../../../../src/database/database-manager";
 
 describe(HAProxyRuleService.name, () => {
     let service: HAProxyRuleService;
     let fwCloud: FwCloud;
     let firewall: Firewall;
     let haproxyRule: HAProxyRule;
+    let manager: EntityManager;
 
     beforeEach(async () => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         service = await testSuite.app.getService<HAProxyRuleService>(HAProxyRuleService.name);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
 
-        haproxyRule = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+        haproxyRule = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
             rule_order: 1,
             rule_type: 1,
             firewall: firewall,
@@ -80,12 +82,14 @@ describe(HAProxyRuleService.name, () => {
             sinon.stub(service['_repository'], 'getHAProxyRules').rejects(new Error('Get rules error'));
 
             await expect(service.getHAProxyRulesData('compiler', fwCloud.id, firewall.id)).to.be.rejectedWith('Get rules error');
+
+            sinon.restore();
         });
     });
 
     describe('store', () => {
         beforeEach(async () => {
-            await getRepository(IPObj).save(getRepository(IPObj).create({
+            await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 address: `192.168.1.1`,
                 destination_port_start: 80,
                 destination_port_end: 80,
@@ -104,7 +108,7 @@ describe(HAProxyRuleService.name, () => {
                 frontendIpId: 1,
                 frontendPortId: 1,
             };
-            const expected = await getRepository(HAProxyRule).create(data);
+            const expected = await manager.getRepository(HAProxyRule).create(data);
             service['_repository'].getLastHAProxyRuleInFirewall = async () => null;
             const getLastHAProxyRuleInFirewallStub = sinon.stub(service['_repository'], 'getLastHAProxyRuleInFirewall').returns(null);
             const saveStub = sinon.stub(service['_repository'], 'save').resolves(expected);
@@ -132,7 +136,7 @@ describe(HAProxyRuleService.name, () => {
                 group: 999
             };
 
-            const findOneOrFailsStub = sinon.stub(getRepository(HAProxyGroup), 'findOneOrFail').throws();
+            const findOneOrFailsStub = sinon.stub(manager.getRepository(HAProxyGroup), 'findOneOrFail').throws();
 
             await expect(service.store(data)).to.be.rejectedWith(Error);
 
@@ -167,7 +171,7 @@ describe(HAProxyRuleService.name, () => {
                 frontendIpId: 1,
                 frontendPortId: 1,
             };
-            const expected = await getRepository(HAProxyRule).create(getRepository(HAProxyRule).create({
+            const expected = await manager.getRepository(HAProxyRule).create(manager.getRepository(HAProxyRule).create({
                 rule_order: 5,
                 rule_type: 1,
                 firewall: firewall,
@@ -192,7 +196,7 @@ describe(HAProxyRuleService.name, () => {
                 to: haproxyRule.id,
                 offset: 'Above'
             };
-            const expected = await getRepository(HAProxyRule).create(data);
+            const expected = await manager.getRepository(HAProxyRule).create(data);
             const getLastHAProxyRuleInFirewallStub = sinon.stub(service['_repository'], 'getLastHAProxyRuleInFirewall').returns(null);
             const saveStub = sinon.stub(service['_repository'], 'save').resolves(expected);
             const moveStub = sinon.stub(service, 'move').resolves([expected]);
@@ -220,14 +224,14 @@ describe(HAProxyRuleService.name, () => {
                 frontendPortId: 1,
             } as Partial<ICreateHAProxyRule>;
 
-            const frontEndIP = await getRepository(IPObj).save(getRepository(IPObj).create({
+            const frontEndIP = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 name: 'test',
                 address: '0.0.0.0',
                 ipObjTypeId: 0,
                 ip_version: 4,
             }));
 
-            const virtualIP = await getRepository(IPObj).save(getRepository(IPObj).create({
+            const virtualIP = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 name: 'test',
                 address: '0.0.0.0',
                 ipObjTypeId: 0,
@@ -246,7 +250,7 @@ describe(HAProxyRuleService.name, () => {
         let moveStub: sinon.SinonStub;
 
         beforeEach(async () => {
-            haproxyRule.group = await getRepository(HAProxyGroup).save(getRepository(HAProxyGroup).create({
+            haproxyRule.group = await manager.getRepository(HAProxyGroup).save(manager.getRepository(HAProxyGroup).create({
                 name: 'test',
                 firewall: firewall,
             }));
@@ -354,7 +358,7 @@ describe(HAProxyRuleService.name, () => {
         let ipobj: IPObj;
 
         beforeEach(async () => {
-            ipobj = await getRepository(IPObj).save(getRepository(IPObj).create({
+            ipobj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 name: 'test',
                 address: '0.0.0.0',
                 ipObjTypeId: 0
@@ -396,9 +400,9 @@ describe(HAProxyRuleService.name, () => {
 
     describe('update', () => {
         it('should successfully update a HAProxyRule', async () => {
-            const haproxyRule = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+            const haproxyRule = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
                 id: 1,
-                group: await getRepository(HAProxyGroup).save(getRepository(HAProxyGroup).create({
+                group: await manager.getRepository(HAProxyGroup).save(manager.getRepository(HAProxyGroup).create({
                     name: 'group',
                     firewall: firewall,
                 })),
@@ -424,9 +428,9 @@ describe(HAProxyRuleService.name, () => {
         });
 
         it('should update related entities correctly', async () => {
-            const haproxyRule = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+            const haproxyRule = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
                 id: 1,
-                group: await getRepository(HAProxyGroup).save(getRepository(HAProxyGroup).create({
+                group: await manager.getRepository(HAProxyGroup).save(manager.getRepository(HAProxyGroup).create({
                     name: 'group',
                     firewall: firewall,
                 })),
@@ -434,7 +438,7 @@ describe(HAProxyRuleService.name, () => {
             }));
 
             const updateStub = sinon.stub(service, 'update').resolves(haproxyRule);
-            const group2 = (await getRepository(HAProxyGroup).save(getRepository(HAProxyGroup).create({
+            const group2 = (await manager.getRepository(HAProxyGroup).save(manager.getRepository(HAProxyGroup).create({
                 name: 'group2',
                 firewall: firewall,
             })));
@@ -451,7 +455,7 @@ describe(HAProxyRuleService.name, () => {
             const updateStub = sinon.stub(service, 'update').rejects(new Error('Related entities not found'));
 
             await expect(service.update(1, {
-                group: (await getRepository(HAProxyGroup).save(getRepository(HAProxyGroup).create({
+                group: (await manager.getRepository(HAProxyGroup).save(manager.getRepository(HAProxyGroup).create({
                     name: 'group2',
                     firewall: firewall,
                 }))).id
@@ -461,7 +465,7 @@ describe(HAProxyRuleService.name, () => {
         });
 
         it('should update ipObjIds correctly', async () => {
-            const haproxyRule = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+            const haproxyRule = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
                 id: 1,
                 rule_order: 1,
             }));
@@ -477,14 +481,14 @@ describe(HAProxyRuleService.name, () => {
         });
 
         it('should handle exceptions in validateUpdateIpObjIds correctly', async () => {
-            const haproxyRule = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+            const haproxyRule = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
                 id: 1,
                 rule_order: 1,
             }));
             const ipObjIds: { id: number, order: number }[] = [];
 
             for (let i = 0; i < 10; i++) {
-                const ipObj = await getRepository(IPObj).save({
+                const ipObj = await manager.getRepository(IPObj).save({
                     name: `test_${i}`,
                     address: '0.0.0.0',
                     ipObjTypeId: 2,
@@ -503,9 +507,9 @@ describe(HAProxyRuleService.name, () => {
 
     describe('remove', () => {
         it('should remove the rule successfully', async () => {
-            const haproxyRule = await getRepository(HAProxyRule).save(getRepository(HAProxyRule).create({
+            const haproxyRule = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
                 id: 1,
-                group: await getRepository(HAProxyGroup).save(getRepository(HAProxyGroup).create({
+                group: await manager.getRepository(HAProxyGroup).save(manager.getRepository(HAProxyGroup).create({
                     name: 'group',
                     firewall: firewall,
                 })),

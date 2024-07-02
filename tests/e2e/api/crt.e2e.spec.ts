@@ -1,4 +1,4 @@
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { Application } from "../../../src/Application";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { User } from "../../../src/models/user/User";
@@ -10,6 +10,7 @@ import { _URL } from "../../../src/fonaments/http/router/router.service";
 import { Ca } from "../../../src/models/vpn/pki/Ca";
 import { Crt } from "../../../src/models/vpn/pki/Crt";
 import { CrtService } from "../../../src/crt/crt.service";
+import db from "../../../src/database/database-manager";
 
 
 describe(describeName('Crt E2E Test'), () => {
@@ -25,9 +26,11 @@ describe(describeName('Crt E2E Test'), () => {
     let ca: Ca;
     let crt: Crt;
     let service : CrtService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
 
         loggedUser = await createUser({ role: 0 });
         loggedUserSessionId = generateSession(loggedUser);
@@ -35,14 +38,14 @@ describe(describeName('Crt E2E Test'), () => {
         adminUser = await createUser({ role: 1 });
         adminUserSessionId = generateSession(adminUser);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({name: StringHelper.randomize(10)}));
-        ca = await getRepository(Ca).save(getRepository(Ca).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({name: StringHelper.randomize(10)}));
+        ca = await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
             fwCloudId: fwCloud.id,
             cn: StringHelper.randomize(10),
             days: 1000,
             comment: 'testComment'
         }))
-        crt = await getRepository(Crt).save(getRepository(Crt).create({
+        crt = await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
             caId: ca.id,
             cn: 'crtTtest',
             days: 1000,
@@ -75,7 +78,7 @@ describe(describeName('Crt E2E Test'), () => {
         })
         it('regular user should update a comment of crt if it does belong to the fwcloud', async()=>{
             loggedUser.fwClouds = [fwCloud]
-            await getRepository(User).save(loggedUser)
+            await manager.getRepository(User).save(loggedUser)
 
             return await request(app.express)
             .put(_URL().getURL('fwclouds.cas.crts.update', {
@@ -110,7 +113,7 @@ describe(describeName('Crt E2E Test'), () => {
             })
             .expect(200)
             .then(async (response)=>{
-                const crtWithNewComment: Crt = await Crt.findOne(crt.id);
+                const crtWithNewComment: Crt = await Crt.findOne({ where: { id: crt.id }});
                 expect(crtWithNewComment.comment).to.be.equal(comment)
             })
 
@@ -129,7 +132,7 @@ describe(describeName('Crt E2E Test'), () => {
             })
             .expect(200)
             .then(async (response)=>{
-                const crtWithNewComment = await Crt.findOne(crt.id);                
+                const crtWithNewComment = await Crt.findOne({ where: { id: crt.id }});                
                 expect(response.body.data.comment).to.be.equal(crtWithNewComment.comment)
             })
         })

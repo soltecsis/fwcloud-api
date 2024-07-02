@@ -69,7 +69,7 @@ export class FwCloudController extends Controller {
 
         (await FwCloudPolicy.update(request.session.user)).authorize();
         
-        let fwCloud: FwCloud = await FwCloud.findOneOrFail(request.params.fwcloud);
+        let fwCloud: FwCloud = await FwCloud.findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
 
         fwCloud = await this._fwCloudService.update(fwCloud, {
             name: request.body.name,
@@ -83,7 +83,7 @@ export class FwCloudController extends Controller {
     @Validate()
     public async colors(request: Request): Promise<ResponseBuilder> {
        
-        let fwCloud: FwCloud = await FwCloud.findOneOrFail(request.params.fwcloud);
+        let fwCloud: FwCloud = await FwCloud.findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
 
         (await FwCloudPolicy.colors(request.session.user, fwCloud)).authorize();
 

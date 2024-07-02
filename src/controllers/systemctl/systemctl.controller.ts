@@ -21,7 +21,6 @@
 */
 
 import {Validate} from "../../decorators/validate.decorator";
-import {getRepository} from "typeorm";
 import {Controller} from "../../fonaments/http/controller";
 import {ResponseBuilder} from "../../fonaments/http/response-builder";
 import {Firewall, FirewallInstallCommunication} from "../../models/firewall/Firewall";
@@ -32,20 +31,21 @@ import {SSHCommunication} from "../../communications/ssh.communication";
 import {IPObj} from "../../models/ipobj/IPObj";
 import {PgpHelper} from "../../utils/pgp";
 import {Communication} from "../../communications/communication";
+import db from "../../database/database-manager";
 
 export class SystemCtlController extends Controller {
 
   @Validate(SystemCtlDto)
   async systemctlCommunication(req: Request) {
     (await SystemctlPolicy.communicate(req.session.user, req.body.fwCloud, req.body.firewall)).authorize();
-    const firewall = await getRepository(Firewall).createQueryBuilder('firewall')
+    const firewall = await await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
         .where(`firewall.id = :id`, {id: req.body.firewall}).andWhere('firewall.fwcloud = :fwcloud', {fwcloud: req.body.fwcloud})
         .getOne();
     let communication: Communication<unknown>;
     if (firewall.install_communication === FirewallInstallCommunication.SSH) {
       const pgp: PgpHelper = new PgpHelper(req.session.pgp);
       communication = new SSHCommunication({
-        host: (await getRepository(IPObj).findOneOrFail(firewall.install_ipobj)).address,
+        host: (await await db.getSource().manager.getRepository(IPObj).findOneOrFail({ where: { id: firewall.install_ipobj }})).address,
         port: firewall.install_port,
         username: Object.prototype.hasOwnProperty.call(req.body, "sshuser") ? await pgp.decrypt(req.body.sshuser) : await pgp.decrypt(firewall.install_user),
         password: Object.prototype.hasOwnProperty.call(req.body, "sshpass") ? await pgp.decrypt(req.body.sshpass) : await pgp.decrypt(firewall.install_pass),

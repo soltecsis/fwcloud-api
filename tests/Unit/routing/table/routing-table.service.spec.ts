@@ -1,4 +1,4 @@
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { Application } from "../../../../src/Application";
 import { ValidationException } from "../../../../src/fonaments/exceptions/validation-exception";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
@@ -8,6 +8,7 @@ import { RoutingTableService } from "../../../../src/models/routing/routing-tabl
 import { Tree } from "../../../../src/models/tree/Tree";
 import { describeName, expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
+import db from "../../../../src/database/database-manager";
 
 describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
     let app: Application;
@@ -16,9 +17,11 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
     let fwcloudProduct: FwCloudProduct;
     let firewall: Firewall;
     let fwcloud: FwCloud;
+    let manager: EntityManager;
     
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         fwcloudProduct = await new FwCloudFactory().make();
@@ -54,7 +57,7 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
         });
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -100,7 +103,7 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
         });
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -131,7 +134,7 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
         });
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();

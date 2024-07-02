@@ -20,7 +20,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { expect } from "chai";
-import { getRepository } from "typeorm";
 import { DHCPGroup } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model";
 import { DHCPRuleService, ICreateDHCPRule } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service";
 import sinon from "sinon";
@@ -34,30 +33,34 @@ import { Offset } from "../../../../../src/offset";
 import { beforeEach } from "mocha";
 import { IPObj } from "../../../../../src/models/ipobj/IPObj";
 import { DHCPRuleCreateDto } from "../../../../../src/controllers/system/dhcp/dto/create.dto";
+import { EntityManager } from "typeorm";
+import db from "../../../../../src/database/database-manager";
 
 describe(DHCPRuleService.name, () => {
     let service: DHCPRuleService;
     let fwCloud: FwCloud;
     let firewall: Firewall;
     let dhcpRule: DHCPRule;
+    let manager: EntityManager;
 
     beforeEach(async () => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         service = await testSuite.app.getService<DHCPRuleService>(DHCPRuleService.name);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
 
-        dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+        dhcpRule = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
             id: 1,
-            group: await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+            group: await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
                 name: 'group',
                 firewall: firewall,
             })),
@@ -124,12 +127,12 @@ describe(DHCPRuleService.name, () => {
         let group: DHCPGroup;
         beforeEach(async () => {
 
-            group = await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+            group = await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
                 name: 'group',
                 firewall: firewall,
             }));
 
-            await getRepository(Interface).save(getRepository(Interface).create({
+            await manager.getRepository(Interface).save(manager.getRepository(Interface).create({
                 name: 'eth1',
                 type: '11',
                 interface_type: '11',
@@ -151,7 +154,7 @@ describe(DHCPRuleService.name, () => {
                 interfaceId: 1
             };
 
-            const expectedDHCPRule: DHCPRule = getRepository(DHCPRule).create({
+            const expectedDHCPRule: DHCPRule = manager.getRepository(DHCPRule).create({
                 group: group,
                 rule_order: 1,
                 interface: null,
@@ -185,7 +188,7 @@ describe(DHCPRuleService.name, () => {
                 interfaceId: 1
             };
 
-            const findOneOrFailStub = sinon.stub(getRepository(DHCPGroup), 'findOneOrFail').throws();
+            const findOneOrFailStub = sinon.stub(manager.getRepository(DHCPGroup), 'findOneOrFail').throws();
 
             await expect(service.store(data)).to.be.rejectedWith(Error);
 
@@ -229,7 +232,7 @@ describe(DHCPRuleService.name, () => {
                 interfaceId: 1
             };
 
-            const existingDHCPRule: DHCPRule = getRepository(DHCPRule).create(getRepository(DHCPRule).create({
+            const existingDHCPRule: DHCPRule = manager.getRepository(DHCPRule).create(manager.getRepository(DHCPRule).create({
                 group: group,
                 rule_order: 1,
                 interface: null,
@@ -259,7 +262,7 @@ describe(DHCPRuleService.name, () => {
                 offset: 'above'
             };
 
-            const expectedDHCPRule: DHCPRule = getRepository(DHCPRule).create({
+            const expectedDHCPRule: DHCPRule = manager.getRepository(DHCPRule).create({
                 group: {} as DHCPGroup,
                 rule_order: 1,
                 interface: {} as Interface,
@@ -302,19 +305,19 @@ describe(DHCPRuleService.name, () => {
                 firewallId: firewall.id
             };
 
-            const network: IPObj = await getRepository(IPObj).save(getRepository(IPObj).create({
+            const network: IPObj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 name: 'test',
                 address: '0.0.0.0',
                 ipObjTypeId: 0,
                 ip_version: 4,
             }));
-            const router: IPObj = await getRepository(IPObj).save(getRepository(IPObj).create({
+            const router: IPObj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 name: 'test',
                 address: '0.0.0.0',
                 ipObjTypeId: 1,
                 ip_version: 4,
             }));
-            const range: IPObj = await getRepository(IPObj).save(getRepository(IPObj).create({
+            const range: IPObj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 name: 'test',
                 address: '0.0.0.0',
                 ipObjTypeId: 2,
@@ -335,7 +338,7 @@ describe(DHCPRuleService.name, () => {
         let moveStub: sinon.SinonStub;
 
         beforeEach(async () => {
-            dhcpRule.group = await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+            dhcpRule.group = await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
                 name: 'group',
                 firewall: firewall,
             }));
@@ -444,7 +447,7 @@ describe(DHCPRuleService.name, () => {
         let ipobj: IPObj;
 
         beforeEach(async () => {
-            ipobj = await getRepository(IPObj).save(getRepository(IPObj).create({
+            ipobj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 name: 'test',
                 address: '0.0.0.0',
                 ipObjTypeId: 0
@@ -488,9 +491,9 @@ describe(DHCPRuleService.name, () => {
 
     describe('update', () => {
         it('should successfully update a DHCPRule', async () => {
-            const dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            const dhcpRule = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
                 id: 1,
-                group: await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+                group: await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
                     name: 'group',
                     firewall: firewall,
                 })),
@@ -517,9 +520,9 @@ describe(DHCPRuleService.name, () => {
         });
 
         it('should update related entities correctly', async () => {
-            const dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            const dhcpRule = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
                 id: 1,
-                group: await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+                group: await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
                     name: 'group',
                     firewall: firewall,
                 })),
@@ -528,7 +531,7 @@ describe(DHCPRuleService.name, () => {
             }));
 
             const updateStub = sinon.stub(service, 'update').resolves(dhcpRule);
-            const group2 = (await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+            const group2 = (await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
                 name: 'group2',
                 firewall: firewall,
             })));
@@ -545,7 +548,7 @@ describe(DHCPRuleService.name, () => {
             const updateStub = sinon.stub(service, 'update').rejects(new Error('Related entities not found'));
 
             await expect(service.update(1, {
-                group: (await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+                group: (await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
                     name: 'group2',
                     firewall: firewall,
                 }))).id
@@ -555,7 +558,7 @@ describe(DHCPRuleService.name, () => {
         });
 
         it('should update ipObjIds correctly', async () => {
-            const dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            const dhcpRule = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
                 id: 1,
                 rule_order: 1,
                 interface: null,
@@ -572,7 +575,7 @@ describe(DHCPRuleService.name, () => {
         });
 
         it('should handle exceptions in validateUpdateIpObjIds correctly', async () => {
-            const dhcpRule: DHCPRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            const dhcpRule: DHCPRule = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
                 id: 1,
                 rule_order: 1,
                 interface: null,
@@ -580,7 +583,7 @@ describe(DHCPRuleService.name, () => {
             const ipObjIds: { id: number, order: number }[] = [];
 
             for (let i = 0; i < 10; i++) {
-                const ipObj = await getRepository(IPObj).save({
+                const ipObj = await manager.getRepository(IPObj).save({
                     name: `test_${i}`,
                     address: '0.0.0.0',
                     ipObjTypeId: 2,
@@ -597,30 +600,30 @@ describe(DHCPRuleService.name, () => {
         });
 
         it('should handle IP version mismatch correctly', async () => {
-            const network: IPObj = await getRepository(IPObj).save(getRepository(IPObj).create({
+            const network: IPObj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 name: 'test',
                 address: '0.0.0.0',
                 ipObjTypeId: 0,
                 ip_version: 4,
             }));
-            const dhcpRule: DHCPRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            const dhcpRule: DHCPRule = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
                 id: 1,
                 rule_order: 1,
                 interface: null,
                 rule_type: 1,
-                network: await getRepository(IPObj).save(getRepository(IPObj).create({
+                network: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
                     ip_version: 4,
                 })),
-                range: await getRepository(IPObj).save(getRepository(IPObj).create({
+                range: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
                     ip_version: 4,
                 })),
-                router: await getRepository(IPObj).save(getRepository(IPObj).create({
+                router: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
@@ -634,9 +637,9 @@ describe(DHCPRuleService.name, () => {
 
     describe('remove', () => {
         it('should remove the DHCP rule successfully', async () => {
-            const dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            const dhcpRule = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
                 id: 1,
-                group: await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+                group: await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
                     name: 'group',
                     firewall: firewall,
                 })),

@@ -1,6 +1,7 @@
 import { registerDecorator, ValidationArguments, ValidationOptions, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
-import { getRepository, In } from "typeorm";
+import { In } from "typeorm";
 import { IPObjGroup } from "../../../models/ipobj/IPObjGroup";
+import db from "../../../database/database-manager";
 
 export function IpObjGroupBelongsToTypes(typeIds: number[], validationOptions?: ValidationOptions) {
   return function (object: Object, propertyName: string) {
@@ -16,7 +17,7 @@ export function IpObjGroupBelongsToTypes(typeIds: number[], validationOptions?: 
 
           return new Promise<boolean>(async (resolve, reject) => {
             const validTypes: number[] = args.constraints[0];
-            const ipObjs: IPObjGroup[] = await getRepository(IPObjGroup).find(
+            const ipObjs: IPObjGroup[] = await db.getSource().manager.getRepository(IPObjGroup).find(
               {
                 where: { id: In(value as number[])}
               }

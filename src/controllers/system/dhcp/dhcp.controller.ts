@@ -28,7 +28,7 @@ import { ResponseBuilder } from '../../../fonaments/http/response-builder';
 import { DHCPGroup } from '../../../models/system/dhcp/dhcp_g/dhcp_g.model';
 import { Firewall } from '../../../models/firewall/Firewall';
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { getRepository, SelectQueryBuilder } from 'typeorm';
+import { SelectQueryBuilder } from 'typeorm';
 import { DHCPRuleService, DHCPRulesData, ICreateDHCPRule, IUpdateDHCPRule } from '../../../models/system/dhcp/dhcp_r/dhcp_r.service';
 import { DHCPRuleCreateDto } from './dto/create.dto';
 import { Offset } from '../../../offset';
@@ -43,6 +43,7 @@ import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
 import { Communication } from "../../../communications/communication";
 import { DHCPRuleMoveFromDto } from './dto/move-from.dto';
+import db from '../../../database/database-manager';
 
 export class DhcpController extends Controller {
   protected _dhcpRuleService: DHCPRuleService;
@@ -60,13 +61,13 @@ export class DhcpController extends Controller {
     this._dhcpRuleService = await this._app.getService<DHCPRuleService>(DHCPRuleService.name);
 
     if (req.params.dhcp) {
-      this._dhcprule = await getRepository(DHCPRule).findOneOrFail(req.params.dhcp);
+      this._dhcprule = await db.getSource().manager.getRepository(DHCPRule).findOneOrFail({ where: { id: parseInt(req.params.dhcp) } });
     }
     if (req.params.dhcpgroup) {
-      this._dhcpgroup = await getRepository(DHCPGroup).findOneOrFail(this._dhcprule.group.id);
+      this._dhcpgroup = await db.getSource().manager.getRepository(DHCPGroup).findOneOrFail({ where: { id: this._dhcprule.group.id } });
     }
-    this._firewall = await getRepository(Firewall).findOneOrFail(req.params.firewall);
-    this._fwCloud = await getRepository(FwCloud).findOneOrFail(req.params.fwcloud);
+    this._firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: parseInt(req.params.firewall) } });
+    this._fwCloud = await db.getSource().manager.getRepository(FwCloud).findOneOrFail({ where: { id: parseInt(req.params.fwcloud) } });
   }
 
 
@@ -137,7 +138,7 @@ export class DhcpController extends Controller {
   public async copy(req: Request): Promise<ResponseBuilder> {
     const ids: number[] = req.inputs.get('rules');
     for (const id of ids) {
-      const rule: DHCPRule = await getRepository(DHCPRule).findOneOrFail(id);
+      const rule: DHCPRule = await db.getSource().manager.getRepository(DHCPRule).findOneOrFail({ where: { id: id } });
       (await DhcpPolicy.copy(rule, req.session.user)).authorize();
     }
 
@@ -205,20 +206,14 @@ export class DhcpController extends Controller {
   public async move(req: Request): Promise<ResponseBuilder> {
     (await DhcpPolicy.move(this._firewall, req.session.user)).authorize();
 
-    const rules: DHCPRule[] = await getRepository(DHCPRule).find({
-      join: {
-        alias: 'rule',
-        innerJoin: {
-          firewall: 'rule.firewall',
-          fwcloud: 'firewall.fwCloud'
-        }
-      },
-      where: (qb: SelectQueryBuilder<DHCPRule>): void => {
-        qb.whereInIds(req.inputs.get('rules'))
-          .andWhere('firewall.id = :firewall', { firewall: this._firewall.id })
-          .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: this._fwCloud.id })
-      }
-    });
+      const rules: DHCPRule[] = await db.getSource().manager.getRepository(DHCPRule)
+      .createQueryBuilder('rule')
+      .innerJoin('rule.firewall', 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwCloud')
+      .where('rule.id IN (:...ids)', { ids: req.inputs.get('rules') })
+      .andWhere('firewall.id = :firewallId', { firewallId: this._firewall.id })
+      .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: this._fwCloud.id })
+      .getMany();
 
     const result: DHCPRule[] = await this._dhcpRuleService.move(rules.map(item => item.id), req.inputs.get('to'), req.inputs.get<Offset>('offset'));
 
@@ -262,9 +257,9 @@ export class DhcpController extends Controller {
     const channel: Channel = await Channel.fromRequest(req);
     let firewallId: number;
 
-    let firewall: Firewall = await getRepository(Firewall).findOneOrFail(this._firewall.id);
+    let firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: this._firewall.id } });
     if (firewall.clusterId) {
-      firewallId = (await getRepository(Firewall).createQueryBuilder('firewall')
+      firewallId = (await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
         .where('firewall.clusterId = :clusterId', { clusterId: firewall.clusterId })
         .andWhere('firewall.fwmaster = 1')
         .getOneOrFail()).id;

@@ -9,7 +9,7 @@ import ObjectHelpers from "../../utils/object-helpers";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
 import db from "../../database/database-manager";
 import { IPObj } from "../ipobj/IPObj";
-import { getCustomRepository, getRepository, In } from "typeorm";
+import { In } from "typeorm";
 import { FirewallRepository } from "./firewall.repository";
 import { AbstractApplication, app } from "../../fonaments/abstract-application";
 import { PolicyRule } from "../policy/PolicyRule";
@@ -21,16 +21,7 @@ import { RoutingTable } from "../routing/routing-table/routing-table.model";
 import { RoutingTableService } from "../routing/routing-table/routing-table.service";
 import { Route } from "../routing/route/route.model";
 import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
-import { RoutingRuleToIPObj } from "../routing/routing-rule/routing-rule-to-ipobj.model";
-import { RouteToIPObj } from "../routing/route/route-to-ipobj.model";
-import { RouteToIPObjGroup } from "../routing/route/route-to-ipobj-group.model";
-import { RouteToOpenVPN } from "../routing/route/route-to-openvpn.model";
-import { RoutingRuleToIPObjGroup } from "../routing/routing-rule/routing-rule-to-ipobj-group.model";
-import { RoutingRuleToOpenVPN } from "../routing/routing-rule/routing-rule-to-openvpn.model";
-import { RoutingRuleToOpenVPNPrefix } from "../routing/routing-rule/routing-rule-to-openvpn-prefix.model";
-import { RoutingRuleToMark } from "../routing/routing-rule/routing-rule-to-mark.model";
 import { RoutingRuleService } from "../routing/routing-rule/routing-rule.service";
-import { HAProxyRule } from "../system/haproxy/haproxy_r/haproxy_r.model";
 import { HAProxyRuleService } from "../system/haproxy/haproxy_r/haproxy_r.service";
 import { DHCPRuleService } from "../system/dhcp/dhcp_r/dhcp_r.service";
 import { DHCPRule } from "../system/dhcp/dhcp_r/dhcp_r.model";
@@ -38,6 +29,7 @@ import { DHCPGroup } from "../system/dhcp/dhcp_g/dhcp_g.model";
 import { KeepalivedRuleService } from "../system/keepalived/keepalived_r/keepalived_r.service";
 import { KeepalivedGroup } from "../system/keepalived/keepalived_g/keepalived_g.model";
 import { KeepalivedRule } from "../system/keepalived/keepalived_r/keepalived_r.model";
+import { DatabaseService } from "../../database/database.service";
 const fwcError = require('../../utils/error_table');
 var utilsModel = require("../../utils/utils.js");
 
@@ -54,12 +46,11 @@ export class FirewallService extends Service {
     protected _scriptFilename: string;
     protected _headerPath: string;
     protected _footerPath: string;
-
+    protected _databaseService: DatabaseService
     protected _repository: FirewallRepository;
 
     constructor(app: AbstractApplication) {
         super(app);
-        this._repository = getCustomRepository(FirewallRepository);
     }
 
     public async build(): Promise<FirewallService> {
@@ -67,6 +58,8 @@ export class FirewallService extends Service {
         this._scriptFilename = this._app.config.get('policy').script_name;
         this._headerPath = this._app.config.get('policy').header_file;
         this._footerPath = this._app.config.get('policy').footer_file;
+        this._databaseService = await this._app.getService(DatabaseService.name);
+        this._repository = new FirewallRepository(this._databaseService.dataSource.manager);
 
         return this;
     }
@@ -80,7 +73,7 @@ export class FirewallService extends Service {
         if (firewall.fwCloudId === undefined || firewall.fwCloudId === null) {
             throw new Error('Firewall does not belong to a fwcloud');
         }
-        
+
         await this.createFirewallPolicyDirectory(firewall);
         await (new Compiler(firewall)).compile(this._headerPath, this._footerPath, eventEmitter);
 
@@ -88,16 +81,16 @@ export class FirewallService extends Service {
     }
 
     public async install(firewall: Firewall, customSSHConfig: Partial<SSHConfig>, eventEmitter: EventEmitter = new EventEmitter()): Promise<Firewall> {
-        const ipObj: IPObj = await getRepository(IPObj).findOne({id: firewall.install_ipobj, interfaceId: firewall.install_interface});
+        const ipObj: IPObj = await db.getSource().manager.getRepository(IPObj).findOne({ where: { id: firewall.install_ipobj, interfaceId: firewall.install_interface } });
         const sshConfig: SSHConfig = <SSHConfig>ObjectHelpers.merge({
             host: ipObj.address,
             port: firewall.install_port,
             username: firewall.install_user,
             password: firewall.install_pass
         }, customSSHConfig);
-        
+
         await (new Installer(firewall)).install(sshConfig, eventEmitter);
-        await Firewall.updateFirewallStatus(firewall.fwCloudId, firewall.id,"&~2");
+        await Firewall.updateFirewallStatus(firewall.fwCloudId, firewall.id, "&~2");
         await Firewall.updateFirewallInstallDate(firewall.fwCloudId, firewall.id);
 
         return firewall;
@@ -115,14 +108,15 @@ export class FirewallService extends Service {
             return await this._repository.markAsUncompiled(firewalls);
         }
 
-        const firewall: Firewall = await this._repository.findOneOrFail(idOrIds);
-        await getCustomRepository(FirewallRepository).markAsUncompiled(firewall);
-        return this._repository.findOneOrFail(idOrIds);
+        const firewall: Firewall = await this._repository.findOneOrFail({ where: { id: idOrIds } });
+
+        await this._repository.markAsUncompiled(firewall);
+        return this._repository.findOneOrFail({ where: { id: idOrIds } });
     }
 
-    public async clone(originalId: number, clonedId: number, dataI: {id_org: number, id_clon: number}[]): Promise<void> {
-        const routingTables: RoutingTable[] = await getRepository(RoutingTable).createQueryBuilder('table')
-            .where('table.firewallId = :originalId', {originalId})
+    public async clone(originalId: number, clonedId: number, dataI: { id_org: number, id_clon: number }[]): Promise<void> {
+        const routingTables: RoutingTable[] = await db.getSource().manager.getRepository(RoutingTable).createQueryBuilder('table')
+            .where('table.firewallId = :originalId', { originalId })
             .leftJoinAndSelect('table.routes', 'route')
             .leftJoinAndSelect('table.routingRules', 'rule')
 
@@ -138,7 +132,7 @@ export class FirewallService extends Service {
             .leftJoinAndSelect('rule.routingRuleToMarks', 'routingRuleToMarks')
             .getMany();
 
-        
+
         for (let table of routingTables) {
             const persistedTable: RoutingTable = await (await app().getService<RoutingTableService>(RoutingTableService.name)).create({
                 firewallId: clonedId,
@@ -147,7 +141,7 @@ export class FirewallService extends Service {
                 number: table.number
             });
 
-            await getRepository(Route).save(table.routes.map(route => {
+            await db.getSource().manager.getRepository(Route).save(table.routes.map(route => {
                 route.id = undefined;
                 route.routingTableId = persistedTable.id;
                 const mapIndex: number = dataI.map(item => item.id_org).indexOf(route.interfaceId);
@@ -158,7 +152,7 @@ export class FirewallService extends Service {
                 return route;
             }));
 
-            await getRepository(RoutingRule).save(table.routingRules.map(rule => {
+            await db.getSource().manager.getRepository(RoutingRule).save(table.routingRules.map(rule => {
                 rule.id = undefined;
                 rule.routingTableId = persistedTable.id;
                 return rule;
@@ -173,7 +167,10 @@ export class FirewallService extends Service {
         const keepalivedRuleService: KeepalivedRuleService = await app().getService(KeepalivedRuleService.name);
         const haproxyRuleService: HAProxyRuleService = await app().getService(HAProxyRuleService.name);
 
-        const firewallEntity: Firewall = await getRepository(Firewall).findOneOrFail(firewallId, { relations: ['routingTables', 'routingTables.routingRules', 'dhcpRules', 'keepalivedRules', 'haproxyRules'] });
+        const firewallEntity: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+            relations: ['routingTables', 'routingTables.routingRules', 'dhcpRules', 'keepalivedRules', 'haproxyRules'],
+            where: { id: firewallId }
+        });
         for (let table of firewallEntity.routingTables) {
             await routingRuleService.bulkRemove(table.routingRules.map(item => item.id));
             await routingTableService.remove({

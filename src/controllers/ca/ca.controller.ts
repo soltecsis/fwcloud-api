@@ -1,6 +1,5 @@
 import { ResponseBuilder } from './../../fonaments/http/response-builder';
 import { Request } from 'express';
-import { getRepository } from 'typeorm';
 import { CaService } from '../../ca/ca.service';
 import { Controller } from '../../fonaments/http/controller';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
@@ -8,6 +7,7 @@ import { Ca } from '../../models/vpn/pki/Ca';
 import { Validate } from '../../decorators/validate.decorator';
 import { CaPolicy } from '../../policies/ca.policy';
 import { CaControllerUpdateDto } from './dtos/update.dto';
+import db from '../../database/database-manager';
 
 export class CaController extends Controller {
     
@@ -20,10 +20,10 @@ export class CaController extends Controller {
 
         this.CaService = await this._app.getService<CaService>(CaService.name);
         if(request.params.ca){
-            this._ca = await getRepository(Ca).findOneOrFail(request.params.ca)
+            this._ca = await db.getSource().manager.getRepository(Ca).findOneOrFail({ where: { id: parseInt(request.params.ca) }})
         }
         //Get the fwcloud wich contains the ca
-        this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
+        this._fwCloud = await db.getSource().manager.getRepository(FwCloud).createQueryBuilder('fwcloud')
             .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)})
             .getOneOrFail();
     }

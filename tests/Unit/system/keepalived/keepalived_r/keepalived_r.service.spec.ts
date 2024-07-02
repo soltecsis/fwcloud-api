@@ -15,7 +15,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { expect } from "chai";
-import { getRepository } from "typeorm";
 import { KeepalivedGroup } from "../../../../../src/models/system/keepalived/keepalived_g/keepalived_g.model";
 import { KeepalivedRuleService, ICreateKeepalivedRule, IMoveFromKeepalivedRule } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service";
 import sinon from "sinon";
@@ -28,30 +27,34 @@ import { Interface } from "../../../../../src/models/interface/Interface";
 import { Offset } from "../../../../../src/offset";
 import { beforeEach } from "mocha";
 import { IPObj } from "../../../../../src/models/ipobj/IPObj";
+import { EntityManager } from "typeorm";
+import db from "../../../../../src/database/database-manager";
 
 describe(KeepalivedRuleService.name, () => {
     let service: KeepalivedRuleService;
     let fwCloud: FwCloud;
     let firewall: Firewall;
     let keepalivedRule: KeepalivedRule;
+    let manager: EntityManager;
 
     beforeEach(async () => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         service = await testSuite.app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
 
-        keepalivedRule = await getRepository(KeepalivedRule).save(getRepository(KeepalivedRule).create({
+        keepalivedRule = await manager.getRepository(KeepalivedRule).save(manager.getRepository(KeepalivedRule).create({
             id: 1,
-            group: await getRepository(KeepalivedGroup).save(getRepository(KeepalivedGroup).create({
+            group: await manager.getRepository(KeepalivedGroup).save(manager.getRepository(KeepalivedGroup).create({
                 name: 'group',
                 firewall: firewall,
             })),
@@ -109,12 +112,12 @@ describe(KeepalivedRuleService.name, () => {
         let group: KeepalivedGroup;
 
         beforeEach(async () => {
-            group = await getRepository(KeepalivedGroup).save(getRepository(KeepalivedGroup).create({
+            group = await manager.getRepository(KeepalivedGroup).save(manager.getRepository(KeepalivedGroup).create({
                 name: 'group',
                 firewall: firewall,
             }));
 
-            await getRepository(Interface).save(getRepository(Interface).create({
+            await manager.getRepository(Interface).save(manager.getRepository(Interface).create({
                 name: 'eth1',
                 type: '11',
                 interface_type: '11',
@@ -161,7 +164,7 @@ describe(KeepalivedRuleService.name, () => {
                 virtualIpsIds: []
             };
 
-            const existingRule: KeepalivedRule = getRepository(KeepalivedRule).create({
+            const existingRule: KeepalivedRule = manager.getRepository(KeepalivedRule).create({
                 group: group,
                 firewall: firewall,
                 rule_order: 1,
@@ -187,7 +190,7 @@ describe(KeepalivedRuleService.name, () => {
                 offset: Offset.Above,
             };
 
-            const expectedRule = getRepository(KeepalivedRule).create({
+            const expectedRule = manager.getRepository(KeepalivedRule).create({
                 group: {} as KeepalivedGroup,
                 rule_order: 1,
                 interface: {} as Interface,
@@ -212,14 +215,14 @@ describe(KeepalivedRuleService.name, () => {
         });
 
         it('should throw an error for invalid IP version', async () => {
-            const virtualIp1 = await getRepository(IPObj).save(getRepository(IPObj).create({
+            const virtualIp1 = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 name: 'vip1',
                 address: '0.0.0.0',
                 ipObjTypeId: 0,
                 ip_version: 4
             }));
 
-            const virtualIp2 = await getRepository(IPObj).save(getRepository(IPObj).create({
+            const virtualIp2 = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                 name: 'vip2',
                 address: '0.0.0.0',
                 ipObjTypeId: 0,
@@ -321,36 +324,45 @@ describe(KeepalivedRuleService.name, () => {
         let fromRule: KeepalivedRule;
         let toRule: KeepalivedRule;
         let data: IMoveFromKeepalivedRule;
-
+        let group: KeepalivedGroup;
         beforeEach(async () => {
-            fromRule = getRepository(KeepalivedRule).create({
+            group = await manager.getRepository(KeepalivedGroup).save(manager.getRepository(KeepalivedGroup).create({
+                name: 'group',
+                firewall: firewall
+            }));
+            fromRule = await manager.getRepository(KeepalivedRule).save(manager.getRepository(KeepalivedRule).create({
                 id: 1,
-                firewall: {} as Firewall,
+                group: group,
+                firewall: firewall,
+                rule_order: 1,
+                interface: null,
                 virtualIps: [
                     { ipObjId: 1, order: 1 },
                     { ipObjId: 2, order: 2 }
                 ]
-            });
-
-            toRule = getRepository(KeepalivedRule).create({
+            }));
+            toRule = await manager.getRepository(KeepalivedRule).save(manager.getRepository(KeepalivedRule).create({
                 id: 2,
-                firewall: {} as Firewall,
+                group: group,
+                firewall: firewall,
+                rule_order: 1,
+                interface: null,
                 virtualIps: [
                     { ipObjId: 3, order: 3 },
                     { ipObjId: 4, order: 4 }
                 ]
-            });
+            }));
 
             data = {
-                fromId: 1,
-                toId: 2,
+                fromId: fromRule.id,
+                toId: toRule.id,
                 ipObjId: 1
             };
 
             sinon.stub(service['_repository'], 'findOneOrFail')
-                .withArgs(sinon.match(1), sinon.match.any)
+                .withArgs(sinon.match(1))
                 .resolves(fromRule)
-                .withArgs(sinon.match(2), sinon.match.any)
+                .withArgs(sinon.match(2))
                 .resolves(toRule);
         });
 
@@ -359,7 +371,7 @@ describe(KeepalivedRuleService.name, () => {
         });
 
         it('should move virtual IP from one rule to another', async () => {
-            const expectedFromRule: KeepalivedRule = getRepository(KeepalivedRule).create({
+            const expectedFromRule: KeepalivedRule = await manager.getRepository(KeepalivedRule).create({
                 id: 1,
                 firewall: {} as Firewall,
                 virtualIps: [
@@ -367,7 +379,7 @@ describe(KeepalivedRuleService.name, () => {
                 ]
             });
 
-            const expectedToRule: KeepalivedRule = getRepository(KeepalivedRule).create({
+            const expectedToRule: KeepalivedRule = await manager.getRepository(KeepalivedRule).create({
                 id: 2,
                 firewall: {} as Firewall,
                 virtualIps: [
@@ -381,8 +393,7 @@ describe(KeepalivedRuleService.name, () => {
                 .onFirstCall().resolves(expectedFromRule)
                 .onSecondCall().resolves(expectedToRule);
 
-            const result = await service.moveFrom(1, 2, data);
-
+             const result = await service.moveFrom(fromRule.id, toRule.id, data);
             expect(result).to.deep.equal([expectedFromRule, expectedToRule]);
             expect(saveStub.calledTwice).to.be.true;
         });

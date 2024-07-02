@@ -27,7 +27,7 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
-import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToMany, getRepository } from "typeorm";
+import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Firewall } from "../firewall/Firewall";
 import { logger } from "../../fonaments/abstract-application";
 import { Route } from "../routing/route/route.model";
@@ -417,7 +417,7 @@ export class Interface extends Model {
 						search.restrictions.InterfaceInHost = await InterfaceIPObj.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
 						search.restrictions.LastInterfaceWithAddrInHostInRule = await IPObj.searchLastInterfaceWithAddrInHostInRule(id, fwcloud);
 
-						search.restrictions.InterfaceInRoute = await getRepository(Route).createQueryBuilder('route')
+						search.restrictions.InterfaceInRoute = await db.getSource().manager.getRepository(Route).createQueryBuilder('route')
 							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
 							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
 							.innerJoinAndSelect('route.interface', 'interface', 'interface.id = :interface', { interface: id })
@@ -427,7 +427,7 @@ export class Interface extends Model {
 							.where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
 							.getRawMany();
 
-						search.restrictions.IpobjInterfaceInRoute = await getRepository(RouteToIPObj).createQueryBuilder('routeToIPObj')
+						search.restrictions.IpobjInterfaceInRoute = await db.getSource().manager.getRepository(RouteToIPObj).createQueryBuilder('routeToIPObj')
 							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
 							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
 							.innerJoin('routeToIPObj.ipObj', 'ipobj')
@@ -439,7 +439,7 @@ export class Interface extends Model {
 							.where('firewall.fwCloudId = :fwcloud', { fwcloud })
 							.getRawMany()
 
-						search.restrictions.IpobjInterfaceInRoutingRule = await getRepository(RoutingRuleToIPObj).createQueryBuilder('routingRuleToIPObj')
+						search.restrictions.IpobjInterfaceInRoutingRule = await db.getSource().manager.getRepository(RoutingRuleToIPObj).createQueryBuilder('routingRuleToIPObj')
 							.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
 							.addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
 							.innerJoin('routingRuleToIPObj.ipObj', 'ipobj')
@@ -510,7 +510,7 @@ export class Interface extends Model {
 	};
 
 	public static async searchInterfaceInDhcpRule(id: string, fwcloud: string): Promise<any> {
-		return await getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
+		return await db.getSource().manager.getRepository(DHCPRule).createQueryBuilder('dhcp_rule')
 			.addSelect('dhcp_rule.id', 'dhcp_rule_id').addSelect('dhcp_rule.rule_type', 'dhcp_rule_type')
 			.addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
 			.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
@@ -524,7 +524,7 @@ export class Interface extends Model {
 	}
 
 	public static async searchInterfaceInKeepalivedRule(id: string, fwcloud: string) {
-		return await getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
+		return await db.getSource().manager.getRepository(KeepalivedRule).createQueryBuilder('keepalived_rule')
 			.addSelect('keepalived_rule.id', 'keepalived_rule_id').addSelect('keepalived_rule.rule_type', 'keepalived_rule_type')
 			.addSelect('interface.id', 'interface_id').addSelect('interface.name', 'interface_name')
 			.addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')

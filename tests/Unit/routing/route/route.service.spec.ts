@@ -1,17 +1,14 @@
-import { attempt } from "joi";
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import db from "../../../../src/database/database-manager";
 import { ValidationException } from "../../../../src/fonaments/exceptions/validation-exception";
 import { Cluster } from "../../../../src/models/firewall/Cluster";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
-import { fwcloudColors } from "../../../../src/models/fwcloud/FwCloud-colors";
 import { Interface } from "../../../../src/models/interface/Interface";
 import { InterfaceIPObj } from "../../../../src/models/interface/InterfaceIPObj";
 import { IPObj } from "../../../../src/models/ipobj/IPObj";
 import { IPObjGroup } from "../../../../src/models/ipobj/IPObjGroup";
 import { IPObjToIPObjGroup } from "../../../../src/models/ipobj/IPObjToIPObjGroup";
-import { Mark } from "../../../../src/models/ipobj/Mark";
 import { Route } from "../../../../src/models/routing/route/route.model";
 import { RouteService } from "../../../../src/models/routing/route/route.service";
 import { RoutingTable } from "../../../../src/models/routing/routing-table/routing-table.model";
@@ -33,8 +30,10 @@ describe(RouteService.name, () => {
     let gateway: IPObj;
     let route: Route;
     let ctr: Cluster;
+    let manager: EntityManager;
 
     beforeEach(async () => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
         fwcProduct = await (new FwCloudFactory()).make();
 
@@ -42,7 +41,7 @@ describe(RouteService.name, () => {
 
         fwCloud = fwcProduct.fwcloud;
 
-        ctr = await getRepository(Cluster).save(getRepository(Cluster).create({
+        ctr = await manager.getRepository(Cluster).save(manager.getRepository(Cluster).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }))
@@ -51,7 +50,7 @@ describe(RouteService.name, () => {
         firewall.clusterId = ctr.id;
         firewall.fwmaster = 1;
 
-        await getRepository(Firewall).save(firewall)
+        await manager.getRepository(Firewall).save(firewall)
 
         gateway = fwcProduct.ipobjs.get('gateway');
         table = fwcProduct.routingTable;
@@ -62,7 +61,7 @@ describe(RouteService.name, () => {
     describe('create', () => {
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -113,7 +112,7 @@ describe(RouteService.name, () => {
             });
 
             it('should attach standard ipobj', async () => {
-                let standards: IPObj[] = await getRepository(IPObj).find({
+                let standards: IPObj[] = await manager.getRepository(IPObj).find({
                     where: {
                         fwCloudId: null
                     }
@@ -128,7 +127,12 @@ describe(RouteService.name, () => {
                     }))
                 });
 
-                route = await getRepository(Route).findOne(route.id, { relations: ['routeToIPObjs']});
+                route = await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route.id
+                    },
+                    relations: ['routeToIPObjs']
+                });
 
                 expect(route.routeToIPObjs).to.have.length(standards.length);
             })
@@ -142,7 +146,12 @@ describe(RouteService.name, () => {
                     firewallApplyToId: firewall.id
                 })
 
-                route = await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})
+                route = await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route.id
+                    },
+                    relations: ['firewallApplyTo']
+                });
                 expect(route.firewallApplyTo.id).to.eq(firewall.id)
             });
 
@@ -152,13 +161,18 @@ describe(RouteService.name, () => {
                     gatewayId: gateway.id,
                 })
 
-                route = await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})
+                route = await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route.id
+                    },
+                    relations: ['firewallApplyTo']
+                });
                 expect(route.firewallApplyToId).to.eq(null)
             })
 
             it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
                 
-                let fw1: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+                let fw1: Firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
                     name: StringHelper.randomize(10),
                     fwCloudId: fwCloud.id,   
                 }));
@@ -196,7 +210,7 @@ describe(RouteService.name, () => {
         });
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -222,7 +236,7 @@ describe(RouteService.name, () => {
     describe('update', () => {
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -242,7 +256,12 @@ describe(RouteService.name, () => {
                     firewallApplyToId: firewall.id
                 })
 
-                expect((await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})).firewallApplyTo.id).to.eq(firewall.id)
+                expect((await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route.id
+                    },
+                    relations: ['firewallApplyTo']
+                })).firewallApplyTo.id).to.eq(firewall.id)
             })
 
             it('should remove firewallApplyToId when remove a firewall attached', async ()=>{
@@ -255,7 +274,12 @@ describe(RouteService.name, () => {
                 });
                 
                 
-                expect((await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})).firewallApplyToId).to.eq(null)
+                expect((await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route.id
+                    },
+                    relations: ['firewallApplyTo']
+                })).firewallApplyToId).to.eq(null)
             })
 
             it('should firewallApplyToId null default when does not have any firewall', async () =>{    
@@ -263,12 +287,17 @@ describe(RouteService.name, () => {
                 });
                 
 
-                expect((await getRepository(Route).findOne(route.id, {relations: ['firewallApplyTo']})).firewallApplyToId).to.eq(null)
+                expect((await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route.id
+                    },
+                    relations: ['firewallApplyTo']
+                })).firewallApplyToId).to.eq(null)
             })
 
             it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
 
-                let fw1: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+                let fw1: Firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
                     name: StringHelper.randomize(10),
                     fwCloudId: fwCloud.id,
                     
@@ -286,7 +315,7 @@ describe(RouteService.name, () => {
             let ipobj2: IPObj;
             
             beforeEach(async () => {
-                ipobj1 = await getRepository(IPObj).save(getRepository(IPObj).create({
+                ipobj1 = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
@@ -294,7 +323,7 @@ describe(RouteService.name, () => {
                     fwCloudId: fwCloud.id
                 }));
 
-                ipobj2 = await getRepository(IPObj).save(getRepository(IPObj).create({
+                ipobj2 = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 0,
@@ -311,7 +340,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjs']})).routeToIPObjs.map(item => item.ipObjId)
+                    (await manager.getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToIPObjs']
+                    })).routeToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj1.id, ipobj2.id])
             });
 
@@ -330,7 +364,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjs']})).routeToIPObjs.map(item => item.ipObjId)
+                    (await manager.getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToIPObjs']
+                    })).routeToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([ipobj2.id])
             });
 
@@ -347,12 +386,17 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjs']})).routeToIPObjs.map(item => item.ipObjId)
+                    (await manager.getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToIPObjs']
+                    })).routeToIPObjs.map(item => item.ipObjId)
                 ).to.deep.eq([])
             });
 
             it('should throw an exception if the ipobj is a host but does not have any address', async () => {
-                ipobj2 = await getRepository(IPObj).save(getRepository(IPObj).create({
+                ipobj2 = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     ipObjTypeId: 8,
                     interfaceId: null,
@@ -367,7 +411,7 @@ describe(RouteService.name, () => {
             });
 
             it('should throw exception if the attachment is a host and is empty', async () => {
-                const host = await getRepository(IPObj).save({
+                const host = await manager.getRepository(IPObj).save({
                     name: 'host',
                     ipObjTypeId: 8,
                 });
@@ -385,26 +429,26 @@ describe(RouteService.name, () => {
             let group2: IPObjGroup;
             
             beforeEach(async () => {
-                group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                group1 = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 20,
                     fwCloudId: fwCloud.id
                 }));
 
-                const _interface: Interface = await getRepository(Interface).save(getRepository(Interface).create({
+                const _interface: Interface = await manager.getRepository(Interface).save(manager.getRepository(Interface).create({
                     name: 'eth1',
                     type: '11',
                     interface_type: '11'
                 }));
 
-                const host = await getRepository(IPObj).save(getRepository(IPObj).create({
+                const host = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 8,
                     interfaceId: _interface.id
                 }));
 
-                await getRepository(InterfaceIPObj).save(getRepository(InterfaceIPObj).create({
+                await manager.getRepository(InterfaceIPObj).save(manager.getRepository(InterfaceIPObj).create({
                     interfaceId: _interface.id,
                     ipObjId: host.id,
                     interface_order: '1'
@@ -418,7 +462,7 @@ describe(RouteService.name, () => {
                     }
                 });
 
-                group2 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                group2 = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 20,
                     fwCloudId: fwCloud.id
@@ -441,7 +485,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjGroups']})).routeToIPObjGroups.map(item => item.ipObjGroupId)
+                    (await manager.getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToIPObjGroups']
+                    })).routeToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([group1.id, group2.id])
             });
 
@@ -460,7 +509,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjGroups']})).routeToIPObjGroups.map(item => item.ipObjGroupId)
+                    (await manager.getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToIPObjGroups']
+                    })).routeToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([group2.id])
             });
 
@@ -477,12 +531,17 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToIPObjGroups']})).routeToIPObjGroups.map(item => item.ipObjGroupId)
+                    (await manager.getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToIPObjGroups']
+                    })).routeToIPObjGroups.map(item => item.ipObjGroupId)
                 ).to.deep.eq([])
             });
 
             it('should throw an exception if the group is empty', async () => {
-                group1 = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                group1 = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
                     name: StringHelper.randomize(10),
                     type: 20,
                     fwCloudId: fwCloud.id
@@ -497,15 +556,15 @@ describe(RouteService.name, () => {
             });
 
             it('should not allow attach a service group', async () => {
-                let _service = await getRepository(IPObj).findOneOrFail(10040);
+                let _service = await manager.getRepository(IPObj).findOneOrFail({ where: { id: 10040 }});
                 
-                let group = await getRepository(IPObjGroup).save({
+                let group = await manager.getRepository(IPObjGroup).save({
                     name: 'group',
                     type: 21,
                     fwCloudId: fwcProduct.fwcloud.id
                 });
 
-                await getRepository(IPObjToIPObjGroup).save({
+                await manager.getRepository(IPObjToIPObjGroup).save({
                     ipObjGroupId: group.id,
                     ipObjId: _service.id
                 });
@@ -523,14 +582,14 @@ describe(RouteService.name, () => {
             let openVPN2: OpenVPN;
             
             beforeEach(async () => {
-                openVPN1 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                openVPN1 = await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                     firewallId: firewall.id,
                     parentId: fwcProduct.openvpnServer.id,
-                    crt: await getRepository(Crt).save(getRepository(Crt).create({
+                    crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
                         type: 1,
-                        ca: await getRepository(Ca).save(getRepository(Ca).create({
+                        ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
                             days: 100,
@@ -538,14 +597,14 @@ describe(RouteService.name, () => {
                     }))
                 }));
 
-                openVPN2 = await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                openVPN2 = await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                     firewallId: firewall.id,
                     parentId: fwcProduct.openvpnServer.id,
-                    crt: await getRepository(Crt).save(getRepository(Crt).create({
+                    crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                         cn: StringHelper.randomize(10),
                         days: 100,
                         type: 1,
-                        ca: await getRepository(Ca).save(getRepository(Ca).create({
+                        ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                             fwCloud: fwCloud,
                             cn: StringHelper.randomize(10),
                             days: 100,
@@ -562,7 +621,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNs']})).routeToOpenVPNs.map(item => item.openVPNId)
+                    (await manager.getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToOpenVPNs']
+                    })).routeToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([openVPN1.id, openVPN2.id])
             });
 
@@ -581,7 +645,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNs']})).routeToOpenVPNs.map(item => item.openVPNId)
+                    (await manager.getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToOpenVPNs']
+                    })).routeToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([openVPN2.id])
             });
 
@@ -598,7 +667,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNs']})).routeToOpenVPNs.map(item => item.openVPNId)
+                    (await manager.getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToOpenVPNs']
+                    })).routeToOpenVPNs.map(item => item.openVPNId)
                 ).to.deep.eq([])
             })
         });
@@ -608,15 +682,15 @@ describe(RouteService.name, () => {
             let openVPNPrefix2: OpenVPNPrefix;
             
             beforeEach(async () => {
-                openVPNPrefix = await getRepository(OpenVPNPrefix).save(getRepository(OpenVPNPrefix).create({
+                openVPNPrefix = await manager.getRepository(OpenVPNPrefix).save(manager.getRepository(OpenVPNPrefix).create({
                     name: StringHelper.randomize(10),
-                    openVPN: await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                    openVPN: await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                         firewallId: firewall.id,
-                        crt: await getRepository(Crt).save(getRepository(Crt).create({
+                        crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                             cn: StringHelper.randomize(10),
                             days: 100,
                             type: 0,
-                            ca: await getRepository(Ca).save(getRepository(Ca).create({
+                            ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                                 fwCloud: fwCloud,
                                 cn: StringHelper.randomize(10),
                                 days: 100,
@@ -625,15 +699,15 @@ describe(RouteService.name, () => {
                     }))
                 }));
 
-                openVPNPrefix2 = await getRepository(OpenVPNPrefix).save(getRepository(OpenVPNPrefix).create({
+                openVPNPrefix2 = await manager.getRepository(OpenVPNPrefix).save(manager.getRepository(OpenVPNPrefix).create({
                     name: StringHelper.randomize(10),
-                    openVPN: await getRepository(OpenVPN).save(getRepository(OpenVPN).create({
+                    openVPN: await manager.getRepository(OpenVPN).save(manager.getRepository(OpenVPN).create({
                         firewallId: firewall.id,
-                        crt: await getRepository(Crt).save(getRepository(Crt).create({
+                        crt: await manager.getRepository(Crt).save(manager.getRepository(Crt).create({
                             cn: StringHelper.randomize(10),
                             days: 100,
                             type: 0,
-                            ca: await getRepository(Ca).save(getRepository(Ca).create({
+                            ca: await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
                                 fwCloud: fwCloud,
                                 cn: StringHelper.randomize(10),
                                 days: 100,
@@ -652,7 +726,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNPrefixes']})).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
+                    (await manager.getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToOpenVPNPrefixes']
+                    })).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([openVPNPrefix.id, openVPNPrefix2.id])
             });
 
@@ -671,7 +750,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNPrefixes']})).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
+                    (await manager.getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToOpenVPNPrefixes']
+                    })).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([openVPNPrefix2.id])
             });
 
@@ -688,7 +772,12 @@ describe(RouteService.name, () => {
                 });
 
                 expect(
-                    (await getRepository(Route).findOne(route.id, {relations: ['routeToOpenVPNPrefixes']})).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
+                    (await manager.getRepository(Route).findOne({
+                        where: {
+                            id: route.id
+                        },
+                        relations: ['routeToOpenVPNPrefixes']
+                    })).routeToOpenVPNPrefixes.map(item => item.openVPNPrefixId)
                 ).to.deep.eq([])
             })
         });
@@ -697,7 +786,7 @@ describe(RouteService.name, () => {
             let _interface: Interface;
 
             beforeEach(async () => {
-                _interface = await getRepository(Interface).save(getRepository(Interface).create({
+                _interface = await manager.getRepository(Interface).save(manager.getRepository(Interface).create({
                     name: 'eth1',
                     type: '11',
                     interface_type: '11',
@@ -720,7 +809,7 @@ describe(RouteService.name, () => {
             });
 
             it('should not attach a host interface', async () => {
-                _interface = await getRepository(Interface).save({
+                _interface = await manager.getRepository(Interface).save({
                     name: 'eth1',
                     type: '11',
                     interface_type: '11',
@@ -736,7 +825,7 @@ describe(RouteService.name, () => {
     describe('bulkUpdate', () => {
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -754,7 +843,7 @@ describe(RouteService.name, () => {
     describe('move', () => {
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -798,8 +887,18 @@ describe(RouteService.name, () => {
                     ipObjId: fwcProduct.ipobjs.get('address').id
                 });
 
-                const refreshedRoute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToIPObjs']});
-                const refreshedroute2: Route = await getRepository(Route).findOne(route2.id, { relations: ['routeToIPObjs']});
+                const refreshedRoute1: Route = await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route1.id
+                    },
+                    relations: ['routeToIPObjs']
+                });
+                const refreshedroute2: Route = await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route2.id
+                    },
+                    relations: ['routeToIPObjs']
+                });
 
                 expect(refreshedRoute1.routeToIPObjs).length(0);
                 expect(refreshedroute2.routeToIPObjs).length(1);
@@ -821,8 +920,18 @@ describe(RouteService.name, () => {
                     ipObjGroupId: fwcProduct.ipobjGroup.id,
                 });
 
-                const refreshedroute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToIPObjGroups']});
-                const refreshedroute2: Route = await getRepository(Route).findOne(route2.id, { relations: ['routeToIPObjGroups']});
+                const refreshedroute1: Route = await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route1.id
+                    },
+                    relations: ['routeToIPObjGroups']
+                });
+                const refreshedroute2: Route = await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route2.id
+                    },
+                    relations: ['routeToIPObjGroups']
+                });
 
                 expect(refreshedroute1.routeToIPObjGroups).length(0);
                 expect(refreshedroute2.routeToIPObjGroups).length(1);
@@ -844,8 +953,18 @@ describe(RouteService.name, () => {
                     openVPNId: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
                 });
 
-                const refreshedroute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToOpenVPNs']});
-                const refreshedroute2: Route = await getRepository(Route).findOne(route2.id, { relations: ['routeToOpenVPNs']});
+                const refreshedroute1: Route = await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route1.id
+                    },
+                    relations: ['routeToOpenVPNs']
+                });
+                const refreshedroute2: Route = await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route2.id
+                    },
+                    relations: ['routeToOpenVPNs']
+                });
 
                 expect(refreshedroute1.routeToOpenVPNs).length(0);
                 expect(refreshedroute2.routeToOpenVPNs).length(1);
@@ -867,8 +986,18 @@ describe(RouteService.name, () => {
                     openVPNPrefixId: fwcProduct.openvpnPrefix.id,
                 });
 
-                const refreshedroute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToOpenVPNPrefixes']});
-                const refreshedroute2: Route = await getRepository(Route).findOne(route2.id, { relations: ['routeToOpenVPNPrefixes']});
+                const refreshedroute1: Route = await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route1.id
+                    },
+                    relations: ['routeToOpenVPNPrefixes']
+                });
+                const refreshedroute2: Route = await manager.getRepository(Route).findOne({
+                    where: {
+                        id: route2.id
+                    },
+                    relations: ['routeToOpenVPNPrefixes']
+                });
 
                 expect(refreshedroute1.routeToOpenVPNPrefixes).length(0);
                 expect(refreshedroute2.routeToOpenVPNPrefixes).length(1);
@@ -882,7 +1011,7 @@ describe(RouteService.name, () => {
         let gateway2: IPObj;
         
         beforeEach(async () => {
-            gateway2 = await getRepository(IPObj).save({
+            gateway2 = await manager.getRepository(IPObj).save({
                 name: 'gateway',
                 address: '1.2.3.4',
                 ipObjTypeId: 5,
@@ -912,8 +1041,13 @@ describe(RouteService.name, () => {
                 ipObjId: gateway.id
             });
 
-            const refreshedRoute1: Route = await getRepository(Route).findOne(route1.id, { relations: ['routeToIPObjs']});
-            const refreshedroute2: Route = await getRepository(Route).findOne(route2.id);
+            const refreshedRoute1: Route = await manager.getRepository(Route).findOne({
+                where: {
+                    id: route1.id
+                },
+                relations: ['routeToIPObjs']
+            });
+            const refreshedroute2: Route = await manager.getRepository(Route).findOne({ where: { id: route2.id }});
 
             expect(refreshedRoute1.routeToIPObjs).length(0);
             expect(refreshedroute2.gatewayId).to.eq(gateway.id);
@@ -944,8 +1078,8 @@ describe(RouteService.name, () => {
                 interfaceId: fwcProduct.interfaces.get('firewall-interface1').id
             });
 
-            const refreshedRoute1: Route = await getRepository(Route).findOne(route1.id);
-            const refreshedroute2: Route = await getRepository(Route).findOne(route2.id);
+            const refreshedRoute1: Route = await manager.getRepository(Route).findOne({ where: { id: route1.id }});
+            const refreshedroute2: Route = await manager.getRepository(Route).findOne({ where: { id: route2.id }});
 
             expect(refreshedRoute1.interfaceId).to.be.null;
             expect(refreshedroute2.interfaceId).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
@@ -964,11 +1098,11 @@ describe(RouteService.name, () => {
                 firewallId: firewall.id,
                 fwCloudId: fwCloud.id,
                 id: route.id
-            })).to.be.undefined;
+            })).to.be.null;
         });
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();
@@ -991,11 +1125,11 @@ describe(RouteService.name, () => {
                 firewallId: firewall.id,
                 fwCloudId: fwCloud.id,
                 id: route.id
-            })).to.be.undefined;
+            })).to.be.null;
         });
 
         it('should reset firewall compiled flag', async () => {
-            await getRepository(Firewall).update(firewall.id, {
+            await manager.getRepository(Firewall).update(firewall.id, {
                 status: 1
             });
             await firewall.reload();

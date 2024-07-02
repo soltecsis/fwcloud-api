@@ -22,14 +22,13 @@
 
 import { Service } from "../fonaments/services/service";
 import { DatabaseService } from "./database.service";
-import { getRepository, ObjectType, EntitySchema, Repository, getCustomRepository } from "typeorm";
+import { ObjectType, EntitySchema } from "typeorm";
 import { PolicyRule } from "../models/policy/PolicyRule";
 import { PolicyRuleRepository } from "../models/policy/policy-rule.repository";
 import { Firewall } from "../models/firewall/Firewall";
 import { FirewallRepository } from "../models/firewall/firewall.repository";
 import { PolicyGroup } from "../models/policy/PolicyGroup";
 import { PolicyGroupRepository } from "../repositories/PolicyGroupRepository";
-import { deprecate } from "util";
 import { OpenVPN } from "../models/vpn/openvpn/OpenVPN";
 import { OpenVPNRepository } from "../models/vpn/openvpn/openvpn-repository";
 
@@ -61,14 +60,14 @@ export class RepositoryService extends Service {
         return this;
     }
 
-    public for<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string, connectionName?: string): any {
-        return deprecate(() => {
-            if(this.hasCustomRepository(entityClass)) {
-                return getCustomRepository(this.getCustomRepositoryFor(entityClass), this._databaseService.connection.name);
-            }
-            return getRepository(entityClass, this._databaseService.connection.name);
-        }, 'Repository service is deprecated and will be removed. Use getRepository() or getCustomRepository() from TypeORM instead')();
-    }
+    // public for<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string, connectionName?: string): any {
+    //     return deprecate(() => {
+    //         if(this.hasCustomRepository(entityClass)) {
+    //             return getCustomRepository(this.getCustomRepositoryFor(entityClass), this._databaseService.dataSource.name);
+    //         }
+    //         return getRepository(entityClass, this._databaseService.dataSource.name);
+    //     }, 'Repository service is deprecated and will be removed. Use getRepository() or getCustomRepository() from TypeORM instead')();
+    // }
 
     protected hasCustomRepository<Entity>(entityClass: ObjectType<Entity> | EntitySchema<Entity> | string): boolean {
         const matches: Array<RepositoryMapItem> = this._customRepositories.filter((item: RepositoryMapItem) => {

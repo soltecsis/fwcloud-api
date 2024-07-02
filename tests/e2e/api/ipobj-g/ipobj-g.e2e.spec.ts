@@ -1,6 +1,6 @@
 import request = require("supertest");
 
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import { User } from "../../../../src/models/user/User";
@@ -32,23 +32,26 @@ describe(describeName('IPObjGroup E2E Tests'), () => {
     let routeService: RouteService;
     let routingRuleService: RoutingRuleService;
 
+    let manager: EntityManager;
+
     beforeEach(async () => {
         app = testSuite.app;
-        
+        manager = db.getSource().manager;
+
         adminUser = await createUser({role: 1});
         adminUserSessionId = generateSession(adminUser);
 
         routeService = await app.getService<RouteService>(RouteService.name);
         routingRuleService = await app.getService<RoutingRuleService>(RoutingRuleService.name);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 
         adminUser.fwClouds = [fwCloud];
-        await getRepository(User).save(adminUser);
+        await manager.getRepository(User).save(adminUser);
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
@@ -61,26 +64,26 @@ describe(describeName('IPObjGroup E2E Tests'), () => {
             let table: RoutingTable;
 
             beforeEach(async () => {
-                const _interface: Interface = await getRepository(Interface).save(getRepository(Interface).create({
+                const _interface: Interface = await manager.getRepository(Interface).save(manager.getRepository(Interface).create({
                     name: 'eth1',
                     type: '11',
                     interface_type: '11'
                 }));
         
-                ipobj = await getRepository(IPObj).save(getRepository(IPObj).create({
+                ipobj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
                     name: 'test',
                     address: '0.0.0.0',
                     ipObjTypeId: 8,
                     interfaceId: _interface.id
                 }));
         
-                await getRepository(InterfaceIPObj).save(getRepository(InterfaceIPObj).create({
+                await manager.getRepository(InterfaceIPObj).save(manager.getRepository(InterfaceIPObj).create({
                     interfaceId: _interface.id,
                     ipObjId: ipobj.id,
                     interface_order: '1'
                 }));
         
-                group = await getRepository(IPObjGroup).save(getRepository(IPObjGroup).create({
+                group = await manager.getRepository(IPObjGroup).save(manager.getRepository(IPObjGroup).create({
                     name: 'ipobjs group',
                     type: 20,
                     fwCloudId: fwCloud.id
@@ -94,7 +97,7 @@ describe(describeName('IPObjGroup E2E Tests'), () => {
                     }
                 });
         
-                table = await getRepository(RoutingTable).save({
+                table = await manager.getRepository(RoutingTable).save({
                     firewallId: firewall.id,
                     number: 1,
                     name: 'name',

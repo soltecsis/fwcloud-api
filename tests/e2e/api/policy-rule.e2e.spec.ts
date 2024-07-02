@@ -7,7 +7,7 @@ import { User } from "../../../src/models/user/User";
 import request = require("supertest");
 import { describeName, expect, testSuite } from "../../mocha/global-setup";
 import { createUser, generateSession, attachSession } from "../../utils/utils";
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import StringHelper from "../../../src/utils/string.helper";
 import { IPObj } from "../../../src/models/ipobj/IPObj";
 import { _URL } from "../../../src/fonaments/http/router/router.service";
@@ -29,8 +29,11 @@ describe(describeName('Policy-rules E2E Test'), () =>{
     let content : string;
     let filePath : string;
 
+    let manager: EntityManager;
+
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
 
         loggedUser = await createUser({ role: 0 });
         loggedUserSessionId = generateSession(loggedUser);
@@ -38,13 +41,13 @@ describe(describeName('Policy-rules E2E Test'), () =>{
         adminUser = await createUser({ role: 1 });
         adminUserSessionId = generateSession(adminUser);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({name: StringHelper.randomize(10)}));
-        const ipObj: IPObj = await getRepository(IPObj).save(getRepository(IPObj).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({name: StringHelper.randomize(10)}));
+        const ipObj: IPObj = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
             name: 'test',
             address: '0.0.0.0',
             ipObjTypeId: 0
         }));
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id,
             install_ipobj: ipObj.id
@@ -83,7 +86,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
         it('regular user should read a compiled file content of a firewall if it does belong to the fwcloud', async () => {
             
             loggedUser.fwClouds = [fwCloud];
-            await getRepository(User).save(loggedUser);
+            await manager.getRepository(User).save(loggedUser);
 
             return await request(app.express)
                 .get(_URL().getURL('fwclouds.firewalls.policyRules.read', {
@@ -136,7 +139,7 @@ describe(describeName('Policy-rules E2E Test'), () =>{
         })
         it('regular user should download a compiled file content of a firewall if it does belong to the fwcloud', async () => {
             loggedUser.fwClouds = [fwCloud];
-            await getRepository(User).save(loggedUser);
+            await manager.getRepository(User).save(loggedUser);
 
             return await request(app.express)
                 .post(_URL().getURL('fwclouds.firewalls.policyRules.download', {

@@ -34,9 +34,9 @@ import { RouteItemForCompiler } from "../../../models/routing/shared";
 import { RoutingCompiler } from "../../../compiler/routing/RoutingCompiler";
 import { RoutingTableControllerCompileRoutesQueryDto } from "./dtos/compile-routes.dto";
 import { FwCloud } from "../../../models/fwcloud/FwCloud";
-import { getRepository } from "typeorm";
 import { Tree } from "../../../models/tree/Tree";
 import { RoutingRule } from "../../../models/routing/routing-rule/routing-rule.model";
+import db from "../../../database/database-manager";
 
 export class RoutingTableController extends Controller {
     
@@ -50,18 +50,18 @@ export class RoutingTableController extends Controller {
         
         //Get the routingTable
         if (request.params.routingTable) {
-            this._routingTable = await getRepository(RoutingTable).findOneOrFail(parseInt(request.params.routingTable));
+            this._routingTable = await db.getSource().manager.getRepository(RoutingTable).findOneOrFail({ where: { id: parseInt(request.params.routingTable) }});
         }
 
         //Get the firewall from the URL which contains the routingTable 
-        const firewallQueryBuilder = getRepository(Firewall).createQueryBuilder('firewall').where('firewall.id = :id', {id: parseInt(request.params.firewall)});
+        const firewallQueryBuilder = db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall').where('firewall.id = :id', {id: parseInt(request.params.firewall)});
         if (this._routingTable) {
             firewallQueryBuilder.innerJoin('firewall.routingTables', 'routingTable', 'routingTable.id = :routingTableId', {routingTableId: this._routingTable.id})
         }
         this._firewall = await firewallQueryBuilder.getOneOrFail();
 
         //Get the fwcloud from the URL which contains the firewall
-        this._fwCloud = await getRepository(FwCloud).createQueryBuilder('fwcloud')
+        this._fwCloud = await db.getSource().manager.getRepository(FwCloud).createQueryBuilder('fwcloud')
             .innerJoin('fwcloud.firewalls', 'firewall', 'firewall.id = :firewallId', {firewallId: this._firewall.id})
             .where('fwcloud.id = :id', {id: parseInt(request.params.fwcloud)}).getOneOrFail();
 
@@ -149,7 +149,7 @@ export class RoutingTableController extends Controller {
     async restrictions(request: Request): Promise<ResponseBuilder> {
         (await RoutingTablePolicy.show(this._routingTable, request.session.user)).authorize();
 
-        const rules: RoutingRule[] = await getRepository(RoutingRule).createQueryBuilder('rule')
+        const rules: RoutingRule[] = await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('rule')
             .select('rule.id', 'routing_rule_id')
             .addSelect('table.id', 'routing_table_id')
             .addSelect("firewall.id","firewall_id")

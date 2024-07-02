@@ -42,9 +42,10 @@ import { DatabaseImporter } from "../fwcloud-exporter/database-importer/database
 import { SnapshotService } from "./snapshot.service";
 import { BackupService } from "../backups/backup.service";
 import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { getCustomRepository, getRepository, Migration } from "typeorm";
+import { Migration } from "typeorm";
 import { DatabaseService } from "../database/database.service";
 import * as crypto from 'crypto';
+import db from "../database/database-manager";
 
 export type SnapshotMetadata = {
     timestamp: number,
@@ -85,6 +86,7 @@ export class Snapshot implements Responsable {
     protected _data: ExporterResult;
 
     protected _restoredFwCloud: FwCloud;
+    protected _firewallRepository: FirewallRepository;
 
     protected constructor() {
         this._id = null;
@@ -98,6 +100,7 @@ export class Snapshot implements Responsable {
         this._data = null;
         this._compatible = false;
         this._hash = null;
+        this._firewallRepository = new FirewallRepository(db.getSource().manager);
     }
 
     get name(): string {
@@ -221,7 +224,7 @@ export class Snapshot implements Responsable {
         this._id = parseInt(path.basename(snapshotPath));
         this._date = moment(snapshotMetadata.timestamp);
         this._path = snapshotPath;
-        this._fwCloud =fwCloudId ?  await FwCloud.findOne(fwCloudId) : null;
+        this._fwCloud =fwCloudId ?  await FwCloud.findOne({ where: { id: fwCloudId }}) : null;
         this._name = snapshotMetadata.name;
         this._comment = snapshotMetadata.comment;
         this._version = snapshotMetadata.version;
@@ -333,7 +336,10 @@ export class Snapshot implements Responsable {
         
         const fwCloud: FwCloud = await importer.import(this);
 
-        const oldFwCloud: FwCloud = await FwCloud.findOne(this.fwCloud.id, {relations: ['users']});
+        const oldFwCloud: FwCloud = await FwCloud.findOne({
+            where: { id: this.fwCloud.id },
+            relations: ['users']
+        });
 
         fwCloud.users = oldFwCloud.users;
         await FwCloud.save([fwCloud]);
@@ -409,9 +415,12 @@ export class Snapshot implements Responsable {
      */
     protected async resetCompiledStatus(): Promise<void> {
         return new Promise<void>(async (resolve, reject) => {
-            const fwcloud: FwCloud = await FwCloud.findOneOrFail(this._restoredFwCloud.id, { relations: ['clusters', 'firewalls'] });
+            const fwcloud: FwCloud = await FwCloud.findOneOrFail({
+                where: { id: this._restoredFwCloud.id },
+                relations: ['clusters', 'firewalls']
+            });
 
-            await getCustomRepository(FirewallRepository).markAsUncompiled(fwcloud.firewalls);
+            await this._firewallRepository.markAsUncompiled(fwcloud.firewalls);
 
             return resolve();
         });

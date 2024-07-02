@@ -28,6 +28,7 @@ import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
 import { populateRule } from "./utils";
 import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/policy/PolicyCompiler";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
+import { EntityManager } from "typeorm";
 
 describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () => {
   let fwcProduct: FwCloudProduct;
@@ -35,6 +36,7 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
   let IPv: string;
   let compiler: AvailablePolicyCompilers;
   let chain: string;
+  let manager: EntityManager;
 
   const comment = "CrowdSec firewall bouncer support";
 
@@ -92,6 +94,7 @@ describe(describeName('Policy Compiler Unit Tests - CrowdSec special rule'), () 
 
   before(async () => {
     dbCon = db.getQuery();
+    manager = db.getSource().manager;
     fwcProduct = await (new FwCloudFactory()).make();
     ruleData.firewall = fwcProduct.firewall.id;
   });

@@ -21,7 +21,7 @@ describe(describeName('PolicyRuleService Unit tests'), async() => {
     beforeEach( async () => {
         app = testSuite.app;
         await testSuite.resetDatabaseData();
-        fwcProduct = await (new FwCloudFactory()).make();
+        fwcProduct = await new FwCloudFactory().make();
 
         fwcloud = fwcProduct.fwcloud;
         firewall = fwcProduct.firewall;

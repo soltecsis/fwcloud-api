@@ -4,13 +4,13 @@ import { FwCloud } from "./FwCloud";
 import { colorUsage, fwcloudColors } from "./FwCloud-colors";
 import { User } from "../user/User";
 import { Tree } from "../tree/Tree";
-import { getRepository } from "typeorm";
 import { PolicyRule } from '../policy/PolicyRule';
 import { PolicyGroup } from '../policy/PolicyGroup';
 import { Route } from "../routing/route/route.model";
 import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
 import { RouteGroup } from "../routing/route-group/route-group.model";
 import { RoutingGroup } from "../routing/routing-group/routing-group.model";
+import db from "../../database/database-manager";
 
 
 export class FwCloudService extends Service {
@@ -26,7 +26,7 @@ export class FwCloudService extends Service {
         await this.grantAdminAccess(fwCloud);
         await Tree.createAllTreeCloud(fwCloud);
 
-        return FwCloud.findOne(fwCloud.id);
+        return FwCloud.findOne({ where: { id: fwCloud.id }});
     }
 
     public async update(fwCloud: FwCloud, data: DeepPartial<FwCloud>): Promise<FwCloud> {
@@ -37,7 +37,7 @@ export class FwCloudService extends Service {
     }
 
     public async colors(fwCloud: FwCloud): Promise<colorUsage[]> {
-        const policyRulesColors: fwcloudColors = new fwcloudColors(await getRepository(PolicyRule).createQueryBuilder("policy_r")
+        const policyRulesColors: fwcloudColors = new fwcloudColors(await db.getSource().manager.getRepository(PolicyRule).createQueryBuilder("policy_r")
             .select("policy_r.style", 'color')
             .addSelect("COUNT(policy_r.style)", 'count')
             .innerJoin("policy_r.firewall", "firewall")
@@ -49,7 +49,7 @@ export class FwCloudService extends Service {
             .getRawMany()
         );
 
-        const groupRulesColors: fwcloudColors = new fwcloudColors(await getRepository(PolicyGroup).createQueryBuilder("policy_g")
+        const groupRulesColors: fwcloudColors = new fwcloudColors(await db.getSource().manager.getRepository(PolicyGroup).createQueryBuilder("policy_g")
             .select("policy_g.groupstyle", 'color')
             .addSelect("COUNT(policy_g.groupstyle)", 'count')
             .innerJoin("policy_g.firewall", "firewall")
@@ -61,7 +61,7 @@ export class FwCloudService extends Service {
             .getRawMany()
         );
 
-        const routesColors: fwcloudColors = new fwcloudColors(await getRepository(Route).createQueryBuilder("route")
+        const routesColors: fwcloudColors = new fwcloudColors(await db.getSource().manager.getRepository(Route).createQueryBuilder("route")
             .select("route.style", 'color')
             .addSelect("COUNT(route.style)", 'count')
             .innerJoin("route.routingTable", "table")
@@ -74,7 +74,7 @@ export class FwCloudService extends Service {
             .getRawMany()
         );
 
-        const groupRoutesColors: fwcloudColors = new fwcloudColors(await getRepository(RouteGroup).createQueryBuilder("route_g")
+        const groupRoutesColors: fwcloudColors = new fwcloudColors(await db.getSource().manager.getRepository(RouteGroup).createQueryBuilder("route_g")
             .select("route_g.style", 'color')
             .addSelect("COUNT(route_g.style)", 'count')
             .innerJoin("route_g.firewall", "firewall")
@@ -86,7 +86,7 @@ export class FwCloudService extends Service {
             .getRawMany()
         );
 
-        const routingRulesColors: fwcloudColors = new fwcloudColors(await getRepository(RoutingRule).createQueryBuilder("routing_r")
+        const routingRulesColors: fwcloudColors = new fwcloudColors(await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder("routing_r")
             .select("routing_r.style", 'color')
             .addSelect("COUNT(routing_r.style)", 'count')
             .leftJoin("routing_r.routingTable", "table")
@@ -99,7 +99,7 @@ export class FwCloudService extends Service {
             .getRawMany()
         );
 
-        const groupRoutingRulesColors: fwcloudColors = new fwcloudColors(await getRepository(RoutingGroup).createQueryBuilder("routing_g")
+        const groupRoutingRulesColors: fwcloudColors = new fwcloudColors(await db.getSource().manager.getRepository(RoutingGroup).createQueryBuilder("routing_g")
             .select("routing_g.style", 'color')
             .addSelect("COUNT(routing_g.style)", 'count')
             .innerJoin("routing_g.firewall", "firewall")

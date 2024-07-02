@@ -99,6 +99,7 @@ router.put('/', async (req, res) => {
 		await policyRuleService.compile(req.body.fwcloud, req.body.firewall, channel);
 		res.status(204).end();
 	} catch(error) {
+		console.log(error)
 		if (channel) channel.emit('message', new ProgressErrorPayload('end', true, `ERROR: ${error}`));
 		logger().error('Error compiling firewall: ' + JSON.stringify(error));
 		res.status(400).json(error);		

@@ -21,7 +21,7 @@
 */
 
 import { Service } from "../fonaments/services/service";
-import { Connection, QueryRunner, Migration, getConnectionManager, ConnectionOptions, MigrationExecutor } from "typeorm";
+import { DataSource, QueryRunner, Migration, DataSourceOptions, MigrationExecutor } from "typeorm";
 import * as path from "path";
 import * as fs from "fs";
 import moment from "moment";
@@ -97,57 +97,56 @@ export interface DatabaseConfig {
 
 export class DatabaseService extends Service {
     protected _id: number;
-    protected _connection: Connection;
+    protected _dataSource: DataSource;
     protected _config: DatabaseConfig;
 
     public async build(): Promise<DatabaseService> {
         this._config = this._app.config.get('db');
-        this._connection = null;
+        this._dataSource = null;
         this._id = moment().valueOf();
 
-        this._connection = await this.getConnection({name: 'default'});
+        this._dataSource = await this.getDataSource({name: 'default'});
         
         return this;
     }
 
     public async close(): Promise<void> {
-        const connections: Array<Connection> = getConnectionManager().connections;
+        const connection: DataSource = this._dataSource;
 
-        for(let i = 0; i < connections.length; i++) {
-            if (connections[i].isConnected) {
-                await connections[i].close();
+            if (connection.isInitialized && connection) {
+                await connection.destroy();
             }
-        }
+        
     }
 
     get config(): any {
         return this._config;
     }
 
-    get connection(): Connection {
-        return this._connection;
+    get dataSource(): DataSource {
+        return this._dataSource;
     }
 
-    public async getConnection(options: Partial<ConnectionOptions>): Promise<Connection> {
-        const connectionOptions: ConnectionOptions = <ConnectionOptions>ObjectHelpers.merge(this.getDefaultConnectionConfiguration(), options);
-        let connection: Connection;
+    public async getDataSource(options: Partial<DataSourceOptions>): Promise<DataSource> {
+        const dataSourceOptions: DataSourceOptions = <DataSourceOptions>ObjectHelpers.merge(this.getDefaultDataSourceConfiguration(), options);
+        let dataSource: DataSource;
 
-        connection = getConnectionManager().has(options.name) ? getConnectionManager().get(options.name) : getConnectionManager().create(connectionOptions);
+        dataSource = new DataSource(dataSourceOptions);
         
-        if(!connection.isConnected) {
-            await connection.connect();
+        if(!dataSource.isInitialized) {
+            await dataSource.initialize();
         }
         
-        return connection;
+        return dataSource;
     }
 
-    public async emptyDatabase(connection: Connection = null): Promise<void> {
-        connection = connection ? connection : this._connection;
-        const queryRunner: QueryRunner = connection.createQueryRunner();
+    public async emptyDatabase(dataSource: DataSource = null): Promise<void> {
+        dataSource = dataSource ? dataSource : this._dataSource;
+        const queryRunner: QueryRunner = dataSource.createQueryRunner();
         await queryRunner.startTransaction();
 
         try {
-            const tables: Array<string> = await this.getTables(connection);
+            const tables: Array<string> = await this.getTables(dataSource);
 
             let query = 'SET FOREIGN_KEY_CHECKS=0;'
             for (let i = 0; i < tables.length; i++)
@@ -164,26 +163,26 @@ export class DatabaseService extends Service {
         }
     }
 
-    public async isDatabaseEmpty(connection: Connection = null): Promise<boolean> {
-        connection = connection ? connection : this._connection;
+    public async isDatabaseEmpty(dataSource: DataSource = null): Promise<boolean> {
+        dataSource = dataSource ? dataSource : this._dataSource;
         
-        const queryRunner: QueryRunner = connection.createQueryRunner();
+        const queryRunner: QueryRunner = dataSource.createQueryRunner();
         const result: Array<any> = await queryRunner.query('SELECT table_name FROM information_schema.tables WHERE table_schema=?', [this._config.name]);
         await queryRunner.release();
         return result.length === 0;
     }
 
-    public async runMigrations(connection: Connection = null): Promise<Migration[]> {
-        connection = connection ? connection : this._connection;
+    public async runMigrations(dataSource: DataSource = null): Promise<Migration[]> {
+        dataSource = dataSource ? dataSource : this._dataSource;
         
-        return await connection.runMigrations();
+        return await dataSource.runMigrations();
     }
 
-    public async getExecutedMigrations(connection?: Connection): Promise<Migration[]> {
-        connection = connection ?? this._connection;
-        const queryRunner: QueryRunner = connection.createQueryRunner();
+    public async getExecutedMigrations(dataSource?: DataSource): Promise<Migration[]> {
+        dataSource = dataSource ?? this._dataSource;
+        const queryRunner: QueryRunner = dataSource.createQueryRunner();
 
-        const migrationExecutor: MigrationExecutor = new MigrationExecutor(connection, queryRunner);
+        const migrationExecutor: MigrationExecutor = new MigrationExecutor(dataSource, queryRunner);
         const migrations: Migration[] = await migrationExecutor.getExecutedMigrations();
         
         await queryRunner.release();
@@ -191,40 +190,40 @@ export class DatabaseService extends Service {
         return migrations;
     }
 
-    public async resetMigrations(connection: Connection = null): Promise<void> {
-        connection = connection ? connection : this._connection;
+    public async resetMigrations(dataSource: DataSource = null): Promise<void> {
+        dataSource = dataSource ? dataSource : this._dataSource;
         
-        return await this.emptyDatabase(connection);
+        return await this.emptyDatabase(dataSource);
     }
 
-    public async rollbackMigrations(steps: number = 1, connection?: Connection): Promise<void> {
-        connection = connection ?? this._connection;
+    public async rollbackMigrations(steps: number = 1, dataSource?: DataSource): Promise<void> {
+        dataSource = dataSource ?? this._dataSource;
 
         for(let i = 0; i < steps; i++) {
-            await connection.undoLastMigration();
+            await dataSource.undoLastMigration();
         }
 
         return;
     }
 
-    public async feedDefaultData(connection: Connection = null): Promise<void> {
-        connection = connection ? connection : this._connection;
+    public async feedDefaultData(dataSource: DataSource = null): Promise<void> {
+        dataSource = dataSource ? dataSource : this._dataSource;
 
-        await this.importSQLFile(path.join(process.cwd(), 'config', 'seeds', 'default.sql'), connection);
-        await this.importSQLFile(path.join(process.cwd(), 'config', 'seeds', 'ipobj_std.sql'), connection);
+        await this.importSQLFile(path.join(process.cwd(), 'config', 'seeds', 'default.sql'), dataSource);
+        await this.importSQLFile(path.join(process.cwd(), 'config', 'seeds', 'ipobj_std.sql'), dataSource);
     }
 
-    public async removeData(connection: Connection = null): Promise<void> {
-        connection = connection ? connection : this._connection;
+    public async removeData(dataSource: DataSource = null): Promise<void> {
+        dataSource = dataSource ? dataSource : this._dataSource;
         
-        const queryRunner: QueryRunner = connection.createQueryRunner();
+        const queryRunner: QueryRunner = dataSource.createQueryRunner();
         
         await queryRunner.startTransaction();
 
         try {
             await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0');
 
-            const tables: Array<string> = await this.getTables(connection);
+            const tables: Array<string> = await this.getTables(dataSource);
 
             for (let i = 0; i < tables.length; i++) {
                 if (tables[i] !== 'migrations') {
@@ -258,7 +257,7 @@ export class DatabaseService extends Service {
         return version;
     }
 
-    protected getDefaultConnectionConfiguration(): ConnectionOptions {
+    protected getDefaultDataSourceConfiguration(): DataSourceOptions {
         const loggerOptions: ("error" | "query")[] = this._app.config.get('log.queries') ? ['error', 'query'] : ['error'];
 
         return {
@@ -275,9 +274,6 @@ export class DatabaseService extends Service {
             multipleStatements: true, // For optimization purposes. For example, in emptyDatabase() method.
             logger: new DatabaseLogger(loggerOptions),
             migrations: this._config.migrations,
-            cli: {
-                migrationsDir: this._config.migration_directory
-            },
             entities: [
                 Cluster,
                 Firewall,
@@ -337,9 +333,9 @@ export class DatabaseService extends Service {
         }
     }
 
-    protected async importSQLFile(path: string, connection: Connection = null): Promise<void> {
-        connection = connection ? connection : this._connection;
-        const queryRunner: QueryRunner = connection.createQueryRunner();
+    protected async importSQLFile(path: string, dataSource: DataSource = null): Promise<void> {
+        dataSource = dataSource ? dataSource : this._dataSource;
+        const queryRunner: QueryRunner = dataSource.createQueryRunner();
         const queries = fs.readFileSync(path, { encoding: 'utf-8' })
             .replace(new RegExp('\'', 'gm'), '"')
             .replace(new RegExp('^--.*\n', 'gm'), '')
@@ -370,9 +366,9 @@ export class DatabaseService extends Service {
         }
     }
 
-    protected async getTables(connection: Connection = null): Promise<Array<string>> {
-        connection = connection ? connection : this._connection;
-        const queryRunner: QueryRunner = connection.createQueryRunner();
+    protected async getTables(dataSource: DataSource = null): Promise<Array<string>> {
+        dataSource = dataSource ? dataSource : this._dataSource;
+        const queryRunner: QueryRunner = dataSource.createQueryRunner();
 
         const result: Array<any> = await queryRunner.query('SELECT table_name FROM information_schema.tables WHERE table_schema=?', [this._config.name]);
 

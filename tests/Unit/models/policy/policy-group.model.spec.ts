@@ -27,14 +27,17 @@ import { PolicyGroup } from "../../../../src/models/policy/PolicyGroup";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import sinon from "sinon";
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 
 let app: AbstractApplication;
+let manager: EntityManager;
 
 describe(describeName('PolicyRule tests'), () => {
     
     before(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
     });
 
     describe('unassignPolicyRulesBeforeRemove()', () => {
@@ -53,7 +56,7 @@ describe(describeName('PolicyRule tests'), () => {
 
             await group.unassignPolicyRulesBeforeRemove();
 
-            rule = await PolicyRule.findOne(rule.id);
+            rule = await PolicyRule.findOne({ where: { id: rule.id }});
 
             expect(rule.policyGroupId).to.be.null;
         });
@@ -63,7 +66,7 @@ describe(describeName('PolicyRule tests'), () => {
 
             let group: PolicyGroup = await PolicyGroup.save(PolicyGroup.create({
                 name: 'test',
-                firewall: await getRepository(Firewall).save({ name: 'test' })
+                firewall: await manager.getRepository(Firewall).save({ name: 'test' })
             }));
 
             group = await group.remove();

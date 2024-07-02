@@ -20,15 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { In, EntityRepository } from "typeorm";
+import { EntityManager, In } from "typeorm";
 import { PolicyRule, SpecialPolicyRules } from "./PolicyRule";
 import { PolicyGroup } from "./PolicyGroup";
-import Model from "../Model";
-import { isArray } from "util";
 import { Repository } from "../../database/repository";
+import { isArray } from "class-validator";
 
-@EntityRepository(PolicyRule)
 export class PolicyRuleRepository extends Repository<PolicyRule> {
+
+    constructor(manager?: EntityManager) {
+        super(PolicyRule, manager);
+    }
 
     /**
      * Updates one or multiple PolicyRule styles

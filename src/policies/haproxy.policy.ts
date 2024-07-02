@@ -1,15 +1,16 @@
-import { getRepository } from "typeorm";
 import { Authorization, Policy } from "../fonaments/authorization/policy";
 import { Firewall } from "../models/firewall/Firewall";
 import { FwCloud } from "../models/fwcloud/FwCloud";
 import { User } from "../models/user/User";
 import { HAProxyRule } from "../models/system/haproxy/haproxy_r/haproxy_r.model";
+import db from "../database/database-manager";
 
 export class HAProxyPolicy extends Policy {
     static async create(firewall: Firewall, user: User): Promise<Authorization> {
         user = await this.getUser(user);
-        firewall = await getRepository(Firewall).findOneOrFail(firewall.id,{
-            relations: ['fwCloud'],
+        firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+            where: { id: firewall.id },
+            relations: ['fwCloud']
         });
 
         return this.checksAutorization(user,firewall);
@@ -17,8 +18,9 @@ export class HAProxyPolicy extends Policy {
 
     static async show(rule: HAProxyRule, user: User): Promise<Authorization> {
         user = await this.getUser(user);
-        const firewall = await getRepository(Firewall).findOneOrFail(rule.firewallId,{
-            relations: ['fwCloud'],
+        const firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({
+            where: { id: rule.firewallId },
+            relations: ['fwCloud']
         });
 
         return this.checksAutorization(user,rule.firewall);
@@ -35,8 +37,9 @@ export class HAProxyPolicy extends Policy {
     }
 
     protected static async getUser(user: User): Promise<User> {
-        return getRepository(User).findOneOrFail(user.id,{
-            relations: ['fwClouds'],
+        return db.getSource().manager.getRepository(User).findOneOrFail({
+            where: { id: user.id },
+            relations: ['fwClouds']
         });
     }
 }

@@ -21,7 +21,7 @@ import { Firewall } from './../../firewall/Firewall';
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Column, Entity, getRepository, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { IPObj } from "../../ipobj/IPObj";
 import { Mark } from "../../ipobj/Mark";
 import Model from "../../Model";
@@ -131,7 +131,7 @@ export class RoutingRule extends Model {
     }
 
     public static async getRoutingRuleWhichLastAddressInHost(ipobjId: number, type: number, fwcloud:number): Promise<RoutingRule[]> {
-        const routingRuleToIPObjs: RoutingRuleToIPObj[] = await getRepository(RoutingRuleToIPObj).createQueryBuilder('routingRuleToIPObj')
+        const routingRuleToIPObjs: RoutingRuleToIPObj[] = await db.getSource().manager.getRepository(RoutingRuleToIPObj).createQueryBuilder('routingRuleToIPObj')
             .innerJoin('routingRuleToIPObj.ipObj', 'ipobj')
             .innerJoin('ipobj.hosts', 'interfaceIPObj')
             .innerJoin('routingRuleToIPObj.routingRule', 'rule')
@@ -165,7 +165,7 @@ export class RoutingRule extends Model {
             return [];
         }
 
-        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+        return await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('routing_rule')
             .distinct()
             .addSelect('firewall.id', 'firewall_id')
             .addSelect('firewall.name', 'firewall_name')
@@ -183,7 +183,7 @@ export class RoutingRule extends Model {
     }
 
     public static async getRoutingRuleWhichLastAddressInHostInGroup(ipobjId: number, type: number, fwcloud:number): Promise<RoutingRule[]> {
-        const routingRuleToIPObjGroups: RoutingRuleToIPObjGroup[] = await getRepository(RoutingRuleToIPObjGroup).createQueryBuilder('routingRuleToIPObjGroups')
+        const routingRuleToIPObjGroups: RoutingRuleToIPObjGroup[] = await db.getSource().manager.getRepository(RoutingRuleToIPObjGroup).createQueryBuilder('routingRuleToIPObjGroups')
             .innerJoinAndSelect('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
             .innerJoinAndSelect('ipObjGroup.ipObjToIPObjGroups', 'ipObjToIPObjGroups')
             .innerJoin('ipObjToIPObjGroups.ipObj', 'ipobj')
@@ -222,7 +222,7 @@ export class RoutingRule extends Model {
             return [];
         }
 
-        return await getRepository(RoutingRule).createQueryBuilder('routing_rule')
+        return await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('routing_rule')
             .distinct()
             .addSelect('firewall.id', 'firewall_id')
             .addSelect('firewall.name', 'firewall_name')

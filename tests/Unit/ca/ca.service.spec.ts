@@ -4,8 +4,9 @@ import { Application } from '../../../src/Application';
 import { CaService } from '../../../src/ca/ca.service';
 import { Ca } from '../../../src/models/vpn/pki/Ca';
 import { beforeEach } from 'mocha';
-import { getRepository } from 'typeorm';
+import { EntityManager } from 'typeorm';
 import StringHelper from '../../../src/utils/string.helper';
+import db from '../../../src/database/database-manager';
 
 describe(describeName('Ca Service Unit Test'), () =>{
     let app: Application;
@@ -13,13 +14,15 @@ describe(describeName('Ca Service Unit Test'), () =>{
     let fwCloud: FwCloud;
     let ca: Ca;
     let changeComment: string;
+    let manager: EntityManager;
 
     beforeEach(async ()=>{
         app = testSuite.app;
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        manager = db.getSource().manager;
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: 'fwcloudTest'
         }));
-        ca = await getRepository(Ca).save(getRepository(Ca).create({
+        ca = await manager.getRepository(Ca).save(manager.getRepository(Ca).create({
             fwCloudId: fwCloud.id,
             cn: 'caTest',
             days: 1000,
@@ -36,7 +39,7 @@ describe(describeName('Ca Service Unit Test'), () =>{
 
             await service.update(ca.id, {comment:changeComment});
 
-            ca = await getRepository(Ca).findOne(ca.id);
+            ca = await manager.getRepository(Ca).findOne({ where: { id: ca.id }});
 
             expect(await ca.comment).to.be.equal(changeComment);
         })

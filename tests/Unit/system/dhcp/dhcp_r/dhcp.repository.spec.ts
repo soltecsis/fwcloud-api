@@ -19,18 +19,18 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { getCustomRepository } from "typeorm";
 import { DHCPRule } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.model";
 import { DHCPRepository } from "../../../../../src/models/system/dhcp/dhcp_r/dhcp.repository";
 import { DHCPGroup } from "../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model";
 import { IPObj } from "../../../../../src/models/ipobj/IPObj";
-import { getRepository } from "typeorm";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
 import { testSuite, expect } from "../../../../mocha/global-setup";
 import { FwCloud } from "../../../../../src/models/fwcloud/FwCloud";
 import StringHelper from "../../../../../src/utils/string.helper";
 import sinon from "sinon";
 import { Offset } from "../../../../../src/offset";
+import { EntityManager } from "typeorm";
+import db from "../../../../../src/database/database-manager";
 
 describe(DHCPRepository.name, () => {
     let repository: DHCPRepository;
@@ -39,30 +39,32 @@ describe(DHCPRepository.name, () => {
     let gateway: IPObj;
     let group: DHCPGroup;
     let dhcpRule: DHCPRule;
+    let manager: EntityManager;
 
     beforeEach(async () => {
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
-        repository = getCustomRepository(DHCPRepository);
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        repository = new DHCPRepository(manager);
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id
         }));
-        gateway = await getRepository(IPObj).save(getRepository(IPObj).create({
+        gateway = await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
             name: 'test',
             address: '0.0.0.0',
             ipObjTypeId: 0,
             interfaceId: null
         }));
 
-        group = await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+        group = await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
             name: 'group',
             firewall: firewall,
         }));
 
-        dhcpRule = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+        dhcpRule = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
             group: group,
             firewall: firewall,
             rule_order: 1,
@@ -75,11 +77,11 @@ describe(DHCPRepository.name, () => {
             const result = await repository.remove(dhcpRule);
 
             expect(result).to.deep.equal(dhcpRule);
-            expect(await repository.findOne(dhcpRule.id)).to.be.undefined;
+            expect(await repository.findOne({ where: { id: dhcpRule.id }})).to.be.null;
         });
 
         it('should remove multiple DHCPRule entities', async () => {
-            const dhcpRule2 = await getRepository(DHCPRule).save(getRepository(DHCPRule).create({
+            const dhcpRule2 = await manager.getRepository(DHCPRule).save(manager.getRepository(DHCPRule).create({
                 group: group,
                 firewall: firewall,
                 rule_order: 2,
@@ -89,8 +91,8 @@ describe(DHCPRepository.name, () => {
             const result = await repository.remove([dhcpRule, dhcpRule2]);
 
             expect(result).to.deep.equal([dhcpRule, dhcpRule2]);
-            expect(await repository.findOne(dhcpRule.id)).to.be.undefined;
-            expect(await repository.findOne(dhcpRule2.id)).to.be.undefined;
+            expect(await repository.findOne({ where: { id: dhcpRule.id }})).to.be.null;
+            expect(await repository.findOne({ where: { id: dhcpRule2.id }})).to.be.null;
         });
 
         it('should refresh orders after remove', async () => {
@@ -102,12 +104,12 @@ describe(DHCPRepository.name, () => {
         });
 
         it('should refresh orders for each group after removing multiple DHCPRules', async () => {
-            const group2 = await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+            const group2 = await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
                 name: 'group2',
                 firewall: firewall,
             }));
 
-            const dhcpRule2 = getRepository(DHCPRule).create({
+            const dhcpRule2 = manager.getRepository(DHCPRule).create({
                 group: group2,
                 rule_order: 1,
                 firewall: firewall,
@@ -192,7 +194,7 @@ describe(DHCPRepository.name, () => {
             const firewallId = 1;
             const ruleTypes = [1, 2, 3];
 
-            const result = await repository.getDHCPRules(fwcloudId, firewallId, undefined, ruleTypes);
+            const result = await repository.getDHCPRules(fwcloudId, firewallId, null, ruleTypes);
 
             expect(result).to.be.an('array');
 

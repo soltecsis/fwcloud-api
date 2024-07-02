@@ -22,7 +22,7 @@
 
 import Model from "../Model";
 import db from '../../database/database-manager';
-import { PrimaryGeneratedColumn, Column, getRepository, Entity, Repository, ManyToOne, JoinTable, JoinColumn } from "typeorm";
+import { PrimaryGeneratedColumn, Column, Entity, Repository, ManyToOne, JoinTable, JoinColumn } from "typeorm";
 import { IPObjGroup } from "./IPObjGroup";
 import { app } from "../../fonaments/abstract-application";
 import { IPObj } from "./IPObj";

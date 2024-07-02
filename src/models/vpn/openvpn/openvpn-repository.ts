@@ -20,13 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository } from "../../../database/repository";
 import { OpenVPN } from "./OpenVPN";
-import { EntityRepository, SelectQueryBuilder } from "typeorm";
+import { EntityManager, SelectQueryBuilder } from "typeorm";
 import { ValidEntities } from "../../ipobj/IPObj.repository";
+import { Repository } from "../../../database/repository";
 
-@EntityRepository(OpenVPN)
+//@EntityRepository(OpenVPN)
 export class OpenVPNRepository extends Repository<OpenVPN> {
+
+  constructor(manager?: EntityManager) {
+    super(OpenVPN, manager);
+  }
+
   public async markAllAsUninstalled(): Promise<void> {
     await this.createQueryBuilder().update(OpenVPN)
       .set({

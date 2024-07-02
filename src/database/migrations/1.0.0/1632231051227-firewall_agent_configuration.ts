@@ -1,4 +1,4 @@
-import {getRepository, MigrationInterface, QueryRunner, TableColumn} from "typeorm";
+import { MigrationInterface, QueryRunner, TableColumn} from "typeorm";
 import { FirewallInstallCommunication } from "../../../models/firewall/Firewall";
 
 export class firewallAgentConfiguration1632231051227 implements MigrationInterface {

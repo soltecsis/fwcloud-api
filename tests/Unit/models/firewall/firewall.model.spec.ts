@@ -1,17 +1,20 @@
 import { describeName, expect, testSuite } from "../../../mocha/global-setup";
-import { getRepository } from "typeorm";
 import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
 import StringHelper from "../../../../src/utils/string.helper";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
 import * as path from "path";
 import { Mark } from "../../../../src/models/ipobj/Mark";
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 
 describe(describeName('Firewall Model Unit Tests'), () => {
     let fwCloud: FwCloud;
+    let manager: EntityManager;
 
     beforeEach(async() => {
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        manager = db.getSource().manager;
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
     });
@@ -26,7 +29,7 @@ describe(describeName('Firewall Model Unit Tests'), () => {
         });
 
         it('should return a path if the firewall belongs to a fwcloud and it has an id', async () => {
-            const firewall: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+            const firewall: Firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
                 name: StringHelper.randomize(10),
                 fwCloudId: fwCloud.id
             }));
@@ -36,7 +39,7 @@ describe(describeName('Firewall Model Unit Tests'), () => {
         });
 
         it('should return null if the firewall does not belong to a fwcloud', async() => {
-            const firewall: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+            const firewall: Firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
                 name: StringHelper.randomize(10)
             }));
 
@@ -44,7 +47,7 @@ describe(describeName('Firewall Model Unit Tests'), () => {
         });
 
         it('should return null if the firewall does not persisted', async() => {
-            const firewall: Firewall = getRepository(Firewall).create({
+            const firewall: Firewall = manager.getRepository(Firewall).create({
                 name: StringHelper.randomize(10),
                 fwCloudId: fwCloud.id
             });
@@ -55,7 +58,7 @@ describe(describeName('Firewall Model Unit Tests'), () => {
 
     describe('hasMarkedRules()', () => {
         it('should return false if firewall does not have any rule', async () => {
-            const firewall: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+            const firewall: Firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
                 name: StringHelper.randomize(10)
             }));
 
@@ -63,12 +66,12 @@ describe(describeName('Firewall Model Unit Tests'), () => {
         });
 
         it('should return false if firewall rules are not marked', async () => {
-            const firewall: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+            const firewall: Firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
                 name: StringHelper.randomize(10)
             }));
 
             for(let i = 0; i < 10; i++) {
-                await getRepository(PolicyRule).save(getRepository(PolicyRule).create({
+                await manager.getRepository(PolicyRule).save(manager.getRepository(PolicyRule).create({
                     firewall: firewall,
                     rule_order: 0,
                     action: 0
@@ -79,24 +82,24 @@ describe(describeName('Firewall Model Unit Tests'), () => {
         });
 
         it('should return true if at least one rule is marked', async () => {
-            const firewall: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+            const firewall: Firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
                 name: StringHelper.randomize(10),
                 fwCloudId: fwCloud.id
             }));
 
             for(let i = 0; i < 10; i++) {
-                await getRepository(PolicyRule).save(getRepository(PolicyRule).create({
+                await manager.getRepository(PolicyRule).save(manager.getRepository(PolicyRule).create({
                     firewall: firewall,
                     rule_order: 0,
                     action: 0
                 }));
             }
 
-            await getRepository(PolicyRule).save(getRepository(PolicyRule).create({
+            await manager.getRepository(PolicyRule).save(manager.getRepository(PolicyRule).create({
                 firewall: firewall,
                 rule_order: 0,
                 action: 0,
-                mark: await getRepository(Mark).save(getRepository(Mark).create({
+                mark: await manager.getRepository(Mark).save(manager.getRepository(Mark).create({
                     name: StringHelper.randomize(10),
                     code: 0,
                     fwCloud: fwCloud
@@ -107,16 +110,16 @@ describe(describeName('Firewall Model Unit Tests'), () => {
         });
 
         it('should return true if a rule is marked with a mark which id is 0', async () => {
-            const firewall: Firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+            const firewall: Firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
                 name: StringHelper.randomize(10),
                 fwCloudId: fwCloud.id
             }));
 
-            await getRepository(PolicyRule).save(getRepository(PolicyRule).create({
+            await manager.getRepository(PolicyRule).save(manager.getRepository(PolicyRule).create({
                 firewall: firewall,
                 rule_order: 0,
                 action: 0,
-                mark: await getRepository(Mark).save(getRepository(Mark).create({
+                mark: await manager.getRepository(Mark).save(manager.getRepository(Mark).create({
                     id: 0,
                     name: StringHelper.randomize(10),
                     code: 0,

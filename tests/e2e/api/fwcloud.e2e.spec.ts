@@ -55,7 +55,7 @@ describe(describeName('FwCloud E2E Tests'), () => {
             });
 
             it('should create a fwcloud', async () => {
-                const count: number = (await FwCloud.find()).length;
+                const count: number = (await FwCloud.findAndCount())[1];
 
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.store'))
@@ -65,7 +65,7 @@ describe(describeName('FwCloud E2E Tests'), () => {
                     })
                     .expect(201)
                     .then(async (_) => {
-                        expect((await FwCloud.find()).length).to.be.eq(count + 1);
+                        expect((await FwCloud.findAndCount())[1]).to.be.eq(count + 1);
                     });
             });
 
@@ -81,7 +81,7 @@ describe(describeName('FwCloud E2E Tests'), () => {
                     })
                     .expect(201)
                     .then(async (response) => {
-                        const persistedFwCloud: FwCloud = await FwCloud.findOne(response.body.data.id);
+                        const persistedFwCloud: FwCloud = await FwCloud.findOne({where: {id: response.body.data.id}});
                         
                         expect(response.body.data).to.be.deep.eq(persistedFwCloud.toJSON());
                     });
@@ -136,7 +136,7 @@ describe(describeName('FwCloud E2E Tests'), () => {
                     })
                     .expect(200)
                     .then(async (response) => {
-                        const persistedFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id);
+                        const persistedFwCloud: FwCloud = await FwCloud.findOne({ where: { id: fwCloud.id }});
                         expect(persistedFwCloud.name).to.be.eq(name);
                         expect(persistedFwCloud.comment).to.be.eq(comment);
                     });
@@ -153,7 +153,7 @@ describe(describeName('FwCloud E2E Tests'), () => {
                     })
                     .expect(200)
                     .then(async (response) => {
-                        const persistedFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id);
+                        const persistedFwCloud: FwCloud = await FwCloud.findOne({ where: { id: fwCloud.id }});
                         const persistedFwCloudObj: any = persistedFwCloud.toJSON()
                         
                         expect(response.body.data.name).to.be.deep.eq(persistedFwCloudObj.name);

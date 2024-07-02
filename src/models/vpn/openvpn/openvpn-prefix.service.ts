@@ -1,4 +1,3 @@
-import { getRepository } from "typeorm";
 import db from "../../../database/database-manager";
 import { Service } from "../../../fonaments/services/service";
 import { Firewall } from "../../firewall/Firewall";
@@ -36,7 +35,7 @@ export class OpenVPNPrefixService extends Service {
 		await OpenVPNPrefix.applyOpenVPNPrefixes(req.dbCon, req.body.fwcloud, (req as any).prefix.openvpn);
 
 		//Update all group nodes which references the prefix to set the new name
-		await getRepository(FwcTree).createQueryBuilder('node')
+		await db.getSource().manager.getRepository(FwcTree).createQueryBuilder('node')
 			.update(FwcTree)
 			.set({
 				name: req.body.name
@@ -62,7 +61,7 @@ export class OpenVPNPrefixService extends Service {
                 for (let j=0; j<PrefixInGroupIpRule.length; j++)
                     await Firewall.updateFirewallStatus(fwcloudId, PrefixInGroupIpRule[j].firewall_id, "|3");
 
-                const firewall: Firewall[] = await getRepository(Firewall).createQueryBuilder('firewall')
+                const firewall: Firewall[] = await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
                     .distinct()
                     .innerJoin('firewall.routingTables', 'table')
                     .leftJoin('table.routingRules', 'rule')

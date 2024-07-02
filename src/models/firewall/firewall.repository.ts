@@ -22,18 +22,19 @@
 
 import { Repository } from "../../database/repository";
 import { Firewall } from "./Firewall";
-import { isArray } from "util";
-import { In, EntityRepository } from "typeorm";
+import { EntityManager, In } from "typeorm";
 
-@EntityRepository(Firewall)
 export class FirewallRepository extends Repository<Firewall> {
+    constructor(manager?: EntityManager) {
+        super(Firewall, manager);
+    }
     public async markAsUncompiled(Firewall: Firewall): Promise<Firewall>;
     public async markAsUncompiled(Firewalls: Array<Firewall>): Promise<Firewall>;
     public async markAsUncompiled(oneOrMany: Firewall | Array<Firewall>): Promise<Firewall | Array<Firewall>> {
         const entities: Array<Firewall> = Array.isArray(oneOrMany) ? oneOrMany: [oneOrMany];
 
         await this.createQueryBuilder().update(Firewall)
-        .where({id: In(this.getIdsFromEntityCollection(entities))})
+        .where('id IN (:...ids)', { ids: this.getIdsFromEntityCollection(entities) })
         .set({
             status: 3,
             installed_at: null,

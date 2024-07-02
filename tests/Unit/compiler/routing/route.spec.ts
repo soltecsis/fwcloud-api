@@ -27,6 +27,8 @@ import { RouteItemForCompiler } from "../../../../src/models/routing/shared";
 import { expect, testSuite } from "../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
 import ip from 'ip';
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 
 describe('Routing route compiler', async () => {   
     let fwc: FwCloudProduct;
@@ -43,8 +45,10 @@ describe('Routing route compiler', async () => {
     let cs_end: string;  
     const head = '$IP route add';
     let tail: string;
+    let manager: EntityManager;
 
     before(async () => {
+      manager = db.getSource().manager  
       await testSuite.resetDatabaseData();
 
       fwc = await (new FwCloudFactory()).make();

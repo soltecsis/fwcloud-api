@@ -25,7 +25,7 @@ import Model from '../Model';
 import { Interface } from '../../models/interface/Interface';
 import { IPObjGroup } from '../../models/ipobj/IPObjGroup';
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, getRepository } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyPosition } from './PolicyPosition';
 import { RulePositionsMap } from '../../models/policy/PolicyPosition';
@@ -1347,7 +1347,7 @@ export class PolicyRuleToIPObj extends Model {
     };
 
     public static async searchLastAddrInHostInGroup(ipObjId: number, type: number, fwcloudId: number): Promise<PolicyRule[]> {
-        const policyRuleToIPObjGroups: PolicyRuleToIPObj[] = await getRepository(PolicyRuleToIPObj).createQueryBuilder('policyRuleToIPObj')
+        const policyRuleToIPObjGroups: PolicyRuleToIPObj[] = await db.getSource().manager.getRepository(PolicyRuleToIPObj).createQueryBuilder('policyRuleToIPObj')
             .innerJoinAndSelect('policyRuleToIPObj.ipObjGroup', 'ipObjGroup')
             .innerJoinAndSelect('ipObjGroup.ipObjToIPObjGroups', 'ipObjToIPObjGroups')
             .innerJoin('ipObjToIPObjGroups.ipObj', 'ipobj')
@@ -1384,7 +1384,7 @@ export class PolicyRuleToIPObj extends Model {
             return [];
         }
 
-        return await getRepository(PolicyRule).createQueryBuilder('rule')
+        return await db.getSource().manager.getRepository(PolicyRule).createQueryBuilder('rule')
             .distinct()
             .addSelect('firewall.id', 'firewall_id')
             .addSelect('firewall.name', 'firewall_name')

@@ -15,7 +15,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { getRepository } from "typeorm";
 import { Application } from "../../../../../src/Application";
 import { HAProxyGroupController } from "../../../../../src/controllers/system/haproxy-group/haproxy-group.controller";
 import { Firewall } from "../../../../../src/models/firewall/Firewall";
@@ -26,6 +25,8 @@ import StringHelper from "../../../../../src/utils/string.helper";
 import sinon from "sinon";
 import { HAProxyGroupService } from "../../../../../src/models/system/haproxy/haproxy_g/haproxy_g.service";
 import { Request } from 'express';
+import { EntityManager } from "typeorm";
+import db from "../../../../../src/database/database-manager";
 
 describe(HAProxyGroupController.name, () => {
     let firewall: Firewall;
@@ -34,23 +35,25 @@ describe(HAProxyGroupController.name, () => {
 
     let controller: HAProxyGroupController;
     let app: Application;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         controller = new HAProxyGroupController(app);
 
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10),
         }));
 
-        firewall = await getRepository(Firewall).save(getRepository(Firewall).create({
+        firewall = await manager.getRepository(Firewall).save(manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloud: fwCloud,
         }));
 
-        haproxyGroup = await getRepository(HAProxyGroup).save(getRepository(HAProxyGroup).create({
+        haproxyGroup = await manager.getRepository(HAProxyGroup).save(manager.getRepository(HAProxyGroup).create({
             name: StringHelper.randomize(10),
             firewall: firewall,
         }));
@@ -71,8 +74,8 @@ describe(HAProxyGroupController.name, () => {
             } as unknown as Request;
 
             const dhcpGroupServiceStub = sinon.stub(HAProxyGroupService.prototype, 'findOneInPath').resolves(haproxyGroup);
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail').resolves(firewall);
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
+            const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail').resolves(firewall);
+            const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail').resolves(fwCloud);
 
             await controller.make(requestMock);
 
@@ -94,8 +97,8 @@ describe(HAProxyGroupController.name, () => {
             } as unknown as Request;
 
             const dhcpGroupServiceStub = sinon.stub(HAProxyGroupService.prototype, 'findOneInPath')
-            const firewallStub = sinon.stub(getRepository(Firewall), 'findOneOrFail');
-            const fwCloudStub = sinon.stub(getRepository(FwCloud), 'findOneOrFail');
+            const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail');
+            const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail');
 
             await controller.make(requestMock);
 

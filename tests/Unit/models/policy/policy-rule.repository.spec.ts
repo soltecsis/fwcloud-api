@@ -26,16 +26,19 @@ import { AbstractApplication } from "../../../../src/fonaments/abstract-applicat
 import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
 import { PolicyGroup } from "../../../../src/models/policy/PolicyGroup";
 import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { getCustomRepository } from "typeorm";
+import { EntityManager } from "typeorm";
+import db from "../../../../src/database/database-manager";
 
 let policyRuleRepository: PolicyRuleRepository;
 let app: AbstractApplication;
+let manager: EntityManager;
 
 describe(describeName('PolicyRuleRepository Unit tests'), () => {
 
     before(async () => {
         app = testSuite.app;
-        policyRuleRepository = getCustomRepository(PolicyRuleRepository);
+        manager = db.getSource().manager;
+        policyRuleRepository = new PolicyRuleRepository(manager);
     });
 
     describe('updateActive()', () => {
@@ -50,7 +53,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
 
             const result: PolicyRule = await policyRuleRepository.updateActive(policyRule, 1);
 
-            policyRule = await PolicyRule.findOne(policyRule.id);
+            policyRule = await PolicyRule.findOne({ where: { id: policyRule.id }});
 
             expect(result.active).to.be.deep.eq(1);
             expect(policyRule.active).to.be.deep.eq(1);
@@ -113,11 +116,11 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
                 firewall: policyGroupOld.firewall
             }));
 
-            policyRule = await PolicyRule.findOne(policyRule.id);
+            policyRule = await PolicyRule.findOne({ where: { id: policyRule.id }});
 
             const result = await policyRuleRepository.assignToGroup(policyRule, policyGroupNew);
 
-            policyRule = await PolicyRule.findOne(policyRule.id);
+            policyRule = await PolicyRule.findOne({ where: { id: policyRule.id }});
 
             expect(result).to.be.instanceOf(PolicyRule);
             expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupNew.id);
@@ -150,8 +153,8 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
 
             const result = await policyRuleRepository.assignToGroup([policyRule, policyRule2], policyGroupNew);
 
-            policyRule = await PolicyRule.findOne(policyRule.id);
-            policyRule2 = await PolicyRule.findOne(policyRule2.id);
+            policyRule = await PolicyRule.findOne({ where: { id: policyRule.id }});
+            policyRule2 = await PolicyRule.findOne({ where: { id: policyRule2.id }});
 
             expect(result).to.have.length(2);
             expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupNew.id);
@@ -182,7 +185,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
 
             await policyRuleRepository.assignToGroup([policyRule], policyGroupNew);
 
-            policyRule = await PolicyRule.findOne(policyRule.id);
+            policyRule = await PolicyRule.findOne({ where: { id: policyRule.id }});
 
             expect(policyRule.policyGroupId).to.be.deep.eq(policyGroupOld.id);
         });

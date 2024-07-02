@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { getRepository } from "typeorm";
+import { EntityManager } from "typeorm";
 import { Application } from "../../../../../src/Application";
 import { DhcpGroupController } from "../../../../../src/controllers/system/dhcp-group/dhcp-group.controller";
 import { _URL } from "../../../../../src/fonaments/http/router/router.service";
@@ -32,6 +32,7 @@ import { expect, testSuite } from "../../../../mocha/global-setup";
 import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
 import { attachSession, createUser, generateSession } from "../../../../utils/utils";
 import request = require("supertest");
+import db from "../../../../../src/database/database-manager";
 
 describe('DHCPGroup E2E Tests', () => {
     let app: Application;
@@ -46,9 +47,11 @@ describe('DHCPGroup E2E Tests', () => {
     let fwCloud: FwCloud;
 
     let dhcpGroupService: DHCPGroupService;
+    let manager: EntityManager;
 
     beforeEach(async () => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         await testSuite.resetDatabaseData();
 
         loggedUser = await createUser({ role: 0 });
@@ -71,7 +74,7 @@ describe('DHCPGroup E2E Tests', () => {
             let group: DHCPGroup;
 
             beforeEach(async () => {
-                group = await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+                group = await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
                     firewall: firewall,
                     name: 'group',
                     style: 'style'
@@ -100,7 +103,7 @@ describe('DHCPGroup E2E Tests', () => {
 
             it('regular user which belongs to the firewall should be able to list DHCP groups', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.dhcp.groups.index', {
@@ -156,7 +159,7 @@ describe('DHCPGroup E2E Tests', () => {
 
             it('regular user which belongs to the firewall should be able to create a DHCP group', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .post(_URL().getURL('fwclouds.firewalls.system.dhcp.groups.store', {
@@ -188,7 +191,7 @@ describe('DHCPGroup E2E Tests', () => {
             let dhcpGroup: DHCPGroup;
 
             beforeEach(async () => {
-                dhcpGroup = await getRepository(DHCPGroup).save(getRepository(DHCPGroup).create({
+                dhcpGroup = await manager.getRepository(DHCPGroup).save(manager.getRepository(DHCPGroup).create({
                     firewall: firewall,
                     name: 'group',
                     style: 'style'
@@ -218,7 +221,7 @@ describe('DHCPGroup E2E Tests', () => {
 
             it('regular user which belongs to the firewall should be able to show a DHCP group', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .get(_URL().getURL('fwclouds.firewalls.system.dhcp.groups.show', {
@@ -282,7 +285,7 @@ describe('DHCPGroup E2E Tests', () => {
 
             it('regular user which belongs to the firewall should be able to update a DHCP group', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .put(_URL().getURL('fwclouds.firewalls.system.dhcp.groups.update', {
@@ -346,7 +349,7 @@ describe('DHCPGroup E2E Tests', () => {
 
             it('regular user which belongs to the firewall should be able to remove a DHCP group', async () => {
                 loggedUser.fwClouds = [fwCloud];
-                await getRepository(User).save(loggedUser);
+                await manager.getRepository(User).save(loggedUser);
 
                 return await request(app.express)
                     .delete(_URL().getURL('fwclouds.firewalls.system.dhcp.groups.delete', {

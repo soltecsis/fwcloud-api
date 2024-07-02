@@ -19,10 +19,12 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { EntityRepository, FindManyOptions, FindOneOptions, In, RemoveOptions, Repository, SelectQueryBuilder, getRepository } from "typeorm";
+import { EntityManager, FindManyOptions, FindOneOptions, In, RemoveOptions, SelectQueryBuilder } from "typeorm";
 import { Offset } from "../../../../offset";
 import { DHCPRule } from "./dhcp_r.model";
 import { Firewall } from "../../../firewall/Firewall";
+import { Repository } from "../../../../database/repository";
+import db from "../../../../database/database-manager";
 
 interface IFindManyDHCPRPath {
     fwcloudId?: number;
@@ -32,8 +34,13 @@ interface IFindManyDHCPRPath {
 interface IFindOneDHCPRPath extends IFindManyDHCPRPath {
     id: number;
 }
-@EntityRepository(DHCPRule)
+
 export class DHCPRepository extends Repository<DHCPRule> {
+
+    constructor(manager?: EntityManager) {
+        super(DHCPRule, manager);
+    }
+
     /**
      * Finds multiple DHCP records in a given path.
      * 
@@ -41,8 +48,8 @@ export class DHCPRepository extends Repository<DHCPRule> {
      * @param options - Additional options for the search.
      * @returns A promise that resolves to an array of DHCP records.
      */
-    async findManyInPath(path: IFindManyDHCPRPath, options?: FindManyOptions<DHCPRule>): Promise<DHCPRule[]> {
-        return this.find(this.getFindInPathOptions(path, options));
+    findManyInPath(path: IFindManyDHCPRPath, options?: FindManyOptions<DHCPRule>): Promise<DHCPRule[]> {
+        return this.getFindInPathOptions(path, options).getMany();
     }
 
     /**
@@ -53,6 +60,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
      * @returns A promise that resolves to an array of DHCPR objects representing the updated DHCP rules.
      */
     async move(ids: number[], dhcpDestId: number, offset: Offset): Promise<DHCPRule[]> {
+
         const dhcp_rs: DHCPRule[] = await this.find({
             where: {
                 id: In(ids),
@@ -62,7 +70,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
             },
             relations: ['firewall', 'group'],
         });
-
+        //TODO: REVISAR ESTA FUNCION
         let affectedDHCPs: DHCPRule[] = await this.findManyInPath({
             fwcloudId: dhcp_rs[0].firewall.fwCloudId,
             firewallId: dhcp_rs[0].firewall.id,
@@ -203,30 +211,40 @@ export class DHCPRepository extends Repository<DHCPRule> {
      * @param options - The additional options for the find operation.
      * @returns The options for finding DHCP records.
      */
-    protected getFindInPathOptions(path: Partial<IFindOneDHCPRPath>, options: FindOneOptions<DHCPRule> | FindManyOptions<DHCPRule> = {}): FindOneOptions<DHCPRule> | FindManyOptions<DHCPRule> {
-        return Object.assign({
-            join: {
-                alias: 'dhcp',
-                innerJoin: {
-                    firewall: 'dhcp.firewall',
-                    fwcloud: 'firewall.fwCloud',
-                }
-            },
-            where: (qb: SelectQueryBuilder<DHCPRule>): void => {
-                if (path.firewallId) {
-                    qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
-                }
-                if (path.fwcloudId) {
-                    qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
-                }
-                if (path.dhcpGroupId) {
-                    qb.andWhere('group.id = :dhcpGroupId', { dhcpGroupId: path.dhcpGroupId });
-                }
-                if (path.id) {
-                    qb.andWhere('dhcp.id = :id', { id: path.id });
-                }
-            },
-        }, options)
+    protected getFindInPathOptions(path: Partial<IFindOneDHCPRPath>, options: FindOneOptions<DHCPRule> | FindManyOptions<DHCPRule> = {}): SelectQueryBuilder<DHCPRule> {
+        const qb = db.getSource().manager.getRepository(DHCPRule).createQueryBuilder('dhcp')
+            .innerJoin('dhcp.firewall', 'firewall')
+            .innerJoin('firewall.fwCloud', 'fwcloud')
+            .leftJoinAndSelect('dhcp.group', 'group');
+
+
+        if (path.firewallId) {
+            qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
+        }
+        if (path.fwcloudId) {
+            qb.andWhere('fwcloud.id = :fwcloudId', { fwcloudId: path.fwcloudId });
+        }
+        if (path.dhcpGroupId) {
+            qb.andWhere('group.id = :dhcpGroupId', { dhcpGroupId: path.dhcpGroupId });
+        }
+        if (path.id) {
+            qb.andWhere('dhcp.id = :id', { id: path.id });
+        }
+        
+        // Aplica las opciones adicionales que se pasaron a la función
+        Object.entries(options).forEach(([key, value]) => {
+            switch (key) {
+                case 'where':
+                    qb.andWhere(value);
+                    break;
+                case 'relations':
+                    qb.leftJoinAndSelect(`dhcp.${value}`, `${value}`);
+                    break;
+                default:
+            }
+        });
+
+        return qb;
     }
 
     /**
@@ -235,7 +253,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
      * @param firewallId
      */
     protected async refreshOrders(firewallId: number): Promise<void> {
-        const firewall: Firewall = await getRepository(Firewall).findOneOrFail(firewallId);
+        const firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOneOrFail({ where: { id: firewallId } });
         const rules: DHCPRule[] = await this.findManyInPath({
             fwcloudId: firewall.fwCloudId,
             firewallId: firewall.id,

@@ -57,8 +57,8 @@ describe(describeName('Importer tests'), () => {
 
             await snapshot.restore();
 
-            const newFwCloud: FwCloud = await FwCloud.findOne({name: fwCloud.name});
-            const newCA: Ca = await Ca.findOne({cn: ca.cn});
+            const newFwCloud: FwCloud = await FwCloud.findOne({ where: {name: fwCloud.name}});
+            const newCA: Ca = await Ca.findOne({where: {cn: ca.cn}});
 
             expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPkiDirectoryPath(), newCA.id.toString()))).to.be.true;
         });
@@ -80,8 +80,8 @@ describe(describeName('Importer tests'), () => {
 
             await snapshot.restore();
 
-            const newFwCloud: FwCloud = await FwCloud.findOne({name: fwCloud.name});
-            const newFirewall: Firewall = await Firewall.findOne({name: firewall.name});
+            const newFwCloud: FwCloud = await FwCloud.findOne({where: {name: fwCloud.name}});
+            const newFirewall: Firewall = await Firewall.findOne({where: {name: firewall.name}});
 
             expect(FSHelper.directoryExistsSync(path.join(newFwCloud.getPolicyDirectoryPath(), newFirewall.id.toString()))).to.be.true;
         });

@@ -5,21 +5,24 @@ import { FSHelper } from "../../../src/utils/fs-helper";
 import { FwCloudExport } from "../../../src/fwcloud-exporter/fwcloud-export";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { colorUsage, fwcloudColors } from "../../../src/models/fwcloud/FwCloud-colors";
-import { getRepository } from "typeorm";
 import StringHelper from "../../../src/utils/string.helper";
 import { User } from "../../../src/models/user/User";
 import { createUser, sleep, ramdomInteger } from "../../utils/utils";
+import { EntityManager } from "typeorm";
+import db from "../../../src/database/database-manager";
 
 describe(describeName('FwCloudExportService Unit Tests'), () => {
     let app: Application;
     let service: FwCloudExportService;
     let fwCloud: FwCloud;
     let user: User;
+    let manager: EntityManager;
 
     before(async() => {
         app = testSuite.app;
+        manager = db.getSource().manager;
         service = await app.getService<FwCloudExportService>(FwCloudExportService.name);
-        fwCloud = await getRepository(FwCloud).save(getRepository(FwCloud).create({
+        fwCloud = await manager.getRepository(FwCloud).save(manager.getRepository(FwCloud).create({
             name: StringHelper.randomize(10)
         }));
 

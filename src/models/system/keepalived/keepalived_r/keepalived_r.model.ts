@@ -85,12 +85,12 @@ export class KeepalivedRule extends Model {
     }
 
     public static async cloneKeepalived(idfirewall: number, idNewFirewall: number): Promise<void> {
-        const originalFirewall = await Firewall.findOne(idfirewall);
-        const newFirewall = await Firewall.findOne(idNewFirewall);
+        const originalFirewall = await Firewall.findOne({ where: { id: idfirewall }});
+        const newFirewall = await Firewall.findOne({ where: { id: idNewFirewall }});
 
         if (originalFirewall && newFirewall) {
             const groupMapping = new Map<number, number>();
-            const originalKeepalivedGroups = await KeepalivedGroup.find({ firewall: originalFirewall });
+            const originalKeepalivedGroups = await KeepalivedGroup.find({ where: { firewall: originalFirewall }});
 
             for (const group of originalKeepalivedGroups) {
                 const newGroup = new KeepalivedGroup();

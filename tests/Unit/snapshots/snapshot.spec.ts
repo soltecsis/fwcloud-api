@@ -25,7 +25,6 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import { Application } from "../../../src/Application";
 import { Snapshot, snapshotDigestContent, SnapshotMetadata } from "../../../src/snapshots/snapshot";
-import { Repository, getRepository, Migration } from "typeorm";
 import { FwCloud } from "../../../src/models/fwcloud/FwCloud";
 import { SnapshotService } from "../../../src/snapshots/snapshot.service";
 import { FSHelper } from "../../../src/utils/fs-helper";
@@ -50,7 +49,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
             name: StringHelper.randomize(10)
         }));
 
-        fwCloud = await FwCloud.findOne(fwCloud.id);
+        fwCloud = await FwCloud.findOne({ where: { id: fwCloud.id }});
     });
 
     describe('create()', () => {
@@ -198,7 +197,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             await snaphost.restore();
 
-            const importedFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1)
+            const importedFwCloud: FwCloud = await FwCloud.findOne({ where: { id: fwCloud.id + 1 }})
 
             expect(importedFwCloud.name).to.be.deep.equal(fwCloud.name);
         });
@@ -216,7 +215,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             await snaphost.restore();
 
-            expect(await FwCloud.findOne(fwCloud.id)).to.be.undefined;
+            expect(await FwCloud.findOne({ where: { id: fwCloud.id }})).to.be.null;
         });
 
         it('should remove the old fwcloud data directories', async () => {
@@ -273,10 +272,10 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             await snaphost.restore();
 
-            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne({ where: { id: fwCloud.id + 1 }});
 
-            firewall = (await Firewall.find({ fwCloudId: newFwCloud.id }))[0];
-            firewall2 = (await Firewall.find({ fwCloudId: newFwCloud.id }))[1];
+            firewall = (await Firewall.find({ where: { fwCloudId: newFwCloud.id }}))[0];
+            firewall2 = (await Firewall.find({ where: { fwCloudId: newFwCloud.id }}))[1];
 
             expect(firewall.status).to.be.deep.eq(3);
             expect(firewall.compiled_at).to.be.null;
@@ -305,9 +304,9 @@ describe(describeName('Snapshot Unit Tests'), () => {
             snaphost = await Snapshot.load(snaphost.path);
             await snaphost.restore();
 
-            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne({ where: { id: fwCloud.id + 1 }});
 
-            firewall = (await Firewall.find({ fwCloudId: newFwCloud.id }))[0];
+            firewall = (await Firewall.find({ where: { fwCloudId: newFwCloud.id }}))[0];
 
             expect(firewall.install_user).to.be.null;
             expect(firewall.install_pass).to.be.null;
@@ -321,7 +320,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             await snaphost2.restore();
 
-            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne({ where: { id: fwCloud.id + 1 }});
 
             expect(fs.existsSync(snaphost1.path)).to.be.false;
             expect(fs.existsSync(snaphost2.path)).to.be.false;
@@ -333,7 +332,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             await snaphost1.restore();
 
-            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne({ where: { id: fwCloud.id + 1 }});
 
             expect(FSHelper.directoryExistsSync(newFwCloud.getPolicyDirectoryPath())).to.be.false;
         });
@@ -343,7 +342,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
             await snaphost1.restore();
 
-            const newFwCloud: FwCloud = await FwCloud.findOne(fwCloud.id + 1);
+            const newFwCloud: FwCloud = await FwCloud.findOne({ where: { id: fwCloud.id + 1 }});
 
             expect(FSHelper.directoryExistsSync(newFwCloud.getPkiDirectoryPath())).to.be.false;
         });

@@ -37,7 +37,7 @@ export class BulkDatabaseDelete {
     public async run(): Promise<void> {
         return new Promise(async (resolve, reject) => {
             this._databaseService = await app().getService<DatabaseService>(DatabaseService.name);
-            const qr: QueryRunner = this._databaseService.connection.createQueryRunner();
+            const qr: QueryRunner = this._databaseService.dataSource.createQueryRunner();
 
             await qr.startTransaction();
 
