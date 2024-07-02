@@ -20,89 +20,138 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EventEmitter } from "events";
-import { HttpException } from "../fonaments/exceptions/http/http-exception";
-import { ProgressErrorPayload } from "../sockets/messages/socket-message";
+import { EventEmitter } from 'events';
+import { HttpException } from '../fonaments/exceptions/http/http-exception';
+import { ProgressErrorPayload } from '../sockets/messages/socket-message';
 
 export type CCDHash = {
-    filename: string,
-    hash: string
-}
+  filename: string;
+  hash: string;
+};
 
 export type OpenVPNHistoryRecord = {
-    timestamp: number;
-    name: string;
-    address: string;
-    bytesReceived: number;
-    bytesSent: number;
-    connectedAtTimestampInSeconds: number;
-}
+  timestamp: number;
+  name: string;
+  address: string;
+  bytesReceived: number;
+  bytesSent: number;
+  connectedAtTimestampInSeconds: number;
+};
 
 export type FwcAgentInfo = {
-    fwc_agent_version: string,
-    host_name: string,
-    system_name: string,
-    os_version: string,
-    kernel_version:string,
-}
+  fwc_agent_version: string;
+  host_name: string;
+  system_name: string;
+  os_version: string;
+  kernel_version: string;
+};
 
-export type SystemCtlInfo =  {
-    command: string;
-    service: string;
-}
+export type SystemCtlInfo = {
+  command: string;
+  service: string;
+};
 
 type ErrorWithCode = {
-    code: string,
+  code: string;
 } & Error;
 
 function errorHasCode(error: Error): error is ErrorWithCode {
-    return Object.prototype.hasOwnProperty.call(error, "code");
+  return Object.prototype.hasOwnProperty.call(error, 'code');
 }
 
 export abstract class Communication<ConnectionData> {
-    constructor(protected readonly connectionData: ConnectionData) {}
+  constructor(protected readonly connectionData: ConnectionData) {}
 
-    abstract installOpenVPNServerConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<void>
-    abstract installOpenVPNClientConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<void>
-    abstract installHAPRoxyConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<string>
-    abstract installDHCPConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<string>;
-    abstract installKeepalivedConfigs(dir: string, configs: {name: string, content: string}[], eventEmitter?: EventEmitter): Promise<string>;
-    abstract ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]>
-    abstract getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]>;
-    abstract getRealtimeStatus(statusFilepath: string): Promise<string>
-    abstract uninstallOpenVPNConfigs(dir: string, files: string[], channel?: EventEmitter): Promise<void>;
+  abstract installOpenVPNServerConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<void>;
+  abstract installOpenVPNClientConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<void>;
+  abstract installHAPRoxyConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<string>;
+  abstract installDHCPConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<string>;
+  abstract installKeepalivedConfigs(
+    dir: string,
+    configs: { name: string; content: string }[],
+    eventEmitter?: EventEmitter,
+  ): Promise<string>;
+  abstract ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]>;
+  abstract getOpenVPNHistoryFile(
+    filepath: string,
+  ): Promise<OpenVPNHistoryRecord[]>;
+  abstract getRealtimeStatus(statusFilepath: string): Promise<string>;
+  abstract uninstallOpenVPNConfigs(
+    dir: string,
+    files: string[],
+    channel?: EventEmitter,
+  ): Promise<void>;
 
-    abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
-    abstract getFirewallInterfaces(): Promise<string>;
-    abstract getFirewallIptablesSave(): Promise<string[]>;
-    abstract ping(): Promise<void>;
-    abstract info(): Promise<FwcAgentInfo>;
-    abstract systemctlManagement(command: string,service:string) : Promise<string>
-    abstract installPlugin(name: string,enabled: boolean): Promise<string>;
+  abstract installFirewallPolicy(
+    sourcePath: string,
+    eventEmitter?: EventEmitter,
+  ): Promise<string>;
+  abstract getFirewallInterfaces(): Promise<string>;
+  abstract getFirewallIptablesSave(): Promise<string[]>;
+  abstract ping(): Promise<void>;
+  abstract info(): Promise<FwcAgentInfo>;
+  abstract systemctlManagement(
+    command: string,
+    service: string,
+  ): Promise<string>;
+  abstract installPlugin(name: string, enabled: boolean): Promise<string>;
 
-    protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
-        if (errorHasCode(error)) {
-            if ((error).code === "ECONNREFUSED") {
-                eventEmitter?.emit('message', new ProgressErrorPayload(`ECONNREFUSED: Port is not valid\n`));
-                throw new HttpException(`ECONNREFUSED: Port is not valid`, 400)
-            }
+  protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
+    if (errorHasCode(error)) {
+      if (error.code === 'ECONNREFUSED') {
+        eventEmitter?.emit(
+          'message',
+          new ProgressErrorPayload(`ECONNREFUSED: Port is not valid\n`),
+        );
+        throw new HttpException(`ECONNREFUSED: Port is not valid`, 400);
+      }
 
-            if (error.code === "ETIMEDOUT") {
-                eventEmitter?.emit('message', new ProgressErrorPayload(`ETIMEDOUT: Host is not valid\n`));
-                throw new HttpException(`ETIMEDOUT: IP is not valid`, 400)
-            }
+      if (error.code === 'ETIMEDOUT') {
+        eventEmitter?.emit(
+          'message',
+          new ProgressErrorPayload(`ETIMEDOUT: Host is not valid\n`),
+        );
+        throw new HttpException(`ETIMEDOUT: IP is not valid`, 400);
+      }
 
-            if (error.code === "ECONNRESET") {
-                eventEmitter?.emit('message', new ProgressErrorPayload(`ECONNRESET: Port or protocol might not be valid\n`));
-                throw new HttpException(`ECONNRESET: Port or protocol might not be valid`, 400)
-            }
+      if (error.code === 'ECONNRESET') {
+        eventEmitter?.emit(
+          'message',
+          new ProgressErrorPayload(
+            `ECONNRESET: Port or protocol might not be valid\n`,
+          ),
+        );
+        throw new HttpException(
+          `ECONNRESET: Port or protocol might not be valid`,
+          400,
+        );
+      }
 
-            if (error.code === 'EPROTO') {
-                eventEmitter?.emit('message', new ProgressErrorPayload(`EPROTO: Protocol error\n`));
-                throw new HttpException(`EPROTO: Protocol error`, 400)
-            }
-        }
-
-        throw error;
+      if (error.code === 'EPROTO') {
+        eventEmitter?.emit(
+          'message',
+          new ProgressErrorPayload(`EPROTO: Protocol error\n`),
+        );
+        throw new HttpException(`EPROTO: Protocol error`, 400);
+      }
     }
+
+    throw error;
+  }
 }

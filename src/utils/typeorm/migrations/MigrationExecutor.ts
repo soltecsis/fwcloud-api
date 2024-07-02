@@ -20,28 +20,32 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MigrationExecutor, DataSource } from "typeorm";
+import { MigrationExecutor, DataSource } from 'typeorm';
 
 export class FwCloudMigrationExecutor extends MigrationExecutor {
-    
-    async undoAllMigrations(connection: DataSource): Promise <void> {
-        const queryRunner = this.queryRunner || this.connection.createQueryRunner("master");
+  async undoAllMigrations(connection: DataSource): Promise<void> {
+    const queryRunner =
+      this.queryRunner || this.connection.createQueryRunner('master');
 
-        try {
-            // create migrations table if its not created yet
-            await this.createMigrationsTableIfNotExist(queryRunner);
+    try {
+      // create migrations table if its not created yet
+      await this.createMigrationsTableIfNotExist(queryRunner);
 
-            // get all migrations that are executed and saved in the database
-            const executedMigrations = await this.loadExecutedMigrations(queryRunner);
+      // get all migrations that are executed and saved in the database
+      const executedMigrations = await this.loadExecutedMigrations(queryRunner);
 
-            if (executedMigrations.length <= 0) {
-                this.connection.logger.logSchemaBuild(`No migrations was found in the database. Nothing to reset!`);
-                return;
-            }
+      if (executedMigrations.length <= 0) {
+        this.connection.logger.logSchemaBuild(
+          `No migrations was found in the database. Nothing to reset!`,
+        );
+        return;
+      }
 
-            for (let i: number = 0; i < executedMigrations.length; i++) {
-                await this.undoLastMigration();
-            }
-        } catch(e) {console.error(e);}
+      for (let i: number = 0; i < executedMigrations.length; i++) {
+        await this.undoLastMigration();
+      }
+    } catch (e) {
+      console.error(e);
     }
+  }
 }

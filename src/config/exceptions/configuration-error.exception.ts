@@ -20,5 +20,4 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export class ConfigurationErrorException extends Error {
-}
+export class ConfigurationErrorException extends Error {}

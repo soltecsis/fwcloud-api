@@ -20,44 +20,49 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../../fonaments/http/controller";
-import { BackupService, BackupUpdateableConfig } from "../../../backups/backup.service";
-import { ResponseBuilder } from "../../../fonaments/http/response-builder";
-import { Request } from "express";
-import { Validate } from "../../../decorators/validate.decorator";
-import { BackupConfigControllerUpdateDto } from "./dtos/update.dto";
+import { Controller } from '../../../fonaments/http/controller';
+import {
+  BackupService,
+  BackupUpdateableConfig,
+} from '../../../backups/backup.service';
+import { ResponseBuilder } from '../../../fonaments/http/response-builder';
+import { Request } from 'express';
+import { Validate } from '../../../decorators/validate.decorator';
+import { BackupConfigControllerUpdateDto } from './dtos/update.dto';
 
 export class BackupConfigController extends Controller {
-    
-    protected _backupService: BackupService;
+  protected _backupService: BackupService;
 
-    public async make(): Promise<void> {
-        this._backupService = await this._app.getService<BackupService>(BackupService.name);
-    }
-    /**
-     * Returns the backup config
-     * 
-     * @param request 
-     * @param response 
-     */
-    @Validate()
-    public async show(request: Request): Promise<ResponseBuilder> {
-        const config: BackupUpdateableConfig = this._backupService.getCustomizedConfig();
+  public async make(): Promise<void> {
+    this._backupService = await this._app.getService<BackupService>(
+      BackupService.name,
+    );
+  }
+  /**
+   * Returns the backup config
+   *
+   * @param request
+   * @param response
+   */
+  @Validate()
+  public async show(request: Request): Promise<ResponseBuilder> {
+    const config: BackupUpdateableConfig =
+      this._backupService.getCustomizedConfig();
 
-        return ResponseBuilder.buildResponse().status(200).body(config);
-    }
+    return ResponseBuilder.buildResponse().status(200).body(config);
+  }
 
-    /**
-     * Updates the backup config
-     * 
-     * @param request 
-     * @param response 
-     */
-    @Validate(BackupConfigControllerUpdateDto)
-    public async update(request: Request): Promise<ResponseBuilder> {
-        await this._backupService.updateConfig(request.body);
-        const config = this._backupService.config;
+  /**
+   * Updates the backup config
+   *
+   * @param request
+   * @param response
+   */
+  @Validate(BackupConfigControllerUpdateDto)
+  public async update(request: Request): Promise<ResponseBuilder> {
+    await this._backupService.updateConfig(request.body);
+    const config = this._backupService.config;
 
-        return ResponseBuilder.buildResponse().status(201).body(config);
-    }
+    return ResponseBuilder.buildResponse().status(201).body(config);
+  }
 }

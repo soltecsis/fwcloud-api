@@ -13,7 +13,9 @@
     "build": "npm run clean && mkdir -p dist/src && cp -r src/views dist/src/views && node_modules/.bin/tsc",
     "watch": "npm run build -- -w",
     "fwcloud": "node --no-warnings dist/src/cli/cli.js",
-    "test": "npm run build && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --colors dist/tests/**/*spec.js"
+    "test": "npm run build && NODE_ENV=test node --no-warnings node_modules/mocha/bin/_mocha --timeout 99999 --exit --colors dist/tests/**/*spec.js",
+    "format": "prettier --check \"{src,app,lib,tests}/**/*.ts\"",
+    "format:fix": "prettier --write \"{src,app,lib,tests}/**/*.ts\""
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -37,6 +39,7 @@
     "express-session": "^1.18.0",
     "form-data": "^4.0.0",
     "fs-extra": "^11.2.0",
+    "glob": "10.4.1",
     "helmet": "^7.1.0",
     "http-proxy": "^1.18.1",
     "ip": "^2.0.1",
@@ -45,6 +48,7 @@
     "moment": "^2.30.1",
     "mysql2": "^3.10.0",
     "openpgp": "5.11.1",
+    "prettier": "^3.3.2",
     "qrcode": "^1.5.3",
     "reflect-metadata": "0.2.2",
     "semver": "7.6.2",
@@ -61,8 +65,7 @@
     "winston": "^3.13.0",
     "ws": "^8.17.0",
     "yargs": "^17.7.2",
-    "yauzl": "^3.1.3",
-    "glob": "10.4.1"
+    "yauzl": "^3.1.3"
   },
   "devDependencies": {
     "@types/busboy": "^1.5.4",

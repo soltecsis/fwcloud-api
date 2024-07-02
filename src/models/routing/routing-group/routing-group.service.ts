@@ -20,108 +20,139 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindOneOptions, SelectQueryBuilder } from "typeorm";
-import { Application } from "../../../Application";
-import { Service } from "../../../fonaments/services/service";
-import { Firewall } from "../../firewall/Firewall";
-import { RoutingRule } from "../routing-rule/routing-rule.model";
-import { RoutingGroup } from "./routing-group.model";
-import db from "../../../database/database-manager";
+import { FindOneOptions, SelectQueryBuilder } from 'typeorm';
+import { Application } from '../../../Application';
+import { Service } from '../../../fonaments/services/service';
+import { Firewall } from '../../firewall/Firewall';
+import { RoutingRule } from '../routing-rule/routing-rule.model';
+import { RoutingGroup } from './routing-group.model';
+import db from '../../../database/database-manager';
 
 interface IFindManyRoutingGroupPath {
-    firewallId?: number,
-    fwCloudId?: number
+  firewallId?: number;
+  fwCloudId?: number;
 }
 
 interface IFindOneRoutingGroupPath extends IFindManyRoutingGroupPath {
-    id: number
+  id: number;
 }
 
 interface ICreateRoutingGroup {
-    firewallId: number;
-    name: string;
-    comment?: string;
-    routingRules: Partial<RoutingRule>[]
+  firewallId: number;
+  name: string;
+  comment?: string;
+  routingRules: Partial<RoutingRule>[];
 }
 
 interface IUpdateRoutingGroup {
-    name?: string;
-    comment?: string;
-    style?: string;
-    routingRules?: Partial<RoutingRule>[]
+  name?: string;
+  comment?: string;
+  style?: string;
+  routingRules?: Partial<RoutingRule>[];
 }
 
 export class RoutingGroupService extends Service {
+  constructor(app: Application) {
+    super(app);
+  }
 
-    constructor(app: Application) {
-        super(app);
-    }
+  findManyInPath(path: IFindManyRoutingGroupPath): Promise<RoutingGroup[]> {
+    return this.getFindInPathOptions(path).getMany();
+  }
 
-    findManyInPath(path: IFindManyRoutingGroupPath): Promise<RoutingGroup[]> {
-        return this.getFindInPathOptions(path).getMany();
-    }
+  findOneInPath(
+    path: IFindOneRoutingGroupPath,
+  ): Promise<RoutingGroup | undefined> {
+    return this.getFindInPathOptions(path).getOne();
+  }
 
-    findOneInPath(path: IFindOneRoutingGroupPath): Promise<RoutingGroup | undefined> {
-        return this.getFindInPathOptions(path).getOne();
-    }
+  async findOneInPathOrFail(
+    path: IFindOneRoutingGroupPath,
+  ): Promise<RoutingGroup> {
+    return this.getFindInPathOptions(path).getOneOrFail();
+  }
 
-    async findOneInPathOrFail(path: IFindOneRoutingGroupPath): Promise<RoutingGroup> {
-        return this.getFindInPathOptions(path).getOneOrFail();
-    }
+  async create(data: ICreateRoutingGroup): Promise<RoutingGroup> {
+    let group: RoutingGroup = await db
+      .getSource()
+      .manager.getRepository(RoutingGroup)
+      .save(data);
+    return db
+      .getSource()
+      .manager.getRepository(RoutingGroup)
+      .findOne({ where: { id: group.id } });
+  }
 
-    async create(data: ICreateRoutingGroup): Promise<RoutingGroup> {
-        let group: RoutingGroup = await db.getSource().manager.getRepository(RoutingGroup).save(data);
-        return db.getSource().manager.getRepository(RoutingGroup).findOne({ where: { id: group.id }});
-    }
+  async update(id: number, data: IUpdateRoutingGroup): Promise<RoutingGroup> {
+    let group: RoutingGroup = await db
+      .getSource()
+      .manager.getRepository(RoutingGroup)
+      .preload(Object.assign(data, { id }));
+    let firewall: Firewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOne({ where: { id: group.firewallId } });
 
-    async update(id: number, data: IUpdateRoutingGroup): Promise<RoutingGroup> {
-        let group: RoutingGroup = await db.getSource().manager.getRepository(RoutingGroup).preload(Object.assign(data, {id}));
-        let firewall: Firewall = await db.getSource().manager.getRepository(Firewall).findOne({ where: { id: group.firewallId }})
-        
-        if (data.routingRules) {
-            if (data.routingRules.length === 0) {
-                return this.remove({
-                    id: group.id,
-                    firewallId: firewall.id,
-                    fwCloudId: firewall.fwCloudId
-                });
-            }
-
-            group.routingRules = data.routingRules as RoutingRule[];
-        }
-        
-        group = await db.getSource().manager.getRepository(RoutingGroup).save(group);
-
-        return db.getSource().manager.getRepository(RoutingGroup).findOneOrFail({ where: { id: group.id }});
-    }
-
-    async remove(path: IFindOneRoutingGroupPath): Promise<RoutingGroup> {
-        const group: RoutingGroup = await this.findOneInPath(path);
-        db.getSource().manager.getRepository(RoutingRule).update(group.routingRules.map(rule => rule.id), {
-            routingGroupId: null
+    if (data.routingRules) {
+      if (data.routingRules.length === 0) {
+        return this.remove({
+          id: group.id,
+          firewallId: firewall.id,
+          fwCloudId: firewall.fwCloudId,
         });
-        await db.getSource().manager.getRepository(RoutingGroup).remove(group);
-        return group;
+      }
+
+      group.routingRules = data.routingRules as RoutingRule[];
     }
 
-    protected getFindInPathOptions(path: Partial<IFindOneRoutingGroupPath>): SelectQueryBuilder<RoutingGroup> {
-        const qb: SelectQueryBuilder<RoutingGroup> = db.getSource().manager.getRepository(RoutingGroup).createQueryBuilder('group');
-        qb.innerJoin('group.firewall', 'firewall')
-        .innerJoin('firewall.fwCloud', 'fwcloud')
-        .leftJoinAndSelect('group.routingRules', 'rules');
+    group = await db
+      .getSource()
+      .manager.getRepository(RoutingGroup)
+      .save(group);
 
-        if (path.firewallId) {
-            qb.andWhere('firewall.id = :firewall', { firewall: path.firewallId });
-        }
+    return db
+      .getSource()
+      .manager.getRepository(RoutingGroup)
+      .findOneOrFail({ where: { id: group.id } });
+  }
 
-        if (path.fwCloudId) {
-            qb.andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: path.fwCloudId });
-        }
+  async remove(path: IFindOneRoutingGroupPath): Promise<RoutingGroup> {
+    const group: RoutingGroup = await this.findOneInPath(path);
+    db.getSource()
+      .manager.getRepository(RoutingRule)
+      .update(
+        group.routingRules.map((rule) => rule.id),
+        {
+          routingGroupId: null,
+        },
+      );
+    await db.getSource().manager.getRepository(RoutingGroup).remove(group);
+    return group;
+  }
 
-        if (path.id) {
-            qb.andWhere('group.id = :id', { id: path.id });
-        }
+  protected getFindInPathOptions(
+    path: Partial<IFindOneRoutingGroupPath>,
+  ): SelectQueryBuilder<RoutingGroup> {
+    const qb: SelectQueryBuilder<RoutingGroup> = db
+      .getSource()
+      .manager.getRepository(RoutingGroup)
+      .createQueryBuilder('group');
+    qb.innerJoin('group.firewall', 'firewall')
+      .innerJoin('firewall.fwCloud', 'fwcloud')
+      .leftJoinAndSelect('group.routingRules', 'rules');
 
-        return qb;
+    if (path.firewallId) {
+      qb.andWhere('firewall.id = :firewall', { firewall: path.firewallId });
     }
+
+    if (path.fwCloudId) {
+      qb.andWhere('firewall.fwCloudId = :fwcloud', { fwcloud: path.fwCloudId });
+    }
+
+    if (path.id) {
+      qb.andWhere('group.id = :id', { id: path.id });
+    }
+
+    return qb;
+  }
 }

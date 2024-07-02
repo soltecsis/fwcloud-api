@@ -20,41 +20,37 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, testSuite, expect } from "../../mocha/global-setup";
-import { Application } from "../../../src/Application";
-import request = require("supertest");
-import { _URL } from "../../../src/fonaments/http/router/router.service";
-import sinon from "sinon";
-import { CORS } from "../../../src/middleware/cors.middleware";
+import { describeName, testSuite, expect } from '../../mocha/global-setup';
+import { Application } from '../../../src/Application';
+import request = require('supertest');
+import { _URL } from '../../../src/fonaments/http/router/router.service';
+import sinon from 'sinon';
+import { CORS } from '../../../src/middleware/cors.middleware';
 
 let app: Application;
 describe(describeName('CORSMiddleware E2E test'), () => {
-    beforeEach(async () => {
-        app = testSuite.app;
-    });
+  beforeEach(async () => {
+    app = testSuite.app;
+  });
 
-    it('should return 400 when request is rejected by CORS', async() => {
-        let stub = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(false);
-        
+  it('should return 400 when request is rejected by CORS', async () => {
+    let stub = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(false);
 
-        await request(app.express)
-            .post(_URL().getURL('versions.show'))
-            .expect(400)
-            .expect((response) => {
-                expect(response.body.message).to.contains('Not allowed by CORS:')
-            });
+    await request(app.express)
+      .post(_URL().getURL('versions.show'))
+      .expect(400)
+      .expect((response) => {
+        expect(response.body.message).to.contains('Not allowed by CORS:');
+      });
 
-        stub.restore();
-    });
+    stub.restore();
+  });
 
-    it('should not return 400 when request is allowed by CORS', async() => {
-        let stub = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(true);
-        
+  it('should not return 400 when request is allowed by CORS', async () => {
+    let stub = sinon.stub(CORS.prototype, 'isOriginAllowed').returns(true);
 
-        await request(app.express)
-            .post(_URL().getURL('versions.show'))
-            .expect(401);
+    await request(app.express).post(_URL().getURL('versions.show')).expect(401);
 
-        stub.restore();
-    });
-})
+    stub.restore();
+  });
+});

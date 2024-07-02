@@ -14,60 +14,69 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { IsBoolean, IsOptional, IsNumber, IsString, IsPositive, IsEnum, IsArray, ValidateNested } from "class-validator";
-import { Offset } from "../../../../offset";
-import { Type } from "class-transformer";
-import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
+import {
+  IsBoolean,
+  IsOptional,
+  IsNumber,
+  IsString,
+  IsPositive,
+  IsEnum,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
+import { Offset } from '../../../../offset';
+import { Type } from 'class-transformer';
+import { PositionalEntityDto } from '../../../dtos/positional-entity.dto';
 
 export class KeepalivedRuleCreateDto {
-    @IsBoolean()
-    @IsOptional()
-    active: boolean;
+  @IsBoolean()
+  @IsOptional()
+  active: boolean;
 
-    @IsNumber()
-    @IsOptional()
-    groupId?: number;
+  @IsNumber()
+  @IsOptional()
+  groupId?: number;
 
-    @IsNumber()
-    @IsOptional()
-    firewallId?: number;
+  @IsNumber()
+  @IsOptional()
+  firewallId?: number;
 
-    @IsString()
-    @IsOptional()
-    style: string;
+  @IsString()
+  @IsOptional()
+  style: string;
 
-    @IsNumber()
-    @IsOptional()
-    rule_type: number;
+  @IsNumber()
+  @IsOptional()
+  rule_type: number;
 
-    @IsNumber()
-    @IsOptional()
-    interfaceId?: number;
+  @IsNumber()
+  @IsOptional()
+  interfaceId?: number;
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({ each: true })
-    @Type(() => PositionalEntityDto)
-    virtualIpsIds?: PositionalEntityDto[];
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => PositionalEntityDto)
+  virtualIpsIds?: PositionalEntityDto[];
 
-    @IsNumber()
-    @IsOptional()
-    masterNodeId?: number;
+  @IsNumber()
+  @IsOptional()
+  masterNodeId?: number;
 
-    @IsString()
-    @IsOptional()
-    cfg_text?: string;
+  @IsString()
+  @IsOptional()
+  cfg_text?: string;
 
-    @IsString()
-    @IsOptional()
-    comment?: string;
+  @IsString()
+  @IsOptional()
+  comment?: string;
 
-    @IsNumber()
-    @IsPositive()
-    @IsOptional()
-    to?: number;
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  to?: number;
 
-    @IsEnum(Offset)
-    @IsOptional()
-    offset?: Offset;
+  @IsEnum(Offset)
+  @IsOptional()
+  offset?: Offset;
 }

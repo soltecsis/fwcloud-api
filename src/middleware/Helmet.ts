@@ -20,14 +20,17 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
 const helmet = require('helmet');
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from 'express';
 
 export class Helmet extends Middleware {
-    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-        this.app.express.use(helmet());
-        next();
-    }
-
+  public async handle(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    this.app.express.use(helmet());
+    next();
+  }
 }

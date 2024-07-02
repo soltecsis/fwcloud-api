@@ -20,20 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { Firewall } from "../../../models/firewall/Firewall";
-import { SelectQueryBuilder } from "typeorm";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { Firewall } from '../../../models/firewall/Firewall';
+import { SelectQueryBuilder } from 'typeorm';
 
 export class FirewallExporter extends TableExporter {
-    protected getEntity(): typeof Model {
-        return Firewall;
-    }
+  protected getEntity(): typeof Model {
+    return Firewall;
+  }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        return qb
-        .where(`${alias}.fwCloudId = :id`, {
-            id: fwCloudId
-        });
-    }
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    return qb.where(`${alias}.fwCloudId = :id`, {
+      id: fwCloudId,
+    });
+  }
 }

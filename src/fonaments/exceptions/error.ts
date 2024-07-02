@@ -21,32 +21,33 @@
 */
 
 export class FwCloudError extends Error {
-    
-    constructor(error: Error);
-    constructor(message: string, stack?: string);
-    constructor(errorOrMessage: Error | string = null, stack?: string) {
-        super(errorOrMessage instanceof Error ? errorOrMessage.message : errorOrMessage);
-        this.name = this.constructor.name;
+  constructor(error: Error);
+  constructor(message: string, stack?: string);
+  constructor(errorOrMessage: Error | string = null, stack?: string) {
+    super(
+      errorOrMessage instanceof Error ? errorOrMessage.message : errorOrMessage,
+    );
+    this.name = this.constructor.name;
 
-        if (errorOrMessage instanceof Error) {
-            this.stack = errorOrMessage.stack;
-        }
-        
-        if(stack) {
-            this.stack = stack;
-        }
+    if (errorOrMessage instanceof Error) {
+      this.stack = errorOrMessage.stack;
     }
 
-    public stackToArray(): Array<string> {
-        const stack: string = this.stack;
-        const results: Array<string> = [];
-        const stackLines: Array<string> = stack.split("\n");
-
-        for(let i = 0; i < stackLines.length; i++ ) {
-            const line: string = stackLines[i].trim();
-            results.push(line);
-        }
-
-        return results;
+    if (stack) {
+      this.stack = stack;
     }
+  }
+
+  public stackToArray(): Array<string> {
+    const stack: string = this.stack;
+    const results: Array<string> = [];
+    const stackLines: Array<string> = stack.split('\n');
+
+    for (let i = 0; i < stackLines.length; i++) {
+      const line: string = stackLines[i].trim();
+      results.push(line);
+    }
+
+    return results;
+  }
 }

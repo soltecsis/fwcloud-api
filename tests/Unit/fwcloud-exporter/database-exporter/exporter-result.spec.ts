@@ -20,23 +20,23 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, expect } from "../../../mocha/global-setup";
-import { ExporterResult } from "../../../../src/fwcloud-exporter/database-exporter/exporter-result";
-import { FwCloud } from "../../../../src/models/fwcloud/FwCloud";
+import { describeName, expect } from '../../../mocha/global-setup';
+import { ExporterResult } from '../../../../src/fwcloud-exporter/database-exporter/exporter-result';
+import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 
 describe(describeName('ExporterResult tests'), () => {
-    describe('getTableWithEntities()', () => {
-        it('should return all table names with entities which has been exported', () => {
-            const exportResult = new ExporterResult();
-            exportResult.addTableData("table1", []);
-            exportResult.addTableData("table2", []);
-            exportResult.addTableData("table3", []);
+  describe('getTableWithEntities()', () => {
+    it('should return all table names with entities which has been exported', () => {
+      const exportResult = new ExporterResult();
+      exportResult.addTableData('table1', []);
+      exportResult.addTableData('table2', []);
+      exportResult.addTableData('table3', []);
 
-            expect(exportResult.getTableNames()).to.be.deep.eq([
-                "table1",
-                "table2",
-                "table3"
-            ]);
-        });
+      expect(exportResult.getTableNames()).to.be.deep.eq([
+        'table1',
+        'table2',
+        'table3',
+      ]);
     });
+  });
 });

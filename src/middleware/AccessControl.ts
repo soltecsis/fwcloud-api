@@ -20,13 +20,16 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Middleware } from "../fonaments/http/middleware/Middleware";
+import { Middleware } from '../fonaments/http/middleware/Middleware';
 import accessCtrl from '../authorization/access_control';
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from 'express';
 
 export class AccessControl extends Middleware {
-    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
-        accessCtrl.check(req, res, next);
-    }
-
+  public async handle(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    accessCtrl.check(req, res, next);
+  }
 }

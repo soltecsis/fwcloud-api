@@ -20,73 +20,81 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Type } from "class-transformer";
-import { IsArray, IsBoolean, IsNumber, IsOptional, IsPositive, IsString, ValidateNested } from "class-validator"
-import { PositionalEntityDto } from "../../../dtos/positional-entity.dto";
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { PositionalEntityDto } from '../../../dtos/positional-entity.dto';
 
 export class RoutingRuleControllerUpdateDto {
-    @IsNumber()
-    @IsOptional()
-    routingTableId?: number;
+  @IsNumber()
+  @IsOptional()
+  routingTableId?: number;
 
-    @IsBoolean()
-    @IsOptional()
-    active?: boolean;
-    
-    @IsString()
-    @IsOptional()
-    comment?: string;
+  @IsBoolean()
+  @IsOptional()
+  active?: boolean;
 
-    @IsNumber()
-    @IsPositive()
-    @IsOptional()
-    rule_order?: number;
+  @IsString()
+  @IsOptional()
+  comment?: string;
 
-    @IsString()
-    @IsOptional()
-    style?: string;
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  rule_order?: number;
 
-    @IsNumber()
-    @IsOptional()
-    firewallApplyToId?: number;
+  @IsString()
+  @IsOptional()
+  style?: string;
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    ipObjIds?: PositionalEntityDto[]
+  @IsNumber()
+  @IsOptional()
+  firewallApplyToId?: number;
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    ipObjGroupIds?: PositionalEntityDto[]
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipObjIds?: PositionalEntityDto[];
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    openVPNIds?: PositionalEntityDto[];
-    
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    openVPNPrefixIds?: PositionalEntityDto[];
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  ipObjGroupIds?: PositionalEntityDto[];
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({
-        each: true
-    })
-    @Type(() => PositionalEntityDto)
-    markIds?: PositionalEntityDto[];
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  openVPNIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  openVPNPrefixIds?: PositionalEntityDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => PositionalEntityDto)
+  markIds?: PositionalEntityDto[];
 }

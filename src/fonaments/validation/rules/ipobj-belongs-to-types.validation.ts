@@ -1,9 +1,18 @@
-import { registerDecorator, ValidationArguments, ValidationOptions, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
-import { In } from "typeorm";
-import { IPObj } from "../../../models/ipobj/IPObj";
-import db from "../../../database/database-manager";
+import {
+  registerDecorator,
+  ValidationArguments,
+  ValidationOptions,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
+import { In } from 'typeorm';
+import { IPObj } from '../../../models/ipobj/IPObj';
+import db from '../../../database/database-manager';
 
-export function IpObjBelongsToTypes(typeIds: number[], validationOptions?: ValidationOptions) {
+export function IpObjBelongsToTypes(
+  typeIds: number[],
+  validationOptions?: ValidationOptions,
+) {
   return function (object: Object, propertyName: string) {
     registerDecorator({
       name: 'ipObjBelongsToTypes',
@@ -17,21 +26,24 @@ export function IpObjBelongsToTypes(typeIds: number[], validationOptions?: Valid
           value = Array.isArray(value) ? value : [value];
 
           const validTypes: number[] = args.constraints[0];
-          const ipObjs: IPObj[] = await db.getSource().manager.getRepository(IPObj).find(
-            {
-              where: { id: In(value as number[])}
-            }
-          );
+          const ipObjs: IPObj[] = await db
+            .getSource()
+            .manager.getRepository(IPObj)
+            .find({
+              where: { id: In(value as number[]) },
+            });
 
-          const failed: IPObj[] = ipObjs.filter((ipObj: IPObj) => !validTypes.includes(ipObj.ipObjTypeId));
+          const failed: IPObj[] = ipObjs.filter(
+            (ipObj: IPObj) => !validTypes.includes(ipObj.ipObjTypeId),
+          );
 
           return failed.length === 0;
         },
 
         defaultMessage(args: ValidationArguments): string {
-          return `at least one ipObj is not valid`
-        }
-      }
+          return `at least one ipObj is not valid`;
+        },
+      },
     });
   };
 }

@@ -20,108 +20,128 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Policy, Authorization } from "../fonaments/authorization/policy";
-import { User } from "../models/user/User";
-import { RoutingTable } from "../models/routing/routing-table/routing-table.model";
-import { Firewall } from "../models/firewall/Firewall";
-import { RoutingGroup } from "../models/routing/routing-group/routing-group.model";
-import db from "../database/database-manager";
+import { Policy, Authorization } from '../fonaments/authorization/policy';
+import { User } from '../models/user/User';
+import { RoutingTable } from '../models/routing/routing-table/routing-table.model';
+import { Firewall } from '../models/firewall/Firewall';
+import { RoutingGroup } from '../models/routing/routing-group/routing-group.model';
+import db from '../database/database-manager';
 
 export class RoutingGroupPolicy extends Policy {
-
-    static async create(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await this.getUser(user.id);
-        firewall = await db.getSource().manager.getRepository(Firewall).findOne({
-            where: { id: firewall.id },
-            relations: ['fwCloud']
-        });
-        if (user.role === 1) {
-            return Authorization.grant();
-        }
-
-        const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === firewall.fwCloud.id});
-
-        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+  static async create(firewall: Firewall, user: User): Promise<Authorization> {
+    user = await this.getUser(user.id);
+    firewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOne({
+        where: { id: firewall.id },
+        relations: ['fwCloud'],
+      });
+    if (user.role === 1) {
+      return Authorization.grant();
     }
 
-    static async index(firewall: Firewall, user: User): Promise<Authorization> {
-        user = await this.getUser(user.id);
-        firewall = await db.getSource().manager.getRepository(Firewall).findOne({
-            where: { id: firewall.id },
-            relations: ['fwCloud']
-        });
-        if (user.role === 1) {
-            return Authorization.grant();
-        }
+    const match = user.fwClouds.filter((fwcloud) => {
+      return fwcloud.id === firewall.fwCloud.id;
+    });
 
-        const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === firewall.fwCloud.id});
+    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+  }
 
-        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+  static async index(firewall: Firewall, user: User): Promise<Authorization> {
+    user = await this.getUser(user.id);
+    firewall = await db
+      .getSource()
+      .manager.getRepository(Firewall)
+      .findOne({
+        where: { id: firewall.id },
+        relations: ['fwCloud'],
+      });
+    if (user.role === 1) {
+      return Authorization.grant();
     }
 
-    static async show(group: RoutingGroup, user: User): Promise<Authorization> {
-        user = await this.getUser(user.id);
-        if (user.role === 1) {
-            return Authorization.grant();
-        }
+    const match = user.fwClouds.filter((fwcloud) => {
+      return fwcloud.id === firewall.fwCloud.id;
+    });
 
-        group = await this.getGroup(group.id);
+    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+  }
 
-        const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === group.firewall.fwCloud.id});
-
-        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+  static async show(group: RoutingGroup, user: User): Promise<Authorization> {
+    user = await this.getUser(user.id);
+    if (user.role === 1) {
+      return Authorization.grant();
     }
 
-    static async update(group: RoutingGroup, user: User): Promise<Authorization> {
-        user = await this.getUser(user.id);
-        if (user.role === 1) {
-            return Authorization.grant();
-        }
+    group = await this.getGroup(group.id);
 
-        group = await this.getGroup(group.id);
+    const match = user.fwClouds.filter((fwcloud) => {
+      return fwcloud.id === group.firewall.fwCloud.id;
+    });
 
-        const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === group.firewall.fwCloud.id});
+    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+  }
 
-        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+  static async update(group: RoutingGroup, user: User): Promise<Authorization> {
+    user = await this.getUser(user.id);
+    if (user.role === 1) {
+      return Authorization.grant();
     }
 
-    static async remove(group: RoutingGroup, user: User): Promise<Authorization> {
-        user = await this.getUser(user.id);
-        if (user.role === 1) {
-            return Authorization.grant();
-        }
+    group = await this.getGroup(group.id);
 
-        group = await this.getGroup(group.id);
+    const match = user.fwClouds.filter((fwcloud) => {
+      return fwcloud.id === group.firewall.fwCloud.id;
+    });
 
-        const match = user.fwClouds.filter((fwcloud) => { return fwcloud.id === group.firewall.fwCloud.id});
+    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+  }
 
-        return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+  static async remove(group: RoutingGroup, user: User): Promise<Authorization> {
+    user = await this.getUser(user.id);
+    if (user.role === 1) {
+      return Authorization.grant();
     }
 
-    protected static getUser(userId: number): Promise<User> {
-        return db.getSource().manager.getRepository(User).findOneOrFail({
-            where: { id: userId },
-            relations: ['fwClouds']
-        });
-    }
+    group = await this.getGroup(group.id);
 
-    protected static getRoutingTable(routingTableId: number): Promise<RoutingTable> {
-        return db.getSource().manager.getRepository(RoutingTable).findOne({
-            where: { id: routingTableId },
-            relations: [
-                'firewall',
-                'firewall.fwCloud'
-            ]
-        });
-    }
+    const match = user.fwClouds.filter((fwcloud) => {
+      return fwcloud.id === group.firewall.fwCloud.id;
+    });
 
-    protected static getGroup(groupId: number): Promise<RoutingGroup> {
-        return db.getSource().manager.getRepository(RoutingGroup).findOne({
-            where: { id: groupId },
-            relations: [
-                'firewall',
-                'firewall.fwCloud'
-            ]
-        });
-    }
+    return match.length > 0 ? Authorization.grant() : Authorization.revoke();
+  }
+
+  protected static getUser(userId: number): Promise<User> {
+    return db
+      .getSource()
+      .manager.getRepository(User)
+      .findOneOrFail({
+        where: { id: userId },
+        relations: ['fwClouds'],
+      });
+  }
+
+  protected static getRoutingTable(
+    routingTableId: number,
+  ): Promise<RoutingTable> {
+    return db
+      .getSource()
+      .manager.getRepository(RoutingTable)
+      .findOne({
+        where: { id: routingTableId },
+        relations: ['firewall', 'firewall.fwCloud'],
+      });
+  }
+
+  protected static getGroup(groupId: number): Promise<RoutingGroup> {
+    return db
+      .getSource()
+      .manager.getRepository(RoutingGroup)
+      .findOne({
+        where: { id: groupId },
+        relations: ['firewall', 'firewall.fwCloud'],
+      });
+  }
 }

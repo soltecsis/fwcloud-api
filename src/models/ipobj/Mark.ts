@@ -20,13 +20,20 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import Model from "../Model";
-import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import { FwCloud } from "../fwcloud/FwCloud";
-import { PolicyRule } from "../policy/PolicyRule";
-import { RoutingRule } from "../routing/routing-rule/routing-rule.model";
-import { RoutingRuleToMark } from "../routing/routing-rule/routing-rule-to-mark.model";
-import db from "../../database/database-manager";
+import Model from '../Model';
+import {
+  PrimaryGeneratedColumn,
+  Column,
+  Entity,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
+import { FwCloud } from '../fwcloud/FwCloud';
+import { PolicyRule } from '../policy/PolicyRule';
+import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
+import { RoutingRuleToMark } from '../routing/routing-rule/routing-rule-to-mark.model';
+import db from '../../database/database-manager';
 
 const fwcError = require('../../utils/error_table');
 
@@ -34,113 +41,123 @@ const tableName: string = 'mark';
 
 @Entity(tableName)
 export class Mark extends Model {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @PrimaryGeneratedColumn()
-    id: number;
+  @Column()
+  code: number;
 
-    @Column()
-    code: number;
+  @Column()
+  name: string;
 
-    @Column()
-    name: string;
+  @Column()
+  comment: string;
 
-    @Column()
-    comment: string;
+  @Column()
+  created_at: Date;
 
-    @Column()
-    created_at: Date;
+  @Column()
+  updated_at: Date;
 
-    @Column()
-    updated_at: Date;
+  @Column()
+  created_by: number;
 
-    @Column()
-    created_by: number;
+  @Column()
+  updated_by: number;
 
-    @Column()
-    updated_by: number;
+  @Column({ name: 'fwcloud' })
+  fwCloudId: number;
 
-    @Column({name: 'fwcloud'})
-    fwCloudId: number;
-    
-    @ManyToOne(type => FwCloud, fwcloud => fwcloud.marks)
-    @JoinColumn({
-        name: 'fwcloud'
-    })
-    fwCloud: FwCloud;
+  @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.marks)
+  @JoinColumn({
+    name: 'fwcloud',
+  })
+  fwCloud: FwCloud;
 
-    @OneToMany(type => PolicyRule, policyRule => policyRule.mark)
-    policyRules: Array<PolicyRule>;
+  @OneToMany((type) => PolicyRule, (policyRule) => policyRule.mark)
+  policyRules: Array<PolicyRule>;
 
-    @OneToMany(() => RoutingRuleToMark, model => model.mark)
-    routingRuleToMarks: RoutingRuleToMark[];
+  @OneToMany(() => RoutingRuleToMark, (model) => model.mark)
+  routingRuleToMarks: RoutingRuleToMark[];
 
-    public getTableName(): string {
-        return tableName;
-    }
+  public getTableName(): string {
+    return tableName;
+  }
 
-    // Verify if the iptables mark exists for the indicated fwcloud.
-    public static existsMark(dbCon, fwcloud, code) {
-        return new Promise((resolve, reject) => {
-            dbCon.query(`SELECT id FROM ${tableName} WHERE code=${code} AND fwcloud=${fwcloud}`, (error, result) => {
-                if (error) return reject(error);
-                resolve((result.length > 0) ? result[0].id : 0);
-            });
-        });
-    };
+  // Verify if the iptables mark exists for the indicated fwcloud.
+  public static existsMark(dbCon, fwcloud, code) {
+    return new Promise((resolve, reject) => {
+      dbCon.query(
+        `SELECT id FROM ${tableName} WHERE code=${code} AND fwcloud=${fwcloud}`,
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result.length > 0 ? result[0].id : 0);
+        },
+      );
+    });
+  }
 
-    // Add new iptables mark for the indicated fwcloud.
-    public static createMark(req) {
-        return new Promise((resolve, reject) => {
-            const markData = {
-                fwcloud: req.body.fwcloud,
-                code: req.body.code,
-                name: req.body.name,
-                comment: req.body.comment
-            };
-            req.dbCon.query(`INSERT INTO ${tableName} SET ?`, markData, (error, result) => {
-                if (error) return reject(error);
-                resolve(result.insertId);
-            });
-        });
-    };
+  // Add new iptables mark for the indicated fwcloud.
+  public static createMark(req) {
+    return new Promise((resolve, reject) => {
+      const markData = {
+        fwcloud: req.body.fwcloud,
+        code: req.body.code,
+        name: req.body.name,
+        comment: req.body.comment,
+      };
+      req.dbCon.query(
+        `INSERT INTO ${tableName} SET ?`,
+        markData,
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
+    });
+  }
 
-    // Modify an iptables mark.
-    public static modifyMark(req): Promise<void> {
-        return new Promise((resolve, reject) => {
-            let sql = `UPDATE ${tableName} SET code=${req.body.code}, name=${req.dbCon.escape(req.body.name)},
-	  comment=${req.dbCon.escape(req.body.comment)} WHERE id=${req.body.mark}`
-            req.dbCon.query(sql, (error, result) => {
-                if (error) return reject(error);
-                resolve();
-            });
-        });
-    };
+  // Modify an iptables mark.
+  public static modifyMark(req): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let sql = `UPDATE ${tableName} SET code=${req.body.code}, name=${req.dbCon.escape(req.body.name)},
+	  comment=${req.dbCon.escape(req.body.comment)} WHERE id=${req.body.mark}`;
+      req.dbCon.query(sql, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+  }
 
-    // Delete an iptables mark.
-    public static deleteMark(dbCon, mark): Promise<void> {
-        return new Promise((resolve, reject) => {
-            dbCon.query(`DELETE from ${tableName} WHERE id=${mark}`, (error, result) => {
-                if (error) return reject(error);
-                resolve();
-            });
-        });
-    };
+  // Delete an iptables mark.
+  public static deleteMark(dbCon, mark): Promise<void> {
+    return new Promise((resolve, reject) => {
+      dbCon.query(
+        `DELETE from ${tableName} WHERE id=${mark}`,
+        (error, result) => {
+          if (error) return reject(error);
+          resolve();
+        },
+      );
+    });
+  }
 
-    public static getMark(dbCon, mark) {
-        return new Promise((resolve, reject) => {
-            dbCon.query(`select * from ${tableName} WHERE id=${mark}`, (error, result) => {
-                if (error) return reject(error);
-                if (result.length !== 1) return reject(fwcError.NOT_FOUND);
-                resolve(result[0]);
-            });
-        });
-    };
+  public static getMark(dbCon, mark) {
+    return new Promise((resolve, reject) => {
+      dbCon.query(
+        `select * from ${tableName} WHERE id=${mark}`,
+        (error, result) => {
+          if (error) return reject(error);
+          if (result.length !== 1) return reject(fwcError.NOT_FOUND);
+          resolve(result[0]);
+        },
+      );
+    });
+  }
 
-
-
-    public static searchMarkInRule(dbCon, fwcloud, mark) {
-        return new Promise((resolve, reject) => {
-            var sql = `select R.id as rule, R.firewall, FW.id as firewall_id, FW.name as firewall_name,
+  public static searchMarkInRule(dbCon, fwcloud, mark) {
+    return new Promise((resolve, reject) => {
+      var sql = `select R.id as rule, R.firewall, FW.id as firewall_id, FW.name as firewall_name,
 	        M.id obj_id, M.name obj_name,
 	        R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=30) as obj_type_id,
 			PT.name rule_type_name,
@@ -150,42 +167,54 @@ export class Mark extends Model {
 			inner join firewall FW on FW.id=R.firewall
 	        inner join policy_type PT on PT.id=R.type
 			where FW.fwcloud=${fwcloud} and R.mark=${mark}`;
-            dbCon.query(sql, (error, rows) => {
-                if (error) return reject(error);
-                resolve(rows);
-            });
-        });
-    };
+      dbCon.query(sql, (error, rows) => {
+        if (error) return reject(error);
+        resolve(rows);
+      });
+    });
+  }
 
-    public static searchMarkUsage(dbCon, fwcloud, mark) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let search: any = {};
-                search.result = false;
-                search.restrictions = {};
+  public static searchMarkUsage(dbCon, fwcloud, mark) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let search: any = {};
+        search.result = false;
+        search.restrictions = {};
 
-                search.restrictions.MarkInRule = await this.searchMarkInRule(dbCon, fwcloud, mark);
+        search.restrictions.MarkInRule = await this.searchMarkInRule(
+          dbCon,
+          fwcloud,
+          mark,
+        );
 
-                search.restrictions.MarkInRoutingRule = await db.getSource().manager.getRepository(RoutingRule).createQueryBuilder('routing_rule')
-                    .addSelect('firewall.id', 'firewall_id').addSelect('firewall.name', 'firewall_name')
-                    .addSelect('cluster.id', 'cluster_id').addSelect('cluster.name', 'cluster_name')
-                    .innerJoin('routing_rule.routingRuleToMarks', 'routingRuleToMarks')
-                    .innerJoin('routingRuleToMarks.mark', 'mark', 'mark.id = :mark', {mark: mark})
-                    .innerJoin('routing_rule.routingTable', 'table')
-                    .innerJoin('table.firewall', 'firewall')
-                    .leftJoin('firewall.cluster', 'cluster')
-                    .where(`firewall.fwCloudId = :fwcloud`, {fwcloud: fwcloud})
-                    .getRawMany();
+        search.restrictions.MarkInRoutingRule = await db
+          .getSource()
+          .manager.getRepository(RoutingRule)
+          .createQueryBuilder('routing_rule')
+          .addSelect('firewall.id', 'firewall_id')
+          .addSelect('firewall.name', 'firewall_name')
+          .addSelect('cluster.id', 'cluster_id')
+          .addSelect('cluster.name', 'cluster_name')
+          .innerJoin('routing_rule.routingRuleToMarks', 'routingRuleToMarks')
+          .innerJoin('routingRuleToMarks.mark', 'mark', 'mark.id = :mark', {
+            mark: mark,
+          })
+          .innerJoin('routing_rule.routingTable', 'table')
+          .innerJoin('table.firewall', 'firewall')
+          .leftJoin('firewall.cluster', 'cluster')
+          .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
+          .getRawMany();
 
-                for (let key in search.restrictions) {
-                    if (search.restrictions[key].length > 0) {
-                        search.result = true;
-                        break;
-                    }
-                }
-                resolve(search);
-            } catch (error) { reject(error) }
-        });
-    };
-
+        for (let key in search.restrictions) {
+          if (search.restrictions[key].length > 0) {
+            search.result = true;
+            break;
+          }
+        }
+        resolve(search);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
 }

@@ -20,68 +20,90 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DatabaseService } from "../database/database.service";
-import { app } from "../fonaments/abstract-application";
-import { QueryRunner, getMetadataArgsStorage, DeepPartial, DeleteResult, Repository, EntityRepository } from "typeorm";
-import Model from "../models/Model";
-import { ExporterResultData } from "../fwcloud-exporter/database-exporter/exporter-result";
+import { DatabaseService } from '../database/database.service';
+import { app } from '../fonaments/abstract-application';
+import {
+  QueryRunner,
+  getMetadataArgsStorage,
+  DeepPartial,
+  DeleteResult,
+  Repository,
+  EntityRepository,
+} from 'typeorm';
+import Model from '../models/Model';
+import { ExporterResultData } from '../fwcloud-exporter/database-exporter/exporter-result';
 
 export class BulkDatabaseDelete {
-    protected _data: ExporterResultData;
-    protected _databaseService: DatabaseService;
+  protected _data: ExporterResultData;
+  protected _databaseService: DatabaseService;
 
-    constructor(data: ExporterResultData) {
-        this._data = data;
-    }
+  constructor(data: ExporterResultData) {
+    this._data = data;
+  }
 
-    public async run(): Promise<void> {
-        return new Promise(async (resolve, reject) => {
-            this._databaseService = await app().getService<DatabaseService>(DatabaseService.name);
-            const qr: QueryRunner = this._databaseService.dataSource.createQueryRunner();
+  public async run(): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      this._databaseService = await app().getService<DatabaseService>(
+        DatabaseService.name,
+      );
+      const qr: QueryRunner =
+        this._databaseService.dataSource.createQueryRunner();
 
-            await qr.startTransaction();
+      await qr.startTransaction();
 
-            try {
-                await qr.query('SET FOREIGN_KEY_CHECKS = 0');
+      try {
+        await qr.query('SET FOREIGN_KEY_CHECKS = 0');
 
-                for (let tableName in this._data) {
-                    let entity: typeof Model = Model.getEntitiyDefinition(tableName);
-                    const rows: Array<object> = this._data[tableName];
+        for (let tableName in this._data) {
+          let entity: typeof Model = Model.getEntitiyDefinition(tableName);
+          const rows: Array<object> = this._data[tableName];
 
-                    if (entity) {
-                        await this.processEntityRows(qr, tableName, entity, rows);
-                    } else {
-                        await this.processRows(qr, tableName, rows);
-                    }
-                }
-
-                await qr.query('SET FOREIGN_KEY_CHECKS = 1');
-                await qr.commitTransaction();
-                await qr.release();
-            } catch (e) {
-                await qr.rollbackTransaction();
-                await qr.query('SET FOREIGN_KEY_CHECKS = 1');
-                qr.release();
-                return reject(e);
-            }
-            
-            resolve();
-        });
-    }
-
-    protected async processEntityRows(queryRunner: QueryRunner, tableName: string, entity: typeof Model, rows: Array<object>): Promise<void> {
-        
-        if (rows.length <= 0) {
-            return;
+          if (entity) {
+            await this.processEntityRows(qr, tableName, entity, rows);
+          } else {
+            await this.processRows(qr, tableName, rows);
+          }
         }
 
-        await queryRunner.manager.getRepository(entity).remove(<Array<Model>>rows);
+        await qr.query('SET FOREIGN_KEY_CHECKS = 1');
+        await qr.commitTransaction();
+        await qr.release();
+      } catch (e) {
+        await qr.rollbackTransaction();
+        await qr.query('SET FOREIGN_KEY_CHECKS = 1');
+        qr.release();
+        return reject(e);
+      }
+
+      resolve();
+    });
+  }
+
+  protected async processEntityRows(
+    queryRunner: QueryRunner,
+    tableName: string,
+    entity: typeof Model,
+    rows: Array<object>,
+  ): Promise<void> {
+    if (rows.length <= 0) {
+      return;
     }
 
-    protected async processRows(queryRunner: QueryRunner, table: string, rows: Array<object>): Promise<void> {
-        for (let i = 0; i < rows.length; i++) {
-            const row: object = rows[i];
-            await queryRunner.manager.createQueryBuilder(table, "table").delete().where(row).execute();
-        }
+    await queryRunner.manager.getRepository(entity).remove(<Array<Model>>rows);
+  }
+
+  protected async processRows(
+    queryRunner: QueryRunner,
+    table: string,
+    rows: Array<object>,
+  ): Promise<void> {
+    for (let i = 0; i < rows.length; i++) {
+      const row: object = rows[i];
+      await queryRunner.manager
+        .createQueryBuilder(table, 'table')
+        .delete()
+        .where(row)
+        .execute();
     }
+  }
 }

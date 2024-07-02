@@ -20,45 +20,47 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Table, QueryRunner, DataSource } from "typeorm";
-import { MigrationResetCommand } from "../../../../src/cli/commands/migration-reset-command"
-import { Application } from "../../../../src/Application";
-import { expect, testSuite, describeName } from "../../../mocha/global-setup";
-import { DatabaseService } from "../../../../src/database/database.service";
-import { runCLICommandIsolated } from "../../../utils/utils";
+import { Table, QueryRunner, DataSource } from 'typeorm';
+import { MigrationResetCommand } from '../../../../src/cli/commands/migration-reset-command';
+import { Application } from '../../../../src/Application';
+import { expect, testSuite, describeName } from '../../../mocha/global-setup';
+import { DatabaseService } from '../../../../src/database/database.service';
+import { runCLICommandIsolated } from '../../../utils/utils';
 
 describe(describeName('MigrationResetCommand tests'), () => {
-    let app: Application;
+  let app: Application;
 
-    before(async () => {
-        app = testSuite.app;
+  before(async () => {
+    app = testSuite.app;
+  });
+
+  after(async () => {
+    await testSuite.resetDatabaseData();
+  });
+
+  it('should reset the database', async () => {
+    let dataSource: DataSource = (
+      await app.getService<DatabaseService>(DatabaseService.name)
+    ).dataSource;
+    let queryRunner: QueryRunner = dataSource.createQueryRunner();
+
+    expect(await queryRunner.getTable('ca')).to.be.instanceOf(Table);
+    expect(await queryRunner.getTable('user__fwcloud')).to.be.instanceOf(Table);
+
+    await runCLICommandIsolated(testSuite, async () => {
+      return new MigrationResetCommand().safeHandle({
+        $0: 'migration:run',
+        _: [],
+      });
     });
+    if (!dataSource.isInitialized) {
+      await dataSource.initialize();
+    }
+    queryRunner = dataSource.createQueryRunner();
 
-    after(async () => {
-        await testSuite.resetDatabaseData();
-    });
+    expect(await queryRunner.getTable('ca')).to.be.undefined;
+    expect(await queryRunner.getTable('user__fwcloud')).to.be.undefined;
 
-    it('should reset the database', async () => {
-        let dataSource: DataSource = (await app.getService<DatabaseService>(DatabaseService.name)).dataSource;
-        let queryRunner: QueryRunner = dataSource.createQueryRunner();
-
-        expect(await queryRunner.getTable('ca')).to.be.instanceOf(Table);
-        expect(await queryRunner.getTable('user__fwcloud')).to.be.instanceOf(Table);
-
-        await runCLICommandIsolated(testSuite, async () => {
-            return new MigrationResetCommand().safeHandle({
-                $0: "migration:run",
-                _: []
-            })
-        });
-        if (!dataSource.isInitialized) {
-            await dataSource.initialize();
-        }
-        queryRunner = dataSource.createQueryRunner();
-
-        expect(await queryRunner.getTable('ca')).to.be.undefined;
-        expect(await queryRunner.getTable('user__fwcloud')).to.be.undefined;
-
-        await queryRunner.release();
-    });
+    await queryRunner.release();
+  });
 });

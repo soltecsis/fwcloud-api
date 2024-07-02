@@ -20,22 +20,26 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ServiceProvider } from "../fonaments/services/service-provider";
-import { ServiceContainer, ServiceBound } from "../fonaments/services/service-container";
-import { IptablesSaveService } from "./iptables-save.service";
-import { AbstractApplication } from "../fonaments/abstract-application";
+import { ServiceProvider } from '../fonaments/services/service-provider';
+import {
+  ServiceContainer,
+  ServiceBound,
+} from '../fonaments/services/service-container';
+import { IptablesSaveService } from './iptables-save.service';
+import { AbstractApplication } from '../fonaments/abstract-application';
 
 export class IptablesSaveServiceProvider extends ServiceProvider {
-    
-    public register(serviceContainer: ServiceContainer): ServiceBound {
-        return serviceContainer.singleton(IptablesSaveService.name, async(app: AbstractApplication): Promise<IptablesSaveService> => {
-            return IptablesSaveService.make(app);
-        });
-    }
+  public register(serviceContainer: ServiceContainer): ServiceBound {
+    return serviceContainer.singleton(
+      IptablesSaveService.name,
+      async (app: AbstractApplication): Promise<IptablesSaveService> => {
+        return IptablesSaveService.make(app);
+      },
+    );
+  }
 
-    public async bootstrap(app: AbstractApplication) {
-        // Call to backup service in order to start cron job task
-        await app.getService<IptablesSaveService>(IptablesSaveService.name);
-    }
-
+  public async bootstrap(app: AbstractApplication) {
+    // Call to backup service in order to start cron job task
+    await app.getService<IptablesSaveService>(IptablesSaveService.name);
+  }
 }

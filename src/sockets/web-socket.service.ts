@@ -20,11 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Service } from "../fonaments/services/service";
-import { Channel } from "./channels/channel";
+import { Service } from '../fonaments/services/service';
+import { Channel } from './channels/channel';
 import io from 'socket.io';
-import { logger } from "../fonaments/abstract-application";
-import session from "express-session";
+import { logger } from '../fonaments/abstract-application';
+import session from 'express-session';
 import { Session } from 'express-session';
 
 export type Payload = object;
@@ -32,71 +32,86 @@ export type Payload = object;
 export type MessageEvents = 'message:add' | 'message:remove';
 
 declare module 'http' {
-    interface IncomingMessage {
-        session: Session & Partial<session.SessionData>;
-    }
+  interface IncomingMessage {
+    session: Session & Partial<session.SessionData>;
+  }
 }
 
 export class WebSocketService extends Service {
-    protected _channels: Array<Channel> = [];
+  protected _channels: Array<Channel> = [];
 
-    protected _socketIO: io.Server;
-    
-    public async build(): Promise<WebSocketService> {
-        return this;
-    }
+  protected _socketIO: io.Server;
 
-    get channels(): Array<Channel> {
-        return this._channels;
-    }
+  public async build(): Promise<WebSocketService> {
+    return this;
+  }
 
-    public hasSocket(socketId: string): boolean {
-        return this.getSocket(socketId) !== null;
-    }
+  get channels(): Array<Channel> {
+    return this._channels;
+  }
 
-    public getSocket(socketId: string): io.Socket {
-        return this._socketIO.sockets.sockets.get(socketId) || null;
-    }
+  public hasSocket(socketId: string): boolean {
+    return this.getSocket(socketId) !== null;
+  }
 
-    public setSocketIO(socketIO: io.Server) {
-        this._socketIO = socketIO;
+  public getSocket(socketId: string): io.Socket {
+    return this._socketIO.sockets.sockets.get(socketId) || null;
+  }
 
-        this._socketIO.on('connection', socket => {
-            // It must exists a session before the socket.io connection.
-            if (!socket.request.session) {
-                logger().error('WebSocket: Session not found');
-                socket.disconnect(true);
-                return;
-            }
+  public setSocketIO(socketIO: io.Server) {
+    this._socketIO = socketIO;
 
-            // Make sure we have session data in store synchronized with the object in memory.
-            socket.request.session.reload(err => {
-                if (err) {
-                    logger().error(`WebSocket: Reloading session data from store: ${err.message}`);
-                    socket.disconnect(true);
-                    return; 
-                }
+    this._socketIO.on('connection', (socket) => {
+      // It must exists a session before the socket.io connection.
+      if (!socket.request.session) {
+        logger().error('WebSocket: Session not found');
+        socket.disconnect(true);
+        return;
+      }
 
-                // Session must contain some mandatory data.
-                if (!socket.request.session.keepalive_ts || !socket.request.session || !socket.request.session.customer_id 
-                    || !socket.request.session.user_id || !socket.request.session.username || !socket.request.session.pgp) {
-                    logger().error('WebSocket: Bad session data.');
-                    socket.disconnect(true);
-                    return;
-                }
+      // Make sure we have session data in store synchronized with the object in memory.
+      socket.request.session.reload((err) => {
+        if (err) {
+          logger().error(
+            `WebSocket: Reloading session data from store: ${err.message}`,
+          );
+          socket.disconnect(true);
+          return;
+        }
 
-                socket.request.session.socketId = socket.id;
-                socket.request.session.save(err => {
-                    if (err) { logger().error(`WebSocket: Storing socket.io id in session file: ${err.message}`); }
-                    else socket.request.session.reload(err => { });
-                });
-    
-                logger().info(`WebSocket: User connected (ID: ${socket.id}, IP: ${socket.handshake.address}, session: ${socket.request.session.id})`);
-                
-                socket.on('disconnect', () => {
-                    logger().info(`WebSocket: User disconnected (ID: ${socket.id}, IP: ${socket.handshake.address}, session: ${socket.request.session.id})`);
-                });
-            });
+        // Session must contain some mandatory data.
+        if (
+          !socket.request.session.keepalive_ts ||
+          !socket.request.session ||
+          !socket.request.session.customer_id ||
+          !socket.request.session.user_id ||
+          !socket.request.session.username ||
+          !socket.request.session.pgp
+        ) {
+          logger().error('WebSocket: Bad session data.');
+          socket.disconnect(true);
+          return;
+        }
+
+        socket.request.session.socketId = socket.id;
+        socket.request.session.save((err) => {
+          if (err) {
+            logger().error(
+              `WebSocket: Storing socket.io id in session file: ${err.message}`,
+            );
+          } else socket.request.session.reload((err) => {});
         });
-    }
+
+        logger().info(
+          `WebSocket: User connected (ID: ${socket.id}, IP: ${socket.handshake.address}, session: ${socket.request.session.id})`,
+        );
+
+        socket.on('disconnect', () => {
+          logger().info(
+            `WebSocket: User disconnected (ID: ${socket.id}, IP: ${socket.handshake.address}, session: ${socket.request.session.id})`,
+          );
+        });
+      });
+    });
+  }
 }

@@ -20,12 +20,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { User } from "../../../src/models/user/User";
-import { testSuite, describeName } from "../../mocha/global-setup";
-import { Application } from "../../../src/Application";
-import { generateSession, attachSession, createUser } from "../../utils/utils";
-import request = require("supertest");
-import { _URL } from "../../../src/fonaments/http/router/router.service";
+import { User } from '../../../src/models/user/User';
+import { testSuite, describeName } from '../../mocha/global-setup';
+import { Application } from '../../../src/Application';
+import { generateSession, attachSession, createUser } from '../../utils/utils';
+import request = require('supertest');
+import { _URL } from '../../../src/fonaments/http/router/router.service';
 
 let app: Application;
 let loggedUser: User;
@@ -34,42 +34,40 @@ let adminUser: User;
 let adminUserSessionId: string;
 
 describe(describeName('Version E2E tests'), () => {
+  beforeEach(async () => {
+    app = testSuite.app;
 
-    beforeEach(async () => {
-        app = testSuite.app;
+    loggedUser = await createUser({ role: 0 });
+    loggedUserSessionId = generateSession(loggedUser);
 
-        loggedUser = await createUser({ role: 0 });
-        loggedUserSessionId = generateSession(loggedUser);
+    adminUser = await createUser({ role: 1 });
+    adminUserSessionId = generateSession(adminUser);
+  });
 
-        adminUser = await createUser({ role: 1 });
-        adminUserSessionId = generateSession(adminUser);
+  describe('VersionController', () => {
+    describe('VersionController@show', () => {
+      it('guest user should not see the version', async () => {
+        return await request(app.express)
+          .get(_URL().getURL('versions.show'))
+          .expect(401);
+      });
+
+      it('regular user should not see version', async () => {
+        return await request(app.express)
+          .get(_URL().getURL('versions.show'))
+          .set('Cookie', [attachSession(loggedUserSessionId)])
+          .expect(401);
+      });
+
+      it('admin user should see the version', async () => {
+        return await request(app.express)
+          .get(_URL().getURL('versions.show'))
+          .set('Cookie', [attachSession(adminUserSessionId)])
+          .expect(200)
+          .then((response) => {
+            response.body.data = app.version.toResponse();
+          });
+      });
     });
-
-    describe('VersionController', () => {
-
-        describe('VersionController@show', () => {
-            it('guest user should not see the version', async () => {
-                return await request(app.express)
-                    .get(_URL().getURL('versions.show'))
-                    .expect(401);
-            });
-
-            it('regular user should not see version', async () => {
-                return await request(app.express)
-                    .get(_URL().getURL('versions.show'))
-                    .set('Cookie', [attachSession(loggedUserSessionId)])
-                    .expect(401)
-            });
-
-            it('admin user should see the version', async () => {
-                return await request(app.express)
-                    .get(_URL().getURL('versions.show'))
-                    .set('Cookie', [attachSession(adminUserSessionId)])
-                    .expect(200)
-                    .then(response => {
-                        response.body.data = app.version.toResponse()
-                    });
-            });
-        });
-    });
+  });
 });

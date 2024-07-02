@@ -1,29 +1,28 @@
 import { Repository } from 'typeorm';
 import { Application } from './../cli/Application';
-import { Service } from "../fonaments/services/service";
+import { Service } from '../fonaments/services/service';
 import { Ca } from '../models/vpn/pki/Ca';
 import db from '../database/database-manager';
 
 interface IUpdateCa {
-    comment?: string;
+  comment?: string;
 }
 
 export class CaService extends Service {
+  protected _repository: Repository<Ca>;
 
-    protected _repository: Repository<Ca>;
-    
-    constructor(app: Application) {
-        super(app);
-        this._repository = db.getSource().getRepository(Ca);
-    }
+  constructor(app: Application) {
+    super(app);
+    this._repository = db.getSource().getRepository(Ca);
+  }
 
+  public async update(id: number, data: IUpdateCa): Promise<Ca> {
+    let ca: Ca = await this._repository.preload(
+      Object.assign({ comment: data.comment }, { id }),
+    );
 
-    public async update(id:number, data: IUpdateCa): Promise<Ca> {
+    ca = await this._repository.save(ca);
 
-        let ca: Ca = await this._repository.preload(Object.assign({comment: data.comment}, {id}));
-        
-        ca = await this._repository.save(ca);
-
-        return ca;
-    }
+    return ca;
+  }
 }

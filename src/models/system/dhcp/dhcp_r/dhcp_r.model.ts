@@ -19,140 +19,159 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import { IPObj } from "../../../ipobj/IPObj";
-import { Interface } from "../../../interface/Interface";
-import { DHCPGroup } from "../dhcp_g/dhcp_g.model";
-import Model from "../../../Model";
-import { Firewall } from "../../../firewall/Firewall";
-import { DHCPRuleToIPObj } from "./dhcp_r-to-ipobj.model";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
+import { IPObj } from '../../../ipobj/IPObj';
+import { Interface } from '../../../interface/Interface';
+import { DHCPGroup } from '../dhcp_g/dhcp_g.model';
+import Model from '../../../Model';
+import { Firewall } from '../../../firewall/Firewall';
+import { DHCPRuleToIPObj } from './dhcp_r-to-ipobj.model';
 
 const tableName: string = 'dhcp_r';
 
 @Entity(tableName)
 export class DHCPRule extends Model {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({ type: 'tinyint', default: 1 })
-    rule_type: number;
+  @Column({ type: 'tinyint', default: 1 })
+  rule_type: number;
 
-    @Column({ type: 'int' })
-    rule_order: number;
+  @Column({ type: 'int' })
+  rule_order: number;
 
-    @Column({ type: 'boolean', default: false })
-    active: boolean;
+  @Column({ type: 'boolean', default: false })
+  active: boolean;
 
-    @Column({ name: 'group' })
-    groupId: number;
+  @Column({ name: 'group' })
+  groupId: number;
 
-    @ManyToOne(() => DHCPGroup)
-    @JoinColumn({ name: 'group' })
-    group: DHCPGroup;
+  @ManyToOne(() => DHCPGroup)
+  @JoinColumn({ name: 'group' })
+  group: DHCPGroup;
 
-    @Column({ type: 'varchar', length: 50 })
-    style: string;
+  @Column({ type: 'varchar', length: 50 })
+  style: string;
 
-    @Column({ name: 'network' })
-    networkId: number;
+  @Column({ name: 'network' })
+  networkId: number;
 
-    @ManyToOne(() => IPObj, { eager: true })
-    @JoinColumn({ name: 'network' })
-    network: IPObj;
+  @ManyToOne(() => IPObj, { eager: true })
+  @JoinColumn({ name: 'network' })
+  network: IPObj;
 
-    @Column({ name: 'range' })
-    rangeId: number;
+  @Column({ name: 'range' })
+  rangeId: number;
 
-    @ManyToOne(() => IPObj, { eager: true })
-    @JoinColumn({ name: 'range' })
-    range: IPObj;
+  @ManyToOne(() => IPObj, { eager: true })
+  @JoinColumn({ name: 'range' })
+  range: IPObj;
 
-    @Column({ name: 'router' })
-    routerId: number;
+  @Column({ name: 'router' })
+  routerId: number;
 
-    @ManyToOne(() => IPObj, { eager: true })
-    @JoinColumn({ name: 'router' })
-    router: IPObj;
+  @ManyToOne(() => IPObj, { eager: true })
+  @JoinColumn({ name: 'router' })
+  router: IPObj;
 
-    @Column({ name: 'interface' })
-    interfaceId: number;
+  @Column({ name: 'interface' })
+  interfaceId: number;
 
-    @ManyToOne(() => Interface, { eager: true })
-    @JoinColumn({ name: 'interface' })
-    interface: Interface;
+  @ManyToOne(() => Interface, { eager: true })
+  @JoinColumn({ name: 'interface' })
+  interface: Interface;
 
-    @OneToMany(() => DHCPRuleToIPObj, model => model.dhcpRule, {
-        cascade: true
-    })
-    dhcpRuleToIPObjs: DHCPRuleToIPObj[];
+  @OneToMany(() => DHCPRuleToIPObj, (model) => model.dhcpRule, {
+    cascade: true,
+  })
+  dhcpRuleToIPObjs: DHCPRuleToIPObj[];
 
-    @Column({ name: 'firewall' })
-    firewallId: number;
+  @Column({ name: 'firewall' })
+  firewallId: number;
 
-    @ManyToOne(() => Firewall)
-    @JoinColumn({ name: 'firewall' })
-    firewall: Firewall;
+  @ManyToOne(() => Firewall)
+  @JoinColumn({ name: 'firewall' })
+  firewall: Firewall;
 
-    @Column({ type: 'int', unsigned: true, default: 86400 })
-    max_lease: number;
+  @Column({ type: 'int', unsigned: true, default: 86400 })
+  max_lease: number;
 
-    @Column({ type: 'text' })
-    cfg_text: string;
+  @Column({ type: 'text' })
+  cfg_text: string;
 
-    @Column({ type: 'text' })
-    comment: string;
+  @Column({ type: 'text' })
+  comment: string;
 
-    public getTableName(): string {
-        return tableName;
-    }
+  public getTableName(): string {
+    return tableName;
+  }
 
-    public static async cloneDHCP(idfirewall: number, idNewFirewall: number) {
-        const originalFirewall = await Firewall.findOne({ where: { id: idfirewall }});
-        const newFirewall = await Firewall.findOne({ where: { id: idNewFirewall }});
+  public static async cloneDHCP(idfirewall: number, idNewFirewall: number) {
+    const originalFirewall = await Firewall.findOne({
+      where: { id: idfirewall },
+    });
+    const newFirewall = await Firewall.findOne({
+      where: { id: idNewFirewall },
+    });
 
-        if (originalFirewall && newFirewall) {
-            const groupMapping = new Map<number, number>();
-            const originalDHCPGroups = await DHCPGroup.find({ where: { firewall: originalFirewall }});
+    if (originalFirewall && newFirewall) {
+      const groupMapping = new Map<number, number>();
+      const originalDHCPGroups = await DHCPGroup.find({
+        where: { firewall: originalFirewall },
+      });
 
-            for (const group of originalDHCPGroups) {
-                const newGroup = new DHCPGroup();
-                newGroup.name = group.name;
-                newGroup.firewall = newFirewall;
-                newGroup.style = group.style;
-                await newGroup.save();
-                groupMapping.set(group.id, newGroup.id);
-            }
+      for (const group of originalDHCPGroups) {
+        const newGroup = new DHCPGroup();
+        newGroup.name = group.name;
+        newGroup.firewall = newFirewall;
+        newGroup.style = group.style;
+        await newGroup.save();
+        groupMapping.set(group.id, newGroup.id);
+      }
 
-            const originalRules = await DHCPRule.find({ where: { firewall: originalFirewall }, relations: ['dhcpRuleToIPObjs'] });
+      const originalRules = await DHCPRule.find({
+        where: { firewall: originalFirewall },
+        relations: ['dhcpRuleToIPObjs'],
+      });
 
-            for (const originalRule of originalRules) {
-                const newRule = new DHCPRule();
-                newRule.rule_type = originalRule.rule_type;
-                newRule.rule_order = originalRule.rule_order;
-                newRule.active = originalRule.active;
-                newRule.style = originalRule.style;
-                newRule.network = originalRule.network;
-                newRule.range = originalRule.range;
-                newRule.router = originalRule.router;
-                newRule.interface = originalRule.interface;
-                newRule.dhcpRuleToIPObjs = originalRule.dhcpRuleToIPObjs;
-                newRule.firewall = newFirewall;
-                newRule.max_lease = originalRule.max_lease;
-                newRule.cfg_text = originalRule.cfg_text;
-                newRule.comment = originalRule.comment;
-                if (originalRule.groupId && groupMapping.has(originalRule.groupId)) {
-                    newRule.groupId = groupMapping.get(originalRule.groupId);
-                }
-                await newRule.save();
-            }
+      for (const originalRule of originalRules) {
+        const newRule = new DHCPRule();
+        newRule.rule_type = originalRule.rule_type;
+        newRule.rule_order = originalRule.rule_order;
+        newRule.active = originalRule.active;
+        newRule.style = originalRule.style;
+        newRule.network = originalRule.network;
+        newRule.range = originalRule.range;
+        newRule.router = originalRule.router;
+        newRule.interface = originalRule.interface;
+        newRule.dhcpRuleToIPObjs = originalRule.dhcpRuleToIPObjs;
+        newRule.firewall = newFirewall;
+        newRule.max_lease = originalRule.max_lease;
+        newRule.cfg_text = originalRule.cfg_text;
+        newRule.comment = originalRule.comment;
+        if (originalRule.groupId && groupMapping.has(originalRule.groupId)) {
+          newRule.groupId = groupMapping.get(originalRule.groupId);
         }
+        await newRule.save();
+      }
     }
+  }
 
-    public static moveToOtherFirewall(src_firewall: number, dst_firewall: number) {
-        return DHCPRule.createQueryBuilder()
-            .update()
-            .set({ firewallId: dst_firewall })
-            .where('firewall = :src_firewall', { src_firewall })
-            .execute();
-    }
+  public static moveToOtherFirewall(
+    src_firewall: number,
+    dst_firewall: number,
+  ) {
+    return DHCPRule.createQueryBuilder()
+      .update()
+      .set({ firewallId: dst_firewall })
+      .where('firewall = :src_firewall', { src_firewall })
+      .execute();
+  }
 }

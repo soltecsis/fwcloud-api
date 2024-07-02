@@ -15,96 +15,129 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { HAProxyCompiled, HAProxyCompiler } from "../../../../../src/compiler/system/haproxy/HAProxyCompiler";
-import { HAProxyRule } from "../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.model";
-import { HAProxyRuleService, HAProxyRulesData } from "../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.service";
-import { HAProxyRuleItemForCompiler } from "../../../../../src/models/system/haproxy/shared";
-import { testSuite } from "../../../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
-import { expect } from "chai";
-import { IPObj } from "../../../../../src/models/ipobj/IPObj";
-import { EventEmitter } from "events";
-import sinon from "sinon";
-import { EntityManager } from "typeorm";
-import db from "../../../../../src/database/database-manager";
+import {
+  HAProxyCompiled,
+  HAProxyCompiler,
+} from '../../../../../src/compiler/system/haproxy/HAProxyCompiler';
+import { HAProxyRule } from '../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.model';
+import {
+  HAProxyRuleService,
+  HAProxyRulesData,
+} from '../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.service';
+import { HAProxyRuleItemForCompiler } from '../../../../../src/models/system/haproxy/shared';
+import { testSuite } from '../../../../mocha/global-setup';
+import {
+  FwCloudFactory,
+  FwCloudProduct,
+} from '../../../../utils/fwcloud-factory';
+import { expect } from 'chai';
+import { IPObj } from '../../../../../src/models/ipobj/IPObj';
+import { EventEmitter } from 'events';
+import sinon from 'sinon';
+import { EntityManager } from 'typeorm';
+import db from '../../../../../src/database/database-manager';
 
 describe(HAProxyCompiler.name, () => {
-    let fwc: FwCloudProduct;
+  let fwc: FwCloudProduct;
 
-    let haproxyService: HAProxyRuleService;
-    let compiler: HAProxyCompiler = new HAProxyCompiler();
-    let rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[];
-    let manager: EntityManager;
+  let haproxyService: HAProxyRuleService;
+  let compiler: HAProxyCompiler = new HAProxyCompiler();
+  let rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[];
+  let manager: EntityManager;
 
-    beforeEach(async () => {
-        await testSuite.resetDatabaseData();
-        manager = db.getSource().manager;
-        fwc = await (new FwCloudFactory()).make();
+  beforeEach(async () => {
+    await testSuite.resetDatabaseData();
+    manager = db.getSource().manager;
+    fwc = await new FwCloudFactory().make();
 
-        haproxyService = await testSuite.app.getService<HAProxyRuleService>(HAProxyRuleService.name);
+    haproxyService = await testSuite.app.getService<HAProxyRuleService>(
+      HAProxyRuleService.name,
+    );
 
-        const testData: HAProxyRule[] = [];
+    const testData: HAProxyRule[] = [];
 
-        for (let i = 0; i < 10; i++) {
-            const rule: HAProxyRule = await manager.getRepository(HAProxyRule).save(manager.getRepository(HAProxyRule).create({
-                rule_order: i + 1,
-                rule_type: 1,
-                firewall: fwc.firewall,
-                frontendIp: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
-                    address: `192.168.1.${i}`,
-                    destination_port_start: 80,
-                    destination_port_end: 80,
-                    name: 'test',
-                    ipObjTypeId: 0
-                })),
-                frontendPort: await manager.getRepository(IPObj).save(manager.getRepository(IPObj).create({
-                    destination_port_start: 80,
-                    destination_port_end: 80,
-                    name: 'test',
-                    ipObjTypeId: 0
-                })),
-            }));
+    for (let i = 0; i < 10; i++) {
+      const rule: HAProxyRule = await manager.getRepository(HAProxyRule).save(
+        manager.getRepository(HAProxyRule).create({
+          rule_order: i + 1,
+          rule_type: 1,
+          firewall: fwc.firewall,
+          frontendIp: await manager.getRepository(IPObj).save(
+            manager.getRepository(IPObj).create({
+              address: `192.168.1.${i}`,
+              destination_port_start: 80,
+              destination_port_end: 80,
+              name: 'test',
+              ipObjTypeId: 0,
+            }),
+          ),
+          frontendPort: await manager.getRepository(IPObj).save(
+            manager.getRepository(IPObj).create({
+              destination_port_start: 80,
+              destination_port_end: 80,
+              name: 'test',
+              ipObjTypeId: 0,
+            }),
+          ),
+        }),
+      );
 
-            testData.push(rule);
-        }
+      testData.push(rule);
+    }
 
-        rules = await haproxyService.getHAProxyRulesData<HAProxyRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id);
+    rules =
+      await haproxyService.getHAProxyRulesData<HAProxyRuleItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+      );
+  });
+
+  describe('compile', () => {
+    it('should return an empty array when no data is provided', () => {
+      expect(compiler.compile([])).to.be.an('array').that.is.empty;
     });
 
-    describe('compile', () => {
-        it('should return an empty array when no data is provided', () => {
-            expect(compiler.compile([])).to.be.an('array').that.is.empty;
-        });
-
-        it('should return an array with compiled data for an active rule', async (): Promise<void> => {
-            expect(compiler.compile(rules)).to.be.an('array').that.is.not.empty;
-        });
-
-        it('should return an array with compiled data for an inactive rule', async (): Promise<void> => {
-            rules.forEach(element => {
-                element.active = false;
-            });
-
-            const result: HAProxyCompiled[] = compiler.compile(rules);
-            expect(result).to.be.an('array').that.is.not.empty;
-
-            result.forEach(element => {
-                expect(element.active).to.be.false;
-                expect(element.cs).equals('');
-            });
-        });
-
-        it('should emit a progress event for each rule', async () => {
-            const eventEmitter: EventEmitter = new EventEmitter();
-
-            const progressHandler: sinon.SinonStub<any[], any> = sinon.stub();
-            eventEmitter.on('progress', progressHandler);
-
-            compiler.compile(rules, eventEmitter);
-
-            rules.forEach((rule: HAProxyRulesData<HAProxyRuleItemForCompiler>, index: number): void => {
-                expect(progressHandler.calledWith(sinon.match({ message: `Compiling HAProxy rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}` }))).to.be.true;
-            });
-        });
+    it('should return an array with compiled data for an active rule', async (): Promise<void> => {
+      expect(compiler.compile(rules)).to.be.an('array').that.is.not.empty;
     });
+
+    it('should return an array with compiled data for an inactive rule', async (): Promise<void> => {
+      rules.forEach((element) => {
+        element.active = false;
+      });
+
+      const result: HAProxyCompiled[] = compiler.compile(rules);
+      expect(result).to.be.an('array').that.is.not.empty;
+
+      result.forEach((element) => {
+        expect(element.active).to.be.false;
+        expect(element.cs).equals('');
+      });
+    });
+
+    it('should emit a progress event for each rule', async () => {
+      const eventEmitter: EventEmitter = new EventEmitter();
+
+      const progressHandler: sinon.SinonStub<any[], any> = sinon.stub();
+      eventEmitter.on('progress', progressHandler);
+
+      compiler.compile(rules, eventEmitter);
+
+      rules.forEach(
+        (
+          rule: HAProxyRulesData<HAProxyRuleItemForCompiler>,
+          index: number,
+        ): void => {
+          expect(
+            progressHandler.calledWith(
+              sinon.match({
+                message: `Compiling HAProxy rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}`,
+              }),
+            ),
+          ).to.be.true;
+        },
+      );
+    });
+  });
 });

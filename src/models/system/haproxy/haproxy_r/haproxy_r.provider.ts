@@ -14,21 +14,25 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { ServiceProvider } from "../../../../fonaments/services/service-provider";
-import { ServiceBound, ServiceContainer } from "../../../../fonaments/services/service-container";
-import { AbstractApplication } from "../../../../fonaments/abstract-application";
-import { HAProxyRuleService } from "./haproxy_r.service";
+import { ServiceProvider } from '../../../../fonaments/services/service-provider';
+import {
+  ServiceBound,
+  ServiceContainer,
+} from '../../../../fonaments/services/service-container';
+import { AbstractApplication } from '../../../../fonaments/abstract-application';
+import { HAProxyRuleService } from './haproxy_r.service';
 
 export class HAProxyRuleServiceProvider extends ServiceProvider {
+  public register(serviceContainer: ServiceContainer): ServiceBound {
+    return serviceContainer.singleton(
+      HAProxyRuleService.name,
+      async (app: AbstractApplication): Promise<HAProxyRuleService> => {
+        return HAProxyRuleService.make(app);
+      },
+    );
+  }
 
-    public register(serviceContainer: ServiceContainer): ServiceBound {
-        return serviceContainer.singleton(HAProxyRuleService.name, async (app: AbstractApplication): Promise<HAProxyRuleService> => {
-            return HAProxyRuleService.make(app);
-        });
-    }
-
-    public async bootstrap(app: AbstractApplication): Promise<void> {
-        await app.getService<HAProxyRuleService>(HAProxyRuleService.name);
-    }
-
+  public async bootstrap(app: AbstractApplication): Promise<void> {
+    await app.getService<HAProxyRuleService>(HAProxyRuleService.name);
+  }
 }

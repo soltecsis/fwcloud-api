@@ -15,87 +15,119 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import sinon from "sinon";
-import { DeepPartial, EntityManager } from "typeorm";
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { KeepalivedCompiled, KeepalivedCompiler } from "../../../../../src/compiler/system/keepalived/KeepalivedCompiler";
-import { IPObj } from "../../../../../src/models/ipobj/IPObj";
-import { KeepalivedRule } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model";
-import { KeepalivedRuleService, KeepalivedRulesData } from "../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service";
-import { KeepalivedRuleItemForCompiler } from "../../../../../src/models/system/keepalived/shared";
-import { expect, testSuite } from "../../../../mocha/global-setup";
-import { FwCloudFactory, FwCloudProduct } from "../../../../utils/fwcloud-factory";
-import db from "../../../../../src/database/database-manager";
+import sinon from 'sinon';
+import { DeepPartial, EntityManager } from 'typeorm';
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import {
+  KeepalivedCompiled,
+  KeepalivedCompiler,
+} from '../../../../../src/compiler/system/keepalived/KeepalivedCompiler';
+import { IPObj } from '../../../../../src/models/ipobj/IPObj';
+import { KeepalivedRule } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model';
+import {
+  KeepalivedRuleService,
+  KeepalivedRulesData,
+} from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service';
+import { KeepalivedRuleItemForCompiler } from '../../../../../src/models/system/keepalived/shared';
+import { expect, testSuite } from '../../../../mocha/global-setup';
+import {
+  FwCloudFactory,
+  FwCloudProduct,
+} from '../../../../utils/fwcloud-factory';
+import db from '../../../../../src/database/database-manager';
 
 describe(KeepalivedCompiler.name, () => {
-    let fwc: FwCloudProduct;
+  let fwc: FwCloudProduct;
 
-    let keepalivedRuleService: KeepalivedRuleService;
-    let compiler: KeepalivedCompiler = new KeepalivedCompiler();
-    let rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[];
-    let manager: EntityManager;
+  let keepalivedRuleService: KeepalivedRuleService;
+  let compiler: KeepalivedCompiler = new KeepalivedCompiler();
+  let rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[];
+  let manager: EntityManager;
 
-    beforeEach(async () => {
-        manager = db.getSource().manager;
-        await testSuite.resetDatabaseData();
+  beforeEach(async () => {
+    manager = db.getSource().manager;
+    await testSuite.resetDatabaseData();
 
-        fwc = await (new FwCloudFactory()).make();
+    fwc = await new FwCloudFactory().make();
 
-        keepalivedRuleService = await testSuite.app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
+    keepalivedRuleService =
+      await testSuite.app.getService<KeepalivedRuleService>(
+        KeepalivedRuleService.name,
+      );
 
-        const testData: KeepalivedRule[] = [];
+    const testData: KeepalivedRule[] = [];
 
-        for (let i = 0; i < 10; i++) {
-            let rule: KeepalivedRule = await manager.getRepository(KeepalivedRule).save(manager.getRepository(KeepalivedRule).create({
-                id: 1,
-                rule_order: 1,
-                rule_type: 1,
-                firewall: fwc.firewall,
-                max_lease: 5,
-                interface: null,
-                virtualIps: [],
-            } as DeepPartial<KeepalivedRule>));
+    for (let i = 0; i < 10; i++) {
+      let rule: KeepalivedRule = await manager
+        .getRepository(KeepalivedRule)
+        .save(
+          manager.getRepository(KeepalivedRule).create({
+            id: 1,
+            rule_order: 1,
+            rule_type: 1,
+            firewall: fwc.firewall,
+            max_lease: 5,
+            interface: null,
+            virtualIps: [],
+          } as DeepPartial<KeepalivedRule>),
+        );
 
-            testData.push(rule);
-        }
+      testData.push(rule);
+    }
 
-        rules = await keepalivedRuleService.getKeepalivedRulesData<KeepalivedRuleItemForCompiler>('compiler', fwc.fwcloud.id, fwc.firewall.id);
+    rules =
+      await keepalivedRuleService.getKeepalivedRulesData<KeepalivedRuleItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+      );
+  });
+
+  describe('compile', () => {
+    it('should return an empty array when no data is provided', () => {
+      expect(compiler.compile([])).to.be.an('array').that.is.empty;
     });
 
-    describe('compile', () => {
-        it('should return an empty array when no data is provided', () => {
-            expect(compiler.compile([])).to.be.an('array').that.is.empty;
-        });
+    it('should return an array with compiled data for an active rule', async (): Promise<void> => {
+      expect(compiler.compile(rules)).to.be.an('array').that.is.not.empty;
+    });
 
-        it('should return an array with compiled data for an active rule', async (): Promise<void> => {
-            expect(compiler.compile(rules)).to.be.an('array').that.is.not.empty;
-        });
+    it('should return an array with compiled data for an inactive rule', async (): Promise<void> => {
+      rules.forEach((element) => {
+        element.active = false;
+      });
 
-        it('should return an array with compiled data for an inactive rule', async (): Promise<void> => {
-            rules.forEach(element => {
-                element.active = false;
-            });
+      const result: KeepalivedCompiled[] = compiler.compile(rules);
+      expect(result).to.be.an('array').that.is.not.empty;
 
-            const result: KeepalivedCompiled[] = compiler.compile(rules);
-            expect(result).to.be.an('array').that.is.not.empty;
+      result.forEach((element) => {
+        expect(element.active).to.be.false;
+        expect(element.cs).to.not.be.empty;
+      });
+    });
 
-            result.forEach(element => {
-                expect(element.active).to.be.false;
-                expect(element.cs).to.not.be.empty;
-            });
-        });
+    it('should emit a progress event for each rule', async () => {
+      const eventEmitter: EventEmitter = new EventEmitter();
 
-        it('should emit a progress event for each rule', async () => {
-            const eventEmitter: EventEmitter = new EventEmitter();
+      const progressHandler: sinon.SinonStub<any[], any> = sinon.stub();
+      eventEmitter.on('progress', progressHandler);
 
-            const progressHandler: sinon.SinonStub<any[],any> = sinon.stub();
-            eventEmitter.on('progress', progressHandler);
+      compiler.compile(rules, eventEmitter);
 
-            compiler.compile(rules, eventEmitter);
-
-            rules.forEach((rule: KeepalivedRulesData<KeepalivedRuleItemForCompiler>, index: number): void => {
-                expect(progressHandler.calledWith(sinon.match({ message: `Compiling Keepalived rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}` }))).to.be.true;
-            });
-        });
-    })
+      rules.forEach(
+        (
+          rule: KeepalivedRulesData<KeepalivedRuleItemForCompiler>,
+          index: number,
+        ): void => {
+          expect(
+            progressHandler.calledWith(
+              sinon.match({
+                message: `Compiling Keepalived rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}`,
+              }),
+            ),
+          ).to.be.true;
+        },
+      );
+    });
+  });
 });

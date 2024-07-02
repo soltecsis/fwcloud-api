@@ -20,22 +20,21 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../abstract-application";
-
+import { AbstractApplication } from '../abstract-application';
 
 export class Service {
-    protected constructor(protected _app: AbstractApplication) { }
+  protected constructor(protected _app: AbstractApplication) {}
 
-    public async build(): Promise<Service> {
-        return this;
-    }
+  public async build(): Promise<Service> {
+    return this;
+  }
 
-    public async close(): Promise<void> {
-        return;
-    }
+  public async close(): Promise<void> {
+    return;
+  }
 
-    static async make<T extends Service>(app: AbstractApplication): Promise<T> {
-        const service: T = <T>new this(app);
-        return <T>await service.build();
-    }
+  static async make<T extends Service>(app: AbstractApplication): Promise<T> {
+    const service: T = <T>new this(app);
+    return <T>await service.build();
+  }
 }

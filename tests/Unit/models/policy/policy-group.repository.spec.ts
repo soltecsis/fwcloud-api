@@ -20,62 +20,75 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, testSuite, expect } from "../../../mocha/global-setup";
-import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
-import { PolicyRule } from "../../../../src/models/policy/PolicyRule";
-import { PolicyGroup } from "../../../../src/models/policy/PolicyGroup";
-import { PolicyGroupRepository } from "../../../../src/repositories/PolicyGroupRepository";
-import { Firewall } from "../../../../src/models/firewall/Firewall";
-import { EntityManager } from "typeorm";
-import db from "../../../../src/database/database-manager";
+import { describeName, testSuite, expect } from '../../../mocha/global-setup';
+import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
+import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
+import { PolicyGroup } from '../../../../src/models/policy/PolicyGroup';
+import { PolicyGroupRepository } from '../../../../src/repositories/PolicyGroupRepository';
+import { Firewall } from '../../../../src/models/firewall/Firewall';
+import { EntityManager } from 'typeorm';
+import db from '../../../../src/database/database-manager';
 
 let policyGroupRepository: PolicyGroupRepository;
 let app: AbstractApplication;
-let manager: EntityManager
+let manager: EntityManager;
 
 describe(describeName('PolicyGroupRepository tests'), () => {
+  beforeEach(async () => {
+    app = testSuite.app;
+    manager = db.getSource().manager;
+    policyGroupRepository = new PolicyGroupRepository(manager);
+  });
 
-    beforeEach(async () => {
-        app = testSuite.app;
-        manager = db.getSource().manager;
-        policyGroupRepository = new PolicyGroupRepository(manager);
+  describe(describeName('PolicyGroupRepository deleteIfEmpty'), () => {
+    describe('deleteIfEmpty()', () => {
+      it('should delete a policyGroup if it is empty', async () => {
+        let policyGroup: PolicyGroup = await PolicyGroup.save(
+          PolicyGroup.create({
+            name: 'group',
+            firewall: await Firewall.save(
+              Firewall.create({
+                name: 'firewall',
+              }),
+            ),
+          }),
+        );
+
+        await policyGroupRepository.deleteIfEmpty(policyGroup);
+
+        expect(
+          await policyGroupRepository.findOne({
+            where: { id: policyGroup.id },
+          }),
+        ).to.be.null;
+      });
+
+      it('should not delete a policyGroup if it is not empty', async () => {
+        let policyGroup: PolicyGroup = await PolicyGroup.save(
+          PolicyGroup.create({
+            name: 'group',
+            firewall: await Firewall.save(
+              Firewall.create({
+                name: 'firewall',
+              }),
+            ),
+            policyRules: [
+              await PolicyRule.save(
+                PolicyRule.create({
+                  rule_order: 0,
+                  action: 0,
+                }),
+              ),
+            ],
+          }),
+        );
+
+        await policyGroupRepository.deleteIfEmpty(policyGroup);
+
+        expect(
+          await PolicyGroup.findOne({ where: { id: policyGroup.id } }),
+        ).to.be.instanceOf(PolicyGroup);
+      });
     });
-
-    describe(describeName('PolicyGroupRepository deleteIfEmpty'), () => {
-
-        describe('deleteIfEmpty()', () => {
-            it('should delete a policyGroup if it is empty', async () => {
-                let policyGroup: PolicyGroup = await PolicyGroup.save(PolicyGroup.create({
-                    name: 'group',
-                    firewall: await Firewall.save(Firewall.create({
-                        name: 'firewall'
-                    }))
-                }));
-
-                await policyGroupRepository.deleteIfEmpty(policyGroup);
-
-                expect(await policyGroupRepository.findOne({ where: { id: policyGroup.id }})).to.be.null;
-            });
-
-            it('should not delete a policyGroup if it is not empty', async () => {
-                let policyGroup: PolicyGroup = await PolicyGroup.save(PolicyGroup.create({
-                    name: 'group',
-                    firewall: await Firewall.save(Firewall.create({
-                        name: 'firewall'
-                    })),
-                    policyRules: [
-                        await PolicyRule.save(PolicyRule.create({
-                            rule_order: 0,
-                            action: 0
-                        }))
-                    ]
-                }));
-
-                await policyGroupRepository.deleteIfEmpty(policyGroup);
-
-                expect(await PolicyGroup.findOne({ where: { id: policyGroup.id }})).to.be.instanceOf(PolicyGroup);
-            });
-
-        });
-    });
+  });
 });

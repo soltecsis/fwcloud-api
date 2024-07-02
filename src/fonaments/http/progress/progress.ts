@@ -20,122 +20,137 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EventEmitter } from "typeorm/platform/PlatformTools";
-import { SequencedTask } from "./sequenced-task";
-import { GroupDescription, Task } from "./task";
-import { Channel } from "../../../sockets/channels/channel";
-import { StartTaskPayload, InfoTaskPayload, EndTaskPayload, ErrorTaskPayload, StartProgressPayload, EndProgressPayload } from "./messages/progress-messages";
-import * as uuid from "uuid";
-import { ProgressPayload } from "../../../sockets/messages/socket-message";
+import { EventEmitter } from 'typeorm/platform/PlatformTools';
+import { SequencedTask } from './sequenced-task';
+import { GroupDescription, Task } from './task';
+import { Channel } from '../../../sockets/channels/channel';
+import {
+  StartTaskPayload,
+  InfoTaskPayload,
+  EndTaskPayload,
+  ErrorTaskPayload,
+  StartProgressPayload,
+  EndProgressPayload,
+} from './messages/progress-messages';
+import * as uuid from 'uuid';
+import { ProgressPayload } from '../../../sockets/messages/socket-message';
 
 export type taskEventName = 'start' | 'end' | 'info' | 'error';
 
 export type progressEventName = 'start' | 'end';
 
 export interface ExternalEventEmitter extends EventEmitter {
-    emit(event: 'message', ...args: any[]): boolean;
+  emit(event: 'message', ...args: any[]): boolean;
 }
 
 export interface TasksEventEmitter extends EventEmitter {
-    emit(event: taskEventName, ...args: any[]): boolean;
-    on(event: taskEventName, listener: (...args: any[]) => void): this;
+  emit(event: taskEventName, ...args: any[]): boolean;
+  on(event: taskEventName, listener: (...args: any[]) => void): this;
 }
 
 export interface ProgressEventEmitter extends EventEmitter {
-    emit(event: progressEventName, ...args: any[]): boolean;
-    on(event: progressEventName, listener: (...args: any[]) => void): this;
+  emit(event: progressEventName, ...args: any[]): boolean;
+  on(event: progressEventName, listener: (...args: any[]) => void): this;
 }
 
 export class Progress {
-    protected _id: string;
-    protected _externalEmitter: ExternalEventEmitter;
-    protected _taskEvents: TasksEventEmitter;
-    protected _progressEvents: ProgressEventEmitter;
+  protected _id: string;
+  protected _externalEmitter: ExternalEventEmitter;
+  protected _taskEvents: TasksEventEmitter;
+  protected _progressEvents: ProgressEventEmitter;
 
-    protected _failed: boolean;
+  protected _failed: boolean;
 
-    protected _startTask: Task;
-    
-    protected _channel: Channel;
+  protected _startTask: Task;
 
-    protected _startMessage: string;
-    protected _endMessage: string;
-    protected _dataCallback: () => any;
+  protected _channel: Channel;
 
-    constructor(eventEmitter: EventEmitter) {
-        this._id = uuid.v1();
-        this._externalEmitter = eventEmitter;
-        this._taskEvents = new EventEmitter();
-        this._progressEvents = new EventEmitter();
-        this._failed = false;
-    }
+  protected _startMessage: string;
+  protected _endMessage: string;
+  protected _dataCallback: () => any;
 
-    get id(): string {
-        return this._id;
-    }
-    
-    get startMessage(): string {
-        return this._startMessage;
-    }
+  constructor(eventEmitter: EventEmitter) {
+    this._id = uuid.v1();
+    this._externalEmitter = eventEmitter;
+    this._taskEvents = new EventEmitter();
+    this._progressEvents = new EventEmitter();
+    this._failed = false;
+  }
 
-    get endMessage(): string {
-        return this._endMessage;
-    }
+  get id(): string {
+    return this._id;
+  }
 
-    public procedure(startMessage: string, procedure: GroupDescription, endMessage: string): Promise<void> {
-        this._startMessage = startMessage;
-        this._endMessage = endMessage;
-        
-        this._startTask = new SequencedTask(this._taskEvents, procedure);
-        return this.run();
-    }
+  get startMessage(): string {
+    return this._startMessage;
+  }
 
-    public async run(): Promise<void> {
-        return new Promise<void>(async (resolve, reject) => {
-            
-            this.bindEvents();
+  get endMessage(): string {
+    return this._endMessage;
+  }
 
-            let heartbeatInterval: NodeJS.Timeout = setInterval(() => {
-                this._externalEmitter.emit('message', new ProgressPayload('heartbeat', false, '', this._id))
-            }, 20000);
-            
-            this._progressEvents.emit('start')
-            this._startTask.run().then(() => {
-                this._progressEvents.emit('end')
-                clearInterval(heartbeatInterval);
-                return resolve();
-            }).catch((e) => {
-                clearInterval(heartbeatInterval);
-                return reject(e);
-            });
-        });        
-    }
+  public procedure(
+    startMessage: string,
+    procedure: GroupDescription,
+    endMessage: string,
+  ): Promise<void> {
+    this._startMessage = startMessage;
+    this._endMessage = endMessage;
 
-    protected bindEvents(): void {
+    this._startTask = new SequencedTask(this._taskEvents, procedure);
+    return this.run();
+  }
 
-        this._progressEvents.on('start', () => {
-            const message: ProgressPayload = new StartProgressPayload(this);
-            this._externalEmitter.emit('message', message);
+  public async run(): Promise<void> {
+    return new Promise<void>(async (resolve, reject) => {
+      this.bindEvents();
+
+      let heartbeatInterval: NodeJS.Timeout = setInterval(() => {
+        this._externalEmitter.emit(
+          'message',
+          new ProgressPayload('heartbeat', false, '', this._id),
+        );
+      }, 20000);
+
+      this._progressEvents.emit('start');
+      this._startTask
+        .run()
+        .then(() => {
+          this._progressEvents.emit('end');
+          clearInterval(heartbeatInterval);
+          return resolve();
+        })
+        .catch((e) => {
+          clearInterval(heartbeatInterval);
+          return reject(e);
         });
+    });
+  }
 
-        this._progressEvents.on('end', async () => {
-            this._externalEmitter.emit('message', new EndProgressPayload(this));
-        });
-        
-        this._taskEvents.on('start', (task: Task) => {
-            this._externalEmitter.emit('message', new StartTaskPayload(task));
-        });
+  protected bindEvents(): void {
+    this._progressEvents.on('start', () => {
+      const message: ProgressPayload = new StartProgressPayload(this);
+      this._externalEmitter.emit('message', message);
+    });
 
-        this._taskEvents.on('info', (task: Task, info: string) => {
-            this._externalEmitter.emit('message', new InfoTaskPayload(task, info));
-        });
+    this._progressEvents.on('end', async () => {
+      this._externalEmitter.emit('message', new EndProgressPayload(this));
+    });
 
-        this._taskEvents.on('end', (task: Task) => {
-            this._externalEmitter.emit('message', new EndTaskPayload(task));
-        });
+    this._taskEvents.on('start', (task: Task) => {
+      this._externalEmitter.emit('message', new StartTaskPayload(task));
+    });
 
-        this._taskEvents.on('error', (task: Task, error: Error) => {
-            this._externalEmitter.emit('message', new ErrorTaskPayload(task, error));
-        });
-    }
+    this._taskEvents.on('info', (task: Task, info: string) => {
+      this._externalEmitter.emit('message', new InfoTaskPayload(task, info));
+    });
+
+    this._taskEvents.on('end', (task: Task) => {
+      this._externalEmitter.emit('message', new EndTaskPayload(task));
+    });
+
+    this._taskEvents.on('error', (task: Task, error: Error) => {
+      this._externalEmitter.emit('message', new ErrorTaskPayload(task, error));
+    });
+  }
 }
