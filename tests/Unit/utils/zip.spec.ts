@@ -5,7 +5,7 @@ import { FSHelper } from '../../../src/utils/fs-helper';
 import * as fs from 'fs-extra';
 
 describe(describeName('Zip Unit Tests'), async () => {
-  let pathToBeZipped: string = path.join(playgroundPath, 'to_zip');
+  const pathToBeZipped: string = path.join(playgroundPath, 'to_zip');
 
   beforeEach(async () => {
     FSHelper.mkdirSync(pathToBeZipped);
@@ -40,8 +40,8 @@ describe(describeName('Zip Unit Tests'), async () => {
   });
 
   describe('unzip()', () => {
-    let pathZipped: string = path.join(playgroundPath, 'test.zip');
-    let output: string = path.join(playgroundPath, 'output');
+    const pathZipped: string = path.join(playgroundPath, 'test.zip');
+    const output: string = path.join(playgroundPath, 'output');
     beforeEach(async () => {
       await Zip.zip(pathToBeZipped, pathZipped);
     });

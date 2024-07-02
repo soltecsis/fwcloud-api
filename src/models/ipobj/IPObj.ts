@@ -51,11 +51,11 @@ import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.m
 import { HAProxyRule } from '../system/haproxy/haproxy_r/haproxy_r.model';
 
 const ip = require('ip');
-var asyncMod = require('async');
-var host_Data = require('../../models/data/data_ipobj_host');
-var interface_Data = require('../../models/data/data_interface');
-var ipobj_Data = require('../../models/data/data_ipobj');
-var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
+const asyncMod = require('async');
+const host_Data = require('../../models/data/data_ipobj_host');
+const interface_Data = require('../../models/data/data_interface');
+const ipobj_Data = require('../../models/data/data_ipobj');
+const data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'ipobj';
@@ -227,7 +227,7 @@ export class IPObj extends Model {
    * */
   public static getIpobj(dbCon, fwcloud, id) {
     return new Promise((resolve, reject) => {
-      var sql = `SELECT I.* FROM ${tableName} I
+      const sql = `SELECT I.* FROM ${tableName} I
 			WHERE I.id=${id} AND (I.fwcloud=${fwcloud} OR I.fwcloud IS NULL)`;
 
       dbCon.query(sql, async (error, rows) => {
@@ -256,7 +256,7 @@ export class IPObj extends Model {
 
   public static addressParentsData(connection, addr) {
     return new Promise((resolve, reject) => {
-      let sql =
+      const sql =
         'select I.name' +
         ' ,case when I.firewall is not null then F.id end as firewall_id' +
         ' ,case when I.firewall is not null then F.name end as firewall_name' +
@@ -311,7 +311,7 @@ export class IPObj extends Model {
         if (error) return reject(error);
 
         //SELECT IPOBJ DATA UNDER POSITION
-        var sql =
+        const sql =
           'SELECT I.*, T.id id_node, T.id_parent id_parent_node ' +
           ' FROM ' +
           tableName +
@@ -344,7 +344,7 @@ export class IPObj extends Model {
                 )
                   .then((interfacesHost) => {
                     //RETURN IPOBJ HOST DATA
-                    var hostdata = new data_policy_position_ipobjs(
+                    const hostdata = new data_policy_position_ipobjs(
                       row[0],
                       position_ipobj.position_order,
                       'O',
@@ -358,7 +358,7 @@ export class IPObj extends Model {
                   });
               } else {
                 //RETURN IPOBJ DATA
-                var ipobj = new data_policy_position_ipobjs(
+                const ipobj = new data_policy_position_ipobjs(
                   row[0],
                   position_ipobj.position_order,
                   'O',
@@ -404,7 +404,7 @@ export class IPObj extends Model {
                       ' ----',
                   );
                   //RETURN IPOBJ GROUP DATA
-                  var groupdata = new data_policy_position_ipobjs(
+                  const groupdata = new data_policy_position_ipobjs(
                     position_ipobj,
                     position_ipobj.position_order,
                     'G',
@@ -436,17 +436,17 @@ export class IPObj extends Model {
    * @return {ROW} Returns ROW Data from Ipobj_Host/Interfaces/Ipobjs
    * */
   public static getIpobj_Host_Full(fwcloud, id, AllDone) {
-    var hosts = [];
-    var host_cont = 0;
-    var ipobjs_cont = 0;
-    var interfaces_cont = 0;
+    const hosts = [];
+    let host_cont = 0;
+    let ipobjs_cont = 0;
+    let interfaces_cont = 0;
 
     db.get((error, connection) => {
       if (error) AllDone(error, null);
 
-      var sqlId = '';
+      let sqlId = '';
       if (id !== '') sqlId = ' AND G.id = ' + connection.escape(id);
-      var sql =
+      const sql =
         'SELECT G.*,  T.id id_node, T.id_parent id_parent_node FROM ' +
         tableName +
         ' G ' +
@@ -463,17 +463,17 @@ export class IPObj extends Model {
         if (error) AllDone(error, null);
         else if (rows.length > 0) {
           host_cont = rows.length;
-          var row = rows[0];
+          const row = rows[0];
           asyncMod.map(
             rows,
             (row, callback1) => {
-              var host_node = new host_Data(row);
+              const host_node = new host_Data(row);
 
               logger().debug(
                 ' ---> DENTRO de HOST: ' + row.id + ' NAME: ' + row.name,
               );
-              var idhost = row.id;
-              host_node.interfaces = new Array();
+              const idhost = row.id;
+              host_node.interfaces = [];
 
               //GET ALL HOST INTERFACES
               Interface.getInterfacesHost(
@@ -496,10 +496,10 @@ export class IPObj extends Model {
                             data_interface.interface_type,
                         );
 
-                        var interface_node = new interface_Data(data_interface);
-                        var idinterface = data_interface.id;
+                        const interface_node = new interface_Data(data_interface);
+                        const idinterface = data_interface.id;
 
-                        interface_node.ipobjs = new Array();
+                        interface_node.ipobjs = [];
 
                         //GET ALL INTERFACE OBJECTs
                         this.getAllIpobjsInterface(
@@ -522,7 +522,7 @@ export class IPObj extends Model {
                                       data_ipobj.type,
                                   );
 
-                                  var ipobj_node = new ipobj_Data(data_ipobj);
+                                  const ipobj_node = new ipobj_Data(data_ipobj);
                                   //Añadimos ipobj a array Interfaces
                                   interface_node.ipobjs.push(ipobj_node);
                                   callback2();
@@ -606,7 +606,7 @@ export class IPObj extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
-      var sql =
+      const sql =
         'SELECT * FROM ' +
         tableName +
         ' I ' +
@@ -644,7 +644,7 @@ export class IPObj extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
-      var sql =
+      const sql =
         'SELECT I.*, T.id id_node, T.id_parent id_parent_node  FROM ' +
         tableName +
         ' I ' +
@@ -678,13 +678,13 @@ export class IPObj extends Model {
    * @return {ROWS} Returns ROWS Data from Ipobj and FWC_TREE
    * */
   public static getAllIpobjsInterfacePro(data) {
-    var fwcloud = data.fwcloud;
+    const fwcloud = data.fwcloud;
 
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        var sql =
+        const sql =
           'SELECT I.id as ipobj, I.*, T.id id_node, T.id_parent id_parent_node  FROM ' +
           tableName +
           ' I ' +
@@ -699,7 +699,7 @@ export class IPObj extends Model {
           ' OR I.fwcloud IS NULL)' +
           ' ORDER BY I.id';
         //logger().debug("getAllIpobjsInterfacePro -> ", sql);
-        var _interface = new interface_Data(data);
+        const _interface = new interface_Data(data);
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
           Promise.all(rows.map((data) => this.getIpobjData(data)))
@@ -715,7 +715,7 @@ export class IPObj extends Model {
 
   private static getIpobjData(row) {
     return new Promise((resolve, reject) => {
-      var ipobj = new ipobj_Data(row);
+      const ipobj = new ipobj_Data(row);
       resolve(ipobj);
     });
   }
@@ -776,7 +776,7 @@ export class IPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        var ipobjData = {
+        const ipobjData = {
           id: null,
           fwcloud: ipobjDataclone.fwcloud,
           interface: ipobjDataclone.newinterface,
@@ -829,7 +829,7 @@ export class IPObj extends Model {
    * */
   public static updateIpobj(req, ipobjData): Promise<void> {
     return new Promise((resolve, reject) => {
-      var sql =
+      const sql =
         'UPDATE ' +
         tableName +
         ' SET ' +
@@ -947,7 +947,7 @@ export class IPObj extends Model {
 
   public static deleteHost(dbCon, fwcloud, host): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql = `select II.interface as id from interface__ipobj II
+      const sql = `select II.interface as id from interface__ipobj II
 			inner join ipobj I on I.id=II.ipobj
 			where II.ipobj=${host} and I.fwcloud=${fwcloud}`;
       dbCon.query(sql, async (error, interfaces) => {
@@ -955,7 +955,7 @@ export class IPObj extends Model {
 
         try {
           // Delete all objects under this host.
-          for (let _interface of interfaces) {
+          for (const _interface of interfaces) {
             await InterfaceIPObj.deleteHostInterface(
               dbCon,
               host,
@@ -997,7 +997,7 @@ export class IPObj extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) reject(error);
-        var sql =
+        const sql =
           'UPDATE ipobj H  ' +
           'inner join interface__ipobj II on II.ipobj=H.id ' +
           'inner join interface I on I.id=II.interface ' +
@@ -1027,7 +1027,7 @@ export class IPObj extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) reject(error);
-        var sql =
+        const sql =
           'UPDATE interface I  ' +
           'inner join ipobj O on O.interface= I.id ' +
           'set I.updated_at= CURRENT_TIMESTAMP ' +
@@ -1080,7 +1080,7 @@ export class IPObj extends Model {
         fwcloud,
     );
     db.get((error, connection) => {
-      var sql =
+      const sql =
         'SELECT count(*) as n FROM ' +
         tableName +
         ' I ' +
@@ -1170,7 +1170,7 @@ export class IPObj extends Model {
   ) {
     return new Promise(async (resolve, reject) => {
       try {
-        let search: any = {};
+        const search: any = {};
         search.result = false;
         search.restrictions = {};
         search.restrictions.IpobjInRule =
@@ -1274,7 +1274,7 @@ export class IPObj extends Model {
             );
         }
 
-        for (let key in search.restrictions) {
+        for (const key in search.restrictions) {
           if (search.restrictions[key].length > 0) {
             search.result = true;
             break;
@@ -1594,7 +1594,7 @@ export class IPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        let sql = `SELECT VPN.*, CRT.cn,
+        const sql = `SELECT VPN.*, CRT.cn,
 				C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
 				FROM openvpn AS VPN
@@ -1618,7 +1618,7 @@ export class IPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        let sql = `SELECT VPN.id
+        const sql = `SELECT VPN.id
                     FROM openvpn AS VPN
                     INNER JOIN openvpn_opt OPT on OPT.openvpn=VPN.id
                     INNER JOIN firewall F on F.id=VPN.firewall
@@ -1642,7 +1642,7 @@ export class IPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        let sql = `SELECT VPN.*, CRT.cn,
+        const sql = `SELECT VPN.*, CRT.cn,
 				C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
 				FROM openvpn AS VPN
@@ -1665,7 +1665,7 @@ export class IPObj extends Model {
   //check if interface ipobj exists in and OpenVPN configuration
   public static searchAddrHostInOpenvpn(dbCon, fwcloud, host) {
     return new Promise((resolve, reject) => {
-      let sql = `SELECT VPN.*, CRT.cn,
+      const sql = `SELECT VPN.*, CRT.cn,
 			C.id cloud_id, C.name cloud_name, VPN.firewall firewall_id, F.name firewall_name,
 			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
 			FROM openvpn AS VPN
@@ -1797,7 +1797,7 @@ export class IPObj extends Model {
         if (error) return reject(error);
 
         // If this is a host interface, get data for the rules in with the host is beig used.
-        let sql = `SELECT I.id obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
+        const sql = `SELECT I.id obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
 				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name,
 				O.rule rule_id, R.rule_order,R.type rule_type,  PT.name rule_type_name,O.position rule_position_id, P.name rule_position_name,R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1817,10 +1817,10 @@ export class IPObj extends Model {
           if (rows.length === 0) return resolve(rows);
 
           try {
-            let host = rows[0].obj_id;
+            const host = rows[0].obj_id;
             // Get all host addresses.
-            let all_host_addr: any = await Interface.getHostAddr(dbCon, host);
-            for (let addr of all_host_addr) {
+            const all_host_addr: any = await Interface.getHostAddr(dbCon, host);
+            for (const addr of all_host_addr) {
               // If one of the host addresses hast a different interface, then we are not removing
               // the last host interface with IP addresses.
               if (addr.interface != _interface) return resolve([]);
@@ -1838,7 +1838,7 @@ export class IPObj extends Model {
   // Search if IP without mask exists.
   public static searchAddr(dbCon, fwcloud, addr): Promise<number> {
     return new Promise((resolve, reject) => {
-      let sql = `select id from ipobj 
+      const sql = `select id from ipobj 
             where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND address=${dbCon.escape(addr)} 
             AND type=5 order by id asc`; // 5: ADDRESS
 
@@ -1858,7 +1858,7 @@ export class IPObj extends Model {
     mask,
   ): Promise<number> {
     return new Promise((resolve, reject) => {
-      let sql = `select id,address,netmask from ipobj 
+      const sql = `select id,address,netmask from ipobj 
             where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND address=${dbCon.escape(addr)} 
             AND (type=5 OR type=7) order by id asc`; // 5: ADDRESS, 7: NETWORK
 
@@ -1869,7 +1869,7 @@ export class IPObj extends Model {
         // We have to check if the object already exist independently of the netmask format.
         const net1 = ip.cidrSubnet(`${addr}/${mask}`);
         let net2: any = {};
-        for (let row of rows) {
+        for (const row of rows) {
           net2 =
             row.netmask[0] === '/'
               ? ip.cidrSubnet(`${row.address}${row.netmask}`)
@@ -1885,7 +1885,7 @@ export class IPObj extends Model {
   // Search if IP with mask exists. (IP is given in CIDR notation)
   public static searchIPRange(dbCon, fwcloud, start, end) {
     return new Promise((resolve, reject) => {
-      let sql = `select id from ipobj where (fwcloud IS NULL OR fwcloud=${fwcloud}) 
+      const sql = `select id from ipobj where (fwcloud IS NULL OR fwcloud=${fwcloud}) 
             AND range_start=${dbCon.escape(start)} AND range_end=${dbCon.escape(end)} AND type=6`; // 6: ADDRESS RANGE
 
       dbCon.query(sql, (error, rows) => {
@@ -1903,7 +1903,7 @@ export class IPObj extends Model {
     protocolNumber,
   ): Promise<string> {
     return new Promise((resolve, reject) => {
-      let sql = `select id from ipobj 
+      const sql = `select id from ipobj 
             where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=${protocolNumber} and type=1`; // 1: IP
 
       dbCon.query(sql, (error, rows) => {
@@ -1921,7 +1921,7 @@ export class IPObj extends Model {
     protocolName,
   ): Promise<string> {
     return new Promise((resolve, reject) => {
-      let sql = `select id from ipobj 
+      const sql = `select id from ipobj 
             where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND name=${dbCon.escape(protocolName)} and type=1`; // 1: IP
 
       dbCon.query(sql, (error, rows) => {
@@ -1962,7 +1962,7 @@ export class IPObj extends Model {
   // Search for icmp service.
   public static searchICMP(dbCon, fwcloud, type, code) {
     return new Promise((resolve, reject) => {
-      let sql = `select id from ipobj 
+      const sql = `select id from ipobj 
             where (fwcloud IS NULL OR fwcloud=${fwcloud}) AND protocol=1 AND type=3
             AND icmp_type=${type} AND icmp_code=${code}`;
 

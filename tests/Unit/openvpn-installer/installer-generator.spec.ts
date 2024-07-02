@@ -157,7 +157,7 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
     });
 
     it('should throw an exception if the connection name length reaches the limit', () => {
-      let f = () => {
+      const f = () => {
         generator = new InstallerGenerator(
           workspace,
           'connectionconnectionconnectionconnection',

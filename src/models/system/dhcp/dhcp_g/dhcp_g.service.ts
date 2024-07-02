@@ -136,7 +136,7 @@ export class DHCPGroupService extends Service {
   }
 
   async update(id: number, data: IUpdateDHCPGroup): Promise<DHCPGroup> {
-    let group: DHCPGroup | undefined = await db
+    const group: DHCPGroup | undefined = await db
       .getSource()
       .manager.getRepository(DHCPGroup)
       .findOne({ where: { id: id } });

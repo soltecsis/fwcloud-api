@@ -203,7 +203,7 @@ export class RouteController extends Controller {
 
     const ids: string[] = request.inputs.get('routes');
 
-    for (let id of ids) {
+    for (const id of ids) {
       const route: Route = await this._routeService.findOneInPathOrFail({
         fwCloudId: this._fwCloud.id,
         firewallId: this._firewall.id,
@@ -243,7 +243,7 @@ export class RouteController extends Controller {
 
     const ids: string[] = (request.query.routes as string[]) || [];
 
-    for (let id of ids) {
+    for (const id of ids) {
       const route: Route = await this._routeService.findOneInPathOrFail({
         fwCloudId: this._fwCloud.id,
         firewallId: this._firewall.id,
@@ -411,7 +411,7 @@ export class RouteController extends Controller {
 
     const ids: string[] = (request.query.routes as string[]) || [];
 
-    for (let id of ids) {
+    for (const id of ids) {
       const route: Route = await this._routeService.findOneInPathOrFail({
         fwCloudId: this._fwCloud.id,
         firewallId: this._firewall.id,

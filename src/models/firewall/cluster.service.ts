@@ -23,7 +23,7 @@ export class ClusterService extends Service {
             FirewallService.name,
           );
 
-          for (let fw of fws) {
+          for (const fw of fws) {
             await firewallService.remove(fw.id, fwcloudId, userId);
           }
         } catch (error) {

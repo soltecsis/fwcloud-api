@@ -135,7 +135,7 @@ export class KeepalivedRuleService extends Service {
         .findOneOrFail({ where: { id: data.group } })) as KeepalivedGroup;
     }
     if (data.interfaceId) {
-      let interfaceData = (await db
+      const interfaceData = (await db
         .getSource()
         .manager.getRepository(Interface)
         .findOneOrFail({ where: { id: data.interfaceId } })) as Interface;
@@ -383,7 +383,7 @@ export class KeepalivedRuleService extends Service {
       for (const field of fieldsToUpdate) {
         if (data[field]) {
           if (field === 'interfaceId') {
-            let interfaceData = (await db
+            const interfaceData = (await db
               .getSource()
               .manager.getRepository(Interface)
               .findOneOrFail({ where: { id: data[field] } })) as Interface;
@@ -572,7 +572,7 @@ export class KeepalivedRuleService extends Service {
       },
     });
 
-    for (let rule of rules) {
+    for (const rule of rules) {
       await this.remove({ id: rule.id });
     }
 

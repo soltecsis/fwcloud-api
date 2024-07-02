@@ -203,7 +203,7 @@ describe(describeName('Firewall E2E Tests'), () => {
       firewall = fwcProduct.firewall;
       table = fwcProduct.routingTable;
 
-      let ruleService: RoutingRuleService =
+      const ruleService: RoutingRuleService =
         await app.getService<RoutingRuleService>(RoutingRuleService.name);
 
       rule1 = await ruleService.create({

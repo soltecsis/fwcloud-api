@@ -46,7 +46,7 @@ export class RequestBuilder extends Middleware {
     next: NextFunction,
   ): Promise<void> {
     let filesProcessing: number = 0;
-    let eventEmitter = new EventEmitter();
+    const eventEmitter = new EventEmitter();
 
     req.inputs = new RequestInputs(req);
 

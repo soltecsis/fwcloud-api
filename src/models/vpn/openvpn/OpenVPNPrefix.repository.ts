@@ -33,7 +33,7 @@ export class OpenVPNPrefixRepository extends Repository<OpenVPNPrefix> {
   }
 
   getOpenVPNPrefixInRouting_ForGrid(entity: ValidEntities, fwcloud: number, firewall: number, routingTable?: number): SelectQueryBuilder<OpenVPNPrefix> {
-    let query = this.createQueryBuilder("vpnPrefix")
+    const query = this.createQueryBuilder("vpnPrefix")
       .select("vpnPrefix.id","id").addSelect("vpnPrefix.name","name").addSelect("(select id from ipobj_type where id=401)","type")
       .addSelect("vpnFirewall.id","firewall_id").addSelect("vpnFirewall.name","firewall_name")
       .addSelect("vpnCluster.id","cluster_id").addSelect("vpnCluster.name","cluster_name")

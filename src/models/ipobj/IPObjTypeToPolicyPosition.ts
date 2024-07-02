@@ -74,7 +74,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   public static getIpobj_type__policy_position(type, position, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT type, position, allowed FROM ' +
         tableName +
         ' WHERE type = ' +
@@ -118,7 +118,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'UPDATE ' +
         tableName +
         ' SET type = ' +
@@ -142,7 +142,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   public static deleteIpobj_type__policy_position(type, position, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlExists =
+      const sqlExists =
         'SELECT * FROM ' +
         tableName +
         ' WHERE type = ' +
@@ -153,7 +153,7 @@ export class IPObjTypeToPolicyPosition extends Model {
         //If exists Id from ipobj_type__policy_position to remove
         if (row) {
           db.get((error, connection) => {
-            var sql =
+            const sql =
               'DELETE FROM ' +
               tableName +
               ' WHERE type = ' +

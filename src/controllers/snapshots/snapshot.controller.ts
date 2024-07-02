@@ -117,7 +117,7 @@ export class SnapshotController extends Controller {
 
   @Validate(SnapshotControllerRestoreDto)
   public async restore(request: Request): Promise<ResponseBuilder> {
-    let snapshot: Snapshot = await this._snapshotService.findOneOrFail(
+    const snapshot: Snapshot = await this._snapshotService.findOneOrFail(
       this._fwCloud,
       parseInt(request.params.snapshot),
     );

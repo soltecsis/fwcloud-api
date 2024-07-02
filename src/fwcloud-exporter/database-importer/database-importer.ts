@@ -61,7 +61,7 @@ export class DatabaseImporter {
     const queryRunner: QueryRunner = (
       await app().getService<DatabaseService>(DatabaseService.name)
     ).dataSource.createQueryRunner();
-    let data: ExporterResult = new ExporterResult(
+    const data: ExporterResult = new ExporterResult(
       JSON.parse(
         fs
           .readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME))

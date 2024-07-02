@@ -80,9 +80,9 @@ export class StandardServicesAddCommand extends Command {
   }
 
   private async addStandardTCPServices(): Promise<void> {
-    for (let service of this.TCP_services) {
+    for (const service of this.TCP_services) {
       // Make sure that the service doesn't exists.
-      let exists = await this.dataSource.query(
+      const exists = await this.dataSource.query(
         `SELECT id from ipobj where id=${service.id}`,
       );
 
@@ -98,13 +98,13 @@ export class StandardServicesAddCommand extends Command {
     }
 
     // Add new TCP services to the TCP Standard node of al fwcloud's services tree.
-    let nodes = await this.getTreeNodes();
-    for (let node of nodes) {
-      for (let service of this.TCP_services) {
+    const nodes = await this.getTreeNodes();
+    for (const node of nodes) {
+      for (const service of this.TCP_services) {
         // Make sure that we don't already have a node for this TCP service.
         let sql = `SELECT id from fwc_tree
                     where id_parent=${node.id} and id_obj=${service.id}`;
-        let exists = await this.dataSource.query(sql);
+        const exists = await this.dataSource.query(sql);
 
         // If the node for this service object already exists, then don't create it.
         if (exists.length) {

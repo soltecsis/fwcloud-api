@@ -54,7 +54,7 @@ import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import * as path from 'path';
 import { mkdirpSync } from 'fs-extra';
 
-var config = require('../../config/config');
+const config = require('../../config/config');
 
 export class PolicyScript {
   private routingCompiler: RoutingCompiler;
@@ -97,7 +97,7 @@ export class PolicyScript {
   }
 
   private async dumpFirewallOptions(): Promise<void> {
-    let options = await Firewall.getFirewallOptions(
+    const options = await Firewall.getFirewallOptions(
       this.fwcloud,
       this.firewall,
     );
@@ -391,7 +391,7 @@ export class PolicyScript {
     this.stream.write('echo "* NFTABLES TABLES AND CHAINS *"\n');
     this.stream.write('echo "******************************"\n');
     const families = ['ip', 'ip6'];
-    for (let family of families) {
+    for (const family of families) {
       this.stream.write(`$NFT add table ${family} filter\n`);
       this.stream.write(
         `$NFT add chain ${family} filter INPUT { type filter hook input priority 0\\; policy drop\\; }\n`,
@@ -490,10 +490,10 @@ export class PolicyScript {
   }
 
   private async dumpRouting(): Promise<void> {
-    let routingTableService = await app().getService<RoutingTableService>(
+    const routingTableService = await app().getService<RoutingTableService>(
       RoutingTableService.name,
     );
-    let routingRuleService = await app().getService<RoutingRuleService>(
+    const routingRuleService = await app().getService<RoutingRuleService>(
       RoutingRuleService.name,
     );
     let routes: RouteData<RouteItemForCompiler>[];
@@ -501,7 +501,7 @@ export class PolicyScript {
     let rules: RoutingRulesData<RoutingRuleItemForCompiler>[];
     let rulesCompiled: RoutingCompiled[];
 
-    let routingTables: RoutingTable[] =
+    const routingTables: RoutingTable[] =
       await routingTableService.findManyInPath({
         fwCloudId: this.fwcloud,
         firewallId: this.firewall,

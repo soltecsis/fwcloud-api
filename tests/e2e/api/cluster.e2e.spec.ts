@@ -212,7 +212,7 @@ describe(describeName('Cluster E2E test'), () => {
         .expect(200);
     });
     it('the limit is equals than the number of nodes', async () => {
-      let numberNodes: number = 2;
+      const numberNodes: number = 2;
       app.config.set('limits.nodes', numberNodes);
       return await request(app.express)
         .post('/cluster')
@@ -241,7 +241,7 @@ describe(describeName('Cluster E2E test'), () => {
         });
     });
     it('the limit is less than the number of nodes', async () => {
-      let numberNodes: number = 2;
+      const numberNodes: number = 2;
       app.config.set('limits.nodes', numberNodes - 1);
       return await request(app.express)
         .post('/cluster')

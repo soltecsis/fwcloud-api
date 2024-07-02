@@ -82,7 +82,7 @@ export class Cluster extends Model {
   //Get All clusters
   public static getClusterCloud(req) {
     return new Promise((resolve, reject) => {
-      var sql = `SELECT T.* FROM ${tableName} T 
+      const sql = `SELECT T.* FROM ${tableName} T 
                 INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
                 WHERE T.fwcloud=${req.body.fwcloud}`;
       req.dbCon.query(sql, (error, rows) => {
@@ -95,7 +95,7 @@ export class Cluster extends Model {
   //Get FULL cluster by  id
   public static getCluster(req): Promise<void> {
     return new Promise((resolve, reject) => {
-      var sql =
+      const sql =
         'SELECT * FROM ' +
         tableName +
         ' WHERE id = ' +
@@ -105,7 +105,7 @@ export class Cluster extends Model {
       req.dbCon.query(sql, (error, row) => {
         if (error) return reject(error);
         if (row && row.length > 0) {
-          var dataCluster = row[0];
+          const dataCluster = row[0];
           //SEARCH FIREWALL NODES
           Firewall.getFirewallCluster(
             req.session.user_id,
@@ -122,7 +122,7 @@ export class Cluster extends Model {
                   (error, dataFwM) => {
                     if (error) return reject(error);
                     if (dataFwM && dataFwM.length > 0) {
-                      var idFwMaster = dataFwM[0].id;
+                      const idFwMaster = dataFwM[0].id;
                       Interface.getInterfacesFull(
                         idFwMaster,
                         req.body.fwcloud,
@@ -152,7 +152,7 @@ export class Cluster extends Model {
   public static getClusterName = (name, callback) => {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT * FROM ' +
         tableName +
         ' WHERE name like  "%' +
@@ -205,7 +205,7 @@ export class Cluster extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       logger().debug('------>>>> DELETING CLUSTER: ', id);
-      var sqlExists =
+      const sqlExists =
         'SELECT T.* , A.id as idnode FROM ' +
         tableName +
         ' T ' +
@@ -216,14 +216,14 @@ export class Cluster extends Model {
       connection.query(sqlExists, (error, row) => {
         //If exists Id from cluster to remove
         if (row.length > 0) {
-          var dataNode = {
+          const dataNode = {
             id: row[0].idnode,
             fwcloud: fwcloud,
             iduser: iduser,
           };
           Tree.deleteFwc_TreeFullNode(dataNode).then((resp) => {
             db.get((error, connection) => {
-              var sql =
+              const sql =
                 'DELETE FROM ' +
                 tableName +
                 ' WHERE id = ' +

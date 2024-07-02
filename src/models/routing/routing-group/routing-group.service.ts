@@ -73,7 +73,7 @@ export class RoutingGroupService extends Service {
   }
 
   async create(data: ICreateRoutingGroup): Promise<RoutingGroup> {
-    let group: RoutingGroup = await db
+    const group: RoutingGroup = await db
       .getSource()
       .manager.getRepository(RoutingGroup)
       .save(data);
@@ -88,7 +88,7 @@ export class RoutingGroupService extends Service {
       .getSource()
       .manager.getRepository(RoutingGroup)
       .preload(Object.assign(data, { id }));
-    let firewall: Firewall = await db
+    const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOne({ where: { id: group.firewallId } });

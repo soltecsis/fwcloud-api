@@ -46,7 +46,7 @@ describe(DHCPCompiler.name, (): void => {
   let fwc: FwCloudProduct;
 
   let dhcpRuleService: DHCPRuleService;
-  let compiler: DHCPCompiler = new DHCPCompiler();
+  const compiler: DHCPCompiler = new DHCPCompiler();
   let rules: DHCPRulesData<DHCPRuleItemForCompiler>[];
   let manager: EntityManager;
 
@@ -63,7 +63,7 @@ describe(DHCPCompiler.name, (): void => {
     const testData: DHCPRule[] = [];
 
     for (let i = 0; i < 10; i++) {
-      let rule: DHCPRule = await manager.getRepository(DHCPRule).save(
+      const rule: DHCPRule = await manager.getRepository(DHCPRule).save(
         manager.getRepository(DHCPRule).create({
           id: 1,
           rule_order: 1,

@@ -113,7 +113,7 @@ describe(RouteService.name, () => {
       });
 
       it('should attach standard ipobj', async () => {
-        let standards: IPObj[] = await manager.getRepository(IPObj).find({
+        const standards: IPObj[] = await manager.getRepository(IPObj).find({
           where: {
             fwCloudId: null,
           },
@@ -171,7 +171,7 @@ describe(RouteService.name, () => {
       });
 
       it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
-        let fw1: Firewall = await manager.getRepository(Firewall).save(
+        const fw1: Firewall = await manager.getRepository(Firewall).save(
           manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id,
@@ -315,7 +315,7 @@ describe(RouteService.name, () => {
       });
 
       it('should throw exception if the attachment is a firewall that does not belong to the cluster', async () => {
-        let fw1: Firewall = await manager.getRepository(Firewall).save(
+        const fw1: Firewall = await manager.getRepository(Firewall).save(
           manager.getRepository(Firewall).create({
             name: StringHelper.randomize(10),
             fwCloudId: fwCloud.id,
@@ -607,11 +607,11 @@ describe(RouteService.name, () => {
       });
 
       it('should not allow attach a service group', async () => {
-        let _service = await manager
+        const _service = await manager
           .getRepository(IPObj)
           .findOneOrFail({ where: { id: 10040 } });
 
-        let group = await manager.getRepository(IPObjGroup).save({
+        const group = await manager.getRepository(IPObjGroup).save({
           name: 'group',
           type: 21,
           fwCloudId: fwcProduct.fwcloud.id,

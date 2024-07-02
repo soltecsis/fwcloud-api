@@ -161,10 +161,10 @@ export class Route extends Model {
       .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud })
       .getMany();
 
-    let result: RouteToIPObj[] = [];
+    const result: RouteToIPObj[] = [];
 
-    for (let routeToIPObj of routeToIPObjs) {
-      let addrs: any = await Interface.getHostAddr(
+    for (const routeToIPObj of routeToIPObjs) {
+      const addrs: any = await Interface.getHostAddr(
         db.getQuery(),
         routeToIPObj.ipObjId,
       );
@@ -172,7 +172,7 @@ export class Route extends Model {
       // Count the amount of interface address with the same IP version of the rule.
       let n = 0;
       let id = 0;
-      for (let addr of addrs) {
+      for (const addr of addrs) {
         n++;
         if (n === 1) id = addr.id;
       }
@@ -227,12 +227,12 @@ export class Route extends Model {
       .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud })
       .getMany();
 
-    let result: RouteToIPObjGroup[] = [];
+    const result: RouteToIPObjGroup[] = [];
 
-    for (let routeToIPObjGroup of routeToIPObjGroups) {
-      for (let ipObjToIPObjGroup of routeToIPObjGroup.ipObjGroup
+    for (const routeToIPObjGroup of routeToIPObjGroups) {
+      for (const ipObjToIPObjGroup of routeToIPObjGroup.ipObjGroup
         .ipObjToIPObjGroups) {
-        let addrs: any = await Interface.getHostAddr(
+        const addrs: any = await Interface.getHostAddr(
           db.getQuery(),
           ipObjToIPObjGroup.ipObjId,
         );
@@ -240,7 +240,7 @@ export class Route extends Model {
         // Count the amount of interface address with the same IP version of the rule.
         let n = 0;
         let id = 0;
-        for (let addr of addrs) {
+        for (const addr of addrs) {
           n++;
           if (n === 1) id = addr.id;
         }

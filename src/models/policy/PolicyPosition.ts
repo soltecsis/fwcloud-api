@@ -202,7 +202,7 @@ export class PolicyPosition extends Model {
   //Get policy_position by  type
   public static checkPolicyRulePosition(dbCon, rule, position) {
     return new Promise((resolve, reject) => {
-      let sql = `select PP.id from ${tableName} PP
+      const sql = `select PP.id from ${tableName} PP
                 inner join policy_r R on R.type=PP.policy_type
                 where R.id=${rule} and PP.id=${position}`;
 
@@ -243,7 +243,7 @@ export class PolicyPosition extends Model {
   public static getPolicy_position(id, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
@@ -275,7 +275,7 @@ export class PolicyPosition extends Model {
   public static updatePolicy_position(policy_positionData, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'UPDATE ' +
         tableName +
         ' SET name = ' +
@@ -307,13 +307,13 @@ export class PolicyPosition extends Model {
   public static deletePolicy_position(id, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlExists =
+      const sqlExists =
         'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
       connection.query(sqlExists, (error, row) => {
         //If exists Id from policy_position to remove
         if (row) {
           db.get((error, connection) => {
-            var sql =
+            const sql =
               'DELETE FROM ' +
               tableName +
               ' WHERE id = ' +

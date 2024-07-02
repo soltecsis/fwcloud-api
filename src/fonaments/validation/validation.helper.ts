@@ -12,7 +12,7 @@ export function transformValidationErrorsToErrorBag(
   errors: ValidationError[],
   path: string = null,
 ): ErrorBag {
-  let result: ErrorBag = {};
+  const result: ErrorBag = {};
 
   errors.forEach((error: ValidationError) => {
     const attributePath: string = (!path ? '' : path + '.') + error.property;

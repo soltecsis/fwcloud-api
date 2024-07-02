@@ -39,7 +39,7 @@ import { Tfa } from './Tfa';
 
 const fwcError = require('../../utils/error_table');
 
-var bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs');
 
 const tableName: string = 'user';
 
@@ -118,7 +118,7 @@ export class User extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        var sql =
+        const sql =
           'SELECT * FROM user ' +
           'WHERE customer=' +
           connection.escape(customer) +
@@ -149,8 +149,8 @@ export class User extends Model {
   public static _insert(req) {
     return new Promise(async (resolve, reject) => {
       //New object with customer data
-      var salt = bcrypt.genSaltSync(10);
-      var userData = {
+      const salt = bcrypt.genSaltSync(10);
+      const userData = {
         id: null,
         customer: req.body.customer,
         name: req.body.name,
@@ -255,14 +255,14 @@ export class User extends Model {
     return new Promise(async (resolve, reject) => {
       let crypt_pass = '';
       if (req.body.password) {
-        var salt = bcrypt.genSaltSync(10);
+        const salt = bcrypt.genSaltSync(10);
         crypt_pass = bcrypt.hashSync(
           req.body.customer + req.body.username + req.body.password,
           salt,
         );
       }
 
-      let sql = `UPDATE ${tableName} SET customer=${req.body.customer},
+      const sql = `UPDATE ${tableName} SET customer=${req.body.customer},
                 name=${req.dbCon.escape(req.body.name)},
                 email=${req.dbCon.escape(req.body.email)},
                 username=${req.dbCon.escape(req.body.username)},
@@ -280,7 +280,7 @@ export class User extends Model {
 
   public static changeLoggedUserPass(req): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      var salt = bcrypt.genSaltSync(10);
+      const salt = bcrypt.genSaltSync(10);
       const crypt_pass = bcrypt.hashSync(
         req.session.customer_id + req.session.username + req.body.password,
         salt,
@@ -363,7 +363,7 @@ export class User extends Model {
         if (error) return reject(error);
 
         try {
-          for (let fwcloud of result) {
+          for (const fwcloud of result) {
             await this.allowFwcloudAccess(dbCon, user, fwcloud.id);
           }
 

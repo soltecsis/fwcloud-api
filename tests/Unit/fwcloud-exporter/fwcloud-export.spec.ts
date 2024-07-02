@@ -307,7 +307,7 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
 
   describe('toResponse()', () => {
     it('should return the response object', async () => {
-      let fwCloudExport: FwCloudExport = await FwCloudExport.create(
+      const fwCloudExport: FwCloudExport = await FwCloudExport.create(
         directory,
         fwCloud,
         user,

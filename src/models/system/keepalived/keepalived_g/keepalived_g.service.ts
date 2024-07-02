@@ -133,7 +133,7 @@ export class KeepalivedGroupService extends Service {
     id: number,
     data: IUpdateKeepalivedGroup,
   ): Promise<KeepalivedGroup> {
-    let group: KeepalivedGroup | undefined = await db
+    const group: KeepalivedGroup | undefined = await db
       .getSource()
       .manager.getRepository(KeepalivedGroup)
       .findOne({ where: { id: id } });

@@ -41,7 +41,7 @@ describe(
     let rule: number;
     let compiler: AvailablePolicyCompilers;
 
-    let ruleData = {
+    const ruleData = {
       firewall: 0,
       type: 1,
       rule_order: 1,

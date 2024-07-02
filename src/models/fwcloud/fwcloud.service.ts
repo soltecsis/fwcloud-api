@@ -17,7 +17,7 @@ export class FwCloudService extends Service {
    * Creates and store a new FwCloud
    */
   public async store(data: DeepPartial<FwCloud>): Promise<FwCloud> {
-    let fwCloud: FwCloud = FwCloud.create(data);
+    const fwCloud: FwCloud = FwCloud.create(data);
     await fwCloud.save();
 
     // Data directories are created by typeorm listener

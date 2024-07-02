@@ -63,7 +63,7 @@ export class AuthorizationTest extends Middleware {
           throw new AuthorizationException();
         }
 
-        let session_data: SessionData = JSON.parse(
+        const session_data: SessionData = JSON.parse(
           fs.readFileSync(session_path).toString(),
         );
 

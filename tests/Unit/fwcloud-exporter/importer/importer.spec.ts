@@ -64,7 +64,7 @@ describe(describeName('Importer tests'), () => {
         'test',
       );
 
-      let snapshot: Snapshot = await Snapshot.create(
+      const snapshot: Snapshot = await Snapshot.create(
         snapshotService.config.data_dir,
         fwCloud,
       );
@@ -109,7 +109,7 @@ describe(describeName('Importer tests'), () => {
         'test',
       );
 
-      let snapshot: Snapshot = await Snapshot.create(
+      const snapshot: Snapshot = await Snapshot.create(
         snapshotService.config.data_dir,
         fwCloud,
       );

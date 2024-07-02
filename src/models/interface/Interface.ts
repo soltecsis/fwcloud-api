@@ -43,7 +43,7 @@ import { RouteToIPObj } from '../routing/route/route-to-ipobj.model';
 import { RoutingRuleToIPObj } from '../routing/routing-rule/routing-rule-to-ipobj.model';
 import { DHCPRule } from '../system/dhcp/dhcp_r/dhcp_r.model';
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
-var data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
+const data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
 
@@ -125,7 +125,7 @@ export class Interface extends Model {
   //Get All interface by firewall
   public static getInterfaces(dbCon, fwcloud, firewall): Promise<Array<any>> {
     return new Promise((resolve, reject) => {
-      let sql = `select I.* from ${tableName} I
+      const sql = `select I.* from ${tableName} I
 				inner join firewall F on F.id=I.firewall
 				where I.firewall=${firewall} and F.fwcloud=${fwcloud}`;
       dbCon.query(sql, (error, rows) => {
@@ -140,7 +140,7 @@ export class Interface extends Model {
     db.get((error, connection) => {
       if (error) return callback(error, null);
 
-      var sql =
+      const sql =
         'SELECT ' +
         fwcloud +
         ' as fwcloud, I.*, T.id id_node, T.id_parent id_parent_node FROM ' +
@@ -170,7 +170,7 @@ export class Interface extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       //var sql = 'SELECT * FROM ' + tableName + ' WHERE (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
-      var sql =
+      const sql =
         'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud  FROM ' +
         tableName +
         ' I ' +
@@ -195,7 +195,7 @@ export class Interface extends Model {
       db.get((error, connection) => {
         if (error) reject(error);
         //SELECT INTERFACES UNDER HOST
-        var sql =
+        const sql =
           'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, J.fwcloud  FROM ' +
           tableName +
           ' I ' +
@@ -230,7 +230,7 @@ export class Interface extends Model {
   public static getInterfaceHost(idhost, fwcloud, id, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, ' +
         ' IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud, ' +
         ' F.id as firewall_id, F.name as firewall_name, F.cluster as cluster_id, C.name as cluster_name, ' +
@@ -264,7 +264,7 @@ export class Interface extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, dbCon) => {
         if (error) return reject(error);
-        var sql = `SELECT I.*,
+        const sql = `SELECT I.*,
 					IF(I.interface_type=10, F.fwcloud , J.fwcloud) as fwcloud,
 					F.id as firewall_id, F.name as firewall_name, F.cluster as cluster_id, C.name as cluster_name,
 					J.id as host_id, J.name as host_name
@@ -300,7 +300,7 @@ export class Interface extends Model {
       db.get((error, connection) => {
         if (error) reject(error);
         //SELECT INTERFACE
-        var sql =
+        const sql =
           'SELECT I.*,  T.id id_node, T.id_parent id_parent_node, ' +
           ' IF(I.interface_type=10,  F.fwcloud , J.fwcloud) as fwcloud ' +
           ' FROM ' +
@@ -329,7 +329,7 @@ export class Interface extends Model {
                     //dataI.ipobjs = dataO;
                     //logger().debug("-------------------------> FINAL de IPOBJS UNDER INTERFACE : " + id + " ----");
                     //resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "ipobjs": dataI});
-                    var _interface = new data_policy_position_ipobjs(
+                    const _interface = new data_policy_position_ipobjs(
                       row[0],
                       0,
                       'I',
@@ -355,7 +355,7 @@ export class Interface extends Model {
   public static getInterface_data(id, type, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT * FROM ' +
         tableName +
         ' WHERE id = ' +
@@ -393,7 +393,7 @@ export class Interface extends Model {
 
           let result = [];
           try {
-            for (let _interface of interfaces) {
+            for (const _interface of interfaces) {
               result = result.concat(
                 await this.getInterfaceAddr(dbCon, _interface.interface),
               );
@@ -411,7 +411,7 @@ export class Interface extends Model {
   /* Search where is in RULES ALL interfaces from OTHER FIREWALL  */
   public static searchInterfaceUsageOutOfThisFirewall(req) {
     return new Promise(async (resolve, reject) => {
-      let answer: any = {};
+      const answer: any = {};
       answer.restrictions = {};
       answer.restrictions.InterfaceInRules_I = [];
       answer.restrictions.InterfaceInRules_O = [];
@@ -422,12 +422,12 @@ export class Interface extends Model {
       answer.restrictions.IpobjInterfaceInOpenvpn = [];
 
       try {
-        let interfaces: Array<any> = await this.getInterfaces(
+        const interfaces: Array<any> = await this.getInterfaces(
           req.dbCon,
           req.body.fwcloud,
           req.body.firewall,
         );
-        for (let interfaz of interfaces) {
+        for (const interfaz of interfaces) {
           // The last parameter of this functions indicates search out of hte indicated firewall.
           const data: any = await this.searchInterfaceUsage(
             interfaz.id,
@@ -495,7 +495,7 @@ export class Interface extends Model {
       this.getInterface_data(id, type, async (error, data) => {
         if (error) return reject(error);
 
-        let search: any = {};
+        const search: any = {};
         search.result = false;
         if (data && data.length > 0) {
           try {
@@ -609,7 +609,7 @@ export class Interface extends Model {
             search.restrictions.InterfaceInKeepalivedRule =
               await this.searchInterfaceInKeepalivedRule(id, fwcloud);
 
-            for (let key in search.restrictions) {
+            for (const key in search.restrictions) {
               if (search.restrictions[key].length > 0) {
                 search.result = true;
                 break;
@@ -631,7 +631,7 @@ export class Interface extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        var sql =
+        const sql =
           'SELECT I.id obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name, ' +
           'C.id cloud_id, C.name cloud_name, F.id firewall_id, F.name firewall_name, CL.id cluster_id, CL.name cluster_name ' +
           'from interface I ' +
@@ -660,7 +660,7 @@ export class Interface extends Model {
     ifName,
   ) {
     return new Promise((resolve, reject) => {
-      let sql = `SELECT I.id from interface I
+      const sql = `SELECT I.id from interface I
 			INNER JOIN ipobj_type T on T.id=I.interface_type
 			INNER JOIN firewall F on F.id=I.firewall
 			INNER JOIN fwcloud C on C.id=F.fwcloud
@@ -980,7 +980,7 @@ export class Interface extends Model {
 
         //CREATE NEW INTERFACE
         //Create New objet with data interface
-        var interfaceData = {
+        const interfaceData = {
           id: null,
           firewall: rowData.newfirewall,
           name: rowData.name,
@@ -990,7 +990,7 @@ export class Interface extends Model {
           comment: rowData.comment,
           mac: rowData.mac,
         };
-        let id_org = rowData.id;
+        const id_org = rowData.id;
         let id_clon;
         try {
           id_clon = await this.insertInterface(dbCon, interfaceData);
@@ -1013,7 +1013,7 @@ export class Interface extends Model {
         dbCon.query(sql, (error, rows) => {
           if (error) return reject(error);
 
-          for (var i = 0; i < rows.length; i++) {
+          for (let i = 0; i < rows.length; i++) {
             if (rows[i].name.indexOf(rows[i].org_name + ':', 0) === 0)
               rows[i].name = rows[i].name.replace(
                 new RegExp('^' + rows[i].org_name + ':'),
@@ -1036,7 +1036,7 @@ export class Interface extends Model {
   public static deleteInterface(fwcloud, idfirewall, id, type, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlExists =
+      const sqlExists =
         'SELECT * FROM ' +
         tableName +
         '  WHERE id = ' +
@@ -1049,7 +1049,7 @@ export class Interface extends Model {
         //If exists Id from interface to remove
         if (row) {
           db.get((error, connection) => {
-            var sql =
+            const sql =
               'DELETE FROM ' +
               tableName +
               ' WHERE id = ' +
@@ -1108,7 +1108,7 @@ export class Interface extends Model {
             if (error) return reject(error);
 
             try {
-              for (let _interface of interfaces)
+              for (const _interface of interfaces)
                 await IPObj.deleteIpobjInterface(dbCon, _interface.id);
               resolve();
             } catch (error) {
@@ -1126,7 +1126,7 @@ export class Interface extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        var sql = `DELETE FROM ${tableName} WHERE firewall=${firewall}`;
+        const sql = `DELETE FROM ${tableName} WHERE firewall=${firewall}`;
         connection.query(sql, (error, result) => {
           if (error) return reject(error);
           if (result.affectedRows > 0)
@@ -1166,8 +1166,8 @@ export class Interface extends Model {
 
       let match: RegExpMatchArray;
       let matchNext: RegExpMatchArray;
-      let ifsRawData: string[] = [];
-      let ifsData: ifData_type[] = [];
+      const ifsRawData: string[] = [];
+      const ifsData: ifData_type[] = [];
       let currentData: string = '';
 
       try {
@@ -1191,7 +1191,7 @@ export class Interface extends Model {
 
         // Process the raw data of each interface.
         for (currentData of ifsRawData) {
-          let ifData: ifData_type = {
+          const ifData: ifData_type = {
             name: '',
             mac: '',
             ipv4: [],
@@ -1207,20 +1207,20 @@ export class Interface extends Model {
             ifData.name = ifData.name.substring(0, match.index);
 
           // Now the MAC address.
-          if ((match = currentData.match(/\n    link\/ether /))) {
+          if ((match = currentData.match(/\n {4}link\/ether /))) {
             currentData = currentData.substring(match.index + match[0].length);
             ifData.mac = currentData.substring(0, 17);
           }
 
           // The IPv4 address array.
-          while ((match = currentData.match(/\n    inet /))) {
+          while ((match = currentData.match(/\n {4}inet /))) {
             currentData = currentData.substring(match.index + match[0].length);
             if (!(match = currentData.match(/ /))) break; // If the pattern is not found we have bad data.
             ifData.ipv4.push(currentData.substring(0, match.index));
           }
 
           // The IPv6 address array.
-          while ((match = currentData.match(/\n    inet6 /))) {
+          while ((match = currentData.match(/\n {4}inet6 /))) {
             currentData = currentData.substring(match.index + match[0].length);
             if (!(match = currentData.match(/ /))) break; // If the pattern is not found we have bad data.
             ifData.ipv6.push(currentData.substring(0, match.index));

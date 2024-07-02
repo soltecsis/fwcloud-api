@@ -112,7 +112,7 @@ export class TableTerraformer {
     for (let i = 0; i < rows.length; i++) {
       const row: object = rows[i];
 
-      for (let attributeName in row) {
+      for (const attributeName in row) {
         if (this.hasCustomHandler(attributeName)) {
           row[attributeName] = this._customHandlers[attributeName](
             mapper,
@@ -217,7 +217,7 @@ export class TableTerraformer {
       for (let i = 0; i < rows.length; i++) {
         const row: object = rows[i];
 
-        for (let attributeName in row) {
+        for (const attributeName in row) {
           if (attributeName === joinColumnName) {
             row[attributeName] = mapper.getMappedId(
               target._getTableName(),

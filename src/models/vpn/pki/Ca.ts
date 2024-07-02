@@ -33,7 +33,7 @@ import { CaPrefix } from './CaPrefix';
 import { FwCloud } from '../../fwcloud/FwCloud';
 import { User } from '../../user/User';
 import { Crt } from './Crt';
-var config = require('../../../config/config');
+const config = require('../../../config/config');
 const fwcError = require('../../../utils/error_table');
 const spawn = require('child-process-promise').spawn;
 const readline = require('readline');
@@ -159,7 +159,7 @@ export class Ca extends Model {
    */
   public static storePkiInfo(req, tree): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql = `SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca, OPT.name as openvpn_disabled 
+      const sql = `SELECT VPN.id as openvpn,VPN.openvpn as openvpn_parent,CRT.id as crt,CRT.ca, OPT.name as openvpn_disabled 
                 FROM crt CRT
                 INNER JOIN openvpn VPN on VPN.crt=CRT.id
                 INNER JOIN firewall FW on FW.id=VPN.firewall
@@ -183,7 +183,7 @@ export class Ca extends Model {
         req.body.fwcloud +
         '/' +
         req.caId;
-      var argv = ['--batch', pki_dir];
+      const argv = ['--batch', pki_dir];
 
       switch (easyrsaDataCmd) {
         case 'init-pki':
@@ -224,12 +224,12 @@ export class Ca extends Model {
   // Get certificate serial number.
   public static delFromIndex(dir, cn) {
     return new Promise((resolve, reject) => {
-      var serial = '';
+      let serial = '';
       const substr = 'CN=' + cn + '\n';
       const src_path = dir + '/index.txt';
       const dst_path = dir + '/index.txt.TMP';
-      var rs = fs.createReadStream(src_path);
-      var ws = fs.createWriteStream(dst_path);
+      const rs = fs.createReadStream(src_path);
+      const ws = fs.createWriteStream(dst_path);
 
       rs.on('error', (error) => reject(error));
       ws.on('error', (error) => reject(error));
@@ -275,7 +275,7 @@ export class Ca extends Model {
 
   public static searchCAHasCRTs(dbCon, fwcloud, ca) {
     return new Promise((resolve, reject) => {
-      let sql = `SELECT CRT.id FROM crt CRT
+      const sql = `SELECT CRT.id FROM crt CRT
       INNER JOIN ca CA ON CA.id=CRT.ca
       WHERE CA.fwcloud=${fwcloud} AND CA.id=${ca}`;
       dbCon.query(sql, async (error, result) => {
@@ -290,7 +290,7 @@ export class Ca extends Model {
 
   public static searchCAHasPrefixes(dbCon, fwcloud, ca) {
     return new Promise((resolve, reject) => {
-      let sql = `SELECT P.id FROM ca_prefix P
+      const sql = `SELECT P.id FROM ca_prefix P
       INNER JOIN ca CA ON CA.id=P.ca
       WHERE CA.fwcloud=${fwcloud} AND CA.id=${ca}`;
       dbCon.query(sql, async (error, result) => {

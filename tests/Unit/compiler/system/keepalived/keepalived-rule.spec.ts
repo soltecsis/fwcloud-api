@@ -40,7 +40,7 @@ describe(KeepalivedCompiler.name, () => {
   let fwc: FwCloudProduct;
 
   let keepalivedRuleService: KeepalivedRuleService;
-  let compiler: KeepalivedCompiler = new KeepalivedCompiler();
+  const compiler: KeepalivedCompiler = new KeepalivedCompiler();
   let rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[];
   let manager: EntityManager;
 
@@ -58,7 +58,7 @@ describe(KeepalivedCompiler.name, () => {
     const testData: KeepalivedRule[] = [];
 
     for (let i = 0; i < 10; i++) {
-      let rule: KeepalivedRule = await manager
+      const rule: KeepalivedRule = await manager
         .getRepository(KeepalivedRule)
         .save(
           manager.getRepository(KeepalivedRule).create({

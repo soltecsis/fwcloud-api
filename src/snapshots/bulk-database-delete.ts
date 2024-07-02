@@ -54,8 +54,8 @@ export class BulkDatabaseDelete {
       try {
         await qr.query('SET FOREIGN_KEY_CHECKS = 0');
 
-        for (let tableName in this._data) {
-          let entity: typeof Model = Model.getEntitiyDefinition(tableName);
+        for (const tableName in this._data) {
+          const entity: typeof Model = Model.getEntitiyDefinition(tableName);
           const rows: Array<object> = this._data[tableName];
 
           if (entity) {

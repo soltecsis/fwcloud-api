@@ -174,9 +174,9 @@ export class ResponseBuilder {
       return this._response;
     }
     if (this.hasFileAttached() && isContentAttached(this._attachment)) {
-      var fileContents = Buffer.from(this._attachment.content);
+      const fileContents = Buffer.from(this._attachment.content);
 
-      var redStream = new stream.PassThrough();
+      const redStream = new stream.PassThrough();
       redStream.end(fileContents);
 
       this._response.set(
@@ -194,7 +194,7 @@ export class ResponseBuilder {
   }
 
   protected buildMessage(): ResponseBody {
-    let envelope: Partial<ResponseBody> = {
+    const envelope: Partial<ResponseBody> = {
       status: this._status,
       response: HttpCodeResponse.get(this._status),
     };

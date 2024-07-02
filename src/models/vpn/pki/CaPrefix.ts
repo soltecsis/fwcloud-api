@@ -85,7 +85,7 @@ export class CaPrefix extends Model {
   // Get prefix info.
   public static getPrefixInfo(dbCon, fwcloud, prefix) {
     return new Promise((resolve, reject) => {
-      let sql = `select CA.fwcloud,PRE.*,CA.cn from ca_prefix PRE 
+      const sql = `select CA.fwcloud,PRE.*,CA.cn from ca_prefix PRE 
       inner join ca CA on CA.id=PRE.ca
       where CA.fwcloud=${fwcloud} and PRE.id=${prefix}`;
       dbCon.query(sql, (error, result) => {
@@ -113,7 +113,7 @@ export class CaPrefix extends Model {
         if (error) return reject(error);
 
         try {
-          for (let row of result)
+          for (const row of result)
             await Tree.newNode(
               dbCon,
               fwcloud,
@@ -142,7 +142,7 @@ export class CaPrefix extends Model {
     return new Promise(async (resolve, reject) => {
       try {
         // Search for the CA node tree.
-        let node: any = await Tree.getNodeInfo(
+        const node: any = await Tree.getNodeInfo(
           req.dbCon,
           req.body.fwcloud,
           'CA',
@@ -150,14 +150,14 @@ export class CaPrefix extends Model {
         );
         if (node.length !== 1)
           throw fwcError.other(`Found ${node.length} CA nodes, awaited 1`);
-        let node_id = node[0].id;
+        const node_id = node[0].id;
 
         // Remove all nodes under the CA node.
         await Tree.deleteNodesUnderMe(req.dbCon, req.body.fwcloud, node_id);
 
         // Generate all the CRT tree nodes under the CA node.
         const crt_list: any = await Crt.getCRTlist(req.dbCon, ca);
-        for (let crt of crt_list)
+        for (const crt of crt_list)
           await Tree.newNode(
             req.dbCon,
             req.body.fwcloud,
@@ -170,8 +170,8 @@ export class CaPrefix extends Model {
 
         // Create the nodes for all the prefixes.
         const prefix_list: any = await this.getPrefixes(req.dbCon, ca);
-        for (let prefix of prefix_list) {
-          let id = await Tree.newNode(
+        for (const prefix of prefix_list) {
+          const id = await Tree.newNode(
             req.dbCon,
             req.body.fwcloud,
             prefix.name,

@@ -235,19 +235,19 @@ describe(describeName('Snapshot Unit Tests'), () => {
     });
 
     it('should guess the fwcloud by its directory name', async () => {
-      let snapshot: Snapshot = await Snapshot.create(
+      const snapshot: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
         'test',
       );
 
-      let snaphost = await Snapshot.load(snapshot.path);
+      const snaphost = await Snapshot.load(snapshot.path);
 
       expect(snaphost.fwCloud).to.be.deep.equal(fwCloud);
     });
 
     it('should set incompatible if migrations metadata attribute is not provided', async () => {
-      let snapshot: Snapshot = await Snapshot.create(
+      const snapshot: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
         'test',
@@ -262,7 +262,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
         metadata,
       );
 
-      let snaphost = await Snapshot.load(snapshot.path);
+      const snaphost = await Snapshot.load(snapshot.path);
 
       expect(snaphost.compatible).to.be.false;
     });
@@ -270,7 +270,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
   describe('update()', () => {
     it('should update a snapshot name and comment', async () => {
-      let snapshot: Snapshot = await Snapshot.create(
+      const snapshot: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
         'name',
@@ -440,7 +440,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
         }),
       );
 
-      let snaphost: Snapshot = await Snapshot.create(
+      const snaphost: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
         'test',
@@ -515,12 +515,12 @@ describe(describeName('Snapshot Unit Tests'), () => {
       const snapshotService: SnapshotService =
         await app.getService<SnapshotService>(SnapshotService.name);
 
-      let snaphost1: Snapshot = await Snapshot.create(
+      const snaphost1: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
         'test',
       );
-      let snaphost2: Snapshot = await Snapshot.create(
+      const snaphost2: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
         'test',
@@ -542,7 +542,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
     });
 
     it('should not copy the policy directory if data directory is not present in the snapshot', async () => {
-      let snaphost1: Snapshot = await Snapshot.create(
+      const snaphost1: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
         'test',
@@ -559,7 +559,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
     });
 
     it('should not copy the pki directory if data directory is not present in the snapshot', async () => {
-      let snaphost1: Snapshot = await Snapshot.create(
+      const snaphost1: Snapshot = await Snapshot.create(
         service.config.data_dir,
         fwCloud,
         'test',

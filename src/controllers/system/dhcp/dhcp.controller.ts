@@ -325,7 +325,7 @@ export class DhcpController extends Controller {
     const channel: Channel = await Channel.fromRequest(req);
     let firewallId: number;
 
-    let firewall: Firewall = await db
+    const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({ where: { id: this._firewall.id } });
@@ -392,7 +392,7 @@ export class DhcpController extends Controller {
 
     const ids: string[] = (req.query.rules as string[]) || [];
 
-    for (let id of ids) {
+    for (const id of ids) {
       const rule: DHCPRule = await this._dhcpRuleService.findOneInPath({
         fwcloudId: this._fwCloud.id,
         firewallId: this._firewall.id,
@@ -430,7 +430,7 @@ export class DhcpController extends Controller {
 
     const ids: number[] = (req.query.rules as unknown as number[]) || [];
 
-    for (let id of ids) {
+    for (const id of ids) {
       const rule: DHCPRule = await this._dhcpRuleService.findOneInPath({
         fwcloudId: this._fwCloud.id,
         firewallId: this._firewall.id,

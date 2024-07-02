@@ -63,7 +63,7 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
   let compiler: AvailablePolicyCompilers;
   let policy: string;
 
-  let ruleData = {
+  const ruleData = {
     firewall: 0,
     type: 0,
     rule_order: 1,

@@ -511,10 +511,10 @@ export class Backup implements Responsable {
    * Copy DATA directories from the backup
    */
   protected async exportDataDirectories(): Promise<void> {
-    let item_list: Map<string, string> = routesMap;
+    const item_list: Map<string, string> = routesMap;
 
-    for (let item of item_list) {
-      let dst_dir = path.join(this._backupPath, Backup.DATA_DIRNAME, item[1]);
+    for (const item of item_list) {
+      const dst_dir = path.join(this._backupPath, Backup.DATA_DIRNAME, item[1]);
       if (await FSHelper.directoryExists(app().config.get(item[0]).data_dir)) {
         await fse.mkdirp(dst_dir);
         await fse.copy(app().config.get(item[0]).data_dir, dst_dir);
@@ -526,9 +526,9 @@ export class Backup implements Responsable {
    * Copy DATA directories into the backup
    */
   protected async importDataDirectories(): Promise<void> {
-    let item_list: Map<string, string> = routesMap;
+    const item_list: Map<string, string> = routesMap;
 
-    for (let item of item_list) {
+    for (const item of item_list) {
       const src_dir: string = path.join(
         this._backupPath,
         Backup.DATA_DIRNAME,

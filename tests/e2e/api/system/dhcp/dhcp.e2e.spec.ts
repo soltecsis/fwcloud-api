@@ -987,7 +987,7 @@ describe('DHCPRule E2E Tests', () => {
     describe('@bulkUpdate', () => {
       let rule1: DHCPRule;
       let rule2: DHCPRule;
-      let data: DhcpRuleBulkUpdateDto = {
+      const data: DhcpRuleBulkUpdateDto = {
         active: false,
         style: 'style',
       };

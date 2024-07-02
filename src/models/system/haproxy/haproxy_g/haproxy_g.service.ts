@@ -113,7 +113,7 @@ export class HAProxyGroupService extends Service {
   }
 
   async update(id: number, data: IUpdateHAProxyGroup): Promise<HAProxyGroup> {
-    let group: HAProxyGroup | undefined = await db
+    const group: HAProxyGroup | undefined = await db
       .getSource()
       .manager.getRepository(HAProxyGroup)
       .findOne({ where: { id: id } });

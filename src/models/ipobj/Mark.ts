@@ -120,7 +120,7 @@ export class Mark extends Model {
   // Modify an iptables mark.
   public static modifyMark(req): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql = `UPDATE ${tableName} SET code=${req.body.code}, name=${req.dbCon.escape(req.body.name)},
+      const sql = `UPDATE ${tableName} SET code=${req.body.code}, name=${req.dbCon.escape(req.body.name)},
 	  comment=${req.dbCon.escape(req.body.comment)} WHERE id=${req.body.mark}`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
@@ -157,7 +157,7 @@ export class Mark extends Model {
 
   public static searchMarkInRule(dbCon, fwcloud, mark) {
     return new Promise((resolve, reject) => {
-      var sql = `select R.id as rule, R.firewall, FW.id as firewall_id, FW.name as firewall_name,
+      const sql = `select R.id as rule, R.firewall, FW.id as firewall_id, FW.name as firewall_name,
 	        M.id obj_id, M.name obj_name,
 	        R.id as rule_id, R.type rule_type, (select id from ipobj_type where id=30) as obj_type_id,
 			PT.name rule_type_name,
@@ -177,7 +177,7 @@ export class Mark extends Model {
   public static searchMarkUsage(dbCon, fwcloud, mark) {
     return new Promise(async (resolve, reject) => {
       try {
-        let search: any = {};
+        const search: any = {};
         search.result = false;
         search.restrictions = {};
 
@@ -205,7 +205,7 @@ export class Mark extends Model {
           .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
           .getRawMany();
 
-        for (let key in search.restrictions) {
+        for (const key in search.restrictions) {
           if (search.restrictions[key].length > 0) {
             search.result = true;
             break;

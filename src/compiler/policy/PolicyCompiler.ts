@@ -38,7 +38,7 @@ export class PolicyCompiler {
   ): Promise<RuleCompilationResult[]> {
     return new Promise(async (resolve, reject) => {
       try {
-        let result: RuleCompilationResult[] = [];
+        const result: RuleCompilationResult[] = [];
 
         if (!rulesData) return resolve(result);
 

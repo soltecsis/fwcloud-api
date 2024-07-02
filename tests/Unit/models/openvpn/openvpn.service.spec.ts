@@ -168,14 +168,14 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
 
         it('should be stored custom config in json file', async () => {
             const jsonPath = path.join(app.config.get('openvpn.history').data_dir, 'config.json');
-            let custom_config = {history:{archive_days: 20, retention_days: 40}};
+            const custom_config = {history:{archive_days: 20, retention_days: 40}};
             await openVPNService.updateArchiveConfig(custom_config);
 
             expect(fs.existsSync(jsonPath)).to.be.true;
         })
 
         it('should be overwritten base config by a custom config', async () => {
-            let custom_config = {history:{archive_days: 20, retention_days: 40}};
+            const custom_config = {history:{archive_days: 20, retention_days: 40}};
             await openVPNService.updateArchiveConfig(custom_config);
             const config = await openVPNService.getCustomizedConfig();
 

@@ -29,7 +29,7 @@ import { Interface } from '../interface/Interface';
 import { PolicyPosition } from './PolicyPosition';
 const fwcError = require('../../utils/error_table');
 
-var asyncMod = require('async');
+const asyncMod = require('async');
 
 const tableName: string = 'policy_r__interface';
 
@@ -94,7 +94,7 @@ export class PolicyRuleToInterface extends Model {
   public static getPolicy_r__interfaces_rule(_interface, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT * FROM ' +
         tableName +
         ' WHERE interface = ' +
@@ -111,7 +111,7 @@ export class PolicyRuleToInterface extends Model {
   public static getPolicy_r__interfaces_interface(rule, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT * FROM ' +
         tableName +
         ' WHERE rule = ' +
@@ -128,7 +128,7 @@ export class PolicyRuleToInterface extends Model {
   public static getPolicy_r__interface(_interface, rule, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT * FROM ' +
         tableName +
         ' WHERE rule = ' +
@@ -190,7 +190,7 @@ export class PolicyRuleToInterface extends Model {
   //Clone policy_r__interface
   public static clonePolicy_r__interface(policy_r__interfaceData) {
     return new Promise((resolve, reject) => {
-      var p_interfaceData = {
+      const p_interfaceData = {
         rule: policy_r__interfaceData.newrule,
         interface: policy_r__interfaceData.newInterface,
         position: policy_r__interfaceData.position,
@@ -233,7 +233,7 @@ export class PolicyRuleToInterface extends Model {
     new_rule,
   ): Promise<void> => {
     return new Promise((resolve, reject) => {
-      let sql = `INSERT INTO ${tableName} (rule, interface, position,position_order)
+      const sql = `INSERT INTO ${tableName} (rule, interface, position,position_order)
 			(SELECT ${new_rule}, interface, position, position_order
 			from ${tableName} where rule=${rule} order by  position, position_order)`;
       dbCon.query(sql, async (error, result) => {
@@ -267,7 +267,7 @@ export class PolicyRuleToInterface extends Model {
           if (allowed) {
             db.get((error, connection) => {
               if (error) callback(error, null);
-              var sql =
+              const sql =
                 'UPDATE ' +
                 tableName +
                 ' SET position = ' +
@@ -326,7 +326,7 @@ export class PolicyRuleToInterface extends Model {
           if (error) return reject(error);
           if (!allowed) return reject(fwcError.NOT_FOUND);
 
-          var sql = `UPDATE ${tableName} SET position=${dbCon.escape(new_position)},
+          const sql = `UPDATE ${tableName} SET position=${dbCon.escape(new_position)},
                     rule=${dbCon.escape(new_rule)}, position_order=${dbCon.escape(new_order)}
                     WHERE rule=${rule} AND interface=${_interface} AND position=${dbCon.escape(old_position)}`;
           dbCon.query(sql, async (error, result) => {
@@ -369,7 +369,7 @@ export class PolicyRuleToInterface extends Model {
     this.OrderList(new_order, rule, position, old_order, _interface);
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'UPDATE ' +
         tableName +
         ' SET ' +
@@ -393,9 +393,9 @@ export class PolicyRuleToInterface extends Model {
 
   private static OrderList(new_order, rule, position, old_order, _interface) {
     return new Promise((resolve, reject) => {
-      var increment = '+1';
-      var order1 = new_order;
-      var order2 = old_order;
+      let increment = '+1';
+      let order1 = new_order;
+      let order2 = old_order;
       if (new_order > old_order) {
         increment = '-1';
         order1 = old_order;
@@ -418,7 +418,7 @@ export class PolicyRuleToInterface extends Model {
           reject(error);
         }
 
-        var sql =
+        const sql =
           'UPDATE ' +
           tableName +
           ' SET ' +
@@ -457,7 +457,7 @@ export class PolicyRuleToInterface extends Model {
     db.get((error, connection) => {
       if (error) return callback(null, 0);
 
-      let sql = `select A.type from ipobj_type__policy_position A
+      const sql = `select A.type from ipobj_type__policy_position A
 			inner join interface I on A.type=I.interface_type
 			inner join policy_position P on P.id=A.position
 			WHERE I.id=${id} AND A.position=${position} AND I.firewall=${idfirewall}`;
@@ -478,14 +478,14 @@ export class PolicyRuleToInterface extends Model {
     callback,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      var sqlExists = `SELECT * FROM ${tableName} 
+      const sqlExists = `SELECT * FROM ${tableName} 
                 WHERE rule=${dbCon.escape(rule)} AND  interface=${dbCon.escape(_interface)}
                 AND position=${dbCon.escape(position)}`;
       dbCon.query(sqlExists, (error, row) => {
         //If exists Id from policy_r__interface to remove
         if (row) {
           db.get(async (error, connection) => {
-            var sql = `DELETE FROM ${tableName}
+            const sql = `DELETE FROM ${tableName}
                             WHERE rule=${connection.escape(rule)} 
                             AND interface=${connection.escape(_interface)} 
                             AND position=${connection.escape(position)}`;
@@ -506,7 +506,7 @@ export class PolicyRuleToInterface extends Model {
   public static deletePolicy_r__All(rule, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlExists =
+      const sqlExists =
         'SELECT * FROM ' +
         tableName +
         ' WHERE rule = ' +
@@ -516,7 +516,7 @@ export class PolicyRuleToInterface extends Model {
         if (row) {
           logger().debug('DELETING INTERFACES FROM RULE: ' + rule);
           db.get(async (error, connection) => {
-            var sql =
+            const sql =
               'DELETE FROM ' +
               tableName +
               ' WHERE rule = ' +
@@ -547,7 +547,7 @@ export class PolicyRuleToInterface extends Model {
 
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlPos =
+      const sqlPos =
         'SELECT * FROM ' +
         tableName +
         ' WHERE rule = ' +
@@ -558,7 +558,7 @@ export class PolicyRuleToInterface extends Model {
       //logger().debug(sqlPos);
       connection.query(sqlPos, (error, rows) => {
         if (rows.length > 0) {
-          var order = 0;
+          let order = 0;
           asyncMod.map(
             rows,
             (row, callback1) => {
@@ -600,7 +600,7 @@ export class PolicyRuleToInterface extends Model {
   public static orderPolicy(rule, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlRule =
+      const sqlRule =
         'SELECT * FROM ' +
         tableName +
         ' WHERE rule = ' +
@@ -609,12 +609,12 @@ export class PolicyRuleToInterface extends Model {
       //logger().debug(sqlRule);
       connection.query(sqlRule, (error, rows) => {
         if (rows.length > 0) {
-          var order = 0;
-          var prev_position = 0;
+          let order = 0;
+          let prev_position = 0;
           asyncMod.map(
             rows,
             (row, callback1) => {
-              var position = row.position;
+              const position = row.position;
               if (position !== prev_position) {
                 order = 1;
                 prev_position = position;
@@ -657,21 +657,21 @@ export class PolicyRuleToInterface extends Model {
   public static orderAllPolicy(callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlRule =
+      const sqlRule =
         'SELECT * FROM ' +
         tableName +
         ' ORDER by rule,position, position_order';
       //logger().debug(sqlRule);
       connection.query(sqlRule, (error, rows) => {
         if (rows.length > 0) {
-          var order = 0;
-          var prev_rule = 0;
-          var prev_position = 0;
+          let order = 0;
+          let prev_rule = 0;
+          let prev_position = 0;
           asyncMod.map(
             rows,
             (row, callback1) => {
-              var position = row.position;
-              var rule = row.rule;
+              const position = row.position;
+              const rule = row.rule;
               if (position !== prev_position || rule !== prev_rule) {
                 order = 1;
                 prev_rule = rule;
@@ -724,7 +724,7 @@ export class PolicyRuleToInterface extends Model {
     );
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT count(*) as n FROM ' +
         tableName +
         ' O INNER JOIN policy_r R on R.id=O.rule ' +
@@ -775,7 +775,7 @@ export class PolicyRuleToInterface extends Model {
     );
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT count(*) as n FROM ' +
         tableName +
         ' O ' +
@@ -876,7 +876,7 @@ export class PolicyRuleToInterface extends Model {
     _interface,
   ) => {
     return new Promise((resolve, reject) => {
-      let sql = `SELECT O.rule FROM ${tableName} O 
+      const sql = `SELECT O.rule FROM ${tableName} O 
                 INNER JOIN policy_r R on R.id=O.rule
                 INNER JOIN firewall F on F.id=R.firewall
                 INNER JOIN fwcloud C on C.id=F.fwcloud

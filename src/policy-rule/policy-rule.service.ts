@@ -20,12 +20,12 @@ export class PolicyRuleService extends Service {
     firewallId: number,
     channel?: EventEmitter,
   ): Promise<void> {
-    let policyScript = this.getPolicyScript(fwcloudId, firewallId, channel);
+    const policyScript = this.getPolicyScript(fwcloudId, firewallId, channel);
     await policyScript.dump();
   }
 
   public content(fwcloudId: number, firewallId: number): Promise<string> {
-    let policyScript = this.getPolicyScript(fwcloudId, firewallId);
+    const policyScript = this.getPolicyScript(fwcloudId, firewallId);
     const path: string = policyScript.getScriptPath();
 
     return new Promise<string>((resolve, reject) => {

@@ -250,7 +250,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
         }),
       );
 
-      let policyRule: PolicyRule = await PolicyRule.save(
+      const policyRule: PolicyRule = await PolicyRule.save(
         PolicyRule.create({
           rule_order: 1,
           policyGroupId: policyGroupOld.id,
@@ -268,7 +268,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
 
   describe('updateStyle()', () => {
     it('should update the style', async () => {
-      let policyRule: PolicyRule = await PolicyRule.save(
+      const policyRule: PolicyRule = await PolicyRule.save(
         PolicyRule.create({
           rule_order: 1,
           action: 1,
@@ -288,7 +288,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
     });
 
     it('should update multiple policyRule styles', async () => {
-      let policyRules: Array<PolicyRule> = [
+      const policyRules: Array<PolicyRule> = [
         await PolicyRule.save(
           PolicyRule.create({
             rule_order: 1,

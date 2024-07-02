@@ -35,7 +35,7 @@ export class MarkRepository extends Repository<Mark> {
     firewall: number,
     rules?: number[],
   ): SelectQueryBuilder<Mark> {
-    let q = this.createQueryBuilder('mark')
+    const q = this.createQueryBuilder('mark')
       .select('(select id from ipobj_type where id=30)', 'type')
       .addSelect('null as address')
       .addSelect('null as netmask')

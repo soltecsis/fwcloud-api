@@ -646,7 +646,7 @@ export class RoutingRuleService extends Service {
     });
 
     // For unknown reason, this._repository.remove(routes) is not working
-    for (let rule of rules) {
+    for (const rule of rules) {
       await this.remove({
         id: rule.id,
       });
@@ -682,7 +682,7 @@ export class RoutingRuleService extends Service {
       )) as RoutingRulesData<T>[];
 
     // Init the map for access the objects array for each route.
-    let ItemsArrayMap = new Map<number, T[]>();
+    const ItemsArrayMap = new Map<number, T[]>();
     for (let i = 0; i < rulesData.length; i++) {
       rulesData[i].items = [];
 
@@ -747,7 +747,7 @@ export class RoutingRuleService extends Service {
 
       if (ipObj.ipObjTypeId === 8) {
         // 8 = HOST
-        let addrs: any = await Interface.getHostAddr(db.getQuery(), ipObj.id);
+        const addrs: any = await Interface.getHostAddr(db.getQuery(), ipObj.id);
         if (addrs.length === 0) {
           errors[`ipObjIds.${i}`] = ['ipObj must contain at least one address'];
         }

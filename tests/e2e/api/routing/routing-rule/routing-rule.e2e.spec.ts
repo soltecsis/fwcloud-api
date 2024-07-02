@@ -1116,7 +1116,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
     describe('@bulkUpdate', () => {
       let ruleOrder1: RoutingRule;
       let ruleOrder2: RoutingRule;
-      let data: RoutingRuleControllerBulkUpdateDto = {
+      const data: RoutingRuleControllerBulkUpdateDto = {
         style: 'style!',
       };
 

@@ -171,19 +171,19 @@ describe(RoutingRuleController.name, () => {
     });
 
     it('should remove rules from different table which belongs to the same firewall', async () => {
-      let table1: RoutingTable = await tableService.create({
+      const table1: RoutingTable = await tableService.create({
         firewallId: firewall.id,
         name: 'table1',
         number: 1,
       });
 
-      let table2: RoutingTable = await tableService.create({
+      const table2: RoutingTable = await tableService.create({
         firewallId: firewall.id,
         name: 'table2',
         number: 2,
       });
 
-      let rule1: RoutingRule = await ruleService.create({
+      const rule1: RoutingRule = await ruleService.create({
         routingTableId: table1.id,
         markIds: [
           {
@@ -193,7 +193,7 @@ describe(RoutingRuleController.name, () => {
         ],
       });
 
-      let rule2: RoutingRule = await ruleService.create({
+      const rule2: RoutingRule = await ruleService.create({
         routingTableId: table2.id,
         markIds: [
           {

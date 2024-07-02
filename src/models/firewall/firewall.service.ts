@@ -31,7 +31,7 @@ import { KeepalivedGroup } from '../system/keepalived/keepalived_g/keepalived_g.
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
 import { DatabaseService } from '../../database/database.service';
 const fwcError = require('../../utils/error_table');
-var utilsModel = require('../../utils/utils.js');
+const utilsModel = require('../../utils/utils.js');
 
 export type SSHConfig = {
   host: string;
@@ -175,7 +175,7 @@ export class FirewallService extends Service {
       .leftJoinAndSelect('rule.routingRuleToMarks', 'routingRuleToMarks')
       .getMany();
 
-    for (let table of routingTables) {
+    for (const table of routingTables) {
       const persistedTable: RoutingTable = await (
         await app().getService<RoutingTableService>(RoutingTableService.name)
       ).create({
@@ -250,7 +250,7 @@ export class FirewallService extends Service {
         ],
         where: { id: firewallId },
       });
-    for (let table of firewallEntity.routingTables) {
+    for (const table of firewallEntity.routingTables) {
       await routingRuleService.bulkRemove(
         table.routingRules.map((item) => item.id),
       );
@@ -303,7 +303,7 @@ export class FirewallService extends Service {
     userId: number,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      var sqlExists = `SELECT T.*, A.id as idnode FROM ${Firewall._getTableName()} T 
+      const sqlExists = `SELECT T.*, A.id as idnode FROM ${Firewall._getTableName()} T 
 				INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${userId}
 				INNER JOIN fwc_tree A ON A.id_obj=T.id AND A.node_type="FW"
 				WHERE T.id=${firewallId} AND T.cluster=${clusterId}`;
@@ -312,19 +312,19 @@ export class FirewallService extends Service {
         if (error) return reject(error);
         if (row.length === 0) return reject(fwcError.NOT_FOUND);
 
-        var rowF = row[0];
-        var idNodeFirewall = rowF.idnode;
+        const rowF = row[0];
+        const idNodeFirewall = rowF.idnode;
 
         // Deleting FIREWAL MASTER
         if (rowF.fwmaster === 1) {
           // Transfer data to the new slave firewall.
-          var sql = `SELECT T.id FROM ${Firewall._getTableName()} T
+          let sql = `SELECT T.id FROM ${Firewall._getTableName()} T
 						WHERE fwmaster=0 AND  T.cluster=${clusterId}	ORDER by T.id limit 1`;
           db.getQuery().query(sql, async (error, rowS) => {
             if (error) return reject(error);
             if (rowS.length === 0) return reject(fwcError.NOT_FOUND);
 
-            var idNewFM = rowS[0].id;
+            const idNewFM = rowS[0].id;
             try {
               // Rename data directory with the new firewall master id.
               await utilsModel.renameFirewallDataDir(
@@ -360,7 +360,7 @@ export class FirewallService extends Service {
               await KeepalivedRule.moveToOtherFirewall(firewallId, idNewFM);
 
               // Move routing tables.
-              let routingTableService =
+              const routingTableService =
                 await app().getService<RoutingTableService>(
                   RoutingTableService.name,
                 );
@@ -394,7 +394,7 @@ export class FirewallService extends Service {
                   await Tree.updateIDOBJFwc_TreeFullNode(rowT[0]);
 
                   //DELETE TREE NODES From firewall
-                  var dataNode = {
+                  const dataNode = {
                     id: idNodeFirewall,
                     fwcloud: fwcloudId,
                     iduser: userId,

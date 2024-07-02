@@ -10,7 +10,7 @@ export class AuthService extends Service {
     tfaURL: string,
     userId: number,
   ) {
-    var tfData = {
+    const tfData = {
       secret: secret,
       tempSecret: tempSecret,
       dataURL: dataURL,
@@ -33,7 +33,7 @@ export class AuthService extends Service {
   }
 
   public static async GetTfa(userId: number) {
-    var pet = await db
+    const pet = await db
       .getSource()
       .getRepository(Tfa)
       .createQueryBuilder('tfa')

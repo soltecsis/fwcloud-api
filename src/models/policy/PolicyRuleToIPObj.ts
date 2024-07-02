@@ -36,7 +36,7 @@ import { logger } from '../../fonaments/abstract-application';
 import { PolicyPosition } from './PolicyPosition';
 import { RulePositionsMap } from '../../models/policy/PolicyPosition';
 import { IPObj } from '../ipobj/IPObj';
-var asyncMod = require('async');
+const asyncMod = require('async');
 const fwcError = require('../../utils/error_table');
 
 const tableModel: string = 'policy_r__ipobj';
@@ -121,7 +121,7 @@ export class PolicyRuleToIPObj extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
-      var sql =
+      const sql =
         'SELECT * FROM ' +
         tableModel +
         ' WHERE rule=' +
@@ -141,7 +141,7 @@ export class PolicyRuleToIPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        let sql = `SELECT * FROM ${tableModel} 
+        const sql = `SELECT * FROM ${tableModel} 
                     WHERE rule=${connection.escape(rule)} AND position=${connection.escape(position)}
                     ORDER BY position_order`;
 
@@ -158,8 +158,8 @@ export class PolicyRuleToIPObj extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
-      var sql_obj = ' INNER JOIN ipobj O on O.id=P.ipobj ';
-      var sql =
+      const sql_obj = ' INNER JOIN ipobj O on O.id=P.ipobj ';
+      const sql =
         'SELECT * FROM ' +
         tableModel +
         ' P ' +
@@ -189,7 +189,7 @@ export class PolicyRuleToIPObj extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
-      var sql =
+      const sql =
         'SELECT * FROM ' +
         tableModel +
         ' WHERE rule = ' +
@@ -215,7 +215,7 @@ export class PolicyRuleToIPObj extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
         // First verify that the object is not already in the position.
-        var sql =
+        let sql =
           'SELECT id_pi FROM ' +
           tableModel +
           ' WHERE rule=' +
@@ -362,7 +362,7 @@ export class PolicyRuleToIPObj extends Model {
   //Check if group is empty.
   public static isGroupEmpty = (dbCon, group) => {
     return new Promise((resolve, reject) => {
-      let sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
+      const sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
 			union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
 			union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}`;
       dbCon.query(sql, (error, result) => {
@@ -378,7 +378,7 @@ export class PolicyRuleToIPObj extends Model {
   public static emptyIpobjContainerToObjectPosition(req) {
     return new Promise((resolve, reject) => {
       // First we need the object type and the content type of the rule position.
-      let sql = `select content,
+      const sql = `select content,
 			${req.body.ipobj > 0 ? `(select type from ipobj where id=${req.body.ipobj}) as type` : ``}
 			${req.body.interface > 0 ? `(select type from interface where id=${req.body.interface}) as type` : ``}
 			${req.body.ipobj_g > 0 ? `(select type from ipobj_g where id=${req.body.ipobj_g}) as type` : ``}
@@ -398,27 +398,27 @@ export class PolicyRuleToIPObj extends Model {
             req.body.rule,
           );
 
-          let type = parseInt(rows[0].type);
+          const type = parseInt(rows[0].type);
           if (type === 10 || type === 11) {
             // 10 = INTERFACE FIREWALL, 11 = INTERFACE HOST
-            let addrs: any = await Interface.getInterfaceAddr(
+            const addrs: any = await Interface.getInterfaceAddr(
               req.dbCon,
               req.body.interface,
             );
             let n = 0;
-            for (let addr of addrs) {
+            for (const addr of addrs) {
               // Count the amount of interface address with the same IP version of the rule.
               if (parseInt(addr.ip_version) === rule_ip_version) n++;
             }
             if (n === 0) return resolve(true);
           } else if (type === 8) {
             // 8 = HOST
-            let addrs: any = await Interface.getHostAddr(
+            const addrs: any = await Interface.getHostAddr(
               req.dbCon,
               req.body.ipobj,
             );
             let n = 0;
-            for (let addr of addrs) {
+            for (const addr of addrs) {
               // Count the amount of interface address with the same IP version of the rule.
               if (parseInt(addr.ip_version) === rule_ip_version) n++;
             }
@@ -482,8 +482,8 @@ export class PolicyRuleToIPObj extends Model {
   public static clonePolicy_r__ipobj(policy_r__ipobjData) {
     return new Promise((resolve, reject) => {
       logger().debug('policy_r__ipobjData: ', policy_r__ipobjData);
-      var newfirewall = policy_r__ipobjData.newfirewall;
-      var p_ipobjData = {
+      const newfirewall = policy_r__ipobjData.newfirewall;
+      const p_ipobjData = {
         rule: policy_r__ipobjData.newrule,
         ipobj: policy_r__ipobjData.ipobj,
         ipobj_g: policy_r__ipobjData.ipobj_g,
@@ -580,7 +580,7 @@ export class PolicyRuleToIPObj extends Model {
     new_rule,
   ): Promise<void> => {
     return new Promise((resolve, reject) => {
-      let sql = `INSERT INTO ${tableModel} (rule, ipobj, ipobj_g, interface, position, position_order)
+      const sql = `INSERT INTO ${tableModel} (rule, ipobj, ipobj_g, interface, position, position_order)
 			(SELECT ${new_rule}, ipobj, ipobj_g, interface, position, position_order
 			from ${tableModel} where rule=${rule} order by  position, position_order)`;
       dbCon.query(sql, async (error, result) => {
@@ -616,7 +616,7 @@ export class PolicyRuleToIPObj extends Model {
           if (allowed) {
             db.get((error, connection) => {
               if (error) callback(error, null);
-              var sql =
+              const sql =
                 'UPDATE ' +
                 tableModel +
                 ' SET ' +
@@ -711,7 +711,7 @@ export class PolicyRuleToIPObj extends Model {
   ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'UPDATE ' +
         tableModel +
         ' SET ' +
@@ -775,7 +775,7 @@ export class PolicyRuleToIPObj extends Model {
           if (error) return reject(error);
           if (!data) return reject(fwcError.NOT_ALLOWED);
 
-          var sql = `UPDATE ${tableModel} SET
+          const sql = `UPDATE ${tableModel} SET
                     rule=${dbCon.escape(new_rule)}, position=${dbCon.escape(new_position)}, 
                     position_order=${dbCon.escape(new_order)}
                     WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}
@@ -823,9 +823,9 @@ export class PolicyRuleToIPObj extends Model {
     _interface,
   ) {
     return new Promise<any>((resolve, reject) => {
-      var increment = '+1';
-      var order1 = new_order;
-      var order2 = old_order;
+      let increment = '+1';
+      let order1 = new_order;
+      let order2 = old_order;
       if (new_order > old_order) {
         increment = '-1';
         order1 = old_order;
@@ -853,7 +853,7 @@ export class PolicyRuleToIPObj extends Model {
       else if (ipobj_g > 0) sql_obj = ' AND ipobj_g<>' + ipobj_g;
       db.get((error, connection) => {
         if (error) reject(error);
-        var sql =
+        const sql =
           'UPDATE ' +
           tableModel +
           ' SET ' +
@@ -939,14 +939,14 @@ export class PolicyRuleToIPObj extends Model {
         (error, result) => {
           if (error) return reject(error);
           if (result.length !== 1) reject(fwcError.NOT_FOUND);
-          let content1 = result[0].content;
+          const content1 = result[0].content;
 
           dbCon.query(
             `SELECT id, content FROM policy_position WHERE id=${new_position}`,
             (error, result) => {
               if (error) return reject(error);
               if (result.length !== 1) reject(fwcError.NOT_FOUND);
-              let content2 = result[0].content;
+              const content2 = result[0].content;
 
               resolve({ content1: content1, content2: content2 });
             },
@@ -967,7 +967,7 @@ export class PolicyRuleToIPObj extends Model {
     position_order,
   ): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      var sqlExists = `SELECT * FROM ${tableModel}
+      const sqlExists = `SELECT * FROM ${tableModel}
                 WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}
                 AND ipobj_g=${dbCon.escape(ipobj_g)} AND position=${dbCon.escape(position)}`;
       dbCon.query(sqlExists, async (error, row) => {
@@ -1002,7 +1002,7 @@ export class PolicyRuleToIPObj extends Model {
   public static deletePolicy_r__All(rule, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlExists =
+      const sqlExists =
         'SELECT * FROM ' +
         tableModel +
         ' WHERE rule = ' +
@@ -1012,7 +1012,7 @@ export class PolicyRuleToIPObj extends Model {
         if (row) {
           logger().debug('DELETING IPOBJ FROM RULE: ' + rule);
           db.get(async (error, connection) => {
-            var sql =
+            const sql =
               'DELETE FROM ' +
               tableModel +
               ' WHERE rule = ' +
@@ -1041,7 +1041,7 @@ export class PolicyRuleToIPObj extends Model {
     logger().debug('DENTRO ORDER   Rule: ' + rule + '  Position: ' + position);
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlPos =
+      const sqlPos =
         'SELECT * FROM ' +
         tableModel +
         ' WHERE rule = ' +
@@ -1052,7 +1052,7 @@ export class PolicyRuleToIPObj extends Model {
       logger().debug(sqlPos);
       connection.query(sqlPos, (error, rows) => {
         if (rows.length > 0) {
-          var order = 0;
+          let order = 0;
           asyncMod.map(
             rows,
             (row, callback1) => {
@@ -1097,7 +1097,7 @@ export class PolicyRuleToIPObj extends Model {
   public static orderPolicy(rule, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlRule =
+      const sqlRule =
         'SELECT * FROM ' +
         tableModel +
         ' WHERE rule = ' +
@@ -1106,12 +1106,12 @@ export class PolicyRuleToIPObj extends Model {
       logger().debug(sqlRule);
       connection.query(sqlRule, (error, rows) => {
         if (rows.length > 0) {
-          var order = 0;
-          var prev_position = 0;
+          let order = 0;
+          let prev_position = 0;
           asyncMod.map(
             rows,
             (row, callback1) => {
-              var position = row.position;
+              const position = row.position;
               if (position !== prev_position) {
                 order = 1;
                 prev_position = position;
@@ -1156,21 +1156,21 @@ export class PolicyRuleToIPObj extends Model {
   public static orderAllPolicy(callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlRule =
+      const sqlRule =
         'SELECT * FROM ' +
         tableModel +
         ' ORDER by rule,position, position_order';
       logger().debug(sqlRule);
       connection.query(sqlRule, (error, rows) => {
         if (rows.length > 0) {
-          var order = 0;
-          var prev_rule = 0;
-          var prev_position = 0;
+          let order = 0;
+          let prev_rule = 0;
+          let prev_position = 0;
           asyncMod.map(
             rows,
             (row, callback1) => {
-              var position = row.position;
-              var rule = row.rule;
+              const position = row.position;
+              const rule = row.rule;
               if (position !== prev_position || rule !== prev_rule) {
                 order = 1;
                 prev_rule = rule;
@@ -1227,7 +1227,7 @@ export class PolicyRuleToIPObj extends Model {
     );
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT count(*) as n FROM ' +
         tableModel +
         ' O INNER JOIN policy_r R on R.id=O.rule ' +
@@ -1260,7 +1260,7 @@ export class PolicyRuleToIPObj extends Model {
               callback(null, { result: false });
             }
           } else {
-            var sql =
+            const sql =
               'SELECT count(*) as n FROM ' +
               tableModel +
               ' O INNER JOIN policy_r R on R.id=O.rule ' +
@@ -1363,7 +1363,7 @@ export class PolicyRuleToIPObj extends Model {
     );
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT count(*) as n FROM ' +
         tableModel +
         ' O ' +
@@ -1414,7 +1414,7 @@ export class PolicyRuleToIPObj extends Model {
     );
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT count(*) as n FROM interface__ipobj J ' +
         ' inner join ipobj I on I.interface=J.interface ' +
         ' inner join policy_r__ipobj O on O.ipobj=I.id ' +
@@ -1468,7 +1468,7 @@ export class PolicyRuleToIPObj extends Model {
     );
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT count(*) as n FROM ' +
         tableModel +
         ' O INNER JOIN policy_r R on R.id=O.rule ' +
@@ -1527,7 +1527,7 @@ export class PolicyRuleToIPObj extends Model {
     );
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT count(*) as n FROM ' +
         tableModel +
         ' O INNER JOIN policy_r R on R.id=O.rule ' +
@@ -1576,7 +1576,7 @@ export class PolicyRuleToIPObj extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        var sql = `SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
+        const sql = `SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
 				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 				O.position rule_position_id, P.name rule_position_name, R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1608,7 +1608,7 @@ export class PolicyRuleToIPObj extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        var sql = `SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name,
+        let sql = `SELECT O.interface obj_id,I.name obj_name, I.interface_type obj_type_id,T.type obj_type_name,
 				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 				O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1638,7 +1638,7 @@ export class PolicyRuleToIPObj extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        var sql = `SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name,
+        const sql = `SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name,
 				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order, R.type rule_type, PT.name rule_type_name,
 				O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1666,7 +1666,7 @@ export class PolicyRuleToIPObj extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        var sql = `SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
+        const sql = `SELECT O.ipobj obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
 				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 				O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1694,7 +1694,7 @@ export class PolicyRuleToIPObj extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        var sql = `SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name,
+        const sql = `SELECT O.ipobj_g obj_id,GR.name obj_name, GR.type obj_type_id,T.type obj_type_name,
 				C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name, O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 				O.position rule_position_id, P.name rule_position_name, R.comment rule_comment,
 				F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1718,7 +1718,7 @@ export class PolicyRuleToIPObj extends Model {
   //Search INTERFACES UNDER IPOBJ HOST that Exists in any rule
   public static searchInterfaceHostInRule = (dbCon, fwcloud, ipobj) => {
     return new Promise((resolve, reject) => {
-      var sql = `SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name,
+      const sql = `SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name,
 			C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 			O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1743,7 +1743,7 @@ export class PolicyRuleToIPObj extends Model {
   //Search ADDR UNDER IPOBJ HOST that Exists in any rule
   public static searchAddrHostInRule = (dbCon, fwcloud, ipobj) => {
     return new Promise((resolve, reject) => {
-      var sql = `SELECT O.ipobj obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
+      const sql = `SELECT O.ipobj obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
 			C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 			O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1773,7 +1773,7 @@ export class PolicyRuleToIPObj extends Model {
   ) => {
     return new Promise((resolve, reject) => {
       // Fisrt get all the interfaces in rules to which the address belongs.
-      var sql = `SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name,
+      const sql = `SELECT O.interface obj_id,K.name obj_name, K.interface_type obj_type_id,T.type obj_type_name,
 			C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 			O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment,
 			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1790,16 +1790,16 @@ export class PolicyRuleToIPObj extends Model {
       dbCon.query(sql, async (error, rows) => {
         if (error) return reject(error);
 
-        let result = [];
+        const result = [];
         try {
-          for (let row of rows) {
+          for (const row of rows) {
             const rule_ip_version = await PolicyRule.getPolicyRuleIPversion(
               dbCon,
               fwcloud,
               row.firewall_id,
               row.rule_id,
             );
-            let addrs: any = await Interface.getInterfaceAddr(
+            const addrs: any = await Interface.getInterfaceAddr(
               dbCon,
               row.obj_id,
             );
@@ -1807,7 +1807,7 @@ export class PolicyRuleToIPObj extends Model {
             // Count the amount of interface address with the same IP version of the rule.
             let n = 0;
             let id = 0;
-            for (let addr of addrs) {
+            for (const addr of addrs) {
               if (parseInt(addr.ip_version) === rule_ip_version) {
                 n++;
                 if (n === 1) id = addr.id;
@@ -1829,7 +1829,7 @@ export class PolicyRuleToIPObj extends Model {
   public static searchLastAddrInHostInRule = (dbCon, ipobj, type, fwcloud) => {
     return new Promise((resolve, reject) => {
       // Fisrt get all the host in rules to which the address belongs.
-      var sql = `SELECT O.ipobj obj_id,IR.name obj_name, IR.type obj_type_id,T.type obj_type_name,
+      const sql = `SELECT O.ipobj obj_id,IR.name obj_name, IR.type obj_type_id,T.type obj_type_name,
 			C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name ,O.rule rule_id, R.rule_order,R.type rule_type,PT.name rule_type_name,
 			O.position rule_position_id, P.name rule_position_name, R.comment rule_comment,
 			F.cluster as cluster_id, IF(F.cluster is null,null,(select name from cluster where id=F.cluster)) as cluster_name
@@ -1848,21 +1848,21 @@ export class PolicyRuleToIPObj extends Model {
       dbCon.query(sql, async (error, rows) => {
         if (error) return reject(error);
 
-        let result = [];
+        const result = [];
         try {
-          for (let row of rows) {
+          for (const row of rows) {
             const rule_ip_version = await PolicyRule.getPolicyRuleIPversion(
               dbCon,
               fwcloud,
               row.firewall_id,
               row.rule_id,
             );
-            let addrs: any = await Interface.getHostAddr(dbCon, row.obj_id);
+            const addrs: any = await Interface.getHostAddr(dbCon, row.obj_id);
 
             // Count the amount of interface address with the same IP version of the rule.
             let n = 0;
             let id = 0;
-            for (let addr of addrs) {
+            for (const addr of addrs) {
               if (parseInt(addr.ip_version) === rule_ip_version) {
                 n++;
                 if (n === 1) id = addr.id;
@@ -1902,12 +1902,12 @@ export class PolicyRuleToIPObj extends Model {
       .andWhere('firewall.fwCloudId = :fwcloudId', { fwcloudId })
       .getMany();
 
-    let result: PolicyRuleToIPObj[] = [];
+    const result: PolicyRuleToIPObj[] = [];
 
-    for (let policyRuleToIPObjGroup of policyRuleToIPObjGroups) {
-      for (let ipObjToIPObjGroup of policyRuleToIPObjGroup.ipObjGroup
+    for (const policyRuleToIPObjGroup of policyRuleToIPObjGroups) {
+      for (const ipObjToIPObjGroup of policyRuleToIPObjGroup.ipObjGroup
         .ipObjToIPObjGroups) {
-        let addrs: any = await Interface.getHostAddr(
+        const addrs: any = await Interface.getHostAddr(
           db.getQuery(),
           ipObjToIPObjGroup.ipObjId,
         );
@@ -1915,7 +1915,7 @@ export class PolicyRuleToIPObj extends Model {
         // Count the amount of interface address with the same IP version of the rule.
         let n = 0;
         let id = 0;
-        for (let addr of addrs) {
+        for (const addr of addrs) {
           n++;
           if (n === 1) id = addr.id;
         }
@@ -1965,7 +1965,7 @@ export class PolicyRuleToIPObj extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        var sql =
+        let sql =
           'SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name, ' +
           'C.id cloud_id, C.name cloud_name, R.firewall firewall_id, F.name firewall_name , ' +
           'O.rule rule_id, R.rule_order,R.type rule_type,  PT.name rule_type_name,O.position rule_position_id,  P.name rule_position_name,R.comment rule_comment ' +
@@ -2002,7 +2002,7 @@ export class PolicyRuleToIPObj extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        var sql = `SELECT I.id obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
+        const sql = `SELECT I.id obj_id, I.name obj_name, I.type obj_type_id, T.type obj_type_name,
 				G.id group_id, G.name group_name, G.type group_type
 				FROM ipobj__ipobjg O
 				INNER JOIN ipobj_g G ON G.id=O.ipobj_g
@@ -2040,7 +2040,7 @@ export class PolicyRuleToIPObj extends Model {
             if (error) return reject(error);
             if (result.length !== 1) return reject(fwcError.NOT_FOUND);
 
-            let type = parseInt(result[0].type);
+            const type = parseInt(result[0].type);
             if (type !== 5 && type !== 6 && type !== 7)
               //5=ADRRES, 6=ADDRESS RANGE, 7=NETWORK
               return resolve(true);

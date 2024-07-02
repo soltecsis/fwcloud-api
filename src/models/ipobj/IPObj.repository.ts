@@ -378,7 +378,7 @@ export class IPObjRepository extends Repository<IPObj> {
     firewall: number,
     routingTable?: number,
   ): SelectQueryBuilder<IPObj> {
-    let query = this.createQueryBuilder('ipobj')
+    const query = this.createQueryBuilder('ipobj')
       .select('ipobj.id', 'id')
       .addSelect('ipobj.name', 'name')
       .addSelect('ipobj.type', 'type')
@@ -426,7 +426,7 @@ export class IPObjRepository extends Repository<IPObj> {
     fwcloud: number,
     firewall: number,
   ): SelectQueryBuilder<IPObj> {
-    let query: SelectQueryBuilder<IPObj> = this.createQueryBuilder('ipobj')
+    const query: SelectQueryBuilder<IPObj> = this.createQueryBuilder('ipobj')
       .select('ipobj.id', 'id')
       .addSelect('ipobj.address', 'address')
       .addSelect('ipobj.name', 'name')
@@ -466,7 +466,7 @@ export class IPObjRepository extends Repository<IPObj> {
     firewall: number,
     dhcpRule?: number,
   ): SelectQueryBuilder<IPObj> {
-    let query = this.createQueryBuilder('ipobj')
+    const query = this.createQueryBuilder('ipobj')
       .select('ipobj.id', 'id')
       .addSelect('ipobj.address', 'address')
       .addSelect('ipobj.name', 'name')
@@ -505,7 +505,7 @@ export class IPObjRepository extends Repository<IPObj> {
     fwcloud: number,
     firewall: number,
   ): SelectQueryBuilder<IPObj> {
-    let query: SelectQueryBuilder<IPObj> = this.createQueryBuilder('ipobj')
+    const query: SelectQueryBuilder<IPObj> = this.createQueryBuilder('ipobj')
       .select('ipobj.id', 'id')
       .addSelect('ipobj.address', 'address')
       .addSelect('ipobj.name', 'name')

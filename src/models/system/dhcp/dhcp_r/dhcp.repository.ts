@@ -368,7 +368,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
       query.andWhere('dhcp_r.id IN (:...rule)').setParameter('rule', rules);
     }
 
-    let dhcpRules: DHCPRule[] = await query.getMany();
+    const dhcpRules: DHCPRule[] = await query.getMany();
 
     if (rule_types && forCompilation) {
       dhcpRules.sort((a, b) => {

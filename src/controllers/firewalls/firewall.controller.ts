@@ -182,7 +182,7 @@ export class FirewallController extends Controller {
   @Validate()
   @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
   async compileRoutingRules(request: Request): Promise<ResponseBuilder> {
-    let firewall: Firewall = await db
+    const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
@@ -194,7 +194,7 @@ export class FirewallController extends Controller {
 
     (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
 
-    let rules: RoutingRulesData<RoutingRuleItemForCompiler>[] =
+    const rules: RoutingRulesData<RoutingRuleItemForCompiler>[] =
       await this.routingRuleService.getRoutingRulesData(
         'compiler',
         firewall.fwCloudId,
@@ -211,7 +211,7 @@ export class FirewallController extends Controller {
   @Validate()
   @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
   async compileHAProxyRules(request: Request): Promise<ResponseBuilder> {
-    let firewall: Firewall = await db
+    const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
@@ -223,7 +223,7 @@ export class FirewallController extends Controller {
 
     (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
 
-    let rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] =
+    const rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] =
       await this.haproxyRuleService.getHAProxyRulesData(
         'compiler',
         firewall.fwCloudId,
@@ -241,7 +241,7 @@ export class FirewallController extends Controller {
   @Validate()
   @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
   async compileDHCPRules(req: Request): Promise<ResponseBuilder> {
-    let firewall: Firewall = await db
+    const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
@@ -253,7 +253,7 @@ export class FirewallController extends Controller {
 
     (await FirewallPolicy.compile(firewall, req.session.user)).authorize();
 
-    let rules: DHCPRulesData<DHCPRuleItemForCompiler>[] =
+    const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] =
       await this.dhcpRuleService.getDHCPRulesData(
         'compiler',
         firewall.fwCloudId,
@@ -271,7 +271,7 @@ export class FirewallController extends Controller {
   @Validate()
   @ValidateQuery(FirewallControllerCompileRoutingRuleQueryDto)
   async compileKeepalivedRules(request: Request): Promise<ResponseBuilder> {
-    let firewall: Firewall = await db
+    const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({
@@ -283,7 +283,7 @@ export class FirewallController extends Controller {
 
     (await FirewallPolicy.compile(firewall, request.session.user)).authorize();
 
-    let rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] =
+    const rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] =
       await this.keepalivedService.getKeepalivedRulesData(
         'compiler',
         firewall.fwCloudId,
@@ -369,7 +369,7 @@ export class FirewallController extends Controller {
           apikey: await pgp.decrypt(input.apikey),
         });
       }
-      let info: FwcAgentInfo = await communication.info();
+      const info: FwcAgentInfo = await communication.info();
 
       return ResponseBuilder.buildResponse().status(200).body(info);
     } catch (error) {

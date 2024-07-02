@@ -68,7 +68,7 @@ export class BackupService extends Service {
     this._cronService = await this._app.getService<CronService>(
       CronService.name,
     );
-    let backupDirectory: string = this._config.data_dir;
+    const backupDirectory: string = this._config.data_dir;
 
     if (!fs.existsSync(backupDirectory)) {
       fs.mkdirSync(backupDirectory);
@@ -115,11 +115,11 @@ export class BackupService extends Service {
    * Returns all backups
    */
   public async getAll(): Promise<Array<Backup>> {
-    var dirs = [];
+    const dirs = [];
 
     const entires: Array<string> = fs.readdirSync(this.getBackupDirectory());
-    for (let entry of entires) {
-      let backupPath: string = path.join(this.getBackupDirectory(), entry);
+    for (const entry of entires) {
+      const backupPath: string = path.join(this.getBackupDirectory(), entry);
 
       if (fs.statSync(backupPath).isDirectory()) {
         try {
@@ -287,7 +287,7 @@ export class BackupService extends Service {
     });
 
     while (sortedBackups.length > this._config.max_copies) {
-      let deletedBackup = sortedBackups.shift();
+      const deletedBackup = sortedBackups.shift();
       deletedBackups.push(await deletedBackup.destroy());
     }
 

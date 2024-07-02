@@ -179,7 +179,7 @@ export class FwCloud extends Model {
       // First remove the Firewall, Objects, Services and CA trees.
       await this.removeTrees(queryRunner);
 
-      let queries = [
+      const queries = [
         // First remove the relational tables for policy rules and the policy rules themselves.
         `delete PI from policy_r__interface PI inner join policy_r RULE on RULE.id=PI.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
         `delete PO from policy_r__ipobj PO inner join policy_r RULE on RULE.id=PO.rule inner join firewall FW on FW.id=RULE.firewall where FW.fwcloud=${this.id};`,
@@ -346,7 +346,7 @@ export class FwCloud extends Model {
    */
   public static getFwclouds(dbCon, user) {
     return new Promise((resolve, reject) => {
-      var sql = `SELECT distinctrow C.* FROM ${tableName} C
+      const sql = `SELECT distinctrow C.* FROM ${tableName} C
 				INNER JOIN user__fwcloud U ON C.id=U.fwcloud
 				WHERE U.user=${user} ORDER BY C.name`;
       dbCon.query(sql, (error, rows) => {
@@ -384,7 +384,7 @@ export class FwCloud extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
-      var sql =
+      const sql =
         'SELECT distinctrow C.* FROM ' +
         tableName +
         ' C  ' +
@@ -418,7 +418,7 @@ export class FwCloud extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(false);
-        var sql =
+        const sql =
           'SELECT distinctrow C.* FROM ' +
           tableName +
           ' C  ' +
@@ -497,7 +497,7 @@ export class FwCloud extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(false);
-        var sql =
+        const sql =
           'select TIMESTAMPDIFF(MINUTE, updated_at, NOW()) as dif,  C.* from ' +
           tableName +
           ' C WHERE C.locked=1 HAVING dif>' +
@@ -506,9 +506,9 @@ export class FwCloud extends Model {
           if (error) reject(false);
           else if (rows && rows.length > 0) {
             //UNLOCK ALL
-            for (var i = 0; i < rows.length; i++) {
+            for (let i = 0; i < rows.length; i++) {
               var row = rows[i];
-              var sqlupdate =
+              const sqlupdate =
                 'UPDATE ' + tableName + ' SET locked = 0  WHERE id = ' + row.id;
               connection.query(sqlupdate, (error, result) => {
                 logger().info(
@@ -561,7 +561,7 @@ export class FwCloud extends Model {
    */
   public static insertFwcloud(req) {
     return new Promise((resolve, reject) => {
-      let fwcloudData = {
+      const fwcloudData = {
         name: req.body.name,
         image: req.body.image,
         comment: req.body.comment,
@@ -573,10 +573,10 @@ export class FwCloud extends Model {
         async (error, result) => {
           if (error) return reject(error);
 
-          let fwcloud = result.insertId;
+          const fwcloud = result.insertId;
           try {
             const admins: any = await User.getAllAdminUserIds(req);
-            for (let admin of admins) {
+            for (const admin of admins) {
               await User.allowFwcloudAccess(req.dbCon, admin.id, fwcloud);
             }
             resolve(fwcloud);
@@ -616,12 +616,12 @@ export class FwCloud extends Model {
    */
   public static updateFwcloudLock(fwcloudData) {
     return new Promise((resolve, reject) => {
-      var locked = 1;
+      const locked = 1;
       db.get((error, connection) => {
         if (error) return reject(error);
 
         //Check if FWCloud is unlocked or locked by the same user
-        var sqlExists =
+        const sqlExists =
           'SELECT id FROM ' +
           tableName +
           '  ' +
@@ -634,7 +634,7 @@ export class FwCloud extends Model {
         connection.query(sqlExists, (error, row) => {
           if (row && row.length > 0) {
             //Check if there are FWCloud with Access and Edit permissions
-            var sqlExists =
+            const sqlExists =
               'SELECT C.id FROM ' +
               tableName +
               ' C ' +
@@ -645,7 +645,7 @@ export class FwCloud extends Model {
             logger().debug(sqlExists);
             connection.query(sqlExists, (error, row) => {
               if (row && row.length > 0) {
-                var sql =
+                const sql =
                   'UPDATE ' +
                   tableName +
                   ' SET locked = ' +
@@ -705,10 +705,10 @@ export class FwCloud extends Model {
    */
   public static updateFwcloudUnlock(fwcloudData, callback) {
     return new Promise((resolve, reject) => {
-      var locked = 0;
+      const locked = 0;
       db.get((error, connection) => {
         if (error) reject(error);
-        var sqlExists =
+        const sqlExists =
           'SELECT id FROM ' +
           tableName +
           '  ' +
@@ -720,7 +720,7 @@ export class FwCloud extends Model {
         connection.query(sqlExists, (error, row) => {
           //If exists Id from fwcloud to remove
           if (row && row.length > 0) {
-            var sql =
+            const sql =
               'UPDATE ' +
               tableName +
               ' SET locked = ' +

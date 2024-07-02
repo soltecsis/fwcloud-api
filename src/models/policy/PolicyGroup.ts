@@ -104,7 +104,7 @@ export class PolicyGroup extends Model {
   public static getPolicy_gs(idfirewall, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT * FROM ' +
         tableName +
         ' WHERE firewall=' +
@@ -121,7 +121,7 @@ export class PolicyGroup extends Model {
   public static getPolicy_gs_group(idfirewall, idgroup, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT * FROM ' +
         tableName +
         ' WHERE firewall=' +
@@ -140,7 +140,7 @@ export class PolicyGroup extends Model {
   public static getPolicy_g(idfirewall, id, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT * FROM ' +
         tableName +
         ' WHERE id = ' +
@@ -158,7 +158,7 @@ export class PolicyGroup extends Model {
   public static insertPolicy_g(policy_gData, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlExists =
+      const sqlExists =
         'SELECT * FROM ' +
         tableName +
         '  WHERE id = ' +
@@ -198,7 +198,7 @@ export class PolicyGroup extends Model {
   public static updatePolicy_g(policy_gData, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'UPDATE ' +
         tableName +
         ' SET name = ' +
@@ -227,7 +227,7 @@ export class PolicyGroup extends Model {
   public static updatePolicy_g_name(policy_gData, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'UPDATE ' +
         tableName +
         ' SET name = ' +
@@ -251,7 +251,7 @@ export class PolicyGroup extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
-      var sql =
+      const sql =
         'UPDATE ' +
         tableName +
         ' SET ' +
@@ -280,7 +280,7 @@ export class PolicyGroup extends Model {
   public static deletePolicy_g(idfirewall, id, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlExists =
+      const sqlExists =
         'SELECT * FROM ' +
         tableName +
         '  WHERE id = ' +
@@ -291,7 +291,7 @@ export class PolicyGroup extends Model {
         //If exists Id from policy_g to remove
         if (row) {
           db.get((error, connection) => {
-            var sql =
+            const sql =
               'DELETE FROM ' +
               tableName +
               ' WHERE id = ' +
@@ -317,7 +317,7 @@ export class PolicyGroup extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        let sql =
+        const sql =
           'select ' +
           connection.escape(idNewFirewall) +
           ' as newfirewall,id,firewall,name,comment,idgroup,groupstyle' +
@@ -382,7 +382,7 @@ export class PolicyGroup extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        let sql =
+        const sql =
           'DELETE FROM ' +
           tableName +
           ' WHERE firewall=' +

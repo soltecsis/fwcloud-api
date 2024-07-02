@@ -134,7 +134,7 @@ export class Route {
   public generateURL(params: object = {}): string {
     let url: string = this._pathParams.toString();
 
-    for (let param in params) {
+    for (const param in params) {
       if (Object.prototype.hasOwnProperty.call(params, param)) {
         if (new RegExp('/').test(params[param])) {
           throw new ParamNotValidException(param, params[param], this);

@@ -39,7 +39,7 @@ describe(describeName('MigrationResetCommand tests'), () => {
   });
 
   it('should reset the database', async () => {
-    let dataSource: DataSource = (
+    const dataSource: DataSource = (
       await app.getService<DatabaseService>(DatabaseService.name)
     ).dataSource;
     let queryRunner: QueryRunner = dataSource.createQueryRunner();

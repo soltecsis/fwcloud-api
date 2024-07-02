@@ -10,7 +10,7 @@ import { IsFile } from '../../../../../../src/fonaments/validation/rules/file.va
 import { ValidatorConstraintInterface } from 'class-validator';
 
 describe(describeName('File Rule Unit Test'), () => {
-  let rule: ValidatorConstraintInterface = new IsFile();
+  const rule: ValidatorConstraintInterface = new IsFile();
 
   describe('passes()', () => {
     it('should return false if the value is null', async () => {

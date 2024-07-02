@@ -306,7 +306,7 @@ describe(describeName('Backup E2E tests'), () => {
 
     describe('BackupController@import', async () => {
       let backup: Backup;
-      let zippedPath: string = path.join(playgroundPath, 'backup.zip');
+      const zippedPath: string = path.join(playgroundPath, 'backup.zip');
 
       beforeEach(async () => {
         backup = await backupService.create();

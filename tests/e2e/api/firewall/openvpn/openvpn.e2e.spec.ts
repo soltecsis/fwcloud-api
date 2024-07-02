@@ -38,7 +38,7 @@ describe(describeName('OpenVPN E2E Tests'), () => {
 
     let mockExePath: string;
 
-    let connectioName: string = "test";
+    const connectioName: string = "test";
 
     let manager: EntityManager;
 

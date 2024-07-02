@@ -35,7 +35,7 @@ import {
   FwcAgentInfo,
   OpenVPNHistoryRecord,
 } from './communication';
-var config = require('../config/config');
+const config = require('../config/config');
 const fwcError = require('../utils/error_table');
 
 type SSHConnectionData = {
@@ -136,7 +136,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         );
       }
 
-      for (let config of configs) {
+      for (const config of configs) {
         eventEmitter.emit(
           'message',
           new ProgressNoticePayload(
@@ -210,7 +210,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         );
       }
 
-      for (let config of configs) {
+      for (const config of configs) {
         eventEmitter.emit(
           'message',
           new ProgressInfoPayload(
@@ -261,7 +261,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
       }
       const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
 
-      for (let file of files) {
+      for (const file of files) {
         eventEmitter.emit(
           'message',
           new ProgressNoticePayload(
@@ -364,12 +364,12 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         throw fwcError.SSH_COMMUNICATION_DISABLE;
       }
       const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
-      let data = await sshTools.runCommand(
+      const data = await sshTools.runCommand(
         this.connectionData,
         `${sudo} cat "${statusFilepath}"`,
       );
       // Remove the first line ()
-      let lines = data.split('\n');
+      const lines = data.split('\n');
       if (lines[0].startsWith('[sudo] password for ')) {
         lines.splice(0, 1);
       }

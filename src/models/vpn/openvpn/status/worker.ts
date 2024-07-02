@@ -21,7 +21,7 @@ async function iterate(application: Application): Promise<void> {
                 communication: FirewallInstallCommunication.Agent
             }).getMany();
 
-        for(let openvpn of openvpns) {
+        for(const openvpn of openvpns) {
             try {
                 const firewalls: Firewall[] = openvpn.firewall.clusterId
                     ? await db.getSource().getRepository(Firewall).createQueryBuilder('firewall')
@@ -33,7 +33,7 @@ async function iterate(application: Application): Promise<void> {
                     : [openvpn.firewall];
 
                 let entries: CreateOpenVPNStatusHistoryData[] = [];
-                for(let firewall of firewalls) {
+                for(const firewall of firewalls) {
                     const communication: AgentCommunication = await firewall.getCommunication() as AgentCommunication;
 
                     const statusOption: OpenVPNOption = await OpenVPN.getOptData(db.getQuery(), openvpn.id, 'status') as OpenVPNOption;

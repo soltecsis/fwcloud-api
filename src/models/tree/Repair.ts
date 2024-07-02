@@ -30,8 +30,8 @@ import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 const fwcError = require('../../utils/error_table');
 
-var dbCon;
-var fwcloud;
+let dbCon;
+let fwcloud;
 
 const tableName: string = 'fwc_tree';
 
@@ -94,7 +94,7 @@ export class Repair extends Model {
         let objects_found = 0;
         let services_found = 0;
         let ca_found = 0;
-        for (let node of nodes) {
+        for (const node of nodes) {
           if (node.name === 'FIREWALLS' && node.node_type === 'FDF') {
             channel.emit(
               'message',
@@ -169,7 +169,7 @@ export class Repair extends Model {
   // Resolve with the parent id of a tree node.
   public static getParentId(id) {
     return new Promise((resolve, reject) => {
-      let sql = 'SELECT id_parent FROM ' + tableName + ' WHERE id=' + id;
+      const sql = 'SELECT id_parent FROM ' + tableName + ' WHERE id=' + id;
       dbCon.query(sql, (error, nodes) => {
         if (error) return reject(error);
         if (nodes.length !== 1) return resolve(-1);
@@ -184,7 +184,7 @@ export class Repair extends Model {
     channel: EventEmitter = new EventEmitter(),
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql =
+      const sql =
         'SELECT id,id_parent,name,node_type,id_obj,obj_type FROM ' +
         tableName +
         ' WHERE fwcloud=' +
@@ -195,7 +195,7 @@ export class Repair extends Model {
 
         try {
           let last_id_ancestor, id_ancestor, deep, root_node_found;
-          for (let node of nodes) {
+          for (const node of nodes) {
             id_ancestor = node.id;
             deep = 0;
             do {
@@ -242,7 +242,7 @@ export class Repair extends Model {
 
             // Verify that the last ancestor id is the one of one of the root nodes.
             root_node_found = 0;
-            for (let rootNode of rootNodes) {
+            for (const rootNode of rootNodes) {
               if (last_id_ancestor === rootNode.id) {
                 root_node_found = 1;
                 break;
@@ -278,7 +278,7 @@ export class Repair extends Model {
     channel: EventEmitter = new EventEmitter(),
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql =
+      const sql =
         'SELECT T1.id,T1.id_parent,T2.node_type as parent_node_type FROM fwc_tree T1' +
         ' INNER JOIN fwc_tree T2 on T2.id=T1.id_parent ' +
         ' WHERE T1.fwcloud=' +
@@ -318,7 +318,7 @@ export class Repair extends Model {
               );
             }
             // Remove nodes for this firewall.
-            for (let node of nodes) {
+            for (const node of nodes) {
               await Tree.deleteFwc_TreeFullNode({
                 id: node.id,
                 fwcloud: fwcloud,
@@ -348,13 +348,13 @@ export class Repair extends Model {
     channel: EventEmitter = new EventEmitter(),
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql =
+      const sql =
         'SELECT id,name,options FROM firewall WHERE cluster is null AND fwcloud=' +
         dbCon.escape(fwcloud);
       dbCon.query(sql, async (error, firewalls) => {
         if (error) return reject(error);
         try {
-          for (let firewall of firewalls) {
+          for (const firewall of firewalls) {
             await this.regenerateFirewallTree(rootNode, firewall, channel);
             await PolicyRule.checkSpecialRules(
               dbCon,
@@ -378,7 +378,7 @@ export class Repair extends Model {
     channel: EventEmitter = new EventEmitter(),
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql =
+      const sql =
         'SELECT T1.id,T1.id_parent,T2.node_type as parent_node_type FROM fwc_tree T1' +
         ' INNER JOIN fwc_tree T2 on T2.id=T1.id_parent ' +
         ' WHERE T1.fwcloud=' +
@@ -419,7 +419,7 @@ export class Repair extends Model {
             }
 
             // Remove nodes for this cluster.
-            for (let node of nodes) {
+            for (const node of nodes) {
               await Tree.deleteFwc_TreeFullNode({
                 id: node.id,
                 fwcloud: fwcloud,
@@ -448,7 +448,7 @@ export class Repair extends Model {
     channel: EventEmitter = new EventEmitter(),
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql =
+      const sql =
         'SELECT C.id,C.name,F.id as fwmaster_id,F.options FROM cluster C ' +
         ' INNER JOIN firewall F on F.cluster=C.id ' +
         ' WHERE C.fwcloud=' +
@@ -457,7 +457,7 @@ export class Repair extends Model {
       dbCon.query(sql, async (error, clusters) => {
         if (error) return reject(error);
         try {
-          for (let cluster of clusters) {
+          for (const cluster of clusters) {
             await this.regenerateClusterTree(rootNode, cluster, channel);
             await PolicyRule.checkSpecialRules(
               dbCon,
@@ -552,7 +552,7 @@ export class Repair extends Model {
     channel: EventEmitter = new EventEmitter(),
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql =
+      const sql =
         'SELECT id,node_type,id_obj,obj_type FROM ' +
         tableName +
         ' WHERE fwcloud=' +
@@ -563,7 +563,7 @@ export class Repair extends Model {
         if (error) return reject(error);
 
         try {
-          for (let node of nodes) {
+          for (const node of nodes) {
             // Into a folder we can have only more folders, firewalls or clusters.
             if (
               node.node_type !== 'FD' &&
@@ -608,7 +608,7 @@ export class Repair extends Model {
   public static regenerateHostTree(hostsNode, host): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        let newId = await Tree.newNode(
+        const newId = await Tree.newNode(
           dbCon,
           fwcloud,
           host.name,
@@ -653,7 +653,7 @@ export class Repair extends Model {
         dbCon.query(sql, async (error, childs) => {
           if (error) return reject(error);
           try {
-            for (let child of childs)
+            for (const child of childs)
               await Tree.deleteFwc_TreeFullNode({
                 id: child.id,
                 fwcloud: fwcloud,
@@ -671,7 +671,7 @@ export class Repair extends Model {
           dbCon.query(sql, async (error, hosts) => {
             if (error) return reject(error);
             try {
-              for (let host of hosts)
+              for (const host of hosts)
                 await this.regenerateHostTree(nodes[0], host);
             } catch (error) {
               return reject(error);
@@ -700,7 +700,7 @@ export class Repair extends Model {
         if (error) return reject(error);
 
         try {
-          for (let ipobj of ipobjs) {
+          for (const ipobj of ipobjs) {
             // Verify that the ipobj is not part of an OpenVPN configuration.
             if (ipobj_type === 5) {
               // ADDRESS
@@ -744,13 +744,13 @@ export class Repair extends Model {
     group_type,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql = `SELECT id,name,type FROM ipobj_g WHERE fwcloud=${fwcloud} AND type=${group_type}`;
+      const sql = `SELECT id,name,type FROM ipobj_g WHERE fwcloud=${fwcloud} AND type=${group_type}`;
       dbCon.query(sql, async (error, groups) => {
         if (error) return reject(error);
 
         try {
           let id;
-          for (let group of groups) {
+          for (const group of groups) {
             id = await Tree.newNode(
               dbCon,
               fwcloud,
@@ -775,7 +775,7 @@ export class Repair extends Model {
     channel: EventEmitter = new EventEmitter(),
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql: string = `select id,fwcloud from ${tableName}
+      const sql: string = `select id,fwcloud from ${tableName}
                 where id_parent is not null and id_parent not in (select id from fwc_tree)`;
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
@@ -790,7 +790,7 @@ export class Repair extends Model {
           );
 
           try {
-            for (let node of result)
+            for (const node of result)
               await Tree.deleteFwc_TreeFullNode({
                 id: node.id,
                 fwcloud: node.fwcloud,

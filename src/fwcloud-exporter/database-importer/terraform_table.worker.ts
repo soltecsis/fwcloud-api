@@ -36,7 +36,7 @@ async function terraformTable(
   ).terraform(tableName, data);
 }
 
-let sharedData: InputData = workerData;
+const sharedData: InputData = workerData;
 const idManager: IdManager = IdManager.restore(sharedData.idState);
 const result: ExporterResult = new ExporterResult(sharedData.data);
 const mapper: ImportMapping = new ImportMapping(

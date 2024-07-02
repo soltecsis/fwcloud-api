@@ -39,7 +39,7 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
     },
   };
 
-  let ipobjData = {
+  const ipobjData = {
     id: null,
     fwcloud: null,
     interface: null,
@@ -77,7 +77,7 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
   beforeEach(async () => {
     adminUserSessionId = generateSession(adminUser);
 
-    for (var key in ipobjData) {
+    for (const key in ipobjData) {
       ipobjData[key] = null;
     }
     ipobjData.fwcloud = fwCloud.id;

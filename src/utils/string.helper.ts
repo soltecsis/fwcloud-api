@@ -54,11 +54,11 @@ export default class StringHelper {
   }
 
   public static randomize(length: number = 50): string {
-    var result = '';
-    var characters =
+    let result = '';
+    const characters =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    var charactersLength = characters.length;
-    for (var i = 0; i < length; i++) {
+    const charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
     return result;

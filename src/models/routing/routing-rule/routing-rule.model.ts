@@ -167,10 +167,10 @@ export class RoutingRule extends Model {
       .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud })
       .getMany();
 
-    let result: RoutingRuleToIPObj[] = [];
+    const result: RoutingRuleToIPObj[] = [];
 
-    for (let routingRuleToIPObj of routingRuleToIPObjs) {
-      let addrs: any = await Interface.getHostAddr(
+    for (const routingRuleToIPObj of routingRuleToIPObjs) {
+      const addrs: any = await Interface.getHostAddr(
         db.getQuery(),
         routingRuleToIPObj.ipObjId,
       );
@@ -178,7 +178,7 @@ export class RoutingRule extends Model {
       // Count the amount of interface address with the same IP version of the rule.
       let n = 0;
       let id = 0;
-      for (let addr of addrs) {
+      for (const addr of addrs) {
         n++;
         if (n === 1) id = addr.id;
       }
@@ -234,12 +234,12 @@ export class RoutingRule extends Model {
       .andWhere('firewall.fwCloudId = :fwcloud', { fwcloud })
       .getMany();
 
-    let result: RoutingRuleToIPObjGroup[] = [];
+    const result: RoutingRuleToIPObjGroup[] = [];
 
-    for (let routingRuleToIPObjGroup of routingRuleToIPObjGroups) {
-      for (let ipObjToIPObjGroup of routingRuleToIPObjGroup.ipObjGroup
+    for (const routingRuleToIPObjGroup of routingRuleToIPObjGroups) {
+      for (const ipObjToIPObjGroup of routingRuleToIPObjGroup.ipObjGroup
         .ipObjToIPObjGroups) {
-        let addrs: any = await Interface.getHostAddr(
+        const addrs: any = await Interface.getHostAddr(
           db.getQuery(),
           ipObjToIPObjGroup.ipObjId,
         );
@@ -247,7 +247,7 @@ export class RoutingRule extends Model {
         // Count the amount of interface address with the same IP version of the rule.
         let n = 0;
         let id = 0;
-        for (let addr of addrs) {
+        for (const addr of addrs) {
           n++;
           if (n === 1) id = addr.id;
         }

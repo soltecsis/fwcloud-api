@@ -29,7 +29,7 @@ export class fwcloudColors {
   private _colors: colorUsage[] = [];
 
   constructor(data: any[]) {
-    for (let item of data)
+    for (const item of data)
       this._colors.push({ color: item.color, count: parseInt(item.count) });
   }
 
@@ -52,7 +52,7 @@ export class fwcloudColors {
   public found(cu: colorUsage): boolean {
     let found: boolean = false;
 
-    for (let item of this._colors) {
+    for (const item of this._colors) {
       if (JSON.stringify(cu) === JSON.stringify(item)) {
         found = true;
         break;
@@ -66,10 +66,10 @@ export class fwcloudColors {
     let allFound: boolean = true;
     let found: boolean;
 
-    for (let cua_item of cua) {
+    for (const cua_item of cua) {
       found = false;
 
-      for (let item of this._colors) {
+      for (const item of this._colors) {
         if (JSON.stringify(cua_item) === JSON.stringify(item)) {
           found = true;
           break;
@@ -90,8 +90,8 @@ export class fwcloudColors {
 
   public combine(other: fwcloudColors): void {
     if (other.length > 0) {
-      for (let item1 of this._colors) {
-        for (let item2 of other.colors) {
+      for (const item1 of this._colors) {
+        for (const item2 of other.colors) {
           if (item1.color === item2.color) {
             item1.count += item2.count;
             other.colors.shift();
@@ -102,7 +102,7 @@ export class fwcloudColors {
       }
 
       if (other.length > 0) {
-        for (let item2 of other.colors) this._colors.push(item2);
+        for (const item2 of other.colors) this._colors.push(item2);
       }
     }
   }
@@ -115,7 +115,7 @@ export class fwcloudColors {
     let prevCount: number = -1;
     let sorted: boolean = true;
 
-    for (let item of this._colors) {
+    for (const item of this._colors) {
       if (prevCount === -1) {
         // We are at the first item.
         prevCount = item.count;

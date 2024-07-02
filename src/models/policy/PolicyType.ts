@@ -84,7 +84,7 @@ export class PolicyType extends Model {
   public static getPolicy_type(id, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
@@ -99,7 +99,7 @@ export class PolicyType extends Model {
   public static getPolicy_typeL(id, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(id);
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
@@ -114,8 +114,8 @@ export class PolicyType extends Model {
   public static getPolicy_typeName(name, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var namesql = '%' + name + '%';
-      var sql =
+      const namesql = '%' + name + '%';
+      const sql =
         'SELECT * FROM ' +
         tableName +
         ' WHERE name like  ' +
@@ -151,7 +151,7 @@ export class PolicyType extends Model {
   public static updatePolicy_type(policy_typeData, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sql =
+      const sql =
         'UPDATE ' +
         tableName +
         ' SET name = ' +
@@ -180,7 +180,7 @@ export class PolicyType extends Model {
   public static deletePolicy_type(type, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      var sqlExists =
+      const sqlExists =
         'SELECT * FROM ' +
         tableName +
         ' WHERE type = ' +
@@ -189,7 +189,7 @@ export class PolicyType extends Model {
         //If exists Id from policy_type to remove
         if (row) {
           db.get((error, connection) => {
-            var sql =
+            const sql =
               'DELETE FROM ' +
               tableName +
               ' WHERE type = ' +

@@ -37,7 +37,7 @@ export class Folder extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
         // Verify that parent node exists and is a node that can contain folders.
-        let sql =
+        const sql =
           'SELECT node_type FROM ' +
           tableName +
           ' WHERE fwcloud=' +
@@ -158,7 +158,7 @@ export class Folder extends Model {
   // Resolve with the parent id of a tree node.
   public static getParentId(connection, fwcloud, id) {
     return new Promise((resolve, reject) => {
-      let sql =
+      const sql =
         'SELECT id_parent,node_type FROM ' +
         tableName +
         ' WHERE id=' +

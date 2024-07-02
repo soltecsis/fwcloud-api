@@ -157,7 +157,7 @@ export class DHCPRuleService extends Service {
         .findOneOrFail({ where: { id: data.routerId } })) as IPObj;
     }
     if (data.interfaceId) {
-      let interfaceData: Interface = (await db
+      const interfaceData: Interface = (await db
         .getSource()
         .manager.getRepository(Interface)
         .findOneOrFail({ where: { id: data.interfaceId } })) as Interface;
@@ -361,7 +361,7 @@ export class DHCPRuleService extends Service {
       for (const field of fieldsToUpdate) {
         if (data[field]) {
           if (field === 'interfaceId') {
-            let interfaceData = (await db
+            const interfaceData = (await db
               .getSource()
               .manager.getRepository(Interface)
               .findOneOrFail({ where: { id: data[field] } })) as Interface;
@@ -423,7 +423,7 @@ export class DHCPRuleService extends Service {
 
   protected async getFindInPathOptions(
     path: Partial<IFindOneDHCPRulePath>,
-    options: FindOneOptions<DHCPRule> | FindOneOptions<DHCPRule> = {},
+    options: FindOneOptions<DHCPRule>   = {},
   ): Promise<SelectQueryBuilder<DHCPRule>> {
     const qb = this._repository.manager
       .getRepository(DHCPRule)
@@ -489,7 +489,7 @@ export class DHCPRuleService extends Service {
         break;
     }
 
-    let ItemsArrayMap: Map<number, T[]> = new Map<number, T[]>();
+    const ItemsArrayMap: Map<number, T[]> = new Map<number, T[]>();
     for (let i = 0; i < rulesData.length; i++) {
       rulesData[i].items = [];
 
@@ -563,7 +563,7 @@ export class DHCPRuleService extends Service {
       },
     });
 
-    for (let rule of rules) {
+    for (const rule of rules) {
       await this.remove({ id: rule.id });
     }
 

@@ -63,8 +63,8 @@ export class SnapshotService extends Service {
     }
 
     const entires: Array<string> = fs.readdirSync(snapshotsDirectory);
-    for (let entry of entires.reverse()) {
-      let snapshotPath: string = path.join(snapshotsDirectory, entry);
+    for (const entry of entires.reverse()) {
+      const snapshotPath: string = path.join(snapshotsDirectory, entry);
 
       if (fs.statSync(snapshotPath).isDirectory()) {
         try {
@@ -77,7 +77,7 @@ export class SnapshotService extends Service {
   }
 
   public async findOne(fwcloud: FwCloud, id: number): Promise<Snapshot> {
-    let snapshots: Array<Snapshot> = await this.getAll(fwcloud);
+    const snapshots: Array<Snapshot> = await this.getAll(fwcloud);
 
     const results = snapshots.filter((snapshot: Snapshot) => {
       return snapshot.id === id;
@@ -87,7 +87,7 @@ export class SnapshotService extends Service {
   }
 
   public async findOneOrFail(fwcloud: FwCloud, id: number): Promise<Snapshot> {
-    let snapshot: Snapshot = await this.findOne(fwcloud, id);
+    const snapshot: Snapshot = await this.findOne(fwcloud, id);
 
     if (!snapshot) {
       throw new NotFoundException();

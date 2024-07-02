@@ -176,7 +176,7 @@ export class RoutingTableService extends Service {
   }
 
   async update(id: number, data: IUpdateRoutingTable): Promise<RoutingTable> {
-    let table: RoutingTable = await db
+    const table: RoutingTable = await db
       .getSource()
       .manager.getRepository(RoutingTable)
       .preload(Object.assign(data, { id }));
@@ -289,7 +289,7 @@ export class RoutingTableService extends Service {
       )) as RouteData<T>[];
 
     // Init the map for access the objects array for each route.
-    let ItemsArrayMap = new Map<number, T[]>();
+    const ItemsArrayMap = new Map<number, T[]>();
     for (let i = 0; i < routesData.length; i++) {
       routesData[i].items = [];
 
@@ -359,7 +359,7 @@ export class RoutingTableService extends Service {
     srcFW: number,
     dstFW: number,
   ): Promise<void> {
-    let routingTables: RoutingTable[] = await db
+    const routingTables: RoutingTable[] = await db
       .getSource()
       .manager.getRepository(RoutingTable)
       .find({
@@ -368,7 +368,7 @@ export class RoutingTableService extends Service {
         },
       });
 
-    for (let table of routingTables) {
+    for (const table of routingTables) {
       table.firewallId = dstFW;
       await db
         .getSource()

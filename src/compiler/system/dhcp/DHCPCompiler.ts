@@ -89,7 +89,7 @@ export class DHCPCompiler {
     data: DHCPRulesData<DHCPRuleItemForCompiler>[],
     eventEmitter?: EventEmitter,
   ): DHCPCompiled[] {
-    let result: DHCPCompiled[] = [];
+    const result: DHCPCompiled[] = [];
 
     if (!data) {
       return result;

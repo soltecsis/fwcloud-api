@@ -105,7 +105,7 @@ export class Progress {
     return new Promise<void>(async (resolve, reject) => {
       this.bindEvents();
 
-      let heartbeatInterval: NodeJS.Timeout = setInterval(() => {
+      const heartbeatInterval: NodeJS.Timeout = setInterval(() => {
         this._externalEmitter.emit(
           'message',
           new ProgressPayload('heartbeat', false, '', this._id),

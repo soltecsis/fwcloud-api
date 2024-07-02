@@ -43,7 +43,7 @@ describe(describeName('PolicyGroupRepository tests'), () => {
   describe(describeName('PolicyGroupRepository deleteIfEmpty'), () => {
     describe('deleteIfEmpty()', () => {
       it('should delete a policyGroup if it is empty', async () => {
-        let policyGroup: PolicyGroup = await PolicyGroup.save(
+        const policyGroup: PolicyGroup = await PolicyGroup.save(
           PolicyGroup.create({
             name: 'group',
             firewall: await Firewall.save(
@@ -64,7 +64,7 @@ describe(describeName('PolicyGroupRepository tests'), () => {
       });
 
       it('should not delete a policyGroup if it is not empty', async () => {
-        let policyGroup: PolicyGroup = await PolicyGroup.save(
+        const policyGroup: PolicyGroup = await PolicyGroup.save(
           PolicyGroup.create({
             name: 'group',
             firewall: await Firewall.save(
