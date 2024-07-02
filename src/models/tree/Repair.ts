@@ -65,7 +65,7 @@ export class Repair extends Model {
   }
 
   public static initData(req): Promise<void> {
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
       dbCon = req.dbCon;
       fwcloud = req.body.fwcloud;
       resolve();
@@ -476,7 +476,7 @@ export class Repair extends Model {
 
   // Verify that the nodes into de folders are valid.
   public static checkNode(node, channel: EventEmitter = new EventEmitter()) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         let sql = '';
         if (node.node_type === 'FW') {
@@ -488,7 +488,7 @@ export class Repair extends Model {
                 `Deleting node with bad obj_type: ${JSON.stringify(node)}\n`,
               ),
             );
-            await Tree.deleteFwc_TreeFullNode({
+            Tree.deleteFwc_TreeFullNode({
               id: node.id,
               fwcloud: fwcloud,
             });
@@ -509,7 +509,7 @@ export class Repair extends Model {
                 `Deleting node with bad obj_type: ${JSON.stringify(node)}\n`,
               ),
             );
-            await Tree.deleteFwc_TreeFullNode({
+            Tree.deleteFwc_TreeFullNode({
               id: node.id,
               fwcloud: fwcloud,
             });
@@ -606,9 +606,9 @@ export class Repair extends Model {
 
   // Regenerate host tree.
   public static regenerateHostTree(hostsNode, host): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
-        const newId = await Tree.newNode(
+        const newId = Tree.newNode(
           dbCon,
           fwcloud,
           host.name,
@@ -617,7 +617,7 @@ export class Repair extends Model {
           host.id,
           8,
         );
-        await Tree.interfacesTree(dbCon, fwcloud, newId, host.id, 'HOST');
+        Tree.interfacesTree(dbCon, fwcloud, newId, host.id, 'HOST');
       } catch (error) {
         reject(error);
       }

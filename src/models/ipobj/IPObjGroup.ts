@@ -423,15 +423,17 @@ export class IPObjGroup extends Model {
   }
 
   public static searchGroupUsage(id, fwcloud) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         const search: any = {};
         search.result = false;
         search.restrictions = {};
         //search.restrictions.IpobjInGroupInRule = await PolicyRuleToIPObj.searchGroupIPObjectsInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
-        search.restrictions.GroupInRule =
-          await PolicyRuleToIPObj.searchGroupInRule(id, fwcloud); //SEARCH IPOBJ GROUP IN RULES
-        search.restrictions.GroupInRoute = await getRepository(Route)
+        search.restrictions.GroupInRule = PolicyRuleToIPObj.searchGroupInRule(
+          id,
+          fwcloud,
+        ); //SEARCH IPOBJ GROUP IN RULES
+        search.restrictions.GroupInRoute = getRepository(Route)
           .createQueryBuilder('route')
           .addSelect('firewall.id', 'firewall_id')
           .addSelect('firewall.name', 'firewall_name')
@@ -450,9 +452,7 @@ export class IPObjGroup extends Model {
           .where(`firewall.fwCloudId = :fwcloud`, { fwcloud: fwcloud })
           .getRawMany();
 
-        search.restrictions.GroupInRoutingRule = await getRepository(
-          RoutingRule,
-        )
+        search.restrictions.GroupInRoutingRule = getRepository(RoutingRule)
           .createQueryBuilder('routing_rule')
           .addSelect('firewall.id', 'firewall_id')
           .addSelect('firewall.name', 'firewall_name')
@@ -530,10 +530,10 @@ export class IPObjGroup extends Model {
 
   //Remove ipobj_g with id to remove
   public static deleteIpobj_g(dbCon, fwcloud, id, type): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       // FIRST DELETE CHILDREN
       try {
-        await IPObjToIPObjGroup.deleteIpobj__ipobjgAll(dbCon, id);
+        IPObjToIPObjGroup.deleteIpobj__ipobjgAll(dbCon, id);
       } catch (error) {
         return reject(error);
       }

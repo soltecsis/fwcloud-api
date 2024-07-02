@@ -205,7 +205,7 @@ export class Tree extends Model {
     childrenArrayMap: ChildrenArrayMap,
     customOrder?: string[],
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const sql = `select id from fwc_tree where fwcloud=${fwcloud} and node_type in (${nodeType.map((value) => `'${value}'`).join(', ')})`;
 
       dbCon.query(sql, async (error, nodes) => {
@@ -704,13 +704,13 @@ export class Tree extends Model {
   }
 
   public static createObjectsTree(dbCon: Query, fwCloudId: number) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         const ids: any = {};
         let id: any;
 
         // OBJECTS
-        ids.OBJECTS = await this.newNode(
+        ids.OBJECTS = this.newNode(
           dbCon,
           fwCloudId,
           'OBJECTS',
@@ -721,7 +721,7 @@ export class Tree extends Model {
         );
 
         // OBJECTS / Addresses
-        ids.Addresses = await this.newNode(
+        ids.Addresses = this.newNode(
           dbCon,
           fwCloudId,
           'Addresses',
@@ -730,7 +730,7 @@ export class Tree extends Model {
           null,
           5,
         );
-        id = await this.newNode(
+        id = this.newNode(
           dbCon,
           fwCloudId,
           'Standard',
@@ -739,10 +739,10 @@ export class Tree extends Model {
           null,
           null,
         );
-        await this.createStdObjectsTree(dbCon, id, 'OIA', 5);
+        this.createStdObjectsTree(dbCon, id, 'OIA', 5);
 
         // OBJECTS / Addresses Ranges
-        ids.AddressesRanges = await this.newNode(
+        ids.AddressesRanges = this.newNode(
           dbCon,
           fwCloudId,
           'Address Ranges',
@@ -751,7 +751,7 @@ export class Tree extends Model {
           null,
           6,
         );
-        id = await this.newNode(
+        id = this.newNode(
           dbCon,
           fwCloudId,
           'Standard',
@@ -760,10 +760,10 @@ export class Tree extends Model {
           null,
           null,
         );
-        await this.createStdObjectsTree(dbCon, id, 'OIR', 6);
+        this.createStdObjectsTree(dbCon, id, 'OIR', 6);
 
         // OBJECTS / Networks
-        ids.Networks = await this.newNode(
+        ids.Networks = this.newNode(
           dbCon,
           fwCloudId,
           'Networks',
@@ -772,7 +772,7 @@ export class Tree extends Model {
           null,
           7,
         );
-        id = await this.newNode(
+        id = this.newNode(
           dbCon,
           fwCloudId,
           'Standard',
@@ -781,10 +781,10 @@ export class Tree extends Model {
           null,
           null,
         );
-        await this.createStdObjectsTree(dbCon, id, 'OIN', 7);
+        this.createStdObjectsTree(dbCon, id, 'OIN', 7);
 
         // OBJECTS / DNS
-        ids.DNS = await this.newNode(
+        ids.DNS = this.newNode(
           dbCon,
           fwCloudId,
           'DNS',
@@ -795,18 +795,10 @@ export class Tree extends Model {
         );
 
         // OBJECTS / Hosts
-        await this.newNode(
-          dbCon,
-          fwCloudId,
-          'Hosts',
-          ids.OBJECTS,
-          'OIH',
-          null,
-          8,
-        );
+        this.newNode(dbCon, fwCloudId, 'Hosts', ids.OBJECTS, 'OIH', null, 8);
 
         // OBJECTS / Marks
-        ids.Marks = await this.newNode(
+        ids.Marks = this.newNode(
           dbCon,
           fwCloudId,
           'Iptables Marks',
@@ -817,7 +809,7 @@ export class Tree extends Model {
         );
 
         // OBJECTS / Groups
-        ids.Groups = await this.newNode(
+        ids.Groups = this.newNode(
           dbCon,
           fwCloudId,
           'Groups',
@@ -826,7 +818,7 @@ export class Tree extends Model {
           null,
           20,
         );
-        id = await this.newNode(
+        id = this.newNode(
           dbCon,
           fwCloudId,
           'Standard',
@@ -835,10 +827,10 @@ export class Tree extends Model {
           null,
           null,
         );
-        await this.createStdGroupsTree(dbCon, id, 'OIG', 20);
+        this.createStdGroupsTree(dbCon, id, 'OIG', 20);
 
         // COUNTRIES
-        ids.COUNTRIES = await this.newNode(
+        ids.COUNTRIES = this.newNode(
           dbCon,
           fwCloudId,
           'COUNTRIES',
@@ -849,88 +841,32 @@ export class Tree extends Model {
         );
 
         // COUNTRIES / AS
-        id = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'AS',
-          ids.COUNTRIES,
-          'CON',
-          6,
-          23,
-        );
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        id = this.newNode(dbCon, fwCloudId, 'AS', ids.COUNTRIES, 'CON', 6, 23);
+        this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
         // COUNTRIES / EU
-        id = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'EU',
-          ids.COUNTRIES,
-          'CON',
-          7,
-          23,
-        );
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        id = this.newNode(dbCon, fwCloudId, 'EU', ids.COUNTRIES, 'CON', 7, 23);
+        this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
         // CONTRIES / AF
-        id = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'AF',
-          ids.COUNTRIES,
-          'CON',
-          8,
-          23,
-        );
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        id = this.newNode(dbCon, fwCloudId, 'AF', ids.COUNTRIES, 'CON', 8, 23);
+        this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
         // COUNTRIES / OC
-        id = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'OC',
-          ids.COUNTRIES,
-          'CON',
-          9,
-          23,
-        );
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        id = this.newNode(dbCon, fwCloudId, 'OC', ids.COUNTRIES, 'CON', 9, 23);
+        this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
         // COUNTRIES / NA
-        id = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'NA',
-          ids.COUNTRIES,
-          'CON',
-          10,
-          23,
-        );
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        id = this.newNode(dbCon, fwCloudId, 'NA', ids.COUNTRIES, 'CON', 10, 23);
+        this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
         // COUNTRIES / AN
-        id = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'AN',
-          ids.COUNTRIES,
-          'CON',
-          11,
-          23,
-        );
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        id = this.newNode(dbCon, fwCloudId, 'AN', ids.COUNTRIES, 'CON', 11, 23);
+        this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
         // COUNTRIES / SA
-        id = await this.newNode(
-          dbCon,
-          fwCloudId,
-          'SA',
-          ids.COUNTRIES,
-          'CON',
-          12,
-          23,
-        );
-        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        id = this.newNode(dbCon, fwCloudId, 'SA', ids.COUNTRIES, 'CON', 12, 23);
+        this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
         resolve(ids);
       } catch (error) {
@@ -940,13 +876,13 @@ export class Tree extends Model {
   }
 
   public static createServicesTree(dbCon: Query, fwCloudId: number) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         const ids: any = {};
         let id;
 
         // SERVICES
-        ids.SERVICES = await this.newNode(
+        ids.SERVICES = this.newNode(
           dbCon,
           fwCloudId,
           'SERVICES',
@@ -957,7 +893,7 @@ export class Tree extends Model {
         );
 
         // SERVICES / IP
-        ids.IP = await this.newNode(
+        ids.IP = this.newNode(
           dbCon,
           fwCloudId,
           'IP',
@@ -966,7 +902,7 @@ export class Tree extends Model {
           null,
           1,
         );
-        id = await this.newNode(
+        id = this.newNode(
           dbCon,
           fwCloudId,
           'Standard',
@@ -975,10 +911,10 @@ export class Tree extends Model {
           null,
           null,
         );
-        await this.createStdObjectsTree(dbCon, id, 'SOI', 1);
+        this.createStdObjectsTree(dbCon, id, 'SOI', 1);
 
         // SERVICES / ICMP
-        ids.ICMP = await this.newNode(
+        ids.ICMP = this.newNode(
           dbCon,
           fwCloudId,
           'ICMP',
@@ -987,7 +923,7 @@ export class Tree extends Model {
           null,
           3,
         );
-        id = await this.newNode(
+        id = this.newNode(
           dbCon,
           fwCloudId,
           'Standard',
@@ -996,10 +932,10 @@ export class Tree extends Model {
           null,
           null,
         );
-        await this.createStdObjectsTree(dbCon, id, 'SOM', 3);
+        this.createStdObjectsTree(dbCon, id, 'SOM', 3);
 
         // SERVICES / TCP
-        ids.TCP = await this.newNode(
+        ids.TCP = this.newNode(
           dbCon,
           fwCloudId,
           'TCP',
@@ -1008,7 +944,7 @@ export class Tree extends Model {
           null,
           2,
         );
-        id = await this.newNode(
+        id = this.newNode(
           dbCon,
           fwCloudId,
           'Standard',
@@ -1017,10 +953,10 @@ export class Tree extends Model {
           null,
           null,
         );
-        await this.createStdObjectsTree(dbCon, id, 'SOT', 2);
+        this.createStdObjectsTree(dbCon, id, 'SOT', 2);
 
         // SERVICES / UDP
-        ids.UDP = await this.newNode(
+        ids.UDP = this.newNode(
           dbCon,
           fwCloudId,
           'UDP',
@@ -1029,7 +965,7 @@ export class Tree extends Model {
           null,
           4,
         );
-        id = await this.newNode(
+        id = this.newNode(
           dbCon,
           fwCloudId,
           'Standard',
@@ -1038,10 +974,10 @@ export class Tree extends Model {
           null,
           null,
         );
-        await this.createStdObjectsTree(dbCon, id, 'SOU', 4);
+        this.createStdObjectsTree(dbCon, id, 'SOU', 4);
 
         // SERVICES / Groups
-        ids.Groups = await this.newNode(
+        ids.Groups = this.newNode(
           dbCon,
           fwCloudId,
           'Groups',
@@ -1050,7 +986,7 @@ export class Tree extends Model {
           null,
           21,
         );
-        id = await this.newNode(
+        id = this.newNode(
           dbCon,
           fwCloudId,
           'Standard',
@@ -1059,7 +995,7 @@ export class Tree extends Model {
           null,
           null,
         );
-        await this.createStdGroupsTree(dbCon, id, 'SOG', 21);
+        this.createStdGroupsTree(dbCon, id, 'SOG', 21);
 
         resolve(ids);
       } catch (error) {
@@ -1071,27 +1007,19 @@ export class Tree extends Model {
   public static createAllTreeCloud(fwCloud: FwCloud): Promise<void> {
     const dbCon: Query = db.getQuery();
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         // FIREWALLS
-        await this.newNode(
-          dbCon,
-          fwCloud.id,
-          'FIREWALLS',
-          null,
-          'FDF',
-          null,
-          null,
-        );
+        this.newNode(dbCon, fwCloud.id, 'FIREWALLS', null, 'FDF', null, null);
 
         // OBJECTS
-        await this.createObjectsTree(dbCon, fwCloud.id);
+        this.createObjectsTree(dbCon, fwCloud.id);
 
         // SERVICES
-        await this.createServicesTree(dbCon, fwCloud.id);
+        this.createServicesTree(dbCon, fwCloud.id);
 
         // Creating root node for CA (Certification Authorities).
-        await this.newNode(dbCon, fwCloud.id, 'CA', null, 'FCA', null, null);
+        this.newNode(dbCon, fwCloud.id, 'CA', null, 'FCA', null, null);
         resolve();
       } catch (error) {
         return reject(error);
@@ -1441,10 +1369,10 @@ export class Tree extends Model {
     firewall: number,
     node: number,
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       let id3: any;
       try {
-        const id2 = await this.newNode(
+        const id2 = this.newNode(
           connection,
           fwcloud,
           'Routing',
@@ -1453,16 +1381,8 @@ export class Tree extends Model {
           firewall,
           null,
         );
-        await this.newNode(
-          connection,
-          fwcloud,
-          'POLICY',
-          id2,
-          'RR',
-          firewall,
-          null,
-        );
-        id3 = await this.newNode(
+        this.newNode(connection, fwcloud, 'POLICY', id2, 'RR', firewall, null);
+        id3 = this.newNode(
           connection,
           fwcloud,
           'TABLES',
@@ -1506,9 +1426,9 @@ export class Tree extends Model {
     firewall: number,
     node: number,
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
-        const idSystem = await this.newNode(
+        const idSystem = this.newNode(
           connection,
           fwcloud,
           'System',
@@ -1517,7 +1437,7 @@ export class Tree extends Model {
           firewall,
           null,
         );
-        const idDHCP = await this.newNode(
+        const idDHCP = this.newNode(
           connection,
           fwcloud,
           'DHCP',
@@ -1526,7 +1446,7 @@ export class Tree extends Model {
           firewall,
           null,
         );
-        await this.newNode(
+        this.newNode(
           connection,
           fwcloud,
           'Fixed Ips',
@@ -1535,7 +1455,7 @@ export class Tree extends Model {
           firewall,
           null,
         );
-        await this.newNode(
+        this.newNode(
           connection,
           fwcloud,
           'Keepalived',
@@ -1544,7 +1464,7 @@ export class Tree extends Model {
           firewall,
           null,
         );
-        await this.newNode(
+        this.newNode(
           connection,
           fwcloud,
           'HAProxy',

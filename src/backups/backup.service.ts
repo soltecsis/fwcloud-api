@@ -368,10 +368,10 @@ export class BackupService extends Service {
   protected async writeCustomizedConfig(
     custom_config: BackupUpdateableConfig,
   ): Promise<BackupUpdateableConfig> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         if (!fs.existsSync(this._config.data_dir))
-          await fse.mkdirp(this._config.data_dir);
+          fse.mkdirp(this._config.data_dir);
 
         const backupConfigFile = path.join(
           this._config.data_dir,

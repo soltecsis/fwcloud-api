@@ -19,7 +19,7 @@ export class Installer {
     sshConfig: SSHConfig,
     eventEmitter: EventEmitter,
   ): Promise<string> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         /***** WARNING ******/
         /* The original code is in PolicyScript.ts and it has been changed!!!!! */

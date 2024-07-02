@@ -952,21 +952,22 @@ export class OpenVPN extends Model {
   }
 
   public static createOpenvpnServerInterface(req, cfg): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
-        let openvpn_opt: any = await this.getOptData(req.dbCon, cfg, 'dev');
+        let openvpn_opt: any = this.getOptData(req.dbCon, cfg, 'dev');
         if (openvpn_opt) {
           const interface_name = openvpn_opt.arg;
 
           // If we already have an interface with the same name then do nothing.
-          const interfaces = await Interface.getInterfaces(
+          const interfaces = Interface.getInterfaces(
             req.dbCon,
             req.body.fwcloud,
             req.body.firewall,
-          );
-          for (const _interface of interfaces) {
-            if (_interface.name === interface_name) return resolve();
-          }
+          ).then((interfaces) => {
+            for (const _interface of interfaces) {
+              if (_interface.name === interface_name) return resolve();
+            }
+          });
 
           // Create the OpenVPN server network interface.
           const interfaceData = {
@@ -980,19 +981,19 @@ export class OpenVPN extends Model {
             mac: '',
           };
 
-          const interfaceId = await Interface.insertInterface(
+          const interfaceId = Interface.insertInterface(
             req.dbCon,
             interfaceData,
           );
           if (interfaceId) {
-            const interfaces_node: any = await Tree.getNodeUnderFirewall(
+            const interfaces_node: any = Tree.getNodeUnderFirewall(
               req.dbCon,
               req.body.fwcloud,
               req.body.firewall,
               'FDI',
             );
             if (interfaces_node) {
-              const nodeId = await Tree.newNode(
+              const nodeId = Tree.newNode(
                 req.dbCon,
                 req.body.fwcloud,
                 interface_name,
@@ -1003,10 +1004,10 @@ export class OpenVPN extends Model {
               );
 
               // Create the network address for the new interface.
-              openvpn_opt = await this.getOptData(req.dbCon, cfg, 'server');
+              openvpn_opt = this.getOptData(req.dbCon, cfg, 'server');
               if (openvpn_opt && openvpn_opt.ipobj) {
                 // Get the ipobj data.
-                const ipobj: any = await IPObj.getIpobjInfo(
+                const ipobj: any = IPObj.getIpobjInfo(
                   req.dbCon,
                   req.body.fwcloud,
                   openvpn_opt.ipobj,
@@ -1039,8 +1040,8 @@ export class OpenVPN extends Model {
                     options: null,
                   };
 
-                  const ipobjId = await IPObj.insertIpobj(req.dbCon, ipobjData);
-                  await Tree.newNode(
+                  const ipobjId = IPObj.insertIpobj(req.dbCon, ipobjData);
+                  Tree.newNode(
                     req.dbCon,
                     req.body.fwcloud,
                     `${interface_name} (${net.firstAddress})`,

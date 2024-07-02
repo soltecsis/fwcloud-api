@@ -72,7 +72,7 @@ export class Customer extends Model {
 
   //Add new customer
   public static _insert(req) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       //New object with customer data
       const customerData = {
         id: req.body.customer,
@@ -95,7 +95,7 @@ export class Customer extends Model {
   }
 
   public static existsId = (dbCon, customer) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where id=${customer}`,
         (error, result) => {
@@ -108,7 +108,7 @@ export class Customer extends Model {
   };
 
   public static existsName = (dbCon, name) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where name=${dbCon.escape(name)}`,
         (error, result) => {
@@ -122,7 +122,7 @@ export class Customer extends Model {
 
   //Update customer
   public static _update = (req) => {
-    return new Promise<void>(async (resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)},
                 email=${req.dbCon.escape(req.body.email)},
                 addr=${req.dbCon.escape(req.body.addr)},
@@ -138,7 +138,7 @@ export class Customer extends Model {
 
   //Update customer
   public static get(req) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const sql = req.body.customer
         ? `select * from ${tableName} WHERE id=${req.body.customer}`
         : `select id,name from ${tableName}`;
@@ -150,7 +150,7 @@ export class Customer extends Model {
   }
 
   public static _delete(req): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       req.dbCon.query(
         `delete from ${tableName} where id=${req.body.customer}`,
         (error, result) => {

@@ -84,7 +84,7 @@ export class PolicyRuleToOpenVPN extends Model {
 
   //Add new policy_r__openvpn
   public static insertInRule(req) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const policyOpenvpn = {
         rule: req.body.rule,
         openvpn: req.body.openvpn,
@@ -137,7 +137,7 @@ export class PolicyRuleToOpenVPN extends Model {
   }
 
   public static deleteFromRulePosition(req): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
       req.dbCon.query(sql, async (error, rows) => {
         if (error) return reject(error);
@@ -147,7 +147,7 @@ export class PolicyRuleToOpenVPN extends Model {
   }
 
   public static deleteFromRule(dbCon, rule): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(
         `DELETE FROM ${tableName} WHERE rule=${rule}`,
         async (error, rows) => {

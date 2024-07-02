@@ -1171,106 +1171,100 @@ export class IPObj extends Model {
     id: number,
     type: number,
   ) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         const search: any = {};
         search.result = false;
         search.restrictions = {};
-        search.restrictions.IpobjInRule =
-          await PolicyRuleToIPObj.searchIpobjInRule(id, type, fwcloud); //SEARCH IPOBJ IN RULES
-        search.restrictions.IpobjInGroup =
-          await IPObjToIPObjGroup.searchIpobjInGroup(id, type, fwcloud); //SEARCH IPOBJ IN GROUPS
+        search.restrictions.IpobjInRule = PolicyRuleToIPObj.searchIpobjInRule(
+          id,
+          type,
+          fwcloud,
+        ); //SEARCH IPOBJ IN RULES
+        search.restrictions.IpobjInGroup = IPObjToIPObjGroup.searchIpobjInGroup(
+          id,
+          type,
+          fwcloud,
+        ); //SEARCH IPOBJ IN GROUPS
         search.restrictions.IpobjInGroupInRule =
-          await PolicyRuleToIPObj.searchIpobjInGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
-        search.restrictions.IpobjInOpenVPN = await this.searchIpobjInOpenvpn(
+          PolicyRuleToIPObj.searchIpobjInGroupInRule(id, type, fwcloud); //SEARCH IPOBJ GROUP IN RULES
+        search.restrictions.IpobjInOpenVPN = this.searchIpobjInOpenvpn(
           id,
           type,
           fwcloud,
         ); //SEARCH IPOBJ IN OpenVPN CONFIG
 
-        search.restrictions.IpobjInRoute = await this.searchIpobjInRoute(
+        search.restrictions.IpobjInRoute = this.searchIpobjInRoute(id, fwcloud);
+        search.restrictions.IpobjInRouteAsGateway =
+          this.searchIpobjInRouteAsGateway(id, fwcloud);
+        search.restrictions.IpobjInGroupInRoute =
+          this.searchIpobjInGroupInRoute(id, fwcloud);
+        search.restrictions.IpobjInRoutingRule = this.searchIpobjInRoutingRule(
           id,
           fwcloud,
         );
-        search.restrictions.IpobjInRouteAsGateway =
-          await this.searchIpobjInRouteAsGateway(id, fwcloud);
-        search.restrictions.IpobjInGroupInRoute =
-          await this.searchIpobjInGroupInRoute(id, fwcloud);
-        search.restrictions.IpobjInRoutingRule =
-          await this.searchIpobjInRoutingRule(id, fwcloud);
         search.restrictions.IpobjInGroupInRoutingRule =
-          await this.searchIpobjInGroupInRoutingRule(id, fwcloud);
+          this.searchIpobjInGroupInRoutingRule(id, fwcloud);
 
-        search.restrictions.IpobjInDhcpRule = await this.searchIPObjInDhcpRule(
+        search.restrictions.IpobjInDhcpRule = this.searchIPObjInDhcpRule(
           id,
           fwcloud,
         );
         search.restrictions.IpobjInKeepalivedRule =
-          await this.searchIpobjInKeepalivedRule(id, fwcloud);
-        search.restrictions.IPObjInHAProxyRule =
-          await this.searchIPObjInHAProxyRule(id, fwcloud);
+          this.searchIpobjInKeepalivedRule(id, fwcloud);
+        search.restrictions.IPObjInHAProxyRule = this.searchIPObjInHAProxyRule(
+          id,
+          fwcloud,
+        );
 
         if (type === 8) {
           // HOST
           search.restrictions.InterfaceHostInRule =
-            await PolicyRuleToIPObj.searchInterfaceHostInRule(
-              dbCon,
-              fwcloud,
-              id,
-            );
+            PolicyRuleToIPObj.searchInterfaceHostInRule(dbCon, fwcloud, id);
           search.restrictions.AddrHostInRule =
-            await PolicyRuleToIPObj.searchAddrHostInRule(dbCon, fwcloud, id);
+            PolicyRuleToIPObj.searchAddrHostInRule(dbCon, fwcloud, id);
           search.restrictions.AddrHostInGroup =
-            await IPObjToIPObjGroup.searchAddrHostInGroup(dbCon, fwcloud, id);
-          search.restrictions.AddrHostInOpenvpn =
-            await this.searchAddrHostInOpenvpn(dbCon, fwcloud, id);
+            IPObjToIPObjGroup.searchAddrHostInGroup(dbCon, fwcloud, id);
+          search.restrictions.AddrHostInOpenvpn = this.searchAddrHostInOpenvpn(
+            dbCon,
+            fwcloud,
+            id,
+          );
           search.restrictions.InterfaceHostInDhcpRule =
-            await this.searchInterfaceHostInDhcpRule(dbCon, fwcloud, id);
+            this.searchInterfaceHostInDhcpRule(dbCon, fwcloud, id);
           search.restrictions.InterfaceHostInKeepalivedRule =
-            await this.searchInterfaceHostInKeepalivedRule(dbCon, fwcloud, id);
+            this.searchInterfaceHostInKeepalivedRule(dbCon, fwcloud, id);
           search.restrictions.InterfaceHostInHAProxyRule =
-            await this.searchInterfaceHostInHAProxyRule(dbCon, fwcloud, id);
+            this.searchInterfaceHostInHAProxyRule(dbCon, fwcloud, id);
         }
 
         // Avoid leaving an interface used in a rule without address.
         if (type === 5) {
           // ADDRESS
           search.restrictions.LastAddrInInterfaceInRule =
-            await PolicyRuleToIPObj.searchLastAddrInInterfaceInRule(
+            PolicyRuleToIPObj.searchLastAddrInInterfaceInRule(
               dbCon,
               id,
               type,
               fwcloud,
             );
           search.restrictions.LastAddrInHostInRule =
-            await PolicyRuleToIPObj.searchLastAddrInHostInRule(
+            PolicyRuleToIPObj.searchLastAddrInHostInRule(
               dbCon,
               id,
               type,
               fwcloud,
             );
           search.restrictions.LastAddrInGroupHostInRule =
-            await PolicyRuleToIPObj.searchLastAddrInHostInGroup(
-              id,
-              type,
-              fwcloud,
-            );
+            PolicyRuleToIPObj.searchLastAddrInHostInGroup(id, type, fwcloud);
           search.restrictions.LastAddrInHostInRoute =
-            await Route.getRouteWhichLastAddressInHost(id, type, fwcloud);
+            Route.getRouteWhichLastAddressInHost(id, type, fwcloud);
           search.restrictions.LastAddrInHostInRoutingRule =
-            await RoutingRule.getRoutingRuleWhichLastAddressInHost(
-              id,
-              type,
-              fwcloud,
-            );
+            RoutingRule.getRoutingRuleWhichLastAddressInHost(id, type, fwcloud);
           search.restrictions.LastAddrInGroupHostInRoute =
-            await Route.getRouteWhichLastAddressInHostInGroup(
-              id,
-              type,
-              fwcloud,
-            );
+            Route.getRouteWhichLastAddressInHostInGroup(id, type, fwcloud);
           search.restrictions.LastAddrInGroupHostInRoutingRule =
-            await RoutingRule.getRoutingRuleWhichLastAddressInHostInGroup(
+            RoutingRule.getRoutingRuleWhichLastAddressInHostInGroup(
               id,
               type,
               fwcloud,

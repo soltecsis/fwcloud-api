@@ -479,9 +479,9 @@ export class Firewall extends Model {
    *           by_user	int(11)
    */
   public static getFirewallSSH(req) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
-        const data: any = await this.getFirewall(req);
+        const data: any = this.getFirewall(req);
 
         // Obtain SSH connSettings for the firewall to which we want install the policy.
         const SSHconn = {
@@ -1571,18 +1571,18 @@ export class Firewall extends Model {
     fwcloud: number,
     firewall: number,
   ): Promise<AvailablePolicyCompilers> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Compiler defined for the firewall is stored in the 3 more significative bits of the 16 bit options field.
-        const compilerNumber =
-          (await this.getFirewallOptions(fwcloud, firewall)) & 0xf000;
-
-        if (compilerNumber == 0x0000) resolve('IPTables');
-        else if (compilerNumber == 0x1000) resolve('NFTables');
-        else reject(fwcError.NOT_FOUND);
-      } catch (error) {
-        reject(error);
-      }
+    return new Promise((resolve, reject) => {
+      this.getFirewallOptions(fwcloud, firewall)
+        .then((options) => {
+          // Compiler defined for the firewall is stored in the 3 more significative bits of the 16 bit options field.
+          const compilerNumber = options & 0xf000;
+          if (compilerNumber === 0x0000) resolve('IPTables');
+          else if (compilerNumber === 0x1000) resolve('NFTables');
+          else reject(fwcError.NOT_FOUND);
+        })
+        .catch((error) => {
+          reject(error);
+        });
     });
   }
 
@@ -1609,7 +1609,7 @@ export class Firewall extends Model {
   };
 
   public static searchFirewallRestrictions = (req) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         const search: any = {};
         search.result = false;
@@ -1617,7 +1617,7 @@ export class Firewall extends Model {
 
         const orgFirewallId = req.body.firewall;
         if (req.body.cluster)
-          req.body.firewall = await Firewall.getMasterFirewallId(
+          req.body.firewall = Firewall.getMasterFirewallId(
             req.body.fwcloud,
             req.body.cluster,
           );
@@ -1629,11 +1629,9 @@ export class Firewall extends Model {
 						  	
 						  Verify too that these objects are not being used in any group.
 				*/
-        const r1: any =
-          await Interface.searchInterfaceUsageOutOfThisFirewall(req);
-        const r2: any = await OpenVPN.searchOpenvpnUsageOutOfThisFirewall(req);
-        const r3: any =
-          await OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
+        const r1: any = Interface.searchInterfaceUsageOutOfThisFirewall(req);
+        const r2: any = OpenVPN.searchOpenvpnUsageOutOfThisFirewall(req);
+        const r3: any = OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
 
         if (r1)
           search.restrictions = utilsModel.mergeObj(

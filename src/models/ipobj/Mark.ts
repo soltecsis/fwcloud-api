@@ -176,19 +176,19 @@ export class Mark extends Model {
   }
 
   public static searchMarkUsage(dbCon, fwcloud, mark) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
         const search: any = {};
         search.result = false;
         search.restrictions = {};
 
-        search.restrictions.MarkInRule = await this.searchMarkInRule(
+        search.restrictions.MarkInRule = this.searchMarkInRule(
           dbCon,
           fwcloud,
           mark,
         );
 
-        search.restrictions.MarkInRoutingRule = await getRepository(RoutingRule)
+        search.restrictions.MarkInRoutingRule = getRepository(RoutingRule)
           .createQueryBuilder('routing_rule')
           .addSelect('firewall.id', 'firewall_id')
           .addSelect('firewall.name', 'firewall_name')

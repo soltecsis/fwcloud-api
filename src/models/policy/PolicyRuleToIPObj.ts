@@ -934,7 +934,7 @@ export class PolicyRuleToIPObj extends Model {
   }
 
   public static getPositionsContent = (dbCon, position, new_position) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT id, content FROM policy_position WHERE id=${position}`,
         (error, result) => {
@@ -967,7 +967,7 @@ export class PolicyRuleToIPObj extends Model {
     position,
     position_order,
   ): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const sqlExists = `SELECT * FROM ${tableModel}
                 WHERE rule=${dbCon.escape(rule)} AND ipobj=${dbCon.escape(ipobj)}
                 AND ipobj_g=${dbCon.escape(ipobj_g)} AND position=${dbCon.escape(position)}`;

@@ -87,7 +87,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
 
   //Add new policy_r__openvpn_prefix
   public static insertInRule = (req) => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const policyPrefix = {
         rule: req.body.rule,
         prefix: req.body.prefix,
@@ -146,7 +146,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
   }
 
   public static deleteFromRulePosition(req): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND prefix=${req.body.prefix} AND position=${req.body.position}`;
       req.dbCon.query(sql, async (error, rows) => {
         if (error) return reject(error);
@@ -156,7 +156,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
   }
 
   public static deleteFromRule(dbCon, rule): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       dbCon.query(
         `DELETE FROM ${tableName} WHERE rule=${rule}`,
         async (error, rows) => {

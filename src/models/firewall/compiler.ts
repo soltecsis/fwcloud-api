@@ -14,7 +14,7 @@ export class Compiler {
     footerPath: string,
     eventEmitter: EventEmitter,
   ): Promise<void> {
-    return new Promise<void>(async (resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       const outputPath: string = this._firewall.getPolicyFilePath();
       const stream = fs.createWriteStream(outputPath);
     });
