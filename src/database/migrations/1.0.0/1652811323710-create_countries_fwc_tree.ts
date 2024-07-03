@@ -392,10 +392,10 @@ export class createCountriesFwcTree1652811323710 implements MigrationInterface {
     );
 
     await queryRunner.query(
-      `DELETE FROM ipobj_g WHERE name IN (${continents}) `,
+      `DELETE FROM ipobj_g WHERE name IN (${continents.join(', ')}) `,
     );
 
-    await countries.forEach((element) => {
+    countries.forEach((element) => {
       queryRunner.query(`DELETE FROM ipobj WHERE name='${element.code}'`);
     });
 

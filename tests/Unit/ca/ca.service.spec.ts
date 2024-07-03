@@ -43,7 +43,7 @@ describe(describeName('Ca Service Unit Test'), () => {
 
       ca = await manager.getRepository(Ca).findOne({ where: { id: ca.id } });
 
-      expect(await ca.comment).to.be.equal(changeComment);
+      expect(ca.comment).to.be.equal(changeComment);
     });
     it('should return updated ca', async () => {
       ca = await service.update(ca.id, { comment: changeComment });

@@ -46,7 +46,7 @@ export class SystemCtlController extends Controller {
         req.body.firewall,
       )
     ).authorize();
-    const firewall = await await db
+    const firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .createQueryBuilder('firewall')
@@ -58,7 +58,7 @@ export class SystemCtlController extends Controller {
       const pgp: PgpHelper = new PgpHelper(req.session.pgp);
       communication = new SSHCommunication({
         host: (
-          await await db
+          await db
             .getSource()
             .manager.getRepository(IPObj)
             .findOneOrFail({ where: { id: firewall.install_ipobj } })

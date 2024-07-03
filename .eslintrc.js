@@ -36,7 +36,20 @@ module.exports = {
     'no-async-promise-executor': 'off',
     'no-prototype-builtins': 'off',
     '@typescript-eslint/ban-types': 'off',
-    '@typescript-eslint/restrict-plus-operands': 'off'
+    '@typescript-eslint/restrict-plus-operands': 'off',
+    'no-prototype-builtins': 'off',
+    '@typescript-eslint/ban-types': 'off',
+
+    //'@typescript-eslint/await-thenable': 'off',
+    //'no-useless-escape': 'off',
+    '@typescript-eslint/restrict-plus-operands': 'off',
+    //'@typescript-eslint/no-base-to-string': 'off',
+    //'@typescript-eslint/restrict-template-expressions': 'off',
+    //'no-empty': 'off',
+    //'no-constant-condition': 'off',
+    //'no-dupe-else-if': 'off',
+    //'no-case-declarations': 'off',
+    //'@typescript-eslint/no-redundant-type-constituents': 'off',
   },
   ignorePatterns: ['dist/', 'node_modules/', 'lib/'],
 };

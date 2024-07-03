@@ -421,13 +421,13 @@ export class createRoutingTable1579701577274 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<any> {
-    let table: Table;
-
     await queryRunner.dropTable('routing_r__ipobj', true);
     await queryRunner.dropTable('routing_r__interface', true);
     await queryRunner.dropTable('routing_r', true);
 
-    table = await queryRunner.getTable('ipobj_type__routing_position');
+    const table: Table = await queryRunner.getTable(
+      'ipobj_type__routing_position',
+    );
     await queryRunner.dropForeignKey(
       table,
       findForeignKeyInTable(table, 'position'),

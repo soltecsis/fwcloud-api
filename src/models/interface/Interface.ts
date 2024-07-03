@@ -853,11 +853,11 @@ export class Interface extends Model {
           } else {
             const sql = `
 							UPDATE ${tableName}
-							SET name = ${connection.escape(interfaceData.name)},
-								labelName = ${connection.escape(interfaceData.labelName)},
-								type = ${connection.escape(interfaceData.type)},
-								comment = ${connection.escape(interfaceData.comment)},
-								mac = ${connection.escape(interfaceData.mac)}
+							SET name = ${connection.escape(interfaceData.name).toString()},
+								labelName = ${connection.escape(interfaceData.labelName).toString()},
+								type = ${connection.escape(interfaceData.type).toString()},
+								comment = ${connection.escape(interfaceData.comment).toString()},
+								mac = ${connection.escape(interfaceData.mac).toString()}
 							WHERE id = ${interfaceData.id}`;
 
             logger().debug(sql);
@@ -911,12 +911,12 @@ export class Interface extends Model {
           } else {
             const sql = `
 							UPDATE ${tableName}
-							SET name = ${connection.escape(interfaceData.name)}, 
-								labelName = ${connection.escape(interfaceData.labelName)},
-								type = ${connection.escape(interfaceData.type)},
-								comment = ${connection.escape(interfaceData.comment)},
-								mac = ${connection.escape(interfaceData.mac)}
-							WHERE id = ${connection.escape(interfaceData.id)}`;
+							SET name = ${connection.escape(interfaceData.name).toString()}, 
+								labelName = ${connection.escape(interfaceData.labelName).toString()},
+								type = ${connection.escape(interfaceData.type).toString()},
+								comment = ${connection.escape(interfaceData.comment).toString()},
+								mac = ${connection.escape(interfaceData.mac).toString()}
+							WHERE id = ${connection.escape(interfaceData.id).toString()}`;
 
             logger().debug(sql);
 
@@ -1176,17 +1176,17 @@ export class Interface extends Model {
 
         // Set the pointer over the first interface.
         // If we don't found it return empty result.
-        if (!(match = rawData.match(/^[0-9]{1,4}\: /))) return resolve([]);
+        if (!(match = rawData.match(/^[0-9]{1,4}: /))) return resolve([]);
         rawData = rawData.substring(match.index);
 
         // First see how many interfaces we have in the raw data received and fill
         // the ifsRawData array with the raw data for each interface.
-        for (; (matchNext = rawData.match(/\n[0-9]{1,4}\: /)); ) {
-          match = rawData.match(/^[0-9]{1,4}\: /);
+        for (; (matchNext = rawData.match(/\n[0-9]{1,4}: /)); ) {
+          match = rawData.match(/^[0-9]{1,4}: /);
           ifsRawData.push(rawData.substring(match[0].length, matchNext.index));
           rawData = rawData.substring(matchNext.index + 1);
         }
-        match = rawData.match(/^[0-9]{1,4}\: /);
+        match = rawData.match(/^[0-9]{1,4}: /);
         ifsRawData.push(rawData.substring(match[0].length, rawData.length));
 
         // Process the raw data of each interface.
@@ -1199,11 +1199,11 @@ export class Interface extends Model {
           };
 
           // Get the interface name.
-          if (!(match = currentData.match(/\: /))) continue; // If the pattern is not found we have bad data.
+          if (!(match = currentData.match(/: /))) continue; // If the pattern is not found we have bad data.
           ifData.name = currentData.substring(0, match.index);
           // For interfaces with name like this one: ens193.40@ens193:
           // take as interface name the substring before the '@' character.
-          if ((match = ifData.name.match(/\@/)))
+          if ((match = ifData.name.match(/@/)))
             ifData.name = ifData.name.substring(0, match.index);
 
           // Now the MAC address.

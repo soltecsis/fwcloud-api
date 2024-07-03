@@ -467,7 +467,7 @@ describe(KeepalivedRuleService.name, () => {
     });
 
     it('should move virtual IP from one rule to another', async () => {
-      const expectedFromRule: KeepalivedRule = await manager
+      const expectedFromRule: KeepalivedRule = manager
         .getRepository(KeepalivedRule)
         .create({
           id: 1,
@@ -475,7 +475,7 @@ describe(KeepalivedRuleService.name, () => {
           virtualIps: [{ ipObjId: 2, order: 2 }],
         });
 
-      const expectedToRule: KeepalivedRule = await manager
+      const expectedToRule: KeepalivedRule = manager
         .getRepository(KeepalivedRule)
         .create({
           id: 2,

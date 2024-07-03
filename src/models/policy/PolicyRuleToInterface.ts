@@ -486,9 +486,9 @@ export class PolicyRuleToInterface extends Model {
         if (row) {
           db.get(async (error, connection) => {
             const sql = `DELETE FROM ${tableName}
-                            WHERE rule=${connection.escape(rule)} 
-                            AND interface=${connection.escape(_interface)} 
-                            AND position=${connection.escape(position)}`;
+                            WHERE rule=${connection.escape(rule).toString()} 
+                            AND interface=${connection.escape(_interface).toString()} 
+                            AND position=${connection.escape(position).toString()}`;
             connection.query(sql, async (error, result) => {
               if (error) return reject(error);
               if (result.affectedRows > 0) {

@@ -58,6 +58,7 @@ export abstract class AbstractApplication {
     try {
       this._path = path;
       this._config = require('../config/config');
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
       _runningApplication = this;
     } catch (e) {
       console.error('Aplication startup failed: ' + e.message);

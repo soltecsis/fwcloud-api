@@ -58,7 +58,7 @@ export class KeysGenerateCommand extends Command {
       const session_secret = await this.generateRandomString();
       envContent = envContent.replace(
         new RegExp('^SESSION_SECRET\\s*=.*\n', 'm'),
-        `SESSION_SECRET=${session_secret}\n`,
+        `SESSION_SECRET=${session_secret.toString()}\n`,
       );
       this.output.success(`SESSION_SECRET key generated.`);
     } else {
@@ -72,7 +72,7 @@ export class KeysGenerateCommand extends Command {
       const crypt_secret = await this.generateRandomString();
       envContent = envContent.replace(
         new RegExp('^CRYPT_SECRET\\s*=.*\n', 'm'),
-        `CRYPT_SECRET=${crypt_secret}\n`,
+        `CRYPT_SECRET=${crypt_secret.toString()}\n`,
       );
       this.output.success(`CRYPT_SECRET key generated.`);
     } else {

@@ -507,7 +507,7 @@ export class FwCloud extends Model {
           else if (rows && rows.length > 0) {
             //UNLOCK ALL
             for (let i = 0; i < rows.length; i++) {
-              var row = rows[i];
+              const row = rows[i];
               const sqlupdate =
                 'UPDATE ' + tableName + ' SET locked = 0  WHERE id = ' + row.id;
               connection.query(sqlupdate, (error, result) => {

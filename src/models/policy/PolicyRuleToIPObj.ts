@@ -142,7 +142,7 @@ export class PolicyRuleToIPObj extends Model {
         if (error) return reject(error);
 
         const sql = `SELECT * FROM ${tableModel} 
-                    WHERE rule=${connection.escape(rule)} AND position=${connection.escape(position)}
+                    WHERE rule=${connection.escape(rule).toString()} AND position=${connection.escape(position).toString()}
                     ORDER BY position_order`;
 
         connection.query(sql, (error, rows) => {
@@ -494,7 +494,7 @@ export class PolicyRuleToIPObj extends Model {
       db.get((error, connection) => {
         if (error) reject(error);
         if (p_ipobjData.interface !== -1) {
-          var sqlI =
+          const sqlI =
             'select id from interface where id=' +
             policy_r__ipobjData.interface +
             ' AND firewall= ' +
@@ -513,7 +513,7 @@ export class PolicyRuleToIPObj extends Model {
             }
           });
         } else if (p_ipobjData.ipobj !== -1) {
-          var sqlI =
+          const sqlI =
             'select O.id from ipobj O inner join interface I on I.id=O.interface ' +
             ' where O.id=' +
             policy_r__ipobjData.ipobj +

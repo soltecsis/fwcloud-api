@@ -93,7 +93,7 @@ describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
         id: rule,
         active: ruleData.active,
         comment: ruleData.comment ? ruleData.comment : null,
-        cs: `${ruleData.fw_apply_to ? `if [ \"$HOSTNAME\" = \"${fwcProduct.firewall.name}\" ]; then\n` : ''}${code_before_cmt}\n${run_before_code}\n${code_end_cmt}\n${ruleData.fw_apply_to ? 'fi\n' : ''}`,
+        cs: `${ruleData.fw_apply_to ? `if [ "$HOSTNAME" = "${fwcProduct.firewall.name}" ]; then\n` : ''}${code_before_cmt}\n${run_before_code}\n${code_end_cmt}\n${ruleData.fw_apply_to ? 'fi\n' : ''}`,
       },
     ]);
   }

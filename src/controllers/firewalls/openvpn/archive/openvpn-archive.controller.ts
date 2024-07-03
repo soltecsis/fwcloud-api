@@ -48,14 +48,12 @@ export class OpenVPNArchiveController extends Controller {
 
         const channel: Channel = await Channel.fromRequest(request);
        
-        try{
+ 
             const rowsArchived: number = await this._openvpnService.archiveHistory(channel)
             return ResponseBuilder.buildResponse().status(201).body({
                 rows: rowsArchived
             });
-        }catch(err){
-            throw err
-        }
+
         
     }
 }

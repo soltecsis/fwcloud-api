@@ -455,10 +455,10 @@ export class OpenVPN extends Model {
 
                         // Now read the files data and put it into de config files.
                         if (dh_path) // Configuración OpenVPN de servidor.
-                            ovpn_cfg += '\n<dh>\n' + (await this.getCRTData(dh_path)) + "</dh>\n";
-                        ovpn_cfg += '\n<ca>\n' + (await this.getCRTData(ca_crt_path)) + "</ca>\n";
-                        ovpn_cfg += '\n<cert>\n' + (await this.getCRTData(crt_path)) + "</cert>\n";
-                        ovpn_cfg += '\n<key>\n' + (await this.getCRTData(key_path)) + "</key>\n";
+                            ovpn_cfg += '\n<dh>\n' + (await this.getCRTData(dh_path) as string) + "</dh>\n";
+                        ovpn_cfg += '\n<ca>\n' + (await this.getCRTData(ca_crt_path) as string) + "</ca>\n";
+                        ovpn_cfg += '\n<cert>\n' + (await this.getCRTData(crt_path) as string) + "</cert>\n";
+                        ovpn_cfg += '\n<key>\n' + (await this.getCRTData(key_path) as string) + "</key>\n";
 
                         resolve({ cfg: ovpn_cfg, ccd: ovpn_ccd });
                     } catch (error) { reject(error) }

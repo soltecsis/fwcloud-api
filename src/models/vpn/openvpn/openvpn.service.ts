@@ -195,7 +195,7 @@ export class OpenVPNService extends Service {
                     const totalExpiredHistoryRows = await getExpiredStatusHistoryQuery(expirationInSeconds).getCount()
 
                     eventEmitter.emit('message', new ProgressNoticePayload(`Registers to be archived: ${totalExpiredHistoryRows}`));
-
+                     // eslint-disable-next-line no-constant-condition
                     while(true) {
                         const history: OpenVPNStatusHistory[] = await getExpiredStatusHistoryQuery(expirationInSeconds)
                             .limit(2000)
@@ -296,7 +296,7 @@ export class OpenVPNService extends Service {
      */
     public async updateArchiveConfig(custom_config: OpenVPNUpdateableConfig): Promise<OpenVPNUpdateableConfig> {
         custom_config = await this.writeCustomizedConfig(custom_config);
-        this._config = await this.loadCustomizedConfig(this._config);
+        this._config = this.loadCustomizedConfig(this._config);
         
         return custom_config;
     }

@@ -38,7 +38,7 @@ import { Interface } from '../../models/interface/Interface';
 import { OpenVPNPrefix } from '../../models/vpn/openvpn/OpenVPNPrefix';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 
-var utilsModel = require('../../utils/utils.js');
+const utilsModel = require('../../utils/utils.js');
 import { PolicyRule } from '../../models/policy/PolicyRule';
 import { PolicyGroup } from '../../models/policy/PolicyGroup';
 import { Tree } from '../tree/Tree';
@@ -51,7 +51,6 @@ import * as path from 'path';
 const config = require('../../config/config');
 const firewall_Data = require('../../models/data/data_firewall');
 const fwcError = require('../../utils/error_table');
-var utilsModel = require('../../utils/utils.js');
 
 import { RoutingTable } from '../routing/routing-table/routing-table.model';
 import { RoutingGroup } from '../routing/routing-group/routing-group.model';

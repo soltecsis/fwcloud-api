@@ -69,7 +69,10 @@ export class SnapshotService extends Service {
       if (fs.statSync(snapshotPath).isDirectory()) {
         try {
           snapshots.push(await Snapshot.load(snapshotPath));
-        } catch (e) {}
+          // eslint-disable-next-line no-empty
+        } catch (e) {
+          // Ignore
+        }
       }
     }
 

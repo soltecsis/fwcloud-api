@@ -28,7 +28,7 @@ export type Option = {
   name: string;
   alias?: string;
   description: string;
-  type?: 'array' | 'count' | PositionalOptionsType;
+  type?: 'array' | 'count' | Omit<PositionalOptionsType, any>;
   required?: boolean;
   default?: any;
 };

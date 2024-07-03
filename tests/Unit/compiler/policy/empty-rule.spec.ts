@@ -116,7 +116,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
           ruleData.options & 0x0004 &&
           policyType !== PolicyTypesMap.get(`${IPv}:SNAT`) &&
           policyType !== PolicyTypesMap.get(`${IPv}:DNAT`)
-            ? `${cmd} -N FWCRULE${rule}.LOG\n${cmd} -A FWCRULE${rule}.LOG -m limit --limit 60/minute -j LOG --log-level info --log-prefix \"RULE ID ${rule} [${action}] \"\n${cmd} -A FWCRULE${rule}.LOG -j ${action}\n`
+            ? `${cmd} -N FWCRULE${rule}.LOG\n${cmd} -A FWCRULE${rule}.LOG -m limit --limit 60/minute -j LOG --log-level info --log-prefix "RULE ID ${rule} [${action}] "\n${cmd} -A FWCRULE${rule}.LOG -j ${action}\n`
             : '';
         if (log) action = `FWCRULE${rule}.LOG`;
 
@@ -149,7 +149,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
           ruleData.options & 0x0004 &&
           policyType !== PolicyTypesMap.get(`${IPv}:SNAT`) &&
           policyType !== PolicyTypesMap.get(`${IPv}:DNAT`)
-            ? `${cmd} add chain ${family} filter FWCRULE${rule}.LOG\n${cmd} add rule ${family} filter FWCRULE${rule}.LOG limit rate 1/second burst 5 packets counter log prefix \\\"RULE ID ${rule} [${action}]\\\" level info\n${cmd} add rule ${family} filter FWCRULE${rule}.LOG ${action}\n`
+            ? `${cmd} add chain ${family} filter FWCRULE${rule}.LOG\n${cmd} add rule ${family} filter FWCRULE${rule}.LOG limit rate 1/second burst 5 packets counter log prefix \\"RULE ID ${rule} [${action}]\\" level info\n${cmd} add rule ${family} filter FWCRULE${rule}.LOG ${action}\n`
             : '';
         if (log) action = `jump FWCRULE${rule}.LOG`;
 

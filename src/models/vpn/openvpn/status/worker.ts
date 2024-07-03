@@ -81,7 +81,7 @@ async function work(): Promise<void> {
     const interval: number = application.config.get('openvpn.agent.history.interval');
 
     application.logger().info(`Openvpn history worker started (collection interval: ${interval} minutes).`)
-
+     // eslint-disable-next-line no-constant-condition
     while(true) {
         const t1: number = Date.now();
 

@@ -93,9 +93,9 @@ function _getCallerFile(): string {
       match[1],
     );
     return relative_path;
-  } catch (err) {}
-
-  return 'undefined';
+  } catch (err) {
+    return 'undefined';
+  }
 }
 
 before(async () => {
@@ -111,7 +111,7 @@ before(async () => {
 beforeEach(async () => {
   fse.removeSync(playgroundPath);
   fse.mkdirSync(playgroundPath);
-  await testSuite.app.generateDirectories();
+  testSuite.app.generateDirectories();
 });
 
 after(async () => {

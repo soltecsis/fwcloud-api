@@ -57,7 +57,9 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
       try {
         // filePath might not exists
         fs.unlinkSync(filePath);
-      } catch {}
+      } catch (e) {
+        return e;
+      }
     });
 
     it('should returns the same content as the script content', async () => {

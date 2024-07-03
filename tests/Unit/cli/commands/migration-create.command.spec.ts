@@ -41,7 +41,9 @@ describe(describeName('MigrationCreateCommand tests'), () => {
       fs.mkdirSync(path.join(process.cwd(), migrationDirectory), {
         recursive: true,
       });
-    } catch (e) {}
+    } catch (e) {
+      return e;
+    }
   });
 
   afterEach(async () => {

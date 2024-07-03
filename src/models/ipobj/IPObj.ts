@@ -305,7 +305,7 @@ export class IPObj extends Model {
    *
    * @return {ROW} Returns ROW Data from Ipobj and FWC_TREE
    * */
-  public static getIpobjPro(position_ipobj): Promise<any | void> {
+  public static getIpobjPro(position_ipobj): Promise<any> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);

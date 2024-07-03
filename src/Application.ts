@@ -92,13 +92,13 @@ export class Application extends HTTPApplication {
     }
   }
 
-  private signalHandler(signal: 'SIGINT' | 'SIGTERM') {
+  private signalHandler = (signal: 'SIGINT' | 'SIGTERM') => {
     logger().info(`Received signal: ${signal}`);
     fs.unlink('.pid', (err) => {
       logger().info(`------- Application stopped --------`);
       setTimeout(() => process.exit(0), 100);
     });
-  }
+  };
 
   public async bootstrap(): Promise<Application> {
     await super.bootstrap();

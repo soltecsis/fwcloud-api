@@ -55,11 +55,11 @@ export class DhcpGroupController extends Controller {
       });
     }
 
-    this._firewall = await await db
+    this._firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({ where: { id: parseInt(request.params.firewall) } });
-    this._fwCloud = await await db
+    this._fwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
       .findOneOrFail({ where: { id: parseInt(request.params.fwcloud) } });

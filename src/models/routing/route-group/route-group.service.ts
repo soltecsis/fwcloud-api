@@ -134,7 +134,7 @@ export class RouteGroupService extends Service {
     path: Partial<IFindOneRouteGroupPath>,
     options: FindOneOptions<RouteGroup> | FindManyOptions<RouteGroup> = {},
   ): Promise<SelectQueryBuilder<RouteGroup>> {
-    const qb = await this._repository.createQueryBuilder('group');
+    const qb = this._repository.createQueryBuilder('group');
     qb.innerJoin('group.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwcloud')
       .leftJoinAndSelect('group.routes', 'route');

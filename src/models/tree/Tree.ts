@@ -115,7 +115,7 @@ export class Tree extends Model {
       const sql = `SELECT T.*, P.order_mode FROM ${tableName} T
                 inner join fwcloud C on C.id=T.fwcloud
                 LEFT JOIN fwc_tree_node_types P on T.node_type=P.node_type
-                WHERE T.fwcloud=${fwcloud} AND T.name=${dbCon.escape(name)} AND T.node_type=${dbCon.escape(type)}`;
+                WHERE T.fwcloud=${fwcloud} AND T.name=${dbCon.escape(name).toString()} AND T.node_type=${dbCon.escape(type).toString()}`;
 
       dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
@@ -238,7 +238,7 @@ export class Tree extends Model {
   ): Promise<TreeNode[]> {
     return new Promise((resolve, reject) => {
       const sql = `select id, name as text, id_parent as pid, node_type, id_obj, obj_type, fwcloud
-                from fwc_tree where id_parent in (${nodes.map((node) => node.id)}) order by ${orderBy}`;
+                from fwc_tree where id_parent in (${nodes.map((node) => node.id).join(', ')}) order by ${orderBy}`;
 
       dbCon.query(sql, async (error, nodes) => {
         if (error) return reject(error);
@@ -682,7 +682,7 @@ export class Tree extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        const sql = `UPDATE ${tableName} SET name=${connection.escape(name)} 
+        const sql = `UPDATE ${tableName} SET name=${connection.escape(name).toString()} 
                     WHERE node_type='RT' AND fwcloud=${fwcloud} AND id_obj=${id}`;
 
         connection.query(sql, (error, result) => {
@@ -1145,7 +1145,6 @@ export class Tree extends Model {
             if (ipobj.type === 1) node_type = 'SOI';
             else if (ipobj.type === 2) node_type = 'SOT';
             else if (ipobj.type === 3) node_type = 'SOM';
-            else if (ipobj.type === 2) node_type = 'SOT';
             else if (ipobj.type === 4) node_type = 'SOU';
             else if (ipobj.type === 5) node_type = 'OIA';
             else if (ipobj.type === 6) node_type = 'OIR';

@@ -238,7 +238,7 @@ export class PolicyRule extends Model {
             left join interface__ipobj II on II.interface=I.id  
             left join ipobj H on H.id=II.ipobj  
             where PR.firewall=${firewall} and PR.type=${type}
-            ${rules ? ` and PR.id IN (${rules})` : ``}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
 
             union select R.rule, R.position, G.id, G.name, G.type, R.position_order, '' as labelName, 
             null as firewall_id, null as firewall_name, null as cluster_id, null as cluster_name, null as host_id, null as host_name 
@@ -246,7 +246,7 @@ export class PolicyRule extends Model {
             inner join ipobj_g G on G.id=R.ipobj_g
             inner join policy_r PR on PR.id=R.rule  
             where PR.firewall=${firewall} and PR.type=${type}
-            ${rules ? ` and PR.id IN (${rules})` : ``}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
 
             union select R.rule, R.position, I.id, I.name, I.type, R.position_order, I.labelName, 
             FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, H.id as host_id, H.name as host_name 
@@ -258,7 +258,7 @@ export class PolicyRule extends Model {
             left join interface__ipobj II on II.interface=R.interface  
             left join ipobj H on H.id=II.ipobj  
             where PR.firewall=${firewall} and PR.type=${type}
-            ${rules ? ` and PR.id IN (${rules})` : ``}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
 
             union select R.rule, R.position, I.id, I.name, I.type, R.position_order, I.labelName, 
             FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
@@ -268,7 +268,7 @@ export class PolicyRule extends Model {
             inner join firewall FW on FW.id=I.firewall  
             left join cluster CL on CL.id=FW.cluster   
             where PR.firewall=${firewall} and PR.type=${type}
-            ${rules ? ` and PR.id IN (${rules})` : ``}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
 
             union select R.rule, R.position, VPN.id, CRT.cn, "311" as type, R.position_order, '' as labelName, 
             FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
@@ -279,7 +279,7 @@ export class PolicyRule extends Model {
             inner join firewall FW on FW.id=VPN.firewall  
             left join cluster CL on CL.id=FW.cluster  
             where PR.firewall=${firewall} and PR.type=${type}
-            ${rules ? ` and PR.id IN (${rules})` : ``}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
 
             union select R.rule, R.position, PRE.id, PRE.name, "401" as type, R.position_order, '' as labelName, 
             FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, null as host_id, null as host_name 
@@ -290,7 +290,7 @@ export class PolicyRule extends Model {
             inner join firewall FW on FW.id=VPN.firewall  
             left join cluster CL on CL.id=FW.cluster  
             where PR.firewall=${firewall} and PR.type=${type}
-            ${rules ? ` and PR.id IN (${rules})` : ``}
+            ${rules ? ` and PR.id IN (${rules.join(', ')})` : ``}
             
             order by position_order`,
     ];

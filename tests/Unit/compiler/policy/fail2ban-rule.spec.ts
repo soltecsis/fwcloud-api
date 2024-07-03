@@ -104,7 +104,7 @@ describe(
             id: rule,
             active: ruleData.active,
             comment: comment,
-            cs: `${ruleData.fw_apply_to ? `if [ \"$HOSTNAME\" = \"${fwcProduct.firewall.name}\" ]; then\n` : ''}${cs}${ruleData.fw_apply_to ? 'fi\n' : ''}`,
+            cs: `${ruleData.fw_apply_to ? `if [ "$HOSTNAME" = "${fwcProduct.firewall.name}" ]; then\n` : ''}${cs}${ruleData.fw_apply_to ? 'fi\n' : ''}`,
           },
         ]);
       }

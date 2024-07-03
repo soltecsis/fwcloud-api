@@ -24,7 +24,7 @@ import { Route } from '../route';
 
 export class ParamNotValidException extends Error {
   constructor(paramName: string, paramValue: string, route: Route) {
-    const message: string = `Param :${paramName} with value="${paramValue}" is not a valid parameter when generating URL for route "${route.pathParams}"`;
+    const message: string = `Param :${paramName} with value="${paramValue}" is not a valid parameter when generating URL for route "${route.pathParams.toString()}"`;
 
     super(message);
   }

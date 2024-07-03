@@ -57,7 +57,7 @@ export class DHCPCompiler {
         cs += `\t}\n`;
         cs += `}\n`;
         break;
-      case 2:
+      case 2: {
         if (ruleData.comment) {
           cs += `# ${ruleData.comment}\n`;
         }
@@ -77,9 +77,11 @@ export class DHCPCompiler {
         cs += `\tfixed-address ${ruleData.router.address};\n`;
         cs += `}\n`;
         break;
-      case 3:
+      }
+      case 3: {
         cs = ruleData.cfg_text ? ruleData.cfg_text : '';
         break;
+      }
     }
 
     return cs;

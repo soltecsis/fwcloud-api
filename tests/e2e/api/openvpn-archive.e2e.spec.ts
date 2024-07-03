@@ -54,8 +54,8 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
 
     fwcProduct = await new FwCloudFactory().make();
 
-    openVPNService = await await app.getService(OpenVPNService.name);
-    openVPNStatusHistoryService = await await app.getService(
+    openVPNService = await app.getService(OpenVPNService.name);
+    openVPNStatusHistoryService = await app.getService(
       OpenVPNStatusHistoryService.name,
     );
 

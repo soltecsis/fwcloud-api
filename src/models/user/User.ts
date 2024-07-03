@@ -121,9 +121,9 @@ export class User extends Model {
         const sql =
           'SELECT * FROM user ' +
           'WHERE customer=' +
-          connection.escape(customer) +
+          connection.escape(customer).toString() +
           ' AND username =' +
-          connection.escape(username);
+          connection.escape(username).toString();
 
         connection.query(sql, (error, row) => {
           if (error) reject(error);

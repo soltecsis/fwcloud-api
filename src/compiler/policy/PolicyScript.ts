@@ -90,7 +90,7 @@ export class PolicyScript {
   private greetingMessage(): Promise<void> {
     this.stream.write(
       'greeting_msg() {\n' +
-        `  log \"FWCloud.net - Loading firewall policy generated: ${Date()} \"\n` +
+        `  log "FWCloud.net - Loading firewall policy generated: ${Date()} "\n` +
         '}\n\n',
     );
     return;
@@ -158,7 +158,7 @@ export class PolicyScript {
 
     let cs = '';
     for (let i = 0; i < rulesCompiled.length; i++) {
-      cs += `\necho \"Rule ${i + 1} (ID: ${rulesCompiled[i].id})${!rulesCompiled[i].active ? ' [DISABLED]' : ''}\"\n`;
+      cs += `\necho "Rule ${i + 1} (ID: ${rulesCompiled[i].id})${!rulesCompiled[i].active ? ' [DISABLED]' : ''}"\n`;
       if (rulesCompiled[i].comment)
         cs += `# ${rulesCompiled[i].comment.replace(/\n/g, '\n# ')}\n`;
       if (rulesCompiled[i].active) cs += rulesCompiled[i].cs;
@@ -539,7 +539,7 @@ export class PolicyScript {
       for (let i = 0; i < routingTables.length; i++) {
         this.stream.write('echo\n');
         const msg = `ROUTING TABLE: ${routingTables[i].number} (${routingTables[i].name})`;
-        this.stream.write(`echo \"${msg}\"\n`);
+        this.stream.write(`echo "${msg}"\n`);
         // If the main table exists in our firewall, then flush it before loading its routes.
         if (routingTables[i].number === 254)
           this.stream.write('$IP route flush scope global table main\n');
@@ -561,7 +561,7 @@ export class PolicyScript {
 
           let cs = '';
           for (let j = 0; j < routesCompiled.length; j++) {
-            cs += `echo \"Route ${j + 1} (ID: ${routesCompiled[j].id})${!routesCompiled[j].active ? ' [DISABLED]' : ''}\"\n`;
+            cs += `echo "Route ${j + 1} (ID: ${routesCompiled[j].id})${!routesCompiled[j].active ? ' [DISABLED]' : ''}"\n`;
             if (routesCompiled[j].comment)
               cs += `# ${routesCompiled[j].comment.replace(/\n/g, '\n# ')}\n`;
             if (routesCompiled[j].active) cs += routesCompiled[j].cs;
@@ -584,14 +584,14 @@ export class PolicyScript {
           this.channel,
         );
 
-        this.stream.write(`\necho\necho \"ROUTING RULES:\"\n`);
+        this.stream.write(`\necho\necho "ROUTING RULES:"n`);
         this.channel.emit(
           'message',
           new ProgressNoticePayload('ROUTING RULES:', true),
         );
         let cs = '';
         for (let j = 0; j < rulesCompiled.length; j++) {
-          cs += `\necho \"Routing rule ${j + 1} (ID: ${rulesCompiled[j].id})${!rulesCompiled[j].active ? ' [DISABLED]' : ''}\"\n`;
+          cs += `\necho "Routing rule ${j + 1} (ID: ${rulesCompiled[j].id})${!rulesCompiled[j].active ? ' [DISABLED]' : ''}"\n`;
           if (rulesCompiled[j].comment)
             cs += `# ${rulesCompiled[j].comment.replace(/\n/g, '\n# ')}\n`;
           if (rulesCompiled[j].active) cs += rulesCompiled[j].cs;

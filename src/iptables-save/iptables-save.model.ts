@@ -390,7 +390,7 @@ export class IptablesSaveToFWCloud extends Service {
       Match if either the source or destination ports are equal to one of the given ports.
       */
       case 'mport':
-      case 'multiport':
+      case 'multiport': {
         if (this.ipProtocol !== 'tcp' && this.ipProtocol !== 'udp')
           throw new Error(
             'IPTables multiport module can only be used in conjunction with -p tcp or -p udp',
@@ -421,13 +421,13 @@ export class IptablesSaveToFWCloud extends Service {
         items.shift();
         items.shift();
         break;
-
+      }
       case 'tcp':
-      case 'udp':
+      case 'udp': {
         items.shift();
         await this.composeAndEatPort(opt, items);
         break;
-
+      }
       /*
         icmp
 
@@ -436,7 +436,7 @@ export class IptablesSaveToFWCloud extends Service {
         This allows specification of the ICMP type, which can be a numeric ICMP type, or one of the ICMP type names shown by the command
         iptables -p icmp -h
       */
-      case 'icmp':
+      case 'icmp': {
         if (this.ipProtocol !== 'icmp')
           throw new Error(
             'IPTables icmp module can only be used in conjunction with -p icmp',
@@ -447,7 +447,7 @@ export class IptablesSaveToFWCloud extends Service {
         items.shift();
         items.shift();
         break;
-
+      }
       /*
         iprange
 
@@ -614,7 +614,7 @@ export class IptablesSaveToFWCloud extends Service {
     }
 
     comment = comment.substr(0, comment.length - 1); // Remove end double quote.
-    return comment.replace(/\\\"/g, '"');
+    return comment.replace(/\\"/g, '"');
   }
 
   private async eatRuleComment(items: string[]): Promise<void> {

@@ -74,15 +74,11 @@ export class BackupController extends Controller {
   @Validate(BackupControllerStoreDto)
   public async store(request: Request): Promise<ResponseBuilder> {
     const channel: Channel = await Channel.fromRequest(request);
-    try {
-      const backup: Backup = await this._backupService.create(
-        request.inputs.get('comment'),
-        channel,
-      );
-      return ResponseBuilder.buildResponse().status(201).body(backup);
-    } catch (err) {
-      throw err;
-    }
+    const backup: Backup = await this._backupService.create(
+      request.inputs.get('comment'),
+      channel,
+    );
+    return ResponseBuilder.buildResponse().status(201).body(backup);
   }
 
   /**
@@ -148,7 +144,7 @@ export class BackupController extends Controller {
   public async import(request: Request): Promise<ResponseBuilder> {
     try {
       const backup: Backup = await this._backupService.import(
-        (<FileInfo>request.inputs.get('file')).filepath,
+        (<FileInfo>(<unknown>request.inputs.get('file'))).filepath,
       );
       return ResponseBuilder.buildResponse().status(201).body(backup);
     } catch (err) {

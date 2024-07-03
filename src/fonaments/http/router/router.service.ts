@@ -291,7 +291,10 @@ export class RouterService extends Service {
       ];
 
     if (validationDto === undefined) {
-      throw new HttpException(`Request ${route.pathParams} not validated`, 501);
+      throw new HttpException(
+        `Request ${route.pathParams.toString()} not validated`,
+        501,
+      );
     }
 
     await new Validator(request.inputs.all(), validationDto).validate();

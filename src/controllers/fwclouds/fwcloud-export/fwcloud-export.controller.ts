@@ -97,7 +97,7 @@ export class FwCloudExportController extends Controller {
       const channel: Channel = await Channel.fromRequest(request);
 
       const fwCloud: FwCloud = await this._fwCloudExportService.import(
-        (<FileInfo>request.inputs.get('file')).filepath,
+        (<FileInfo>(<unknown>request.inputs.get('file'))).filepath,
         request.session.user,
         channel,
       );

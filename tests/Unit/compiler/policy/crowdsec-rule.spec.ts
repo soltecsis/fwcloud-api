@@ -93,7 +93,7 @@ describe(
       const cs =
         compiler === 'IPTables'
           ? `$IP${IPv === 'IPv4' ? '' : '6'}TABLES -A ${chain} -m comment --comment '${comment}' -m set --match-set crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists src -j ACCEPT\n`
-          : `$NFT add rule ip${IPv === 'IPv4' ? '' : '6'} filter ${chain} ip saddr . ip daddr vmap @crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists counter accept comment \\\"CrowdSec firewall bouncer support\\\"\n`;
+          : `$NFT add rule ip${IPv === 'IPv4' ? '' : '6'} filter ${chain} ip saddr . ip daddr vmap @crowdsec${IPv === 'IPv4' ? '' : '6'}-blacklists counter accept comment \\"CrowdSec firewall bouncer support\\"\n`;
 
       if (
         ruleData.type != PolicyTypesMap.get('IPv4:INPUT') &&
@@ -111,7 +111,7 @@ describe(
             id: rule,
             active: ruleData.active,
             comment: comment,
-            cs: `${ruleData.fw_apply_to ? `if [ \"$HOSTNAME\" = \"${fwcProduct.firewall.name}\" ]; then\n` : ''}${cs}${ruleData.fw_apply_to ? 'fi\n' : ''}`,
+            cs: `${ruleData.fw_apply_to ? `if [ "$HOSTNAME" = "${fwcProduct.firewall.name}" ]; then\n` : ''}${cs}${ruleData.fw_apply_to ? 'fi\n' : ''}`,
           },
         ]);
       }

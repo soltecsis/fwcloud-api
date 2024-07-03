@@ -250,10 +250,6 @@ export class FwCloudFactory {
   }
 
   private async makeHost(): Promise<void> {
-    let interface1: Interface;
-    let interface2: Interface;
-    let interface3: Interface;
-
     this.fwc.ipobjs.set(
       'host',
       await this._ipobjRepository.save(
@@ -267,7 +263,7 @@ export class FwCloudFactory {
       ),
     );
 
-    interface1 = await this._interfaceRepository.save(
+    const interface1: Interface = await this._interfaceRepository.save(
       this._interfaceRepository.create({
         name: 'eth1',
         type: '11',
@@ -275,7 +271,7 @@ export class FwCloudFactory {
       }),
     );
 
-    interface2 = await this._interfaceRepository.save(
+    const interface2: Interface = await this._interfaceRepository.save(
       this._interfaceRepository.create({
         name: 'eth2',
         type: '11',
@@ -283,7 +279,7 @@ export class FwCloudFactory {
       }),
     );
 
-    interface3 = await this._interfaceRepository.save(
+    const interface3: Interface = await this._interfaceRepository.save(
       this._interfaceRepository.create({
         name: 'eth3',
         type: '11',

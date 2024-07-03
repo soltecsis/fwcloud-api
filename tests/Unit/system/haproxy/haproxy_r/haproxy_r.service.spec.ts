@@ -132,7 +132,7 @@ describe(HAProxyRuleService.name, () => {
         frontendIpId: 1,
         frontendPortId: 1,
       };
-      const expected = await manager.getRepository(HAProxyRule).create(data);
+      const expected = manager.getRepository(HAProxyRule).create(data);
       service['_repository'].getLastHAProxyRuleInFirewall = async () => null;
       const getLastHAProxyRuleInFirewallStub = sinon
         .stub(service['_repository'], 'getLastHAProxyRuleInFirewall')
@@ -203,7 +203,7 @@ describe(HAProxyRuleService.name, () => {
         frontendIpId: 1,
         frontendPortId: 1,
       };
-      const expected = await manager.getRepository(HAProxyRule).create(
+      const expected = manager.getRepository(HAProxyRule).create(
         manager.getRepository(HAProxyRule).create({
           rule_order: 5,
           rule_type: 1,
@@ -232,7 +232,7 @@ describe(HAProxyRuleService.name, () => {
         to: haproxyRule.id,
         offset: 'Above',
       };
-      const expected = await manager.getRepository(HAProxyRule).create(data);
+      const expected = manager.getRepository(HAProxyRule).create(data);
       const getLastHAProxyRuleInFirewallStub = sinon
         .stub(service['_repository'], 'getLastHAProxyRuleInFirewall')
         .returns(null);

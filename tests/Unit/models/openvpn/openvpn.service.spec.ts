@@ -177,7 +177,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
         it('should be overwritten base config by a custom config', async () => {
             const custom_config = {history:{archive_days: 20, retention_days: 40}};
             await openVPNService.updateArchiveConfig(custom_config);
-            const config = await openVPNService.getCustomizedConfig();
+            const config = openVPNService.getCustomizedConfig();
 
             expect(config).to.be.deep.equal(custom_config);
 
@@ -200,7 +200,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
 
         it('should be returned custom_config if config.json exists', async() =>{
 
-            expect((await openVPNService.getCustomizedConfig())).to.be.deep.equals(custom_config);
+            expect( openVPNService.getCustomizedConfig()).to.be.deep.equals(custom_config);
 
         });
 
@@ -208,7 +208,7 @@ describe(describeName('OpenVPN Service Unit Tests'), () => {
 
             fs.unlinkSync(path.join(app.config.get('openvpn.history').data_dir, 'config.json'))
             
-            expect ((await openVPNService.getCustomizedConfig())).to.be.deep.equals(
+            expect (openVPNService.getCustomizedConfig()).to.be.deep.equals(
                 {
                     history: 
                     {

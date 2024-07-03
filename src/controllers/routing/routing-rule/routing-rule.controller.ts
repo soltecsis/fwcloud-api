@@ -64,14 +64,14 @@ export class RoutingRuleController extends Controller {
     );
 
     if (request.params.routingRule) {
-      this._routingRule = await await db
+      this._routingRule = await db
         .getSource()
         .manager.getRepository(RoutingRule)
         .findOneOrFail({ where: { id: parseInt(request.params.routingRule) } });
     }
 
     //Get the firewall from the URL which contains the route group
-    const firewallQueryBuilder = await db
+    const firewallQueryBuilder = db
       .getSource()
       .manager.getRepository(Firewall)
       .createQueryBuilder('firewall')
@@ -86,7 +86,7 @@ export class RoutingRuleController extends Controller {
     this._firewall = await firewallQueryBuilder.getOneOrFail();
 
     //Get the fwcloud from the URL which contains the firewall
-    this._fwCloud = await await db
+    this._fwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
       .createQueryBuilder('fwcloud')
@@ -227,7 +227,7 @@ export class RoutingRuleController extends Controller {
       await RoutingRulePolicy.index(this._firewall, request.session.user)
     ).authorize();
 
-    const rules: RoutingRule[] = await await db
+    const rules: RoutingRule[] = await db
       .getSource()
       .manager.getRepository(RoutingRule)
       .createQueryBuilder('rule')
@@ -256,7 +256,7 @@ export class RoutingRuleController extends Controller {
       await RoutingRulePolicy.index(this._firewall, request.session.user)
     ).authorize();
 
-    const fromRule: RoutingRule = await await db
+    const fromRule: RoutingRule = await db
       .getSource()
       .manager.getRepository(RoutingRule)
       .createQueryBuilder('rule')
@@ -270,7 +270,7 @@ export class RoutingRuleController extends Controller {
       })
       .getOneOrFail();
 
-    const toRule: RoutingRule = await await db
+    const toRule: RoutingRule = await db
       .getSource()
       .manager.getRepository(RoutingRule)
       .createQueryBuilder('rule')

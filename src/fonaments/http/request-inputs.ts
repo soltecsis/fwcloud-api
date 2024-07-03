@@ -43,7 +43,7 @@ export class RequestInputs {
    * @param name Input name
    * @param defaultValue Default value
    */
-  public get<T extends string | string[] | unknown = unknown>(
+  public get<T extends string | string[] | number | number[]>(
     name: string,
     defaultValue: T = undefined,
   ): T {

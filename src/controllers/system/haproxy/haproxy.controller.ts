@@ -59,24 +59,24 @@ export class HAProxyController extends Controller {
       HAProxyRuleService.name,
     );
     if (request.params.haproxy) {
-      this._haproxyRule = await await db
+      this._haproxyRule = await db
         .getSource()
         .manager.getRepository(HAProxyRule)
         .findOneOrFail({ where: { id: parseInt(request.params.haproxy) } });
     }
     if (request.params.haproxygroup) {
-      this._haproxyGroup = await await db
+      this._haproxyGroup = await db
         .getSource()
         .manager.getRepository(HAProxyGroup)
         .findOneOrFail({
           where: { id: parseInt(request.params.haproxygroup) },
         });
     }
-    this._firewall = await await db
+    this._firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({ where: { id: parseInt(request.params.firewall) } });
-    this._fwCloud = await await db
+    this._fwCloud = await db
       .getSource()
       .manager.getRepository(FwCloud)
       .findOneOrFail({ where: { id: parseInt(request.params.fwcloud) } });
@@ -139,7 +139,7 @@ export class HAProxyController extends Controller {
   public async copy(request: Request): Promise<ResponseBuilder> {
     const ids: number[] = request.inputs.get<number[]>('rules');
     for (const id of ids) {
-      const rule: HAProxyRule = await await db
+      const rule: HAProxyRule = await db
         .getSource()
         .manager.getRepository(HAProxyRule)
         .findOneOrFail({ where: { id: id } });
@@ -204,7 +204,7 @@ export class HAProxyController extends Controller {
       await HAProxyPolicy.create(this._firewall, request.session.user)
     ).authorize();
 
-    const rules: HAProxyRule[] = await await db
+    const rules: HAProxyRule[] = await db
       .getSource()
       .manager.getRepository(HAProxyRule)
       .find({
@@ -262,13 +262,13 @@ export class HAProxyController extends Controller {
     const channel: Channel = await Channel.fromRequest(req);
     let firewallId: number;
 
-    const firewall: Firewall = await await db
+    const firewall: Firewall = await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({ where: { id: this._firewall.id } });
     if (firewall.clusterId) {
       firewallId = (
-        await await db
+        await db
           .getSource()
           .manager.getRepository(Firewall)
           .createQueryBuilder('firewall')
