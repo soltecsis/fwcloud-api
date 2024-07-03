@@ -84,7 +84,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
   it('should not consider blank spaces', async () => {
     let envData: string = fse.readFileSync(testEnvPath).toString();
     envData = envData.replace(
-      new RegExp('^SESSION_SECRET=(.)*\n', 'm'),
+      new RegExp('^SESSION_SECRET=[\\s\\S]*$', 'm'),
       `SESSION_SECRET   =\n`,
     );
     fse.writeFileSync(testEnvPath, envData);
@@ -140,7 +140,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
       .value(testEnvPath);
     let envData: string = fse.readFileSync(testEnvPath).toString();
     envData = envData.replace(
-      new RegExp('^SESSION_SECRET=(.)*\n', 'm'),
+      new RegExp('^SESSION_SECRET=[\\s\\S]*$', 'm'),
       `SESSION_SECRET=test\n`,
     );
     fse.writeFileSync(testEnvPath, envData);
@@ -164,7 +164,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
       .value(testEnvPath);
     let envData: string = fse.readFileSync(testEnvPath).toString();
     envData = envData.replace(
-      new RegExp('^SESSION_SECRET=(.)*\n', 'm'),
+      new RegExp('^SESSION_SECRET=[\\s\\S]*$', 'm'),
       `SESSION_SECRET=test\n`,
     );
     fse.writeFileSync(testEnvPath, envData);
@@ -189,7 +189,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
       .value(testEnvPath);
     let envData: string = fse.readFileSync(testEnvPath).toString();
     envData = envData.replace(
-      new RegExp('^CRYPT_SECRET=(.)*\n', 'm'),
+      new RegExp('^CRYPT_SECRET=([\\s\\S]*)$', 'm'),
       `CRYPT_SECRET=test\n`,
     );
     fse.writeFileSync(testEnvPath, envData);
@@ -213,7 +213,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
       .value(testEnvPath);
     let envData: string = fse.readFileSync(testEnvPath).toString();
     envData = envData.replace(
-      new RegExp('^CRYPT_SECRET=(.)*\n', 'm'),
+      new RegExp('^CRYPT_SECRET=([\\s\\S]*)$', 'm'),
       `CRYPT_SECRET=test\n`,
     );
     fse.writeFileSync(testEnvPath, envData);

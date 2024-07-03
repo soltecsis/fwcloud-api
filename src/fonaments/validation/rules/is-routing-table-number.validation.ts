@@ -16,7 +16,7 @@ export class IsRoutingTableNumberConstraint
 }
 
 export function IsRoutingTableNumber(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isRoutingTableNumber',
       target: object.constructor,

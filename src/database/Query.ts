@@ -32,7 +32,7 @@ export default class Query {
   ): void;
   public query(
     query: string,
-    params: {},
+    params: NonNullable<unknown>,
     callback: (err: any, result: any) => void,
   ): void;
   public query(query: string, callback: (err: any, result: any) => void): void;
@@ -64,11 +64,11 @@ export default class Query {
       });
   }
 
-  public escape(value: any): String {
+  public escape(value: any): string {
     return sqlstring.escape(value);
   }
 
-  public escapeId(value: any): String {
+  public escapeId(value: any): string {
     return sqlstring.escapeId(value);
   }
 }

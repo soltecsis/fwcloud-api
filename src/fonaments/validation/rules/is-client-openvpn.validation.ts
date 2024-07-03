@@ -12,7 +12,7 @@ import { Crt } from '../../../models/vpn/pki/Crt';
 import db from '../../../database/database-manager';
 
 export function IsClientOpenVPN(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isClientOpenVPN',
       target: object.constructor,

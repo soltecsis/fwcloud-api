@@ -121,12 +121,14 @@ export class RoutingCompiler {
 
     for (let i = 0; i < items.length; i++) {
       switch (items[i].type) {
-        case 5: { // ADDRESS
+        case 5: {
+          // ADDRESS
           result.push(`${dir}${items[i].address}`);
           break;
         }
 
-        case 7: { // NETWORK
+        case 7: {
+          // NETWORK
           if (items[i].netmask[0] === '/')
             result.push(`${dir}${items[i].address}${items[i].netmask}`);
           else {
@@ -136,7 +138,8 @@ export class RoutingCompiler {
           break;
         }
 
-        case 6: { // ADDRESS RANGE
+        case 6: {
+          // ADDRESS RANGE
           const firstLong = ip.toLong(items[i].range_start);
           const lastLong = ip.toLong(items[i].range_end);
           for (let current = firstLong; current <= lastLong; current++)
@@ -144,7 +147,8 @@ export class RoutingCompiler {
           break;
         }
 
-        case 30: { // IPTABLES MARKS
+        case 30: {
+          // IPTABLES MARKS
           result.push(
             `fwmark ${(items[i] as RoutingRuleItemForCompiler).mark_code}`,
           );

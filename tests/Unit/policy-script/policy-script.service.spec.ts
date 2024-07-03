@@ -58,7 +58,7 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
         // filePath might not exists
         fs.unlinkSync(filePath);
       } catch (e) {
-        return e;
+        console.error(`Error al eliminar el archivo: ${e.message}`);
       }
     });
 
