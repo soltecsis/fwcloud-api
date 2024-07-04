@@ -20,68 +20,68 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import Model from "../../../Model";
-import { HAProxyGroup } from "../haproxy_g/haproxy_g.model";
-import { IPObj } from "../../../ipobj/IPObj";
-import { Firewall } from "../../../firewall/Firewall";
-import { HAProxyRuleToIPObj } from "./haproxy_r-to_ipobj.model";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import Model from '../../../Model';
+import { HAProxyGroup } from '../haproxy_g/haproxy_g.model';
+import { IPObj } from '../../../ipobj/IPObj';
+import { Firewall } from '../../../firewall/Firewall';
+import { HAProxyRuleToIPObj } from './haproxy_r-to_ipobj.model';
 
 const tableName = 'haproxy_r';
 
 @Entity({ name: tableName })
 export class HAProxyRule extends Model {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({ type: 'tinyint', default: 1 })
-    rule_type: number;
+  @Column({ type: 'tinyint', default: 1 })
+  rule_type: number;
 
-    @Column({ type: 'int' })
-    rule_order: number;
+  @Column({ type: 'int' })
+  rule_order: number;
 
-    @Column({ type: 'boolean', default: false })
-    active: boolean;
+  @Column({ type: 'boolean', default: false })
+  active: boolean;
 
-    @Column({ name: 'group' })
-    groupId: number;
+  @Column({ name: 'group' })
+  groupId: number;
 
-    @ManyToOne(() => HAProxyGroup)
-    @JoinColumn({ name: 'group' })
-    group: HAProxyGroup;
+  @ManyToOne(() => HAProxyGroup)
+  @JoinColumn({ name: 'group' })
+  group: HAProxyGroup;
 
-    @Column({ type: 'varchar', length: 50 })
-    style: string;
+  @Column({ type: 'varchar', length: 50 })
+  style: string;
 
-    @ManyToOne(() => IPObj, { eager: true })
-    @JoinColumn({ name: 'frontend_ip' })
-    frontendIp: IPObj;
+  @ManyToOne(() => IPObj, { eager: true })
+  @JoinColumn({ name: 'frontend_ip' })
+  frontendIp: IPObj;
 
-    @ManyToOne(() => IPObj, { eager: true })
-    @JoinColumn({ name: 'frontend_port' })
-    frontendPort: IPObj;
+  @ManyToOne(() => IPObj, { eager: true })
+  @JoinColumn({ name: 'frontend_port' })
+  frontendPort: IPObj;
 
-    @OneToMany(() => HAProxyRuleToIPObj, ruleToIPObj => ruleToIPObj.haproxyRule, { cascade: true })
-    backendIps: HAProxyRuleToIPObj[];
+  @OneToMany(() => HAProxyRuleToIPObj, (ruleToIPObj) => ruleToIPObj.haproxyRule, { cascade: true })
+  backendIps: HAProxyRuleToIPObj[];
 
-    @ManyToOne(() => IPObj, { eager: true })
-    @JoinColumn({ name: 'backend_port' })
-    backendPort: IPObj;
+  @ManyToOne(() => IPObj, { eager: true })
+  @JoinColumn({ name: 'backend_port' })
+  backendPort: IPObj;
 
-    @Column({ name: 'firewall' })
-    firewallId: number;
+  @Column({ name: 'firewall' })
+  firewallId: number;
 
-    @ManyToOne(() => Firewall)
-    @JoinColumn({ name: 'firewall' })
-    firewall: Firewall;
+  @ManyToOne(() => Firewall)
+  @JoinColumn({ name: 'firewall' })
+  firewall: Firewall;
 
-    @Column({ type: 'text' })
-    cfg_text: string;
+  @Column({ type: 'text' })
+  cfg_text: string;
 
-    @Column({ type: 'text' })
-    comment: string;
+  @Column({ type: 'text' })
+  comment: string;
 
-    public getTableName(): string {
-        return tableName;
-    }
+  public getTableName(): string {
+    return tableName;
+  }
 }

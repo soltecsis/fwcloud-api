@@ -1,7 +1,13 @@
-import { registerDecorator, ValidationArguments, ValidationOptions, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
-import { In } from "typeorm";
-import { IPObjGroup } from "../../../models/ipobj/IPObjGroup";
-import db from "../../../database/database-manager";
+import {
+  registerDecorator,
+  ValidationArguments,
+  ValidationOptions,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
+import { In } from 'typeorm';
+import { IPObjGroup } from '../../../models/ipobj/IPObjGroup';
+import db from '../../../database/database-manager';
 
 export function IpObjGroupBelongsToTypes(typeIds: number[], validationOptions?: ValidationOptions) {
   return function (object: Object, propertyName: string) {
@@ -17,21 +23,24 @@ export function IpObjGroupBelongsToTypes(typeIds: number[], validationOptions?: 
 
           return new Promise<boolean>(async (resolve, reject) => {
             const validTypes: number[] = args.constraints[0];
-            const ipObjs: IPObjGroup[] = await db.getSource().manager.getRepository(IPObjGroup).find(
-              {
-                where: { id: In(value as number[])}
-              }
+            const ipObjs: IPObjGroup[] = await db
+              .getSource()
+              .manager.getRepository(IPObjGroup)
+              .find({
+                where: { id: In(value as number[]) },
+              });
+
+            const failed: IPObjGroup[] = ipObjs.filter(
+              (group: IPObjGroup) => !validTypes.includes(group.type),
             );
 
-            const failed: IPObjGroup[] = ipObjs.filter((group: IPObjGroup) => !validTypes.includes(group.type));
-            
             return resolve(failed.length === 0);
           });
         },
 
         defaultMessage(args: ValidationArguments): string {
-          return `at least one group is not valid`
-        }
+          return `at least one group is not valid`;
+        },
       },
     });
   };

@@ -20,8 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Repository} from "typeorm";
-import { RouteGroup } from "./route-group.model";
+import { Repository } from 'typeorm';
+import { RouteGroup } from './route-group.model';
 
-export class RouteGroupRepository extends Repository<RouteGroup> {
-}
+export class RouteGroupRepository extends Repository<RouteGroup> {}

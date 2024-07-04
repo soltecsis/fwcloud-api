@@ -20,15 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, expect } from "../../../mocha/global-setup";
-import { PolicyRule, SpecialPolicyRules } from "../../../../src/models/policy/PolicyRule";
-import db from "../../../../src/database/database-manager";
-import { PolicyTypesMap } from "../../../../src/models/policy/PolicyType";
-import { RulePositionsMap } from "../../../../src/models/policy/PolicyPosition";
-import { populateRule } from "./utils";
-import { AvailablePolicyCompilers, PolicyCompiler } from "../../../../src/compiler/policy/PolicyCompiler";
-import { FwCloudFactory, FwCloudProduct } from "../../../utils/fwcloud-factory";
-import { EntityManager } from "typeorm";
+import { describeName, expect } from '../../../mocha/global-setup';
+import { PolicyRule, SpecialPolicyRules } from '../../../../src/models/policy/PolicyRule';
+import db from '../../../../src/database/database-manager';
+import { PolicyTypesMap } from '../../../../src/models/policy/PolicyType';
+import { RulePositionsMap } from '../../../../src/models/policy/PolicyPosition';
+import { populateRule } from './utils';
+import {
+  AvailablePolicyCompilers,
+  PolicyCompiler,
+} from '../../../../src/compiler/policy/PolicyCompiler';
+import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
+import { EntityManager } from 'typeorm';
 
 describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () => {
   let fwcProduct: FwCloudProduct;
@@ -39,21 +42,21 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
   let manager: EntityManager;
 
   const cmd = 'systemctl restart fail2ban';
-  const comment = "Fail2Ban compatibility rule";
+  const comment = 'Fail2Ban compatibility rule';
 
-  let ruleData = {
-      firewall: 0,
-      type: 0,
-      rule_order: 1,
-      action: 1,
-      active: 1,
-      special: SpecialPolicyRules.FAIL2BAN,
-      options: 1,
-      run_before: cmd,
-      run_after: null,
-      fw_apply_to: null,
-      comment: comment
-  }
+  const ruleData = {
+    firewall: 0,
+    type: 0,
+    rule_order: 1,
+    action: 1,
+    active: 1,
+    special: SpecialPolicyRules.FAIL2BAN,
+    options: 1,
+    run_before: cmd,
+    run_after: null,
+    fw_apply_to: null,
+    comment: comment,
+  };
 
   async function runTest(): Promise<void> {
     let rule: number;
@@ -63,47 +66,59 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     try {
       rule = await PolicyRule.insertPolicy_r(ruleData);
       if (ruleData.type === PolicyTypesMap.get(`${IPv}:DNAT`))
-        await populateRule(rule,RulePositionsMap.get(`${IPv}:DNAT:Translated Destination`),50010); // 50010 = Standard VRRP IP
-      
-      const rulesData: any = await PolicyRule.getPolicyData('compiler', dbCon, fwcProduct.fwcloud.id, ruleData.firewall, ruleData.type, [rule], null);
+        await populateRule(rule, RulePositionsMap.get(`${IPv}:DNAT:Translated Destination`), 50010); // 50010 = Standard VRRP IP
+
+      const rulesData: any = await PolicyRule.getPolicyData(
+        'compiler',
+        dbCon,
+        fwcProduct.fwcloud.id,
+        ruleData.firewall,
+        ruleData.type,
+        [rule],
+        null,
+      );
       result = await PolicyCompiler.compile(compiler, rulesData);
-    } catch(err) { error = err }
+    } catch (err) {
+      error = err;
+    }
 
-    let cs = `###########################\n# Hook script rule code:\n${cmd}\n###########################\n`;
+    const cs = `###########################\n# Hook script rule code:\n${cmd}\n###########################\n`;
 
-    if (ruleData.type != PolicyTypesMap.get('IPv4:INPUT'))
-    {
+    if (ruleData.type != PolicyTypesMap.get('IPv4:INPUT')) {
       expect(error).to.eql({
         fwcErr: 999999,
-        msg: "Invalid chain for Fail2Ban special rule"
+        msg: 'Invalid chain for Fail2Ban special rule',
       });
     } else {
-      expect(result).to.eql([{
-        id: rule,
-        active: ruleData.active,
-        comment: comment,
-        cs: `${ruleData.fw_apply_to ? `if [ \"$HOSTNAME\" = \"${fwcProduct.firewall.name}\" ]; then\n` : ''}${cs}${ruleData.fw_apply_to ? 'fi\n' : ''}`
-      }]);
+      expect(result).to.eql([
+        {
+          id: rule,
+          active: ruleData.active,
+          comment: comment,
+          cs: `${ruleData.fw_apply_to ? `if [ "$HOSTNAME" = "${fwcProduct.firewall.name}" ]; then\n` : ''}${cs}${ruleData.fw_apply_to ? 'fi\n' : ''}`,
+        },
+      ]);
     }
   }
 
-
   before(async () => {
     dbCon = db.getQuery();
-    manager = db.getSource().manager
-    fwcProduct = await (new FwCloudFactory()).make();
+    manager = db.getSource().manager;
+    fwcProduct = await new FwCloudFactory().make();
     ruleData.firewall = fwcProduct.firewall.id;
   });
-  
+
   describe('IPv4', () => {
-    before(() => { IPv = 'IPv4' });
+    before(() => {
+      IPv = 'IPv4';
+    });
 
     describe('CrowdSec special rule compilation (IPTables, INPUT chain)', () => {
-      before(() => { 
+      before(() => {
         compiler = 'IPTables';
-        chain = 'INPUT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
-        ruleData.fw_apply_to = null; 
+        chain = 'INPUT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
+        ruleData.fw_apply_to = null;
       });
 
       it('should compile as expected', async () => {
@@ -117,11 +132,11 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (NFTables, INPUT chain)', () => {
-      before(() => { 
-        compiler = 'NFTables'; 
-        chain = 'INPUT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
-        ruleData.fw_apply_to = null; 
+      before(() => {
+        compiler = 'NFTables';
+        chain = 'INPUT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
+        ruleData.fw_apply_to = null;
       });
 
       it('should compile as expected', async () => {
@@ -135,10 +150,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (IPTables, OUTPUT chain)', () => {
-      before(() => { 
-        compiler = 'IPTables'; 
-        chain = 'OUTPUT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'IPTables';
+        chain = 'OUTPUT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
       });
 
       it('should throw invalid chain exception', async () => {
@@ -147,10 +162,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (NFTables, OUTPUT chain)', () => {
-      before(() => { 
-        compiler = 'NFTables'; 
-        chain = 'OUTPUT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'NFTables';
+        chain = 'OUTPUT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
       });
 
       it('should throw invalid chain exception', async () => {
@@ -159,10 +174,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (IPTables, FORWARD chain)', () => {
-      before(() => { 
-        compiler = 'IPTables'; 
-        chain = 'FORWARD' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'IPTables';
+        chain = 'FORWARD';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         ruleData.fw_apply_to = null;
       });
 
@@ -172,10 +187,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (NFTables, FORWARD chain)', () => {
-      before(() => { 
-        compiler = 'NFTables'; 
-        chain = 'FORWARD' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'NFTables';
+        chain = 'FORWARD';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         ruleData.fw_apply_to = null;
       });
 
@@ -185,10 +200,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (IPTables, SNAT chain)', () => {
-      before(() => { 
-        compiler = 'IPTables'; 
-        chain = 'SNAT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'IPTables';
+        chain = 'SNAT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
       });
 
       it('should throw invalid chain exception', async () => {
@@ -197,10 +212,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (NFTables, SNAT chain)', () => {
-      before(() => { 
-        compiler = 'NFTables'; 
-        chain = 'SNAT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'NFTables';
+        chain = 'SNAT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
       });
 
       it('should throw invalid chain exception', async () => {
@@ -209,10 +224,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (IPTables, DNAT chain)', () => {
-      before(() => { 
-        compiler = 'IPTables'; 
-        chain = 'DNAT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'IPTables';
+        chain = 'DNAT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
       });
 
       it('should throw invalid chain exception', async () => {
@@ -221,27 +236,29 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (NFTables, DNAT chain)', () => {
-      before(() => { 
-        compiler = 'NFTables'; 
-        chain = 'DNAT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'NFTables';
+        chain = 'DNAT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
       });
 
       it('should throw invalid chain exception', async () => {
         await runTest();
       });
-    });    
+    });
   });
 
   describe('IPv6', () => {
-    before(() => { IPv = 'IPv6' });
+    before(() => {
+      IPv = 'IPv6';
+    });
 
     describe('CrowdSec special rule compilation (IPTables, INPUT chain)', () => {
-      before(() => { 
-        compiler = 'IPTables'; 
-        chain = 'INPUT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
-        ruleData.fw_apply_to = null; 
+      before(() => {
+        compiler = 'IPTables';
+        chain = 'INPUT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
+        ruleData.fw_apply_to = null;
       });
 
       it('should throw invalid chain exception', async () => {
@@ -250,11 +267,11 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (NFTables, INPUT chain)', () => {
-      before(() => { 
-        compiler = 'NFTables'; 
-        chain = 'INPUT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
-        ruleData.fw_apply_to = null; 
+      before(() => {
+        compiler = 'NFTables';
+        chain = 'INPUT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
+        ruleData.fw_apply_to = null;
       });
 
       it('should throw invalid chain exception', async () => {
@@ -263,10 +280,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (IPTables, OUTPUT chain)', () => {
-      before(() => { 
-        compiler = 'IPTables'; 
-        chain = 'OUTPUT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'IPTables';
+        chain = 'OUTPUT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
       });
 
       it('should throw invalid chain exception', async () => {
@@ -275,10 +292,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (NFTables, OUTPUT chain)', () => {
-      before(() => { 
-        compiler = 'NFTables'; 
-        chain = 'OUTPUT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'NFTables';
+        chain = 'OUTPUT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
       });
 
       it('should throw invalid chain exception', async () => {
@@ -287,10 +304,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (IPTables, FORWARD chain)', () => {
-      before(() => { 
-        compiler = 'IPTables'; 
-        chain = 'FORWARD' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'IPTables';
+        chain = 'FORWARD';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
         ruleData.fw_apply_to = null;
       });
 
@@ -300,11 +317,11 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (NFTables, FORWARD chain)', () => {
-      before(() => { 
-        compiler = 'NFTables'; 
-        chain = 'FORWARD' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
-        ruleData.fw_apply_to = null; 
+      before(() => {
+        compiler = 'NFTables';
+        chain = 'FORWARD';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
+        ruleData.fw_apply_to = null;
       });
 
       it('should throw invalid chain exception', async () => {
@@ -313,10 +330,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (IPTables, SNAT chain)', () => {
-      before(() => { 
-        compiler = 'IPTables'; 
-        chain = 'SNAT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'IPTables';
+        chain = 'SNAT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
       });
 
       it('should throw invalid chain exception', async () => {
@@ -325,10 +342,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (NFTables, SNAT chain)', () => {
-      before(() => { 
-        compiler = 'NFTables'; 
-        chain = 'SNAT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'NFTables';
+        chain = 'SNAT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
       });
 
       it('should throw invalid chain exception', async () => {
@@ -337,10 +354,10 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (IPTables, DNAT chain)', () => {
-      before(() => { 
-        compiler = 'IPTables'; 
-        chain = 'DNAT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'IPTables';
+        chain = 'DNAT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
       });
 
       it('should throw invalid chain exception', async () => {
@@ -349,15 +366,15 @@ describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () 
     });
 
     describe('CrowdSec special rule compilation (NFTables, DNAT chain)', () => {
-      before(() => { 
-        compiler = 'NFTables'; 
-        chain = 'DNAT' 
-        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`); 
+      before(() => {
+        compiler = 'NFTables';
+        chain = 'DNAT';
+        ruleData.type = PolicyTypesMap.get(`${IPv}:${chain}`);
       });
 
       it('should throw invalid chain exception', async () => {
         await runTest();
       });
-    });    
+    });
   });
 });

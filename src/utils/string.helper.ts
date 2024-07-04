@@ -21,46 +21,45 @@
 */
 
 export default class StringHelper {
+  /**
+   * Camelcased a collection of string
+   *
+   * @param words Collection of string to be CamelCased
+   */
+  public static toCamelCase(...words: string[]): string {
+    let result = words.length >= 1 ? words.shift() : '';
 
-    /**
-     * Camelcased a collection of string
-     * 
-     * @param words Collection of string to be CamelCased
-     */
-    public static toCamelCase(...words: string[]): string {
-        let result = words.length >= 1 ? words.shift() : "";
-
-        if (words.length > 0) {
-            words.forEach((element: string) => {
-                result = result + StringHelper.capitalize(element);
-            })
-        }
-
-        return result;
+    if (words.length > 0) {
+      words.forEach((element: string) => {
+        result = result + StringHelper.capitalize(element);
+      });
     }
 
-    /**
-     * Capitalize an string
-     * 
-     * @param word string to be capitalized
-     */
-    public static capitalize(word: string): string {
-        return word.charAt(0).toUpperCase() + word.slice(1);
-    }
+    return result;
+  }
 
-    public static after(pattern: string, text: string): string {
-        const splitted: Array<string> = text.split(pattern);
+  /**
+   * Capitalize an string
+   *
+   * @param word string to be capitalized
+   */
+  public static capitalize(word: string): string {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }
 
-        return splitted[splitted.length - 1];
-    }
+  public static after(pattern: string, text: string): string {
+    const splitted: Array<string> = text.split(pattern);
 
-    public static randomize(length: number = 50): string {
-        var result = '';
-        var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        var charactersLength = characters.length;
-        for (var i = 0; i < length; i++) {
-            result += characters.charAt(Math.floor(Math.random() * charactersLength));
-        }
-        return result;
+    return splitted[splitted.length - 1];
+  }
+
+  public static randomize(length: number = 50): string {
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
+    return result;
+  }
 }

@@ -20,104 +20,120 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Controller } from "../../fonaments/http/controller";
-import { SnapshotService } from "../../snapshots/snapshot.service";
-import { ResponseBuilder } from "../../fonaments/http/response-builder";
-import { Snapshot } from "../../snapshots/snapshot";
-import { SnapshotPolicy } from "../../policies/snapshot.policy";
-import { Request } from "express";
-import { NotFoundException } from "../../fonaments/exceptions/not-found-exception";
-import { FwCloud } from "../../models/fwcloud/FwCloud";
-import { Channel } from "../../sockets/channels/channel";
-import { Validate } from "../../decorators/validate.decorator";
-import { SnapshotControllerStoreDto } from "./dtos/store.dto";
-import { SnapshotControllerUpdateDto } from "./dtos/update.dto";
-import { SnapshotControllerRestoreDto } from "./dtos/restore.dto";
+import { Controller } from '../../fonaments/http/controller';
+import { SnapshotService } from '../../snapshots/snapshot.service';
+import { ResponseBuilder } from '../../fonaments/http/response-builder';
+import { Snapshot } from '../../snapshots/snapshot';
+import { SnapshotPolicy } from '../../policies/snapshot.policy';
+import { Request } from 'express';
+import { NotFoundException } from '../../fonaments/exceptions/not-found-exception';
+import { FwCloud } from '../../models/fwcloud/FwCloud';
+import { Channel } from '../../sockets/channels/channel';
+import { Validate } from '../../decorators/validate.decorator';
+import { SnapshotControllerStoreDto } from './dtos/store.dto';
+import { SnapshotControllerUpdateDto } from './dtos/update.dto';
+import { SnapshotControllerRestoreDto } from './dtos/restore.dto';
 
 export class SnapshotController extends Controller {
+  protected _snapshotService: SnapshotService;
+  protected _fwCloud: FwCloud;
 
-    protected _snapshotService: SnapshotService;
-    protected _fwCloud: FwCloud;
+  public async make(request: Request) {
+    this._snapshotService = await this._app.getService<SnapshotService>(SnapshotService.name);
+    this._fwCloud = await FwCloud.findOneOrFail({
+      where: { id: parseInt(request.params.fwcloud) },
+    });
+  }
 
-    public async make(request: Request) {
-        this._snapshotService = await this._app.getService<SnapshotService>(SnapshotService.name);
-        this._fwCloud = await FwCloud.findOneOrFail({ where: { id: parseInt(request.params.fwcloud) }});
+  @Validate()
+  public async index(request: Request): Promise<ResponseBuilder> {
+    const snapshots: Array<Snapshot> = await this._snapshotService.getAll(this._fwCloud);
+
+    const result: Array<Snapshot> = [];
+
+    for (let i = 0; i < snapshots.length; i++) {
+      if ((await SnapshotPolicy.read(snapshots[i], request.session.user)).can()) {
+        result.push(snapshots[i]);
+      }
     }
 
-    @Validate()
-    public async index(request: Request): Promise<ResponseBuilder> {
-        const snapshots: Array<Snapshot> = await this._snapshotService.getAll(this._fwCloud);
+    return ResponseBuilder.buildResponse().status(200).body(result);
+  }
 
-        const result: Array<Snapshot> = [];
+  @Validate()
+  public async show(request: Request): Promise<ResponseBuilder> {
+    const snapshot: Snapshot = await this._snapshotService.findOneOrFail(
+      this._fwCloud,
+      parseInt(request.params.snapshot),
+    );
 
-        for(let i = 0; i < snapshots.length; i++) {
-            if ((await SnapshotPolicy.read(snapshots[i], request.session.user)).can()) {
-                result.push(snapshots[i]);
-            }
-        }
-
-        return ResponseBuilder.buildResponse().status(200).body(result);
+    if (!(await SnapshotPolicy.read(snapshot, request.session.user)).can()) {
+      throw new NotFoundException();
     }
 
-    @Validate()
-    public async show(request: Request): Promise<ResponseBuilder> {
-        const snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
+    return ResponseBuilder.buildResponse().status(200).body(snapshot);
+  }
 
-        if (!(await SnapshotPolicy.read(snapshot, request.session.user)).can()) {
-            throw new NotFoundException();
-        }
+  @Validate(SnapshotControllerStoreDto)
+  public async store(request: Request): Promise<ResponseBuilder> {
+    (await SnapshotPolicy.create(this._fwCloud, request.session.user)).authorize();
 
-        return ResponseBuilder.buildResponse().status(200).body(snapshot);
-    }
+    const channel: Channel = await Channel.fromRequest(request);
 
-    @Validate(SnapshotControllerStoreDto)
-    public async store(request: Request): Promise<ResponseBuilder> {
-        (await SnapshotPolicy.create(this._fwCloud, request.session.user)).authorize();
+    const snapshot: Snapshot = await this._snapshotService.store(
+      request.inputs.get('name'),
+      request.inputs.get('comment', null),
+      this._fwCloud,
+      channel,
+    );
 
-        const channel: Channel = await Channel.fromRequest(request);
+    return ResponseBuilder.buildResponse().status(201).body(snapshot);
+  }
 
-        const snapshot: Snapshot = await this._snapshotService.store(
-            request.inputs.get('name'), 
-            request.inputs.get('comment', null), 
-            this._fwCloud,
-            channel
-        );
+  @Validate(SnapshotControllerUpdateDto)
+  public async update(request: Request): Promise<ResponseBuilder> {
+    let snapshot: Snapshot = await this._snapshotService.findOneOrFail(
+      this._fwCloud,
+      parseInt(request.params.snapshot),
+    );
 
-        return ResponseBuilder.buildResponse().status(201).body(snapshot);
-    }
+    (await SnapshotPolicy.update(snapshot, request.session.user)).authorize();
 
-    @Validate(SnapshotControllerUpdateDto)
-    public async update(request: Request): Promise<ResponseBuilder> {
-        let snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
+    snapshot = await this._snapshotService.update(snapshot, {
+      name: request.inputs.get('name'),
+      comment: request.inputs.get('comment'),
+    });
 
-        (await SnapshotPolicy.update(snapshot, request.session.user)).authorize();
+    return ResponseBuilder.buildResponse().status(200).body(snapshot);
+  }
 
-        snapshot = await this._snapshotService.update(snapshot, {name: request.inputs.get('name'), comment: request.inputs.get('comment')});
+  @Validate(SnapshotControllerRestoreDto)
+  public async restore(request: Request): Promise<ResponseBuilder> {
+    const snapshot: Snapshot = await this._snapshotService.findOneOrFail(
+      this._fwCloud,
+      parseInt(request.params.snapshot),
+    );
 
-        return ResponseBuilder.buildResponse().status(200).body(snapshot);
-    }
+    (await SnapshotPolicy.restore(snapshot, request.session.user)).authorize();
 
-    @Validate(SnapshotControllerRestoreDto)
-    public async restore(request: Request): Promise<ResponseBuilder> {
-        let snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
+    const channel: Channel = await Channel.fromRequest(request);
 
-        (await SnapshotPolicy.restore(snapshot, request.session.user)).authorize();
+    const fwCloud: FwCloud = await this._snapshotService.restore(snapshot, channel);
 
-        const channel: Channel = await Channel.fromRequest(request);
+    return ResponseBuilder.buildResponse().status(200).body(fwCloud);
+  }
 
-        const fwCloud: FwCloud = await this._snapshotService.restore(snapshot, channel);
+  @Validate()
+  public async destroy(request: Request): Promise<ResponseBuilder> {
+    let snapshot: Snapshot = await this._snapshotService.findOneOrFail(
+      this._fwCloud,
+      parseInt(request.params.snapshot),
+    );
 
-        return ResponseBuilder.buildResponse().status(200).body(fwCloud);
-    }
+    (await SnapshotPolicy.destroy(snapshot, request.session.user)).authorize();
 
-    @Validate()
-    public async destroy(request: Request): Promise<ResponseBuilder> {
-        let snapshot: Snapshot = await this._snapshotService.findOneOrFail(this._fwCloud, parseInt(request.params.snapshot));
+    snapshot = await this._snapshotService.destroy(snapshot);
 
-        (await SnapshotPolicy.destroy(snapshot, request.session.user)).authorize();
-
-        snapshot = await this._snapshotService.destroy(snapshot);
-
-        return ResponseBuilder.buildResponse().status(200).body(snapshot);
-    }
+    return ResponseBuilder.buildResponse().status(200).body(snapshot);
+  }
 }

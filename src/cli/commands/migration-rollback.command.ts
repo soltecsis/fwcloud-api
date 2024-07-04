@@ -20,32 +20,40 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as yargs from "yargs";
-import { DatabaseService } from "../../database/database.service";
-import { DataSource } from "typeorm";
-import { Command, Option } from "../command";
+import * as yargs from 'yargs';
+import { DatabaseService } from '../../database/database.service';
+import { DataSource } from 'typeorm';
+import { Command, Option } from '../command';
 
 /**
  * Runs migration command.
  */
 export class MigrationRollbackCommand extends Command {
-    
-    public name: string = "migration:rollback";
-    public description: string = "Rollback migrations";
+  public name: string = 'migration:rollback';
+  public description: string = 'Rollback migrations';
 
-    async handle(args: yargs.Arguments) {
-        const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
-        const dataSource: DataSource = await databaseService.getDataSource({name: 'cli'});
+  async handle(args: yargs.Arguments) {
+    const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
+      DatabaseService.name,
+    );
+    const dataSource: DataSource = await databaseService.getDataSource({
+      name: 'cli',
+    });
 
-        await databaseService.rollbackMigrations(args.steps as number, dataSource);
+    await databaseService.rollbackMigrations(args.steps as number, dataSource);
 
-        this.output.success(`Rollback ${args.steps as number} migration(s).`)
-    }
+    this.output.success(`Rollback ${args.steps as number} migration(s).`);
+  }
 
-    public getOptions(): Option[] {
-        return [
-            { name: 'steps', alias: 's', description: 'Rollback steps', required: false, default: 1 }
-        ]
-    }
-
+  public getOptions(): Option[] {
+    return [
+      {
+        name: 'steps',
+        alias: 's',
+        description: 'Rollback steps',
+        required: false,
+        default: 1,
+      },
+    ];
+  }
 }

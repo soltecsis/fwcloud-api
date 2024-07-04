@@ -20,49 +20,49 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractApplication } from "../../../../src/fonaments/abstract-application";
-import { testSuite, expect, describeName } from "../../../mocha/global-setup";
-import { DatabaseService } from "../../../../src/database/database.service";
-import { QueryRunner } from "typeorm";
-import { MigrationRollbackCommand } from "../../../../src/cli/commands/migration-rollback.command";
-import { runCLICommandIsolated } from "../../../utils/utils";
+import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
+import { testSuite, expect, describeName } from '../../../mocha/global-setup';
+import { DatabaseService } from '../../../../src/database/database.service';
+import { QueryRunner } from 'typeorm';
+import { MigrationRollbackCommand } from '../../../../src/cli/commands/migration-rollback.command';
+import { runCLICommandIsolated } from '../../../utils/utils';
 
 describe(describeName('MigrationRollbackCommand tests'), () => {
+  after(async () => {
+    await testSuite.resetDatabaseData();
+  });
 
-    after(async() => {
-        await testSuite.resetDatabaseData();
+  it('should rollback multiple migrations', async () => {
+    const app: AbstractApplication = testSuite.app;
+    const databaseService: DatabaseService = await app.getService<DatabaseService>(
+      DatabaseService.name,
+    );
+
+    //First, we need to remove default data.
+    await databaseService.emptyDatabase();
+    await databaseService.runMigrations();
+
+    let queryRunner: QueryRunner = databaseService.dataSource.createQueryRunner();
+    const migration = await queryRunner.query('SELECT count(*) FROM migrations');
+    await queryRunner.release();
+
+    await runCLICommandIsolated(testSuite, async () => {
+      return new MigrationRollbackCommand().safeHandle({
+        $0: 'migration:rollback',
+        steps: 3,
+        s: 3,
+        _: [],
+      });
     });
 
+    if (!databaseService.dataSource.isInitialized) {
+      await databaseService.dataSource.initialize();
+    }
 
-    it('should rollback multiple migrations', async () => {
-        let app: AbstractApplication = testSuite.app;
-        let databaseService: DatabaseService = await app.getService<DatabaseService>(DatabaseService.name);
+    queryRunner = databaseService.dataSource.createQueryRunner();
+    const afterMigration = await queryRunner.query('SELECT count(*) FROM migrations');
+    await queryRunner.release();
 
-        //First, we need to remove default data.
-        await databaseService.emptyDatabase();
-        await databaseService.runMigrations();
-
-        let queryRunner: QueryRunner = databaseService.dataSource.createQueryRunner();
-        const migration = await queryRunner.query('SELECT count(*) FROM migrations');
-        await queryRunner.release();
-        
-        await runCLICommandIsolated(testSuite, async () => {
-            return new MigrationRollbackCommand().safeHandle({
-                $0: "migration:rollback",
-                steps: 3,
-                s: 3,
-                _: []
-            })
-        });
-
-        if (!databaseService.dataSource.isInitialized) {
-            await databaseService.dataSource.initialize();
-        }
-
-        queryRunner  = databaseService.dataSource.createQueryRunner();
-        const afterMigration = await queryRunner.query('SELECT count(*) FROM migrations');
-        await queryRunner.release();
-        
-        expect(parseInt(afterMigration[0]['count(*)'])).to.be.deep.eq(migration[0]['count(*)'] - 3);
-    })
+    expect(parseInt(afterMigration[0]['count(*)'])).to.be.deep.eq(migration[0]['count(*)'] - 3);
+  });
 });

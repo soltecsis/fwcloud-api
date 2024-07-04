@@ -19,46 +19,46 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import { Firewall } from "../../../firewall/Firewall";
-import { DHCPRule } from "../dhcp_r/dhcp_r.model";
-import Model from "../../../Model";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Firewall } from '../../../firewall/Firewall';
+import { DHCPRule } from '../dhcp_r/dhcp_r.model';
+import Model from '../../../Model';
 
 const tableName: string = 'dhcp_g';
 @Entity(tableName)
 export class DHCPGroup extends Model {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({ type: 'varchar', length: 255 })
-    name: string;
+  @Column({ type: 'varchar', length: 255 })
+  name: string;
 
-    @Column({ name: 'firewall' })
-    firewallId: number;
+  @Column({ name: 'firewall' })
+  firewallId: number;
 
-    @ManyToOne(type => Firewall, firewall => firewall.dhcpGroups)
-    @JoinColumn({
-        name: 'firewall'
-    })
-    firewall: Firewall;
+  @ManyToOne((type) => Firewall, (firewall) => firewall.dhcpGroups)
+  @JoinColumn({
+    name: 'firewall',
+  })
+  firewall: Firewall;
 
-    @Column({ type: 'varchar', length: 50 })
-    style: string;
+  @Column({ type: 'varchar', length: 50 })
+  style: string;
 
-    @OneToMany(type => DHCPRule, model => model.group, {
-        eager: true
-    })
-    rules: DHCPRule[];
+  @OneToMany((type) => DHCPRule, (model) => model.group, {
+    eager: true,
+  })
+  rules: DHCPRule[];
 
-    public getTableName(): string {
-        return tableName;
-    }
+  public getTableName(): string {
+    return tableName;
+  }
 
-    public static moveToOtherFirewall(src_firewall: number, dst_firewall: number) {
-        return DHCPGroup.createQueryBuilder()
-            .update()
-            .set({ firewallId: dst_firewall })
-            .where('firewall = :src_firewall', { src_firewall })
-            .execute();
-    }
+  public static moveToOtherFirewall(src_firewall: number, dst_firewall: number) {
+    return DHCPGroup.createQueryBuilder()
+      .update()
+      .set({ firewallId: dst_firewall })
+      .where('firewall = :src_firewall', { src_firewall })
+      .execute();
+  }
 }

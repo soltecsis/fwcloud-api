@@ -20,18 +20,18 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { IsArray, IsBoolean, IsNumber, IsOptional, IsString } from "class-validator"
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class RoutingRuleControllerBulkUpdateDto {
-    @IsBoolean()
-    @IsOptional()
-    active?: boolean;
-    
-    @IsString()
-    @IsOptional()
-    style?: string;
+  @IsBoolean()
+  @IsOptional()
+  active?: boolean;
 
-    @IsNumber()
-    @IsOptional()
-    routingGroupId?: number;
+  @IsString()
+  @IsOptional()
+  style?: string;
+
+  @IsNumber()
+  @IsOptional()
+  routingGroupId?: number;
 }

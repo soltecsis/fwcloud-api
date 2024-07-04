@@ -20,26 +20,27 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
-import * as yargs from "yargs";
-import { DataSource } from "typeorm";
-import { DatabaseService } from "../../database/database.service";
-import { Command } from "../command";
-
+import * as yargs from 'yargs';
+import { DataSource } from 'typeorm';
+import { DatabaseService } from '../../database/database.service';
+import { Command } from '../command';
 
 /**
  * Runs migration command.
  */
 export class MigrationRunCommand extends Command {
-    public name: string = "migration:run";
-    public description: string = "Run all migrations";
+  public name: string = 'migration:run';
+  public description: string = 'Run all migrations';
 
-    async handle(args: yargs.Arguments) {
-        const databaseService: DatabaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
-        const dataSource: DataSource = await databaseService.getDataSource({name: 'cli'});
+  async handle(args: yargs.Arguments) {
+    const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
+      DatabaseService.name,
+    );
+    const dataSource: DataSource = await databaseService.getDataSource({
+      name: 'cli',
+    });
 
-        await databaseService.runMigrations(dataSource);
-        this.output.success(`Pending migrations applied.`);
-    }
-
+    await databaseService.runMigrations(dataSource);
+    this.output.success(`Pending migrations applied.`);
+  }
 }

@@ -1,29 +1,29 @@
-import { IsNumber, IsOptional } from "class-validator";
+import { IsNumber, IsOptional } from 'class-validator';
 
 export class RoutingRuleMoveFromDto {
-    @IsNumber()
-    fromId: number;
-    
-    @IsNumber()
-    toId: number;
-    
-    @IsNumber()
-    @IsOptional()
-    ipObjId?: number;
+  @IsNumber()
+  fromId: number;
 
-    @IsNumber()
-    @IsOptional()
-    ipObjGroupId?: number;
+  @IsNumber()
+  toId: number;
 
-    @IsNumber()
-    @IsOptional()
-    openVPNId?: number;
-    
-    @IsNumber()
-    @IsOptional()
-    openVPNPrefixId?: number;
+  @IsNumber()
+  @IsOptional()
+  ipObjId?: number;
 
-    @IsNumber()
-    @IsOptional()
-    markId?: number;
+  @IsNumber()
+  @IsOptional()
+  ipObjGroupId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  openVPNId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  openVPNPrefixId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  markId?: number;
 }

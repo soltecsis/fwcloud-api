@@ -19,12 +19,12 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Type } from "class-transformer";
-import { IsArray, IsNumber } from "class-validator";
+import { Type } from 'class-transformer';
+import { IsArray, IsNumber } from 'class-validator';
 
 export class DhcpRuleBulkRemoveDto {
-    @IsArray()
-    @IsNumber({}, { each: true })
-    @Type(() => Number)
-    rules: number[];
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @Type(() => Number)
+  rules: number[];
 }

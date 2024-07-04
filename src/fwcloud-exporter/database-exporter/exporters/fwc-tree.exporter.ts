@@ -20,67 +20,83 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { TableExporter } from "./table-exporter";
-import Model from "../../../models/Model";
-import { FwcTree } from "../../../models/tree/fwc-tree.model";
-import { SelectQueryBuilder, Connection, QueryRunner, In, IsNull } from "typeorm";
+import { TableExporter } from './table-exporter';
+import Model from '../../../models/Model';
+import { FwcTree } from '../../../models/tree/fwc-tree.model';
+import { SelectQueryBuilder, Connection, QueryRunner, In, IsNull } from 'typeorm';
 
 export class FwcTreeExporter extends TableExporter {
+  protected _ids: Array<number>;
 
-    protected _ids: Array<number>;
+  protected getEntity(): typeof Model {
+    return FwcTree;
+  }
 
-    protected getEntity(): typeof Model {
-        return FwcTree;
+  public async bootstrap(connection: Connection, fwcloudId: number) {
+    this._ids = await FwcTreeExporter.getNodesId(connection, fwcloudId);
+  }
+
+  public getFilterBuilder(
+    qb: SelectQueryBuilder<any>,
+    alias: string,
+    fwCloudId: number,
+  ): SelectQueryBuilder<any> {
+    if (this._ids.length > 0) {
+      return qb.whereInIds(this._ids);
     }
 
-    public async bootstrap(connection: Connection, fwcloudId: number) {
-        this._ids = await FwcTreeExporter.getNodesId(connection, fwcloudId);
+    //As this._ids is empty, then we return a query which returns an empty set of rows
+    return qb.whereInIds([-1]);
+  }
+
+  /**
+   * Get all node ids which are required by the fwcloud.
+   *
+   * @param connection
+   * @param fwCloudId
+   */
+  public static async getNodesId(
+    connection: Connection,
+    fwCloudId: number,
+  ): Promise<Array<number>> {
+    const queryRunner: QueryRunner = connection.createQueryRunner();
+    let ids: Array<number> = [];
+
+    const parents: Array<FwcTree> = await FwcTree.find({
+      where: { fwCloudId: fwCloudId, parentId: IsNull() },
+    });
+
+    ids = ids.concat(
+      parents.map((item: FwcTree) => {
+        return item.id;
+      }),
+    );
+
+    ids = ids.concat(await this.getChildNodeIds(queryRunner, fwCloudId, ids));
+
+    await queryRunner.release();
+    return ids;
+  }
+
+  protected static async getChildNodeIds(
+    qr: QueryRunner,
+    fwCloudId: number,
+    ids: Array<number>,
+  ): Promise<Array<number>> {
+    if (ids.length === 0) {
+      return [];
     }
 
-    public getFilterBuilder(qb: SelectQueryBuilder<any>, alias: string, fwCloudId: number): SelectQueryBuilder<any> {
-        if (this._ids.length > 0) {
-            return qb.whereInIds(this._ids);
-        }
+    let childIds: Array<number> = (await FwcTree.find({ where: { parentId: In(ids) } })).map(
+      (row: FwcTree) => {
+        return row.id;
+      },
+    );
 
-        //As this._ids is empty, then we return a query which returns an empty set of rows
-        return qb.whereInIds([-1]);
+    if (childIds.length > 0) {
+      childIds = childIds.concat(await this.getChildNodeIds(qr, fwCloudId, childIds));
     }
 
-    /**
-     * Get all node ids which are required by the fwcloud.
-     * 
-     * @param connection 
-     * @param fwCloudId 
-     */
-    public static async getNodesId(connection: Connection, fwCloudId: number): Promise<Array<number>> {
-        const queryRunner: QueryRunner = connection.createQueryRunner();
-        let ids: Array<number> = [];
-        
-        const parents: Array<FwcTree> = (await FwcTree.find({where: {fwCloudId: fwCloudId, parentId: IsNull()}}));
-        
-        ids = ids.concat(parents.map((item: FwcTree) => {
-            return item.id;
-        }));
-
-        ids = ids.concat(await this.getChildNodeIds(queryRunner, fwCloudId, ids));
-
-        await queryRunner.release();
-        return ids;
-    }
-
-    protected static async getChildNodeIds(qr: QueryRunner, fwCloudId: number, ids: Array<number>): Promise<Array<number>> {
-        if (ids.length === 0) {
-            return [];
-        }
-        
-        let childIds: Array<number> = (await FwcTree.find({where: {parentId: In(ids)}})).map((row: FwcTree) => {
-            return row.id
-        });
-
-        if (childIds.length > 0) {
-            childIds = childIds.concat(await this.getChildNodeIds(qr, fwCloudId, childIds));
-        }
-
-        return childIds;
-    }
+    return childIds;
+  }
 }
