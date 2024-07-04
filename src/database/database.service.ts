@@ -138,9 +138,8 @@ export class DatabaseService extends Service {
     const dataSourceOptions: DataSourceOptions = <DataSourceOptions>(
       ObjectHelpers.merge(this.getDefaultDataSourceConfiguration(), options)
     );
-    let dataSource: DataSource;
 
-    dataSource = new DataSource(dataSourceOptions);
+    const dataSource: DataSource = new DataSource(dataSourceOptions);
 
     if (!dataSource.isInitialized) {
       await dataSource.initialize();
