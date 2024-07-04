@@ -122,22 +122,13 @@ describe(KeepalivedController.name, () => {
         },
       } as unknown as Request;
 
-      const KeepalivedruleStub = sinon.stub(
-        manager.getRepository(KeepalivedRule),
-        'findOneOrFail',
-      );
+      const KeepalivedruleStub = sinon.stub(manager.getRepository(KeepalivedRule), 'findOneOrFail');
       const KeepalivedgroupStub = sinon.stub(
         manager.getRepository(KeepalivedGroup),
         'findOneOrFail',
       );
-      const firewallStub = sinon.stub(
-        manager.getRepository(Firewall),
-        'findOneOrFail',
-      );
-      const fwCloudStub = sinon.stub(
-        manager.getRepository(FwCloud),
-        'findOneOrFail',
-      );
+      const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail');
+      const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail');
 
       await controller.make(requestMock);
 
@@ -165,9 +156,7 @@ describe(KeepalivedController.name, () => {
         .stub(manager.getRepository(KeepalivedRule), 'findOneOrFail')
         .throws(new Error('KeepalivedRule not found'));
 
-      await expect(controller.make(requestMock)).to.be.rejectedWith(
-        'KeepalivedRule not found',
-      );
+      await expect(controller.make(requestMock)).to.be.rejectedWith('KeepalivedRule not found');
 
       KeepalivedruleStub.restore();
     });

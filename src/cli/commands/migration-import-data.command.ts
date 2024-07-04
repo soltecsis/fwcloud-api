@@ -34,16 +34,15 @@ export class MigrationImportDataCommand extends Command {
 
   async handle(args: yargs.Arguments) {
     const forceFlag: boolean = (args.force ?? false) as boolean;
-    const databaseService: DatabaseService =
-      await this._app.getService<DatabaseService>(DatabaseService.name);
+    const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
+      DatabaseService.name,
+    );
     const dataSource = databaseService.dataSource;
 
     // If at least a standard object already exists means data have been imported
     if (
       forceFlag ||
-      !(await dataSource.manager
-        .getRepository(IPObj)
-        .findOne({ where: { id: 10000 } }))
+      !(await dataSource.manager.getRepository(IPObj).findOne({ where: { id: 10000 } }))
     ) {
       await databaseService.feedDefaultData();
       this.output.success(`Default data imported.`);

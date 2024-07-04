@@ -32,11 +32,7 @@ describe(describeName('ExporterResult tests'), () => {
       exportResult.addTableData('table2', []);
       exportResult.addTableData('table3', []);
 
-      expect(exportResult.getTableNames()).to.be.deep.eq([
-        'table1',
-        'table2',
-        'table3',
-      ]);
+      expect(exportResult.getTableNames()).to.be.deep.eq(['table1', 'table2', 'table3']);
     });
   });
 });

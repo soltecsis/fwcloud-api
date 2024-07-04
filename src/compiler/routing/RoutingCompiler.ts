@@ -22,10 +22,7 @@
 
 import { EventEmitter } from 'events';
 import { RouteData } from '../../models/routing/routing-table/routing-table.service';
-import {
-  RouteItemForCompiler,
-  RoutingRuleItemForCompiler,
-} from '../../models/routing/shared';
+import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
 import { RoutingRulesData } from '../../models/routing/routing-rule/routing-rule.service';
 import ip from 'ip';
@@ -38,9 +35,7 @@ export type RoutingCompiled = {
 };
 
 export class RoutingCompiler {
-  public ruleCompile(
-    ruleData: RoutingRulesData<RoutingRuleItemForCompiler>,
-  ): string {
+  public ruleCompile(ruleData: RoutingRulesData<RoutingRuleItemForCompiler>): string {
     const items = this.breakDownItems(ruleData.items, 'from ');
     let cs = '';
 
@@ -58,9 +53,7 @@ export class RoutingCompiler {
     const items = this.breakDownItems(routeData.items, '');
     const gw = routeData.gateway.address;
     const dev =
-      routeData.interface && routeData.interface.name
-        ? ` dev ${routeData.interface.name} `
-        : ' ';
+      routeData.interface && routeData.interface.name ? ` dev ${routeData.interface.name} ` : ' ';
     let cs = '';
 
     if (items.length == 0) items.push('default');
@@ -77,9 +70,7 @@ export class RoutingCompiler {
 
   public compile(
     type: 'Route' | 'Rule',
-    data:
-      | RouteData<RouteItemForCompiler>[]
-      | RoutingRulesData<RoutingRuleItemForCompiler>[],
+    data: RouteData<RouteItemForCompiler>[] | RoutingRulesData<RoutingRuleItemForCompiler>[],
     eventEmitter?: EventEmitter,
   ): RoutingCompiled[] {
     const result: RoutingCompiled[] = [];
@@ -103,9 +94,7 @@ export class RoutingCompiler {
           data[i].active || data.length === 1
             ? type == 'Route'
               ? this.routeCompile(data[i] as RouteData<RouteItemForCompiler>)
-              : this.ruleCompile(
-                  data[i] as RoutingRulesData<RoutingRuleItemForCompiler>,
-                )
+              : this.ruleCompile(data[i] as RoutingRulesData<RoutingRuleItemForCompiler>)
             : '',
       });
     }
@@ -121,12 +110,14 @@ export class RoutingCompiler {
 
     for (let i = 0; i < items.length; i++) {
       switch (items[i].type) {
-        case 5: { // ADDRESS
+        case 5: {
+          // ADDRESS
           result.push(`${dir}${items[i].address}`);
           break;
         }
 
-        case 7: { // NETWORK
+        case 7: {
+          // NETWORK
           if (items[i].netmask[0] === '/')
             result.push(`${dir}${items[i].address}${items[i].netmask}`);
           else {
@@ -136,7 +127,8 @@ export class RoutingCompiler {
           break;
         }
 
-        case 6: { // ADDRESS RANGE
+        case 6: {
+          // ADDRESS RANGE
           const firstLong = ip.toLong(items[i].range_start);
           const lastLong = ip.toLong(items[i].range_end);
           for (let current = firstLong; current <= lastLong; current++)
@@ -144,10 +136,9 @@ export class RoutingCompiler {
           break;
         }
 
-        case 30: { // IPTABLES MARKS
-          result.push(
-            `fwmark ${(items[i] as RoutingRuleItemForCompiler).mark_code}`,
-          );
+        case 30: {
+          // IPTABLES MARKS
+          result.push(`fwmark ${(items[i] as RoutingRuleItemForCompiler).mark_code}`);
           break;
         }
       }

@@ -36,28 +36,18 @@ export class HAProxyRuleExporter extends TableExporter {
   ): SelectQueryBuilder<any> {
     return qb
       .where((qb) => {
-        const query = qb
-          .subQuery()
-          .from(HAProxyGroup, 'haproxy_g')
-          .select('haproxy_g.id');
+        const query = qb.subQuery().from(HAProxyGroup, 'haproxy_g').select('haproxy_g.id');
 
         return (
           `${alias}.haproxyGroupId IN ` +
-          new HAProxyGroupExporter()
-            .getFilterBuilder(query, 'dhcp_g', fwCloudId)
-            .getQuery()
+          new HAProxyGroupExporter().getFilterBuilder(query, 'dhcp_g', fwCloudId).getQuery()
         );
       })
       .where((qb) => {
-        const query = qb
-          .subQuery()
-          .from(Firewall, 'firewall')
-          .select('firewall.id');
+        const query = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
         return (
           `${alias}.firewallId IN ` +
-          new FirewallExporter()
-            .getFilterBuilder(query, 'firewall', fwCloudId)
-            .getQuery()
+          new FirewallExporter().getFilterBuilder(query, 'firewall', fwCloudId).getQuery()
         );
       });
   }

@@ -82,9 +82,7 @@ export class StandardServicesAddCommand extends Command {
   private async addStandardTCPServices(): Promise<void> {
     for (const service of this.TCP_services) {
       // Make sure that the service doesn't exists.
-      const exists = await this.dataSource.query(
-        `SELECT id from ipobj where id=${service.id}`,
-      );
+      const exists = await this.dataSource.query(`SELECT id from ipobj where id=${service.id}`);
 
       // If service already exists, then don't create it.
       if (exists.length) {
@@ -120,8 +118,9 @@ export class StandardServicesAddCommand extends Command {
   }
 
   async handle(args: yargs.Arguments) {
-    const databaseService: DatabaseService =
-      await this._app.getService<DatabaseService>(DatabaseService.name);
+    const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
+      DatabaseService.name,
+    );
     this.dataSource = await databaseService.getDataSource({ name: 'cli' });
 
     await this.addStandardTCPServices();

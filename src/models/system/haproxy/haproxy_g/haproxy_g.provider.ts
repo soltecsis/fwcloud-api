@@ -16,10 +16,7 @@
 */
 
 import { AbstractApplication } from '../../../../fonaments/abstract-application';
-import {
-  ServiceBound,
-  ServiceContainer,
-} from '../../../../fonaments/services/service-container';
+import { ServiceBound, ServiceContainer } from '../../../../fonaments/services/service-container';
 import { ServiceProvider } from '../../../../fonaments/services/service-provider';
 import { HAProxyGroupService } from './haproxy_g.service';
 

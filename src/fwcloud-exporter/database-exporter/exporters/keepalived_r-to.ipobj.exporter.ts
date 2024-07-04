@@ -51,9 +51,7 @@ export class KeepalivedRuleToIPObjExporter extends TableExporter {
         const subquery = qb.subQuery().from(IPObj, 'ipobj').select('ipobj.id');
         return (
           `${alias}.ipobj IN ` +
-          new IPObjExporter()
-            .getFilterBuilder(subquery, 'ipobj', fwCloudId)
-            .getQuery()
+          new IPObjExporter().getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery()
         );
       });
   }

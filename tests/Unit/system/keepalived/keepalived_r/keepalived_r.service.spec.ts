@@ -45,9 +45,7 @@ describe(KeepalivedRuleService.name, () => {
     manager = db.getSource().manager;
     await testSuite.resetDatabaseData();
 
-    service = await testSuite.app.getService<KeepalivedRuleService>(
-      KeepalivedRuleService.name,
-    );
+    service = await testSuite.app.getService<KeepalivedRuleService>(KeepalivedRuleService.name);
 
     fwCloud = await manager.getRepository(FwCloud).save(
       manager.getRepository(FwCloud).create({
@@ -115,12 +113,7 @@ describe(KeepalivedRuleService.name, () => {
     it('should return compiler rules data', async () => {
       const rules: number[] = [1, 2, 3];
 
-      const result = await service.getKeepalivedRulesData(
-        'compiler',
-        fwcloud,
-        firewall,
-        rules,
-      );
+      const result = await service.getKeepalivedRulesData('compiler', fwcloud, firewall, rules);
 
       expect(repositoryStub.calledOnce).to.be.true;
       expect(result).to.be.an('array').that.is.not.empty;
@@ -130,14 +123,8 @@ describe(KeepalivedRuleService.name, () => {
       const rules: number[] = [1, 2, 3];
       repositoryStub.rejects(new Error('Get rules error'));
 
-      await expect(
-        service.getKeepalivedRulesData(
-          'keepalived_grid',
-          fwcloud,
-          firewall,
-          rules,
-        ),
-      ).to.be.rejected;
+      await expect(service.getKeepalivedRulesData('keepalived_grid', fwcloud, firewall, rules)).to
+        .be.rejected;
     });
   });
 
@@ -186,9 +173,7 @@ describe(KeepalivedRuleService.name, () => {
       };
 
       const expectedError = new Error('test error');
-      const saveStub = sinon
-        .stub(service['_repository'], 'save')
-        .throws(expectedError);
+      const saveStub = sinon.stub(service['_repository'], 'save').throws(expectedError);
 
       await expect(service.store(data)).to.be.rejectedWith(expectedError);
 
@@ -203,14 +188,12 @@ describe(KeepalivedRuleService.name, () => {
         virtualIpsIds: [],
       };
 
-      const existingRule: KeepalivedRule = manager
-        .getRepository(KeepalivedRule)
-        .create({
-          group: group,
-          firewall: firewall,
-          rule_order: 1,
-          interface: null,
-        });
+      const existingRule: KeepalivedRule = manager.getRepository(KeepalivedRule).create({
+        group: group,
+        firewall: firewall,
+        rule_order: 1,
+        interface: null,
+      });
       existingRule.rule_order = 5;
       const getLastKeepalivedRuleInFirewallStub = sinon
         .stub(service['_repository'], 'getLastKeepalivedRuleInFirewall')
@@ -243,9 +226,7 @@ describe(KeepalivedRuleService.name, () => {
         .stub(service['_repository'], 'getLastKeepalivedRuleInFirewall')
         .resolves(null);
 
-      const saveStub = sinon
-        .stub(service['_repository'], 'save')
-        .resolves(expectedRule);
+      const saveStub = sinon.stub(service['_repository'], 'save').resolves(expectedRule);
 
       const moveRuleStub = sinon.stub(service, 'move').resolves([expectedRule]);
 
@@ -253,13 +234,8 @@ describe(KeepalivedRuleService.name, () => {
 
       expect(getLastKeepalivedRuleInFirewallStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
-      expect(
-        moveRuleStub.calledOnceWith(
-          [expectedRule.id],
-          data.to,
-          data.offset as Offset,
-        ),
-      ).to.be.true;
+      expect(moveRuleStub.calledOnceWith([expectedRule.id], data.to, data.offset as Offset)).to.be
+        .true;
       expect(result).to.deep.equal(expectedRule);
 
       getLastKeepalivedRuleInFirewallStub.restore();
@@ -309,9 +285,7 @@ describe(KeepalivedRuleService.name, () => {
     let moveRuleStub: sinon.SinonStub;
 
     beforeEach(() => {
-      copyStub = sinon
-        .stub(service['_repository'], 'save')
-        .resolves(keepalivedRule);
+      copyStub = sinon.stub(service['_repository'], 'save').resolves(keepalivedRule);
       getLastKeepalivedRuleInFirewallStub = sinon
         .stub(service['_repository'], 'getLastKeepalivedRuleInFirewall')
         .resolves(keepalivedRule);
@@ -325,11 +299,7 @@ describe(KeepalivedRuleService.name, () => {
     });
 
     it('should copy a KeepalivedRule', async () => {
-      const result = await service.copy(
-        [keepalivedRule.id],
-        keepalivedRule.id,
-        Offset.Above,
-      );
+      const result = await service.copy([keepalivedRule.id], keepalivedRule.id, Offset.Above);
 
       expect(copyStub.calledOnce).to.be.true;
       expect(getLastKeepalivedRuleInFirewallStub.calledOnce).to.be.true;
@@ -341,11 +311,7 @@ describe(KeepalivedRuleService.name, () => {
       await service.copy([keepalivedRule.id], keepalivedRule.id, Offset.Below);
 
       expect(
-        moveRuleStub.calledOnceWith(
-          [keepalivedRule.id],
-          keepalivedRule.rule_order,
-          Offset.Below,
-        ),
+        moveRuleStub.calledOnceWith([keepalivedRule.id], keepalivedRule.rule_order, Offset.Below),
       ).to.be.true;
     });
 
@@ -353,11 +319,7 @@ describe(KeepalivedRuleService.name, () => {
       await service.copy([keepalivedRule.id], keepalivedRule.id, Offset.Above);
 
       expect(
-        moveRuleStub.calledOnceWith(
-          [keepalivedRule.id],
-          keepalivedRule.rule_order,
-          Offset.Above,
-        ),
+        moveRuleStub.calledOnceWith([keepalivedRule.id], keepalivedRule.rule_order, Offset.Above),
       ).to.be.true;
     });
 
@@ -365,11 +327,7 @@ describe(KeepalivedRuleService.name, () => {
       await service.copy([keepalivedRule.id], keepalivedRule.id, Offset.Above);
 
       expect(
-        moveRuleStub.calledOnceWith(
-          [keepalivedRule.id],
-          keepalivedRule.rule_order,
-          Offset.Above,
-        ),
+        moveRuleStub.calledOnceWith([keepalivedRule.id], keepalivedRule.rule_order, Offset.Above),
       ).to.be.true;
     });
   });
@@ -378,9 +336,7 @@ describe(KeepalivedRuleService.name, () => {
     let moveStub: sinon.SinonStub;
 
     beforeEach(() => {
-      moveStub = sinon
-        .stub(service['_repository'], 'move')
-        .resolves([keepalivedRule]);
+      moveStub = sinon.stub(service['_repository'], 'move').resolves([keepalivedRule]);
     });
 
     afterEach(() => {
@@ -397,15 +353,13 @@ describe(KeepalivedRuleService.name, () => {
     it('should correctly handle different positions', async () => {
       await service.move([keepalivedRule.id], 1, Offset.Below);
 
-      expect(moveStub.calledOnceWith([keepalivedRule.id], 1, Offset.Below)).to
-        .be.true;
+      expect(moveStub.calledOnceWith([keepalivedRule.id], 1, Offset.Below)).to.be.true;
     });
 
     it('should correctly modify rule_order for each moved rule', async () => {
       await service.move([keepalivedRule.id], 1, Offset.Above);
 
-      expect(moveStub.calledOnceWith([keepalivedRule.id], 1, Offset.Above)).to
-        .be.true;
+      expect(moveStub.calledOnceWith([keepalivedRule.id], 1, Offset.Above)).to.be.true;
     });
   });
 
@@ -467,25 +421,21 @@ describe(KeepalivedRuleService.name, () => {
     });
 
     it('should move virtual IP from one rule to another', async () => {
-      const expectedFromRule: KeepalivedRule = manager
-        .getRepository(KeepalivedRule)
-        .create({
-          id: 1,
-          firewall: {} as Firewall,
-          virtualIps: [{ ipObjId: 2, order: 2 }],
-        });
+      const expectedFromRule: KeepalivedRule = manager.getRepository(KeepalivedRule).create({
+        id: 1,
+        firewall: {} as Firewall,
+        virtualIps: [{ ipObjId: 2, order: 2 }],
+      });
 
-      const expectedToRule: KeepalivedRule = manager
-        .getRepository(KeepalivedRule)
-        .create({
-          id: 2,
-          firewall: {} as Firewall,
-          virtualIps: [
-            { ipObjId: 3, order: 3 },
-            { ipObjId: 4, order: 4 },
-            { ipObjId: 1, order: 5 },
-          ],
-        });
+      const expectedToRule: KeepalivedRule = manager.getRepository(KeepalivedRule).create({
+        id: 2,
+        firewall: {} as Firewall,
+        virtualIps: [
+          { ipObjId: 3, order: 3 },
+          { ipObjId: 4, order: 4 },
+          { ipObjId: 1, order: 5 },
+        ],
+      });
 
       const saveStub = sinon
         .stub(service['_repository'], 'save')
@@ -521,9 +471,7 @@ describe(KeepalivedRuleService.name, () => {
         group: { id: 1 },
       };
 
-      repositoryStub = sinon
-        .stub(service['_repository'], 'findOne')
-        .resolves(keepalivedRule);
+      repositoryStub = sinon.stub(service['_repository'], 'findOne').resolves(keepalivedRule);
     });
 
     afterEach(() => {
@@ -545,9 +493,7 @@ describe(KeepalivedRuleService.name, () => {
         .stub(service['_repository'], 'findOne')
         .rejects(new Error('Update error'));
 
-      await expect(service.update(keepalivedRule.id, {})).to.be.rejectedWith(
-        'Update error',
-      );
+      await expect(service.update(keepalivedRule.id, {})).to.be.rejectedWith('Update error');
     });
   });
 
@@ -574,9 +520,7 @@ describe(KeepalivedRuleService.name, () => {
       const ids = [1, 2, 3];
       const data = { rule_order: 2 };
 
-      const bulkUpdateStub = sinon
-        .stub(service, 'bulkUpdate')
-        .resolves([keepalivedRule]);
+      const bulkUpdateStub = sinon.stub(service, 'bulkUpdate').resolves([keepalivedRule]);
 
       const result = await service.bulkUpdate(ids, data);
 
@@ -594,10 +538,7 @@ describe(KeepalivedRuleService.name, () => {
         .stub(service, 'bulkUpdate')
         .rejects(new Error('Bulk update error'));
 
-      await expect(service.bulkUpdate(ids, data)).to.be.rejectedWith(
-        Error,
-        'Bulk update error',
-      );
+      await expect(service.bulkUpdate(ids, data)).to.be.rejectedWith(Error, 'Bulk update error');
 
       bulkUpdateStub.restore();
     });
@@ -607,9 +548,7 @@ describe(KeepalivedRuleService.name, () => {
     it('should remove the Keepalived rules successfully', async () => {
       const ids = [1, 2, 3];
 
-      const bulkRemoveStub = sinon
-        .stub(service, 'bulkRemove')
-        .resolves([keepalivedRule]);
+      const bulkRemoveStub = sinon.stub(service, 'bulkRemove').resolves([keepalivedRule]);
 
       const result = await service.bulkRemove(ids);
 
@@ -626,10 +565,7 @@ describe(KeepalivedRuleService.name, () => {
         .stub(service, 'bulkRemove')
         .rejects(new Error('Bulk remove error'));
 
-      await expect(service.bulkRemove(ids)).to.be.rejectedWith(
-        Error,
-        'Bulk remove error',
-      );
+      await expect(service.bulkRemove(ids)).to.be.rejectedWith(Error, 'Bulk remove error');
 
       bulkRemoveStub.restore();
     });
@@ -638,14 +574,12 @@ describe(KeepalivedRuleService.name, () => {
       const ids = [1, 2, 3];
 
       const removeStub = sinon.stub(service, 'remove').resolves(keepalivedRule);
-      const bulkRemoveStub = sinon
-        .stub(service, 'bulkRemove')
-        .callsFake(async (ids) => {
-          for (const id of ids) {
-            await service.remove({ id });
-          }
-          return [keepalivedRule];
-        });
+      const bulkRemoveStub = sinon.stub(service, 'bulkRemove').callsFake(async (ids) => {
+        for (const id of ids) {
+          await service.remove({ id });
+        }
+        return [keepalivedRule];
+      });
 
       const result = await service.bulkRemove(ids);
 
@@ -664,14 +598,12 @@ describe(KeepalivedRuleService.name, () => {
       const ids = [1, 2, 3];
 
       const removeStub = sinon.stub(service, 'remove').resolves(keepalivedRule);
-      const bulkRemoveStub = sinon
-        .stub(service, 'bulkRemove')
-        .callsFake(async (ids) => {
-          for (const id of ids) {
-            await service.remove({ id });
-          }
-          return [keepalivedRule];
-        });
+      const bulkRemoveStub = sinon.stub(service, 'bulkRemove').callsFake(async (ids) => {
+        for (const id of ids) {
+          await service.remove({ id });
+        }
+        return [keepalivedRule];
+      });
 
       const result = await service.bulkRemove(ids);
 

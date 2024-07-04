@@ -29,15 +29,8 @@ import { DHCPGroup } from '../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.m
 import { DHCPGroupService } from '../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.service';
 import { User } from '../../../../../src/models/user/User';
 import { expect, testSuite } from '../../../../mocha/global-setup';
-import {
-  FwCloudFactory,
-  FwCloudProduct,
-} from '../../../../utils/fwcloud-factory';
-import {
-  attachSession,
-  createUser,
-  generateSession,
-} from '../../../../utils/utils';
+import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
+import { attachSession, createUser, generateSession } from '../../../../utils/utils';
 import request = require('supertest');
 import db from '../../../../../src/database/database-manager';
 
@@ -67,9 +60,7 @@ describe('DHCPGroup E2E Tests', () => {
     adminUser = await createUser({ role: 1 });
     adminUserSessionId = generateSession(adminUser);
 
-    dhcpGroupService = await app.getService<DHCPGroupService>(
-      DHCPGroupService.name,
-    );
+    dhcpGroupService = await app.getService<DHCPGroupService>(DHCPGroupService.name);
 
     fwcProduct = await new FwCloudFactory().make();
 

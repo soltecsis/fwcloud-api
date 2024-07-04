@@ -26,10 +26,7 @@ import {
 } from '../../../../../src/models/system/haproxy/haproxy_r/haproxy_r.service';
 import { HAProxyRuleItemForCompiler } from '../../../../../src/models/system/haproxy/shared';
 import { testSuite } from '../../../../mocha/global-setup';
-import {
-  FwCloudFactory,
-  FwCloudProduct,
-} from '../../../../utils/fwcloud-factory';
+import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import { expect } from 'chai';
 import { IPObj } from '../../../../../src/models/ipobj/IPObj';
 import { EventEmitter } from 'events';
@@ -50,9 +47,7 @@ describe(HAProxyCompiler.name, () => {
     manager = db.getSource().manager;
     fwc = await new FwCloudFactory().make();
 
-    haproxyService = await testSuite.app.getService<HAProxyRuleService>(
-      HAProxyRuleService.name,
-    );
+    haproxyService = await testSuite.app.getService<HAProxyRuleService>(HAProxyRuleService.name);
 
     const testData: HAProxyRule[] = [];
 
@@ -85,12 +80,11 @@ describe(HAProxyCompiler.name, () => {
       testData.push(rule);
     }
 
-    rules =
-      await haproxyService.getHAProxyRulesData<HAProxyRuleItemForCompiler>(
-        'compiler',
-        fwc.fwcloud.id,
-        fwc.firewall.id,
-      );
+    rules = await haproxyService.getHAProxyRulesData<HAProxyRuleItemForCompiler>(
+      'compiler',
+      fwc.fwcloud.id,
+      fwc.firewall.id,
+    );
   });
 
   describe('compile', () => {
@@ -124,20 +118,15 @@ describe(HAProxyCompiler.name, () => {
 
       compiler.compile(rules, eventEmitter);
 
-      rules.forEach(
-        (
-          rule: HAProxyRulesData<HAProxyRuleItemForCompiler>,
-          index: number,
-        ): void => {
-          expect(
-            progressHandler.calledWith(
-              sinon.match({
-                message: `Compiling HAProxy rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}`,
-              }),
-            ),
-          ).to.be.true;
-        },
-      );
+      rules.forEach((rule: HAProxyRulesData<HAProxyRuleItemForCompiler>, index: number): void => {
+        expect(
+          progressHandler.calledWith(
+            sinon.match({
+              message: `Compiling HAProxy rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}`,
+            }),
+          ),
+        ).to.be.true;
+      });
     });
   });
 });

@@ -1,8 +1,5 @@
 import { expect } from 'chai';
-import {
-  AbstractApplication,
-  app,
-} from '../../../src/fonaments/abstract-application';
+import { AbstractApplication, app } from '../../../src/fonaments/abstract-application';
 import { describeName, testSuite } from '../../mocha/global-setup';
 import { PolicyRuleService } from '../../../src/policy-rule/policy-rule.service';
 import { FwCloudFactory, FwCloudProduct } from '../../utils/fwcloud-factory';
@@ -39,9 +36,9 @@ describe(describeName('PolicyRuleService Unit tests'), async () => {
 
   describe('Bootstrap', () => {
     it('service is instantiated in during bootstrap process', async () => {
-      expect(
-        await app.getService<PolicyRuleService>(PolicyRuleService.name),
-      ).to.be.instanceOf(PolicyRuleService);
+      expect(await app.getService<PolicyRuleService>(PolicyRuleService.name)).to.be.instanceOf(
+        PolicyRuleService,
+      );
     });
   });
 

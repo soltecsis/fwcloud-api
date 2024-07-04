@@ -62,10 +62,7 @@ export class RouterParser {
     this._prefix = path.join(this._prefix, prefix);
   }
 
-  public gates(
-    gates: Array<typeof Gate>,
-    callback: (router: RouterParser) => void,
-  ): void {
+  public gates(gates: Array<typeof Gate>, callback: (router: RouterParser) => void): void {
     this.commitCurrentRoute();
     const parser = this.cloneRouterParser();
     parser.appendGates(this._gates.concat(gates));
@@ -78,10 +75,7 @@ export class RouterParser {
     this._routes = this._routes.concat(parser.routes);
   }
 
-  public prefix(
-    prefix: string,
-    callback: (router: RouterParser) => void,
-  ): void {
+  public prefix(prefix: string, callback: (router: RouterParser) => void): void {
     this.commitCurrentRoute();
 
     const parser = this.cloneRouterParser();
@@ -95,15 +89,8 @@ export class RouterParser {
     this._routes = this._routes.concat(parser.routes);
   }
 
-  public post(
-    pathParams: PathParams,
-    controller: typeof Controller,
-    method: string,
-  ): RouterParser;
-  public post(
-    pathParams: PathParams,
-    controller: RequestHandlerCallback,
-  ): RouterParser;
+  public post(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser;
+  public post(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser;
   public post(
     pathParams: PathParams,
     controller: typeof Controller | RequestHandlerCallback,
@@ -118,15 +105,8 @@ export class RouterParser {
     return this;
   }
 
-  public get(
-    pathParams: PathParams,
-    controller: typeof Controller,
-    method: string,
-  ): RouterParser;
-  public get(
-    pathParams: PathParams,
-    controller: RequestHandlerCallback,
-  ): RouterParser;
+  public get(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser;
+  public get(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser;
   public get(
     pathParams: PathParams,
     controller: typeof Controller | RequestHandlerCallback,
@@ -141,15 +121,8 @@ export class RouterParser {
     return this;
   }
 
-  public all(
-    pathParams: PathParams,
-    controller: typeof Controller,
-    method: string,
-  ): RouterParser;
-  public all(
-    pathParams: PathParams,
-    controller: RequestHandlerCallback,
-  ): RouterParser;
+  public all(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser;
+  public all(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser;
   public all(
     pathParams: PathParams,
     controller: typeof Controller | RequestHandlerCallback,
@@ -169,10 +142,7 @@ export class RouterParser {
     controller: typeof Controller,
     method: string,
   ): RouterParser;
-  public options(
-    pathParams: PathParams,
-    controller: RequestHandlerCallback,
-  ): RouterParser;
+  public options(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser;
   public options(
     pathParams: PathParams,
     controller: typeof Controller | RequestHandlerCallback,
@@ -192,10 +162,7 @@ export class RouterParser {
     controller: typeof Controller,
     method: string,
   ): RouterParser;
-  public delete(
-    pathParams: PathParams,
-    controller: RequestHandlerCallback,
-  ): RouterParser;
+  public delete(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser;
   public delete(
     pathParams: PathParams,
     controller: typeof Controller | RequestHandlerCallback,
@@ -210,15 +177,8 @@ export class RouterParser {
     return this;
   }
 
-  public head(
-    pathParams: PathParams,
-    controller: typeof Controller,
-    method: string,
-  ): RouterParser;
-  public head(
-    pathParams: PathParams,
-    controller: RequestHandlerCallback,
-  ): RouterParser;
+  public head(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser;
+  public head(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser;
   public head(
     pathParams: PathParams,
     controller: typeof Controller | RequestHandlerCallback,
@@ -233,15 +193,8 @@ export class RouterParser {
     return this;
   }
 
-  public patch(
-    pathParams: PathParams,
-    controller: typeof Controller,
-    method: string,
-  ): RouterParser;
-  public patch(
-    pathParams: PathParams,
-    controller: RequestHandlerCallback,
-  ): RouterParser;
+  public patch(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser;
+  public patch(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser;
   public patch(
     pathParams: PathParams,
     controller: typeof Controller | RequestHandlerCallback,
@@ -256,15 +209,8 @@ export class RouterParser {
     return this;
   }
 
-  public put(
-    pathParams: PathParams,
-    controller: typeof Controller,
-    method: string,
-  ): RouterParser;
-  public put(
-    pathParams: PathParams,
-    controller: RequestHandlerCallback,
-  ): RouterParser;
+  public put(pathParams: PathParams, controller: typeof Controller, method: string): RouterParser;
+  public put(pathParams: PathParams, controller: RequestHandlerCallback): RouterParser;
   public put(
     pathParams: PathParams,
     controller: typeof Controller | RequestHandlerCallback,

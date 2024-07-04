@@ -21,14 +21,7 @@
 */
 
 import Model from '../Model';
-import {
-  PrimaryGeneratedColumn,
-  Column,
-  Entity,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { PolicyRule } from '../policy/PolicyRule';
 import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
@@ -106,14 +99,10 @@ export class Mark extends Model {
         name: req.body.name,
         comment: req.body.comment,
       };
-      req.dbCon.query(
-        `INSERT INTO ${tableName} SET ?`,
-        markData,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result.insertId);
-        },
-      );
+      req.dbCon.query(`INSERT INTO ${tableName} SET ?`, markData, (error, result) => {
+        if (error) return reject(error);
+        resolve(result.insertId);
+      });
     });
   }
 
@@ -132,26 +121,20 @@ export class Mark extends Model {
   // Delete an iptables mark.
   public static deleteMark(dbCon, mark): Promise<void> {
     return new Promise((resolve, reject) => {
-      dbCon.query(
-        `DELETE from ${tableName} WHERE id=${mark}`,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve();
-        },
-      );
+      dbCon.query(`DELETE from ${tableName} WHERE id=${mark}`, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
     });
   }
 
   public static getMark(dbCon, mark) {
     return new Promise((resolve, reject) => {
-      dbCon.query(
-        `select * from ${tableName} WHERE id=${mark}`,
-        (error, result) => {
-          if (error) return reject(error);
-          if (result.length !== 1) return reject(fwcError.NOT_FOUND);
-          resolve(result[0]);
-        },
-      );
+      dbCon.query(`select * from ${tableName} WHERE id=${mark}`, (error, result) => {
+        if (error) return reject(error);
+        if (result.length !== 1) return reject(fwcError.NOT_FOUND);
+        resolve(result[0]);
+      });
     });
   }
 
@@ -181,11 +164,7 @@ export class Mark extends Model {
         search.result = false;
         search.restrictions = {};
 
-        search.restrictions.MarkInRule = await this.searchMarkInRule(
-          dbCon,
-          fwcloud,
-          mark,
-        );
+        search.restrictions.MarkInRule = await this.searchMarkInRule(dbCon, fwcloud, mark);
 
         search.restrictions.MarkInRoutingRule = await db
           .getSource()

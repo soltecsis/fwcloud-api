@@ -34,9 +34,7 @@ describe(describeName('StringHelper Unit Tests'), () => {
     });
 
     it('toCamelCase should return camelcased word', () => {
-      expect(StringHelper.toCamelCase('test', 'test')).to.be.deep.equal(
-        'testTest',
-      );
+      expect(StringHelper.toCamelCase('test', 'test')).to.be.deep.equal('testTest');
     });
 
     it('capitalize should return capitalized word', () => {

@@ -14,9 +14,7 @@ describe(describeName('Channel Unit Tests'), () => {
 
   beforeEach(async () => {
     app = testSuite.app;
-    webSocketService = await app.getService<WebSocketService>(
-      WebSocketService.name,
-    );
+    webSocketService = await app.getService<WebSocketService>(WebSocketService.name);
     listener = new EventEmitter();
     channel = new Channel(uuid.v1(), listener);
   });

@@ -104,9 +104,7 @@ export class SystemServicesNode1696782681632 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query("DELETE FROM `fwc_tree` WHERE `node_type` = 'S04'");
-    await queryRunner.query(
-      "DELETE FROM `fwc_tree` WHERE `node_type` IN ('S01', 'S02', 'S03')",
-    );
+    await queryRunner.query("DELETE FROM `fwc_tree` WHERE `node_type` IN ('S01', 'S02', 'S03')");
 
     await queryRunner.query("DELETE FROM `fwc_tree` WHERE `node_type` = 'SYS'");
 

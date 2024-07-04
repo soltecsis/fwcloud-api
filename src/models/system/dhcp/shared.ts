@@ -27,9 +27,7 @@ export type DHCPRuleItemForCompiler = {
 };
 
 export class DHCPUtils {
-  public static async mapEntityData<
-    T extends ItemForGrid | DHCPRuleItemForCompiler,
-  >(
+  public static async mapEntityData<T extends ItemForGrid | DHCPRuleItemForCompiler>(
     sql: SelectQueryBuilder<IPObj | IPObjGroup>,
     ItemsArrayMap: Map<number, T[]>,
   ): Promise<void> {

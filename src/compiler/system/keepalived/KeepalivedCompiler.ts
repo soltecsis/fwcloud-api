@@ -26,9 +26,7 @@ export type KeepalivedCompiled = {
 };
 
 export class KeepalivedCompiler {
-  public ruleCompile(
-    ruleData: KeepalivedRulesData<KeepalivedRuleItemForCompiler>,
-  ): string {
+  public ruleCompile(ruleData: KeepalivedRulesData<KeepalivedRuleItemForCompiler>): string {
     let cs: string = '';
 
     switch (ruleData.rule_type) {

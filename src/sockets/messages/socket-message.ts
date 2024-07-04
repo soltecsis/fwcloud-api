@@ -51,61 +51,37 @@ export class ProgressPayload extends SocketMessagePayload {
 }
 
 export class ProgressNoticePayload extends ProgressPayload {
-  constructor(
-    message: string,
-    highlight: boolean = false,
-    task_id: string = null,
-  ) {
+  constructor(message: string, highlight: boolean = false, task_id: string = null) {
     super('notice', highlight, message, task_id);
   }
 }
 
 export class ProgressInfoPayload extends ProgressPayload {
-  constructor(
-    message: string,
-    highlight: boolean = false,
-    task_id: string = null,
-  ) {
+  constructor(message: string, highlight: boolean = false, task_id: string = null) {
     super('info', highlight, message, task_id);
   }
 }
 
 export class ProgressSuccessPayload extends ProgressPayload {
-  constructor(
-    message: string,
-    highlight: boolean = false,
-    task_id: string = null,
-  ) {
+  constructor(message: string, highlight: boolean = false, task_id: string = null) {
     super('success', highlight, message, task_id);
   }
 }
 
 export class ProgressWarningPayload extends ProgressPayload {
-  constructor(
-    message: string,
-    highlight: boolean = false,
-    task_id: string = null,
-  ) {
+  constructor(message: string, highlight: boolean = false, task_id: string = null) {
     super('warning', highlight, message, task_id);
   }
 }
 
 export class ProgressErrorPayload extends ProgressPayload {
-  constructor(
-    message: string,
-    highlight: boolean = false,
-    task_id: string = null,
-  ) {
+  constructor(message: string, highlight: boolean = false, task_id: string = null) {
     super('error', highlight, message, task_id);
   }
 }
 
 export class ProgressSSHCmdPayload extends ProgressPayload {
-  constructor(
-    message: string,
-    highlight: boolean = false,
-    task_id: string = null,
-  ) {
+  constructor(message: string, highlight: boolean = false, task_id: string = null) {
     super('ssh_cmd_output', highlight, message, task_id);
   }
 }

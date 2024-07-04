@@ -54,10 +54,7 @@ export class PolicyRuleToOpenVPN extends Model {
   @Column()
   updated_by: number;
 
-  @ManyToOne(
-    (type) => PolicyPosition,
-    (policyPosition) => policyPosition.policyRuleToOpenVPNs,
-  )
+  @ManyToOne((type) => PolicyPosition, (policyPosition) => policyPosition.policyRuleToOpenVPNs)
   @JoinColumn({
     name: 'position',
   })
@@ -69,10 +66,7 @@ export class PolicyRuleToOpenVPN extends Model {
   })
   openVPN: OpenVPN;
 
-  @ManyToOne(
-    (type) => PolicyRule,
-    (policyRule) => policyRule.policyRuleToOpenVPNs,
-  )
+  @ManyToOne((type) => PolicyRule, (policyRule) => policyRule.policyRuleToOpenVPNs)
   @JoinColumn({
     name: 'rule',
   })
@@ -91,14 +85,10 @@ export class PolicyRuleToOpenVPN extends Model {
         position: req.body.position,
         position_order: req.body.position_order,
       };
-      req.dbCon.query(
-        `insert into ${tableName} set ?`,
-        policyOpenvpn,
-        async (error, result) => {
-          if (error) return reject(error);
-          resolve(result.insertId);
-        },
-      );
+      req.dbCon.query(`insert into ${tableName} set ?`, policyOpenvpn, async (error, result) => {
+        if (error) return reject(error);
+        resolve(result.insertId);
+      });
     });
   }
 
@@ -148,22 +138,15 @@ export class PolicyRuleToOpenVPN extends Model {
 
   public static deleteFromRule(dbCon, rule): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      dbCon.query(
-        `DELETE FROM ${tableName} WHERE rule=${rule}`,
-        async (error, rows) => {
-          if (error) return reject(error);
-          resolve();
-        },
-      );
+      dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error, rows) => {
+        if (error) return reject(error);
+        resolve();
+      });
     });
   }
 
   //Duplicate policy_r__openvpn RULES
-  public static duplicatePolicy_r__openvpn(
-    dbCon,
-    rule,
-    new_rule,
-  ): Promise<void> {
+  public static duplicatePolicy_r__openvpn(dbCon, rule, new_rule): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `INSERT INTO ${tableName} (rule, openvpn, position,position_order)
                 (SELECT ${new_rule}, openvpn, position, position_order
@@ -213,11 +196,7 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static getConfigsUnderOpenvpnPrefix(
-    dbCon,
-    openvpn_server_id,
-    prefix_name,
-  ) {
+  public static getConfigsUnderOpenvpnPrefix(dbCon, openvpn_server_id, prefix_name) {
     return new Promise((resolve, reject) => {
       // Get all OpenVPN client configs under an openvpn configuration server whose CRT common name matches the prefix name.
       const sql = `select VPN.id from openvpn VPN
@@ -252,11 +231,7 @@ export class PolicyRuleToOpenVPN extends Model {
         const result = [];
         try {
           for (const row of rows) {
-            const data: any = await this.getConfigsUnderOpenvpnPrefix(
-              dbCon,
-              row.openvpn,
-              row.name,
-            );
+            const data: any = await this.getConfigsUnderOpenvpnPrefix(dbCon, row.openvpn, row.name);
             // We are the last OpenVPN client config in the prefix used in and openvpn server and in a rule.
             if (data.length === 1 && data[0].id === openvpn) result.push(row);
           }
@@ -286,11 +261,7 @@ export class PolicyRuleToOpenVPN extends Model {
         const result = [];
         try {
           for (const row of rows) {
-            const data: any = await this.getConfigsUnderOpenvpnPrefix(
-              dbCon,
-              row.openvpn,
-              row.name,
-            );
+            const data: any = await this.getConfigsUnderOpenvpnPrefix(dbCon, row.openvpn, row.name);
             // We are the last OpenVPN client config in the prefix used in and openvpn server and in a rule.
             if (data.length === 1 && data[0].id === openvpn) result.push(row);
           }

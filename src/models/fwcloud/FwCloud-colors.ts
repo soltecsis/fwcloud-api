@@ -29,8 +29,7 @@ export class fwcloudColors {
   private _colors: colorUsage[] = [];
 
   constructor(data: any[]) {
-    for (const item of data)
-      this._colors.push({ color: item.color, count: parseInt(item.count) });
+    for (const item of data) this._colors.push({ color: item.color, count: parseInt(item.count) });
   }
 
   get colors(): colorUsage[] {

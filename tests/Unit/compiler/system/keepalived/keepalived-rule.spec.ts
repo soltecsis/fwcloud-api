@@ -30,10 +30,7 @@ import {
 } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service';
 import { KeepalivedRuleItemForCompiler } from '../../../../../src/models/system/keepalived/shared';
 import { expect, testSuite } from '../../../../mocha/global-setup';
-import {
-  FwCloudFactory,
-  FwCloudProduct,
-} from '../../../../utils/fwcloud-factory';
+import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import db from '../../../../../src/database/database-manager';
 
 describe(KeepalivedCompiler.name, () => {
@@ -50,37 +47,33 @@ describe(KeepalivedCompiler.name, () => {
 
     fwc = await new FwCloudFactory().make();
 
-    keepalivedRuleService =
-      await testSuite.app.getService<KeepalivedRuleService>(
-        KeepalivedRuleService.name,
-      );
+    keepalivedRuleService = await testSuite.app.getService<KeepalivedRuleService>(
+      KeepalivedRuleService.name,
+    );
 
     const testData: KeepalivedRule[] = [];
 
     for (let i = 0; i < 10; i++) {
-      const rule: KeepalivedRule = await manager
-        .getRepository(KeepalivedRule)
-        .save(
-          manager.getRepository(KeepalivedRule).create({
-            id: 1,
-            rule_order: 1,
-            rule_type: 1,
-            firewall: fwc.firewall,
-            max_lease: 5,
-            interface: null,
-            virtualIps: [],
-          } as DeepPartial<KeepalivedRule>),
-        );
+      const rule: KeepalivedRule = await manager.getRepository(KeepalivedRule).save(
+        manager.getRepository(KeepalivedRule).create({
+          id: 1,
+          rule_order: 1,
+          rule_type: 1,
+          firewall: fwc.firewall,
+          max_lease: 5,
+          interface: null,
+          virtualIps: [],
+        } as DeepPartial<KeepalivedRule>),
+      );
 
       testData.push(rule);
     }
 
-    rules =
-      await keepalivedRuleService.getKeepalivedRulesData<KeepalivedRuleItemForCompiler>(
-        'compiler',
-        fwc.fwcloud.id,
-        fwc.firewall.id,
-      );
+    rules = await keepalivedRuleService.getKeepalivedRulesData<KeepalivedRuleItemForCompiler>(
+      'compiler',
+      fwc.fwcloud.id,
+      fwc.firewall.id,
+    );
   });
 
   describe('compile', () => {
@@ -115,10 +108,7 @@ describe(KeepalivedCompiler.name, () => {
       compiler.compile(rules, eventEmitter);
 
       rules.forEach(
-        (
-          rule: KeepalivedRulesData<KeepalivedRuleItemForCompiler>,
-          index: number,
-        ): void => {
+        (rule: KeepalivedRulesData<KeepalivedRuleItemForCompiler>, index: number): void => {
           expect(
             progressHandler.calledWith(
               sinon.match({

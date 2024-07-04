@@ -43,9 +43,7 @@ export class RouteToIPObjGroupExporter extends TableExporter {
 
       return (
         `${alias}.routeId IN` +
-        new RoutingRuleExporter()
-          .getFilterBuilder(subquery, 'route', fwCloudId)
-          .getQuery()
+        new RoutingRuleExporter().getFilterBuilder(subquery, 'route', fwCloudId).getQuery()
       );
     });
   }

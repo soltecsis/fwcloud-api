@@ -50,9 +50,7 @@ describe(DHCPRuleService.name, () => {
     manager = db.getSource().manager;
     await testSuite.resetDatabaseData();
 
-    service = await testSuite.app.getService<DHCPRuleService>(
-      DHCPRuleService.name,
-    );
+    service = await testSuite.app.getService<DHCPRuleService>(DHCPRuleService.name);
 
     fwCloud = await manager.getRepository(FwCloud).save(
       manager.getRepository(FwCloud).create({
@@ -97,16 +95,9 @@ describe(DHCPRuleService.name, () => {
         .stub(service['_repository'], 'getDHCPRules')
         .resolves([dhcpRule]);
 
-      const result = await service.getDHCPRulesData(
-        'regular_grid',
-        fwcloud,
-        firewall,
-        rules,
-      );
+      const result = await service.getDHCPRulesData('regular_grid', fwcloud, firewall, rules);
 
-      expect(
-        repositoryStub.calledOnceWithExactly(fwcloud, firewall, rules, [1, 3]),
-      ).to.be.true;
+      expect(repositoryStub.calledOnceWithExactly(fwcloud, firewall, rules, [1, 3])).to.be.true;
       expect(result).to.deep.equal([dhcpRule]);
 
       repositoryStub.restore();
@@ -118,16 +109,9 @@ describe(DHCPRuleService.name, () => {
         .stub(service['_repository'], 'getDHCPRules')
         .resolves([dhcpRule]);
 
-      const result = await service.getDHCPRulesData(
-        'fixed_grid',
-        fwcloud,
-        firewall,
-        rules,
-      );
+      const result = await service.getDHCPRulesData('fixed_grid', fwcloud, firewall, rules);
 
-      expect(
-        repositoryStub.calledOnceWithExactly(fwcloud, firewall, rules, [2]),
-      ).to.be.true;
+      expect(repositoryStub.calledOnceWithExactly(fwcloud, firewall, rules, [2])).to.be.true;
       expect(result).to.deep.equal([dhcpRule]);
 
       repositoryStub.restore();
@@ -139,12 +123,7 @@ describe(DHCPRuleService.name, () => {
         .stub(service['_repository'], 'getDHCPRules')
         .resolves([dhcpRule]);
 
-      const result = await service.getDHCPRulesData(
-        'compiler',
-        fwcloud,
-        firewall,
-        rules,
-      );
+      const result = await service.getDHCPRulesData('compiler', fwcloud, firewall, rules);
 
       expect(repositoryStub.called).to.be.true;
       expect(result).to.deep.equal([dhcpRule]);
@@ -199,22 +178,18 @@ describe(DHCPRuleService.name, () => {
         interfaceId: 1,
       };
 
-      const expectedDHCPRule: DHCPRule = manager
-        .getRepository(DHCPRule)
-        .create({
-          group: group,
-          rule_order: 1,
-          interface: null,
-        });
+      const expectedDHCPRule: DHCPRule = manager.getRepository(DHCPRule).create({
+        group: group,
+        rule_order: 1,
+        interface: null,
+      });
       service['_repository'].getLastDHCPRuleInFirewall = () => null;
       const getLastDHCPRuleInGroupStub = sinon.stub(
         service['_repository'],
         'getLastDHCPRuleInFirewall',
       );
       getLastDHCPRuleInGroupStub.returns(null);
-      const saveStub = sinon
-        .stub(service['_repository'], 'save')
-        .resolves(expectedDHCPRule);
+      const saveStub = sinon.stub(service['_repository'], 'save').resolves(expectedDHCPRule);
 
       const result = await service.store(data);
 
@@ -264,9 +239,7 @@ describe(DHCPRuleService.name, () => {
       };
 
       const expectedError = new Error('test error');
-      const saveStub = sinon
-        .stub(service['_repository'], 'save')
-        .throws(expectedError);
+      const saveStub = sinon.stub(service['_repository'], 'save').throws(expectedError);
 
       await expect(service.store(data)).to.be.rejectedWith(expectedError);
 
@@ -322,13 +295,11 @@ describe(DHCPRuleService.name, () => {
         offset: 'above',
       };
 
-      const expectedDHCPRule: DHCPRule = manager
-        .getRepository(DHCPRule)
-        .create({
-          group: {} as DHCPGroup,
-          rule_order: 1,
-          interface: {} as Interface,
-        });
+      const expectedDHCPRule: DHCPRule = manager.getRepository(DHCPRule).create({
+        group: {} as DHCPGroup,
+        rule_order: 1,
+        interface: {} as Interface,
+      });
 
       const getLastDHCPRuleInGroupStub = sinon.stub(
         service['_repository'],
@@ -346,13 +317,8 @@ describe(DHCPRuleService.name, () => {
 
       expect(getLastDHCPRuleInGroupStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
-      expect(
-        moveStub.calledOnceWith(
-          [expectedDHCPRule.id],
-          data.to,
-          data.offset as Offset,
-        ),
-      ).to.be.true; // Cast 'data.offset' to 'Offset'
+      expect(moveStub.calledOnceWith([expectedDHCPRule.id], data.to, data.offset as Offset)).to.be
+        .true; // Cast 'data.offset' to 'Offset'
       expect(result).to.deep.equal(expectedDHCPRule);
 
       getLastDHCPRuleInGroupStub.restore();
@@ -405,9 +371,7 @@ describe(DHCPRuleService.name, () => {
       data.networkId = network.id;
       data.routerId = router.id;
 
-      await expect(service.store(data)).to.be.rejectedWith(
-        'IP version mismatch',
-      );
+      await expect(service.store(data)).to.be.rejectedWith('IP version mismatch');
     });
   });
 
@@ -423,9 +387,7 @@ describe(DHCPRuleService.name, () => {
           firewall: firewall,
         }),
       );
-      copyStub = sinon
-        .stub(service['_repository'], 'save')
-        .resolves(dhcpRule as DHCPRule);
+      copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule as DHCPRule);
       getLastDHCPRuleInFirewallStub = sinon
         .stub(service['_repository'], 'getLastDHCPRuleInFirewall')
         .resolves(dhcpRule);
@@ -438,11 +400,7 @@ describe(DHCPRuleService.name, () => {
     });
 
     it('should copy a DHCPRule successfully', async () => {
-      const result: DHCPRule[] = await service.copy(
-        [dhcpRule.id],
-        dhcpRule.id,
-        Offset.Above,
-      );
+      const result: DHCPRule[] = await service.copy([dhcpRule.id], dhcpRule.id, Offset.Above);
 
       expect(copyStub.called).to.be.true;
       expect(result[0].id).equal(dhcpRule.id);
@@ -455,37 +413,19 @@ describe(DHCPRuleService.name, () => {
     it('should correctly handle different positions', async () => {
       await service.copy([dhcpRule.id], dhcpRule.id, Offset.Below);
 
-      expect(
-        moveStub.calledOnceWith(
-          [dhcpRule.id],
-          dhcpRule.rule_order,
-          Offset.Below,
-        ),
-      ).to.be.true;
+      expect(moveStub.calledOnceWith([dhcpRule.id], dhcpRule.rule_order, Offset.Below)).to.be.true;
     });
 
     it('should correctly modify rule_order for each copied rule', async () => {
       await service.copy([dhcpRule.id], dhcpRule.id, Offset.Above);
 
-      expect(
-        moveStub.calledOnceWith(
-          [dhcpRule.id],
-          dhcpRule.rule_order,
-          Offset.Above,
-        ),
-      ).to.be.true;
+      expect(moveStub.calledOnceWith([dhcpRule.id], dhcpRule.rule_order, Offset.Above)).to.be.true;
     });
 
     it('should call move method with correct parameters after copying', async () => {
       await service.copy([dhcpRule.id], dhcpRule.id, Offset.Above);
 
-      expect(
-        moveStub.calledOnceWith(
-          [dhcpRule.id],
-          dhcpRule.rule_order,
-          Offset.Above,
-        ),
-      ).to.be.true;
+      expect(moveStub.calledOnceWith([dhcpRule.id], dhcpRule.rule_order, Offset.Above)).to.be.true;
     });
   });
 
@@ -511,14 +451,9 @@ describe(DHCPRuleService.name, () => {
       const destRule = 4;
       const offset = Offset.Above;
 
-      const moveStub = sinon
-        .stub(service, 'move')
-        .rejects(new Error('Move error'));
+      const moveStub = sinon.stub(service, 'move').rejects(new Error('Move error'));
 
-      await expect(service.move(ids, destRule, offset)).to.be.rejectedWith(
-        Error,
-        'Move error',
-      );
+      await expect(service.move(ids, destRule, offset)).to.be.rejectedWith(Error, 'Move error');
 
       moveStub.restore();
     });
@@ -622,17 +557,14 @@ describe(DHCPRuleService.name, () => {
 
       const result = await service.update(dhcpRule.id, { rule_order: 2 });
 
-      expect(updateStub.calledOnceWith(dhcpRule.id, { rule_order: 2 })).to.be
-        .true;
+      expect(updateStub.calledOnceWith(dhcpRule.id, { rule_order: 2 })).to.be.true;
       expect(result).to.deep.equal(dhcpRule);
 
       updateStub.restore();
     });
 
     it('should handle errors when the DHCPRule to update is not found', async () => {
-      const updateStub = sinon
-        .stub(service, 'update')
-        .rejects(new Error('DHCPRule not found'));
+      const updateStub = sinon.stub(service, 'update').rejects(new Error('DHCPRule not found'));
 
       await expect(service.update(1, { rule_order: 2 })).to.be.rejectedWith(
         Error,
@@ -667,8 +599,7 @@ describe(DHCPRuleService.name, () => {
 
       const result = await service.update(dhcpRule.id, { group: group2.id });
 
-      expect(updateStub.calledOnceWith(dhcpRule.id, { group: group2.id })).to.be
-        .true;
+      expect(updateStub.calledOnceWith(dhcpRule.id, { group: group2.id })).to.be.true;
       expect(result).to.deep.equal(dhcpRule);
 
       updateStub.restore();
@@ -741,9 +672,10 @@ describe(DHCPRuleService.name, () => {
         .stub(service, 'validateUpdateIpObjIds')
         .rejects(new Error('Validation error'));
 
-      await expect(
-        service.update(dhcpRule.id, { ipObjIds }),
-      ).to.be.rejectedWith(Error, 'Validation error');
+      await expect(service.update(dhcpRule.id, { ipObjIds })).to.be.rejectedWith(
+        Error,
+        'Validation error',
+      );
 
       validateUpdateIpObjIdsStub.restore();
     });
@@ -834,9 +766,7 @@ describe(DHCPRuleService.name, () => {
       const ids = [1, 2, 3];
       const data = { rule_order: 2 };
 
-      const bulkUpdateStub = sinon
-        .stub(service, 'bulkUpdate')
-        .resolves([dhcpRule]);
+      const bulkUpdateStub = sinon.stub(service, 'bulkUpdate').resolves([dhcpRule]);
 
       const result = await service.bulkUpdate(ids, data);
 
@@ -854,10 +784,7 @@ describe(DHCPRuleService.name, () => {
         .stub(service, 'bulkUpdate')
         .rejects(new Error('Bulk update error'));
 
-      await expect(service.bulkUpdate(ids, data)).to.be.rejectedWith(
-        Error,
-        'Bulk update error',
-      );
+      await expect(service.bulkUpdate(ids, data)).to.be.rejectedWith(Error, 'Bulk update error');
 
       bulkUpdateStub.restore();
     });
@@ -867,9 +794,7 @@ describe(DHCPRuleService.name, () => {
     it('should remove the DHCP rules successfully', async () => {
       const ids = [1, 2, 3];
 
-      const bulkRemoveStub = sinon
-        .stub(service, 'bulkRemove')
-        .resolves([dhcpRule]);
+      const bulkRemoveStub = sinon.stub(service, 'bulkRemove').resolves([dhcpRule]);
 
       const result = await service.bulkRemove(ids);
 
@@ -886,10 +811,7 @@ describe(DHCPRuleService.name, () => {
         .stub(service, 'bulkRemove')
         .rejects(new Error('Bulk remove error'));
 
-      await expect(service.bulkRemove(ids)).to.be.rejectedWith(
-        Error,
-        'Bulk remove error',
-      );
+      await expect(service.bulkRemove(ids)).to.be.rejectedWith(Error, 'Bulk remove error');
 
       bulkRemoveStub.restore();
     });
@@ -898,14 +820,12 @@ describe(DHCPRuleService.name, () => {
       const ids = [1, 2, 3];
 
       const removeStub = sinon.stub(service, 'remove').resolves(dhcpRule);
-      const bulkRemoveStub = sinon
-        .stub(service, 'bulkRemove')
-        .callsFake(async (ids) => {
-          for (const id of ids) {
-            await service.remove({ id });
-          }
-          return [dhcpRule];
-        });
+      const bulkRemoveStub = sinon.stub(service, 'bulkRemove').callsFake(async (ids) => {
+        for (const id of ids) {
+          await service.remove({ id });
+        }
+        return [dhcpRule];
+      });
 
       const result = await service.bulkRemove(ids);
 
@@ -924,14 +844,12 @@ describe(DHCPRuleService.name, () => {
       const ids = [1, 2, 3];
 
       const removeStub = sinon.stub(service, 'remove').resolves(dhcpRule);
-      const bulkRemoveStub = sinon
-        .stub(service, 'bulkRemove')
-        .callsFake(async (ids) => {
-          for (const id of ids) {
-            await service.remove({ id });
-          }
-          return [dhcpRule];
-        });
+      const bulkRemoveStub = sinon.stub(service, 'bulkRemove').callsFake(async (ids) => {
+        for (const id of ids) {
+          await service.remove({ id });
+        }
+        return [dhcpRule];
+      });
 
       const result = await service.bulkRemove(ids);
 

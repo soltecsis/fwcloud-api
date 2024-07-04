@@ -94,11 +94,7 @@ export class RoutingRulePolicy extends Policy {
       .manager.getRepository(RoutingRule)
       .findOneOrFail({
         where: { id: rule.id },
-        relations: [
-          'routingTable',
-          'routingTable.firewall',
-          'routingTable.firewall.fwCloud',
-        ],
+        relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud'],
       });
 
     if (user.role === 1) {
@@ -125,11 +121,7 @@ export class RoutingRulePolicy extends Policy {
       .manager.getRepository(RoutingRule)
       .findOneOrFail({
         where: { id: rule.id },
-        relations: [
-          'routingTable',
-          'routingTable.firewall',
-          'routingTable.firewall.fwCloud',
-        ],
+        relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud'],
       });
 
     if (user.role === 1) {
@@ -156,11 +148,7 @@ export class RoutingRulePolicy extends Policy {
       .manager.getRepository(RoutingRule)
       .findOneOrFail({
         where: { id: rule.id },
-        relations: [
-          'routingTable',
-          'routingTable.firewall',
-          'routingTable.firewall.fwCloud',
-        ],
+        relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud'],
       });
 
     if (user.role === 1) {

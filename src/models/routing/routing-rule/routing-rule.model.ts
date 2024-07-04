@@ -84,10 +84,7 @@ export class RoutingRule extends Model {
   })
   routingGroupId: number;
 
-  @ManyToOne(
-    (type) => RoutingGroup,
-    (routingGroup) => routingGroup.routingRules,
-  )
+  @ManyToOne((type) => RoutingGroup, (routingGroup) => routingGroup.routingRules)
   @JoinColumn({
     name: 'group',
   })
@@ -98,10 +95,7 @@ export class RoutingRule extends Model {
   })
   routingTableId: number;
 
-  @ManyToOne(
-    (type) => RoutingTable,
-    (routingTable) => routingTable.routingRules,
-  )
+  @ManyToOne((type) => RoutingTable, (routingTable) => routingTable.routingRules)
   @JoinColumn({
     name: 'routing_table',
   })
@@ -170,10 +164,7 @@ export class RoutingRule extends Model {
     const result: RoutingRuleToIPObj[] = [];
 
     for (const routingRuleToIPObj of routingRuleToIPObjs) {
-      const addrs: any = await Interface.getHostAddr(
-        db.getQuery(),
-        routingRuleToIPObj.ipObjId,
-      );
+      const addrs: any = await Interface.getHostAddr(db.getQuery(), routingRuleToIPObj.ipObjId);
 
       // Count the amount of interface address with the same IP version of the rule.
       let n = 0;
@@ -237,12 +228,8 @@ export class RoutingRule extends Model {
     const result: RoutingRuleToIPObjGroup[] = [];
 
     for (const routingRuleToIPObjGroup of routingRuleToIPObjGroups) {
-      for (const ipObjToIPObjGroup of routingRuleToIPObjGroup.ipObjGroup
-        .ipObjToIPObjGroups) {
-        const addrs: any = await Interface.getHostAddr(
-          db.getQuery(),
-          ipObjToIPObjGroup.ipObjId,
-        );
+      for (const ipObjToIPObjGroup of routingRuleToIPObjGroup.ipObjGroup.ipObjToIPObjGroups) {
+        const addrs: any = await Interface.getHostAddr(db.getQuery(), ipObjToIPObjGroup.ipObjId);
 
         // Count the amount of interface address with the same IP version of the rule.
         let n = 0;
@@ -270,10 +257,7 @@ export class RoutingRule extends Model {
       .addSelect('firewall.name', 'firewall_name')
       .addSelect('cluster.id', 'cluster_id')
       .addSelect('cluster.name', 'cluster_name')
-      .innerJoin(
-        'routing_rule.routingRuleToIPObjGroups',
-        'routingRuleToIPObjGroups',
-      )
+      .innerJoin('routing_rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
       .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'ipObjGroup')
       .innerJoin('ipObjGroup.ipObjToIPObjGroups', 'ipObjToIPObjGroups')
       .innerJoin('ipObjToIPObjGroups.ipObj', 'ipobj')

@@ -41,9 +41,7 @@ export class RouteGroupController extends Controller {
   protected _routeGroup: RouteGroup;
 
   public async make(request: Request): Promise<void> {
-    this._routeGroupService = await this._app.getService<RouteGroupService>(
-      RouteGroupService.name,
-    );
+    this._routeGroupService = await this._app.getService<RouteGroupService>(RouteGroupService.name);
 
     if (request.params.routeGroup) {
       this._routeGroup = await db
@@ -59,12 +57,9 @@ export class RouteGroupController extends Controller {
       .createQueryBuilder('firewall')
       .where('firewall.id = :id', { id: parseInt(request.params.firewall) });
     if (request.params.routeGroup) {
-      firewallQueryBuilder.innerJoin(
-        'firewall.routeGroups',
-        'group',
-        'group.id = :groupId',
-        { groupId: parseInt(request.params.routeGroup) },
-      );
+      firewallQueryBuilder.innerJoin('firewall.routeGroups', 'group', 'group.id = :groupId', {
+        groupId: parseInt(request.params.routeGroup),
+      });
     }
     this._firewall = await firewallQueryBuilder.getOneOrFail();
 
@@ -82,9 +77,7 @@ export class RouteGroupController extends Controller {
 
   @Validate()
   async index(request: Request): Promise<ResponseBuilder> {
-    (
-      await RouteGroupPolicy.index(this._firewall, request.session.user)
-    ).authorize();
+    (await RouteGroupPolicy.index(this._firewall, request.session.user)).authorize();
 
     const groups: RouteGroup[] = await this._routeGroupService.findManyInPath({
       firewallId: this._firewall.id,
@@ -96,18 +89,14 @@ export class RouteGroupController extends Controller {
 
   @Validate()
   async show(request: Request): Promise<ResponseBuilder> {
-    (
-      await RouteGroupPolicy.show(this._routeGroup, request.session.user)
-    ).authorize();
+    (await RouteGroupPolicy.show(this._routeGroup, request.session.user)).authorize();
 
     return ResponseBuilder.buildResponse().status(200).body(this._routeGroup);
   }
 
   @Validate(RouteGroupControllerCreateDto)
   async create(request: Request): Promise<ResponseBuilder> {
-    (
-      await RouteGroupPolicy.create(this._firewall, request.session.user)
-    ).authorize();
+    (await RouteGroupPolicy.create(this._firewall, request.session.user)).authorize();
 
     const group: RouteGroup = await this._routeGroupService.create({
       name: request.inputs.get('name'),
@@ -121,9 +110,7 @@ export class RouteGroupController extends Controller {
 
   @Validate(RouteGroupControllerUpdateDto)
   async update(request: Request): Promise<ResponseBuilder> {
-    (
-      await RouteGroupPolicy.update(this._routeGroup, request.session.user)
-    ).authorize();
+    (await RouteGroupPolicy.update(this._routeGroup, request.session.user)).authorize();
 
     const result: RouteGroup = await this._routeGroupService.update(
       this._routeGroup.id,
@@ -135,9 +122,7 @@ export class RouteGroupController extends Controller {
 
   @Validate()
   async remove(request: Request): Promise<ResponseBuilder> {
-    (
-      await RouteGroupPolicy.remove(this._routeGroup, request.session.user)
-    ).authorize();
+    (await RouteGroupPolicy.remove(this._routeGroup, request.session.user)).authorize();
 
     await this._routeGroupService.remove({
       fwCloudId: this._fwCloud.id,

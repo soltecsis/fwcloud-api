@@ -29,9 +29,7 @@ describe(describeName('FwCloud E2E Tests'), () => {
   describe('FwCloudController', () => {
     describe('FwCloudController@store()', () => {
       it('guest user should not reach the controller', async () => {
-        return await request(app.express)
-          .post(_URL().getURL('fwclouds.store'))
-          .expect(401);
+        return await request(app.express).post(_URL().getURL('fwclouds.store')).expect(401);
       });
 
       it('regular user should not create a fwcloud', async () => {
@@ -162,9 +160,7 @@ describe(describeName('FwCloud E2E Tests'), () => {
             });
             const persistedFwCloudObj: any = persistedFwCloud.toJSON();
 
-            expect(response.body.data.name).to.be.deep.eq(
-              persistedFwCloudObj.name,
-            );
+            expect(response.body.data.name).to.be.deep.eq(persistedFwCloudObj.name);
           });
       });
     });

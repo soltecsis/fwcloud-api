@@ -23,13 +23,7 @@
 import { Tree } from '../../../models/tree/Tree';
 import { Crt } from '../../../models/vpn/pki/Crt';
 import Model from '../../Model';
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Ca } from './Ca';
 const fwcError = require('../../../utils/error_table');
 
@@ -72,13 +66,10 @@ export class CaPrefix extends Model {
   // Get all prefixes for the indicated CA.
   public static getPrefixes(dbCon, ca) {
     return new Promise((resolve, reject) => {
-      dbCon.query(
-        `SELECT id,name FROM ca_prefix WHERE ca=${ca}`,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result);
-        },
-      );
+      dbCon.query(`SELECT id,name FROM ca_prefix WHERE ca=${ca}`, (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      });
     });
   }
 
@@ -96,14 +87,7 @@ export class CaPrefix extends Model {
   }
 
   // Fill prefix node with matching entries.
-  public static fillPrefixNodeCA(
-    dbCon,
-    fwcloud,
-    ca,
-    name,
-    parent,
-    node,
-  ): Promise<void> {
+  public static fillPrefixNodeCA(dbCon, fwcloud, ca, name, parent, node): Promise<void> {
     return new Promise((resolve, reject) => {
       // Move all affected nodes into the new prefix container node.
       const prefix = dbCon.escape(name).slice(1, -1);
@@ -142,14 +126,8 @@ export class CaPrefix extends Model {
     return new Promise((resolve, reject) => {
       try {
         // Search for the CA node tree.
-        const node: any = Tree.getNodeInfo(
-          req.dbCon,
-          req.body.fwcloud,
-          'CA',
-          ca,
-        );
-        if (node.length !== 1)
-          throw fwcError.other(`Found ${node.length} CA nodes, awaited 1`);
+        const node: any = Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'CA', ca);
+        if (node.length !== 1) throw fwcError.other(`Found ${node.length} CA nodes, awaited 1`);
         const node_id = node[0].id;
 
         // Remove all nodes under the CA node.
@@ -180,14 +158,7 @@ export class CaPrefix extends Model {
             prefix.id,
             400,
           );
-          this.fillPrefixNodeCA(
-            req.dbCon,
-            req.body.fwcloud,
-            ca,
-            prefix.name,
-            node_id,
-            id,
-          );
+          this.fillPrefixNodeCA(req.dbCon, req.body.fwcloud, ca, prefix.name, node_id, id);
         }
 
         resolve();
@@ -205,14 +176,10 @@ export class CaPrefix extends Model {
         name: req.body.name,
         ca: req.body.ca,
       };
-      req.dbCon.query(
-        `INSERT INTO ca_prefix SET ?`,
-        prefixData,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result.insertId);
-        },
-      );
+      req.dbCon.query(`INSERT INTO ca_prefix SET ?`, prefixData, (error, result) => {
+        if (error) return reject(error);
+        resolve(result.insertId);
+      });
     });
   }
 
@@ -232,13 +199,10 @@ export class CaPrefix extends Model {
   // Delete CRT Prefix container.
   public static deleteCrtPrefix(req): Promise<void> {
     return new Promise((resolve, reject) => {
-      req.dbCon.query(
-        `DELETE from ca_prefix WHERE id=${req.body.prefix}`,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve();
-        },
-      );
+      req.dbCon.query(`DELETE from ca_prefix WHERE id=${req.body.prefix}`, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
     });
   }
 }

@@ -6,11 +6,7 @@ import { Cluster } from './Cluster';
 import { FirewallService } from './firewall.service';
 
 export class ClusterService extends Service {
-  public async remove(
-    clusterId: number,
-    fwcloudId: number,
-    userId: number,
-  ): Promise<void> {
+  public async remove(clusterId: number, fwcloudId: number, userId: number): Promise<void> {
     return new Promise((resolve, reject) => {
       //BUCLE de FIREWALL en CLUSTER
       let sql = `SELECT ${userId} as iduser, F.* FROM firewall F
@@ -19,9 +15,7 @@ export class ClusterService extends Service {
         if (error) return reject(error);
 
         try {
-          const firewallService: FirewallService = await app().getService(
-            FirewallService.name,
-          );
+          const firewallService: FirewallService = await app().getService(FirewallService.name);
 
           for (const fw of fws) {
             await firewallService.remove(fw.id, fwcloudId, userId);

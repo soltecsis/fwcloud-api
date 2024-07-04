@@ -1,8 +1,4 @@
-import {
-  describeName,
-  expect,
-  playgroundPath,
-} from '../../../../../mocha/global-setup';
+import { describeName, expect, playgroundPath } from '../../../../../mocha/global-setup';
 import { FileInfo } from '../../../../../../src/fonaments/http/files/file-info';
 import * as fs from 'fs-extra';
 import * as path from 'path';
@@ -23,11 +19,7 @@ describe(describeName('File Rule Unit Test'), () => {
 
     it('should return true if the value is FileInfo', async () => {
       fs.writeFileSync(path.join(playgroundPath, 'test.txt'), '');
-      expect(
-        await rule.validate(
-          new FileInfo(path.join(playgroundPath, 'test.txt')),
-        ),
-      ).to.be.true;
+      expect(await rule.validate(new FileInfo(path.join(playgroundPath, 'test.txt')))).to.be.true;
     });
 
     it('should return false if the value is not FileInfo', async () => {

@@ -41,16 +41,11 @@ export class OpenVPNOptionExporter extends TableExporter {
   ): SelectQueryBuilder<any> {
     return qb
       .where((qb) => {
-        const subquery = qb
-          .subQuery()
-          .from(OpenVPN, 'openvpn')
-          .select('openvpn.id');
+        const subquery = qb.subQuery().from(OpenVPN, 'openvpn').select('openvpn.id');
 
         return (
           `${alias}.openVPNId IN ` +
-          new OpenVPNExporter()
-            .getFilterBuilder(subquery, 'openvpn', fwCloudId)
-            .getQuery()
+          new OpenVPNExporter().getFilterBuilder(subquery, 'openvpn', fwCloudId).getQuery()
         );
       })
       .orWhere((qb) => {
@@ -58,9 +53,7 @@ export class OpenVPNOptionExporter extends TableExporter {
 
         return (
           `${alias}.ipObjId IN ` +
-          new IPObjExporter()
-            .getFilterBuilder(subquery, 'ipobj', fwCloudId)
-            .getQuery()
+          new IPObjExporter().getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery()
         );
       });
   }

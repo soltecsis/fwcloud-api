@@ -56,9 +56,7 @@ describe(describeName('Snapshot E2E tests'), () => {
     app = testSuite.app;
     manager = db.getSource().manager;
 
-    snapshotService = await app.getService<SnapshotService>(
-      SnapshotService.name,
-    );
+    snapshotService = await app.getService<SnapshotService>(SnapshotService.name);
 
     fwCloud = await manager.getRepository(FwCloud).save(
       manager.getRepository(FwCloud).create({
@@ -125,9 +123,7 @@ describe(describeName('Snapshot E2E tests'), () => {
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then((response) => {
-            expect(response.body.data).to.be.deep.eq(
-              JSON.parse(JSON.stringify([])),
-            );
+            expect(response.body.data).to.be.deep.eq(JSON.parse(JSON.stringify([])));
           });
       });
 
@@ -158,9 +154,7 @@ describe(describeName('Snapshot E2E tests'), () => {
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(200)
           .then((response) => {
-            expect(response.body.data).to.be.deep.eq(
-              JSON.parse(JSON.stringify([s2.toResponse()])),
-            );
+            expect(response.body.data).to.be.deep.eq(JSON.parse(JSON.stringify([s2.toResponse()])));
           });
       });
 
@@ -194,12 +188,7 @@ describe(describeName('Snapshot E2E tests'), () => {
       let s1: Snapshot;
 
       beforeEach(async () => {
-        s1 = await Snapshot.create(
-          snapshotService.config.data_dir,
-          fwCloud,
-          'test1',
-          null,
-        );
+        s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', null);
       });
 
       it('guest user should not see a snapshot', async () => {
@@ -351,12 +340,7 @@ describe(describeName('Snapshot E2E tests'), () => {
       let s1: Snapshot;
 
       beforeEach(async () => {
-        s1 = await Snapshot.create(
-          snapshotService.config.data_dir,
-          fwCloud,
-          'test1',
-          null,
-        );
+        s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', null);
       });
 
       it('guest user should not update an snapshot', async () => {
@@ -437,12 +421,7 @@ describe(describeName('Snapshot E2E tests'), () => {
 
       beforeEach(async () => {
         stubExportDatabase.restore();
-        s1 = await Snapshot.create(
-          snapshotService.config.data_dir,
-          fwCloud,
-          'test1',
-          null,
-        );
+        s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', null);
       });
 
       it('guest user should not restore an snapshot', async () => {
@@ -508,9 +487,7 @@ describe(describeName('Snapshot E2E tests'), () => {
         });
 
         const metadata: SnapshotMetadata = JSON.parse(
-          fs
-            .readFileSync(path.join(s1.path, Snapshot.METADATA_FILENAME))
-            .toString(),
+          fs.readFileSync(path.join(s1.path, Snapshot.METADATA_FILENAME)).toString(),
         );
         fs.writeFileSync(
           path.join(s1.path, Snapshot.METADATA_FILENAME),
@@ -550,12 +527,7 @@ describe(describeName('Snapshot E2E tests'), () => {
       let s1: Snapshot;
 
       beforeEach(async () => {
-        s1 = await Snapshot.create(
-          snapshotService.config.data_dir,
-          fwCloud,
-          'test1',
-          'comment1',
-        );
+        s1 = await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test1', 'comment1');
       });
 
       it('guest user should not destroy an snapshot', async () => {

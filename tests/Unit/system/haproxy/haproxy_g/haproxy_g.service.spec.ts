@@ -37,9 +37,7 @@ describe(HAProxyGroupService.name, () => {
     manager = db.getSource().manager;
     await testSuite.resetDatabaseData();
 
-    service = await testSuite.app.getService<HAProxyGroupService>(
-      HAProxyGroupService.name,
-    );
+    service = await testSuite.app.getService<HAProxyGroupService>(HAProxyGroupService.name);
     repository = manager.getRepository(HAProxyGroup);
     fwCloud = await manager.getRepository(FwCloud).save(
       manager.getRepository(FwCloud).create({
@@ -67,15 +65,9 @@ describe(HAProxyGroupService.name, () => {
         style: 'default',
       };
 
-      const findOneStub = sinon
-        .stub(manager.getRepository(Firewall), 'findOne')
-        .resolves(firewall);
-      const saveStub = sinon
-        .stub(repository, 'save')
-        .resolves({ id: 1 } as HAProxyGroup);
-      const findOneStub2 = sinon
-        .stub(repository, 'findOne')
-        .resolves({ id: 1 } as HAProxyGroup);
+      const findOneStub = sinon.stub(manager.getRepository(Firewall), 'findOne').resolves(firewall);
+      const saveStub = sinon.stub(repository, 'save').resolves({ id: 1 } as HAProxyGroup);
+      const findOneStub2 = sinon.stub(repository, 'findOne').resolves({ id: 1 } as HAProxyGroup);
 
       const result = await service.create(data);
 
@@ -92,16 +84,12 @@ describe(HAProxyGroupService.name, () => {
         style: 'default',
       };
 
-      const findOneStub = sinon
-        .stub(manager.getRepository(Firewall), 'findOne')
-        .resolves(firewall);
+      const findOneStub = sinon.stub(manager.getRepository(Firewall), 'findOne').resolves(firewall);
       const saveStub = sinon
         .stub(repository, 'save')
         .rejects(new Error('Failed to create DHCPGroup'));
 
-      await expect(service.create(data)).to.be.rejectedWith(
-        'Failed to create DHCPGroup',
-      );
+      await expect(service.create(data)).to.be.rejectedWith('Failed to create DHCPGroup');
 
       expect(findOneStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
@@ -114,19 +102,13 @@ describe(HAProxyGroupService.name, () => {
         style: 'default',
       };
 
-      const findOneStub = sinon
-        .stub(manager.getRepository(Firewall), 'findOne')
-        .resolves(firewall);
-      const saveStub = sinon
-        .stub(repository, 'save')
-        .resolves({ id: 1 } as HAProxyGroup);
+      const findOneStub = sinon.stub(manager.getRepository(Firewall), 'findOne').resolves(firewall);
+      const saveStub = sinon.stub(repository, 'save').resolves({ id: 1 } as HAProxyGroup);
       const findOneStub2 = sinon
         .stub(repository, 'findOne')
         .rejects(new Error('Failed to retrieve DHCPGroup'));
 
-      await expect(service.create(data)).to.be.rejectedWith(
-        'Failed to retrieve DHCPGroup',
-      );
+      await expect(service.create(data)).to.be.rejectedWith('Failed to retrieve DHCPGroup');
 
       expect(findOneStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
@@ -161,9 +143,7 @@ describe(HAProxyGroupService.name, () => {
 
       expect(saveStub.calledOnce).to.be.true;
       expect(findOneStub2.calledOnce).to.be.true;
-      expect(result).to.deep.equal(
-        await repository.findOne({ where: { id: id } }),
-      );
+      expect(result).to.deep.equal(await repository.findOne({ where: { id: id } }));
     });
 
     it('should throw an error if group is not found', async () => {
@@ -176,9 +156,7 @@ describe(HAProxyGroupService.name, () => {
 
       const findOneStub = sinon.stub(repository, 'findOne').resolves(undefined);
 
-      await expect(service.update(id, data)).to.be.rejectedWith(
-        'HAProxyGroup not found',
-      );
+      await expect(service.update(id, data)).to.be.rejectedWith('HAProxyGroup not found');
 
       expect(findOneStub.calledOnce).to.be.true;
     });
@@ -196,9 +174,7 @@ describe(HAProxyGroupService.name, () => {
         .stub(repository, 'save')
         .rejects(new Error('Failed to update HAProxyGroup'));
 
-      await expect(service.update(id, data)).to.be.rejectedWith(
-        'Failed to update HAProxyGroup',
-      );
+      await expect(service.update(id, data)).to.be.rejectedWith('Failed to update HAProxyGroup');
 
       expect(findOneStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
@@ -240,9 +216,7 @@ describe(HAProxyGroupService.name, () => {
 
     it('should handle errors during rules update', async () => {
       sinon.stub(service, 'findOneInPath').resolves(group);
-      sinon
-        .stub(repository, 'remove')
-        .rejects(new Error('Failed to remove HAProxyGroup'));
+      sinon.stub(repository, 'remove').rejects(new Error('Failed to remove HAProxyGroup'));
 
       await expect(service.remove(IFindOneHAProxyGPath)).to.be.rejectedWith(
         'Failed to remove HAProxyGroup',
@@ -250,9 +224,7 @@ describe(HAProxyGroupService.name, () => {
     });
 
     it('should handle errors during the group removal', async () => {
-      sinon
-        .stub(service, 'findOneInPath')
-        .rejects(new Error('Failed to find HAProxyGroup'));
+      sinon.stub(service, 'findOneInPath').rejects(new Error('Failed to find HAProxyGroup'));
       sinon.stub(repository, 'remove').resolves(group);
 
       await expect(service.remove(IFindOneHAProxyGPath)).to.be.rejectedWith(

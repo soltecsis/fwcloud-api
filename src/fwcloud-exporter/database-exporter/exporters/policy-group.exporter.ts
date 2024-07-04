@@ -38,16 +38,11 @@ export class PolicyGroupExporter extends TableExporter {
     fwCloudId: number,
   ): SelectQueryBuilder<any> {
     return qb.where((qb) => {
-      const subquery = qb
-        .subQuery()
-        .from(Firewall, 'firewall')
-        .select('firewall.id');
+      const subquery = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
 
       return (
         `${alias}.firewallId IN ` +
-        new FirewallExporter()
-          .getFilterBuilder(subquery, 'firewall', fwCloudId)
-          .getQuery()
+        new FirewallExporter().getFilterBuilder(subquery, 'firewall', fwCloudId).getQuery()
       );
     });
   }

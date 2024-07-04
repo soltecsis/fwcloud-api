@@ -144,10 +144,7 @@ export class PolicyPosition extends Model {
   )
   policyRuleToInterfaces: Array<PolicyRuleToInterface>;
 
-  @OneToMany(
-    (type) => PolicyRuleToIPObj,
-    (policyRuleToIPObj) => policyRuleToIPObj.policyPosition,
-  )
+  @OneToMany((type) => PolicyRuleToIPObj, (policyRuleToIPObj) => policyRuleToIPObj.policyPosition)
   policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
 
   @OneToMany(
@@ -162,10 +159,7 @@ export class PolicyPosition extends Model {
   )
   policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
 
-  @OneToMany(
-    (type) => IPObjTypeToPolicyPosition,
-    (model) => model.policyPosition,
-  )
+  @OneToMany((type) => IPObjTypeToPolicyPosition, (model) => model.policyPosition)
   ipObjTypeToPolicyPositions!: Array<IPObjTypeToPolicyPosition>;
 
   public getTableName(): string {
@@ -176,13 +170,10 @@ export class PolicyPosition extends Model {
   public static getPolicy_positions(callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      connection.query(
-        'SELECT * FROM ' + tableName + ' ORDER BY position_order',
-        (error, rows) => {
-          if (error) callback(error, null);
-          else callback(null, rows);
-        },
-      );
+      connection.query('SELECT * FROM ' + tableName + ' ORDER BY position_order', (error, rows) => {
+        if (error) callback(error, null);
+        else callback(null, rows);
+      });
     });
   }
 
@@ -243,8 +234,7 @@ export class PolicyPosition extends Model {
   public static getPolicy_position(id, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      const sql =
-        'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
+      const sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
         else callback(null, row);
@@ -307,17 +297,12 @@ export class PolicyPosition extends Model {
   public static deletePolicy_position(id, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      const sqlExists =
-        'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
+      const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
       connection.query(sqlExists, (error, row) => {
         //If exists Id from policy_position to remove
         if (row) {
           db.get((error, connection) => {
-            const sql =
-              'DELETE FROM ' +
-              tableName +
-              ' WHERE id = ' +
-              connection.escape(id);
+            const sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
             connection.query(sql, (error, result) => {
               if (error) {
                 callback(error, null);

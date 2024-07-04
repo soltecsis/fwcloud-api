@@ -27,10 +27,7 @@
  * @type /models/compile/
  */
 import { Firewall, FireWallOptMask } from '../../models/firewall/Firewall';
-import {
-  ProgressNoticePayload,
-  ProgressPayload,
-} from '../../sockets/messages/socket-message';
+import { ProgressNoticePayload, ProgressPayload } from '../../sockets/messages/socket-message';
 import { AvailablePolicyCompilers, PolicyCompiler } from './PolicyCompiler';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { PolicyRule } from '../../models/policy/PolicyRule';
@@ -42,10 +39,7 @@ import {
 } from '../../models/routing/routing-table/routing-table.service';
 import { app } from '../../fonaments/abstract-application';
 import { RoutingTable } from '../../models/routing/routing-table/routing-table.model';
-import {
-  RouteItemForCompiler,
-  RoutingRuleItemForCompiler,
-} from '../../models/routing/shared';
+import { RouteItemForCompiler, RoutingRuleItemForCompiler } from '../../models/routing/shared';
 import {
   RoutingRulesData,
   RoutingRuleService,
@@ -97,17 +91,11 @@ export class PolicyScript {
   }
 
   private async dumpFirewallOptions(): Promise<void> {
-    const options = await Firewall.getFirewallOptions(
-      this.fwcloud,
-      this.firewall,
-    );
+    const options = await Firewall.getFirewallOptions(this.fwcloud, this.firewall);
     let action = '';
 
     this.stream.write(
-      'options_load() {\n' +
-        '  echo\n' +
-        '  echo "OPTIONS"\n' +
-        '  echo "-------"\n',
+      'options_load() {\n' + '  echo\n' + '  echo "OPTIONS"\n' + '  echo "-------"\n',
     );
 
     // IPv4 packet forwarding
@@ -124,8 +112,7 @@ export class PolicyScript {
     action = options & FireWallOptMask.IPv6_FORWARDING ? '1' : '0';
     this.stream.write(`  $SYSCTL -w net.ipv6.conf.all.forwarding=${action}\n`);
 
-    if (options & FireWallOptMask.DOCKER_COMPAT)
-      this.stream.write('\n  DOCKER_COMPATIBILITY=1\n');
+    if (options & FireWallOptMask.DOCKER_COMPAT) this.stream.write('\n  DOCKER_COMPATIBILITY=1\n');
 
     this.stream.write('}\n\n');
 
@@ -159,8 +146,7 @@ export class PolicyScript {
     let cs = '';
     for (let i = 0; i < rulesCompiled.length; i++) {
       cs += `\necho "Rule ${i + 1} (ID: ${rulesCompiled[i].id})${!rulesCompiled[i].active ? ' [DISABLED]' : ''}"\n`;
-      if (rulesCompiled[i].comment)
-        cs += `# ${rulesCompiled[i].comment.replace(/\n/g, '\n# ')}\n`;
+      if (rulesCompiled[i].comment) cs += `# ${rulesCompiled[i].comment.replace(/\n/g, '\n# ')}\n`;
       if (rulesCompiled[i].active) cs += rulesCompiled[i].cs;
     }
     this.stream.write(cs);
@@ -174,13 +160,8 @@ export class PolicyScript {
         .on('open', async () => {
           try {
             /* Generate the policy script. */
-            this.policyCompiler = await Firewall.getFirewallCompiler(
-              this.fwcloud,
-              this.firewall,
-            );
-            this.stream.write(
-              fs.readFileSync(config.get('policy').header_file, 'utf8'),
-            );
+            this.policyCompiler = await Firewall.getFirewallCompiler(this.fwcloud, this.firewall);
+            this.stream.write(fs.readFileSync(config.get('policy').header_file, 'utf8'));
             this.stream.write(`\nPOLICY_COMPILER="${this.policyCompiler}"\n\n`);
             await this.greetingMessage();
             await this.dumpFirewallOptions();
@@ -190,9 +171,7 @@ export class PolicyScript {
             if (this.policyCompiler == 'NFTables') {
               await this.dumpNFTablesStd(); // Create the standard NFTables tables and chains.
 
-              this.stream.write(
-                '\n\n# What happens when you mix Iptables and Nftables?\n',
-              );
+              this.stream.write('\n\n# What happens when you mix Iptables and Nftables?\n');
               this.stream.write('# How do they interact?\n');
               this.stream.write(
                 '#    nft       Empty     Accept  Accept      Block        Blank\n',
@@ -213,68 +192,45 @@ export class PolicyScript {
               this.stream.write('iptables_default_filter_policy DROP\n');
             }
 
-            if (
-              await PolicyRule.firewallWithMarkRules(this.dbCon, this.firewall)
-            )
+            if (await PolicyRule.firewallWithMarkRules(this.dbCon, this.firewall))
               await this.dumpMangeTableRules(); // Generate default rules for mangle table
 
             this.stream.write('\n\necho\n');
             this.stream.write('echo "***********************"\n');
             this.stream.write('echo "* FILTER TABLE (IPv4) *"\n');
             this.stream.write('echo "***********************"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('FILTER TABLE (IPv4):', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('FILTER TABLE (IPv4):', true));
             this.stream.write('\n\necho "INPUT CHAIN"\n');
             this.stream.write('echo "-----------"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('INPUT CHAIN:', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
             await this.dumpCompilation(PolicyTypesMap.get('IPv4:INPUT'));
 
             this.stream.write('\n\necho\n');
             this.stream.write('echo "OUTPUT CHAIN"\n');
             this.stream.write('echo "------------"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('OUTPUT CHAIN:', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
             await this.dumpCompilation(PolicyTypesMap.get('IPv4:OUTPUT'));
 
             this.stream.write('\n\necho\n');
             this.stream.write('echo "FORWARD CHAIN"\n');
             this.stream.write('echo "-------------"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('FORWARD CHAIN:', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
             await this.dumpCompilation(PolicyTypesMap.get('IPv4:FORWARD'));
 
             this.stream.write('\n\necho\n');
             this.stream.write('echo "********************"\n');
             this.stream.write('echo "* NAT TABLE (IPv4) *"\n');
             this.stream.write('echo "********************"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('NAT TABLE (IPv4):', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('NAT TABLE (IPv4):', true));
             this.stream.write('\n\necho "SNAT"\n');
             this.stream.write('echo "----"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('SNAT:', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
             await this.dumpCompilation(PolicyTypesMap.get('IPv4:SNAT'));
 
             this.stream.write('\n\necho\n');
             this.stream.write('echo "DNAT"\n');
             this.stream.write('echo "----"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('DNAT:', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
             await this.dumpCompilation(PolicyTypesMap.get('IPv4:DNAT'));
 
             this.stream.write('\n\n');
@@ -286,59 +242,38 @@ export class PolicyScript {
             this.stream.write('echo "***********************"\n');
             this.channel.emit('message', new ProgressNoticePayload(''));
             this.channel.emit('message', new ProgressNoticePayload(''));
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('FILTER TABLE (IPv6):', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('FILTER TABLE (IPv6):', true));
             this.stream.write('\n\necho "INPUT CHAIN"\n');
             this.stream.write('echo "-----------"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('INPUT CHAIN:', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('INPUT CHAIN:', true));
             await this.dumpCompilation(PolicyTypesMap.get('IPv6:INPUT'));
 
             this.stream.write('\n\necho\n');
             this.stream.write('echo "OUTPUT CHAIN"\n');
             this.stream.write('echo "------------"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('OUTPUT CHAIN:', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('OUTPUT CHAIN:', true));
             await this.dumpCompilation(PolicyTypesMap.get('IPv6:OUTPUT'));
 
             this.stream.write('\n\necho\n');
             this.stream.write('echo "FORWARD CHAIN"\n');
             this.stream.write('echo "-------------"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('FORWARD CHAIN:', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('FORWARD CHAIN:', true));
             await this.dumpCompilation(PolicyTypesMap.get('IPv6:FORWARD'));
 
             this.stream.write('\n\necho\n');
             this.stream.write('echo "********************"\n');
             this.stream.write('echo "* NAT TABLE (IPv6) *"\n');
             this.stream.write('echo "********************"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('NAT TABLE (IPv6):', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('NAT TABLE (IPv6):', true));
             this.stream.write('\n\necho "SNAT"\n');
             this.stream.write('echo "----"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('SNAT:', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('SNAT:', true));
             await this.dumpCompilation(PolicyTypesMap.get('IPv6:SNAT'));
 
             this.stream.write('\n\necho\n');
             this.stream.write('echo "DNAT"\n');
             this.stream.write('echo "----"\n');
-            this.channel.emit(
-              'message',
-              new ProgressNoticePayload('DNAT:', true),
-            );
+            this.channel.emit('message', new ProgressNoticePayload('DNAT:', true));
             await this.dumpCompilation(PolicyTypesMap.get('IPv6:DNAT'));
 
             this.stream.write('\n}\n\n');
@@ -346,29 +281,17 @@ export class PolicyScript {
             await this.dumpRouting();
 
             // Footer file.
-            this.stream.write(
-              fs.readFileSync(config.get('policy').footer_file, 'utf8'),
-            );
+            this.stream.write(fs.readFileSync(config.get('policy').footer_file, 'utf8'));
 
             /* Close stream. */
             this.stream.end();
 
             // Update firewall status flags.
-            await Firewall.updateFirewallStatus(
-              this.fwcloud,
-              this.firewall,
-              '&~1',
-            );
+            await Firewall.updateFirewallStatus(this.fwcloud, this.firewall, '&~1');
             // Update firewall compile date.
-            await Firewall.updateFirewallCompileDate(
-              this.fwcloud,
-              this.firewall,
-            );
+            await Firewall.updateFirewallCompileDate(this.fwcloud, this.firewall);
 
-            this.channel.emit(
-              'message',
-              new ProgressPayload('end', false, 'Compilation finished'),
-            );
+            this.channel.emit('message', new ProgressPayload('end', false, 'Compilation finished'));
 
             //console.log(`Total get data time: ${IPTablesCompiler.totalGetDataTime}ms`)
             //console.timeEnd(`Firewall compile (ID: ${req.body.firewall})`);
@@ -436,10 +359,7 @@ export class PolicyScript {
   }
 
   private dumpMangeTableRules(): Promise<void> {
-    this.channel.emit(
-      'message',
-      new ProgressNoticePayload('MANGLE TABLE:', true),
-    );
+    this.channel.emit('message', new ProgressNoticePayload('MANGLE TABLE:', true));
     this.channel.emit('message', new ProgressNoticePayload('Automatic rules.'));
     this.stream.write('\n\necho\n');
     this.stream.write('echo "****************"\n');
@@ -447,44 +367,20 @@ export class PolicyScript {
     this.stream.write('echo "****************"\n');
     this.stream.write('#Automatic rules for mangle table.\n');
     if (this.policyCompiler == 'IPTables') {
-      this.stream.write(
-        '$IPTABLES -t mangle -A PREROUTING -j CONNMARK --restore-mark\n',
-      );
-      this.stream.write(
-        '$IPTABLES -t mangle -A PREROUTING -m mark ! --mark 0 -j ACCEPT\n\n',
-      );
-      this.stream.write(
-        '$IPTABLES -t mangle -A OUTPUT -j CONNMARK --restore-mark\n',
-      );
-      this.stream.write(
-        '$IPTABLES -t mangle -A OUTPUT -m mark ! --mark 0 -j ACCEPT\n\n',
-      );
-      this.stream.write(
-        '$IPTABLES -t mangle -A POSTROUTING -j CONNMARK --restore-mark\n',
-      );
-      this.stream.write(
-        '$IPTABLES -t mangle -A POSTROUTING -m mark ! --mark 0 -j ACCEPT\n\n',
-      );
+      this.stream.write('$IPTABLES -t mangle -A PREROUTING -j CONNMARK --restore-mark\n');
+      this.stream.write('$IPTABLES -t mangle -A PREROUTING -m mark ! --mark 0 -j ACCEPT\n\n');
+      this.stream.write('$IPTABLES -t mangle -A OUTPUT -j CONNMARK --restore-mark\n');
+      this.stream.write('$IPTABLES -t mangle -A OUTPUT -m mark ! --mark 0 -j ACCEPT\n\n');
+      this.stream.write('$IPTABLES -t mangle -A POSTROUTING -j CONNMARK --restore-mark\n');
+      this.stream.write('$IPTABLES -t mangle -A POSTROUTING -m mark ! --mark 0 -j ACCEPT\n\n');
     } else {
       // NFTables
-      this.stream.write(
-        '$NFT add rule ip mangle PREROUTING counter meta mark set ct mark\n',
-      );
-      this.stream.write(
-        '$NFT add rule ip mangle PREROUTING mark != 0x0 counter accept\n',
-      );
-      this.stream.write(
-        '$NFT add rule ip mangle OUTPUT counter meta mark set ct mark\n',
-      );
-      this.stream.write(
-        '$NFT add rule ip mangle OUTPUT mark != 0x0 counter accept\n',
-      );
-      this.stream.write(
-        '$NFT add rule ip mangle POSTROUTING counter meta mark set ct mark\n',
-      );
-      this.stream.write(
-        '$NFT add rule ip mangle POSTROUTING mark != 0x0 counter accept\n',
-      );
+      this.stream.write('$NFT add rule ip mangle PREROUTING counter meta mark set ct mark\n');
+      this.stream.write('$NFT add rule ip mangle PREROUTING mark != 0x0 counter accept\n');
+      this.stream.write('$NFT add rule ip mangle OUTPUT counter meta mark set ct mark\n');
+      this.stream.write('$NFT add rule ip mangle OUTPUT mark != 0x0 counter accept\n');
+      this.stream.write('$NFT add rule ip mangle POSTROUTING counter meta mark set ct mark\n');
+      this.stream.write('$NFT add rule ip mangle POSTROUTING mark != 0x0 counter accept\n');
     }
     return;
   }
@@ -493,19 +389,16 @@ export class PolicyScript {
     const routingTableService = await app().getService<RoutingTableService>(
       RoutingTableService.name,
     );
-    const routingRuleService = await app().getService<RoutingRuleService>(
-      RoutingRuleService.name,
-    );
+    const routingRuleService = await app().getService<RoutingRuleService>(RoutingRuleService.name);
     let routes: RouteData<RouteItemForCompiler>[];
     let routesCompiled: RoutingCompiled[];
     let rules: RoutingRulesData<RoutingRuleItemForCompiler>[];
     let rulesCompiled: RoutingCompiled[];
 
-    const routingTables: RoutingTable[] =
-      await routingTableService.findManyInPath({
-        fwCloudId: this.fwcloud,
-        firewallId: this.firewall,
-      });
+    const routingTables: RoutingTable[] = await routingTableService.findManyInPath({
+      fwCloudId: this.fwcloud,
+      firewallId: this.firewall,
+    });
 
     this.stream.write('routing_apply() {\necho -n ""\n');
 
@@ -518,10 +411,7 @@ export class PolicyScript {
       this.stream.write('echo "******************"\n');
       this.channel.emit('message', new ProgressNoticePayload(''));
       this.channel.emit('message', new ProgressNoticePayload(''));
-      this.channel.emit(
-        'message',
-        new ProgressNoticePayload('ROUTING POLICY:', true),
-      );
+      this.channel.emit('message', new ProgressNoticePayload('ROUTING POLICY:', true));
       // Flush all routing tables except the main table.
       this.stream.write('echo -n "Flushing routing tables and rules ... "\n');
       this.stream.write('$IP route flush cache\n');
@@ -545,19 +435,14 @@ export class PolicyScript {
           this.stream.write('$IP route flush scope global table main\n');
         this.channel.emit('message', new ProgressNoticePayload(msg, true));
 
-        routes =
-          await routingTableService.getRoutingTableData<RouteItemForCompiler>(
-            'compiler',
-            this.fwcloud,
-            this.firewall,
-            routingTables[i].id,
-          );
+        routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>(
+          'compiler',
+          this.fwcloud,
+          this.firewall,
+          routingTables[i].id,
+        );
         if (routes.length > 0) {
-          routesCompiled = this.routingCompiler.compile(
-            'Route',
-            routes,
-            this.channel,
-          );
+          routesCompiled = this.routingCompiler.compile('Route', routes, this.channel);
 
           let cs = '';
           for (let j = 0; j < routesCompiled.length; j++) {
@@ -571,24 +456,16 @@ export class PolicyScript {
       }
 
       // Compile and dump routing policy.
-      rules =
-        await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
-          'compiler',
-          this.fwcloud,
-          this.firewall,
-        );
+      rules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
+        'compiler',
+        this.fwcloud,
+        this.firewall,
+      );
       if (rules.length > 0) {
-        rulesCompiled = this.routingCompiler.compile(
-          'Rule',
-          rules,
-          this.channel,
-        );
+        rulesCompiled = this.routingCompiler.compile('Rule', rules, this.channel);
 
         this.stream.write(`\necho\necho "ROUTING RULES:"n`);
-        this.channel.emit(
-          'message',
-          new ProgressNoticePayload('ROUTING RULES:', true),
-        );
+        this.channel.emit('message', new ProgressNoticePayload('ROUTING RULES:', true));
         let cs = '';
         for (let j = 0; j < rulesCompiled.length; j++) {
           cs += `\necho "Routing rule ${j + 1} (ID: ${rulesCompiled[j].id})${!rulesCompiled[j].active ? ' [DISABLED]' : ''}"\n`;

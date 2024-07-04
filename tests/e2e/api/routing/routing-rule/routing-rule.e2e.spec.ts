@@ -26,16 +26,8 @@ import { Firewall } from '../../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
 import { User } from '../../../../../src/models/user/User';
 import StringHelper from '../../../../../src/utils/string.helper';
-import {
-  describeName,
-  expect,
-  testSuite,
-} from '../../../../mocha/global-setup';
-import {
-  attachSession,
-  createUser,
-  generateSession,
-} from '../../../../utils/utils';
+import { describeName, expect, testSuite } from '../../../../mocha/global-setup';
+import { attachSession, createUser, generateSession } from '../../../../utils/utils';
 import request = require('supertest');
 import { _URL } from '../../../../../src/fonaments/http/router/router.service';
 import { RoutingTable } from '../../../../../src/models/routing/routing-table/routing-table.model';
@@ -239,9 +231,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .then((response) => {
             expect(response.body.data[0].id).to.deep.eq(rule.id);
-            expect(response.body.data[0].routingTableId).to.deep.eq(
-              rule.routingTableId,
-            );
+            expect(response.body.data[0].routingTableId).to.deep.eq(rule.routingTableId);
           });
       });
 
@@ -258,9 +248,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           .expect(200)
           .then((response) => {
             expect(response.body.data[0].id).to.deep.eq(rule.id);
-            expect(response.body.data[0].routingTableId).to.deep.eq(
-              rule.routingTableId,
-            );
+            expect(response.body.data[0].routingTableId).to.deep.eq(rule.routingTableId);
           });
       });
     });
@@ -553,9 +541,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           .expect(200)
           .then((response) => {
             expect(response.body.data.id).to.deep.eq(rule.id);
-            expect(response.body.data.routingTableId).to.deep.eq(
-              rule.routingTableId,
-            );
+            expect(response.body.data.routingTableId).to.deep.eq(rule.routingTableId);
           });
       });
 
@@ -572,9 +558,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           .expect(200)
           .then((response) => {
             expect(response.body.data.id).to.deep.eq(rule.id);
-            expect(response.body.data.routingTableId).to.deep.eq(
-              rule.routingTableId,
-            );
+            expect(response.body.data.routingTableId).to.deep.eq(rule.routingTableId);
           });
       });
     });
@@ -816,9 +800,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
         data = {
           rules: [ruleOrder1.id, ruleOrder2.id],
           to: (
-            await new RoutingRuleRepository(
-              manager,
-            ).getLastRoutingRuleInFirewall(table.firewallId)
+            await new RoutingRuleRepository(manager).getLastRoutingRuleInFirewall(table.firewallId)
           ).id,
           offset: Offset.Below,
         };
@@ -868,14 +850,10 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           });
 
         expect(
-          await manager
-            .getRepository(RoutingRule)
-            .count({ where: { comment: 'comment1' } }),
+          await manager.getRepository(RoutingRule).count({ where: { comment: 'comment1' } }),
         ).to.eq(2);
         expect(
-          await manager
-            .getRepository(RoutingRule)
-            .count({ where: { comment: 'comment2' } }),
+          await manager.getRepository(RoutingRule).count({ where: { comment: 'comment2' } }),
         ).to.eq(2);
       });
 
@@ -895,14 +873,10 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           });
 
         expect(
-          await manager
-            .getRepository(RoutingRule)
-            .count({ where: { comment: 'comment1' } }),
+          await manager.getRepository(RoutingRule).count({ where: { comment: 'comment1' } }),
         ).to.eq(2);
         expect(
-          await manager
-            .getRepository(RoutingRule)
-            .count({ where: { comment: 'comment2' } }),
+          await manager.getRepository(RoutingRule).count({ where: { comment: 'comment2' } }),
         ).to.eq(2);
       });
     });
@@ -1201,18 +1175,12 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           });
 
         expect(
-          (
-            await manager
-              .getRepository(RoutingRule)
-              .findOne({ where: { id: ruleOrder1.id } })
-          ).style,
+          (await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id } }))
+            .style,
         ).to.eq('style!');
         expect(
-          (
-            await manager
-              .getRepository(RoutingRule)
-              .findOne({ where: { id: ruleOrder2.id } })
-          ).style,
+          (await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id } }))
+            .style,
         ).to.eq('style!');
       });
 
@@ -1235,18 +1203,12 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           });
 
         expect(
-          (
-            await manager
-              .getRepository(RoutingRule)
-              .findOne({ where: { id: ruleOrder1.id } })
-          ).style,
+          (await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id } }))
+            .style,
         ).to.eq('style!');
         expect(
-          (
-            await manager
-              .getRepository(RoutingRule)
-              .findOne({ where: { id: ruleOrder2.id } })
-          ).style,
+          (await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id } }))
+            .style,
         ).to.eq('style!');
       });
     });
@@ -1424,16 +1386,10 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             expect(response.body.data).to.have.length(2);
           });
 
-        expect(
-          await manager
-            .getRepository(RoutingRule)
-            .findOne({ where: { id: ruleOrder1.id } }),
-        ).to.be.null;
-        expect(
-          await manager
-            .getRepository(RoutingRule)
-            .findOne({ where: { id: ruleOrder2.id } }),
-        ).to.be.null;
+        expect(await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id } }))
+          .to.be.null;
+        expect(await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id } }))
+          .to.be.null;
       });
 
       it('admin user should bulk remove rules', async () => {
@@ -1453,16 +1409,10 @@ describe(describeName('Routing Rule E2E Tests'), () => {
             expect(response.body.data).to.have.length(2);
           });
 
-        expect(
-          await manager
-            .getRepository(RoutingRule)
-            .findOne({ where: { id: ruleOrder1.id } }),
-        ).to.be.null;
-        expect(
-          await manager
-            .getRepository(RoutingRule)
-            .findOne({ where: { id: ruleOrder2.id } }),
-        ).to.be.null;
+        expect(await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder1.id } }))
+          .to.be.null;
+        expect(await manager.getRepository(RoutingRule).findOne({ where: { id: ruleOrder2.id } }))
+          .to.be.null;
       });
 
       it('should throw validation error if query rules is not provided', async () => {

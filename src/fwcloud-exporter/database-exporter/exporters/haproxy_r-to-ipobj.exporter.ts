@@ -37,16 +37,11 @@ export class HAProxyRuleToIPObjExporter extends TableExporter {
   ): SelectQueryBuilder<any> {
     return qb
       .where((qb) => {
-        const query = qb
-          .subQuery()
-          .from(HAProxyRule, 'haproxy_r')
-          .select('haproxy_r.id');
+        const query = qb.subQuery().from(HAProxyRule, 'haproxy_r').select('haproxy_r.id');
 
         return (
           `${alias}.haproxyRuleId IN ` +
-          new HAProxyRuleExporter()
-            .getFilterBuilder(query, 'haproxy_r', fwCloudId)
-            .getQuery()
+          new HAProxyRuleExporter().getFilterBuilder(query, 'haproxy_r', fwCloudId).getQuery()
         );
       })
       .orWhere((qb) => {
@@ -54,9 +49,7 @@ export class HAProxyRuleToIPObjExporter extends TableExporter {
 
         return (
           `${alias}.ipObjId IN ` +
-          new IPObjExporter()
-            .getFilterBuilder(subquery, 'ipobj', fwCloudId)
-            .getQuery()
+          new IPObjExporter().getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery()
         );
       });
   }

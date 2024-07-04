@@ -20,13 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  FindManyOptions,
-  FindOneOptions,
-  In,
-  Not,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { FindManyOptions, FindOneOptions, In, Not, SelectQueryBuilder } from 'typeorm';
 import { Application } from '../../../Application';
 import db from '../../../database/database-manager';
 import { ValidationException } from '../../../fonaments/exceptions/validation-exception';
@@ -126,9 +120,7 @@ export class RouteService extends Service {
   public async build(): Promise<RouteService> {
     this._firewallService = await this._app.getService(FirewallService.name);
     this._databaseService = await this._app.getService(DatabaseService.name);
-    this._repository = new RouteRepository(
-      this._databaseService.dataSource.manager,
-    );
+    this._repository = new RouteRepository(this._databaseService.dataSource.manager);
 
     return this;
   }
@@ -161,9 +153,7 @@ export class RouteService extends Service {
     const lastRuoute: Route = await this._repository.getLastRouteInRoutingTable(
       data.routingTableId,
     );
-    const route_order: number = lastRuoute?.route_order
-      ? lastRuoute.route_order + 1
-      : 1;
+    const route_order: number = lastRuoute?.route_order ? lastRuoute.route_order + 1 : 1;
     routeData.route_order = route_order;
 
     let persisted: Route = await this._repository.save(routeData);
@@ -312,11 +302,7 @@ export class RouteService extends Service {
     await this._repository.save(route);
   }
 
-  async copy(
-    ids: number[],
-    destRule: number,
-    position: Offset,
-  ): Promise<Route[]> {
+  async copy(ids: number[], destRule: number, position: Offset): Promise<Route[]> {
     const routes: Route[] = await this._repository.find({
       where: {
         id: In(ids),
@@ -349,9 +335,7 @@ export class RouteService extends Service {
         },
       });
 
-    await this._firewallService.markAsUncompiled(
-      firewalls.map((firewall) => firewall.id),
-    );
+    await this._firewallService.markAsUncompiled(firewalls.map((firewall) => firewall.id));
 
     return this.move(
       persisted.map((item) => item.id),
@@ -385,11 +369,7 @@ export class RouteService extends Service {
     });
   }
 
-  async move(
-    ids: number[],
-    destRule: number,
-    offset: Offset,
-  ): Promise<Route[]> {
+  async move(ids: number[], destRule: number, offset: Offset): Promise<Route[]> {
     const routes: Route[] = await this._repository.move(ids, destRule, offset);
     const firewallIds: number[] = (
       await this._repository
@@ -404,11 +384,7 @@ export class RouteService extends Service {
     return routes;
   }
 
-  async moveTo(
-    fromId: number,
-    toId: number,
-    data: IMoveToRoute,
-  ): Promise<[Route, Route]> {
+  async moveTo(fromId: number, toId: number, data: IMoveToRoute): Promise<[Route, Route]> {
     const fromRule: Route = await db
       .getSource()
       .manager.getRepository(Route)
@@ -610,10 +586,7 @@ export class RouteService extends Service {
    *  - IPObj contains at least one addres if its type is host
    *
    */
-  protected async validateUpdateIPObjs(
-    firewall: Firewall,
-    data: IUpdateRoute,
-  ): Promise<void> {
+  protected async validateUpdateIPObjs(firewall: Firewall, data: IUpdateRoute): Promise<void> {
     const errors: ErrorBag = {};
 
     if (!data.ipObjIds || data.ipObjIds.length === 0) {
@@ -662,10 +635,7 @@ export class RouteService extends Service {
    *  - IPObjGroup is not empty
    *
    */
-  protected async validateUpdateIPObjGroups(
-    firewall: Firewall,
-    data: IUpdateRoute,
-  ): Promise<void> {
+  protected async validateUpdateIPObjGroups(firewall: Firewall, data: IUpdateRoute): Promise<void> {
     const errors: ErrorBag = {};
 
     if (!data.ipObjGroupIds || data.ipObjGroupIds.length === 0) {
@@ -693,14 +663,9 @@ export class RouteService extends Service {
 
       if (ipObjGroup.type !== 20) {
         errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId not valid'];
-      } else if (
-        ipObjGroup.fwCloudId &&
-        ipObjGroup.fwCloudId !== firewall.fwCloudId
-      ) {
+      } else if (ipObjGroup.fwCloudId && ipObjGroup.fwCloudId !== firewall.fwCloudId) {
         errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must exist'];
-      } else if (
-        await PolicyRuleToIPObj.isGroupEmpty(db.getQuery(), ipObjGroup.id)
-      ) {
+      } else if (await PolicyRuleToIPObj.isGroupEmpty(db.getQuery(), ipObjGroup.id)) {
         errors[`ipObjGroupIds.${i}`] = ['ipObjGroupId must not be empty'];
       } else {
         let valid: boolean = false;
@@ -725,10 +690,7 @@ export class RouteService extends Service {
           }
         }
 
-        if (
-          ipObjGroup.openVPNs.length > 0 ||
-          ipObjGroup.openVPNPrefixes.length > 0
-        ) {
+        if (ipObjGroup.openVPNs.length > 0 || ipObjGroup.openVPNPrefixes.length > 0) {
           valid = true;
         }
 
@@ -745,10 +707,7 @@ export class RouteService extends Service {
     }
   }
 
-  protected async validateOpenVPNs(
-    firewall: Firewall,
-    data: IUpdateRoute,
-  ): Promise<void> {
+  protected async validateOpenVPNs(firewall: Firewall, data: IUpdateRoute): Promise<void> {
     const errors: ErrorBag = {};
 
     if (!data.openVPNIds || data.openVPNIds.length === 0) {
@@ -771,9 +730,7 @@ export class RouteService extends Service {
 
     for (let i = 0; i < data.openVPNIds.length; i++) {
       if (openvpns.findIndex((item) => item.id === data.openVPNIds[i].id) < 0) {
-        errors[`openVPNIds.${i}.id`] = [
-          'openVPN does not exists or is not a client',
-        ];
+        errors[`openVPNIds.${i}.id`] = ['openVPN does not exists or is not a client'];
       }
     }
 
@@ -782,10 +739,7 @@ export class RouteService extends Service {
     }
   }
 
-  protected async validateOpenVPNPrefixes(
-    firewall: Firewall,
-    data: IUpdateRoute,
-  ): Promise<void> {
+  protected async validateOpenVPNPrefixes(firewall: Firewall, data: IUpdateRoute): Promise<void> {
     const errors: ErrorBag = {};
 
     if (!data.openVPNPrefixIds || data.openVPNPrefixIds.length === 0) {
@@ -805,11 +759,7 @@ export class RouteService extends Service {
       .getMany();
 
     for (let i = 0; i < data.openVPNPrefixIds.length; i++) {
-      if (
-        openvpnprefixes.findIndex(
-          (item) => item.id === data.openVPNPrefixIds[i].id,
-        ) < 0
-      ) {
+      if (openvpnprefixes.findIndex((item) => item.id === data.openVPNPrefixIds[i].id) < 0) {
         errors[`openVPNPrefixIds.${i}.id`] = ['openVPNPrefix does not exists'];
       }
     }
@@ -819,10 +769,7 @@ export class RouteService extends Service {
     }
   }
 
-  protected async validateFirewallApplyToId(
-    firewall: Firewall,
-    data: IUpdateRoute,
-  ): Promise<void> {
+  protected async validateFirewallApplyToId(firewall: Firewall, data: IUpdateRoute): Promise<void> {
     const errors: ErrorBag = {};
 
     if (!data.firewallApplyToId) {
@@ -837,9 +784,7 @@ export class RouteService extends Service {
       .getOne();
 
     if (firewallApplyToId.clusterId !== firewall.clusterId) {
-      errors[`firewallApplyToId`] = [
-        'This firewall does not belong to cluster',
-      ];
+      errors[`firewallApplyToId`] = ['This firewall does not belong to cluster'];
     }
 
     if (Object.keys(errors).length > 0) {
@@ -879,8 +824,7 @@ export class RouteService extends Service {
     path: Partial<IFindOneRoutePath>,
     options: FindOneOptions<Route> | FindManyOptions<Route> = {},
   ): SelectQueryBuilder<Route> {
-    const qb: SelectQueryBuilder<Route> =
-      this._repository.createQueryBuilder('route');
+    const qb: SelectQueryBuilder<Route> = this._repository.createQueryBuilder('route');
     qb.innerJoin('route.routingTable', 'table')
       .innerJoin('table.firewall', 'firewall')
       .innerJoin('firewall.fwCloud', 'fwcloud');

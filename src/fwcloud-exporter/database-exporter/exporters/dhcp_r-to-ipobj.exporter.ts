@@ -36,16 +36,11 @@ export class DHCPRuleToIPObjExporter extends TableExporter {
   public getFilterBuilder(qb: any, alias: string, fwCloudId: number): any {
     return qb
       .where((qb: any) => {
-        const subquery = qb
-          .subQuery()
-          .from(DHCPRule, 'dhcp_r')
-          .select('dhcp_r.id');
+        const subquery = qb.subQuery().from(DHCPRule, 'dhcp_r').select('dhcp_r.id');
 
         return (
           `${alias}.dhcpRuleId IN ` +
-          new DHCPRuleExporter()
-            .getFilterBuilder(subquery, 'dhcp_r', fwCloudId)
-            .getQuery()
+          new DHCPRuleExporter().getFilterBuilder(subquery, 'dhcp_r', fwCloudId).getQuery()
         );
       })
       .orWhere((qb: any) => {
@@ -53,9 +48,7 @@ export class DHCPRuleToIPObjExporter extends TableExporter {
 
         return (
           `${alias}.ipObjId IN ` +
-          new IPObjExporter()
-            .getFilterBuilder(subquery, 'ipobj', fwCloudId)
-            .getQuery()
+          new IPObjExporter().getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery()
         );
       });
   }

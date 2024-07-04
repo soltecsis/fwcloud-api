@@ -20,12 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  FindManyOptions,
-  FindOneOptions,
-  Repository,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { FindManyOptions, FindOneOptions, Repository, SelectQueryBuilder } from 'typeorm';
 import { Application } from '../../../Application';
 import { Service } from '../../../fonaments/services/service';
 import { Route } from '../route/route.model';
@@ -67,8 +62,7 @@ export class RouteGroupService extends Service {
 
   public async build(): Promise<Service> {
     this._databaseService = await this._app.getService(DatabaseService.name);
-    this._repository =
-      this._databaseService.dataSource.manager.getRepository(RouteGroup);
+    this._repository = this._databaseService.dataSource.manager.getRepository(RouteGroup);
 
     return this;
   }

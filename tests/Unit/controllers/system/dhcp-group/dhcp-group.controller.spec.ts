@@ -112,18 +112,9 @@ describe(DhcpGroupController.name, () => {
         },
       } as unknown as Request;
 
-      const dhcpGroupServiceStub = sinon.stub(
-        DHCPGroupService.prototype,
-        'findOneInPath',
-      );
-      const firewallStub = sinon.stub(
-        manager.getRepository(Firewall),
-        'findOneOrFail',
-      );
-      const fwCloudStub = sinon.stub(
-        manager.getRepository(FwCloud),
-        'findOneOrFail',
-      );
+      const dhcpGroupServiceStub = sinon.stub(DHCPGroupService.prototype, 'findOneInPath');
+      const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail');
+      const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail');
 
       await controller.make(requestMock);
 
@@ -149,9 +140,7 @@ describe(DhcpGroupController.name, () => {
         .stub(DHCPGroupService.prototype, 'findOneInPath')
         .throws(new Error('DHCP Group not found'));
 
-      await expect(controller.make(requestMock)).to.be.rejectedWith(
-        'DHCP Group not found',
-      );
+      await expect(controller.make(requestMock)).to.be.rejectedWith('DHCP Group not found');
 
       dhcpGroupServiceStub.restore();
     });

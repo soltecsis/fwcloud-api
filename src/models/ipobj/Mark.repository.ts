@@ -54,10 +54,7 @@ export class MarkRepository extends Repository<Mark> {
     return rules ? q.andWhere('rule.id IN (:...rules)', { rules: rules }) : q;
   }
 
-  getMarksInRoutingRules_ForGrid(
-    fwcloud: number,
-    firewall: number,
-  ): SelectQueryBuilder<Mark> {
+  getMarksInRoutingRules_ForGrid(fwcloud: number, firewall: number): SelectQueryBuilder<Mark> {
     return this.createQueryBuilder('mark')
       .select('mark.id', 'id')
       .addSelect('mark.name', 'name')

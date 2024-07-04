@@ -24,9 +24,7 @@ import * as uuid from 'uuid';
 import { TasksEventEmitter } from './progress';
 import { EventEmitter } from 'events';
 
-export type TaskDescription = (
-  eventEmitter: InternalTaskEventEmitter,
-) => Promise<any>;
+export type TaskDescription = (eventEmitter: InternalTaskEventEmitter) => Promise<any>;
 export type GroupDescription = (task: Task) => void;
 
 export interface InternalTaskEventEmitter extends EventEmitter {
@@ -49,11 +47,7 @@ export class Task implements ITask {
 
   protected _internalEmitter: InternalTaskEventEmitter;
 
-  constructor(
-    eventEmitter: TasksEventEmitter,
-    fn: TaskDescription,
-    description: string,
-  ) {
+  constructor(eventEmitter: TasksEventEmitter, fn: TaskDescription, description: string) {
     this._id = uuid.v1();
     this._eventEmitter = eventEmitter;
     this._internalEmitter = new EventEmitter();
@@ -66,11 +60,7 @@ export class Task implements ITask {
     return this._id;
   }
 
-  addTask(
-    task: TaskDescription,
-    finishedText: string = null,
-    stepable: boolean = true,
-  ): void {
+  addTask(task: TaskDescription, finishedText: string = null, stepable: boolean = true): void {
     throw new Error('Method not implemented.');
   }
   parallel(fn: GroupDescription, finishedText: string = null): void {

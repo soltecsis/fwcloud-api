@@ -46,24 +46,17 @@ export class Folder extends Model {
           nodeData.id_parent;
         connection.query(sql, (error, result) => {
           if (error) return reject(error);
-          if (result.length !== 1)
-            return reject(fwcError.other('Parent node tree not found'));
+          if (result.length !== 1) return reject(fwcError.other('Parent node tree not found'));
           if (result[0].node_type !== 'FDF' && result[0].node_type !== 'FD')
-            return reject(
-              fwcError.other('Can not create folders under this node type'),
-            );
+            return reject(fwcError.other('Can not create folders under this node type'));
 
-          connection.query(
-            'INSERT INTO ' + tableName + ' SET ?',
-            nodeData,
-            (error, result) => {
-              if (error) return reject(error);
-              // Return the las inserted id.
-              result.insertId
-                ? resolve({ insertId: result.insertId })
-                : reject(fwcError.other('Node tree not created'));
-            },
-          );
+          connection.query('INSERT INTO ' + tableName + ' SET ?', nodeData, (error, result) => {
+            if (error) return reject(error);
+            // Return the las inserted id.
+            result.insertId
+              ? resolve({ insertId: result.insertId })
+              : reject(fwcError.other('Node tree not created'));
+          });
         });
       });
     });
@@ -95,13 +88,7 @@ export class Folder extends Model {
           if (parseInt(result[0].childs) !== 0)
             return reject(fwcError.other('This folder node is not empty'));
 
-          sql =
-            'DELETE FROM ' +
-            tableName +
-            ' WHERE fwcloud=' +
-            fwcloud +
-            ' AND id=' +
-            id;
+          sql = 'DELETE FROM ' + tableName + ' WHERE fwcloud=' + fwcloud + ' AND id=' + id;
           connection.query(sql, (error, result) => {
             if (error) return reject(error);
             resolve();
@@ -112,12 +99,7 @@ export class Folder extends Model {
   }
 
   //Rename folder node
-  public static renameFolderNode(
-    fwcloud,
-    id,
-    old_name,
-    new_name,
-  ): Promise<void> {
+  public static renameFolderNode(fwcloud, id, old_name, new_name): Promise<void> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -179,10 +161,7 @@ export class Folder extends Model {
   //Move node into folder
   public static moveToFolder(fwcloud, src, dst): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (src === dst)
-        return reject(
-          fwcError.other('Source and destination nodes are the same'),
-        );
+      if (src === dst) return reject(fwcError.other('Source and destination nodes are the same'));
       db.get((error, connection) => {
         if (error) return reject(error);
         // Verify that folder node exists and that the node that is being droped into can be moved.
@@ -221,16 +200,9 @@ export class Folder extends Model {
           while (parent_id != null) {
             try {
               if (parent_id === src)
-                return reject(
-                  fwcError.other('Source node is ancestor of destination node'),
-                );
-              parent_id = await this.getParentId(
-                connection,
-                fwcloud,
-                parent_id,
-              );
-              if (--max_deep < 1)
-                return reject(fwcError.other('Max deep level reached'));
+                return reject(fwcError.other('Source node is ancestor of destination node'));
+              parent_id = await this.getParentId(connection, fwcloud, parent_id);
+              if (--max_deep < 1) return reject(fwcError.other('Max deep level reached'));
             } catch (error) {
               return reject(error);
             }

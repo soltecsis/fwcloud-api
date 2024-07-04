@@ -107,8 +107,7 @@ export class UpdateService extends Service {
     const versions: Versions = {
       current: localJson.version,
       last: remoteJson.data.version,
-      needsUpdate:
-        cmp(remoteJson.data.version, localJson.version) === 1 ? true : false,
+      needsUpdate: cmp(remoteJson.data.version, localJson.version) === 1 ? true : false,
     };
 
     return versions;
@@ -151,9 +150,7 @@ export class UpdateService extends Service {
       // is available.
       await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (err) {
-      logger().error(
-        `Error during fwcloud-updater update procedure: ${err.message}`,
-      );
+      logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
       throw new Error('Error during fwcloud-updater update procedure');
     }
 

@@ -26,11 +26,7 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from '../fonaments/abstract-application';
 
 export class InputValidation extends Middleware {
-  public async handle(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     // The FWCloud.net API only supports these HTTP methods.
     if (
       req.method !== 'POST' &&
@@ -39,20 +35,15 @@ export class InputValidation extends Middleware {
       req.method !== 'DELETE'
     ) {
       logger().error(
-        'Error during input validation check: ' +
-          JSON.stringify(fwcError.NOT_ACCEPTED_METHOD),
+        'Error during input validation check: ' + JSON.stringify(fwcError.NOT_ACCEPTED_METHOD),
       );
       res.status(400).json(fwcError.NOT_ACCEPTED_METHOD);
       return;
     }
 
-    if (
-      (req.method === 'GET' || req.method === 'DELETE') &&
-      Object.keys(req.body).length !== 0
-    ) {
+    if ((req.method === 'GET' || req.method === 'DELETE') && Object.keys(req.body).length !== 0) {
       logger().error(
-        'Error during input validation check: ' +
-          JSON.stringify(fwcError.BODY_MUST_BE_EMPTY),
+        'Error during input validation check: ' + JSON.stringify(fwcError.BODY_MUST_BE_EMPTY),
       );
       res.status(400).json(fwcError.BODY_MUST_BE_EMPTY);
       return;
@@ -92,17 +83,13 @@ export class InputValidation extends Middleware {
     ) {
       logger().error('Unknown route: ' + item1);
       logger().error(
-        'Error during input validation check: ' +
-          JSON.stringify(fwcError.BAD_API_CALL),
+        'Error during input validation check: ' + JSON.stringify(fwcError.BAD_API_CALL),
       );
       res.status(404).json(fwcError.BAD_API_CALL);
       return;
     }
 
-    if (
-      item1_new_route_system.includes(item1.replace(/\?.*/, '')) &&
-      item1 != 'iptables-save'
-    ) {
+    if (item1_new_route_system.includes(item1.replace(/\?.*/, '')) && item1 != 'iptables-save') {
       return next();
     }
 
@@ -130,9 +117,7 @@ export class InputValidation extends Middleware {
         delete error._object;
       }
 
-      logger().error(
-        'Error during input validation check: ' + JSON.stringify(error),
-      );
+      logger().error('Error during input validation check: ' + JSON.stringify(error));
 
       if (error.code === 'MODULE_NOT_FOUND') {
         res.status(400).json(fwcError.MODULE_NOT_FOUND);

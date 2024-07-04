@@ -21,10 +21,7 @@
 */
 import { Request } from 'express';
 import { Controller } from '../../../fonaments/http/controller';
-import {
-  Validate,
-  ValidateQuery,
-} from '../../../decorators/validate.decorator';
+import { Validate, ValidateQuery } from '../../../decorators/validate.decorator';
 import { DhcpPolicy } from '../../../policies/dhcp.policy';
 import { DHCPRule } from '../../../models/system/dhcp/dhcp_r/dhcp_r.model';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
@@ -45,10 +42,7 @@ import { DHCPRuleUpdateDto } from './dto/update.dto';
 import { DhcpRuleBulkUpdateDto } from './dto/bulk-update.dto';
 import { HttpException } from '../../../fonaments/exceptions/http/http-exception';
 import { DhcpRuleBulkRemoveDto } from './dto/bulk-remove.dto';
-import {
-  AvailableDestinations,
-  DHCPRuleItemForCompiler,
-} from '../../../models/system/dhcp/shared';
+import { AvailableDestinations, DHCPRuleItemForCompiler } from '../../../models/system/dhcp/shared';
 import { DHCPCompiler } from '../../../compiler/system/dhcp/DHCPCompiler';
 import { Channel } from '../../../sockets/channels/channel';
 import { ProgressPayload } from '../../../sockets/messages/socket-message';
@@ -69,9 +63,7 @@ export class DhcpController extends Controller {
    * @returns A Promise that resolves to void.
    */
   public async make(req: Request): Promise<void> {
-    this._dhcpRuleService = await this._app.getService<DHCPRuleService>(
-      DHCPRuleService.name,
-    );
+    this._dhcpRuleService = await this._app.getService<DHCPRuleService>(DHCPRuleService.name);
 
     if (req.params.dhcp) {
       this._dhcprule = await db
@@ -124,9 +116,7 @@ export class DhcpController extends Controller {
    */
   public async grid(req: Request): Promise<ResponseBuilder> {
     if (![1, 2].includes(parseInt(req.params.set))) {
-      return ResponseBuilder.buildResponse()
-        .status(400)
-        .body({ message: 'Invalid set parameter' });
+      return ResponseBuilder.buildResponse().status(400).body({ message: 'Invalid set parameter' });
     }
 
     (await DhcpPolicy.index(this._firewall, req.session.user)).authorize();
@@ -162,9 +152,7 @@ export class DhcpController extends Controller {
 
       return ResponseBuilder.buildResponse().status(201).body(dhcpRule);
     } catch (err) {
-      return ResponseBuilder.buildResponse()
-        .status(422)
-        .body({ message: err.message });
+      return ResponseBuilder.buildResponse().status(422).body({ message: err.message });
     }
   }
 
@@ -210,9 +198,7 @@ export class DhcpController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body(result);
     } catch (err) {
-      return ResponseBuilder.buildResponse()
-        .status(422)
-        .body({ message: err.message });
+      return ResponseBuilder.buildResponse().status(422).body({ message: err.message });
     }
   }
 
@@ -346,24 +332,16 @@ export class DhcpController extends Controller {
     }
 
     const rules: DHCPRulesData<DHCPRuleItemForCompiler>[] =
-      await this._dhcpRuleService.getDHCPRulesData(
-        'compiler',
-        this._fwCloud.id,
-        firewallId,
-      );
+      await this._dhcpRuleService.getDHCPRulesData('compiler', this._fwCloud.id, firewallId);
 
     const content: string = new DHCPCompiler()
       .compile(rules, channel)
       .map((item) => item.cs)
       .join('\n');
 
-    const communication: Communication<unknown> =
-      await firewall.getCommunication();
+    const communication: Communication<unknown> = await firewall.getCommunication();
 
-    channel.emit(
-      'message',
-      new ProgressPayload('start', false, `Installing DHCP`),
-    );
+    channel.emit('message', new ProgressPayload('start', false, `Installing DHCP`));
 
     await communication.installDHCPConfigs(
       '/etc/dhcp',
@@ -371,10 +349,7 @@ export class DhcpController extends Controller {
       channel,
     );
 
-    channel.emit(
-      'message',
-      new ProgressPayload('end', false, `Installing DHCP`),
-    );
+    channel.emit('message', new ProgressPayload('end', false, `Installing DHCP`));
 
     return ResponseBuilder.buildResponse().status(200).body(null);
   }
@@ -446,9 +421,7 @@ export class DhcpController extends Controller {
       throw new HttpException(`No rules found to be removed`, 400);
     }
 
-    const result: DHCPRule[] = await this._dhcpRuleService.bulkRemove(
-      rules.map((item) => item.id),
-    );
+    const result: DHCPRule[] = await this._dhcpRuleService.bulkRemove(rules.map((item) => item.id));
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }

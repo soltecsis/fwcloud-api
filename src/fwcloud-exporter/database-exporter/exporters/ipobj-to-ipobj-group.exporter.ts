@@ -45,22 +45,15 @@ export class IPObjToIPObjGroupExporter extends TableExporter {
 
         return (
           `${alias}.ipObjId IN` +
-          new IPObjExporter()
-            .getFilterBuilder(subquery, 'ipobj', fwCloudId)
-            .getQuery()
+          new IPObjExporter().getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery()
         );
       })
       .orWhere((qb) => {
-        const subquery = qb
-          .subQuery()
-          .from(IPObjGroup, 'ipobj_g')
-          .select('ipobj_g.id');
+        const subquery = qb.subQuery().from(IPObjGroup, 'ipobj_g').select('ipobj_g.id');
 
         return (
           `${alias}.ipObjGroupId IN` +
-          new IPObjGroupExporter()
-            .getFilterBuilder(subquery, 'ipobj_g', fwCloudId)
-            .getQuery()
+          new IPObjGroupExporter().getFilterBuilder(subquery, 'ipobj_g', fwCloudId).getQuery()
         );
       });
   }

@@ -39,8 +39,7 @@ export function IsClientOpenVPN(validationOptions?: ValidationOptions) {
                 .manager.getRepository(Crt)
                 .findOne({ where: { id: openvpns[i].crtId } });
 
-              if (openvpns[i].parentId === null || crt.type !== 1)
-                return resolve(false);
+              if (openvpns[i].parentId === null || crt.type !== 1) return resolve(false);
             }
 
             return resolve(true);

@@ -53,20 +53,16 @@ describe.skip(describeName('Firewall Service Unit Tests'), () => {
         fwCloudId: (
           await manager
             .getRepository(FwCloud)
-            .save(
-              manager
-                .getRepository(FwCloud)
-                .create({ name: StringHelper.randomize(10) }),
-            )
+            .save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))
         ).id,
       }),
     );
   });
 
   it('should be provided as an application service', async () => {
-    expect(
-      await app.getService<FirewallService>(FirewallService.name),
-    ).to.be.instanceOf(FirewallService);
+    expect(await app.getService<FirewallService>(FirewallService.name)).to.be.instanceOf(
+      FirewallService,
+    );
   });
 
   describe('compile()', () => {
@@ -128,9 +124,7 @@ describe.skip(describeName('Firewall Service Unit Tests'), () => {
       await service.compile(firewall);
 
       const scriptData: string = fs.readFileSync(scriptPath).toString();
-      const headers: string = fs
-        .readFileSync(app.config.get('policy').header_file)
-        .toString();
+      const headers: string = fs.readFileSync(app.config.get('policy').header_file).toString();
       expect(scriptData).contain(headers);
     });
 
@@ -144,9 +138,7 @@ describe.skip(describeName('Firewall Service Unit Tests'), () => {
 
       await service.compile(firewall);
       const scriptData: string = fs.readFileSync(scriptPath).toString();
-      const footers: string = fs
-        .readFileSync(app.config.get('policy').footer_file)
-        .toString();
+      const footers: string = fs.readFileSync(app.config.get('policy').footer_file).toString();
       expect(scriptData).contain(footers);
     });
   });

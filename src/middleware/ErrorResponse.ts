@@ -27,9 +27,7 @@ import { NotFoundException } from '../fonaments/exceptions/not-found-exception';
 
 export class ErrorResponse extends ErrorMiddleware {
   public handle(error: Error, req: Request, res: Response, next: NextFunction) {
-    const exceptionName: string = error.constructor
-      ? error.constructor.name
-      : 'Error';
+    const exceptionName: string = error.constructor ? error.constructor.name : 'Error';
 
     if (error.stack) {
       const stackLine: Array<string> = error.stack.split('\n');

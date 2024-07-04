@@ -49,9 +49,9 @@ describe(describeName('Model Unit Tests'), () => {
       expect(Model.getEntitiyDefinition('fwcloud').constructor.name).to.be.eq(
         FwCloud.constructor.name,
       );
-      expect(
-        Model.getEntitiyDefinition('fwcloud', 'FwCloud').constructor.name,
-      ).to.be.eq(FwCloud.constructor.name);
+      expect(Model.getEntitiyDefinition('fwcloud', 'FwCloud').constructor.name).to.be.eq(
+        FwCloud.constructor.name,
+      );
     });
 
     it('should return null if the entity does not exist', () => {
@@ -61,9 +61,7 @@ describe(describeName('Model Unit Tests'), () => {
 
   describe('getEntitiyColumns()', () => {
     const data = FwCloud.getEntityColumns().map((item) => item.propertyName);
-    expect(
-      FwCloud.getEntityColumns().map((item) => item.propertyName),
-    ).to.be.deep.eq([
+    expect(FwCloud.getEntityColumns().map((item) => item.propertyName)).to.be.deep.eq([
       'id',
       'name',
       'created_at',
@@ -81,17 +79,18 @@ describe(describeName('Model Unit Tests'), () => {
   describe('getPrimaryKeys()', () => {
     it('should return an array of columnsMetadataArgs', () => {
       expect(PolicyRuleToOpenVPN.getPrimaryKeys()).to.have.length(3);
-      expect(
-        PolicyRuleToOpenVPN.getPrimaryKeys().map((item) => item.propertyName),
-      ).to.be.deep.eq(['policyRuleId', 'openVPNId', 'policyPositionId']);
+      expect(PolicyRuleToOpenVPN.getPrimaryKeys().map((item) => item.propertyName)).to.be.deep.eq([
+        'policyRuleId',
+        'openVPNId',
+        'policyPositionId',
+      ]);
     });
   });
 
   describe('getPrimaryKey()', () => {
     it('should return a column metadata instance if the propertyName is primary key', () => {
       expect(PolicyRuleToOpenVPN.getPrimaryKey('policyRuleId')).not.to.be.null;
-      expect(PolicyRuleToOpenVPN.getPrimaryKey('policyRuleId').options.primary)
-        .to.be.true;
+      expect(PolicyRuleToOpenVPN.getPrimaryKey('policyRuleId').options.primary).to.be.true;
     });
 
     it('should return null if the propertyName is not primary key', () => {
@@ -108,8 +107,7 @@ describe(describeName('Model Unit Tests'), () => {
       expect(PolicyRuleToOpenVPN.isPrimaryKey('policyRuleId')).to.be.true;
       expect(PolicyRuleToOpenVPN.isPrimaryKey('openVPNId')).to.be.true;
       expect(PolicyRuleToOpenVPN.isPrimaryKey('policyPositionId')).to.be.true;
-      expect(PolicyRuleToOpenVPN.isPrimaryKey('inventedColumnName')).to.be
-        .false;
+      expect(PolicyRuleToOpenVPN.isPrimaryKey('inventedColumnName')).to.be.false;
       expect(PolicyRuleToOpenVPN.isPrimaryKey('updated_at')).to.be.false;
     });
   });
@@ -127,17 +125,17 @@ describe(describeName('Model Unit Tests'), () => {
 
   describe('getJoinColumns()', () => {
     it('should return the properties which are join columns', () => {
-      expect(
-        PolicyRuleToOpenVPN.getJoinColumns().map((item) => item.propertyName),
-      ).to.be.deep.eq(['policyPosition', 'openVPN', 'policyRule']);
+      expect(PolicyRuleToOpenVPN.getJoinColumns().map((item) => item.propertyName)).to.be.deep.eq([
+        'policyPosition',
+        'openVPN',
+        'policyRule',
+      ]);
     });
   });
 
   describe('getJoinTables()', () => {
     it('should return the properties which are join tables', () => {
-      expect(
-        FwCloud.getJoinTables().map((item) => item.propertyName),
-      ).to.be.deep.eq(['users']);
+      expect(FwCloud.getJoinTables().map((item) => item.propertyName)).to.be.deep.eq(['users']);
     });
   });
 
@@ -157,24 +155,18 @@ describe(describeName('Model Unit Tests'), () => {
 
   describe('getOriginalColumnName()', () => {
     it('should return the property column name if it is mapped', () => {
-      expect(
-        PolicyRuleToOpenVPN.getOriginalColumnName('policyRuleId'),
-      ).to.be.deep.eq('rule');
+      expect(PolicyRuleToOpenVPN.getOriginalColumnName('policyRuleId')).to.be.deep.eq('rule');
     });
 
     it('should return the same name if the property is not mapped', () => {
-      expect(
-        PolicyRuleToOpenVPN.getOriginalColumnName('updated_at'),
-      ).to.be.deep.eq('updated_at');
+      expect(PolicyRuleToOpenVPN.getOriginalColumnName('updated_at')).to.be.deep.eq('updated_at');
     });
   });
 
   describe('getRelationFromForeignKey()', () => {
     it('should return the foreign key relation', () => {
       expect(
-        (<any>(
-          PolicyRuleToOpenVPN.getRelationFromPropertyName('policyRuleId').type
-        ))(),
+        (<any>PolicyRuleToOpenVPN.getRelationFromPropertyName('policyRuleId').type)(),
       ).to.be.deep.eq(PolicyRule);
     });
   });

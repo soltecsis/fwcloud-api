@@ -34,28 +34,21 @@ let databaseService: DatabaseService;
 describe(describeName('Import mapping tests'), () => {
   describe('newId()', () => {
     before(async () => {
-      databaseService = await testSuite.app.getService<DatabaseService>(
-        DatabaseService.name,
-      );
+      databaseService = await testSuite.app.getService<DatabaseService>(DatabaseService.name);
     });
 
     it('should map the old id with a new id', async () => {
-      const queryRunner: QueryRunner =
-        databaseService.dataSource.createQueryRunner();
-      const queryBuilder: SelectQueryBuilder<unknown> =
-        databaseService.dataSource
-          .createQueryBuilder('fwcloud', 'fwcloud')
-          .select('MAX(id)', 'id');
+      const queryRunner: QueryRunner = databaseService.dataSource.createQueryRunner();
+      const queryBuilder: SelectQueryBuilder<unknown> = databaseService.dataSource
+        .createQueryBuilder('fwcloud', 'fwcloud')
+        .select('MAX(id)', 'id');
 
       await FwCloud.save(FwCloud.create({ name: StringHelper.randomize(10) }));
       const maxId: any = (await queryBuilder.execute())[0].id;
 
       const results: ExporterResult = new ExporterResult();
       results.addTableData('fwcloud', [{ id: 0 }]);
-      const mapper = new ImportMapping(
-        await IdManager.make(queryRunner, ['fwcloud']),
-        results,
-      );
+      const mapper = new ImportMapping(await IdManager.make(queryRunner, ['fwcloud']), results);
       await queryRunner.release();
 
       const newId: number = mapper.getMappedId('fwcloud', 'id', 0);
@@ -67,9 +60,7 @@ describe(describeName('Import mapping tests'), () => {
       const results: ExporterResult = new ExporterResult();
       results.addTableData('fwcloud', [{ id: 0 }]);
       const mapper = new ImportMapping(
-        await IdManager.make(databaseService.dataSource.createQueryRunner(), [
-          'fwcloud',
-        ]),
+        await IdManager.make(databaseService.dataSource.createQueryRunner(), ['fwcloud']),
         results,
       );
 
@@ -82,10 +73,7 @@ describe(describeName('Import mapping tests'), () => {
       const results: ExporterResult = new ExporterResult();
 
       const mapper = new ImportMapping(
-        await IdManager.make(
-          databaseService.dataSource.createQueryRunner(),
-          [],
-        ),
+        await IdManager.make(databaseService.dataSource.createQueryRunner(), []),
         results,
       );
 

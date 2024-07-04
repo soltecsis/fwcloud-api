@@ -115,11 +115,9 @@ export class ServiceContainer {
   }
 
   private find(name: string): ServiceBound {
-    const results: Array<ServiceBound> = this._services.filter(
-      (service: ServiceBound) => {
-        return service.name === name;
-      },
-    );
+    const results: Array<ServiceBound> = this._services.filter((service: ServiceBound) => {
+      return service.name === name;
+    });
 
     return results.length > 0 ? results[0] : null;
   }

@@ -6,13 +6,7 @@ import {
 } from '../../../../sockets/messages/socket-message';
 import { Progress } from '../progress';
 
-export type TaskPayloadType =
-  | 'start'
-  | 'end'
-  | 'start_task'
-  | 'end_task'
-  | 'info'
-  | 'error';
+export type TaskPayloadType = 'start' | 'end' | 'start_task' | 'end_task' | 'info' | 'error';
 
 export class StartProgressPayload extends ProgressPayload {
   constructor(progress: Progress) {

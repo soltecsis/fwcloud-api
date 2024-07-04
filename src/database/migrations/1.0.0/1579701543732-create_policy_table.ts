@@ -20,12 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  MigrationInterface,
-  QueryRunner,
-  Table,
-  TableForeignKey,
-} from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm';
 import { findForeignKeyInTable } from '../../../utils/typeorm/TableUtils';
 
 export class createPolicyTable1579701543732 implements MigrationInterface {
@@ -464,10 +459,7 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
             default: 0,
           },
         ],
-        indices: [
-          { columnNames: ['interface'] },
-          { columnNames: ['position'] },
-        ],
+        indices: [{ columnNames: ['interface'] }, { columnNames: ['position'] }],
         foreignKeys: [
           {
             columnNames: ['interface'],
@@ -826,16 +818,10 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
     let table: Table;
 
     table = await queryRunner.getTable('policy_r');
-    await queryRunner.dropForeignKey(
-      table,
-      findForeignKeyInTable(table, 'type'),
-    );
+    await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'type'));
 
     table = await queryRunner.getTable('policy_position');
-    await queryRunner.dropForeignKey(
-      table,
-      findForeignKeyInTable(table, 'policy_type'),
-    );
+    await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'policy_type'));
 
     await queryRunner.dropTable('policy_type', true);
 
@@ -845,18 +831,12 @@ export class createPolicyTable1579701543732 implements MigrationInterface {
     await queryRunner.dropTable('policy_r__interface', true);
 
     table = await queryRunner.getTable('policy_c');
-    await queryRunner.dropForeignKey(
-      table,
-      findForeignKeyInTable(table, 'rule'),
-    );
+    await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'rule'));
 
     await queryRunner.dropTable('policy_r', true);
 
     table = await queryRunner.getTable('ipobj_type__policy_position');
-    await queryRunner.dropForeignKey(
-      table,
-      findForeignKeyInTable(table, 'position'),
-    );
+    await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'position'));
 
     await queryRunner.dropTable('policy_position', true);
     await queryRunner.dropTable('policy_g', true);

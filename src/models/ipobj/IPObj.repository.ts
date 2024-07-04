@@ -24,12 +24,7 @@ import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { IPObj } from './IPObj';
 import { Repository } from '../../database/repository';
 
-export type ValidEntities =
-  | 'route'
-  | 'rule'
-  | 'dhcp_r'
-  | 'keepalived_r'
-  | 'haproxy_r';
+export type ValidEntities = 'route' | 'rule' | 'dhcp_r' | 'keepalived_r' | 'haproxy_r';
 
 //@EntityRepository(IPObj)
 export class IPObjRepository extends Repository<IPObj> {
@@ -66,8 +61,7 @@ export class IPObjRepository extends Repository<IPObj> {
       .where('fwcloud.id = :fwcloud', { fwcloud: fwcloud })
       .andWhere('firewall.id = :firewall', { firewall: firewall });
 
-    if (routingTable)
-      q = q.andWhere('table.id = :routingTable', { routingTable });
+    if (routingTable) q = q.andWhere('table.id = :routingTable', { routingTable });
 
     return ids ? q.andWhere(`${entity}.id IN (:...ids)`, { ids: ids }) : q;
   }
@@ -94,14 +88,7 @@ export class IPObjRepository extends Repository<IPObj> {
 
     query.andWhere('ipobj.type<>8');
 
-    return this.belongsToFWCloud(
-      entity,
-      fwcloud,
-      firewall,
-      routingTable,
-      ids,
-      query,
-    );
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query);
   }
 
   // All ipobj under host (type=8).
@@ -127,14 +114,7 @@ export class IPObjRepository extends Repository<IPObj> {
         .innerJoin('routingRuleToIPObjs.routingRule', entity);
     }
 
-    return this.belongsToFWCloud(
-      entity,
-      fwcloud,
-      firewall,
-      routingTable,
-      ids,
-      query,
-    );
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query);
   }
 
   // All ipobj under group excluding hosts (type=8)
@@ -157,21 +137,13 @@ export class IPObjRepository extends Repository<IPObj> {
 
     if (entity === 'rule') {
       query
-        .innerJoin(
-          'ipobjGroup.routingRuleToIPObjGroups',
-          'routingRuleToIPObjGroups',
-        )
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
         .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
     }
 
-    return this.belongsToFWCloud(
-      entity,
-      fwcloud,
-      firewall,
-      routingTable,
-      ids,
-      query,
-    ).andWhere('ipobj.type<>8');
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
+      'ipobj.type<>8',
+    );
   }
 
   // All ipobj under host (type=8) included in IP objects groups
@@ -197,21 +169,11 @@ export class IPObjRepository extends Repository<IPObj> {
 
     if (entity === 'rule') {
       query
-        .innerJoin(
-          'ipobjGroup.routingRuleToIPObjGroups',
-          'routingRuleToIPObjGroups',
-        )
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
         .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
     }
 
-    return this.belongsToFWCloud(
-      entity,
-      fwcloud,
-      firewall,
-      routingTable,
-      ids,
-      query,
-    );
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query);
   }
 
   // All ipobj under OpenVPNs
@@ -238,14 +200,9 @@ export class IPObjRepository extends Repository<IPObj> {
         .innerJoin('routingRuleToOpenVPNs.routingRule', entity);
     }
 
-    return this.belongsToFWCloud(
-      entity,
-      fwcloud,
-      firewall,
-      routingTable,
-      ids,
-      query,
-    ).andWhere("vpnOpt.name='ifconfig-push'");
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
+      "vpnOpt.name='ifconfig-push'",
+    );
   }
 
   // All ipobj under OpenVPNs in groups
@@ -269,21 +226,13 @@ export class IPObjRepository extends Repository<IPObj> {
 
     if (entity === 'rule') {
       query
-        .innerJoin(
-          'ipobjGroup.routingRuleToIPObjGroups',
-          'routingRuleToIPObjGroups',
-        )
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
         .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
     }
 
-    return this.belongsToFWCloud(
-      entity,
-      fwcloud,
-      firewall,
-      routingTable,
-      ids,
-      query,
-    ).andWhere("vpnOpt.name='ifconfig-push'");
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
+      "vpnOpt.name='ifconfig-push'",
+    );
   }
 
   // All ipobj under OpenVPN prefixes
@@ -309,21 +258,11 @@ export class IPObjRepository extends Repository<IPObj> {
 
     if (entity === 'rule') {
       query
-        .innerJoin(
-          'prefix.routingRuleToOpenVPNPrefixes',
-          'routingRuleToOpenVPNPrefixes',
-        )
+        .innerJoin('prefix.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefixes')
         .innerJoin('routingRuleToOpenVPNPrefixes.routingRule', entity);
     }
 
-    return this.belongsToFWCloud(
-      entity,
-      fwcloud,
-      firewall,
-      routingTable,
-      ids,
-      query,
-    ).andWhere(
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
       "crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and vpnOpt.name='ifconfig-push'",
     );
   }
@@ -352,21 +291,11 @@ export class IPObjRepository extends Repository<IPObj> {
 
     if (entity === 'rule') {
       query
-        .innerJoin(
-          'ipobjGroup.routingRuleToIPObjGroups',
-          'routingRuleToIPObjGroups',
-        )
+        .innerJoin('ipobjGroup.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
         .innerJoin('routingRuleToIPObjGroups.routingRule', entity);
     }
 
-    return this.belongsToFWCloud(
-      entity,
-      fwcloud,
-      firewall,
-      routingTable,
-      ids,
-      query,
-    ).andWhere(
+    return this.belongsToFWCloud(entity, fwcloud, firewall, routingTable, ids, query).andWhere(
       "crt.type=1 and crt.cn like CONCAT(prefix.name,'%') and vpnOpt.name='ifconfig-push'",
     );
   }

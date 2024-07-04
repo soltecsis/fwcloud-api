@@ -57,12 +57,8 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
   };
   let manager: EntityManager;
 
-  async function runTest(
-    posData: [number, number][],
-    cs: string,
-  ): Promise<void> {
-    for (let i = 0; i < posData.length; i++)
-      await populateRule(rule, posData[i][0], posData[i][1]);
+  async function runTest(posData: [number, number][], cs: string): Promise<void> {
+    for (let i = 0; i < posData.length; i++) await populateRule(rule, posData[i][0], posData[i][1]);
 
     const rulesData: any = await PolicyRule.getPolicyData(
       'compiler',
@@ -91,11 +87,7 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
     fwcloud = (
       await manager
         .getRepository(FwCloud)
-        .save(
-          manager
-            .getRepository(FwCloud)
-            .create({ name: StringHelper.randomize(10) }),
-        )
+        .save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))
     ).id;
     ruleData.firewall = (
       await manager

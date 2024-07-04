@@ -1,11 +1,4 @@
-import {
-  Entity,
-  PrimaryColumn,
-  Column,
-  ManyToMany,
-  JoinColumn,
-  ManyToOne,
-} from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToMany, JoinColumn, ManyToOne } from 'typeorm';
 import Model from '../../../Model';
 import { KeepalivedRule } from './keepalived_r.model';
 import { IPObj } from '../../../ipobj/IPObj';
@@ -27,13 +20,9 @@ export class KeepalivedToIPObj extends Model {
   @Column({ type: Number })
   order: number;
 
-  @ManyToOne(
-    () => KeepalivedRule,
-    (keepalivedRule) => keepalivedRule.virtualIps,
-    {
-      orphanedRowAction: 'delete',
-    },
-  )
+  @ManyToOne(() => KeepalivedRule, (keepalivedRule) => keepalivedRule.virtualIps, {
+    orphanedRowAction: 'delete',
+  })
   @JoinColumn({ name: 'rule' })
   keepalivedRule: KeepalivedRule;
 

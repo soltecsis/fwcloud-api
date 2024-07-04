@@ -123,9 +123,7 @@ export class RoutingGroupPolicy extends Policy {
       });
   }
 
-  protected static getRoutingTable(
-    routingTableId: number,
-  ): Promise<RoutingTable> {
+  protected static getRoutingTable(routingTableId: number): Promise<RoutingTable> {
     return db
       .getSource()
       .manager.getRepository(RoutingTable)

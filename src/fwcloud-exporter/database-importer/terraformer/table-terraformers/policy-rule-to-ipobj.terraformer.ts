@@ -20,10 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  TableTerraformer,
-  TerraformHandlerCollection,
-} from '../table-terraformer';
+import { TableTerraformer, TerraformHandlerCollection } from '../table-terraformer';
 import { ImportMapping } from '../mapper/import-mapping';
 import { Interface } from '../../../../models/interface/Interface';
 import { IPObj } from '../../../../models/ipobj/IPObj';
@@ -35,8 +32,10 @@ export class PolicyRuleToIpObjTerraformer extends TableTerraformer {
     mapper: ImportMapping,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<PolicyRuleToIpObjTerraformer> {
-    const terraformer: PolicyRuleToIpObjTerraformer =
-      new PolicyRuleToIpObjTerraformer(mapper, eventEmitter);
+    const terraformer: PolicyRuleToIpObjTerraformer = new PolicyRuleToIpObjTerraformer(
+      mapper,
+      eventEmitter,
+    );
     return terraformer;
   }
 
@@ -47,11 +46,7 @@ export class PolicyRuleToIpObjTerraformer extends TableTerraformer {
   protected getCustomHandlers(): TerraformHandlerCollection {
     const result = {};
 
-    result['interfaceId'] = (
-      mapper: ImportMapping,
-      row: object,
-      value: number,
-    ) => {
+    result['interfaceId'] = (mapper: ImportMapping, row: object, value: number) => {
       return mapper.getMappedId(Interface._getTableName(), 'id', value);
     };
 
@@ -59,11 +54,7 @@ export class PolicyRuleToIpObjTerraformer extends TableTerraformer {
       return mapper.getMappedId(IPObj._getTableName(), 'id', value);
     };
 
-    result['ipObjGroupId'] = (
-      mapper: ImportMapping,
-      row: object,
-      value: number,
-    ) => {
+    result['ipObjGroupId'] = (mapper: ImportMapping, row: object, value: number) => {
       return mapper.getMappedId(IPObjGroup._getTableName(), 'id', value);
     };
 

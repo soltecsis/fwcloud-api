@@ -119,22 +119,10 @@ describe(HAProxyController.name, () => {
         },
       } as unknown as Request;
 
-      const dhcpruleStub = sinon.stub(
-        manager.getRepository(HAProxyRule),
-        'findOneOrFail',
-      );
-      const dhcpgroupStub = sinon.stub(
-        manager.getRepository(HAProxyGroup),
-        'findOneOrFail',
-      );
-      const firewallStub = sinon.stub(
-        manager.getRepository(Firewall),
-        'findOneOrFail',
-      );
-      const fwCloudStub = sinon.stub(
-        manager.getRepository(FwCloud),
-        'findOneOrFail',
-      );
+      const dhcpruleStub = sinon.stub(manager.getRepository(HAProxyRule), 'findOneOrFail');
+      const dhcpgroupStub = sinon.stub(manager.getRepository(HAProxyGroup), 'findOneOrFail');
+      const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail');
+      const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail');
 
       await controller.make(requestMock);
 
@@ -162,9 +150,7 @@ describe(HAProxyController.name, () => {
         .stub(manager.getRepository(HAProxyRule), 'findOneOrFail')
         .throws(new Error('HAPRoxyRule not found'));
 
-      await expect(controller.make(requestMock)).to.be.rejectedWith(
-        'HAPRoxyRule not found',
-      );
+      await expect(controller.make(requestMock)).to.be.rejectedWith('HAPRoxyRule not found');
 
       dhcpruleStub.restore();
     });

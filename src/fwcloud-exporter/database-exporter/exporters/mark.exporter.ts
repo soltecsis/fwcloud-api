@@ -38,16 +38,11 @@ export class MarkExporter extends TableExporter {
     fwCloudId: number,
   ): SelectQueryBuilder<any> {
     return qb.where((qb) => {
-      const subquery = qb
-        .subQuery()
-        .from(FwCloud, 'fwcloud')
-        .select('fwcloud.id');
+      const subquery = qb.subQuery().from(FwCloud, 'fwcloud').select('fwcloud.id');
 
       return (
         `${alias}.fwCloudId IN ` +
-        new FwCloudExporter()
-          .getFilterBuilder(subquery, 'fwcloud', fwCloudId)
-          .getQuery()
+        new FwCloudExporter().getFilterBuilder(subquery, 'fwcloud', fwCloudId).getQuery()
       );
     });
   }

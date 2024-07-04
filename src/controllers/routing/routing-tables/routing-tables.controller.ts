@@ -29,10 +29,7 @@ import {
 import { Request } from 'express';
 import { RoutingTable } from '../../../models/routing/routing-table/routing-table.model';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
-import {
-  Validate,
-  ValidateQuery,
-} from '../../../decorators/validate.decorator';
+import { Validate, ValidateQuery } from '../../../decorators/validate.decorator';
 import { RoutingTablePolicy } from '../../../policies/routing-table.policy';
 import { RoutingTableControllerCreateDto } from './dtos/create.dto';
 import { RoutingTableControllerUpdateDto } from './dtos/update.dto';
@@ -95,33 +92,26 @@ export class RoutingTableController extends Controller {
 
   @Validate()
   async index(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingTablePolicy.index(this._firewall, request.session.user)
-    ).authorize();
+    (await RoutingTablePolicy.index(this._firewall, request.session.user)).authorize();
 
-    const tables: RoutingTable[] =
-      await this.routingTableService.findManyInPath({
-        fwCloudId: this._firewall.fwCloudId,
-        firewallId: this._firewall.id,
-      });
+    const tables: RoutingTable[] = await this.routingTableService.findManyInPath({
+      fwCloudId: this._firewall.fwCloudId,
+      firewallId: this._firewall.id,
+    });
 
     return ResponseBuilder.buildResponse().status(200).body(tables);
   }
 
   @Validate()
   async show(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingTablePolicy.show(this._routingTable, request.session.user)
-    ).authorize();
+    (await RoutingTablePolicy.show(this._routingTable, request.session.user)).authorize();
 
     return ResponseBuilder.buildResponse().status(200).body(this._routingTable);
   }
 
   @Validate()
   async grid(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingTablePolicy.show(this._routingTable, request.session.user)
-    ).authorize();
+    (await RoutingTablePolicy.show(this._routingTable, request.session.user)).authorize();
 
     const grid = await this.routingTableService.getRoutingTableData(
       'grid',
@@ -136,9 +126,7 @@ export class RoutingTableController extends Controller {
   @Validate()
   @ValidateQuery(RoutingTableControllerCompileRoutesQueryDto)
   async compileRoutes(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingTablePolicy.show(this._routingTable, request.session.user)
-    ).authorize();
+    (await RoutingTablePolicy.show(this._routingTable, request.session.user)).authorize();
 
     let routes: RouteData<RouteItemForCompiler>[] =
       await this.routingTableService.getRoutingTableData(
@@ -164,9 +152,7 @@ export class RoutingTableController extends Controller {
 
   @Validate(RoutingTableControllerCreateDto)
   async create(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingTablePolicy.create(this._firewall, request.session.user)
-    ).authorize();
+    (await RoutingTablePolicy.create(this._firewall, request.session.user)).authorize();
 
     const routingTable: RoutingTable = await this.routingTableService.create({
       firewallId: this._firewall.id,
@@ -180,9 +166,7 @@ export class RoutingTableController extends Controller {
 
   @Validate(RoutingTableControllerUpdateDto)
   async update(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingTablePolicy.update(this._routingTable, request.session.user)
-    ).authorize();
+    (await RoutingTablePolicy.update(this._routingTable, request.session.user)).authorize();
 
     const result: RoutingTable = await this.routingTableService.update(
       this._routingTable.id,
@@ -190,20 +174,14 @@ export class RoutingTableController extends Controller {
     );
 
     // Update the tree node with the new name.
-    await Tree.updateRoutingTableNodeName(
-      this._firewall.fwCloudId,
-      result.id,
-      result.name,
-    );
+    await Tree.updateRoutingTableNodeName(this._firewall.fwCloudId, result.id, result.name);
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
 
   @Validate()
   async restrictions(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingTablePolicy.show(this._routingTable, request.session.user)
-    ).authorize();
+    (await RoutingTablePolicy.show(this._routingTable, request.session.user)).authorize();
 
     const rules: RoutingRule[] = await db
       .getSource()
@@ -236,9 +214,7 @@ export class RoutingTableController extends Controller {
 
   @Validate()
   async remove(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingTablePolicy.delete(this._routingTable, request.session.user)
-    ).authorize();
+    (await RoutingTablePolicy.delete(this._routingTable, request.session.user)).authorize();
 
     await this.routingTableService.remove({
       fwCloudId: this._firewall.fwCloudId,

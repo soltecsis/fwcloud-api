@@ -3,10 +3,7 @@ import { SSHConfig } from './firewall.service';
 import { app } from '../../fonaments/abstract-application';
 import sshTools from '../../utils/ssh';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
-import {
-  ProgressInfoPayload,
-  ProgressNoticePayload,
-} from '../../sockets/messages/socket-message';
+import { ProgressInfoPayload, ProgressNoticePayload } from '../../sockets/messages/socket-message';
 
 export class Installer {
   protected _firewall: Firewall;
@@ -15,10 +12,7 @@ export class Installer {
     this._firewall = firewall;
   }
 
-  public async install(
-    sshConfig: SSHConfig,
-    eventEmitter: EventEmitter,
-  ): Promise<string> {
+  public async install(sshConfig: SSHConfig, eventEmitter: EventEmitter): Promise<string> {
     return new Promise(async (resolve, reject) => {
       try {
         /***** WARNING ******/

@@ -30,10 +30,7 @@ import {
   RoutingRulesData,
   RoutingRuleService,
 } from '../../../../src/models/routing/routing-rule/routing-rule.service';
-import {
-  ItemForGrid,
-  RoutingRuleItemForCompiler,
-} from '../../../../src/models/routing/shared';
+import { ItemForGrid, RoutingRuleItemForCompiler } from '../../../../src/models/routing/shared';
 import { expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { EntityManager } from 'typeorm';
@@ -62,12 +59,11 @@ describe('Routing rules data fetch for compiler or grid', () => {
     let item: RoutingRuleItemForCompiler;
 
     before(async () => {
-      routingRules =
-        await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
-          'compiler',
-          fwc.fwcloud.id,
-          fwc.firewall.id,
-        );
+      routingRules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+      );
     });
 
     describe('Out of group', () => {
@@ -313,14 +309,12 @@ describe('Routing rules data fetch for compiler or grid', () => {
         item.firewall_id = fwc.firewall.id;
         item.firewall_name = fwc.firewall.name;
         item._order = (
-          await manager
-            .getRepository(RoutingRuleToOpenVPNPrefix)
-            .findOneOrFail({
-              where: {
-                routingRuleId: fwc.routingRules.get('routing-rule-1').id,
-                openVPNPrefixId: item.id,
-              },
-            })
+          await manager.getRepository(RoutingRuleToOpenVPNPrefix).findOneOrFail({
+            where: {
+              routingRuleId: fwc.routingRules.get('routing-rule-1').id,
+              openVPNPrefixId: item.id,
+            },
+          })
         ).order;
         expect(items).to.deep.include(item);
       });
@@ -381,13 +375,12 @@ describe('Routing rules data fetch for compiler or grid', () => {
         fwc.routingRules.get('routing-rule-1').id,
         fwc.routingRules.get('routing-rule-3').id,
       ];
-      routingRules =
-        await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
-          'compiler',
-          fwc.fwcloud.id,
-          fwc.firewall.id,
-          ids,
-        );
+      routingRules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+        ids,
+      );
 
       expect(routingRules.length).to.equal(2);
       expect(routingRules[0].id).to.equal(ids[0]);
@@ -396,13 +389,12 @@ describe('Routing rules data fetch for compiler or grid', () => {
 
     it('should get data for routing rule 2', async () => {
       const ids = [fwc.routingRules.get('routing-rule-2').id];
-      routingRules =
-        await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
-          'compiler',
-          fwc.fwcloud.id,
-          fwc.firewall.id,
-          ids,
-        );
+      routingRules = await routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+        ids,
+      );
 
       expect(routingRules.length).to.equal(1);
       expect(routingRules[0].id).to.equal(ids[0]);

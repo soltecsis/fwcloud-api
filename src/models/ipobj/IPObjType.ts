@@ -22,14 +22,7 @@
 
 import Model from '../Model';
 import db from '../../database/database-manager';
-import {
-  PrimaryColumn,
-  Column,
-  Entity,
-  OneToMany,
-  JoinTable,
-  ManyToMany,
-} from 'typeorm';
+import { PrimaryColumn, Column, Entity, OneToMany, JoinTable, ManyToMany } from 'typeorm';
 import { FwcTree } from '../tree/fwc-tree.model';
 import { IPObj } from './IPObj';
 import { PolicyPosition } from '../policy/PolicyPosition';
@@ -54,10 +47,7 @@ export class IPObjType extends Model {
   @OneToMany((type) => IPObj, (ipObj) => ipObj.ipObjType)
   ipObjs: Array<IPObj>;
 
-  @ManyToMany(
-    (type) => PolicyPosition,
-    (policyPosition) => policyPosition.ipObjTypes,
-  )
+  @ManyToMany((type) => PolicyPosition, (policyPosition) => policyPosition.ipObjTypes)
   @JoinTable({
     name: 'ipobj_type__policy_position',
     joinColumn: {
@@ -80,26 +70,20 @@ export class IPObjType extends Model {
   public static getIpobj_types(callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      connection.query(
-        'SELECT * FROM ' + tableName + ' ORDER BY id',
-        (error, rows) => {
-          if (error) callback(error, null);
-          else callback(null, rows);
-        },
-      );
+      connection.query('SELECT * FROM ' + tableName + ' ORDER BY id', (error, rows) => {
+        if (error) callback(error, null);
+        else callback(null, rows);
+      });
     });
   }
 
   //Get ipobj_type by  id
   public static getIpobj_type(req, id) {
     return new Promise((resolve, reject) => {
-      req.dbCon.query(
-        `SELECT * FROM ${tableName} WHERE id=${id}`,
-        (error, row) => {
-          if (error) return reject(error);
-          resolve(row);
-        },
-      );
+      req.dbCon.query(`SELECT * FROM ${tableName} WHERE id=${id}`, (error, row) => {
+        if (error) return reject(error);
+        resolve(row);
+      });
     });
   }
 }

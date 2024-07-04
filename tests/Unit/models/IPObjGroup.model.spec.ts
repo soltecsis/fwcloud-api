@@ -47,9 +47,7 @@ describe(IPObjGroup.name, () => {
   beforeEach(async () => {
     manager = db.getSource().manager;
     fwcloudProduct = await new FwCloudFactory().make();
-    routeService = await testSuite.app.getService<RouteService>(
-      RouteService.name,
-    );
+    routeService = await testSuite.app.getService<RouteService>(RouteService.name);
     routingRuleService = await testSuite.app.getService<RoutingRuleService>(
       RoutingRuleService.name,
     );
@@ -118,9 +116,7 @@ describe(IPObjGroup.name, () => {
         );
 
         expect(whereUsed.restrictions.GroupInRoute).to.have.length(1);
-        expect(whereUsed.restrictions.GroupInRoute[0].route_id).to.be.eq(
-          route.id,
-        );
+        expect(whereUsed.restrictions.GroupInRoute[0].route_id).to.be.eq(route.id);
       });
     });
 
@@ -132,9 +128,9 @@ describe(IPObjGroup.name, () => {
         );
 
         expect(whereUsed.restrictions.GroupInRoutingRule).to.have.length(1);
-        expect(
-          whereUsed.restrictions.GroupInRoutingRule[0].routing_rule_id,
-        ).to.be.eq(routingRule.id);
+        expect(whereUsed.restrictions.GroupInRoutingRule[0].routing_rule_id).to.be.eq(
+          routingRule.id,
+        );
       });
     });
   });

@@ -29,17 +29,9 @@ export type Middlewareable = typeof Middleware | typeof ErrorMiddleware;
 export abstract class Middleware {
   protected app: HTTPApplication;
 
-  public abstract handle(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void>;
+  public abstract handle(req: Request, res: Response, next: NextFunction): Promise<void>;
 
-  private async safeHandler(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  private async safeHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       await this.handle(req, res, next);
     } catch (e) {
@@ -59,19 +51,9 @@ export abstract class Middleware {
 export abstract class ErrorMiddleware {
   protected app: Application;
 
-  public abstract handle(
-    error: any,
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): void;
+  public abstract handle(error: any, req: Request, res: Response, next: NextFunction): void;
 
-  private safeHandler(
-    error: any,
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  private safeHandler(error: any, req: Request, res: Response, next: NextFunction) {
     try {
       const result = this.handle(error, req, res, next);
     } catch (e) {
@@ -82,10 +64,8 @@ export abstract class ErrorMiddleware {
 
   public register(app: Application) {
     this.app = app;
-    app.express.use(
-      (error: any, req: Request, res: Response, next: NextFunction) => {
-        this.safeHandler(error, req, res, next);
-      },
-    );
+    app.express.use((error: any, req: Request, res: Response, next: NextFunction) => {
+      this.safeHandler(error, req, res, next);
+    });
   }
 }

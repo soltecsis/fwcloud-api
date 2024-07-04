@@ -38,11 +38,8 @@ export class BulkDatabaseDelete {
     let qr: QueryRunner | undefined;
 
     try {
-      this._databaseService = await app().getService<DatabaseService>(
-        DatabaseService.name,
-      );
-      const qr: QueryRunner =
-        this._databaseService.dataSource.createQueryRunner();
+      this._databaseService = await app().getService<DatabaseService>(DatabaseService.name);
+      const qr: QueryRunner = this._databaseService.dataSource.createQueryRunner();
 
       await qr.startTransaction();
       await qr.query('SET FOREIGN_KEY_CHECKS = 0');
@@ -95,11 +92,7 @@ export class BulkDatabaseDelete {
   ): Promise<void> {
     for (let i = 0; i < rows.length; i++) {
       const row: object = rows[i];
-      await queryRunner.manager
-        .createQueryBuilder(table, 'table')
-        .delete()
-        .where(row)
-        .execute();
+      await queryRunner.manager.createQueryBuilder(table, 'table').delete().where(row).execute();
     }
   }
 }

@@ -47,11 +47,9 @@ export class DhcpPolicy extends Policy {
       return Authorization.grant();
     }
 
-    const match: FwCloud[] = user.fwClouds.filter(
-      (FwCloud: FwCloud): boolean => {
-        return FwCloud.id === firewall.fwCloudId;
-      },
-    );
+    const match: FwCloud[] = user.fwClouds.filter((FwCloud: FwCloud): boolean => {
+      return FwCloud.id === firewall.fwCloudId;
+    });
 
     return match.length > 0 ? Authorization.grant() : Authorization.revoke();
   }
@@ -87,11 +85,9 @@ export class DhcpPolicy extends Policy {
       return Authorization.grant();
     }
 
-    const match: FwCloud[] = user.fwClouds.filter(
-      (fwcloud: FwCloud): boolean => {
-        return fwcloud.id === firewall.fwCloudId;
-      },
-    );
+    const match: FwCloud[] = user.fwClouds.filter((fwcloud: FwCloud): boolean => {
+      return fwcloud.id === firewall.fwCloudId;
+    });
 
     return match.length > 0 ? Authorization.grant() : Authorization.revoke();
   }
@@ -133,10 +129,7 @@ export class DhcpPolicy extends Policy {
     return this.checkAuthorization(user, dhcp.firewall.fwCloud.id);
   }
 
-  private static async checkAuthorization(
-    user: User,
-    fwCloudId: number,
-  ): Promise<Authorization> {
+  private static async checkAuthorization(user: User, fwCloudId: number): Promise<Authorization> {
     const match: FwCloud[] = user.fwClouds.filter(
       (fwcloud: FwCloud): boolean => fwcloud.id === fwCloudId,
     );

@@ -19,14 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { IPObj } from '../../../ipobj/IPObj';
 import { Interface } from '../../../interface/Interface';
 import { DHCPGroup } from '../dhcp_g/dhcp_g.model';
@@ -164,10 +157,7 @@ export class DHCPRule extends Model {
     }
   }
 
-  public static moveToOtherFirewall(
-    src_firewall: number,
-    dst_firewall: number,
-  ) {
+  public static moveToOtherFirewall(src_firewall: number, dst_firewall: number) {
     return DHCPRule.createQueryBuilder()
       .update()
       .set({ firewallId: dst_firewall })

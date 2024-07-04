@@ -39,11 +39,7 @@ describe(describeName('Crt E2E Test'), () => {
 
     fwCloud = await manager
       .getRepository(FwCloud)
-      .save(
-        manager
-          .getRepository(FwCloud)
-          .create({ name: StringHelper.randomize(10) }),
-      );
+      .save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }));
     ca = await manager.getRepository(Ca).save(
       manager.getRepository(Ca).create({
         fwCloudId: fwCloud.id,
@@ -156,9 +152,7 @@ describe(describeName('Crt E2E Test'), () => {
           const crtWithNewComment = await Crt.findOne({
             where: { id: crt.id },
           });
-          expect(response.body.data.comment).to.be.equal(
-            crtWithNewComment.comment,
-          );
+          expect(response.body.data.comment).to.be.equal(crtWithNewComment.comment);
         });
     });
   });

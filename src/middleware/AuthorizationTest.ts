@@ -36,11 +36,7 @@ type SessionData = {
 };
 
 export class AuthorizationTest extends Middleware {
-  public async handle(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     // Exclude the login route.
     if (req.method === 'POST' && req.path === '/user/login') {
       return next();
@@ -63,9 +59,7 @@ export class AuthorizationTest extends Middleware {
           throw new AuthorizationException();
         }
 
-        const session_data: SessionData = JSON.parse(
-          fs.readFileSync(session_path).toString(),
-        );
+        const session_data: SessionData = JSON.parse(fs.readFileSync(session_path).toString());
 
         req.session.customer_id = session_data.customer_id;
         req.session.user_id = session_data.user_id;
@@ -100,11 +94,7 @@ export class AuthorizationTest extends Middleware {
     });
 
     for (let i = 0; i < cookies.length; i++) {
-      if (
-        new RegExp('^' + this.app.config.get('session').name + '=').test(
-          cookies[i],
-        )
-      ) {
+      if (new RegExp('^' + this.app.config.get('session').name + '=').test(cookies[i])) {
         return cookies[i].split(this.app.config.get('session').name + '=')[1];
       }
     }

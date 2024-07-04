@@ -20,12 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  MigrationInterface,
-  QueryRunner,
-  Table,
-  TableForeignKey,
-} from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm';
 import { findForeignKeyInTable } from '../../../utils/typeorm/TableUtils';
 
 export class createIpobjTable1579701470388 implements MigrationInterface {
@@ -549,33 +544,21 @@ export class createIpobjTable1579701470388 implements MigrationInterface {
     await queryRunner.dropTable('ipobj_type__policy_position', true);
 
     table = await queryRunner.getTable('fwc_tree');
-    await queryRunner.dropForeignKey(
-      table,
-      findForeignKeyInTable(table, 'obj_type'),
-    );
+    await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'obj_type'));
 
     table = await queryRunner.getTable('ipobj');
-    await queryRunner.dropForeignKey(
-      'ipobj',
-      findForeignKeyInTable(table, 'type'),
-    );
+    await queryRunner.dropForeignKey('ipobj', findForeignKeyInTable(table, 'type'));
 
     await queryRunner.dropTable('ipobj_type', true);
 
     table = await queryRunner.getTable('ipobj__ipobjg');
-    await queryRunner.dropForeignKey(
-      table,
-      findForeignKeyInTable(table, 'ipobj_g'),
-    );
+    await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'ipobj_g'));
     await queryRunner.dropTable('ipobj_g', true);
 
     await queryRunner.dropTable('ipobj__ipobjg', true);
 
     table = await queryRunner.getTable('interface__ipobj');
-    await queryRunner.dropForeignKey(
-      'interface__ipobj',
-      findForeignKeyInTable(table, 'ipobj'),
-    );
+    await queryRunner.dropForeignKey('interface__ipobj', findForeignKeyInTable(table, 'ipobj'));
     await queryRunner.dropTable('ipobj', true);
 
     await queryRunner.dropTable('interface__ipobj', true);

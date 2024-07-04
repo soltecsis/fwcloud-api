@@ -17,9 +17,7 @@ export class CaService extends Service {
   }
 
   public async update(id: number, data: IUpdateCa): Promise<Ca> {
-    let ca: Ca = await this._repository.preload(
-      Object.assign({ comment: data.comment }, { id }),
-    );
+    let ca: Ca = await this._repository.preload(Object.assign({ comment: data.comment }, { id }));
 
     ca = await this._repository.save(ca);
 

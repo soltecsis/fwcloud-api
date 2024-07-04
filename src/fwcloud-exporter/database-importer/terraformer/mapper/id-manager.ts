@@ -76,11 +76,8 @@ export class IdManager {
 
         for (let i = 0; i < primaryKeys.length; i++) {
           if (!entity.isJoinColumn(primaryKeys[i].propertyName)) {
-            if (
-              (<ColumnOptions>primaryKeys[i].options.type).name === 'Number'
-            ) {
-              const primaryKeyPropertyName: string =
-                primaryKeys[i].propertyName;
+            if ((<ColumnOptions>primaryKeys[i].options.type).name === 'Number') {
+              const primaryKeyPropertyName: string = primaryKeys[i].propertyName;
               // TypeORM might apply some kind of propertyName mapping.
               const originalColumnName: string = primaryKeys[i].options.name
                 ? primaryKeys[i].options.name

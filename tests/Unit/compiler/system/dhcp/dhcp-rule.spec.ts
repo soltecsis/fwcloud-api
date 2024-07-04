@@ -21,20 +21,14 @@
 */
 
 import { expect } from 'chai';
-import {
-  DHCPCompiled,
-  DHCPCompiler,
-} from '../../../../../src/compiler/system/dhcp/DHCPCompiler';
+import { DHCPCompiled, DHCPCompiler } from '../../../../../src/compiler/system/dhcp/DHCPCompiler';
 import {
   DHCPRuleService,
   DHCPRulesData,
 } from '../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service';
 import { DHCPRuleItemForCompiler } from '../../../../../src/models/system/dhcp/shared';
 import { testSuite } from '../../../../mocha/global-setup';
-import {
-  FwCloudFactory,
-  FwCloudProduct,
-} from '../../../../utils/fwcloud-factory';
+import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import { EntityManager } from 'typeorm';
 import { DHCPRule } from '../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.model';
 import { IPObj } from '../../../../../src/models/ipobj/IPObj';
@@ -56,9 +50,7 @@ describe(DHCPCompiler.name, (): void => {
 
     fwc = await new FwCloudFactory().make();
 
-    dhcpRuleService = await testSuite.app.getService<DHCPRuleService>(
-      DHCPRuleService.name,
-    );
+    dhcpRuleService = await testSuite.app.getService<DHCPRuleService>(DHCPRuleService.name);
 
     const testData: DHCPRule[] = [];
 
@@ -141,17 +133,15 @@ describe(DHCPCompiler.name, (): void => {
 
       compiler.compile(rules, eventEmitter);
 
-      rules.forEach(
-        (rule: DHCPRulesData<DHCPRuleItemForCompiler>, index: number): void => {
-          expect(
-            progressHandler.calledWith(
-              sinon.match({
-                message: `Compiling DHCP rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}`,
-              }),
-            ),
-          ).to.be.true;
-        },
-      );
+      rules.forEach((rule: DHCPRulesData<DHCPRuleItemForCompiler>, index: number): void => {
+        expect(
+          progressHandler.calledWith(
+            sinon.match({
+              message: `Compiling DHCP rule ${index} (ID: ${rule.id})${!rule.active ? ' [DISABLED]' : ''}`,
+            }),
+          ),
+        ).to.be.true;
+      });
     });
   });
 });

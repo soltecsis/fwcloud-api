@@ -31,9 +31,7 @@ let databaseService: DatabaseService;
 describe(describeName('Database Service tests'), () => {
   beforeEach(async () => {
     app = testSuite.app;
-    databaseService = await app.getService<DatabaseService>(
-      DatabaseService.name,
-    );
+    databaseService = await app.getService<DatabaseService>(DatabaseService.name);
   });
 
   describe('getAppliedMigrations()', async () => {
@@ -44,25 +42,25 @@ describe(describeName('Database Service tests'), () => {
     });
 
     it('should return all migrations', async () => {
-      const migrations = (
-        await dataSource.query('SELECT * from migrations ORDER BY id DESC')
-      ).map((row: any) => {
-        return {
-          id: row.id,
-          timestamp: parseInt(row.timestamp),
-          name: row.name,
-        };
-      });
+      const migrations = (await dataSource.query('SELECT * from migrations ORDER BY id DESC')).map(
+        (row: any) => {
+          return {
+            id: row.id,
+            timestamp: parseInt(row.timestamp),
+            name: row.name,
+          };
+        },
+      );
 
-      const executedMigrations = (
-        await databaseService.getExecutedMigrations()
-      ).map((migration: Migration) => {
-        return {
-          id: migration.id,
-          timestamp: migration.timestamp,
-          name: migration.name,
-        };
-      });
+      const executedMigrations = (await databaseService.getExecutedMigrations()).map(
+        (migration: Migration) => {
+          return {
+            id: migration.id,
+            timestamp: migration.timestamp,
+            name: migration.name,
+          };
+        },
+      );
 
       expect(executedMigrations).to.be.deep.eq(migrations);
     });
@@ -70,14 +68,13 @@ describe(describeName('Database Service tests'), () => {
 
   describe('rollbackMigrations()', () => {
     it('should rollback multiple migrations', async () => {
-      const migrations: Migration[] =
-        await databaseService.getExecutedMigrations();
+      const migrations: Migration[] = await databaseService.getExecutedMigrations();
 
       await databaseService.rollbackMigrations(3);
 
-      expect(
-        (await databaseService.getExecutedMigrations()).length,
-      ).to.be.deep.eq(migrations.length - 3);
+      expect((await databaseService.getExecutedMigrations()).length).to.be.deep.eq(
+        migrations.length - 3,
+      );
 
       await databaseService.runMigrations();
     });

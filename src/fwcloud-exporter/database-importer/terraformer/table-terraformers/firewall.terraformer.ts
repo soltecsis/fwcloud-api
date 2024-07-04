@@ -1,7 +1,4 @@
-import {
-  TableTerraformer,
-  TerraformHandlerCollection,
-} from '../table-terraformer';
+import { TableTerraformer, TerraformHandlerCollection } from '../table-terraformer';
 import { ImportMapping } from '../mapper/import-mapping';
 import { QueryRunner } from 'typeorm';
 import { IPObj } from '../../../../models/ipobj/IPObj';
@@ -13,10 +10,7 @@ export class FirewallTerraformer extends TableTerraformer {
     mapper: ImportMapping,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<FirewallTerraformer> {
-    const terraformer: FirewallTerraformer = new FirewallTerraformer(
-      mapper,
-      eventEmitter,
-    );
+    const terraformer: FirewallTerraformer = new FirewallTerraformer(mapper, eventEmitter);
     return terraformer;
   }
 
@@ -27,19 +21,11 @@ export class FirewallTerraformer extends TableTerraformer {
   protected getCustomHandlers(): TerraformHandlerCollection {
     const result = {};
 
-    result['install_ipobj'] = (
-      mapper: ImportMapping,
-      row: object,
-      value: number,
-    ) => {
+    result['install_ipobj'] = (mapper: ImportMapping, row: object, value: number) => {
       return mapper.getMappedId(IPObj._getTableName(), 'id', value);
     };
 
-    result['install_interface'] = (
-      mapper: ImportMapping,
-      row: object,
-      value: number,
-    ) => {
+    result['install_interface'] = (mapper: ImportMapping, row: object, value: number) => {
       return mapper.getMappedId(Interface._getTableName(), 'id', value);
     };
 

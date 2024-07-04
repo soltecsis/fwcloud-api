@@ -42,12 +42,8 @@ export class DhcpGroupController extends Controller {
   protected _dhcpGroup: DHCPGroup;
 
   public async make(request: Request): Promise<void> {
-    this._dhcpGroupService = await this._app.getService<DHCPGroupService>(
-      DHCPGroupService.name,
-    );
-    this._dhcpDHCPRuleService = await this._app.getService<DHCPRuleService>(
-      DHCPRuleService.name,
-    );
+    this._dhcpGroupService = await this._app.getService<DHCPGroupService>(DHCPGroupService.name);
+    this._dhcpDHCPRuleService = await this._app.getService<DHCPRuleService>(DHCPRuleService.name);
 
     if (request.params.dhcpgroup) {
       this._dhcpGroup = await this._dhcpGroupService.findOneInPath({
@@ -79,17 +75,13 @@ export class DhcpGroupController extends Controller {
 
   @Validate(DHCPGroupControllerCreateDto)
   async create(req: Request): Promise<ResponseBuilder> {
-    (
-      await DHCPGroupPolicy.create(this._firewall, req.session.user)
-    ).authorize();
+    (await DHCPGroupPolicy.create(this._firewall, req.session.user)).authorize();
 
     const group: DHCPGroup = await this._dhcpGroupService.create({
       firewallId: this._firewall.id,
       name: req.body.name,
       style: req.body.style,
-      rules: req.inputs
-        .get<number[]>('rules')
-        ?.map((id: number): { id: number } => ({ id })),
+      rules: req.inputs.get<number[]>('rules')?.map((id: number): { id: number } => ({ id })),
     });
 
     if (req.inputs.get<number[]>('rules')) {
@@ -111,9 +103,7 @@ export class DhcpGroupController extends Controller {
 
   @Validate(DHCPGroupUpdateDto)
   async update(req: Request): Promise<ResponseBuilder> {
-    (
-      await DHCPGroupPolicy.update(this._dhcpGroup, req.session.user)
-    ).authorize();
+    (await DHCPGroupPolicy.update(this._dhcpGroup, req.session.user)).authorize();
 
     const result: DHCPGroup = await this._dhcpGroupService.update(
       this._dhcpGroup.id,
@@ -125,9 +115,7 @@ export class DhcpGroupController extends Controller {
 
   @Validate()
   async remove(req: Request): Promise<ResponseBuilder> {
-    (
-      await DHCPGroupPolicy.remove(this._dhcpGroup, req.session.user)
-    ).authorize();
+    (await DHCPGroupPolicy.remove(this._dhcpGroup, req.session.user)).authorize();
 
     await this._dhcpGroupService.remove({
       id: this._dhcpGroup.id,

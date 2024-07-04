@@ -25,9 +25,7 @@ import * as fse from 'fs-extra';
 import * as path from 'path';
 
 export class FSHelper {
-  public static async directoryExists(
-    directoryPath: fs.PathLike,
-  ): Promise<boolean> {
+  public static async directoryExists(directoryPath: fs.PathLike): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
       fs.stat(directoryPath, (error: Error, stats: fs.Stats) => {
         if (error) {
@@ -91,10 +89,7 @@ export class FSHelper {
     return fse.copy(source, destination);
   }
 
-  public static async moveDirectory(
-    source: string,
-    destination: string,
-  ): Promise<void> {
+  public static async moveDirectory(source: string, destination: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       FSHelper.copy(source, destination)
         .then(() => {
@@ -108,10 +103,7 @@ export class FSHelper {
     });
   }
 
-  public static async copyDirectoryIfExists(
-    source: string,
-    destination: string,
-  ): Promise<void> {
+  public static async copyDirectoryIfExists(source: string, destination: string): Promise<void> {
     if (await this.directoryExists(source)) {
       return await FSHelper.copy(source, destination);
     }

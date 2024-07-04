@@ -7,11 +7,7 @@ import { RoutingRule } from '../../../../src/models/routing/routing-rule/routing
 import { User } from '../../../../src/models/user/User';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
-import {
-  attachSession,
-  createUser,
-  generateSession,
-} from '../../../utils/utils';
+import { attachSession, createUser, generateSession } from '../../../utils/utils';
 import request = require('supertest');
 import { RoutingRuleService } from '../../../../src/models/routing/routing-rule/routing-rule.service';
 import { RouteService } from '../../../../src/models/routing/route/route.service';
@@ -69,9 +65,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
     fwcProduct = await new FwCloudFactory().make();
 
     routeService = await app.getService<RouteService>(RouteService.name);
-    routingRuleService = await app.getService<RoutingRuleService>(
-      RoutingRuleService.name,
-    );
+    routingRuleService = await app.getService<RoutingRuleService>(RoutingRuleService.name);
 
     adminUser = await createUser({ role: 1 });
     session = generateSession(adminUser);
@@ -1089,9 +1083,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
     let service: IPObj;
 
     beforeEach(async () => {
-      service = await manager
-        .getRepository(IPObj)
-        .findOneOrFail({ where: { id: 10040 } });
+      service = await manager.getRepository(IPObj).findOneOrFail({ where: { id: 10040 } });
 
       group = await manager.getRepository(IPObjGroup).save({
         name: 'group',

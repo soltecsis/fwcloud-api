@@ -39,10 +39,7 @@ export class FwCloudExportService extends Service {
 
     try {
       heartbeatInerval = setInterval(() => {
-        eventEmitter.emit(
-          'message',
-          new ProgressPayload('heartbeat', null, null),
-        );
+        eventEmitter.emit('message', new ProgressPayload('heartbeat', null, null));
       }, 20000);
 
       const fwCloudExport: FwCloudExport = await FwCloudExport.create(
@@ -77,8 +74,7 @@ export class FwCloudExportService extends Service {
     user: User,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<FwCloud> {
-    const fwCloudExport: FwCloudExport =
-      await FwCloudExport.loadCompressed(filePath);
+    const fwCloudExport: FwCloudExport = await FwCloudExport.loadCompressed(filePath);
 
     const fwCloud: FwCloud = await fwCloudExport.import(eventEmitter);
 

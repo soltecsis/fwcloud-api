@@ -66,9 +66,7 @@ export class Zip {
 
     return new Promise<void>((resolve, reject) => {
       if (!fs.existsSync(workPath)) {
-        return reject(
-          new Error(`Work path does not exist for being zipped: ${workPath}`),
-        );
+        return reject(new Error(`Work path does not exist for being zipped: ${workPath}`));
       }
 
       const output = fs.createWriteStream(destinationPath);

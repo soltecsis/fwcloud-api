@@ -39,10 +39,7 @@ export class KeysGenerateCommand extends Command {
 
   async handle(args: yargs.Arguments) {
     const forceFlag: boolean = (args.force ?? false) as boolean;
-    const envFilePath: string = path.join(
-      this._app.path,
-      KeysGenerateCommand.ENV_FILENAME,
-    );
+    const envFilePath: string = path.join(this._app.path, KeysGenerateCommand.ENV_FILENAME);
     const stat: Stats = await fs.stat(envFilePath);
 
     if (stat && !stat.isFile()) {
@@ -51,10 +48,7 @@ export class KeysGenerateCommand extends Command {
 
     let envContent: string = (await fs.readFile(envFilePath)).toString();
 
-    if (
-      forceFlag ||
-      new RegExp('^SESSION_SECRET\\s*=\\s*\n', 'm').test(envContent)
-    ) {
+    if (forceFlag || new RegExp('^SESSION_SECRET\\s*=\\s*\n', 'm').test(envContent)) {
       const session_secret = await this.generateRandomString();
       envContent = envContent.replace(
         new RegExp('^SESSION_SECRET\\s*=.*\n', 'm'),
@@ -65,10 +59,7 @@ export class KeysGenerateCommand extends Command {
       this.output.warn(`SESSION_SECRET already defined.`);
     }
 
-    if (
-      forceFlag ||
-      new RegExp('^CRYPT_SECRET\\s*=\\s*\n', 'm').test(envContent)
-    ) {
+    if (forceFlag || new RegExp('^CRYPT_SECRET\\s*=\\s*\n', 'm').test(envContent)) {
       const crypt_secret = await this.generateRandomString();
       envContent = envContent.replace(
         new RegExp('^CRYPT_SECRET\\s*=.*\n', 'm'),
@@ -98,16 +89,13 @@ export class KeysGenerateCommand extends Command {
 
   protected async generateRandomString(): Promise<String> {
     return new Promise((resolve, reject) => {
-      crypto.randomBytes(
-        KeysGenerateCommand.KEY_LENGTH,
-        (err: Error, buff: Buffer) => {
-          if (err) {
-            throw err;
-          }
+      crypto.randomBytes(KeysGenerateCommand.KEY_LENGTH, (err: Error, buff: Buffer) => {
+        if (err) {
+          throw err;
+        }
 
-          resolve(buff.toString('hex'));
-        },
-      );
+        resolve(buff.toString('hex'));
+      });
     });
   }
 }

@@ -29,10 +29,7 @@ export class PolicyGroupRepository extends Repository<PolicyGroup> {
     super(PolicyGroup, manager);
   }
 
-  public async moveToFirewall(
-    id: number,
-    firewallId: number,
-  ): Promise<UpdateResult> {
+  public async moveToFirewall(id: number, firewallId: number): Promise<UpdateResult> {
     return await this.update(id, {
       firewall: { id: firewallId },
     });

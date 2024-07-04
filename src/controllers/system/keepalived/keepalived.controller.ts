@@ -16,10 +16,7 @@
 */
 import { Request } from 'express';
 import { Controller } from '../../../fonaments/http/controller';
-import {
-  Validate,
-  ValidateQuery,
-} from '../../../decorators/validate.decorator';
+import { Validate, ValidateQuery } from '../../../decorators/validate.decorator';
 import { KeepalivedPolicy } from '../../../policies/keepalived.policy';
 import { KeepalivedRule } from '../../../models/system/keepalived/keepalived_r/keepalived_r.model';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
@@ -55,10 +52,9 @@ export class KeepalivedController extends Controller {
   protected _fwCloud: FwCloud;
 
   public async make(req: Request): Promise<void> {
-    this._keepalivedRuleService =
-      await this._app.getService<KeepalivedRuleService>(
-        KeepalivedRuleService.name,
-      );
+    this._keepalivedRuleService = await this._app.getService<KeepalivedRuleService>(
+      KeepalivedRuleService.name,
+    );
 
     if (req.params.keepalived) {
       this._keepalivedrule = await db
@@ -91,9 +87,7 @@ export class KeepalivedController extends Controller {
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   public async index(req: Request): Promise<ResponseBuilder> {
-    (
-      await KeepalivedPolicy.index(this._firewall, req.session.user)
-    ).authorize();
+    (await KeepalivedPolicy.index(this._firewall, req.session.user)).authorize();
 
     const keepalivedRules: KeepalivedRule[] =
       await this._keepalivedRuleService.getKeepalivedRulesData(
@@ -113,16 +107,13 @@ export class KeepalivedController extends Controller {
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   public async grid(req: Request): Promise<ResponseBuilder> {
-    (
-      await KeepalivedPolicy.index(this._firewall, req.session.user)
-    ).authorize();
+    (await KeepalivedPolicy.index(this._firewall, req.session.user)).authorize();
 
-    const grid: KeepalivedRule[] =
-      await this._keepalivedRuleService.getKeepalivedRulesData(
-        'keepalived_grid',
-        this._fwCloud.id,
-        this._firewall.id,
-      );
+    const grid: KeepalivedRule[] = await this._keepalivedRuleService.getKeepalivedRulesData(
+      'keepalived_grid',
+      this._fwCloud.id,
+      this._firewall.id,
+    );
 
     return ResponseBuilder.buildResponse().status(200).body(grid);
   }
@@ -135,23 +126,18 @@ export class KeepalivedController extends Controller {
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   public async create(req: Request): Promise<ResponseBuilder> {
-    (
-      await KeepalivedPolicy.create(this._firewall, req.session.user)
-    ).authorize();
+    (await KeepalivedPolicy.create(this._firewall, req.session.user)).authorize();
 
     const data: ICreateKeepalivedRule = Object.assign(
       req.inputs.all<KeepalivedRuleCreateDto>(),
       this._keepalivedgroup ? { group: this._keepalivedgroup.id } : null,
     );
     try {
-      const keepalivedRule: KeepalivedRule =
-        await this._keepalivedRuleService.store(data);
+      const keepalivedRule: KeepalivedRule = await this._keepalivedRuleService.store(data);
 
       return ResponseBuilder.buildResponse().status(201).body(keepalivedRule);
     } catch (error) {
-      return ResponseBuilder.buildResponse()
-        .status(422)
-        .body({ message: error.message });
+      return ResponseBuilder.buildResponse().status(422).body({ message: error.message });
     }
   }
 
@@ -188,9 +174,7 @@ export class KeepalivedController extends Controller {
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   public async update(req: Request): Promise<ResponseBuilder> {
-    (
-      await KeepalivedPolicy.update(this._keepalivedrule, req.session.user)
-    ).authorize();
+    (await KeepalivedPolicy.update(this._keepalivedrule, req.session.user)).authorize();
     try {
       const result: KeepalivedRule = await this._keepalivedRuleService.update(
         this._keepalivedrule.id,
@@ -199,9 +183,7 @@ export class KeepalivedController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body(result);
     } catch (error) {
-      return ResponseBuilder.buildResponse()
-        .status(422)
-        .body({ message: error.message });
+      return ResponseBuilder.buildResponse().status(422).body({ message: error.message });
     }
   }
 
@@ -213,9 +195,7 @@ export class KeepalivedController extends Controller {
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   public async remove(req: Request): Promise<ResponseBuilder> {
-    (
-      await KeepalivedPolicy.delete(this._keepalivedrule, req.session.user)
-    ).authorize();
+    (await KeepalivedPolicy.delete(this._keepalivedrule, req.session.user)).authorize();
 
     try {
       await this._keepalivedRuleService.remove({
@@ -227,9 +207,7 @@ export class KeepalivedController extends Controller {
       console.error(e);
     }
 
-    return ResponseBuilder.buildResponse()
-      .status(200)
-      .body(this._keepalivedrule);
+    return ResponseBuilder.buildResponse().status(200).body(this._keepalivedrule);
   }
 
   @Validate()
@@ -240,13 +218,9 @@ export class KeepalivedController extends Controller {
    * @returns A Promise that resolves to a ResponseBuilder object.
    */
   public async show(req: Request): Promise<ResponseBuilder> {
-    (
-      await KeepalivedPolicy.show(this._keepalivedrule, req.session.user)
-    ).authorize();
+    (await KeepalivedPolicy.show(this._keepalivedrule, req.session.user)).authorize();
 
-    return ResponseBuilder.buildResponse()
-      .status(200)
-      .body(this._keepalivedrule);
+    return ResponseBuilder.buildResponse().status(200).body(this._keepalivedrule);
   }
 
   @Validate(KeepalivedRuleCopyDto)
@@ -294,9 +268,7 @@ export class KeepalivedController extends Controller {
 
   @Validate()
   public async compile(req: Request): Promise<ResponseBuilder> {
-    (
-      await KeepalivedPolicy.create(this._firewall, req.session.user)
-    ).authorize();
+    (await KeepalivedPolicy.create(this._firewall, req.session.user)).authorize();
 
     const rules: KeepalivedRulesData<KeepalivedRuleItemForCompiler>[] =
       await this._keepalivedRuleService.getKeepalivedRulesData(
@@ -345,16 +317,11 @@ export class KeepalivedController extends Controller {
       .map((item) => item.cs)
       .join('\n');
 
-    const communication: Communication<unknown> =
-      await firewall.getCommunication();
+    const communication: Communication<unknown> = await firewall.getCommunication();
 
     channel.emit(
       'message',
-      new ProgressPayload(
-        'start',
-        false,
-        `Installing Keepalived configuration`,
-      ),
+      new ProgressPayload('start', false, `Installing Keepalived configuration`),
     );
 
     await communication.installKeepalivedConfigs(
@@ -385,12 +352,11 @@ export class KeepalivedController extends Controller {
     const ids: string[] = (req.query.rules as string[]) || [];
 
     for (const id of ids) {
-      const rule: KeepalivedRule =
-        await this._keepalivedRuleService.findOneInPath({
-          fwcloudId: this._fwCloud.id,
-          firewallId: this._firewall.id,
-          id: parseInt(id),
-        });
+      const rule: KeepalivedRule = await this._keepalivedRuleService.findOneInPath({
+        fwcloudId: this._fwCloud.id,
+        firewallId: this._firewall.id,
+        id: parseInt(id),
+      });
 
       (await KeepalivedPolicy.update(rule, req.session.user)).authorize();
 
@@ -401,11 +367,10 @@ export class KeepalivedController extends Controller {
       throw new HttpException(`No rules found`, 400);
     }
 
-    const result: KeepalivedRule[] =
-      await this._keepalivedRuleService.bulkUpdate(
-        rules.map((item) => item.id),
-        req.inputs.all<IUpdateKeepalivedRule>(),
-      );
+    const result: KeepalivedRule[] = await this._keepalivedRuleService.bulkUpdate(
+      rules.map((item) => item.id),
+      req.inputs.all<IUpdateKeepalivedRule>(),
+    );
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }
@@ -425,12 +390,11 @@ export class KeepalivedController extends Controller {
     const ids: number[] = (req.query.rules as unknown as number[]) || [];
 
     for (const id of ids) {
-      const rule: KeepalivedRule =
-        await this._keepalivedRuleService.findOneInPath({
-          fwcloudId: this._fwCloud.id,
-          firewallId: this._firewall.id,
-          id,
-        });
+      const rule: KeepalivedRule = await this._keepalivedRuleService.findOneInPath({
+        fwcloudId: this._fwCloud.id,
+        firewallId: this._firewall.id,
+        id,
+      });
 
       (await KeepalivedPolicy.delete(rule, req.session.user)).authorize();
 
@@ -441,10 +405,9 @@ export class KeepalivedController extends Controller {
       throw new HttpException(`No rules found to be removed`, 400);
     }
 
-    const result: KeepalivedRule[] =
-      await this._keepalivedRuleService.bulkRemove(
-        rules.map((item) => item.id),
-      );
+    const result: KeepalivedRule[] = await this._keepalivedRuleService.bulkRemove(
+      rules.map((item) => item.id),
+    );
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }

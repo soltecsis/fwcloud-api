@@ -51,10 +51,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
         }),
       );
 
-      const result: PolicyRule = await policyRuleRepository.updateActive(
-        policyRule,
-        1,
-      );
+      const result: PolicyRule = await policyRuleRepository.updateActive(policyRule, 1);
 
       policyRule = await PolicyRule.findOne({ where: { id: policyRule.id } });
 
@@ -82,10 +79,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
         ),
       ];
 
-      const result: Array<PolicyRule> = await policyRuleRepository.updateActive(
-        policyRules,
-        1,
-      );
+      const result: Array<PolicyRule> = await policyRuleRepository.updateActive(policyRules, 1);
 
       expect(result[0].active).to.be.deep.eq(1);
       expect(result[1].active).to.be.deep.eq(1);
@@ -101,10 +95,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
         }),
       );
 
-      const result: Array<PolicyRule> = await policyRuleRepository.updateActive(
-        [policyRule],
-        1,
-      );
+      const result: Array<PolicyRule> = await policyRuleRepository.updateActive([policyRule], 1);
 
       expect(result[0].active).to.be.deep.eq(0);
     });
@@ -140,10 +131,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
 
       policyRule = await PolicyRule.findOne({ where: { id: policyRule.id } });
 
-      const result = await policyRuleRepository.assignToGroup(
-        policyRule,
-        policyGroupNew,
-      );
+      const result = await policyRuleRepository.assignToGroup(policyRule, policyGroupNew);
 
       policyRule = await PolicyRule.findOne({ where: { id: policyRule.id } });
 
@@ -276,10 +264,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
         }),
       );
 
-      const result = await policyRuleRepository.updateStyle(
-        policyRule,
-        'newStyle',
-      );
+      const result = await policyRuleRepository.updateStyle(policyRule, 'newStyle');
 
       await policyRule.reload();
 
@@ -307,10 +292,7 @@ describe(describeName('PolicyRuleRepository Unit tests'), () => {
         ),
       ];
 
-      const result = await policyRuleRepository.updateStyle(
-        policyRules,
-        'newStyle',
-      );
+      const result = await policyRuleRepository.updateStyle(policyRules, 'newStyle');
 
       expect(result).to.have.length(2);
       expect(result[0].style).to.be.deep.eq('newStyle');

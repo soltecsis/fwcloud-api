@@ -35,10 +35,7 @@ export class KeepalivedRuleExporter extends TableExporter {
   ): SelectQueryBuilder<any> {
     return qb
       .where((qb) => {
-        const query = qb
-          .subQuery()
-          .from(KeepalivedGroup, 'keepalived_g')
-          .select('keepalived_g.id');
+        const query = qb.subQuery().from(KeepalivedGroup, 'keepalived_g').select('keepalived_g.id');
 
         return (
           `${alias}.keepalivedGroupId IN ` +
@@ -48,15 +45,10 @@ export class KeepalivedRuleExporter extends TableExporter {
         );
       })
       .where((qb) => {
-        const query = qb
-          .subQuery()
-          .from(Firewall, 'firewall')
-          .select('firewall.id');
+        const query = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
         return (
           `${alias}.firewallId IN ` +
-          new FirewallExporter()
-            .getFilterBuilder(query, 'firewall', fwCloudId)
-            .getQuery()
+          new FirewallExporter().getFilterBuilder(query, 'firewall', fwCloudId).getQuery()
         );
       });
   }

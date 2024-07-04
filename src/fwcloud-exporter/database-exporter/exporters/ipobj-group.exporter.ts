@@ -38,16 +38,11 @@ export class IPObjGroupExporter extends TableExporter {
     fwCloudId: number,
   ): SelectQueryBuilder<any> {
     return qb.where(`${alias}.id >= 100000`).andWhere((qb) => {
-      const subquery = qb
-        .subQuery()
-        .from(FwCloud, 'fwcloud')
-        .select('fwcloud.id');
+      const subquery = qb.subQuery().from(FwCloud, 'fwcloud').select('fwcloud.id');
 
       return (
         `${alias}.fwcloud IN ` +
-        new FwCloudExporter()
-          .getFilterBuilder(subquery, 'fwcloud', fwCloudId)
-          .getQuery()
+        new FwCloudExporter().getFilterBuilder(subquery, 'fwcloud', fwCloudId).getQuery()
       );
     });
   }

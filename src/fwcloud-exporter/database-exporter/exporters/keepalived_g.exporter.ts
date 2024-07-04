@@ -33,15 +33,10 @@ export class KeepalivedGroupExporter extends TableExporter {
     fwCloudId: number,
   ): SelectQueryBuilder<any> {
     return qb.where((qb) => {
-      const query = qb
-        .subQuery()
-        .from(Firewall, 'firewall')
-        .select('firewall.id');
+      const query = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
       return (
         `${alias}.firewallId IN ` +
-        new FirewallExporter()
-          .getFilterBuilder(query, 'firewall', fwCloudId)
-          .getQuery()
+        new FirewallExporter().getFilterBuilder(query, 'firewall', fwCloudId).getQuery()
       );
     });
   }

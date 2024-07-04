@@ -30,14 +30,7 @@ import { PolicyPosition, PositionNode } from './PolicyPosition';
 import { PolicyGroup } from './PolicyGroup';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
-import {
-  Column,
-  Entity,
-  PrimaryGeneratedColumn,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyType } from './PolicyType';
 import { Firewall, FireWallOptMask } from '../firewall/Firewall';
@@ -63,14 +56,12 @@ export enum PolicyRuleOptMask {
   LOG = 0x0004,
 }
 
-export const SpecialRuleToFireWallOptMask = new Map<SpecialPolicyRules, number>(
-  [
-    [SpecialPolicyRules.STATEFUL, 0x0001],
-    [SpecialPolicyRules.DOCKER, 0x0020],
-    [SpecialPolicyRules.CROWDSEC, 0x0040],
-    [SpecialPolicyRules.FAIL2BAN, 0x0080],
-  ],
-);
+export const SpecialRuleToFireWallOptMask = new Map<SpecialPolicyRules, number>([
+  [SpecialPolicyRules.STATEFUL, 0x0001],
+  [SpecialPolicyRules.DOCKER, 0x0020],
+  [SpecialPolicyRules.CROWDSEC, 0x0040],
+  [SpecialPolicyRules.FAIL2BAN, 0x0080],
+]);
 
 type RulePosMap = Map<string, []>;
 
@@ -175,16 +166,10 @@ export class PolicyRule extends Model {
   )
   policyRuleToInterfaces: Array<PolicyRuleToInterface>;
 
-  @OneToMany(
-    (type) => PolicyRuleToIPObj,
-    (policyRuleToIPObj) => policyRuleToIPObj.policyRule,
-  )
+  @OneToMany((type) => PolicyRuleToIPObj, (policyRuleToIPObj) => policyRuleToIPObj.policyRule)
   policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
 
-  @OneToMany(
-    (type) => PolicyRuleToOpenVPN,
-    (policyRuleToOpenVPN) => policyRuleToOpenVPN.policyRule,
-  )
+  @OneToMany((type) => PolicyRuleToOpenVPN, (policyRuleToOpenVPN) => policyRuleToOpenVPN.policyRule)
   policyRuleToOpenVPNs: Array<PolicyRuleToOpenVPN>;
 
   @OneToMany(
@@ -221,11 +206,7 @@ export class PolicyRule extends Model {
     });
   }
 
-  private static buildSQLsForGrid(
-    firewall: number,
-    type: number,
-    rules: number[],
-  ): string[] {
+  private static buildSQLsForGrid(firewall: number, type: number, rules: number[]): string[] {
     return [
       `select R.rule, R.position, OBJ.id, OBJ.name, OBJ.type, R.position_order, '' as labelName, 
             FW.id as firewall_id, FW.name as firewall_name, CL.id as cluster_id, CL.name as cluster_name, H.id as host_id, H.name as host_name 
@@ -296,11 +277,7 @@ export class PolicyRule extends Model {
     ];
   }
 
-  private static buildSQLsForCompiler(
-    firewall: number,
-    type: number,
-    rules: number[],
-  ): string[] {
+  private static buildSQLsForCompiler(firewall: number, type: number, rules: number[]): string[] {
     return [
       // All ipobj under a position excluding hosts.
       `select R.rule,R.position,O.* from policy_r__ipobj R 
@@ -410,9 +387,7 @@ export class PolicyRule extends Model {
 
         try {
           for (let i = 0; i < data.length; i++) {
-            const ipobjs: any = rulePositionsMap.get(
-              `${data[i].rule}:${data[i].position}`,
-            );
+            const ipobjs: any = rulePositionsMap.get(`${data[i].rule}:${data[i].position}`);
             ipobjs?.push(data[i]);
           }
         } catch (error) {
@@ -454,14 +429,13 @@ export class PolicyRule extends Model {
 
         try {
           // Positions will be always the same for all rules into the same policy type.
-          const positions: PositionNode[] =
-            await PolicyPosition.getRulePositions(
-              dbCon,
-              fwcloud,
-              rulesData[0].firewall,
-              rulesData[0].id,
-              rulesData[0].type,
-            );
+          const positions: PositionNode[] = await PolicyPosition.getRulePositions(
+            dbCon,
+            fwcloud,
+            rulesData[0].firewall,
+            rulesData[0].id,
+            rulesData[0].type,
+          );
 
           // Init the map for access the position objects array for each rule and position.
           const rulePositionsMap: RulePosMap = new Map<string, []>();
@@ -470,8 +444,7 @@ export class PolicyRule extends Model {
 
             // Clone the positions array and generate new ipobjs arrays for each position.
             rulesData[i].positions = positions.map((a) => ({ ...a }));
-            for (let j = 0; j < positions.length; j++)
-              rulesData[i].positions[j].ipobjs = [];
+            for (let j = 0; j < positions.length; j++) rulesData[i].positions[j].ipobjs = [];
 
             // Map each rule id and position with it's corresponding ipobjs array.
             // These ipobjs array will be filled with objects data in the Promise.all()
@@ -487,9 +460,7 @@ export class PolicyRule extends Model {
             dst === 'compiler'
               ? this.buildSQLsForCompiler(firewall, type, rules)
               : this.buildSQLsForGrid(firewall, type, rules);
-          await Promise.all(
-            sqls.map((sql) => this.mapPolicyData(dbCon, rulePositionsMap, sql)),
-          );
+          await Promise.all(sqls.map((sql) => this.mapPolicyData(dbCon, rulePositionsMap, sql)));
 
           resolve(rulesData);
         } catch (error) {
@@ -583,13 +554,7 @@ export class PolicyRule extends Model {
   }
 
   //Get policy_r  GROUP by  NEXT or Previous RULE
-  public static getPolicy_r_DestGroup(
-    idfirewall,
-    offset,
-    order,
-    type,
-    callback,
-  ) {
+  public static getPolicy_r_DestGroup(idfirewall, offset, order, type, callback) {
     db.get((error, connection) => {
       let nextRuleStr;
 
@@ -644,11 +609,7 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static insertDefaultPolicy(
-    fwId,
-    loInterfaceId,
-    options,
-  ): Promise<void> {
+  public static insertDefaultPolicy(fwId, loInterfaceId, options): Promise<void> {
     return new Promise(async (resolve, reject) => {
       const policy_rData = {
         id: null,
@@ -704,21 +665,13 @@ export class PolicyRule extends Model {
           policy_rData.rule_order = 2;
           policy_rData.comment = 'Allow all incoming traffic from self host.';
           policy_rData.type = 1; // INPUT IPv4
-          policy_r__interfaceData.rule =
-            await this.insertPolicy_r(policy_rData);
+          policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
           policy_r__interfaceData.position = 20;
-          await PolicyRuleToInterface.insertPolicy_r__interface(
-            fwId,
-            policy_r__interfaceData,
-          );
+          await PolicyRuleToInterface.insertPolicy_r__interface(fwId, policy_r__interfaceData);
           policy_rData.type = 61; // INPUT IPv6
-          policy_r__interfaceData.rule =
-            await this.insertPolicy_r(policy_rData);
+          policy_r__interfaceData.rule = await this.insertPolicy_r(policy_rData);
           policy_r__interfaceData.position = 51;
-          await PolicyRuleToInterface.insertPolicy_r__interface(
-            fwId,
-            policy_r__interfaceData,
-          );
+          await PolicyRuleToInterface.insertPolicy_r__interface(fwId, policy_r__interfaceData);
 
           // Allow useful ICMP traffic.
           policy_rData.rule_order = 3;
@@ -810,25 +763,16 @@ export class PolicyRule extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        connection.query(
-          'INSERT INTO ' + tableName + ' SET ?',
-          policy_rData,
-          (error, result) => {
-            if (error) return reject(error);
-            resolve(result.insertId);
-          },
-        );
+        connection.query('INSERT INTO ' + tableName + ' SET ?', policy_rData, (error, result) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        });
       });
     });
   }
 
   //Clone policy and IPOBJ
-  public static cloneFirewallPolicy(
-    dbCon,
-    idfirewall,
-    idNewFirewall,
-    dataI,
-  ): Promise<void> {
+  public static cloneFirewallPolicy(dbCon, idfirewall, idNewFirewall, dataI): Promise<void> {
     return new Promise((resolve, reject) => {
       this.clon_data = dataI;
       const sql = `select ${idNewFirewall} as newfirewall, P.*
@@ -879,28 +823,10 @@ export class PolicyRule extends Model {
         let newRule;
         try {
           newRule = await this.insertPolicy_r(policy_rData);
-          await this.clonePolicyIpobj(
-            dbCon,
-            rowData.newfirewall,
-            rowData.id,
-            newRule,
-          );
-          await this.clonePolicyInterface(
-            dbCon,
-            rowData.firewall,
-            rowData.id,
-            newRule,
-          );
-          await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(
-            dbCon,
-            rowData.id,
-            newRule,
-          );
-          await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(
-            dbCon,
-            rowData.id,
-            newRule,
-          );
+          await this.clonePolicyIpobj(dbCon, rowData.newfirewall, rowData.id, newRule);
+          await this.clonePolicyInterface(dbCon, rowData.firewall, rowData.id, newRule);
+          await PolicyRuleToOpenVPN.duplicatePolicy_r__openvpn(dbCon, rowData.id, newRule);
+          await PolicyRuleToOpenVPNPrefix.duplicatePolicy_r__prefix(dbCon, rowData.id, newRule);
           resolve();
         } catch (error) {
           reject(error);
@@ -909,12 +835,7 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static clonePolicyIpobj(
-    dbCon,
-    newFirewall,
-    oldRule,
-    newRule,
-  ): Promise<void> {
+  public static clonePolicyIpobj(dbCon, newFirewall, oldRule, newRule): Promise<void> {
     return new Promise((resolve, reject) => {
       //SELECT ALL IPOBJ UNDER POSITIONS
       const sql = `select ${newFirewall} as newfirewall, ${newRule} as newrule, O.*
@@ -951,9 +872,7 @@ export class PolicyRule extends Model {
 
         try {
           //Bucle por IPOBJS
-          await Promise.all(
-            rows.map((data) => PolicyRuleToIPObj.clonePolicy_r__ipobj(data)),
-          );
+          await Promise.all(rows.map((data) => PolicyRuleToIPObj.clonePolicy_r__ipobj(data)));
           resolve();
         } catch (error) {
           return reject(error);
@@ -962,12 +881,7 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static clonePolicyInterface(
-    dbCon,
-    oldFirewall,
-    oldRule,
-    newRule,
-  ): Promise<void> {
+  public static clonePolicyInterface(dbCon, oldFirewall, oldRule, newRule): Promise<void> {
     return new Promise((resolve, reject) => {
       //SELECT ALL INTERFACES UNDER POSITIONS
       const sql = `select ${newRule} as newrule, I.id as newInterface, O.*
@@ -993,9 +907,7 @@ export class PolicyRule extends Model {
         //Bucle for INTERFACES
         try {
           await Promise.all(
-            rowsI.map((data) =>
-              PolicyRuleToInterface.clonePolicy_r__interface(data),
-            ),
+            rowsI.map((data) => PolicyRuleToInterface.clonePolicy_r__interface(data)),
           );
           resolve();
         } catch (error) {
@@ -1011,22 +923,17 @@ export class PolicyRule extends Model {
       let sql = 'UPDATE ' + tableName + ' SET ';
       if (typeof policy_rData.idgroup !== 'undefined')
         sql += 'idgroup=' + policy_rData.idgroup + ',';
-      if (policy_rData.rule_order)
-        sql += 'rule_order=' + policy_rData.rule_order + ',';
+      if (policy_rData.rule_order) sql += 'rule_order=' + policy_rData.rule_order + ',';
       if (policy_rData.action) sql += 'action=' + policy_rData.action + ',';
-      if (policy_rData.time_start)
-        sql += 'time_start=' + policy_rData.time_start + ',';
-      if (policy_rData.time_end)
-        sql += 'time_end=' + policy_rData.time_end + ',';
+      if (policy_rData.time_start) sql += 'time_start=' + policy_rData.time_start + ',';
+      if (policy_rData.time_end) sql += 'time_end=' + policy_rData.time_end + ',';
       if (typeof policy_rData.options !== 'undefined')
         sql += 'options=' + policy_rData.options + ',';
       if (policy_rData.active) sql += 'active=' + policy_rData.active + ',';
       if (policy_rData.comment !== undefined && policy_rData.comment !== null)
         sql += 'comment=' + dbCon.escape(policy_rData.comment) + ',';
-      if (policy_rData.style)
-        sql += 'style=' + dbCon.escape(policy_rData.style) + ',';
-      if (typeof policy_rData.mark !== 'undefined')
-        sql += 'mark=' + policy_rData.mark + ',';
+      if (policy_rData.style) sql += 'style=' + dbCon.escape(policy_rData.style) + ',';
+      if (typeof policy_rData.mark !== 'undefined') sql += 'mark=' + policy_rData.mark + ',';
       if (typeof policy_rData.fw_apply_to !== 'undefined')
         sql += 'fw_apply_to=' + policy_rData.fw_apply_to + ',';
       if (typeof policy_rData.run_before !== 'undefined')
@@ -1131,12 +1038,7 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static reorderAfterRuleOrder(
-    dbCon,
-    firewall,
-    type,
-    rule_order,
-  ): Promise<void> {
+  public static reorderAfterRuleOrder(dbCon, firewall, type, rule_order): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
         'UPDATE ' +
@@ -1204,31 +1106,28 @@ export class PolicyRule extends Model {
         PolicyRuleToIPObj.deletePolicy_r__All(rule, (error, data) => {
           if (error) return reject(error);
           //DELETE FROM policy_r__interface
-          PolicyRuleToInterface.deletePolicy_r__All(
-            rule,
-            async (error, data) => {
-              if (error) return reject(error);
+          PolicyRuleToInterface.deletePolicy_r__All(rule, async (error, data) => {
+            if (error) return reject(error);
 
-              try {
-                await PolicyRuleToOpenVPN.deleteFromRule(dbCon, rule);
-                await PolicyRuleToOpenVPNPrefix.deleteFromRule(dbCon, rule);
-              } catch (error) {
-                return reject(error);
-              }
+            try {
+              await PolicyRuleToOpenVPN.deleteFromRule(dbCon, rule);
+              await PolicyRuleToOpenVPNPrefix.deleteFromRule(dbCon, rule);
+            } catch (error) {
+              return reject(error);
+            }
 
-              // DELETE FULE
-              dbCon.query(
-                `DELETE FROM ${tableName} WHERE id=${rule} AND firewall=${firewall}`,
-                (error, result) => {
-                  if (error) return reject(error);
+            // DELETE FULE
+            dbCon.query(
+              `DELETE FROM ${tableName} WHERE id=${rule} AND firewall=${firewall}`,
+              (error, result) => {
+                if (error) return reject(error);
 
-                  if (result.affectedRows > 0) {
-                    resolve({ result: true, msg: 'deleted' });
-                  } else resolve({ result: false, msg: 'notExist' });
-                },
-              );
-            },
-          );
+                if (result.affectedRows > 0) {
+                  resolve({ result: true, msg: 'deleted' });
+                } else resolve({ result: false, msg: 'notExist' });
+              },
+            );
+          });
         });
       });
     });
@@ -1320,27 +1219,19 @@ export class PolicyRule extends Model {
   }
 
   //Negate rule position.
-  public static negateRulePosition(
-    dbCon,
-    firewall,
-    rule,
-    position,
-  ): Promise<void> {
+  public static negateRulePosition(dbCon, firewall, rule, position): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql = `select negate from ${tableName} where id=${rule} and firewall=${firewall}`;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
-        if (result.length !== 1)
-          return reject(fwcError.other('Firewall rule not found'));
+        if (result.length !== 1) return reject(fwcError.other('Firewall rule not found'));
 
         let negate;
         if (!result[0].negate) negate = `${position}`;
         else {
-          const negate_position_list = result[0].negate
-            .split(' ')
-            .map((val) => {
-              return parseInt(val);
-            });
+          const negate_position_list = result[0].negate.split(' ').map((val) => {
+            return parseInt(val);
+          });
           // If the position that we want negate is already in the list, don't add again to the list.
           for (const pos of negate_position_list) {
             if (pos === position) return resolve();
@@ -1358,18 +1249,12 @@ export class PolicyRule extends Model {
   }
 
   //Allow rule position.
-  public static allowRulePosition(
-    dbCon,
-    firewall,
-    rule,
-    position,
-  ): Promise<void> {
+  public static allowRulePosition(dbCon, firewall, rule, position): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql = `select negate from ${tableName} where id=${rule} and firewall=${firewall}`;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
-        if (result.length !== 1)
-          return reject(fwcError.other('Firewall rule not found'));
+        if (result.length !== 1) return reject(fwcError.other('Firewall rule not found'));
 
         // Rule position negated list is empty.
         if (!result[0].negate) return resolve();
@@ -1382,9 +1267,7 @@ export class PolicyRule extends Model {
           if (pos !== position) new_negate_position_list.push(pos);
         }
         const negate =
-          new_negate_position_list.length === 0
-            ? null
-            : new_negate_position_list.join(' ');
+          new_negate_position_list.length === 0 ? null : new_negate_position_list.join(' ');
 
         sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
         dbCon.query(sql, async (error, result) => {
@@ -1416,12 +1299,7 @@ export class PolicyRule extends Model {
         );
         for (const pos of data[0].positions) {
           if (pos.ipobjs.length === 0)
-            await this.allowRulePosition(
-              req.dbCon,
-              req.body.firewall,
-              req.body.rule,
-              pos.id,
-            );
+            await this.allowRulePosition(req.dbCon, req.body.firewall, req.body.rule, pos.id);
         }
       } catch (error) {
         return reject(error);
@@ -1445,11 +1323,7 @@ export class PolicyRule extends Model {
   }
 
   //Move rules from one firewall to other.
-  public static moveToOtherFirewall(
-    dbCon,
-    src_firewall,
-    dst_firewall,
-  ): Promise<void> {
+  public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`,
@@ -1462,10 +1336,7 @@ export class PolicyRule extends Model {
   }
 
   // Check that the catch-all special rule exists. If not, create it.
-  public static checkCatchAllRules(
-    dbCon: any,
-    firewall: number,
-  ): Promise<void> {
+  public static checkCatchAllRules(dbCon: any, firewall: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       const policy_rData = {
         id: null,
@@ -1490,11 +1361,7 @@ export class PolicyRule extends Model {
             // OUTPUT chains for IPv4 and IPv6
             policy_rData.action = 1; // ACCEPT
           else policy_rData.action = 2; // DENY
-          policy_rData.rule_order = await this.getLastRuleOrder(
-            dbCon,
-            firewall,
-            policy_rData.type,
-          );
+          policy_rData.rule_order = await this.getLastRuleOrder(dbCon, firewall, policy_rData.type);
           const rule_id = await this.existsSpecialRule(
             dbCon,
             firewall,
@@ -1508,11 +1375,7 @@ export class PolicyRule extends Model {
             await this.insertPolicy_r(policy_rData);
           } else {
             // If catch-all rule exists, verify that is the last one.
-            const rule_data: any = await this.getPolicy_r(
-              dbCon,
-              firewall,
-              rule_id,
-            );
+            const rule_data: any = await this.getPolicy_r(dbCon, firewall, rule_id);
             if (rule_data.rule_order < policy_rData.rule_order) {
               // If it is not the last one, move to the last one position.
               await this.updatePolicy_r(dbCon, {
@@ -1530,10 +1393,7 @@ export class PolicyRule extends Model {
   }
 
   // Returns true if firewall is not part of a cluster or if it is part of a cluster and it is the master node of the cluster.
-  public static aloneFirewallOrMasterNode(
-    dbCon: any,
-    firewall: number,
-  ): Promise<boolean> {
+  public static aloneFirewallOrMasterNode(dbCon: any, firewall: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from firewall where id=${firewall} and (cluster is null or fwmaster=1)`,
@@ -1626,12 +1486,7 @@ export class PolicyRule extends Model {
         }
 
         for (policy_rData.type of policyType) {
-          await this.reorderAfterRuleOrder(
-            dbCon,
-            firewall,
-            policy_rData.type,
-            1,
-          );
+          await this.reorderAfterRuleOrder(dbCon, firewall, policy_rData.type, 1);
           await this.insertPolicy_r(policy_rData);
         }
       } catch (error) {
@@ -1669,8 +1524,7 @@ export class PolicyRule extends Model {
         // Special rule is enabled in the options flags.
         if (options & SpecialRuleToFireWallOptMask.get(specialRule)) {
           // Special rule already exists, then nothing to do.
-          if (await this.existsSpecialRule(dbCon, firewall, specialRule))
-            return resolve();
+          if (await this.existsSpecialRule(dbCon, firewall, specialRule)) return resolve();
 
           // If special rule is enabled and it doesn't exists, then create it.
           await this.createSpecialRule(dbCon, firewall, specialRule);
@@ -1685,49 +1539,24 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static checkSpecialRules(
-    dbCon: any,
-    firewall: number,
-    options: number,
-  ): Promise<void> {
+  public static checkSpecialRules(dbCon: any, firewall: number, options: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         // If firewall is not an alone firewall or it is in a cluster but it is not the cluster's master node,
         // then nothing must be done.
-        if (!(await this.aloneFirewallOrMasterNode(dbCon, firewall)))
-          return resolve();
+        if (!(await this.aloneFirewallOrMasterNode(dbCon, firewall))) return resolve();
 
         // All the firewalls must have the catch all rules.
         await this.checkCatchAllRules(dbCon, firewall);
 
         // If this a stateful firewall verify that the stateful special rules exists.
         // Or remove them if this is not a stateful firewall.
-        await this.checkSpecialRule(
-          dbCon,
-          firewall,
-          options,
-          SpecialPolicyRules.STATEFUL,
-        );
+        await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.STATEFUL);
 
         // Compatibility rules with other software solutions.
-        await this.checkSpecialRule(
-          dbCon,
-          firewall,
-          options,
-          SpecialPolicyRules.DOCKER,
-        );
-        await this.checkSpecialRule(
-          dbCon,
-          firewall,
-          options,
-          SpecialPolicyRules.CROWDSEC,
-        );
-        await this.checkSpecialRule(
-          dbCon,
-          firewall,
-          options,
-          SpecialPolicyRules.FAIL2BAN,
-        );
+        await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.DOCKER);
+        await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.CROWDSEC);
+        await this.checkSpecialRule(dbCon, firewall, options, SpecialPolicyRules.FAIL2BAN);
       } catch (error) {
         return reject(error);
       }

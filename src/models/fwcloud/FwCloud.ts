@@ -148,9 +148,7 @@ export class FwCloud extends Model {
 
       // Next levels nodes.
       while (nodes.length > 0) {
-        sqls.unshift(
-          `delete from fwc_tree where id in (${nodes.map((obj) => obj.id)})`,
-        );
+        sqls.unshift(`delete from fwc_tree where id in (${nodes.map((obj) => obj.id)})`);
         nodes = await queryRunner.query(
           `select id from fwc_tree where id_parent in (${nodes.map((obj) => obj.id)})`,
         );
@@ -312,10 +310,7 @@ export class FwCloud extends Model {
    */
   public getSnapshotDirectoryPath(): string {
     if (this.id) {
-      return path.join(
-        app().config.get('snapshot').data_dir,
-        this.id.toString(),
-      );
+      return path.join(app().config.get('snapshot').data_dir, this.id.toString());
     }
 
     return null;
@@ -432,10 +427,7 @@ export class FwCloud extends Model {
           else if (row && row.length > 0) {
             //logger().debug(row[0]);
             logger().debug('IDUSER: ' + iduser);
-            if (
-              row[0].locked === 1 &&
-              Number(row[0].locked_by) === Number(iduser)
-            ) {
+            if (row[0].locked === 1 && Number(row[0].locked_by) === Number(iduser)) {
               //Access OK, LOCKED by USER
               resolve({
                 access: true,
@@ -444,10 +436,7 @@ export class FwCloud extends Model {
                 locked_at: row[0].locked_at,
                 locked_by: row[0].locked_by,
               });
-            } else if (
-              row[0].locked === 1 &&
-              Number(row[0].locked_by) !== Number(iduser)
-            ) {
+            } else if (row[0].locked === 1 && Number(row[0].locked_by) !== Number(iduser)) {
               //Access OK, LOCKED by OTHER USER
               resolve({
                 access: true,
@@ -508,8 +497,7 @@ export class FwCloud extends Model {
             //UNLOCK ALL
             for (let i = 0; i < rows.length; i++) {
               const row = rows[i];
-              const sqlupdate =
-                'UPDATE ' + tableName + ' SET locked = 0  WHERE id = ' + row.id;
+              const sqlupdate = 'UPDATE ' + tableName + ' SET locked = 0  WHERE id = ' + row.id;
               connection.query(sqlupdate, (error, result) => {
                 logger().info(
                   '-----> UNLOCK FWCLOUD: ' +
@@ -567,24 +555,20 @@ export class FwCloud extends Model {
         comment: req.body.comment,
       };
 
-      req.dbCon.query(
-        `INSERT INTO ${tableName} SET ?`,
-        fwcloudData,
-        async (error, result) => {
-          if (error) return reject(error);
+      req.dbCon.query(`INSERT INTO ${tableName} SET ?`, fwcloudData, async (error, result) => {
+        if (error) return reject(error);
 
-          const fwcloud = result.insertId;
-          try {
-            const admins: any = await User.getAllAdminUserIds(req);
-            for (const admin of admins) {
-              await User.allowFwcloudAccess(req.dbCon, admin.id, fwcloud);
-            }
-            resolve(fwcloud);
-          } catch (error) {
-            reject(error);
+        const fwcloud = result.insertId;
+        try {
+          const admins: any = await User.getAllAdminUserIds(req);
+          for (const admin of admins) {
+            await User.allowFwcloudAccess(req.dbCon, admin.id, fwcloud);
           }
-        },
-      );
+          resolve(fwcloud);
+        } catch (error) {
+          reject(error);
+        }
+      });
     });
   }
 

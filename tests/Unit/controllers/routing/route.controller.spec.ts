@@ -39,13 +39,11 @@ describe(RouteController.name, () => {
 
   describe('make', () => {
     it('should throw error if the route does not belongs to the table', async () => {
-      const newTable: RoutingTable = await manager
-        .getRepository(RoutingTable)
-        .save({
-          name: 'table',
-          firewallId: firewall.id,
-          number: 1,
-        });
+      const newTable: RoutingTable = await manager.getRepository(RoutingTable).save({
+        name: 'table',
+        firewallId: firewall.id,
+        number: 1,
+      });
 
       await manager.getRepository(Route).update(route.id, {
         routingTableId: newTable.id,

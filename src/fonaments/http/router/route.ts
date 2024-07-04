@@ -35,10 +35,7 @@ export class ControllerHandlerSignature {
   method: string;
 }
 
-export type RequestHandlerCallback = (
-  request: Request,
-  response: Response,
-) => void;
+export type RequestHandlerCallback = (request: Request, response: Response) => void;
 
 export class Route {
   protected _app: AbstractApplication;
@@ -101,9 +98,7 @@ export class Route {
     return this;
   }
 
-  public setControllerHandler(
-    controllerHandler: ControllerHandlerSignature,
-  ): Route {
+  public setControllerHandler(controllerHandler: ControllerHandlerSignature): Route {
     this._controllerSignature = controllerHandler;
     return this;
   }

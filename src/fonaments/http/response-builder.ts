@@ -110,11 +110,7 @@ export class ResponseBuilder {
     return this;
   }
 
-  public download(
-    path: string,
-    filename?: string,
-    cb?: (err: Error) => void,
-  ): ResponseBuilder {
+  public download(path: string, filename?: string, cb?: (err: Error) => void): ResponseBuilder {
     this._attachment = {
       path: path,
       filename: filename,
@@ -199,9 +195,7 @@ export class ResponseBuilder {
       response: HttpCodeResponse.get(this._status),
     };
 
-    return <ResponseBody>(
-      ObjectHelpers.merge(envelope, this.buildPayload(this._payload))
-    );
+    return <ResponseBody>ObjectHelpers.merge(envelope, this.buildPayload(this._payload));
   }
 
   public toJSON(): ResponseBody {
@@ -212,9 +206,7 @@ export class ResponseBuilder {
     if (this._error) {
       return this.buildErrorPayload(this._error);
     }
-    return isArray(payload)
-      ? this.buildArrayDataPayload(payload)
-      : this.buildDataPayload(payload);
+    return isArray(payload) ? this.buildArrayDataPayload(payload) : this.buildDataPayload(payload);
   }
 
   protected buildDataPayload(payload: Object): DataPayload {
@@ -222,9 +214,7 @@ export class ResponseBuilder {
       return { data: null };
     }
 
-    const data: object = isResponsable(payload)
-      ? payload.toResponse()
-      : payload;
+    const data: object = isResponsable(payload) ? payload.toResponse() : payload;
 
     return { data: data };
   }
@@ -233,11 +223,7 @@ export class ResponseBuilder {
     const result: Array<Object> = [];
 
     for (let i = 0; i < payload.length; i++) {
-      result.push(
-        isResponsable(payload[i])
-          ? payload[i].toResponse()
-          : classToPlain(payload[i]),
-      );
+      result.push(isResponsable(payload[i]) ? payload[i].toResponse() : classToPlain(payload[i]));
     }
 
     return { data: result };

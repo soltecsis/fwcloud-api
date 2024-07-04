@@ -35,10 +35,8 @@ export class RoutingGroupExporter extends TableExporter {
     alias: string,
     fwCloudId: number,
   ): SelectQueryBuilder<any> {
-    return qb
-      .innerJoin(`${alias}.firewall`, 'firewall')
-      .where(`firewall.fwCloudId = :id`, {
-        id: fwCloudId,
-      });
+    return qb.innerJoin(`${alias}.firewall`, 'firewall').where(`firewall.fwCloudId = :id`, {
+      id: fwCloudId,
+    });
   }
 }

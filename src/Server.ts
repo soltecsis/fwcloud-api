@@ -43,9 +43,7 @@ export class Server {
       this.validateApplicationConfiguration();
 
       if (this._config.get('api_server').enabled) {
-        this._server = this.isHttps()
-          ? this.startHttpsServer()
-          : this.startHttpServer();
+        this._server = this.isHttps() ? this.startHttpsServer() : this.startHttpServer();
         this.bootstrapEvents();
         await this.bootstrapSocketIO();
       } else logger().info('API server not started because it is not enabled.');
@@ -80,10 +78,7 @@ export class Server {
   }
 
   private bootstrapEvents() {
-    this._server.listen(
-      this._config.get('api_server').port,
-      this._config.get('api_server').ip,
-    );
+    this._server.listen(this._config.get('api_server').port, this._config.get('api_server').ip);
 
     this._server.on('error', (error: Error) => {
       throw error;

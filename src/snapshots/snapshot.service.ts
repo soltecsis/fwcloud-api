@@ -53,10 +53,7 @@ export class SnapshotService extends Service {
 
   public async getAll(fwcloud: FwCloud): Promise<Array<Snapshot>> {
     const snapshots: Array<Snapshot> = [];
-    const snapshotsDirectory: string = path.join(
-      this.config.data_dir,
-      fwcloud.id.toString(),
-    );
+    const snapshotsDirectory: string = path.join(this.config.data_dir, fwcloud.id.toString());
 
     if (!FSHelper.directoryExistsSync(snapshotsDirectory)) {
       return snapshots;
@@ -105,13 +102,7 @@ export class SnapshotService extends Service {
     fwcloud: FwCloud,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<Snapshot> {
-    return Snapshot.create(
-      this.config.data_dir,
-      fwcloud,
-      name,
-      comment,
-      eventEmitter,
-    );
+    return Snapshot.create(this.config.data_dir, fwcloud, name, comment, eventEmitter);
   }
 
   public async update(

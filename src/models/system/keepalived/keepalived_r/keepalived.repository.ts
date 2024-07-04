@@ -62,11 +62,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
    * @param offset - The offset indicating whether the selected rules should be moved above or below the destination keepalived rule.
    * @returns A promise that resolves to an array of keepalivedR objects representing the updated Keepalived rules.
    */
-  async move(
-    ids: number[],
-    keepalivedDestId: number,
-    offset: Offset,
-  ): Promise<KeepalivedRule[]> {
+  async move(ids: number[], keepalivedDestId: number, offset: Offset): Promise<KeepalivedRule[]> {
     const keepalived_rs: KeepalivedRule[] = await this.find({
       where: {
         id: In(ids),
@@ -82,13 +78,11 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
       firewallId: keepalived_rs[0].firewall.id,
     });
 
-    const destkeepalived: KeepalivedRule | undefined = await this.findOneOrFail(
-      {
-        where: {
-          id: keepalivedDestId,
-        },
+    const destkeepalived: KeepalivedRule | undefined = await this.findOneOrFail({
+      where: {
+        id: keepalivedDestId,
       },
-    );
+    });
 
     if (offset === Offset.Above) {
       affectedKeepaliveds = await this.moveAbove(
@@ -125,9 +119,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     destRule: KeepalivedRule,
   ): Promise<KeepalivedRule[]> {
     const destPosition: number = destRule.rule_order;
-    const movingIds: number[] = rules.map(
-      (keepalived_r: KeepalivedRule) => keepalived_r.id,
-    );
+    const movingIds: number[] = rules.map((keepalived_r: KeepalivedRule) => keepalived_r.id);
 
     const currentPosition: number = rules[0].rule_order;
     const forward: boolean = currentPosition < destRule.rule_order;
@@ -183,9 +175,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     destRule: KeepalivedRule,
   ): Promise<KeepalivedRule[]> {
     const destPosition: number = destRule.rule_order;
-    const movingIds: number[] = rules.map(
-      (keepalived_r: KeepalivedRule) => keepalived_r.id,
-    );
+    const movingIds: number[] = rules.map((keepalived_r: KeepalivedRule) => keepalived_r.id);
 
     const currentPosition: number = rules[0].rule_order;
     const forward: boolean = currentPosition < destRule.rule_order;
@@ -221,14 +211,8 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     return affectedRules;
   }
 
-  async remove(
-    entities: KeepalivedRule[],
-    options?: RemoveOptions,
-  ): Promise<KeepalivedRule[]>;
-  async remove(
-    entity: KeepalivedRule,
-    options?: RemoveOptions,
-  ): Promise<KeepalivedRule>;
+  async remove(entities: KeepalivedRule[], options?: RemoveOptions): Promise<KeepalivedRule[]>;
+  async remove(entity: KeepalivedRule, options?: RemoveOptions): Promise<KeepalivedRule>;
   /**
    * Removes one or more Keepalived entities from the repository.
    *
@@ -240,10 +224,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     entityOrEntities: KeepalivedRule | KeepalivedRule[],
     options?: RemoveOptions,
   ): Promise<KeepalivedRule | KeepalivedRule[]> {
-    const result = await super.remove(
-      entityOrEntities as KeepalivedRule[],
-      options,
-    );
+    const result = await super.remove(entityOrEntities as KeepalivedRule[], options);
 
     if (result && !Array.isArray(result)) {
       const keepalivedRule = result as KeepalivedRule;
@@ -268,18 +249,13 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
    */
   protected getFindInPathOptions(
     path: Partial<IFindOneKeepalivedRPath>,
-    options:
-      | FindOneOptions<KeepalivedRule>
-      | FindManyOptions<KeepalivedRule> = {},
+    options: FindOneOptions<KeepalivedRule> | FindManyOptions<KeepalivedRule> = {},
   ): SelectQueryBuilder<KeepalivedRule> {
     const qb: SelectQueryBuilder<KeepalivedRule> = db
       .getSource()
       .manager.getRepository(KeepalivedRule)
       .createQueryBuilder('keepalived');
-    qb.innerJoin('keepalived.firewall', 'firewall').innerJoin(
-      'firewall.fwCloud',
-      'fwcloud',
-    );
+    qb.innerJoin('keepalived.firewall', 'firewall').innerJoin('firewall.fwCloud', 'fwcloud');
 
     if (path.firewallId) {
       qb.andWhere('firewall.id = :firewallId', { firewallId: path.firewallId });
@@ -335,9 +311,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     );
   }
 
-  async getLastKeepalivedRuleInFirewall(
-    firewall: number,
-  ): Promise<KeepalivedRule | undefined> {
+  async getLastKeepalivedRuleInFirewall(firewall: number): Promise<KeepalivedRule | undefined> {
     return this.createQueryBuilder('rule')
       .where('rule.firewall = :firewall', { firewall })
       .orderBy('rule.rule_order', 'DESC')
@@ -350,9 +324,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
     firewall: number,
     rules?: number[],
   ): Promise<KeepalivedRule[]> {
-    const query: SelectQueryBuilder<KeepalivedRule> = this.createQueryBuilder(
-      'keepalived_r',
-    )
+    const query: SelectQueryBuilder<KeepalivedRule> = this.createQueryBuilder('keepalived_r')
       .leftJoinAndSelect('keepalived_r.group', 'group')
       .leftJoinAndSelect('keepalived_r.interface', 'interface')
       .leftJoinAndSelect('keepalived_r.masterNode', 'masterNode')
@@ -366,9 +338,7 @@ export class KeepalivedRepository extends Repository<KeepalivedRule> {
       .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: fwcloud });
 
     if (rules) {
-      query
-        .andWhere('keepalived_r.id IN (:...rule)')
-        .setParameter('rule', rules);
+      query.andWhere('keepalived_r.id IN (:...rule)').setParameter('rule', rules);
     }
 
     return query.orderBy('keepalived_r.rule_order', 'ASC').getMany();

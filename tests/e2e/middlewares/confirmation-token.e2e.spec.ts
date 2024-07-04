@@ -84,9 +84,7 @@ describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
       .then(async (response) => {
         expect(response.body).to.haveOwnProperty('fwc_confirm_token');
         adminUser = await User.findOne({ where: { id: adminUser.id } });
-        expect(response.body.fwc_confirm_token).to.be.deep.eq(
-          adminUser.confirmation_token,
-        );
+        expect(response.body.fwc_confirm_token).to.be.deep.eq(adminUser.confirmation_token);
       });
   });
 });

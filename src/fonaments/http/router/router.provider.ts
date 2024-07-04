@@ -21,10 +21,7 @@
 */
 
 import { ServiceProvider } from '../../services/service-provider';
-import {
-  ServiceContainer,
-  ServiceBound,
-} from '../../services/service-container';
+import { ServiceContainer, ServiceBound } from '../../services/service-container';
 import { RouterService } from './router.service';
 import { AbstractApplication } from '../../abstract-application';
 import { Service } from '../../services/service';

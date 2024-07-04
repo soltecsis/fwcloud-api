@@ -53,8 +53,7 @@ export class PolicyCompiler {
 
           let compiler: PolicyCompilerClasses;
 
-          if (compileFor == 'IPTables')
-            compiler = new IPTablesCompiler(rulesData[i]);
+          if (compileFor == 'IPTables') compiler = new IPTablesCompiler(rulesData[i]);
           // NFTables
           else compiler = new NFTablesCompiler(rulesData[i]);
 
@@ -62,10 +61,7 @@ export class PolicyCompiler {
             id: rulesData[i].id,
             active: rulesData[i].active,
             comment: rulesData[i].comment,
-            cs:
-              rulesData[i].active || rulesData.length === 1
-                ? compiler.ruleCompile()
-                : '',
+            cs: rulesData[i].active || rulesData.length === 1 ? compiler.ruleCompile() : '',
           });
         }
 

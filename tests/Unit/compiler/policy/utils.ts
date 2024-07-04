@@ -32,11 +32,7 @@ export function positionsEmpty(data: any): boolean {
   return true;
 }
 
-export function searchInPolicyData(
-  data: any,
-  position: number,
-  id: number,
-): boolean {
+export function searchInPolicyData(data: any, position: number, id: number): boolean {
   for (let i = 0; i < data.positions.length; i++) {
     if (data.positions[i].id === position) {
       for (let j = 0; j < data.positions[i].ipobjs.length; j++) {
@@ -49,11 +45,7 @@ export function searchInPolicyData(
   return false;
 }
 
-export async function populateRule(
-  rule: number,
-  position: number,
-  ipobj: number,
-): Promise<void> {
+export async function populateRule(rule: number, position: number, ipobj: number): Promise<void> {
   await PolicyRuleToIPObj.insertPolicy_r__ipobj({
     rule: rule,
     ipobj: ipobj, // TCP or UDP std objects

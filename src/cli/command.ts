@@ -45,9 +45,7 @@ export abstract class Command {
 
   public async safeHandle(args: yargs.Arguments): Promise<number> {
     this._app = await Application.run();
-    this.output = new Output(
-      this._app.config.get('env') !== 'test' ? console.log : () => {},
-    );
+    this.output = new Output(this._app.config.get('env') !== 'test' ? console.log : () => {});
 
     try {
       await this.handle(args);

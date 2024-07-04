@@ -65,9 +65,7 @@ export class RoutingUtils {
   public static async mapEntityData<
     T extends ItemForGrid | RouteItemForCompiler | RoutingRuleItemForCompiler,
   >(
-    sql: SelectQueryBuilder<
-      IPObj | IPObjGroup | OpenVPN | OpenVPNPrefix | Mark
-    >,
+    sql: SelectQueryBuilder<IPObj | IPObjGroup | OpenVPN | OpenVPNPrefix | Mark>,
     ItemsArrayMap: Map<number, T[]>,
   ): Promise<void> {
     //console.log(sql.getQueryAndParameters());

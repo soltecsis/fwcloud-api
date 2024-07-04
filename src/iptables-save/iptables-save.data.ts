@@ -20,12 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export const NetFilterTables = new Set<string>([
-  'nat',
-  'raw',
-  'mangle',
-  'filter',
-]);
+export const NetFilterTables = new Set<string>(['nat', 'raw', 'mangle', 'filter']);
 
 export const StdChains = new Set<string>([
   'INPUT',
@@ -255,10 +250,7 @@ export const ModulesIgnoreMap = new Map<string, string[][]>([
     ],
   ],
   ['helper', [[], ['--helper']]],
-  [
-    'ipv4options',
-    [['--ssrr', '--lsrr', '--no-srr', '--rr', '--ts', '--ra', '--any-opt'], []],
-  ],
+  ['ipv4options', [['--ssrr', '--lsrr', '--no-srr', '--rr', '--ts', '--ra', '--any-opt'], []]],
   ['length', [[], ['--length']]],
   ['limit', [[], ['--limit', '--limit-burst']]],
   ['mac', [[], ['--mac-source']]],
@@ -271,19 +263,7 @@ export const ModulesIgnoreMap = new Map<string, string[][]>([
       ['--log', '--genre'],
     ],
   ],
-  [
-    'owner',
-    [
-      [],
-      [
-        '--uid-owner',
-        '--gid-owner',
-        '--pid-owner',
-        '--sid-owner',
-        '--cmd-owner',
-      ],
-    ],
-  ],
+  ['owner', [[], ['--uid-owner', '--gid-owner', '--pid-owner', '--sid-owner', '--cmd-owner']]],
   [
     'physdev',
     [
@@ -296,16 +276,7 @@ export const ModulesIgnoreMap = new Map<string, string[][]>([
     'policy',
     [
       ['--strict', '--next'],
-      [
-        '--dir',
-        '--pol',
-        '--reqid',
-        '--spi',
-        '--proto',
-        '--mode',
-        '--tunnel-src',
-        '--tunnel-dst',
-      ],
+      ['--dir', '--pol', '--reqid', '--spi', '--proto', '--mode', '--tunnel-src', '--tunnel-dst'],
     ],
   ],
   [
@@ -329,21 +300,11 @@ export const ModulesIgnoreMap = new Map<string, string[][]>([
       ['--name', '--seconds', '--hitcount'],
     ],
   ],
-  [
-    'sctp',
-    [
-      [],
-      ['--source-port', '--sport', '--destination-port', '--dport'],
-      ['--chunk-types'],
-    ],
-  ],
+  ['sctp', [[], ['--source-port', '--sport', '--destination-port', '--dport'], ['--chunk-types']]],
   ['set', [[], [], ['--set']]],
   ['string', [[], ['--algo', '--from', '--to', '--string']]],
   ['tcpmss', [[], ['--mss']]],
-  [
-    'time',
-    [[], ['--timestart', '--timestop', '--days', '--datestart', '--datestop']],
-  ],
+  ['time', [[], ['--timestart', '--timestop', '--days', '--datestart', '--datestop']]],
   ['tos', [[], ['--tos']]],
   ['ttl', [[], ['--ttl-eq', '--ttl-gt', '--ttl-lt']]],
   ['u32', [[], []]],

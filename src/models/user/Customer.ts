@@ -21,13 +21,7 @@
 */
 
 import Model from '../Model';
-import {
-  PrimaryColumn,
-  PrimaryGeneratedColumn,
-  Column,
-  Entity,
-  OneToMany,
-} from 'typeorm';
+import { PrimaryColumn, PrimaryGeneratedColumn, Column, Entity, OneToMany } from 'typeorm';
 import { User } from './User';
 const tableName: string = 'customer';
 
@@ -83,27 +77,20 @@ export class Customer extends Model {
         web: req.body.web,
       };
 
-      req.dbCon.query(
-        `INSERT INTO ${tableName} SET ?`,
-        customerData,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result.insertId);
-        },
-      );
+      req.dbCon.query(`INSERT INTO ${tableName} SET ?`, customerData, (error, result) => {
+        if (error) return reject(error);
+        resolve(result.insertId);
+      });
     });
   }
 
   public static existsId = (dbCon, customer) => {
     return new Promise(async (resolve, reject) => {
-      dbCon.query(
-        `select id from ${tableName} where id=${customer}`,
-        (error, result) => {
-          if (error) return reject(error);
-          if (result.length > 0) return resolve(true);
-          resolve(false);
-        },
-      );
+      dbCon.query(`select id from ${tableName} where id=${customer}`, (error, result) => {
+        if (error) return reject(error);
+        if (result.length > 0) return resolve(true);
+        resolve(false);
+      });
     });
   };
 
@@ -151,13 +138,10 @@ export class Customer extends Model {
 
   public static _delete(req): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      req.dbCon.query(
-        `delete from ${tableName} where id=${req.body.customer}`,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve();
-        },
-      );
+      req.dbCon.query(`delete from ${tableName} where id=${req.body.customer}`, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
     });
   }
 
@@ -168,8 +152,7 @@ export class Customer extends Model {
         async (error, result) => {
           if (error) return reject(error);
 
-          if (result[0].n > 0)
-            resolve({ result: true, restrictions: { CustomerHasUsers: true } });
+          if (result[0].n > 0) resolve({ result: true, restrictions: { CustomerHasUsers: true } });
           else resolve({ result: false });
         },
       );
@@ -183,8 +166,7 @@ export class Customer extends Model {
         async (error, result) => {
           if (error) return reject(error);
 
-          if (result[0].n === 0)
-            resolve({ result: true, restrictions: { LastCustomer: true } });
+          if (result[0].n === 0) resolve({ result: true, restrictions: { LastCustomer: true } });
           else resolve({ result: false });
         },
       );

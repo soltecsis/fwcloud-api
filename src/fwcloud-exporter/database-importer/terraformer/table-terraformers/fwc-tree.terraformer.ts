@@ -20,10 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  TableTerraformer,
-  TerraformHandlerCollection,
-} from '../table-terraformer';
+import { TableTerraformer, TerraformHandlerCollection } from '../table-terraformer';
 import { ImportMapping } from '../mapper/import-mapping';
 import { Firewall } from '../../../../models/firewall/Firewall';
 import { Ca } from '../../../../models/vpn/pki/Ca';
@@ -125,8 +122,7 @@ export class FwcTreeTerraformer extends TableTerraformer {
         row.node_type in this._typeToTableNameMapping &&
         this._typeToTableNameMapping[row.node_type] !== null
       ) {
-        const referencedEntity: typeof Model =
-          this._typeToTableNameMapping[row.node_type];
+        const referencedEntity: typeof Model = this._typeToTableNameMapping[row.node_type];
         return mapper.getMappedId(
           referencedEntity._getTableName(),
           referencedEntity.getPrimaryKeys()[0].propertyName,

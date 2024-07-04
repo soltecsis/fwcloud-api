@@ -64,10 +64,7 @@ export class Authorization extends Middleware {
       }
       req.session.keepalive_ts = Date.now(); // Update keepalive timestamp.
 
-      const data: any = await User.getUserName(
-        req.session.customer_id,
-        req.session.username,
-      );
+      const data: any = await User.getUserName(req.session.customer_id, req.session.username);
       if (data.length === 0) {
         req.session.destroy((err) => {});
         throw fwcError.SESSION_BAD;
@@ -90,9 +87,7 @@ export class Authorization extends Middleware {
 
       next();
     } catch (error) {
-      logger().error(
-        'Error during authorization middleware: ' + JSON.stringify(error),
-      );
+      logger().error('Error during authorization middleware: ' + JSON.stringify(error));
       res.status(400).json(error);
     }
   }

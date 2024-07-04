@@ -60,12 +60,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
   async function runTest(policyType: number): Promise<void> {
     ruleData.type = policyType;
     const rule = await PolicyRule.insertPolicy_r(ruleData);
-    const cmd =
-      compiler === 'NFTables'
-        ? '$NFT'
-        : IPv === 'IPv4'
-          ? '$IPTABLES'
-          : '$IP6TABLES';
+    const cmd = compiler === 'NFTables' ? '$NFT' : IPv === 'IPv4' ? '$IPTABLES' : '$IP6TABLES';
     let result: any;
     let error: any;
 
@@ -181,11 +176,7 @@ describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
     fwcloud = (
       await manager
         .getRepository(FwCloud)
-        .save(
-          manager
-            .getRepository(FwCloud)
-            .create({ name: StringHelper.randomize(10) }),
-        )
+        .save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))
     ).id;
     ruleData.firewall = (
       await manager

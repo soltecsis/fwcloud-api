@@ -62,12 +62,8 @@ export class BackupService extends Service {
 
   public async build(): Promise<BackupService> {
     this._config = this.loadCustomizedConfig(this._app.config.get('backup'));
-    this._db = await this._app.getService<DatabaseService>(
-      DatabaseService.name,
-    );
-    this._cronService = await this._app.getService<CronService>(
-      CronService.name,
-    );
+    this._db = await this._app.getService<DatabaseService>(DatabaseService.name);
+    this._cronService = await this._app.getService<CronService>(CronService.name);
     const backupDirectory: string = this._config.data_dir;
 
     if (!fs.existsSync(backupDirectory)) {
@@ -78,36 +74,30 @@ export class BackupService extends Service {
   }
 
   public startScheduledTasks(): void {
-    this._scheduledBackupCreationJob = this._cronService.addJob(
-      this._config.schedule,
-      async () => {
-        await this._backupMutex.waitForUnlock();
+    this._scheduledBackupCreationJob = this._cronService.addJob(this._config.schedule, async () => {
+      await this._backupMutex.waitForUnlock();
 
-        try {
-          logger().info('Starting BACKUP job.');
-          const backup = new Backup();
-          backup.setComment('Cron backup');
-          await backup.create(this._config.data_dir);
-          logger().info(`BACKUP job completed: ${backup.id}`);
-        } catch (error) {
-          logger().error('BACKUP job ERROR: ', error.message);
-        }
-      },
-    );
+      try {
+        logger().info('Starting BACKUP job.');
+        const backup = new Backup();
+        backup.setComment('Cron backup');
+        await backup.create(this._config.data_dir);
+        logger().info(`BACKUP job completed: ${backup.id}`);
+      } catch (error) {
+        logger().error('BACKUP job ERROR: ', error.message);
+      }
+    });
     this._scheduledBackupCreationJob.start();
 
-    this._scheduledBackupRetentionJob = this._cronService.addJob(
-      '0 0 0 * * *',
-      async () => {
-        try {
-          logger().info('Starting RETENTION BACKUP job.');
-          const backups: Backup[] = await this.applyRetentionPolicy();
-          logger().info(`BACKUPS removed: ${backups.length}`);
-        } catch (error) {
-          logger().error('BACKUP job ERROR: ', error.message);
-        }
-      },
-    );
+    this._scheduledBackupRetentionJob = this._cronService.addJob('0 0 0 * * *', async () => {
+      try {
+        logger().info('Starting RETENTION BACKUP job.');
+        const backups: Backup[] = await this.applyRetentionPolicy();
+        logger().info(`BACKUPS removed: ${backups.length}`);
+      } catch (error) {
+        logger().error('BACKUP job ERROR: ', error.message);
+      }
+    });
     this._scheduledBackupRetentionJob.start();
   }
 
@@ -175,10 +165,7 @@ export class BackupService extends Service {
    *
    * @param backup Restores an existing backup
    */
-  public restore(
-    backup: Backup,
-    eventEmitter: EventEmitter = new EventEmitter(),
-  ): Promise<Backup> {
+  public restore(backup: Backup, eventEmitter: EventEmitter = new EventEmitter()): Promise<Backup> {
     if (backup.exists()) {
       return backup.restore(eventEmitter);
     }
@@ -219,10 +206,7 @@ export class BackupService extends Service {
   }
 
   public async import(zippedFilePath: string): Promise<Backup> {
-    const outputPath: string = path.join(
-      path.dirname(zippedFilePath),
-      'backup',
-    );
+    const outputPath: string = path.join(path.dirname(zippedFilePath), 'backup');
 
     await Zip.unzip(zippedFilePath, outputPath);
 
@@ -251,15 +235,11 @@ export class BackupService extends Service {
     let deletedBackups: Array<Backup> = [];
 
     if (this.shouldApplyRetentionPolicyByBackupCount()) {
-      deletedBackups = deletedBackups.concat(
-        await this.applyRetentionPolicyByBackupCount(),
-      );
+      deletedBackups = deletedBackups.concat(await this.applyRetentionPolicyByBackupCount());
     }
 
     if (this.shouldApplyRetentionpolicyByExpirationDate()) {
-      deletedBackups = deletedBackups.concat(
-        await this.applyRetentionPolicyByExpirationDate(),
-      );
+      deletedBackups = deletedBackups.concat(await this.applyRetentionPolicyByExpirationDate());
     }
 
     return deletedBackups;
@@ -300,15 +280,10 @@ export class BackupService extends Service {
   /**
    * Applies retention policy by expiration date
    */
-  protected async applyRetentionPolicyByExpirationDate(): Promise<
-    Array<Backup>
-  > {
+  protected async applyRetentionPolicyByExpirationDate(): Promise<Array<Backup>> {
     const backups: Array<Backup> = await this.getAll();
     const deletedBackups: Array<Backup> = [];
-    const expirationTimestamp: Moment = moment().subtract(
-      this._config.max_days,
-      'days',
-    );
+    const expirationTimestamp: Moment = moment().subtract(this._config.max_days, 'days');
 
     for (let i = 0; i < backups.length; i++) {
       if (backups[i].date.isBefore(expirationTimestamp)) {
@@ -351,15 +326,10 @@ export class BackupService extends Service {
   protected loadCustomizedConfig(base_config: any): any {
     let config: any = base_config;
 
-    const backupConfigFile: string = path.join(
-      base_config.data_dir,
-      base_config.config_file,
-    );
+    const backupConfigFile: string = path.join(base_config.data_dir, base_config.config_file);
 
     if (fs.existsSync(backupConfigFile)) {
-      const backupConfig = JSON.parse(
-        fs.readFileSync(backupConfigFile, 'utf8'),
-      );
+      const backupConfig = JSON.parse(fs.readFileSync(backupConfigFile, 'utf8'));
       config = Object.assign(config, backupConfig);
     }
 
@@ -371,18 +341,10 @@ export class BackupService extends Service {
   ): Promise<BackupUpdateableConfig> {
     return new Promise(async (resolve, reject) => {
       try {
-        if (!fs.existsSync(this._config.data_dir))
-          await fse.mkdirp(this._config.data_dir);
+        if (!fs.existsSync(this._config.data_dir)) await fse.mkdirp(this._config.data_dir);
 
-        const backupConfigFile = path.join(
-          this._config.data_dir,
-          this._config.config_file,
-        );
-        fs.writeFileSync(
-          backupConfigFile,
-          JSON.stringify(custom_config),
-          'utf8',
-        );
+        const backupConfigFile = path.join(this._config.data_dir, this._config.config_file);
+        fs.writeFileSync(backupConfigFile, JSON.stringify(custom_config), 'utf8');
         resolve(custom_config);
       } catch (error) {
         reject(error);

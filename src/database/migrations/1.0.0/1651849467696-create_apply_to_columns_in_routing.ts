@@ -1,13 +1,6 @@
-import {
-  MigrationInterface,
-  QueryRunner,
-  TableColumn,
-  TableForeignKey,
-} from 'typeorm';
+import { MigrationInterface, QueryRunner, TableColumn, TableForeignKey } from 'typeorm';
 
-export class createApplyToColumnsInRouting1651849467696
-  implements MigrationInterface
-{
+export class createApplyToColumnsInRouting1651849467696 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.addColumns('routing_r', [
       new TableColumn({

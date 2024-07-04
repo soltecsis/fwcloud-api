@@ -14,14 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { IPObj } from '../../../ipobj/IPObj';
 import { KeepalivedGroup } from '../keepalived_g/keepalived_g.model';
 import Model from '../../../Model';
@@ -62,13 +55,9 @@ export class KeepalivedRule extends Model {
   @JoinColumn({ name: 'interface' })
   interface: Interface;
 
-  @OneToMany(
-    () => KeepalivedToIPObj,
-    (keepalivedToIPObj) => keepalivedToIPObj.keepalivedRule,
-    {
-      cascade: true,
-    },
-  )
+  @OneToMany(() => KeepalivedToIPObj, (keepalivedToIPObj) => keepalivedToIPObj.keepalivedRule, {
+    cascade: true,
+  })
   virtualIps: KeepalivedToIPObj[];
 
   @Column({ name: 'master_node' })
@@ -95,10 +84,7 @@ export class KeepalivedRule extends Model {
     return tableName;
   }
 
-  public static async cloneKeepalived(
-    idfirewall: number,
-    idNewFirewall: number,
-  ): Promise<void> {
+  public static async cloneKeepalived(idfirewall: number, idNewFirewall: number): Promise<void> {
     const originalFirewall = await Firewall.findOne({
       where: { id: idfirewall },
     });
@@ -121,11 +107,10 @@ export class KeepalivedRule extends Model {
         groupMapping.set(group.id, newGroup.id);
       }
 
-      const originalKeepalivedRules: KeepalivedRule[] =
-        await KeepalivedRule.find({
-          where: { firewall: originalFirewall },
-          relations: ['virtualIps'],
-        });
+      const originalKeepalivedRules: KeepalivedRule[] = await KeepalivedRule.find({
+        where: { firewall: originalFirewall },
+        relations: ['virtualIps'],
+      });
 
       for (const originalRule of originalKeepalivedRules) {
         const newRule: KeepalivedRule = new KeepalivedRule();
@@ -146,10 +131,7 @@ export class KeepalivedRule extends Model {
     }
   }
 
-  public static moveToOtherFirewall(
-    src_firewall: number,
-    dst_firewall: number,
-  ) {
+  public static moveToOtherFirewall(src_firewall: number, dst_firewall: number) {
     return KeepalivedRule.createQueryBuilder()
       .update()
       .set({ firewallId: dst_firewall })

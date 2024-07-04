@@ -35,11 +35,7 @@ chai.use(ChaiJsonSchema);
 
 export const expect = chai.expect;
 
-export const playgroundPath: string = path.join(
-  process.cwd(),
-  'tests',
-  'playground',
-);
+export const playgroundPath: string = path.join(process.cwd(), 'tests', 'playground');
 
 export class TestSuite {
   public app: Application;
@@ -59,8 +55,9 @@ export class TestSuite {
     }
 
     if (this.app) {
-      const dbService: DatabaseService =
-        await testSuite.app.getService<DatabaseService>(DatabaseService.name);
+      const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(
+        DatabaseService.name,
+      );
 
       await dbService.resetMigrations();
       await dbService.runMigrations();
@@ -101,8 +98,9 @@ function _getCallerFile(): string {
 before(async () => {
   await testSuite.runApplication();
 
-  const dbService: DatabaseService =
-    await testSuite.app.getService<DatabaseService>(DatabaseService.name);
+  const dbService: DatabaseService = await testSuite.app.getService<DatabaseService>(
+    DatabaseService.name,
+  );
   await dbService.emptyDatabase();
 
   await testSuite.resetDatabaseData();

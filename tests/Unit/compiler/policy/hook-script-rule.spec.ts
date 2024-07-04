@@ -44,8 +44,7 @@ describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
   let compiler: AvailablePolicyCompilers;
   let manager: EntityManager;
 
-  const code_before_cmt =
-    '###########################\n# Hook script rule code:';
+  const code_before_cmt = '###########################\n# Hook script rule code:';
   const code_end_cmt = '###########################';
 
   const run_before_code = 'echo "Script rule code"';
@@ -72,11 +71,7 @@ describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
 
     const rule = await PolicyRule.insertPolicy_r(ruleData);
     if (ruleData.type === PolicyTypesMap.get(`${IPv}:DNAT`))
-      await populateRule(
-        rule,
-        RulePositionsMap.get(`${IPv}:DNAT:Translated Destination`),
-        50010,
-      ); // 50010 = Standard VRRP IP
+      await populateRule(rule, RulePositionsMap.get(`${IPv}:DNAT:Translated Destination`), 50010); // 50010 = Standard VRRP IP
     const rulesData: any = await PolicyRule.getPolicyData(
       'compiler',
       dbCon,

@@ -34,20 +34,14 @@ export class RoutingRuleToInterface extends Model {
   })
   routingRuleId: number;
 
-  @ManyToOne(
-    () => RoutingRule,
-    (routingRule) => routingRule.routingRuleToInterfaces,
-  )
+  @ManyToOne(() => RoutingRule, (routingRule) => routingRule.routingRuleToInterfaces)
   routingRule: RoutingRule;
 
   @PrimaryColumn({
     name: 'interface',
   })
   interfaceId: number;
-  @ManyToOne(
-    () => Interface,
-    (_interface) => _interface.routingRuleToInterfaces,
-  )
+  @ManyToOne(() => Interface, (_interface) => _interface.routingRuleToInterfaces)
   interface: Interface;
 
   @Column()

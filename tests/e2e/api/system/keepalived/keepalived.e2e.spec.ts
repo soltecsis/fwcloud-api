@@ -20,16 +20,9 @@ import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
 import { KeepalivedRule } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model';
 import { User } from '../../../../../src/models/user/User';
 import { expect, testSuite } from '../../../../mocha/global-setup';
-import {
-  attachSession,
-  createUser,
-  generateSession,
-} from '../../../../utils/utils';
+import { attachSession, createUser, generateSession } from '../../../../utils/utils';
 import { KeepalivedRuleService } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.service';
-import {
-  FwCloudFactory,
-  FwCloudProduct,
-} from '../../../../utils/fwcloud-factory';
+import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import { KeepalivedController } from '../../../../../src/controllers/system/keepalived/keepalived.controller';
 import request = require('supertest');
 import { _URL } from '../../../../../src/fonaments/http/router/router.service';
@@ -67,9 +60,7 @@ describe('KeepalivedRule E2E Tests', () => {
     adminUser = await createUser({ role: 1 });
     adminUserSessionId = generateSession(adminUser);
 
-    keepalivedRuleServiceInstance = await app.getService(
-      KeepalivedRuleService.name,
-    );
+    keepalivedRuleServiceInstance = await app.getService(KeepalivedRuleService.name);
 
     fwcProduct = await new FwCloudFactory().make();
 
@@ -884,18 +875,12 @@ describe('KeepalivedRule E2E Tests', () => {
           });
 
         expect(
-          (
-            await manager
-              .getRepository(KeepalivedRule)
-              .findOneOrFail({ where: { id: rule1.id } })
-          ).active,
+          (await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule1.id } }))
+            .active,
         ).to.equal(false);
         expect(
-          (
-            await manager
-              .getRepository(KeepalivedRule)
-              .findOneOrFail({ where: { id: rule2.id } })
-          ).active,
+          (await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule2.id } }))
+            .active,
         ).to.equal(false);
       });
 
@@ -918,18 +903,12 @@ describe('KeepalivedRule E2E Tests', () => {
           });
 
         expect(
-          (
-            await manager
-              .getRepository(KeepalivedRule)
-              .findOneOrFail({ where: { id: rule1.id } })
-          ).active,
+          (await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule1.id } }))
+            .active,
         ).to.equal(false);
         expect(
-          (
-            await manager
-              .getRepository(KeepalivedRule)
-              .findOneOrFail({ where: { id: rule2.id } })
-          ).active,
+          (await manager.getRepository(KeepalivedRule).findOneOrFail({ where: { id: rule2.id } }))
+            .active,
         ).to.equal(false);
       });
     });
@@ -1004,16 +983,10 @@ describe('KeepalivedRule E2E Tests', () => {
             expect(response.body.data).to.have.length(2);
           });
 
-        expect(
-          await manager
-            .getRepository(KeepalivedRule)
-            .findOne({ where: { id: rule1.id } }),
-        ).to.be.null;
-        expect(
-          await manager
-            .getRepository(KeepalivedRule)
-            .findOne({ where: { id: rule2.id } }),
-        ).to.be.null;
+        expect(await manager.getRepository(KeepalivedRule).findOne({ where: { id: rule1.id } })).to
+          .be.null;
+        expect(await manager.getRepository(KeepalivedRule).findOne({ where: { id: rule2.id } })).to
+          .be.null;
       });
 
       it('admin user should bulk remove a Keepalived rule', async () => {
@@ -1033,16 +1006,10 @@ describe('KeepalivedRule E2E Tests', () => {
             expect(response.body.data).to.have.length(2);
           });
 
-        expect(
-          await manager
-            .getRepository(KeepalivedRule)
-            .findOne({ where: { id: rule1.id } }),
-        ).to.be.null;
-        expect(
-          await manager
-            .getRepository(KeepalivedRule)
-            .findOne({ where: { id: rule2.id } }),
-        ).to.be.null;
+        expect(await manager.getRepository(KeepalivedRule).findOne({ where: { id: rule1.id } })).to
+          .be.null;
+        expect(await manager.getRepository(KeepalivedRule).findOne({ where: { id: rule2.id } })).to
+          .be.null;
       });
     });
   });

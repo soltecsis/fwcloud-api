@@ -49,16 +49,12 @@ export class Output {
 
   public warn(message: string, margin: number = 1): void {
     this.writeLine(margin);
-    this.writeln(
-      chalk.bgYellow.bold.black(`${Output.symbols().warning} ${message}`),
-    );
+    this.writeln(chalk.bgYellow.bold.black(`${Output.symbols().warning} ${message}`));
     this.writeLine(margin);
   }
 
   public error(message: string): void {
-    this.writeln(
-      chalk.bgRed.bold.white(`${Output.symbols().error} ${message}`),
-    );
+    this.writeln(chalk.bgRed.bold.white(`${Output.symbols().error} ${message}`));
   }
 
   public static symbols(): { ok: string; error: string; warning: string } {

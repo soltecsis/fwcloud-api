@@ -25,11 +25,7 @@ import method_override from 'method-override';
 import { Request, Response, NextFunction } from 'express';
 
 export class MethodOverride extends Middleware {
-  public async handle(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     this.app.express.use(
       method_override((req, res) => {
         if (req.body && typeof req.body === 'object' && '_method' in req.body) {

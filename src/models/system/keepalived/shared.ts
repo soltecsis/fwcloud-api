@@ -24,9 +24,7 @@ export type KeepalivedRuleItemForCompiler = {
 };
 
 export class KeepalivedUtils {
-  public static async mapEntityData<
-    T extends ItemForGrid | KeepalivedRuleItemForCompiler,
-  >(
+  public static async mapEntityData<T extends ItemForGrid | KeepalivedRuleItemForCompiler>(
     sql: SelectQueryBuilder<IPObj | IPObjGroup>,
     ItemsArrayMap: Map<number, T[]>,
   ): Promise<void> {

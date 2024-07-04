@@ -35,8 +35,9 @@ export class Channel extends EventEmitter {
 
   public static async fromRequest(request: Request): Promise<Channel> {
     if (request.session.socketId && request.inputs.has('channel_id')) {
-      const websocketService: WebSocketService =
-        await app().getService<WebSocketService>(WebSocketService.name);
+      const websocketService: WebSocketService = await app().getService<WebSocketService>(
+        WebSocketService.name,
+      );
       let listener: EventEmitter = new EventEmitter();
 
       if (websocketService.hasSocket(request.session.socketId)) {

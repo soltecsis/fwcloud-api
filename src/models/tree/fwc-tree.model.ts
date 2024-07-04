@@ -21,14 +21,7 @@
 */
 
 import Model from '../Model';
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { IPObjType } from '../ipobj/IPObjType';
 

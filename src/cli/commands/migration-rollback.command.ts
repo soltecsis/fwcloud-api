@@ -33,8 +33,9 @@ export class MigrationRollbackCommand extends Command {
   public description: string = 'Rollback migrations';
 
   async handle(args: yargs.Arguments) {
-    const databaseService: DatabaseService =
-      await this._app.getService<DatabaseService>(DatabaseService.name);
+    const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
+      DatabaseService.name,
+    );
     const dataSource: DataSource = await databaseService.getDataSource({
       name: 'cli',
     });

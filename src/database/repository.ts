@@ -29,9 +29,7 @@ export class Repository<T extends { id: any }> extends TypeORMRepository<T> {
    *
    * @param oneOrMany One Entity or Array of them
    */
-  protected async reloadEntities(
-    oneOrMany: T | Array<T>,
-  ): Promise<T | Array<T>> {
+  protected async reloadEntities(oneOrMany: T | Array<T>): Promise<T | Array<T>> {
     if (isArray(oneOrMany)) {
       return await this.find({
         where: {
@@ -48,10 +46,7 @@ export class Repository<T extends { id: any }> extends TypeORMRepository<T> {
    *
    * @param items
    */
-  protected getIdsFromEntityCollection(
-    items: Array<T>,
-    fn: (item: T) => any = null,
-  ): Array<T> {
+  protected getIdsFromEntityCollection(items: Array<T>, fn: (item: T) => any = null): Array<T> {
     if (fn === null) {
       fn = (item: any) => {
         return item.id;

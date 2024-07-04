@@ -39,9 +39,8 @@ describe(describeName('MigrationResetCommand tests'), () => {
   });
 
   it('should reset the database', async () => {
-    const dataSource: DataSource = (
-      await app.getService<DatabaseService>(DatabaseService.name)
-    ).dataSource;
+    const dataSource: DataSource = (await app.getService<DatabaseService>(DatabaseService.name))
+      .dataSource;
     let queryRunner: QueryRunner = dataSource.createQueryRunner();
 
     expect(await queryRunner.getTable('ca')).to.be.instanceOf(Table);

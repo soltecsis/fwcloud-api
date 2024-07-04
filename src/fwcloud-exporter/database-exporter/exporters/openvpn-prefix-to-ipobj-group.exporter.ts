@@ -37,10 +37,7 @@ export class OpenVPNPrefixToIPObjGroupExporter extends TableExporter {
     return 'openvpn_prefix__ipobj_g';
   }
 
-  protected async getRows(
-    connection: Connection,
-    fwCloudId: number,
-  ): Promise<any> {
+  protected async getRows(connection: Connection, fwCloudId: number): Promise<any> {
     const qr: QueryRunner = connection.createQueryRunner();
 
     const data = await qr.query(
@@ -57,10 +54,7 @@ export class OpenVPNPrefixToIPObjGroupExporter extends TableExporter {
     return data;
   }
 
-  protected getOpenVPNPrefixIds(
-    connection: Connection,
-    fwCloudId: number,
-  ): [string, Array<any>] {
+  protected getOpenVPNPrefixIds(connection: Connection, fwCloudId: number): [string, Array<any>] {
     const subquery = connection
       .createQueryBuilder()
       .subQuery()
@@ -71,10 +65,7 @@ export class OpenVPNPrefixToIPObjGroupExporter extends TableExporter {
       .getQueryAndParameters();
   }
 
-  protected getIpObjGruopIds(
-    connection: Connection,
-    fwCloudId: number,
-  ): [string, Array<any>] {
+  protected getIpObjGruopIds(connection: Connection, fwCloudId: number): [string, Array<any>] {
     const subquery = connection
       .createQueryBuilder()
       .subQuery()

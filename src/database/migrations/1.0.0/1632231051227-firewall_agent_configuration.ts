@@ -1,9 +1,7 @@
 import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
 import { FirewallInstallCommunication } from '../../../models/firewall/Firewall';
 
-export class firewallAgentConfiguration1632231051227
-  implements MigrationInterface
-{
+export class firewallAgentConfiguration1632231051227 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.addColumns('firewall', [
       new TableColumn({

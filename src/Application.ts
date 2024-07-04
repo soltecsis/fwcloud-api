@@ -113,10 +113,7 @@ export class Application extends HTTPApplication {
       // If stdout log mode is not enabled, log messages are not shown in terminal.
       // As a result, user doesn't know when application has started.
       // So, we print out the message directly
-      if (
-        this._config.get('env') !== 'test' &&
-        this._config.get('log.stdout') === false
-      ) {
+      if (this._config.get('env') !== 'test' && this._config.get('log.stdout') === false) {
         console.log(`------- Starting application -------`);
         console.log(
           `FWCloud API v${this.version.tag} (PID=${process.pid}) (${this.config.get('env')}) | schema: v${this.version.schema}`,
@@ -127,14 +124,10 @@ export class Application extends HTTPApplication {
       process.on('SIGTERM', this.signalHandler);
 
       //Starting scheduled tasks from the backup service
-      (
-        await this.getService<BackupService>(BackupService.name)
-      ).startScheduledTasks();
+      (await this.getService<BackupService>(BackupService.name)).startScheduledTasks();
 
       //Starting scheduled task from the openvpn service
-      (
-        await this.getService<OpenVPNService>(OpenVPNService.name)
-      ).startScheduledTasks();
+      (await this.getService<OpenVPNService>(OpenVPNService.name)).startScheduledTasks();
     }
 
     return this;

@@ -21,14 +21,7 @@
 */
 
 import Model from '../../Model';
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Ca } from './Ca';
 import { OpenVPN } from '../openvpn/OpenVPN';
 
@@ -126,13 +119,10 @@ export class Crt extends Model {
               ),
             );
 
-          req.dbCon.query(
-            'DELETE FROM crt WHERE id=' + req.body.crt,
-            (error, result) => {
-              if (error) return reject(error);
-              resolve();
-            },
-          );
+          req.dbCon.query('DELETE FROM crt WHERE id=' + req.body.crt, (error, result) => {
+            if (error) return reject(error);
+            resolve();
+          });
         },
       );
     });
@@ -169,8 +159,7 @@ export class Crt extends Model {
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
 
-        if (result.length > 0)
-          resolve({ result: true, restrictions: { crtUsedInOpenvpn: true } });
+        if (result.length > 0) resolve({ result: true, restrictions: { crtUsedInOpenvpn: true } });
         else resolve({ result: false });
       });
     });

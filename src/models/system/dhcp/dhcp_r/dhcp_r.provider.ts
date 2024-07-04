@@ -20,10 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { ServiceProvider } from '../../../../fonaments/services/service-provider';
-import {
-  ServiceBound,
-  ServiceContainer,
-} from '../../../../fonaments/services/service-container';
+import { ServiceBound, ServiceContainer } from '../../../../fonaments/services/service-container';
 import { DHCPRuleService } from './dhcp_r.service';
 import { AbstractApplication } from '../../../../fonaments/abstract-application';
 

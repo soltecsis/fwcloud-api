@@ -13,9 +13,7 @@ export class TfaController extends Controller {
   protected authService: AuthService;
 
   public async make(request: Request): Promise<void> {
-    this.authService = await this._app.getService<AuthService>(
-      AuthService.name,
-    );
+    this.authService = await this._app.getService<AuthService>(AuthService.name);
   }
 
   @Validate(VerifyTfaDto)
@@ -61,13 +59,7 @@ export class TfaController extends Controller {
         tfaURL: secret.otpauth_url,
         userId: req.body.user,
       };
-      await AuthService.UpdateTfa(
-        tfa.secret,
-        tfa.tempSecret,
-        tfa.dataURL,
-        tfa.tfaURL,
-        tfa.userId,
-      );
+      await AuthService.UpdateTfa(tfa.secret, tfa.tempSecret, tfa.dataURL, tfa.tfaURL, tfa.userId);
     });
     return ResponseBuilder.buildResponse().status(200);
   }

@@ -73,10 +73,7 @@ export class Repair extends Model {
   }
 
   //Ontain all root nodes.
-  public static checkRootNodes(
-    dbCon: Query,
-    channel: EventEmitter = new EventEmitter(),
-  ) {
+  public static checkRootNodes(dbCon: Query, channel: EventEmitter = new EventEmitter()) {
     return new Promise((resolve, reject) => {
       let sql =
         'SELECT id,name,node_type,id_obj,obj_type FROM ' +
@@ -96,35 +93,21 @@ export class Repair extends Model {
         let ca_found = 0;
         for (const node of nodes) {
           if (node.name === 'FIREWALLS' && node.node_type === 'FDF') {
-            channel.emit(
-              'message',
-              new ProgressNoticePayload(`Root node found: ${node.id} \n`),
-            );
+            channel.emit('message', new ProgressNoticePayload(`Root node found: ${node.id} \n`));
             firewalls_found = 1;
           } else if (node.name === 'OBJECTS' && node.node_type === 'FDO') {
-            channel.emit(
-              'message',
-              new ProgressNoticePayload(`Root node found: ${node.id} \n`),
-            );
+            channel.emit('message', new ProgressNoticePayload(`Root node found: ${node.id} \n`));
             objects_found = 1;
           } else if (node.name === 'SERVICES' && node.node_type === 'FDS') {
-            channel.emit(
-              'message',
-              new ProgressNoticePayload(`Root node found: ${node.id} \n`),
-            );
+            channel.emit('message', new ProgressNoticePayload(`Root node found: ${node.id} \n`));
             services_found = 1;
           } else if (node.name === 'CA' && node.node_type === 'FCA') {
-            channel.emit(
-              'message',
-              new ProgressNoticePayload(`Root node found: ${node.id} \n`),
-            );
+            channel.emit('message', new ProgressNoticePayload(`Root node found: ${node.id} \n`));
             ca_found = 1;
           } else {
             channel.emit(
               'message',
-              new ProgressNoticePayload(
-                `Deleting invalid root node: ${node.id}\n`,
-              ),
+              new ProgressNoticePayload(`Deleting invalid root node: ${node.id}\n`),
             );
             await Tree.deleteFwc_TreeFullNode({
               id: node.id,
@@ -204,31 +187,21 @@ export class Repair extends Model {
 
               // We are in a tree and then we can not have loops.
               // For security we allo a maximum deep of 100.
-              if (
-                id_ancestor === -1 ||
-                id_ancestor === node.id ||
-                ++deep > 100
-              ) {
+              if (id_ancestor === -1 || id_ancestor === node.id || ++deep > 100) {
                 if (id_ancestor === -1) {
                   channel.emit(
                     'message',
-                    new ProgressNoticePayload(
-                      `Ancestor not found, deleting node: ${node.id}\n`,
-                    ),
+                    new ProgressNoticePayload(`Ancestor not found, deleting node: ${node.id}\n`),
                   );
                 } else if (id_ancestor === node.id) {
                   channel.emit(
                     'message',
-                    new ProgressNoticePayload(
-                      `Deleting node in a loop: ${node.id}\n`,
-                    ),
+                    new ProgressNoticePayload(`Deleting node in a loop: ${node.id}\n`),
                   );
                 } else if (deep > 100) {
                   channel.emit(
                     'message',
-                    new ProgressNoticePayload(
-                      `Deleting a too much deep node: ${node.id}\n`,
-                    ),
+                    new ProgressNoticePayload(`Deleting a too much deep node: ${node.id}\n`),
                   );
                 }
 
@@ -303,10 +276,7 @@ export class Repair extends Model {
           } else {
             if (nodes.length === 1) {
               // The common case, firewall referenced by only one node three.
-              if (
-                nodes[0].parent_node_type === 'FDF' ||
-                nodes[0].parent_node_type === 'FD'
-              ) {
+              if (nodes[0].parent_node_type === 'FDF' || nodes[0].parent_node_type === 'FD') {
                 nodeId = nodes[0].id_parent;
               }
             } else if (nodes.length !== 1) {
@@ -329,9 +299,7 @@ export class Repair extends Model {
           // Regenerate the tree.
           channel.emit(
             'message',
-            new ProgressNoticePayload(
-              `Regenerating tree for firewall: ${firewall.id} \n`,
-            ),
+            new ProgressNoticePayload(`Regenerating tree for firewall: ${firewall.id} \n`),
           );
           await Tree.insertFwc_Tree_New_firewall(fwcloud, nodeId, firewall.id);
         } catch (err) {
@@ -356,11 +324,7 @@ export class Repair extends Model {
         try {
           for (const firewall of firewalls) {
             await this.regenerateFirewallTree(rootNode, firewall, channel);
-            await PolicyRule.checkSpecialRules(
-              dbCon,
-              firewall.id,
-              firewall.options,
-            );
+            await PolicyRule.checkSpecialRules(dbCon, firewall.id, firewall.options);
           }
 
           return resolve();
@@ -396,17 +360,12 @@ export class Repair extends Model {
             // No node found for this cluster.
             channel.emit(
               'message',
-              new ProgressNoticePayload(
-                `No node found for cluster: ${JSON.stringify(cluster)}\n`,
-              ),
+              new ProgressNoticePayload(`No node found for cluster: ${JSON.stringify(cluster)}\n`),
             );
           } else {
             if (nodes.length === 1) {
               // The common case, cluster referenced by only one node three.
-              if (
-                nodes[0].parent_node_type === 'FDF' ||
-                nodes[0].parent_node_type === 'FD'
-              ) {
+              if (nodes[0].parent_node_type === 'FDF' || nodes[0].parent_node_type === 'FD') {
                 nodeId = nodes[0].id_parent;
               }
             } else if (nodes.length !== 1) {
@@ -429,9 +388,7 @@ export class Repair extends Model {
           // Regenerate the tree.
           channel.emit(
             'message',
-            new ProgressNoticePayload(
-              `Regenerating tree for cluster: ${cluster.id} \n`,
-            ),
+            new ProgressNoticePayload(`Regenerating tree for cluster: ${cluster.id} \n`),
           );
           await Tree.insertFwc_Tree_New_cluster(fwcloud, nodeId, cluster.id);
         } catch (err) {
@@ -459,11 +416,7 @@ export class Repair extends Model {
         try {
           for (const cluster of clusters) {
             await this.regenerateClusterTree(rootNode, cluster, channel);
-            await PolicyRule.checkSpecialRules(
-              dbCon,
-              cluster.fwmaster_id,
-              cluster.options,
-            );
+            await PolicyRule.checkSpecialRules(dbCon, cluster.fwmaster_id, cluster.options);
           }
 
           return resolve();
@@ -565,11 +518,7 @@ export class Repair extends Model {
         try {
           for (const node of nodes) {
             // Into a folder we can have only more folders, firewalls or clusters.
-            if (
-              node.node_type !== 'FD' &&
-              node.node_type !== 'FW' &&
-              node.node_type !== 'CL'
-            ) {
+            if (node.node_type !== 'FD' && node.node_type !== 'FW' && node.node_type !== 'CL') {
               channel.emit(
                 'message',
                 new ProgressNoticePayload(
@@ -589,9 +538,7 @@ export class Repair extends Model {
               // Recursively check the folders nodes.
               channel.emit(
                 'message',
-                new ProgressNoticePayload(
-                  `Checking folder node: ${JSON.stringify(node)} \n`,
-                ),
+                new ProgressNoticePayload(`Checking folder node: ${JSON.stringify(node)} \n`),
               );
               await this.checkFirewallsFoldersContent(node, channel);
             }
@@ -639,8 +586,7 @@ export class Repair extends Model {
         ' AND node_type="OIH" AND id_obj IS NULL and obj_type=8';
       dbCon.query(sql, (error, nodes) => {
         if (error) return reject(error);
-        if (nodes.length !== 1)
-          return reject(fwcError.other('Hosts node not found'));
+        if (nodes.length !== 1) return reject(fwcError.other('Hosts node not found'));
 
         // Clear the hosts node removing all child nodes.
         sql =
@@ -664,15 +610,11 @@ export class Repair extends Model {
 
           // Search for all the hosts in the selected cloud.
           sql =
-            'SELECT id,name FROM ipobj' +
-            ' WHERE fwcloud=' +
-            dbCon.escape(fwcloud) +
-            ' AND type=8';
+            'SELECT id,name FROM ipobj' + ' WHERE fwcloud=' + dbCon.escape(fwcloud) + ' AND type=8';
           dbCon.query(sql, async (error, hosts) => {
             if (error) return reject(error);
             try {
-              for (const host of hosts)
-                await this.regenerateHostTree(nodes[0], host);
+              for (const host of hosts) await this.regenerateHostTree(nodes[0], host);
             } catch (error) {
               return reject(error);
             }
@@ -684,11 +626,7 @@ export class Repair extends Model {
   }
 
   // Regenerate non standard IP objects for this cloud.
-  public static checkNonStdIPObj(
-    node_id,
-    node_type,
-    ipobj_type,
-  ): Promise<void> {
+  public static checkNonStdIPObj(node_id, node_type, ipobj_type): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql = '';
       if (ipobj_type === 30)
@@ -704,14 +642,7 @@ export class Repair extends Model {
             // Verify that the ipobj is not part of an OpenVPN configuration.
             if (ipobj_type === 5) {
               // ADDRESS
-              if (
-                await OpenVPN.searchIPObjInOpenvpnOpt(
-                  dbCon,
-                  ipobj.id,
-                  'ifconfig-push',
-                )
-              )
-                continue;
+              if (await OpenVPN.searchIPObjInOpenvpnOpt(dbCon, ipobj.id, 'ifconfig-push')) continue;
             }
             // Include VPN LANs in objects tree.
             //else if (ipobj_type === 7) { // NETWORK
@@ -738,11 +669,7 @@ export class Repair extends Model {
   }
 
   // Regenerate non standard IP objects groups for this cloud.
-  public static checkNonStdIPObjGroup(
-    node_id,
-    node_type,
-    group_type,
-  ): Promise<void> {
+  public static checkNonStdIPObjGroup(node_id, node_type, group_type): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT id,name,type FROM ipobj_g WHERE fwcloud=${fwcloud} AND type=${group_type}`;
       dbCon.query(sql, async (error, groups) => {
@@ -771,9 +698,7 @@ export class Repair extends Model {
   }
 
   // Remove orphan nodes (nodes wich id_parent points to a non existing node with this id_parnet value).
-  public static deleteOrphanNodes(
-    channel: EventEmitter = new EventEmitter(),
-  ): Promise<void> {
+  public static deleteOrphanNodes(channel: EventEmitter = new EventEmitter()): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql: string = `select id,fwcloud from ${tableName}
                 where id_parent is not null and id_parent not in (select id from fwc_tree)`;
@@ -784,9 +709,7 @@ export class Repair extends Model {
         if (result && result.length > 0) {
           channel.emit(
             'message',
-            new ProgressNoticePayload(
-              `Removing ${result.length} orphan nodes.\n`,
-            ),
+            new ProgressNoticePayload(`Removing ${result.length} orphan nodes.\n`),
           );
 
           try {

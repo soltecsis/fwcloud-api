@@ -21,10 +21,7 @@
 */
 
 import { ServiceProvider } from '../fonaments/services/service-provider';
-import {
-  ServiceContainer,
-  ServiceBound,
-} from '../fonaments/services/service-container';
+import { ServiceContainer, ServiceBound } from '../fonaments/services/service-container';
 import { DatabaseService } from './database.service';
 import { AbstractApplication } from '../fonaments/abstract-application';
 

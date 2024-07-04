@@ -37,11 +37,7 @@ describe(describeName('Ca E2E Test'), () => {
 
     fwCloud = await manager
       .getRepository(FwCloud)
-      .save(
-        manager
-          .getRepository(FwCloud)
-          .create({ name: StringHelper.randomize(10) }),
-      );
+      .save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }));
     ca = await manager.getRepository(Ca).save(
       manager.getRepository(Ca).create({
         fwCloudId: fwCloud.id,
@@ -137,9 +133,7 @@ describe(describeName('Ca E2E Test'), () => {
         .expect(200)
         .then(async (response) => {
           const caWithNewComment = await Ca.findOne({ where: { id: ca.id } });
-          expect(response.body.data.comment).to.be.equal(
-            caWithNewComment.comment,
-          );
+          expect(response.body.data.comment).to.be.equal(caWithNewComment.comment);
         });
     });
   });

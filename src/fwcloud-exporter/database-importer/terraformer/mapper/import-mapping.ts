@@ -45,11 +45,7 @@ export class ImportMapping {
    * @param propertyName
    * @param old
    */
-  public getMappedId(
-    tableName: string,
-    propertyName: string,
-    old: number,
-  ): number {
+  public getMappedId(tableName: string, propertyName: string, old: number): number {
     const key: string = this.generateKey(tableName, propertyName, old);
     const newId: number = this.maps.get(key);
 
@@ -72,11 +68,7 @@ export class ImportMapping {
    * @param propertyName
    * @param value
    */
-  protected shouldGenerateNewId(
-    tableName: string,
-    propertyName: string,
-    value: any,
-  ): boolean {
+  protected shouldGenerateNewId(tableName: string, propertyName: string, value: any): boolean {
     const tableData: Array<object> = this._data.getTableResults(tableName);
     if (tableData) {
       return (
@@ -96,11 +88,7 @@ export class ImportMapping {
    * @param propertyName
    * @param old
    */
-  protected generateNewId(
-    tableName: string,
-    propertyName: string,
-    old: number,
-  ): number {
+  protected generateNewId(tableName: string, propertyName: string, old: number): number {
     let newId: number = this._idManager.getNewId(tableName, propertyName);
     if (!newId) {
       newId = old;
@@ -110,11 +98,7 @@ export class ImportMapping {
     return newId;
   }
 
-  protected generateKey(
-    tableName: string,
-    propertyName: string,
-    old: number,
-  ): string {
+  protected generateKey(tableName: string, propertyName: string, old: number): string {
     return `${tableName}:${propertyName}:${old}`;
   }
 }

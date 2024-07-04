@@ -32,13 +32,9 @@ describe(RouteGroupController.name, () => {
   beforeEach(async () => {
     app = testSuite.app;
     manager = db.getSource().manager;
-    tableService = await app.getService<RoutingTableService>(
-      RoutingTableService.name,
-    );
+    tableService = await app.getService<RoutingTableService>(RoutingTableService.name);
     routeService = await app.getService<RouteService>(RouteService.name);
-    routeGroupService = await app.getService<RouteGroupService>(
-      RouteGroupService.name,
-    );
+    routeGroupService = await app.getService<RouteGroupService>(RouteGroupService.name);
 
     fwcProduct = await new FwCloudFactory().make();
 
@@ -56,11 +52,7 @@ describe(RouteGroupController.name, () => {
       'FIREWALLS',
       'FDF',
     )) as { id: number };
-    await Tree.insertFwc_Tree_New_firewall(
-      fwcProduct.fwcloud.id,
-      node.id,
-      firewall.id,
-    );
+    await Tree.insertFwc_Tree_New_firewall(fwcProduct.fwcloud.id, node.id, firewall.id);
 
     controller = new RouteGroupController(app);
   });

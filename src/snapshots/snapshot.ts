@@ -176,13 +176,7 @@ export class Snapshot implements Responsable {
     eventEmitter = new EventEmitter(),
   ): Promise<Snapshot> {
     const snapshot: Snapshot = new Snapshot();
-    await snapshot.save(
-      snapshot_directory,
-      fwCloud,
-      name,
-      comment,
-      eventEmitter,
-    );
+    await snapshot.save(snapshot_directory, fwCloud, name, comment, eventEmitter);
 
     return Snapshot.load(snapshot.path);
   }
@@ -190,9 +184,7 @@ export class Snapshot implements Responsable {
   /**
    * Restore using progress
    */
-  public async restore(
-    eventEmitter: EventEmitter = new EventEmitter(),
-  ): Promise<FwCloud> {
+  public async restore(eventEmitter: EventEmitter = new EventEmitter()): Promise<FwCloud> {
     const progress: Progress = new Progress(eventEmitter);
 
     if (!this.compatible) {
@@ -203,11 +195,10 @@ export class Snapshot implements Responsable {
       'Restoring snapshot',
       (task: Task) => {
         task.addTask(async () => {
-          const backupService: BackupService =
-            await app().getService<BackupService>(BackupService.name);
-          return backupService.create(
-            'Before snapshot (' + this.id + ') restore',
+          const backupService: BackupService = await app().getService<BackupService>(
+            BackupService.name,
           );
+          return backupService.create('Before snapshot (' + this.id + ') restore');
         }, 'Backup created');
         task.addTask(async () => {
           this._restoredFwCloud = await this.restoreDatabaseData(eventEmitter);
@@ -236,32 +227,20 @@ export class Snapshot implements Responsable {
    * @param snapshotPath The path must contain the fwcloud.id directory
    */
   protected async loadSnapshot(snapshotPath: string): Promise<Snapshot> {
-    const databaseService = await app().getService<DatabaseService>(
-      DatabaseService.name,
-    );
-    const executedMigrations: Migration[] =
-      await databaseService.getExecutedMigrations();
+    const databaseService = await app().getService<DatabaseService>(DatabaseService.name);
+    const executedMigrations: Migration[] = await databaseService.getExecutedMigrations();
 
-    const metadataPath: string = path.join(
-      snapshotPath,
-      Snapshot.METADATA_FILENAME,
-    );
+    const metadataPath: string = path.join(snapshotPath, Snapshot.METADATA_FILENAME);
     const dataPath: string = path.join(snapshotPath, Snapshot.DATA_FILENAME);
-    const fwCloudId: number = parseInt(
-      path.dirname(snapshotPath).split(path.sep).pop(),
-    );
+    const fwCloudId: number = parseInt(path.dirname(snapshotPath).split(path.sep).pop());
 
-    const snapshotMetadata: SnapshotMetadata = JSON.parse(
-      fs.readFileSync(metadataPath).toString(),
-    );
+    const snapshotMetadata: SnapshotMetadata = JSON.parse(fs.readFileSync(metadataPath).toString());
     const dataContent: string = fs.readFileSync(dataPath).toString();
 
     this._id = parseInt(path.basename(snapshotPath));
     this._date = moment(snapshotMetadata.timestamp);
     this._path = snapshotPath;
-    this._fwCloud = fwCloudId
-      ? await FwCloud.findOne({ where: { id: fwCloudId } })
-      : null;
+    this._fwCloud = fwCloudId ? await FwCloud.findOne({ where: { id: fwCloudId } }) : null;
     this._name = snapshotMetadata.name;
     this._comment = snapshotMetadata.comment;
     this._version = snapshotMetadata.version;
@@ -289,10 +268,7 @@ export class Snapshot implements Responsable {
    *
    * @param snapshotData
    */
-  public async update(snapshotData: {
-    name: string;
-    comment: string;
-  }): Promise<Snapshot> {
+  public async update(snapshotData: { name: string; comment: string }): Promise<Snapshot> {
     this._name = snapshotData.name;
     this._comment = snapshotData.comment;
 
@@ -338,19 +314,15 @@ export class Snapshot implements Responsable {
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<Snapshot> {
     const progress = new Progress(eventEmitter);
-    const databaseService: DatabaseService =
-      await app().getService<DatabaseService>(DatabaseService.name);
-    const executedMigrations: Migration[] =
-      await databaseService.getExecutedMigrations();
+    const databaseService: DatabaseService = await app().getService<DatabaseService>(
+      DatabaseService.name,
+    );
+    const executedMigrations: Migration[] = await databaseService.getExecutedMigrations();
 
     this._fwCloud = fwCloud;
     this._date = moment();
     this._id = this._date.valueOf();
-    this._path = path.join(
-      snapshot_directory,
-      fwCloud.id.toString(),
-      this._id.toString(),
-    );
+    this._path = path.join(snapshot_directory, fwCloud.id.toString(), this._id.toString());
     this._name = name ? name : this._date.utc().format();
     this._comment = comment;
     this._version = app<Application>().version.tag;
@@ -488,9 +460,7 @@ export class Snapshot implements Responsable {
    * Creates the snapshot/fwcloud.id directory if it does not exists (is the first snapshot for the given fwcloud)
    */
   protected static async generateSnapshotDirectoryIfDoesNotExist() {
-    if (
-      !(await FSHelper.directoryExists(app().config.get('snapshot').data_dir))
-    ) {
+    if (!(await FSHelper.directoryExists(app().config.get('snapshot').data_dir))) {
       FSHelper.mkdir(app().config.get('snapshot').data_dir);
     }
   }
@@ -511,10 +481,7 @@ export class Snapshot implements Responsable {
     });
   }
 
-  protected async migrateSnapshots(
-    oldFwCloud: FwCloud,
-    newFwCloud: FwCloud,
-  ): Promise<void> {
+  protected async migrateSnapshots(oldFwCloud: FwCloud, newFwCloud: FwCloud): Promise<void> {
     const snapshotDirectory: string = (
       await app().getService<SnapshotService>(SnapshotService.name)
     ).config.data_dir;

@@ -20,10 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  TableTerraformer,
-  TerraformHandlerCollection,
-} from '../table-terraformer';
+import { TableTerraformer, TerraformHandlerCollection } from '../table-terraformer';
 import { ImportMapping } from '../mapper/import-mapping';
 import { FwCloud } from '../../../../models/fwcloud/FwCloud';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
@@ -33,10 +30,7 @@ export class IpObjGroupTerraformer extends TableTerraformer {
     mapper: ImportMapping,
     eventEmitter: EventEmitter = new EventEmitter(),
   ): Promise<IpObjGroupTerraformer> {
-    const terraformer: IpObjGroupTerraformer = new IpObjGroupTerraformer(
-      mapper,
-      eventEmitter,
-    );
+    const terraformer: IpObjGroupTerraformer = new IpObjGroupTerraformer(mapper, eventEmitter);
     return terraformer;
   }
 
@@ -47,11 +41,7 @@ export class IpObjGroupTerraformer extends TableTerraformer {
   protected getCustomHandlers(): TerraformHandlerCollection {
     const result = {};
 
-    result['fwCloudId'] = (
-      mapper: ImportMapping,
-      row: object,
-      value: number,
-    ) => {
+    result['fwCloudId'] = (mapper: ImportMapping, row: object, value: number) => {
       return mapper.getMappedId(FwCloud._getTableName(), 'id', value);
     };
 

@@ -9,10 +9,7 @@ import { In } from 'typeorm';
 import { IPObj } from '../../../models/ipobj/IPObj';
 import db from '../../../database/database-manager';
 
-export function IpObjBelongsToTypes(
-  typeIds: number[],
-  validationOptions?: ValidationOptions,
-) {
+export function IpObjBelongsToTypes(typeIds: number[], validationOptions?: ValidationOptions) {
   return function (object: Object, propertyName: string) {
     registerDecorator({
       name: 'ipObjBelongsToTypes',

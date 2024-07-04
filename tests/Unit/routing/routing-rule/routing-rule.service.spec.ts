@@ -38,9 +38,7 @@ describe(RoutingRuleService.name, () => {
     await testSuite.resetDatabaseData();
     fwcProduct = await new FwCloudFactory().make();
 
-    service = await testSuite.app.getService<RoutingRuleService>(
-      RoutingRuleService.name,
-    );
+    service = await testSuite.app.getService<RoutingRuleService>(RoutingRuleService.name);
 
     fwCloud = fwcProduct.fwcloud;
 
@@ -331,15 +329,13 @@ describe(RoutingRuleService.name, () => {
           }),
         );
 
-        const _interface: Interface = await manager
-          .getRepository(Interface)
-          .save(
-            manager.getRepository(Interface).create({
-              name: 'eth1',
-              type: '11',
-              interface_type: '11',
-            }),
-          );
+        const _interface: Interface = await manager.getRepository(Interface).save(
+          manager.getRepository(Interface).create({
+            name: 'eth1',
+            type: '11',
+            interface_type: '11',
+          }),
+        );
 
         const host = await manager.getRepository(IPObj).save(
           manager.getRepository(IPObj).create({
@@ -644,11 +640,7 @@ describe(RoutingRuleService.name, () => {
       });
       await firewall.reload();
 
-      await service.copy(
-        [ruleOrder1.id, ruleOrder2.id],
-        ruleOrder1.id,
-        Offset.Above,
-      );
+      await service.copy([ruleOrder1.id, ruleOrder2.id], ruleOrder1.id, Offset.Above);
 
       await firewall.reload();
 
@@ -906,15 +898,13 @@ describe(RoutingRuleService.name, () => {
           }),
         );
 
-        const _interface: Interface = await manager
-          .getRepository(Interface)
-          .save(
-            manager.getRepository(Interface).create({
-              name: 'eth1',
-              type: '11',
-              interface_type: '11',
-            }),
-          );
+        const _interface: Interface = await manager.getRepository(Interface).save(
+          manager.getRepository(Interface).create({
+            name: 'eth1',
+            type: '11',
+            interface_type: '11',
+          }),
+        );
 
         const host = await manager.getRepository(IPObj).save(
           manager.getRepository(IPObj).create({
@@ -1046,9 +1036,7 @@ describe(RoutingRuleService.name, () => {
       });
 
       it('should not allow attach a service group', async () => {
-        const _service = await manager
-          .getRepository(IPObj)
-          .findOneOrFail({ where: { id: 10040 } });
+        const _service = await manager.getRepository(IPObj).findOneOrFail({ where: { id: 10040 } });
 
         const group = await manager.getRepository(IPObjGroup).save({
           name: 'group',
@@ -1487,11 +1475,8 @@ describe(RoutingRuleService.name, () => {
         id: rule.id,
       });
 
-      expect(
-        await manager
-          .getRepository(RoutingRule)
-          .findOne({ where: { id: rule.id } }),
-      ).to.be.null;
+      expect(await manager.getRepository(RoutingRule).findOne({ where: { id: rule.id } })).to.be
+        .null;
     });
 
     it('should reset firewall compiled flag', async () => {
@@ -1594,22 +1579,18 @@ describe(RoutingRuleService.name, () => {
           ipObjId: fwcProduct.ipobjs.get('address').id,
         });
 
-        const refreshedRule1: RoutingRule = await manager
-          .getRepository(RoutingRule)
-          .findOne({
-            where: {
-              id: rule1.id,
-            },
-            relations: ['routingRuleToIPObjs'],
-          });
-        const refreshedRule2: RoutingRule = await manager
-          .getRepository(RoutingRule)
-          .findOne({
-            where: {
-              id: rule2.id,
-            },
-            relations: ['routingRuleToIPObjs'],
-          });
+        const refreshedRule1: RoutingRule = await manager.getRepository(RoutingRule).findOne({
+          where: {
+            id: rule1.id,
+          },
+          relations: ['routingRuleToIPObjs'],
+        });
+        const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
+          where: {
+            id: rule2.id,
+          },
+          relations: ['routingRuleToIPObjs'],
+        });
 
         expect(refreshedRule1.routingRuleToIPObjs).length(0);
         expect(refreshedRule2.routingRuleToIPObjs).length(1);
@@ -1633,22 +1614,18 @@ describe(RoutingRuleService.name, () => {
           ipObjGroupId: fwcProduct.ipobjGroup.id,
         });
 
-        const refreshedRule1: RoutingRule = await manager
-          .getRepository(RoutingRule)
-          .findOne({
-            where: {
-              id: rule1.id,
-            },
-            relations: ['routingRuleToIPObjGroups'],
-          });
-        const refreshedRule2: RoutingRule = await manager
-          .getRepository(RoutingRule)
-          .findOne({
-            where: {
-              id: rule2.id,
-            },
-            relations: ['routingRuleToIPObjGroups'],
-          });
+        const refreshedRule1: RoutingRule = await manager.getRepository(RoutingRule).findOne({
+          where: {
+            id: rule1.id,
+          },
+          relations: ['routingRuleToIPObjGroups'],
+        });
+        const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
+          where: {
+            id: rule2.id,
+          },
+          relations: ['routingRuleToIPObjGroups'],
+        });
 
         expect(refreshedRule1.routingRuleToIPObjGroups).length(0);
         expect(refreshedRule2.routingRuleToIPObjGroups).length(1);
@@ -1672,22 +1649,18 @@ describe(RoutingRuleService.name, () => {
           openVPNId: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
         });
 
-        const refreshedRule1: RoutingRule = await manager
-          .getRepository(RoutingRule)
-          .findOne({
-            where: {
-              id: rule1.id,
-            },
-            relations: ['routingRuleToOpenVPNs'],
-          });
-        const refreshedRule2: RoutingRule = await manager
-          .getRepository(RoutingRule)
-          .findOne({
-            where: {
-              id: rule2.id,
-            },
-            relations: ['routingRuleToOpenVPNs'],
-          });
+        const refreshedRule1: RoutingRule = await manager.getRepository(RoutingRule).findOne({
+          where: {
+            id: rule1.id,
+          },
+          relations: ['routingRuleToOpenVPNs'],
+        });
+        const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
+          where: {
+            id: rule2.id,
+          },
+          relations: ['routingRuleToOpenVPNs'],
+        });
 
         expect(refreshedRule1.routingRuleToOpenVPNs).length(0);
         expect(refreshedRule2.routingRuleToOpenVPNs).length(1);
@@ -1711,22 +1684,18 @@ describe(RoutingRuleService.name, () => {
           openVPNPrefixId: fwcProduct.openvpnPrefix.id,
         });
 
-        const refreshedRule1: RoutingRule = await manager
-          .getRepository(RoutingRule)
-          .findOne({
-            where: {
-              id: rule1.id,
-            },
-            relations: ['routingRuleToOpenVPNPrefixes'],
-          });
-        const refreshedRule2: RoutingRule = await manager
-          .getRepository(RoutingRule)
-          .findOne({
-            where: {
-              id: rule2.id,
-            },
-            relations: ['routingRuleToOpenVPNPrefixes'],
-          });
+        const refreshedRule1: RoutingRule = await manager.getRepository(RoutingRule).findOne({
+          where: {
+            id: rule1.id,
+          },
+          relations: ['routingRuleToOpenVPNPrefixes'],
+        });
+        const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
+          where: {
+            id: rule2.id,
+          },
+          relations: ['routingRuleToOpenVPNPrefixes'],
+        });
 
         expect(refreshedRule1.routingRuleToOpenVPNPrefixes).length(0);
         expect(refreshedRule2.routingRuleToOpenVPNPrefixes).length(1);
@@ -1741,22 +1710,18 @@ describe(RoutingRuleService.name, () => {
           markId: mark2.id,
         });
 
-        const refreshedRule1: RoutingRule = await manager
-          .getRepository(RoutingRule)
-          .findOne({
-            where: {
-              id: rule1.id,
-            },
-            relations: ['routingRuleToMarks'],
-          });
-        const refreshedRule2: RoutingRule = await manager
-          .getRepository(RoutingRule)
-          .findOne({
-            where: {
-              id: rule2.id,
-            },
-            relations: ['routingRuleToMarks'],
-          });
+        const refreshedRule1: RoutingRule = await manager.getRepository(RoutingRule).findOne({
+          where: {
+            id: rule1.id,
+          },
+          relations: ['routingRuleToMarks'],
+        });
+        const refreshedRule2: RoutingRule = await manager.getRepository(RoutingRule).findOne({
+          where: {
+            id: rule2.id,
+          },
+          relations: ['routingRuleToMarks'],
+        });
 
         expect(refreshedRule1.routingRuleToMarks).length(1);
         expect(refreshedRule2.routingRuleToMarks).length(2);

@@ -95,11 +95,9 @@ export class DHCPGroupPolicy extends Policy {
       return Authorization.grant();
     }
 
-    const match: FwCloud[] = user.fwClouds.filter(
-      (fwcloud: FwCloud): boolean => {
-        return fwcloud.id === firewall.fwCloud.id;
-      },
-    );
+    const match: FwCloud[] = user.fwClouds.filter((fwcloud: FwCloud): boolean => {
+      return fwcloud.id === firewall.fwCloud.id;
+    });
 
     return match.length > 0 ? Authorization.grant() : Authorization.revoke();
   }

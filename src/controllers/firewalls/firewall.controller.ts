@@ -21,16 +21,10 @@
 */
 
 import { Controller } from '../../fonaments/http/controller';
-import {
-  Firewall,
-  FirewallInstallCommunication,
-} from '../../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../../models/firewall/Firewall';
 import { Request } from 'express';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
-import {
-  FirewallService,
-  SSHConfig,
-} from '../../models/firewall/firewall.service';
+import { FirewallService, SSHConfig } from '../../models/firewall/firewall.service';
 import { FirewallPolicy } from '../../policies/firewall.policy';
 import { Channel } from '../../sockets/channels/channel';
 import { ProgressPayload } from '../../sockets/messages/socket-message';
@@ -47,10 +41,7 @@ import { FirewallControllerCompileRoutingRuleQueryDto } from './dtos/compile-rou
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { PingDto } from './dtos/ping.dto';
 import { InfoDto } from './dtos/info.dto';
-import {
-  Communication,
-  FwcAgentInfo,
-} from '../../communications/communication';
+import { Communication, FwcAgentInfo } from '../../communications/communication';
 import { SSHCommunication } from '../../communications/ssh.communication';
 import { AgentCommunication } from '../../communications/agent.communication';
 import { PgpHelper } from '../../utils/pgp';
@@ -61,15 +52,9 @@ import {
 } from '../../models/system/haproxy/haproxy_r/haproxy_r.service';
 import { HAProxyRuleItemForCompiler } from '../../models/system/haproxy/shared';
 import { HAProxyCompiler } from '../../compiler/system/haproxy/HAProxyCompiler';
-import {
-  DHCPRuleService,
-  DHCPRulesData,
-} from '../../models/system/dhcp/dhcp_r/dhcp_r.service';
+import { DHCPRuleService, DHCPRulesData } from '../../models/system/dhcp/dhcp_r/dhcp_r.service';
 import { DHCPRuleItemForCompiler } from '../../models/system/dhcp/shared';
-import {
-  DHCPCompiled,
-  DHCPCompiler,
-} from '../../compiler/system/dhcp/DHCPCompiler';
+import { DHCPCompiled, DHCPCompiler } from '../../compiler/system/dhcp/DHCPCompiler';
 import {
   KeepalivedRuleService,
   KeepalivedRulesData,
@@ -95,18 +80,14 @@ export class FirewallController extends Controller {
       .where('fwcloud.id = :id', { id: parseInt(request.params.fwcloud) })
       .getOneOrFail();
 
-    this.firewallService = await this._app.getService<FirewallService>(
-      FirewallService.name,
-    );
+    this.firewallService = await this._app.getService<FirewallService>(FirewallService.name);
     this.routingRuleService = await this._app.getService<RoutingRuleService>(
       RoutingRuleService.name,
     );
     this.haproxyRuleService = await this._app.getService<HAProxyRuleService>(
       HAProxyRuleService.name,
     );
-    this.dhcpRuleService = await this._app.getService<DHCPRuleService>(
-      DHCPRuleService.name,
-    );
+    this.dhcpRuleService = await this._app.getService<DHCPRuleService>(DHCPRuleService.name);
     this.keepalivedService = await this._app.getService<KeepalivedRuleService>(
       KeepalivedRuleService.name,
     );
@@ -133,10 +114,7 @@ export class FirewallController extends Controller {
 
     firewall = await this.firewallService.compile(firewall, channel);
 
-    channel.emit(
-      'message',
-      new ProgressPayload('end', false, 'Compiling firewall'),
-    );
+    channel.emit('message', new ProgressPayload('end', false, 'Compiling firewall'));
 
     return ResponseBuilder.buildResponse().status(201).body(firewall);
   }
@@ -165,16 +143,9 @@ export class FirewallController extends Controller {
       password: request.body.sshpass ? request.body.sshpass : undefined,
     };
 
-    firewall = await this.firewallService.install(
-      firewall,
-      customSSHConfig,
-      channel,
-    );
+    firewall = await this.firewallService.install(firewall, customSSHConfig, channel);
 
-    channel.emit(
-      'message',
-      new ProgressPayload('end', false, 'Installing firewall'),
-    );
+    channel.emit('message', new ProgressPayload('end', false, 'Installing firewall'));
 
     return ResponseBuilder.buildResponse().status(201).body(firewall);
   }
@@ -258,9 +229,7 @@ export class FirewallController extends Controller {
         'compiler',
         firewall.fwCloudId,
         firewall.id,
-        req.query.rules
-          ? (req.query.rules as string[]).map((item) => parseInt(item))
-          : undefined,
+        req.query.rules ? (req.query.rules as string[]).map((item) => parseInt(item)) : undefined,
       );
 
     const compilation: DHCPCompiled[] = new DHCPCompiler().compile(rules);
@@ -301,9 +270,7 @@ export class FirewallController extends Controller {
   async pingCommunication(request: Request): Promise<ResponseBuilder> {
     const input: PingDto = request.body;
 
-    (
-      await FirewallPolicy.ping(this._fwCloud, request.session.user)
-    ).authorize();
+    (await FirewallPolicy.ping(this._fwCloud, request.session.user)).authorize();
 
     const pgp = new PgpHelper(request.session.pgp);
 
@@ -344,9 +311,7 @@ export class FirewallController extends Controller {
   @Validate(InfoDto)
   async infoCommunication(request: Request): Promise<ResponseBuilder> {
     const input: InfoDto = request.body;
-    (
-      await FirewallPolicy.info(this._fwCloud, request.session.user)
-    ).authorize();
+    (await FirewallPolicy.info(this._fwCloud, request.session.user)).authorize();
 
     const pgp = new PgpHelper(request.session.pgp);
 
@@ -393,11 +358,7 @@ export class FirewallController extends Controller {
         apikey: await pgp.decrypt(req.body.apikey),
       });
 
-      const data = await communication.installPlugin(
-        req.body.plugin,
-        req.body.enable,
-        channel,
-      );
+      const data = await communication.installPlugin(req.body.plugin, req.body.enable, channel);
 
       return ResponseBuilder.buildResponse().status(200).body(data);
     } catch (error) {

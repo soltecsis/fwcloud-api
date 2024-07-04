@@ -25,9 +25,7 @@ describe(RoutingTableController.name, () => {
   beforeEach(async () => {
     app = testSuite.app;
     product = await new FwCloudFactory().make();
-    tableService = await app.getService<RoutingTableService>(
-      RoutingTableService.name,
-    );
+    tableService = await app.getService<RoutingTableService>(RoutingTableService.name);
 
     fwcloud = product.fwcloud;
     firewall = product.firewall;

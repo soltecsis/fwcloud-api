@@ -20,14 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import Model from '../../../Model';
 import { HAProxyGroup } from '../haproxy_g/haproxy_g.model';
 import { IPObj } from '../../../ipobj/IPObj';
@@ -68,11 +61,7 @@ export class HAProxyRule extends Model {
   @JoinColumn({ name: 'frontend_port' })
   frontendPort: IPObj;
 
-  @OneToMany(
-    () => HAProxyRuleToIPObj,
-    (ruleToIPObj) => ruleToIPObj.haproxyRule,
-    { cascade: true },
-  )
+  @OneToMany(() => HAProxyRuleToIPObj, (ruleToIPObj) => ruleToIPObj.haproxyRule, { cascade: true })
   backendIps: HAProxyRuleToIPObj[];
 
   @ManyToOne(() => IPObj, { eager: true })

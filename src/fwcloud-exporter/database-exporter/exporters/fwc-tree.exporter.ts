@@ -23,13 +23,7 @@
 import { TableExporter } from './table-exporter';
 import Model from '../../../models/Model';
 import { FwcTree } from '../../../models/tree/fwc-tree.model';
-import {
-  SelectQueryBuilder,
-  Connection,
-  QueryRunner,
-  In,
-  IsNull,
-} from 'typeorm';
+import { SelectQueryBuilder, Connection, QueryRunner, In, IsNull } from 'typeorm';
 
 export class FwcTreeExporter extends TableExporter {
   protected _ids: Array<number>;
@@ -93,16 +87,14 @@ export class FwcTreeExporter extends TableExporter {
       return [];
     }
 
-    let childIds: Array<number> = (
-      await FwcTree.find({ where: { parentId: In(ids) } })
-    ).map((row: FwcTree) => {
-      return row.id;
-    });
+    let childIds: Array<number> = (await FwcTree.find({ where: { parentId: In(ids) } })).map(
+      (row: FwcTree) => {
+        return row.id;
+      },
+    );
 
     if (childIds.length > 0) {
-      childIds = childIds.concat(
-        await this.getChildNodeIds(qr, fwCloudId, childIds),
-      );
+      childIds = childIds.concat(await this.getChildNodeIds(qr, fwCloudId, childIds));
     }
 
     return childIds;

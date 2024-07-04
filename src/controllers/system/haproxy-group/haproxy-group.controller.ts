@@ -63,39 +63,31 @@ export class HAProxyGroupController extends Controller {
 
   @Validate()
   async index(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyGroupPolicy.create(this._firewall, request.session.user)
-    ).authorize();
+    (await HAProxyGroupPolicy.create(this._firewall, request.session.user)).authorize();
 
-    const groups: HAProxyGroup[] =
-      (await this._haproxyGroupService.findManyInPath({
-        firewallId: this._firewall.id,
-        fwcloudId: this._fwCloud.id,
-      })) as unknown as HAProxyGroup[];
+    const groups: HAProxyGroup[] = (await this._haproxyGroupService.findManyInPath({
+      firewallId: this._firewall.id,
+      fwcloudId: this._fwCloud.id,
+    })) as unknown as HAProxyGroup[];
 
     return ResponseBuilder.buildResponse().status(200).body(groups);
   }
 
   @Validate(DHCPGroupControllerCreateDto)
   async create(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyGroupPolicy.create(this._firewall, request.session.user)
-    ).authorize();
+    (await HAProxyGroupPolicy.create(this._firewall, request.session.user)).authorize();
 
     const group: HAProxyGroup = await this._haproxyGroupService.create({
       firewallId: this._firewall.id,
       name: request.body.name,
       style: request.body.style,
-      rules: request.inputs
-        .get<number[]>('rules')
-        ?.map((id: number): { id: number } => ({ id })),
+      rules: request.inputs.get<number[]>('rules')?.map((id: number): { id: number } => ({ id })),
     });
 
     if (request.inputs.get<number[]>('rules')) {
-      await this._haproxyRuleService.bulkUpdate(
-        request.inputs.get<number[]>('rules'),
-        { group: group.id },
-      );
+      await this._haproxyRuleService.bulkUpdate(request.inputs.get<number[]>('rules'), {
+        group: group.id,
+      });
     }
 
     return ResponseBuilder.buildResponse().status(201).body(group);
@@ -103,18 +95,14 @@ export class HAProxyGroupController extends Controller {
 
   @Validate()
   async show(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyGroupPolicy.show(this._haproxyGroup, request.session.user)
-    ).authorize();
+    (await HAProxyGroupPolicy.show(this._haproxyGroup, request.session.user)).authorize();
 
     return ResponseBuilder.buildResponse().status(200).body(this._haproxyGroup);
   }
 
   @Validate(DHCPGroupControllerUpdateDto)
   async update(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyGroupPolicy.show(this._haproxyGroup, request.session.user)
-    ).authorize();
+    (await HAProxyGroupPolicy.show(this._haproxyGroup, request.session.user)).authorize();
 
     const group: HAProxyGroup = await this._haproxyGroupService.update(
       this._haproxyGroup.id,
@@ -126,9 +114,7 @@ export class HAProxyGroupController extends Controller {
 
   @Validate()
   async remove(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyGroupPolicy.show(this._haproxyGroup, request.session.user)
-    ).authorize();
+    (await HAProxyGroupPolicy.show(this._haproxyGroup, request.session.user)).authorize();
 
     await this._haproxyGroupService.remove({ id: this._haproxyGroup.id });
 

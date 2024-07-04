@@ -39,10 +39,7 @@ export class FirewallExport {
           if (firewallData.length !== 1) return reject(fwcError.NOT_FOUND);
 
           try {
-            firewallData[0].interfaces = await this.exportInterfaces(
-              connection,
-              id,
-            );
+            firewallData[0].interfaces = await this.exportInterfaces(connection, id);
             firewallData[0].policy = await this.exportPolicy(connection, id);
           } catch (error) {
             reject(error);
@@ -58,8 +55,7 @@ export class FirewallExport {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        const sql =
-          'select * from ipobj where interface=' + connection.escape(row.id);
+        const sql = 'select * from ipobj where interface=' + connection.escape(row.id);
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
           resolve(rows);
@@ -70,16 +66,14 @@ export class FirewallExport {
 
   private static exportInterfaces(connection, id) {
     return new Promise((resolve, reject) => {
-      const sql =
-        'select * from interface where firewall=' + connection.escape(id);
+      const sql = 'select * from interface where firewall=' + connection.escape(id);
       connection.query(sql, (error, interfaces) => {
         if (error) return reject(error);
 
         // The order is preserved regardless of what resolved first
         Promise.all(interfaces.map((row) => this.exportAddrs(row)))
           .then((addrs) => {
-            for (let i = 0; i < interfaces.length; i++)
-              interfaces[i].addresses = addrs[i];
+            for (let i = 0; i < interfaces.length; i++) interfaces[i].addresses = addrs[i];
             resolve(interfaces);
           })
           .catch((error) => reject(error));
@@ -91,9 +85,7 @@ export class FirewallExport {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        const sql =
-          'select * from policy_r__interface where rule=' +
-          connection.escape(row.id);
+        const sql = 'select * from policy_r__interface where rule=' + connection.escape(row.id);
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
           resolve(rows);
@@ -107,8 +99,7 @@ export class FirewallExport {
       // The order is preserved regardless of what resolved first
       Promise.all(rules.map((row) => this.exportRuleInterfaces(row)))
         .then((ruleInterfaces) => {
-          for (let i = 0; i < ruleInterfaces.length; i++)
-            rules[i].interfaces = ruleInterfaces[i];
+          for (let i = 0; i < ruleInterfaces.length; i++) rules[i].interfaces = ruleInterfaces[i];
           resolve(rules);
         })
         .catch((error) => reject(error));
@@ -121,17 +112,11 @@ export class FirewallExport {
         if (error) return reject(error);
         let sql = '';
         if (ruleIpobj.ipobj !== -1)
-          sql =
-            'select * from ipobj where id=' +
-            connection.escape(ruleIpobj.ipobj);
+          sql = 'select * from ipobj where id=' + connection.escape(ruleIpobj.ipobj);
         else if (ruleIpobj.ipobj_g !== -1)
-          sql =
-            'select * from ipobj_g where id=' +
-            connection.escape(ruleIpobj.ipobj_g);
+          sql = 'select * from ipobj_g where id=' + connection.escape(ruleIpobj.ipobj_g);
         else if (ruleIpobj.interface !== -1)
-          sql =
-            'select * from interface where id=' +
-            connection.escape(ruleIpobj.interface);
+          sql = 'select * from interface where id=' + connection.escape(ruleIpobj.interface);
         connection.query(sql, (error, ipobjDetail) => {
           if (error) return reject(error);
           resolve(ipobjDetail);
@@ -144,18 +129,13 @@ export class FirewallExport {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        const sql =
-          'select * from policy_r__ipobj where rule=' +
-          connection.escape(row.id);
+        const sql = 'select * from policy_r__ipobj where rule=' + connection.escape(row.id);
         connection.query(sql, (error, ipobjs) => {
           if (error) return reject(error);
 
-          Promise.all(
-            ipobjs.map((ruleIpobj) => this.exportRuleIpobjData(ruleIpobj)),
-          )
+          Promise.all(ipobjs.map((ruleIpobj) => this.exportRuleIpobjData(ruleIpobj)))
             .then((ipobjsDetailed) => {
-              for (let i = 0; i < ipobjs.length; i++)
-                ipobjs[i].data = ipobjsDetailed[i];
+              for (let i = 0; i < ipobjs.length; i++) ipobjs[i].data = ipobjsDetailed[i];
               resolve(ipobjs);
             })
             .catch((error) => reject(error));
@@ -169,8 +149,7 @@ export class FirewallExport {
       // The order is preserved regardless of what resolved first
       Promise.all(rules.map((data) => this.exportRuleIpobjs(data)))
         .then((ruleIpobjs) => {
-          for (let i = 0; i < ruleIpobjs.length; i++)
-            rules[i].ipobjs = ruleIpobjs[i];
+          for (let i = 0; i < ruleIpobjs.length; i++) rules[i].ipobjs = ruleIpobjs[i];
           resolve(rules);
         })
         .catch((error) => reject(error));
@@ -179,8 +158,7 @@ export class FirewallExport {
 
   private static exportPolicy(connection, id) {
     return new Promise((resolve, reject) => {
-      const sql =
-        'select * from policy_r where firewall=' + connection.escape(id);
+      const sql = 'select * from policy_r where firewall=' + connection.escape(id);
       connection.query(sql, async (error, rules) => {
         if (error) return reject(error);
 

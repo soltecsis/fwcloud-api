@@ -5,9 +5,7 @@ import { InvalidConnectionNameException } from '../../tests/Unit/openvpn-install
 import { app, logger } from '../fonaments/abstract-application';
 
 export class InstallerGenerator {
-  static connectionNameRegExp = new RegExp(
-    /^[a-zA-Z0-9]{1}([a-zA-Z0-9-_]{2,30})[a-zA-Z0-9]{1}$/,
-  );
+  static connectionNameRegExp = new RegExp(/^[a-zA-Z0-9]{1}([a-zA-Z0-9-_]{2,30})[a-zA-Z0-9]{1}$/);
   protected _workspace: string;
   protected _configFilename: string;
   protected _configPath: string;
@@ -18,38 +16,20 @@ export class InstallerGenerator {
 
   protected _osslsigncodePath: string;
 
-  constructor(
-    workspace: string,
-    name: string,
-    configData: string,
-    outputPath: string,
-  ) {
+  constructor(workspace: string, name: string, configData: string, outputPath: string) {
     if (!this.isConnectionNameValid(name)) {
       throw new InvalidConnectionNameException(name);
     }
 
     this._workspace = workspace;
     this._configFilename = name + '.ovpn';
-    this._configPath = path.join(
-      this._workspace,
-      'fwcloud-vpn',
-      this._configFilename,
-    );
-    this._originalOutputPath = path.join(
-      this._workspace,
-      'fwcloud-vpn',
-      'fwcloud-vpn.exe',
-    );
-    this._signOutputPath = path.join(
-      this._workspace,
-      'fwcloud-vpn',
-      'fwcloud-vpn.sign.exe',
-    );
+    this._configPath = path.join(this._workspace, 'fwcloud-vpn', this._configFilename);
+    this._originalOutputPath = path.join(this._workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe');
+    this._signOutputPath = path.join(this._workspace, 'fwcloud-vpn', 'fwcloud-vpn.sign.exe');
     this._outputPath = outputPath;
     this._configData = configData;
     this._osslsigncodePath =
-      app().config.get('openvpn.installer.osslsigncode.path') ??
-      this.guessOsslSignCodePath();
+      app().config.get('openvpn.installer.osslsigncode.path') ?? this.guessOsslSignCodePath();
   }
 
   public generate(sign: boolean = true): string {
@@ -59,27 +39,14 @@ export class InstallerGenerator {
       this.generateExecutable(this._configFilename);
 
       if (this.shouldSignExecutable() && sign) {
-        const certPath: string = app().config.get(
-          'openvpn.installer.osslsigncode.cert_path',
-        );
-        const url: string = app().config.get(
-          'openvpn.installer.osslsigncode.url',
-        );
-        const description: string = app().config.get(
-          'openvpn.installer.osslsigncode.description',
-        );
+        const certPath: string = app().config.get('openvpn.installer.osslsigncode.cert_path');
+        const url: string = app().config.get('openvpn.installer.osslsigncode.url');
+        const description: string = app().config.get('openvpn.installer.osslsigncode.description');
 
         try {
-          this.signExecutable(
-            this._osslsigncodePath,
-            certPath,
-            url,
-            description,
-          );
+          this.signExecutable(this._osslsigncodePath, certPath, url, description);
         } catch (e) {
-          logger().error(
-            'Error during openvpn installer signing: ' + e.message,
-          );
+          logger().error('Error during openvpn installer signing: ' + e.message);
           logger().info('Creating executable unsigned');
           return this.generate(false);
         }
@@ -130,9 +97,7 @@ export class InstallerGenerator {
       return false;
     }
 
-    if (
-      app().config.get('openvpn.installer.osslsigncode.description') !== null
-    ) {
+    if (app().config.get('openvpn.installer.osslsigncode.description') !== null) {
       logger().warn(`osslsigncode "n" argument missing`);
 
       return false;
@@ -155,10 +120,7 @@ export class InstallerGenerator {
     const command: string = `which osslsigncode`;
 
     try {
-      const binPath: string = child_process
-        .execSync(command)
-        .toString()
-        .replace('\n', '');
+      const binPath: string = child_process.execSync(command).toString().replace('\n', '');
 
       if (fs.existsSync(binPath)) {
         return binPath;
@@ -172,9 +134,7 @@ export class InstallerGenerator {
    * Returns whether sign certificate path is defined and exists
    */
   public osslsignCertificateExists(): boolean {
-    const certPath: string = app().config.get(
-      'openvpn.installer.osslsigncode.cert_path',
-    );
+    const certPath: string = app().config.get('openvpn.installer.osslsigncode.cert_path');
     if (certPath !== null) {
       return fs.existsSync(certPath);
     }
@@ -209,12 +169,7 @@ export class InstallerGenerator {
    * @param i
    * @param n
    */
-  protected signExecutable(
-    osslsigncodePath: string,
-    certPath: string,
-    i: string,
-    n: string,
-  ) {
+  protected signExecutable(osslsigncodePath: string, certPath: string, i: string, n: string) {
     const command: string = `${osslsigncodePath} sign -pkcs12 ${certPath} -n ${n} -i ${i} -in ${this._originalOutputPath} -out ${this._signOutputPath}`;
 
     child_process.execSync(command);

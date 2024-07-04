@@ -22,11 +22,7 @@
 
 import { AbstractApplication } from '../../../../../src/fonaments/abstract-application';
 import { HttpException } from '../../../../../src/fonaments/exceptions/http/http-exception';
-import {
-  expect,
-  testSuite,
-  describeName,
-} from '../../../../mocha/global-setup';
+import { expect, testSuite, describeName } from '../../../../mocha/global-setup';
 import sinon from 'sinon';
 
 let app: AbstractApplication;
@@ -46,9 +42,7 @@ describe(describeName('HttpException Unit tests'), () => {
     it('should not return the stack if the app is in prod mode', () => {
       const error = new HttpException();
 
-      const stub: sinon.SinonStub = sinon
-        .stub(app.config, 'get')
-        .returns('prod');
+      const stub: sinon.SinonStub = sinon.stub(app.config, 'get').returns('prod');
 
       expect(error.toResponse()).not.to.haveOwnProperty('stack');
 

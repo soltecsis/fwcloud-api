@@ -38,18 +38,14 @@ export default class sshTools {
             if (err) return reject(err);
 
             const fs = require('fs'); // Use node filesystem
-            const readStream = fs
-              .createReadStream(srcFile)
-              .on('error', (error) => {
-                conn.end();
-                reject(error);
-              });
-            const writeStream = sftp
-              .createWriteStream(dstFile)
-              .on('error', (error) => {
-                conn.end();
-                reject(error);
-              });
+            const readStream = fs.createReadStream(srcFile).on('error', (error) => {
+              conn.end();
+              reject(error);
+            });
+            const writeStream = sftp.createWriteStream(dstFile).on('error', (error) => {
+              conn.end();
+              reject(error);
+            });
 
             writeStream
               .on('close', () => resolve('File transferred succesfully'))
@@ -63,8 +59,7 @@ export default class sshTools {
           });
         })
         .on('error', (error) => {
-          if (error.message)
-            error.message = `SSH_ERROR(${error.level}): ${error.message}`;
+          if (error.message) error.message = `SSH_ERROR(${error.level}): ${error.message}`;
           reject(error);
         })
         .connect(SSHconn);
@@ -81,12 +76,10 @@ export default class sshTools {
           conn.sftp((err, sftp) => {
             if (err) return reject(err);
 
-            const writeStream = sftp
-              .createWriteStream(dstFile)
-              .on('error', (error) => {
-                conn.end();
-                reject(error);
-              });
+            const writeStream = sftp.createWriteStream(dstFile).on('error', (error) => {
+              conn.end();
+              reject(error);
+            });
 
             writeStream
               .on('close', () => resolve('File transferred succesfully'))
@@ -102,19 +95,14 @@ export default class sshTools {
           });
         })
         .on('error', (error) => {
-          if (error.message)
-            error.message = `SSH_ERROR(${error.level}): ${error.message}`;
+          if (error.message) error.message = `SSH_ERROR(${error.level}): ${error.message}`;
           reject(error);
         })
         .connect(SSHconn);
     });
   }
 
-  public static runCommand(
-    SSHconn,
-    cmd,
-    eventEmitter?: EventEmitter,
-  ): Promise<string> {
+  public static runCommand(SSHconn, cmd, eventEmitter?: EventEmitter): Promise<string> {
     const Client = require('ssh2').Client;
     const conn = new Client();
     let stdout_log = '';
@@ -135,12 +123,7 @@ export default class sshTools {
                 //console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
                 conn.end();
                 if (code === 0) resolve(stdout_log);
-                else
-                  reject(
-                    new Error(
-                      'STDOUT: \n' + stdout_log + '\n\nSTDERR: \n' + stderr_log,
-                    ),
-                  );
+                else reject(new Error('STDOUT: \n' + stdout_log + '\n\nSTDERR: \n' + stderr_log));
               })
               .on('data', (data) => {
                 //console.log('STDOUT: ' + data);
@@ -154,15 +137,9 @@ export default class sshTools {
                   if (eventEmitter) {
                     if (prevStr === '\r\n' && str === '\r\n')
                       // Blanc line
-                      eventEmitter.emit(
-                        'message',
-                        new ProgressSSHCmdPayload('\r\n'),
-                      );
+                      eventEmitter.emit('message', new ProgressSSHCmdPayload('\r\n'));
                     else if (str != '\r\n')
-                      eventEmitter.emit(
-                        'message',
-                        new ProgressSSHCmdPayload(str),
-                      );
+                      eventEmitter.emit('message', new ProgressSSHCmdPayload(str));
 
                     prevStr = str;
                   }
@@ -175,8 +152,7 @@ export default class sshTools {
           });
         })
         .on('error', (error) => {
-          if (error.message)
-            error.message = `SSH_ERROR(${error.level}): ${error.message}`;
+          if (error.message) error.message = `SSH_ERROR(${error.level}): ${error.message}`;
           reject(error);
         })
         .connect(SSHconn);

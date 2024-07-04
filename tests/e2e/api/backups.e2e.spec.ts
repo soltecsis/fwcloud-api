@@ -57,9 +57,7 @@ describe(describeName('Backup E2E tests'), () => {
   describe('BackupController', () => {
     describe('BackupController@index', () => {
       it('guest user should not see the backup index', async () => {
-        return await request(app.express)
-          .get(_URL().getURL('backups.index'))
-          .expect(401);
+        return await request(app.express).get(_URL().getURL('backups.index')).expect(401);
       });
 
       it('regular user should not see backup index', async () => {
@@ -70,15 +68,12 @@ describe(describeName('Backup E2E tests'), () => {
       });
 
       it('admin user should see backup index', async () => {
-        const backupService: BackupService =
-          await app.getService<BackupService>(BackupService.name);
+        const backupService: BackupService = await app.getService<BackupService>(
+          BackupService.name,
+        );
 
-        const backup1: Backup = await new Backup().create(
-          backupService.config.data_dir,
-        );
-        const backup2: Backup = await new Backup().create(
-          backupService.config.data_dir,
-        );
+        const backup1: Backup = await new Backup().create(backupService.config.data_dir);
+        const backup2: Backup = await new Backup().create(backupService.config.data_dir);
 
         return await request(app.express)
           .get(_URL().getURL('backups.index'))
@@ -86,9 +81,7 @@ describe(describeName('Backup E2E tests'), () => {
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.be.deep.equal(
-              JSON.parse(
-                JSON.stringify([backup1.toResponse(), backup2.toResponse()]),
-              ),
+              JSON.parse(JSON.stringify([backup1.toResponse(), backup2.toResponse()])),
             );
           });
       });
@@ -96,11 +89,10 @@ describe(describeName('Backup E2E tests'), () => {
 
     describe('BackupController@show', () => {
       it('guest user should not see a backup', async () => {
-        const backupService: BackupService =
-          await app.getService<BackupService>(BackupService.name);
-        const backup: Backup = await new Backup().create(
-          backupService.config.data_dir,
+        const backupService: BackupService = await app.getService<BackupService>(
+          BackupService.name,
         );
+        const backup: Backup = await new Backup().create(backupService.config.data_dir);
 
         await request(app.express)
           .get(_URL().getURL('backups.show', { backup: backup.id }))
@@ -108,11 +100,10 @@ describe(describeName('Backup E2E tests'), () => {
       });
 
       it('regular user should not see a backup', async () => {
-        const backupService: BackupService =
-          await app.getService<BackupService>(BackupService.name);
-        const backup: Backup = await new Backup().create(
-          backupService.config.data_dir,
+        const backupService: BackupService = await app.getService<BackupService>(
+          BackupService.name,
         );
+        const backup: Backup = await new Backup().create(backupService.config.data_dir);
 
         await request(app.express)
           .get(_URL().getURL('backups.show', { backup: backup.id }))
@@ -121,11 +112,10 @@ describe(describeName('Backup E2E tests'), () => {
       });
 
       it('admin user should see a backup', async () => {
-        const backupService: BackupService =
-          await app.getService<BackupService>(BackupService.name);
-        const backup: Backup = await new Backup().create(
-          backupService.config.data_dir,
+        const backupService: BackupService = await app.getService<BackupService>(
+          BackupService.name,
         );
+        const backup: Backup = await new Backup().create(backupService.config.data_dir);
 
         await request(app.express)
           .get(_URL().getURL('backups.show', { backup: backup.id }))
@@ -150,9 +140,7 @@ describe(describeName('Backup E2E tests'), () => {
 
     describe('BackupController@store', async () => {
       it('guest user should not create a backup', async () => {
-        await request(app.express)
-          .post(_URL().getURL('backups.store'))
-          .expect(401);
+        await request(app.express).post(_URL().getURL('backups.store')).expect(401);
       });
 
       it('regular user should not create a backup', async () => {
@@ -178,11 +166,7 @@ describe(describeName('Backup E2E tests'), () => {
           });
 
         expect(
-          (
-            await (
-              await app.getService<BackupService>(BackupService.name)
-            ).getAll()
-          ).length,
+          (await (await app.getService<BackupService>(BackupService.name)).getAll()).length,
         ).equal(existingBackups.length + 1);
       });
 
@@ -341,9 +325,7 @@ describe(describeName('Backup E2E tests'), () => {
   describe('BackupConfigController', () => {
     describe('BackupConfigController@show', async () => {
       it('guest user should not see backup config', async () => {
-        await request(app.express)
-          .get(_URL().getURL('backups.config.show'))
-          .expect(401);
+        await request(app.express).get(_URL().getURL('backups.config.show')).expect(401);
       });
 
       it('regular user should not see backup config', async () => {
@@ -370,9 +352,7 @@ describe(describeName('Backup E2E tests'), () => {
 
     describe('BackupConfigController@update', async () => {
       it('guest user should not update backup config', async () => {
-        await request(app.express)
-          .put(_URL().getURL('backups.config.update'))
-          .expect(401);
+        await request(app.express).put(_URL().getURL('backups.config.update')).expect(401);
       });
 
       it('regular user should not update backup config', async () => {

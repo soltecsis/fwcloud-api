@@ -16,10 +16,7 @@ describe(describeName('Validator Unit Test'), () => {
 
   describe('validate()', () => {
     it('should throw an exception if validation fails', async () => {
-      const validator: Validator = new Validator(
-        { input: 'value' },
-        InvalidDto,
-      );
+      const validator: Validator = new Validator({ input: 'value' }, InvalidDto);
 
       try {
         await validator.validate();

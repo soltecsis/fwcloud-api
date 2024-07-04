@@ -43,10 +43,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   @PrimaryColumn({ name: 'position' })
   policyPositionId: number;
 
-  @ManyToOne(
-    (type) => PolicyPosition,
-    (model) => model.ipObjTypeToPolicyPositions,
-  )
+  @ManyToOne((type) => PolicyPosition, (model) => model.ipObjTypeToPolicyPositions)
   @JoinColumn({
     name: 'position',
   })
@@ -90,10 +87,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   }
 
   //Add new ipobj_type__policy_position
-  public static insertIpobj_type__policy_position(
-    ipobj_type__policy_positionData,
-    callback,
-  ) {
+  public static insertIpobj_type__policy_position(ipobj_type__policy_positionData, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query(
@@ -112,10 +106,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   }
 
   //Update ipobj_type__policy_position
-  public static updateIpobj_type__policy_position(
-    ipobj_type__policy_positionData,
-    callback,
-  ) {
+  public static updateIpobj_type__policy_position(ipobj_type__policy_positionData, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =

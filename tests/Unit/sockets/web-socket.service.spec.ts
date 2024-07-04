@@ -13,8 +13,8 @@ describe(describeName('WebSocketService Unit Tests'), () => {
   });
 
   it('should be provided as a service', async () => {
-    expect(
-      await app.getService<WebSocketService>(WebSocketService.name),
-    ).to.be.instanceOf(WebSocketService);
+    expect(await app.getService<WebSocketService>(WebSocketService.name)).to.be.instanceOf(
+      WebSocketService,
+    );
   });
 });

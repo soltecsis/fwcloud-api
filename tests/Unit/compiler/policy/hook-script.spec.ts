@@ -41,8 +41,7 @@ describe(describeName('Policy Compiler Unit Tests - Hook scripts'), () => {
   const IPv = 'IPv4';
   let compiler: AvailablePolicyCompilers;
   let manager: EntityManager;
-  const code_before_cmt =
-    '###########################\n# Before rule load code:';
+  const code_before_cmt = '###########################\n# Before rule load code:';
   const code_after_cmt = '###########################\n# After rule load code:';
   const code_end_cmt = '###########################\n';
 
@@ -67,11 +66,7 @@ describe(describeName('Policy Compiler Unit Tests - Hook scripts'), () => {
 
     const rule = await PolicyRule.insertPolicy_r(ruleData);
     if (ruleData.type === PolicyTypesMap.get(`${IPv}:DNAT`))
-      await populateRule(
-        rule,
-        RulePositionsMap.get(`${IPv}:DNAT:Translated Destination`),
-        50010,
-      ); // 50010 = Standard VRRP IP
+      await populateRule(rule, RulePositionsMap.get(`${IPv}:DNAT:Translated Destination`), 50010); // 50010 = Standard VRRP IP
     const rulesData: any = await PolicyRule.getPolicyData(
       'compiler',
       dbCon,
@@ -99,11 +94,7 @@ describe(describeName('Policy Compiler Unit Tests - Hook scripts'), () => {
     fwcloud = (
       await manager
         .getRepository(FwCloud)
-        .save(
-          manager
-            .getRepository(FwCloud)
-            .create({ name: StringHelper.randomize(10) }),
-        )
+        .save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))
     ).id;
     ruleData.firewall = (
       await manager

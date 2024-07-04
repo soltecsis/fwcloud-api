@@ -51,9 +51,7 @@ export class ConfirmationToken extends Middleware {
       );
       res.status(403).json({ fwc_confirm_token: newToken });
     } catch (error) {
-      logger().error(
-        'Error during confirmation token middleware: ' + JSON.stringify(error),
-      );
+      logger().error('Error during confirmation token middleware: ' + JSON.stringify(error));
       res.status(400).json(error);
     }
   }
@@ -104,10 +102,7 @@ export class ConfirmationToken extends Middleware {
    * @param user
    * @param sessionId
    */
-  protected async generateNewConfirmationToken(
-    user: User,
-    sessionId: string,
-  ): Promise<string> {
+  protected async generateNewConfirmationToken(user: User, sessionId: string): Promise<string> {
     user.confirmation_token = sessionId + '_' + StringHelper.randomize(20);
     await user.save();
 

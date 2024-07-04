@@ -111,14 +111,8 @@ describe(KeepalivedGroupController.name, () => {
         KeepalivedGroupService.prototype,
         'findOneInPath',
       );
-      const firewallStub = sinon.stub(
-        manager.getRepository(Firewall),
-        'findOneOrFail',
-      );
-      const fwCloudStub = sinon.stub(
-        manager.getRepository(FwCloud),
-        'findOneOrFail',
-      );
+      const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail');
+      const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail');
 
       await controller.make(requestMock);
 
@@ -144,9 +138,7 @@ describe(KeepalivedGroupController.name, () => {
         .stub(KeepalivedGroupService.prototype, 'findOneInPath')
         .throws(new Error('Keepalived Group not found'));
 
-      await expect(controller.make(requestMock)).to.be.rejectedWith(
-        'Keepalived Group not found',
-      );
+      await expect(controller.make(requestMock)).to.be.rejectedWith('Keepalived Group not found');
 
       KeepalivedGroupServiceStub.restore();
     });
