@@ -49,48 +49,48 @@ export class OpenVPNPrefixService extends Service {
     }
 
     protected updateAffectedFirewalls(fwcloudId: number, prefixId: number): Promise<void> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const search: any = await OpenVPNPrefix.searchPrefixUsage(db.getQuery(), fwcloudId, prefixId, true);
-                const PrefixInRule: any = search.restrictions.PrefixInRule;
-                const PrefixInGroupIpRule: any = search.restrictions.PrefixInGroupInRule;
-                
-                for (let j=0; j<PrefixInRule.length; j++)
-                    await Firewall.updateFirewallStatus(fwcloudId, PrefixInRule[j].firewall_id, "|3");
-
-                for (let j=0; j<PrefixInGroupIpRule.length; j++)
-                    await Firewall.updateFirewallStatus(fwcloudId, PrefixInGroupIpRule[j].firewall_id, "|3");
-
-                const firewall: Firewall[] = await db.getSource().manager.getRepository(Firewall).createQueryBuilder('firewall')
-                    .distinct()
-                    .innerJoin('firewall.routingTables', 'table')
-                    .leftJoin('table.routingRules', 'rule')
-                    .leftJoin('table.routes', 'route')
-                    
-                    .leftJoin('rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
-                    .leftJoin('routingRuleToIPObjGroups.ipObjGroup', 'ruleGroup')
-                    .leftJoin('ruleGroup.openVPNPrefixes', 'ruleGroupOpenVPNPrefix')
-                    
-                    .leftJoin('rule.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefix')
-                    
-                    .leftJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
-                    .leftJoin('routeToIPObjGroups.ipObjGroup', 'routeGroup')
-                    .leftJoin('routeGroup.openVPNPrefixes', 'routeGroupOpenVPNPrefix')
-                    
-                    .leftJoin('route.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefix')
-                    
-                    .where('routingRuleToOpenVPNPrefix.openVPNPrefixId = :idRoutingRule', {idRoutingRule: prefixId})
-                    .orWhere('routeToOpenVPNPrefix.openVPNPrefixId = :idRoute', {idRoute: prefixId})
-                    .orWhere('ruleGroupOpenVPNPrefix.id = :idRuleGroupPrefix', {idRuleGroupPrefix: prefixId})
-                    .orWhere('routeGroupOpenVPNPrefix.id = :idRouteGroupPrefix', {idRouteGroupPrefix: prefixId})
-                    
-                    .getMany();
-
-                await this._firewallService.markAsUncompiled(firewall.map(item => item.id));
-
-            } catch(error) { return reject(error) }
-
-            resolve();
+        return new Promise((resolve, reject) => {
+            OpenVPNPrefix.searchPrefixUsage(db.getQuery(), fwcloudId, prefixId, true)
+                .then(async (search: any) => {
+                    const PrefixInRule: any = search.restrictions.PrefixInRule;
+                    const PrefixInGroupIpRule: any = search.restrictions.PrefixInGroupInRule;
+    
+                    for (let j = 0; j < PrefixInRule.length; j++) {
+                        await Firewall.updateFirewallStatus(fwcloudId, PrefixInRule[j].firewall_id, "|3");
+                    }
+    
+                    for (let j = 0; j < PrefixInGroupIpRule.length; j++) {
+                        await Firewall.updateFirewallStatus(fwcloudId, PrefixInGroupIpRule[j].firewall_id, "|3");
+                    }
+    
+                    const firewalls = await db.getSource().manager.getRepository(Firewall)
+                        .createQueryBuilder('firewall')
+                        .distinct()
+                        .innerJoin('firewall.routingTables', 'table')
+                        .leftJoin('table.routingRules', 'rule')
+                        .leftJoin('table.routes', 'route')
+                        .leftJoin('rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+                        .leftJoin('routingRuleToIPObjGroups.ipObjGroup', 'ruleGroup')
+                        .leftJoin('ruleGroup.openVPNPrefixes', 'ruleGroupOpenVPNPrefix')
+                        .leftJoin('rule.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefix')
+                        .leftJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
+                        .leftJoin('routeToIPObjGroups.ipObjGroup', 'routeGroup')
+                        .leftJoin('routeGroup.openVPNPrefixes', 'routeGroupOpenVPNPrefix')
+                        .leftJoin('route.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefix')
+                        .where('routingRuleToOpenVPNPrefix.openVPNPrefixId = :idRoutingRule', { idRoutingRule: prefixId })
+                        .orWhere('routeToOpenVPNPrefix.openVPNPrefixId = :idRoute', { idRoute: prefixId })
+                        .orWhere('ruleGroupOpenVPNPrefix.id = :idRuleGroupPrefix', { idRuleGroupPrefix: prefixId })
+                        .orWhere('routeGroupOpenVPNPrefix.id = :idRouteGroupPrefix', { idRouteGroupPrefix: prefixId })
+                        .getMany();
+    
+                    await this._firewallService.markAsUncompiled(firewalls.map(item => item.id));
+    
+                    resolve();
+                })
+                .catch(error => {
+                    reject(error);
+                });
         });
     }
+    
 }

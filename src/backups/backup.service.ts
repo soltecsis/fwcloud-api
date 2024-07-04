@@ -367,26 +367,27 @@ export class BackupService extends Service {
   }
 
   protected async writeCustomizedConfig(
-    custom_config: BackupUpdateableConfig,
+    custom_config: BackupUpdateableConfig
   ): Promise<BackupUpdateableConfig> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        if (!fs.existsSync(this._config.data_dir))
-          await fse.mkdirp(this._config.data_dir);
-
-        const backupConfigFile = path.join(
-          this._config.data_dir,
-          this._config.config_file,
-        );
-        fs.writeFileSync(
-          backupConfigFile,
-          JSON.stringify(custom_config),
-          'utf8',
-        );
-        resolve(custom_config);
-      } catch (error) {
-        reject(error);
+    try {
+      if (!fs.existsSync(this._config.data_dir)) {
+        await fse.mkdirp(this._config.data_dir);
       }
-    });
+  
+      const backupConfigFile = path.join(
+        this._config.data_dir,
+        this._config.config_file
+      );
+  
+      fs.writeFileSync(
+        backupConfigFile,
+        JSON.stringify(custom_config),
+        'utf8'
+      );
+  
+      return custom_config;
+    } catch (error) {
+      throw new Error(`Error writing customized config: ${error.message}`);
+    }
   }
 }

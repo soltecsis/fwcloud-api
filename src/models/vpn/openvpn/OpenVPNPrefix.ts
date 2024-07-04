@@ -187,20 +187,22 @@ export class OpenVPNPrefix extends Model {
 
     // Activate the compile/install flags of all the firewalls that use prefixes that contains the OpenVPN.
     public static updateOpenvpnClientPrefixesFWStatus(dbCon: any, fwcloud: number, openvpn: number): Promise<void> {
-        return new Promise(async (resolve, reject) => {
+        return new Promise((resolve, reject) => {
             try {
-                const prefixMatch = await OpenVPNPrefix.getOpenvpnClientPrefixes(dbCon, openvpn);
-                for (let i=0; i<prefixMatch.length; i++) {
-                    const search: any = await OpenVPNPrefix.searchPrefixUsage(dbCon, fwcloud, prefixMatch[i].id, true);
-                    const PrefixInRule: any = search.restrictions.PrefixInRule;
-                    const PrefixInGroupIpRule: any = search.restrictions.PrefixInGroupInRule;
-                    
-                    for (let j=0; j<PrefixInRule.length; j++)
-                        await Firewall.updateFirewallStatus(fwcloud, PrefixInRule[j].firewall_id, "|3");
-    
-                    for (let j=0; j<PrefixInGroupIpRule.length; j++)
-                        await Firewall.updateFirewallStatus(fwcloud, PrefixInGroupIpRule[j].firewall_id, "|3");
-                }    
+                void OpenVPNPrefix.getOpenvpnClientPrefixes(dbCon, openvpn).then(async (prefixMatch) => {
+                    for (let i=0; i<prefixMatch.length; i++) {
+                        const search: any = await OpenVPNPrefix.searchPrefixUsage(dbCon, fwcloud, prefixMatch[i].id, true);
+                        const PrefixInRule: any = search.restrictions.PrefixInRule;
+                        const PrefixInGroupIpRule: any = search.restrictions.PrefixInGroupInRule;
+                        
+                        for (let j=0; j<PrefixInRule.length; j++)
+                            await Firewall.updateFirewallStatus(fwcloud, PrefixInRule[j].firewall_id, "|3");
+        
+                        for (let j=0; j<PrefixInGroupIpRule.length; j++)
+                            await Firewall.updateFirewallStatus(fwcloud, PrefixInGroupIpRule[j].firewall_id, "|3");
+                    } 
+                });
+                   
             } catch(error) { return reject(error) }
 
             resolve();
@@ -268,28 +270,36 @@ export class OpenVPNPrefix extends Model {
 
     // Apply OpenVPN server prefixes to tree node.
     public static applyOpenVPNPrefixes(dbCon, fwcloud, openvpn_srv): Promise<void> {
-        return new Promise(async (resolve, reject) => {
+        return new Promise((resolve, reject) => {
             try {
-                const node = await Tree.getNodeInfo(dbCon, fwcloud, 'OSR', openvpn_srv);
-                const node_id = node[0].id;
-                // Remove all nodes under the OpenVPN server configuration node.
-                await Tree.deleteNodesUnderMe(dbCon, fwcloud, node_id);
-
-                // Create all OpenVPN client config nodes.
-                const openvpn_cli_list: any = await OpenVPN.getOpenvpnClients(dbCon, openvpn_srv);
-                for (const openvpn_cli of openvpn_cli_list){
-                    await Tree.newNode(dbCon, fwcloud, openvpn_cli.cn, node_id, 'OCL', openvpn_cli.id, 311);
-                }
-
-                // Create the nodes for all the prefixes.
-                const prefix_list: any = await this.getPrefixes(dbCon, openvpn_srv);
-                for (const prefix of prefix_list)
-                    await this.fillPrefixNodeOpenVPN(dbCon, fwcloud, openvpn_srv, prefix.name, prefix.id, node_id);
-
-                resolve();
-            } catch (error) { return reject(error) }
+                Tree.getNodeInfo(dbCon, fwcloud, 'OSR', openvpn_srv)
+                    .then(async (node) => {
+                        const node_id = node[0].id;
+                        
+                        // Remove all nodes under the OpenVPN server configuration node.
+                        await Tree.deleteNodesUnderMe(dbCon, fwcloud, node_id);
+    
+                        // Create all OpenVPN client config nodes.
+                        const openvpn_cli_list: any = await OpenVPN.getOpenvpnClients(dbCon, openvpn_srv);
+                        for (const openvpn_cli of openvpn_cli_list) {
+                            await Tree.newNode(dbCon, fwcloud, openvpn_cli.cn, node_id, 'OCL', openvpn_cli.id, 311);
+                        }
+    
+                        // Create the nodes for all the prefixes.
+                        const prefix_list: any = await this.getPrefixes(dbCon, openvpn_srv);
+                        for (const prefix of prefix_list) {
+                            await this.fillPrefixNodeOpenVPN(dbCon, fwcloud, openvpn_srv, prefix.name, prefix.id, node_id);
+                        }
+    
+                        resolve();
+                    })
+                    .catch(error => reject(error));
+            } catch (error) {
+                reject(error);
+            }
         });
     }
+    
 
 
     public static addPrefixToGroup(dbCon:any, prefix: number, ipobj_g: number) {
@@ -351,43 +361,53 @@ export class OpenVPNPrefix extends Model {
 
 
     public static searchPrefixUsage(dbCon: any, fwcloud: number, prefix: number, extendedSearch?: boolean) {
-        return new Promise(async (resolve, reject) => {
+        return new Promise((resolve, reject) => {
             try {
-                const search: any = {};
-                search.result = false;
-                search.restrictions = {};
-
-                /* Verify that the OpenVPN server prefix is not used in any
-                    - Rule (table policy_r__openvpn_prefix)
-                    - IPBOJ group.
-                */
-                search.restrictions.PrefixInRule = await this.searchPrefixInRule(dbCon, fwcloud, prefix);
-                search.restrictions.PrefixInGroup = await this.searchPrefixInGroup(dbCon, fwcloud, prefix);
-
-                search.restrictions.PrefixInRoute = await this.searchPrefixInRoute(fwcloud, prefix);
-                search.restrictions.PrefixInGroupInRoute = await this.searchPrefixInGroupInRoute(fwcloud, prefix);
-                search.restrictions.PrefixInRoutingRule = await this.searchPrefixInRoutingRule(fwcloud,prefix);
-                search.restrictions.PrefixInGroupInRoutingRule = await this.searchPrefixInGroupInRoutingRule(fwcloud,prefix);
-
-                if (extendedSearch) {
-                    // Include the rules that use the groups in which the OpenVPN prefix is being used.
-                    search.restrictions.PrefixInGroupInRule = [];
-                    for (let i=0; i<search.restrictions.PrefixInGroup.length; i++) {
-                        const data: any = await IPObjGroup.searchGroupUsage(search.restrictions.PrefixInGroup[i].group_id, fwcloud);
-                        search.restrictions.PrefixInGroupInRule.push(...data.restrictions.GroupInRule);
+                const search: any = {
+                    result: false,
+                    restrictions: {}
+                };
+    
+                Promise.all([
+                    this.searchPrefixInRule(dbCon, fwcloud, prefix),
+                    this.searchPrefixInGroup(dbCon, fwcloud, prefix),
+                    this.searchPrefixInRoute(fwcloud, prefix),
+                    this.searchPrefixInGroupInRoute(fwcloud, prefix),
+                    this.searchPrefixInRoutingRule(fwcloud, prefix),
+                    this.searchPrefixInGroupInRoutingRule(fwcloud, prefix)
+                ]).then(([PrefixInRule, PrefixInGroup, PrefixInRoute, PrefixInGroupInRoute, PrefixInRoutingRule, PrefixInGroupInRoutingRule]) => {
+                    search.restrictions.PrefixInRule = PrefixInRule;
+                    search.restrictions.PrefixInGroup = PrefixInGroup;
+                    search.restrictions.PrefixInRoute = PrefixInRoute;
+                    search.restrictions.PrefixInGroupInRoute = PrefixInGroupInRoute;
+                    search.restrictions.PrefixInRoutingRule = PrefixInRoutingRule;
+                    search.restrictions.PrefixInGroupInRoutingRule = PrefixInGroupInRoutingRule;
+    
+                    if (extendedSearch) {
+                        // Include the rules that use the groups in which the OpenVPN prefix is being used.
+                        search.restrictions.PrefixInGroupInRule = [];
+                        return Promise.all(search.restrictions.PrefixInGroup.map(async (prefixInGroup) => {
+                            return IPObjGroup.searchGroupUsage(prefixInGroup.group_id, fwcloud)
+                                .then((data: any) => {
+                                    search.restrictions.PrefixInGroupInRule.push(...data.restrictions.GroupInRule);
+                                });
+                        }));
                     }
-                }
-
-                for (const key in search.restrictions) {
-                    if (search.restrictions[key].length > 0) {
-                        search.result = true;
-                        break;
+                }).then(() => {
+                    for (const key in search.restrictions) {
+                        if (search.restrictions[key]?.length > 0) {
+                            search.result = true;
+                            break;
+                        }
                     }
-                }
-                resolve(search);
-            } catch (error) { reject(error) }
+                    resolve(search);
+                }).catch(reject);
+            } catch (error) {
+                reject(error);
+            }
         });
     }
+    
 
     public static async searchPrefixInRoute(fwcloud: number, prefix: number): Promise<any> {
         return await db.getSource().manager.getRepository(Route).createQueryBuilder('route')

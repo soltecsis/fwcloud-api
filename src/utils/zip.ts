@@ -19,13 +19,13 @@ export class Zip {
         }
 
         if (!fs.existsSync(destinationPath)) {
-          FSHelper.mkdirSync(destinationPath);
+          void FSHelper.mkdirSync(destinationPath);
         }
 
         zipfile.on('entry', (entry) => {
           if (/\/$/.test(entry.fileName)) {
             // Entry is a directory as file names end with '/'.
-            FSHelper.mkdirSync(path.join(destinationPath, entry.fileName));
+            void FSHelper.mkdirSync(path.join(destinationPath, entry.fileName));
             zipfile.readEntry();
           } else {
             // file entry
@@ -74,7 +74,7 @@ export class Zip {
       const output = fs.createWriteStream(destinationPath);
       const archive = archiver('zip', { zlib: { level: 9 } });
 
-      output.on('close', async () => {
+      output.on('close', () => {
         return resolve();
       });
 

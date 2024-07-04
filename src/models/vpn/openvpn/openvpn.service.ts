@@ -141,111 +141,116 @@ export class OpenVPNService extends Service {
      * @returns 
      */
     public async archiveHistory(eventEmitter: EventEmitter = new EventEmitter): Promise<number> {
-        
         function getExpiredStatusHistoryQuery(expirationInSeconds: number): SelectQueryBuilder<OpenVPNStatusHistory> {
             return db.getSource().manager.getRepository(OpenVPNStatusHistory).createQueryBuilder('history')
                 .where('history.timestampInSeconds <= :timestamp', {timestamp: (Date.now() - expirationInSeconds * 1000) / 1000});
         }
-        try{
+    
+        try {
             return await tryAcquire(this._archiveMutex).runExclusive(() => {
-                return new Promise<number>( async (resolve, reject) => { 
-
-                    this._config = this.loadCustomizedConfig(this._app.config.get('openvpn'));
-
-                    eventEmitter.emit('message', new ProgressInfoPayload('Starting OpenVPN history archiver'))
-                    eventEmitter.emit('message', new ProgressNoticePayload('Checking expired history'))
-                    
-                    const expirationInSeconds: number = this._config.history.archive_days * 24 * 60 * 60;
-                    // If there isn't any row expired, then do nothing
-                    if ((await getExpiredStatusHistoryQuery(expirationInSeconds).limit(1).getCount()) === 0) {
-                        
-                        eventEmitter.emit('message', new ProgressNoticePayload('Nothing to archive'))
-                        eventEmitter.emit('message', new ProgressPayload('end', false, ''));
-                        
-                        return resolve(0);
-                    }
-                    
-                    let count: number = 0;
-                    const date: Date = new Date();
-                    const yearDir: string = (date.getFullYear()).toString();
-                    const monthSubDir: string = (("0" + (date.getMonth() + 1)).slice(-2));
-                    const fileName: string = `openvpn_status_history-${date.getFullYear()}${("0" + (date.getMonth() + 1)).slice(-2)}${("0" + date.getDate()).slice(-2)}.sql`;
-        
-                    // If there is already a zipped file, then unzip it in order to write down new registers there
-                    if (await fs.pathExists(`${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`)) {
-
-                        eventEmitter.emit('message', new ProgressNoticePayload('Decompressing existing zip file'))
-                        
-                        await Zip.unzip(`${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`, path.join(this._config.history.data_dir, yearDir, monthSubDir));
-                        await fs.remove(`${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`);
-                    }else{
-                        fs.mkdirpSync(path.join(this._config.history.data_dir, yearDir, monthSubDir));
-                    }
-                    // Could exists millions of registers. In order to avoid an high memory consumption
-                    // we are going to process rows in batches of 2000 (that means create multiple INSERT INTO in the file).
-                    // Notice mysql might limit the size of the queries thus is recommended create multiple "INSERT INTO" instead
-                    // of just one really big INSERT INTO.
-                   
+                return new Promise<number>((resolve, reject) => { 
+                    try {
+                        this._config = this.loadCustomizedConfig(this._app.config.get('openvpn'));
+    
+                        eventEmitter.emit('message', new ProgressInfoPayload('Starting OpenVPN history archiver'));
+                        eventEmitter.emit('message', new ProgressNoticePayload('Checking expired history'));
+    
+                        const expirationInSeconds: number = this._config.history.archive_days * 24 * 60 * 60;
+    
+                        // If there isn't any row expired, then do nothing
+                        getExpiredStatusHistoryQuery(expirationInSeconds).limit(1).getCount().then((count: number) => {
+                            if (count === 0) {
+                                eventEmitter.emit('message', new ProgressNoticePayload('Nothing to archive'));
+                                eventEmitter.emit('message', new ProgressPayload('end', false, ''));
+                                return resolve(0);
+                            }
+                        });
+    
+                        let count: number = 0;
+                        const date: Date = new Date();
+                        const yearDir: string = (date.getFullYear()).toString();
+                        const monthSubDir: string = (("0" + (date.getMonth() + 1)).slice(-2));
+                        const fileName: string = `openvpn_status_history-${date.getFullYear()}${("0" + (date.getMonth() + 1)).slice(-2)}${("0" + date.getDate()).slice(-2)}.sql`;
+    
+                        // If there is already a zipped file, then unzip it in order to write down new registers there
+                        fs.pathExists(`${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`).then(async (exists: boolean) => {
+                            if (exists) {
+                                eventEmitter.emit('message', new ProgressNoticePayload('Decompressing existing zip file'));
+                                await Zip.unzip(`${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`, path.join(this._config.history.data_dir, yearDir, monthSubDir));
+                                await fs.remove(`${path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName)}.zip`);
+                            } else {
+                                fs.mkdirpSync(path.join(this._config.history.data_dir, yearDir, monthSubDir));
+                            }
+                        });
+    
+                        // Could exist millions of registers. In order to avoid high memory consumption,
+                        // process rows in batches of 2000 (create multiple INSERT INTO statements in the file).
+                        // MySQL might limit the size of queries, thus it's recommended to create multiple "INSERT INTO" instead
+                        // of one big INSERT INTO.
                         const expirationDate: Date = new Date(Date.now() - (expirationInSeconds * 1000));
                         eventEmitter.emit(
                             'message', 
                             new ProgressNoticePayload(`Archiving registers older than ${(expirationDate.getFullYear()).toString()}-${("0" + (expirationDate.getMonth() + 1)).slice(-2)}-${expirationDate.getDate()}`)
-                        )
-                    
-                    const totalExpiredHistoryRows = await getExpiredStatusHistoryQuery(expirationInSeconds).getCount()
-
-                    eventEmitter.emit('message', new ProgressNoticePayload(`Registers to be archived: ${totalExpiredHistoryRows}`));
-                     // eslint-disable-next-line no-constant-condition
-                    while(true) {
-                        const history: OpenVPNStatusHistory[] = await getExpiredStatusHistoryQuery(expirationInSeconds)
-                            .limit(2000)
-                            .getMany();
-                        if (history.length <= 0) {
-                            eventEmitter.emit('message', new ProgressNoticePayload('Compressing archive file'))
-                            //When all expired registers have been processed, then zip the sql file
-                            // and remove it
-                            await Zip.zip(path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName));
-                            await fs.remove(path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName));
-                           
-                            eventEmitter.emit('message', new ProgressPayload('end', false, ''))
-                            
-                            return resolve(count);
-                        }
-        
-                        count = count + history.length;
+                        );
     
-                        eventEmitter.emit('message', new ProgressNoticePayload(`Progress: ${count} of ${totalExpiredHistoryRows} registers`))
+                        getExpiredStatusHistoryQuery(expirationInSeconds).getCount().then(async (totalExpiredHistoryRows: number) => {
+                            eventEmitter.emit('message', new ProgressNoticePayload(`Registers to be archived: ${totalExpiredHistoryRows}`));
+                            // eslint-disable-next-line no-constant-condition
+                            while (true) {
+                                const history: OpenVPNStatusHistory[] = await getExpiredStatusHistoryQuery(expirationInSeconds)
+                                    .limit(2000)
+                                    .getMany();
+                                if (history.length <= 0) {
+                                    eventEmitter.emit('message', new ProgressNoticePayload('Compressing archive file'));
+                                    // When all expired registers have been processed, then zip the sql file
+                                    // and remove it
+                                    await Zip.zip(path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName));
+                                    await fs.remove(path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName));
     
-                        const table: string = getMetadataArgsStorage().tables.filter(item => item.target === OpenVPNStatusHistory)[0].name ?? OpenVPNStatusHistory.name;
-                        const columns: ColumnMetadataArgs[] = getMetadataArgsStorage().columns.filter(item => item.target === OpenVPNStatusHistory);
-                        const insertColumnDef: string = columns.map(item => `\`${item.options.name ?? item.propertyName}\``).join(',');
-                        const content: string = `INSERT INTO \`${table}\` (${insertColumnDef}) VALUES \n ${history.map(item => `(${columns.map(column => item[column.propertyName] ? `'${item[column.propertyName]}'` : 'NULL').join(',')})`).join(',')};\n`;
-        
-                        const promise: Promise<void> = new Promise<void>((resolve, reject) => {
-                            fs.writeFile(path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName), content, {flag: 'a'} ,async (err) => {
-                                if (err) {
-                                    return reject(err);
+                                    eventEmitter.emit('message', new ProgressPayload('end', false, ''));
+                                    
+                                    return resolve(count);
                                 }
-                                try {
-                                    await db.getSource().manager.getRepository(OpenVPNStatusHistory).delete(history.map(item => item.id));
-                                    return resolve();
-                                } catch(err) {
-                                    return reject(err);
-                                }
-                            });
-                        })
-                        await promise.catch(err => reject(err));
-                    }  
+    
+                                count = count + history.length;
+    
+                                eventEmitter.emit('message', new ProgressNoticePayload(`Progress: ${count} of ${totalExpiredHistoryRows} registers`));
+    
+                                const table: string = getMetadataArgsStorage().tables.filter(item => item.target === OpenVPNStatusHistory)[0].name ?? OpenVPNStatusHistory.name;
+                                const columns: ColumnMetadataArgs[] = getMetadataArgsStorage().columns.filter(item => item.target === OpenVPNStatusHistory);
+                                const insertColumnDef: string = columns.map(item => `\`${item.options.name ?? item.propertyName}\``).join(',');
+                                const content: string = `INSERT INTO \`${table}\` (${insertColumnDef}) VALUES \n ${history.map(item => `(${columns.map(column => item[column.propertyName] ? `'${item[column.propertyName]}'` : 'NULL').join(',')})`).join(',')};\n`;
+    
+                                const promise: Promise<void> = new Promise<void>((resolve, reject) => {
+                                    fs.writeFile(path.join(this._config.history.data_dir, yearDir, monthSubDir, fileName), content, {flag: 'a'}, async (err) => {
+                                        if (err) {
+                                            return reject(err);
+                                        }
+                                        try {
+                                            await db.getSource().manager.getRepository(OpenVPNStatusHistory).delete(history.map(item => item.id));
+                                            return resolve();
+                                        } catch (err) {
+                                            return reject(err);
+                                        }
+                                    });
+                                });
+                                await promise.catch(err => reject(err));
+                            }  
+                        });
+                    } catch (err) {
+                        return reject(err);
+                    }
                 });
-            })
-        }catch(err){
-            if(err === E_ALREADY_LOCKED) {
+            });
+        } catch (err) {
+            if (err === E_ALREADY_LOCKED) {
                 eventEmitter.emit('message', new ProgressPayload('error', false, 'There is another OpenVPN history archiver running'));
-                throw new Error('There is another OpenVPN history archiver runnning')
+                throw new Error('There is another OpenVPN history archiver running');
             }
-            throw (err)
+            throw err;
         }
     }
+    
 
     /**
      * Remove archived history registers which are expired
@@ -253,7 +258,7 @@ export class OpenVPNService extends Service {
      * @returns 
      */ 
     public async removeExpiredFiles(): Promise<number> {
-        return new Promise<number>(async (resolve, reject) => {
+        return new Promise<number>((resolve, reject) => {
             try {
                 //Create an array with all files their paths
                 const allFiles:{file:string, path:string}[] = []
@@ -268,11 +273,11 @@ export class OpenVPNService extends Service {
                         })
                     }  
                 })
-                const filesToRemove = allFiles.filter(fileName => {
+                const filesToRemove = allFiles.filter((fileName) => {
                     //Filter only fileNames openvpn_status_history-xxxxxx.sql.zip.
                     //Ignore otherwise
                     return new RegExp(/openvpn_status_history-[0-9]{8}\.sql\.zip/).test(fileName.file);
-                }).filter(fileName => {
+                }).filter((fileName) => {
                     //Filter only fileName which date is before limit date time for expiration
                     const date: Date = this.getDateFromArchiveFilename(fileName);
                     const limit: Date = new Date();
@@ -325,19 +330,25 @@ export class OpenVPNService extends Service {
      * @param custom_config 
      * @returns 
      */
-    protected async writeCustomizedConfig(custom_config: OpenVPNUpdateableConfig): Promise<OpenVPNUpdateableConfig> {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!fs.existsSync(this._config.history.data_dir)) {
-                    await fs.mkdirp(this._config.history.data_dir);
-                }
-
+    protected writeCustomizedConfig(custom_config: OpenVPNUpdateableConfig): Promise<OpenVPNUpdateableConfig> {
+        return new Promise((resolve, reject) => {
+            if (!fs.existsSync(this._config.history.data_dir)) {
+                fs.mkdirp(this._config.history.data_dir)
+                    .then(() => {
+                        const openvpnConfigFile = path.join(this._config.history.data_dir, 'config.json');
+                        return fs.writeFile(openvpnConfigFile, JSON.stringify(custom_config), 'utf8');
+                    })
+                    .then(() => resolve(custom_config))
+                    .catch(error => reject(error));
+            } else {
                 const openvpnConfigFile = path.join(this._config.history.data_dir, 'config.json');
-                await fs.writeFile(openvpnConfigFile, JSON.stringify(custom_config), 'utf8');
-                return resolve(custom_config);
-            } catch (error) { reject(error) }
+                fs.writeFile(openvpnConfigFile, JSON.stringify(custom_config), 'utf8')
+                    .then(() => resolve(custom_config))
+                    .catch(error => reject(error));
+            }
         });
     }
+    
 
     /**
      * Returns a Date instance when the archive file was created.
