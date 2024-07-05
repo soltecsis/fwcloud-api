@@ -189,7 +189,7 @@ export class PolicyRuleToInterface extends Model {
         if (error) reject(error);
         connection.query(
           'INSERT INTO ' + tableName + ' SET ?',
-          p_interfaceData,
+          [p_interfaceData],
           async (error, result) => {
             if (error) {
               reject(error);
