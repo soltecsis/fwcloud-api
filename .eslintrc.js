@@ -37,7 +37,7 @@ module.exports = {
     'no-control-regex': 'off',
     '@typescript-eslint/no-unsafe-return': 'off',
     'no-async-promise-executor': 'off',
-    // 'no-prototype-builtins': 'off', // acabado
+    //'no-prototype-builtins': 'off', // acabado
     '@typescript-eslint/ban-types': 'off', // faltan 3 del mismo archivo,
 
     //'@typescript-eslint/await-thenable': 'off',

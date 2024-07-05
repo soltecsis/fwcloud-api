@@ -209,7 +209,7 @@ export class ResponseBuilder {
     return isArray(payload) ? this.buildArrayDataPayload(payload) : this.buildDataPayload(payload);
   }
 
-  protected buildDataPayload(payload: Object): DataPayload {
+  protected buildDataPayload(payload: object): DataPayload {
     if (payload === null || payload === undefined) {
       return { data: null };
     }
@@ -220,7 +220,7 @@ export class ResponseBuilder {
   }
 
   protected buildArrayDataPayload(payload: Array<any>): DataPayload {
-    const result: Array<Object> = [];
+    const result: Array<object> = [];
 
     for (let i = 0; i < payload.length; i++) {
       result.push(isResponsable(payload[i]) ? payload[i].toResponse() : classToPlain(payload[i]));

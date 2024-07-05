@@ -59,10 +59,10 @@ export class PolicyGroup extends Model {
   updated_at: Date;
 
   @Column()
-  created_by: Number;
+  created_by: number;
 
   @Column()
-  updated_by: Number;
+  updated_by: number;
 
   @Column()
   groupstyle: string;
