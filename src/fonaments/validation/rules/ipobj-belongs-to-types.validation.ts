@@ -10,7 +10,7 @@ import { IPObj } from '../../../models/ipobj/IPObj';
 import db from '../../../database/database-manager';
 
 export function IpObjBelongsToTypes(typeIds: number[], validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'ipObjBelongsToTypes',
       target: object.constructor,

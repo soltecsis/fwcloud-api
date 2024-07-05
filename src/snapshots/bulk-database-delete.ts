@@ -35,41 +35,38 @@ export class BulkDatabaseDelete {
   }
 
   public async run(): Promise<void> {
-    let qr: QueryRunner | undefined;
-
-    try {
+    return new Promise(async (resolve, reject) => {
       this._databaseService = await app().getService<DatabaseService>(DatabaseService.name);
       const qr: QueryRunner = this._databaseService.dataSource.createQueryRunner();
 
       await qr.startTransaction();
-      await qr.query('SET FOREIGN_KEY_CHECKS = 0');
 
-      for (const tableName in this._data) {
-        const entity: typeof Model = Model.getEntitiyDefinition(tableName);
-        const rows: Array<object> = this._data[tableName];
+      try {
+        await qr.query('SET FOREIGN_KEY_CHECKS = 0');
 
-        if (entity) {
-          await this.processEntityRows(qr, tableName, entity, rows);
-        } else {
-          await this.processRows(qr, tableName, rows);
+        for (const tableName in this._data) {
+          const entity: typeof Model = Model.getEntitiyDefinition(tableName);
+          const rows: Array<object> = this._data[tableName];
+
+          if (entity) {
+            await this.processEntityRows(qr, tableName, entity, rows);
+          } else {
+            await this.processRows(qr, tableName, rows);
+          }
         }
+
+        await qr.query('SET FOREIGN_KEY_CHECKS = 1');
+        await qr.commitTransaction();
+        await qr.release();
+      } catch (e) {
+        await qr.rollbackTransaction();
+        await qr.query('SET FOREIGN_KEY_CHECKS = 1');
+        qr.release();
+        return reject(e);
       }
 
-      await qr.query('SET FOREIGN_KEY_CHECKS = 1');
-      await qr.commitTransaction();
-      await qr.release();
-    } catch (error) {
-      if (qr) {
-        try {
-          await qr.rollbackTransaction();
-          await qr.query('SET FOREIGN_KEY_CHECKS = 1');
-          await qr.release();
-        } catch (rollbackError) {
-          console.error('Error rolling back transaction:', rollbackError);
-        }
-      }
-      throw error;
-    }
+      resolve();
+    });
   }
 
   protected async processEntityRows(

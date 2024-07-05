@@ -26,7 +26,11 @@ import * as sqlstring from 'sqlstring';
 
 export default class Query {
   public query(query: string, params: Array<any>, callback: (err: any, result: any) => void): void;
-  public query(query: string, params: {}, callback: (err: any, result: any) => void): void;
+  public query(
+    query: string,
+    params: Record<string, never>,
+    callback: (err: any, result: any) => void,
+  ): void;
   public query(query: string, callback: (err: any, result: any) => void): void;
   public query(query: string, params: any = [], callback?: (err: any, result: any) => void): void {
     const queryRunner: QueryRunner = db.getQueryRunner();
@@ -52,11 +56,11 @@ export default class Query {
       });
   }
 
-  public escape(value: any): String {
+  public escape(value: any): string {
     return sqlstring.escape(value);
   }
 
-  public escapeId(value: any): String {
+  public escapeId(value: any): string {
     return sqlstring.escapeId(value);
   }
 }

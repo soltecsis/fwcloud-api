@@ -99,7 +99,7 @@ export class Backup implements Responsable {
     this._openvpnRepository = new OpenVPNRepository(db.getSource().manager);
   }
 
-  toResponse(): Object {
+  toResponse(): object {
     return {
       id: this._id,
       version: this._version,

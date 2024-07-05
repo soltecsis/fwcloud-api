@@ -746,7 +746,7 @@ export class IPObj extends Model {
           options: ipobjDataclone.options,
           comment: ipobjDataclone.comment,
         };
-        connection.query('INSERT INTO ' + tableName + ' SET ?', ipobjData, (error, result) => {
+        connection.query('INSERT INTO ' + tableName + ' SET ?', [ipobjData], (error, result) => {
           if (error) return reject(error);
           resolve({ id_org: ipobjDataclone.id, id_clon: result.insertId });
         });
