@@ -377,8 +377,7 @@ export class DatabaseService extends Service {
     const queries = fs
       .readFileSync(path, { encoding: 'utf-8' })
       .replace(new RegExp("'", 'gm'), '"')
-      .replace(new RegExp('^--.*$','gm'), '')                // Remove SQL comments
-      .replace(/(\r\n|\n|\r)/gm, ' ')
+      .replace(new RegExp('^--.*\\n', 'gm'), '')
       .replace(/\s+/g, ' ')
       .split(';');
 

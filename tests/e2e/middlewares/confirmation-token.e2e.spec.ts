@@ -4,7 +4,6 @@ import { User } from '../../../src/models/user/User';
 import { createUser, generateSession, attachSession } from '../../utils/utils';
 import request = require('supertest');
 import { _URL } from '../../../src/fonaments/http/router/router.service';
-import { Repository } from 'typeorm';
 
 let app: Application;
 let adminUser: User;

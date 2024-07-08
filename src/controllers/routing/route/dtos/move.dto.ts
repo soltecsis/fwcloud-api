@@ -3,7 +3,6 @@ import {
   IsEnum,
   IsNumber,
   IsPositive,
-  IsString,
 } from 'class-validator';
 import { Offset } from '../../../../offset';
 

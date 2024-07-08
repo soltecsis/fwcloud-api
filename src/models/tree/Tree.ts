@@ -28,6 +28,7 @@ import { logger } from '../../fonaments/abstract-application';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { IPObj } from '../ipobj/IPObj';
+import { promisify } from 'util';
 const fwcError = require('../../utils/error_table');
 const asyncMod = require('async');
 const _Tree = require('easy-tree');
@@ -1422,56 +1423,57 @@ export class Tree extends Model {
     firewall: number,
     node: number,
   ): Promise<void> {
-    // Crear nodo 'Routing'
-    const id2: any = await this.newNode(
-      connection,
-      fwcloud,
-      'Routing',
-      node,
-      'ROU',
-      firewall,
-      null,
-    );
-
-    // Crear nodo 'POLICY'
-    await this.newNode(
-      connection,
-      fwcloud,
-      'POLICY',
-      id2,
-      'RR',
-      firewall,
-      null,
-    );
-
-    const id3: any = await this.newNode(
-      connection,
-      fwcloud,
-      'TABLES',
-      id2,
-      'RTS',
-      firewall,
-      null,
-    );
-
-    const sql = `SELECT id, name FROM routing_table WHERE firewall=${firewall}`;
-    const tables = await connection.query(sql);
-
-    await Promise.all(tables.map(async (table: any) => {
+      // Create 'Routing' node
+      const id2: any = await this.newNode(
+        connection,
+        fwcloud,
+        'Routing',
+        node,
+        'ROU',
+        firewall,
+        null,
+      );
+  
+      // Create 'POLICY' node
       await this.newNode(
         connection,
         fwcloud,
-        table.name,
-        id3,
-        'RT',
-        table.id,
+        'POLICY',
+        id2,
+        'RR',
+        firewall,
         null,
       );
-    }));
-    
-    return;
-  }
   
+      // Create 'TABLES' node
+      const id3: any = await this.newNode(
+        connection,
+        fwcloud,
+        'TABLES',
+        id2,
+        'RTS',
+        firewall,
+        null,
+      );
+  
+      const sql = `SELECT id, name FROM routing_table WHERE firewall=${firewall}`;
+      const queryAsync = promisify(connection.query).bind(connection);
+      const tables = await queryAsync(sql);
+  
+      if (tables.length === 0) return;
+  
+      await Promise.all(tables.map(async (table: any) => {
+        await this.newNode(
+          connection,
+          fwcloud,
+          table.name,
+          id3,
+          'RT',
+          table.id,
+          null,
+        );
+      }));
+  }
 
   //Generate the system nodes.
   public static async systemTree(

@@ -102,7 +102,7 @@ export function runCLICommandIsolated(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     fn()
-      .then((_f) => {
+      .then(() => {
         return testSuite.runApplication();
       })
       .then(() => {

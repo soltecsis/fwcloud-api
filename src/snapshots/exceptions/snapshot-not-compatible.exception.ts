@@ -21,7 +21,6 @@
 */
 
 import { Snapshot } from '../snapshot';
-import { app } from '../../fonaments/abstract-application';
 import { HttpException } from '../../fonaments/exceptions/http/http-exception';
 
 export class SnapshotNotCompatibleException extends HttpException {

@@ -99,7 +99,7 @@ export class WebSocketService extends Service {
             logger().error(
               `WebSocket: Storing socket.io id in session file: ${err.message}`,
             );
-          } else socket.request.session.reload((err) => {});
+          } else socket.request.session.reload(() => {});
         });
 
         logger().info(

@@ -28,7 +28,7 @@ export class FSHelper {
   public static async directoryExists(
     directoryPath: fs.PathLike,
   ): Promise<boolean> {
-    return new Promise<boolean>((resolve, reject) => {
+    return new Promise<boolean>((resolve) => {
       fs.stat(directoryPath, (error: Error, stats: fs.Stats) => {
         if (error) {
           return resolve(false);

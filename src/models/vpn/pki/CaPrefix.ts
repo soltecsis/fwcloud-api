@@ -129,7 +129,7 @@ export class CaPrefix extends Model {
 
         // Remove from root CA node the nodes that match de prefix.
         sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} AND (obj_type=301 OR obj_type=302) AND name LIKE '${prefix}%'`;
-        dbCon.query(sql, (error, result) => {
+        dbCon.query(sql, (error) => {
           if (error) return reject(error);
           resolve();
         });
@@ -221,7 +221,7 @@ export class CaPrefix extends Model {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `UPDATE ca_prefix SET name=${req.dbCon.escape(req.body.name)} WHERE id=${req.body.prefix}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },
@@ -234,7 +234,7 @@ export class CaPrefix extends Model {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `DELETE from ca_prefix WHERE id=${req.body.prefix}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },

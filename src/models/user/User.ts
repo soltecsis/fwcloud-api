@@ -271,7 +271,7 @@ export class User extends Model {
                 role=${req.body.role},
                 allowed_from=${req.dbCon.escape(req.body.allowed_from)}
                 WHERE id=${req.body.user}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -288,7 +288,7 @@ export class User extends Model {
 
       req.dbCon.query(
         `UPDATE ${tableName} SET password=${req.dbCon.escape(crypt_pass)} WHERE id=${req.session.user_id}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },
@@ -315,12 +315,12 @@ export class User extends Model {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `delete from user__fwcloud where user=${req.body.user}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
 
           req.dbCon.query(
             `delete from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`,
-            (error, result) => {
+            (error) => {
               if (error) return reject(error);
               resolve();
             },
@@ -379,7 +379,7 @@ export class User extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `delete from user__fwcloud where user=${user} and fwcloud=${fwcloud}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },

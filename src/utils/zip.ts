@@ -60,7 +60,6 @@ export class Zip {
   public static zip(
     workPath: string,
     destinationPath: string = null,
-    extension = null,
   ): Promise<void> {
     destinationPath = destinationPath ?? `${workPath}.zip`;
 

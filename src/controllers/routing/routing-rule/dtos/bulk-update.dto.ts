@@ -21,7 +21,6 @@
 */
 
 import {
-  IsArray,
   IsBoolean,
   IsNumber,
   IsOptional,

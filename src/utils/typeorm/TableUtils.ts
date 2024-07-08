@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Table, TableForeignKey, AdvancedConsoleLogger } from 'typeorm';
+import { Table, TableForeignKey } from 'typeorm';
 
 export function findForeignKeyInTable(
   table: Table,

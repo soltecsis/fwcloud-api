@@ -44,22 +44,20 @@ export class KeysGenerateCommand extends Command {
       KeysGenerateCommand.ENV_FILENAME,
     );
     const stat: Stats = await fs.stat(envFilePath);
-
     if (stat && !stat.isFile()) {
       throw new Error('File ' + envFilePath + ' does not exists');
     }
-
     let envContent: string = (await fs.readFile(envFilePath)).toString();
 
     if (
       forceFlag ||
-      new RegExp('^SESSION_SECRET=[\\s\\S]*$', 'm').test(envContent)
+      new RegExp('^SESSION_SECRET\\s*=\\s*\\n', 'm').test(envContent)
     ) {
       const session_secret = await this.generateRandomString();
       envContent = envContent.replace(
-        new RegExp('^SESSION_SECRET\\s*=.*$', 'm'),
-        `SESSION_SECRET=${session_secret.toString()}\n`
-    );
+        new RegExp('^SESSION_SECRET\\s*=.*\\n', 'm'),
+        `SESSION_SECRET=${session_secret.toString()}\n`,
+      );
       this.output.success(`SESSION_SECRET key generated.`);
     } else {
       this.output.warn(`SESSION_SECRET already defined.`);
@@ -67,20 +65,18 @@ export class KeysGenerateCommand extends Command {
 
     if (
       forceFlag ||
-      new RegExp('^CRYPT_SECRET\\s*=.*$', 'm').test(envContent)
+      new RegExp('^CRYPT_SECRET\\s*=\\s*\\n', 'm').test(envContent)
     ) {
       const crypt_secret = await this.generateRandomString();
       envContent = envContent.replace(
-        new RegExp('^CRYPT_SECRET\\s*=.*$', 'm'),
-        `CRYPT_SECRET=${crypt_secret.toString()}\n`
-    );
+        new RegExp('^CRYPT_SECRET\\s*=.*\\n', 'm'),
+        `CRYPT_SECRET=${crypt_secret.toString()}\n`,
+      );
       this.output.success(`CRYPT_SECRET key generated.`);
     } else {
       this.output.warn(`CRYPT_SECRET already defined.`);
     }
-
     await fs.writeFile(envFilePath, envContent);
-
     return;
   }
 

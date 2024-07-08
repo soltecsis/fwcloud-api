@@ -81,7 +81,7 @@ export class OpenVPN extends Model {
     @Column({name: 'openvpn'})
     parentId: number;
 
-    @ManyToOne(type => OpenVPN, openVPN => openVPN.childs)
+    @ManyToOne(_type => OpenVPN, openVPN => openVPN.childs)
     @JoinColumn({
         name: 'openvpn'
     })
@@ -469,7 +469,7 @@ export class OpenVPN extends Model {
 
     public static updateOpenvpnStatus(dbCon, openvpn, status_action) {
         return new Promise((resolve, reject) => {
-            dbCon.query(`UPDATE openvpn SET status=status${status_action} WHERE id=${openvpn}`, (error, result) => {
+            dbCon.query(`UPDATE openvpn SET status=status${status_action} WHERE id=${openvpn}`, (error) => {
                 if (error) return reject(error);
                 resolve({ "result": true });
             });
@@ -478,7 +478,7 @@ export class OpenVPN extends Model {
 
     public static updateOpenvpnInstallDate(dbCon, openvpn) {
         return new Promise((resolve, reject) => {
-            dbCon.query(`UPDATE openvpn SET installed_at=NOW() WHERE id=${openvpn}`, (error, result) => {
+            dbCon.query(`UPDATE openvpn SET installed_at=NOW() WHERE id=${openvpn}`, (error) => {
                 if (error) return reject(error);
                 resolve({ "result": true });
             });
@@ -492,7 +492,7 @@ export class OpenVPN extends Model {
                 INNER JOIN ipobj O ON O.id=OPT.ipobj
                 SET VPN.status=VPN.status${status_action}
                 WHERE O.fwcloud=${req.body.fwcloud} AND O.id=${ipobj}`;
-            req.dbCon.query(sql, (error, result) => {
+            req.dbCon.query(sql, (error) => {
                 if (error) return reject(error);
                 resolve();
             });
@@ -866,7 +866,7 @@ export class OpenVPN extends Model {
     //Move rules from one firewall to other.
     public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
         return new Promise((resolve, reject) => {
-            dbCon.query(`UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, (error, result) => {
+            dbCon.query(`UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`, (error) => {
                 if (error) return reject(error);
                 resolve();
             });

@@ -131,7 +131,7 @@ export class Ca extends Model {
 
           req.dbCon.query(
             'DELETE FROM ca WHERE id=' + req.body.ca,
-            (error, result) => {
+            (error) => {
               if (error) return reject(error);
               resolve();
             },
