@@ -14,14 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import {
-  FindOneOptions,
-  FindOptionsOrder,
-  FindOptionsRelations,
-  FindOptionsSelect,
-  In,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { FindOneOptions, In, SelectQueryBuilder } from 'typeorm';
 import { KeepalivedRule } from './keepalived_r.model';
 import { KeepalivedRepository } from './keepalived.repository';
 import { IPObj } from '../../../ipobj/IPObj';
@@ -458,9 +451,7 @@ export class KeepalivedRuleService extends Service {
         ? this.buildKeepalivedRulesCompilerSql(fwcloud, firewall, rules)
         : this.getKeepalivedRulesGridSql(fwcloud, firewall, rules);
 
-    const result = await Promise.all(
-      sqls.map((sql) => KeepalivedUtils.mapEntityData<T>(sql, ItemsArrayMap)),
-    );
+    await Promise.all(sqls.map((sql) => KeepalivedUtils.mapEntityData<T>(sql, ItemsArrayMap)));
 
     return rulesData.map((rule) => {
       if (rule.items) {

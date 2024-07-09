@@ -127,7 +127,7 @@ export class IPObj extends Model {
   @Column({ name: 'fwcloud' })
   fwCloudId: number;
 
-  @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.ipObjs)
+  @ManyToOne(() => FwCloud, (fwcloud) => fwcloud.ipObjs)
   @JoinColumn({
     name: 'fwcloud',
   })
@@ -136,7 +136,7 @@ export class IPObj extends Model {
   @Column({ name: 'type' })
   ipObjTypeId: number;
 
-  @ManyToOne((type) => IPObjType, (ipObjType) => ipObjType.ipObjs)
+  @ManyToOne(() => IPObjType, (ipObjType) => ipObjType.ipObjs)
   @JoinColumn({
     name: 'type',
   })
@@ -145,25 +145,25 @@ export class IPObj extends Model {
   @Column({ name: 'interface' })
   interfaceId: number;
 
-  @ManyToOne((type) => Interface, (_interface) => _interface.ipObjs)
+  @ManyToOne(() => Interface, (_interface) => _interface.ipObjs)
   @JoinColumn({
     name: 'interface',
   })
   interface: Interface;
 
-  @OneToMany((type) => OpenVPNOption, (options) => options.ipObj)
+  @OneToMany(() => OpenVPNOption, (options) => options.ipObj)
   optionsList: Array<OpenVPNOption>;
 
-  @OneToMany((type) => IPObjToIPObjGroup, (ipObjToIPObjGroup) => ipObjToIPObjGroup.ipObj)
+  @OneToMany(() => IPObjToIPObjGroup, (ipObjToIPObjGroup) => ipObjToIPObjGroup.ipObj)
   ipObjToIPObjGroups!: Array<IPObjToIPObjGroup>;
 
-  @OneToMany((type) => InterfaceIPObj, (interfaceIPObj) => interfaceIPObj.hostIPObj)
+  @OneToMany(() => InterfaceIPObj, (interfaceIPObj) => interfaceIPObj.hostIPObj)
   hosts!: Array<InterfaceIPObj>;
 
-  @OneToMany((type) => PolicyRuleToIPObj, (policyRuleToIPObj) => policyRuleToIPObj.ipObj)
+  @OneToMany(() => PolicyRuleToIPObj, (policyRuleToIPObj) => policyRuleToIPObj.ipObj)
   policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
 
-  @OneToMany((type) => Route, (model) => model.gateway)
+  @OneToMany(() => Route, (model) => model.gateway)
   routeGateways: Route[];
 
   @OneToMany(() => RoutingRuleToIPObj, (model) => model.ipObj, {
@@ -332,7 +332,7 @@ export class IPObj extends Model {
 
                     resolve(hostdata);
                   })
-                  .catch((e) => {
+                  .catch(() => {
                     resolve(void 0);
                   });
               } else {
@@ -383,7 +383,7 @@ export class IPObj extends Model {
                   groupdata.ipobjs = ipobjsGroup;
                   resolve(groupdata);
                 })
-                .catch((e) => {
+                .catch(() => {
                   resolve({});
                 });
             } else {
@@ -434,7 +434,7 @@ export class IPObj extends Model {
         if (error) AllDone(error, null);
         else if (rows.length > 0) {
           host_cont = rows.length;
-          const row = rows[0];
+          //const row = rows[0];
           asyncMod.map(
             rows,
             (row, callback1) => {
@@ -490,7 +490,7 @@ export class IPObj extends Model {
                               interface_node.ipobjs.push(ipobj_node);
                               callback2();
                             }, //Fin de bucle de IPOBJS
-                            function (err) {
+                            function () {
                               if (interface_node.ipobjs.length >= ipobjs_cont) {
                                 host_node.interfaces.push(interface_node);
                                 if (host_node.interfaces.length >= interfaces_cont) {
@@ -515,7 +515,7 @@ export class IPObj extends Model {
 
                       callback2();
                     }, //Fin de bucle de INTERFACES
-                    function (err) {
+                    function () {
                       //                                        if (host_node.interfaces.length >= interfaces_cont) {
                       //                                            hosts.push(host_node);
                       //                                            if (hosts.length >= host_cont) {
@@ -533,7 +533,7 @@ export class IPObj extends Model {
               });
               callback1();
             }, //Fin de bucle de GROUPS
-            function (err) {
+            function () {
               if (hosts.length >= host_cont) {
                 AllDone(null, hosts);
               }
@@ -661,14 +661,14 @@ export class IPObj extends Model {
               _interface.ipobjs = ipobjs;
               resolve(_interface);
             })
-            .catch((e) => resolve(null));
+            .catch(() => resolve(null));
         });
       });
     });
   }
 
   private static getIpobjData(row) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const ipobj = new ipobj_Data(row);
       resolve(ipobj);
     });
@@ -842,7 +842,7 @@ export class IPObj extends Model {
         ipobjData.id +
         ' AND fwcloud=' +
         ipobjData.fwcloud;
-      req.dbCon.query(sql, async (error, result) => {
+      req.dbCon.query(sql, async (error) => {
         if (error) return reject(error);
         resolve();
       });

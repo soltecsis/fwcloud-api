@@ -26,7 +26,6 @@ import { RoutingTableController } from '../../../../../src/controllers/routing/r
 import { Firewall } from '../../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
 import { User } from '../../../../../src/models/user/User';
-import StringHelper from '../../../../../src/utils/string.helper';
 import { describeName, expect, testSuite } from '../../../../mocha/global-setup';
 import { attachSession, createUser, generateSession } from '../../../../utils/utils';
 import request = require('supertest');
@@ -82,12 +81,8 @@ describe(describeName('Routing Table E2E Tests'), () => {
 
   describe(RoutingTableController.name, () => {
     describe('@index', () => {
-      let table: RoutingTable;
-      let tableService: RoutingTableService;
-
       beforeEach(async () => {
-        tableService = await app.getService(RoutingTableService.name);
-        table = fwcProduct.routingTable;
+        await app.getService(RoutingTableService.name);
       });
 
       it('guest user should not see a routing tables', async () => {

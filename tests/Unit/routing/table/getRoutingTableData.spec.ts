@@ -25,7 +25,6 @@ import { RouteToIPObjGroup } from '../../../../src/models/routing/route/route-to
 import { RouteToIPObj } from '../../../../src/models/routing/route/route-to-ipobj.model';
 import { RouteToOpenVPNPrefix } from '../../../../src/models/routing/route/route-to-openvpn-prefix.model';
 import { RouteToOpenVPN } from '../../../../src/models/routing/route/route-to-openvpn.model';
-import { RouteService } from '../../../../src/models/routing/route/route.service';
 import {
   RoutingTableService,
   RouteData,
@@ -35,9 +34,9 @@ import { expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { EntityManager } from 'typeorm';
 import db from '../../../../src/database/database-manager';
+import { RouteService } from '../../../../src/models/routing/route/route.service';
 
 describe('Routing table data fetch for compiler or grid', () => {
-  let routeService: RouteService;
   let routingTableService: RoutingTableService;
   let fwc: FwCloudProduct;
 
@@ -51,7 +50,7 @@ describe('Routing table data fetch for compiler or grid', () => {
 
     fwc = await new FwCloudFactory().make();
 
-    routeService = await testSuite.app.getService<RouteService>(RouteService.name);
+    await testSuite.app.getService<RouteService>(RouteService.name);
     routingTableService = await testSuite.app.getService<RoutingTableService>(
       RoutingTableService.name,
     );

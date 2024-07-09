@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindManyOptions, FindOneOptions, In, Not, SelectQueryBuilder } from 'typeorm';
+import { FindManyOptions, FindOneOptions, In, SelectQueryBuilder } from 'typeorm';
 import { Application } from '../../../Application';
 import db from '../../../database/database-manager';
 import { ValidationException } from '../../../fonaments/exceptions/validation-exception';

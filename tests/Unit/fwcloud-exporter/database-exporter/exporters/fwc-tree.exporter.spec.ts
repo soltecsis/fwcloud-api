@@ -12,7 +12,6 @@ describe(describeName('FwcTree Exporter Unit Tests'), () => {
   let result: ExporterResult;
   let fwCloud: FwCloud;
   let fwCloud2: FwCloud;
-  let fwCloud2_node: FwcTree;
 
   let exporter: FwcTreeExporter;
   let dataSource: DataSource;
@@ -33,7 +32,8 @@ describe(describeName('FwcTree Exporter Unit Tests'), () => {
       }),
     );
 
-    fwCloud2_node = await dataSource.manager.getRepository(FwcTree).save(
+    //fwCloud2_node =
+    await dataSource.manager.getRepository(FwcTree).save(
       dataSource.manager.getRepository(FwcTree).create({
         name: StringHelper.randomize(10),
         fwCloudId: fwCloud2.id,

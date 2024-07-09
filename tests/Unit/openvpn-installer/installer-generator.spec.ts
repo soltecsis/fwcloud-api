@@ -1,4 +1,4 @@
-import { describeName, playgroundPath, testSuite } from '../../mocha/global-setup';
+import { describeName, playgroundPath } from '../../mocha/global-setup';
 import path from 'path';
 import { FSHelper } from '../../../src/utils/fs-helper';
 import { expect } from 'chai';
@@ -6,7 +6,6 @@ import * as fs from 'fs-extra';
 import { InstallerGenerator } from '../../../src/openvpn-installer/installer-generator';
 import { InvalidConnectionNameException } from './exceptions/invalid-connection-name.exception';
 import sinon from 'sinon';
-import { app } from '../../../src/fonaments/abstract-application';
 
 describe(describeName('InstallerGenerator Unit Tests'), () => {
   let workspace: string;
@@ -186,9 +185,7 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
 
       generator = new InstallerGenerator(workspace, connectionName, '<test></test>', outputPath);
 
-      const f = () => {
-        const _path: string = generator.generate();
-      };
+      const f = () => generator.generate();
 
       expect(f).to.throw(Error);
       expect(fs.existsSync(path.join(workspace, 'fwcloud-vpn', 'fwcloud-vpn.exe'))).to.be.false;
@@ -244,9 +241,7 @@ describe(describeName('InstallerGenerator Unit Tests'), () => {
 
     it('should not sign the executable if generate() is called without sign flag', async () => {
       // @ts-ignore
-      const stubShouldSign = sinon
-        .stub(InstallerGenerator.prototype, 'shouldSignExecutable')
-        .returns(true);
+      sinon.stub(InstallerGenerator.prototype, 'shouldSignExecutable').returns(true);
       //@ts-ignore
       const stubSignCommand = sinon
         .stub(InstallerGenerator.prototype, 'signExecutable' as keyof InstallerGenerator)

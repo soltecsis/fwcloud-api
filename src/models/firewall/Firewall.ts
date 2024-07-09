@@ -184,7 +184,7 @@ export class Firewall extends Model {
   @Column({ name: 'fwcloud' })
   fwCloudId: number;
 
-  @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.firewalls)
+  @ManyToOne(() => FwCloud, (fwcloud) => fwcloud.firewalls)
   @JoinColumn({
     name: 'fwcloud',
   })
@@ -193,55 +193,55 @@ export class Firewall extends Model {
   @Column({ name: 'cluster' })
   clusterId: number;
 
-  @ManyToOne((type) => Cluster, (cluster) => cluster.firewalls)
+  @ManyToOne(() => Cluster, (cluster) => cluster.firewalls)
   @JoinColumn({
     name: 'cluster',
   })
   cluster: Cluster;
 
-  @OneToMany((type) => Interface, (_interface) => _interface.firewall)
+  @OneToMany(() => Interface, (_interface) => _interface.firewall)
   interfaces: Array<Interface>;
 
-  @OneToMany((type) => OpenVPN, (openVPN) => openVPN.firewall)
+  @OneToMany(() => OpenVPN, (openVPN) => openVPN.firewall)
   openVPNs: Array<OpenVPN>;
 
-  @OneToMany((type) => PolicyGroup, (policyGroup) => policyGroup.firewall)
+  @OneToMany(() => PolicyGroup, (policyGroup) => policyGroup.firewall)
   policyGroups: Array<PolicyGroup>;
 
-  @OneToMany((type) => PolicyRule, (policyRule) => policyRule.firewall)
+  @OneToMany(() => PolicyRule, (policyRule) => policyRule.firewall)
   policyRules: Array<PolicyRule>;
 
-  @OneToMany((type) => RoutingTable, (routingTable) => routingTable.firewall)
+  @OneToMany(() => RoutingTable, (routingTable) => routingTable.firewall)
   routingTables: RoutingTable[];
 
-  @OneToMany((type) => RoutingGroup, (routingGroup) => routingGroup.firewall)
+  @OneToMany(() => RoutingGroup, (routingGroup) => routingGroup.firewall)
   routingGroups: RoutingGroup[];
 
-  @OneToMany((type) => RouteGroup, (model) => model.firewall)
+  @OneToMany(() => RouteGroup, (model) => model.firewall)
   routeGroups: RouteGroup[];
 
-  @OneToMany((type) => RoutingRule, (routingRule) => routingRule.firewallApplyTo)
+  @OneToMany(() => RoutingRule, (routingRule) => routingRule.firewallApplyTo)
   routingRules: RoutingRule[];
 
-  @OneToMany((type) => Route, (route) => route.firewallApplyTo)
+  @OneToMany(() => Route, (route) => route.firewallApplyTo)
   routes: Route[];
 
-  @OneToMany((type) => HAProxyGroup, (haproxyGroup) => haproxyGroup.firewall)
+  @OneToMany(() => HAProxyGroup, (haproxyGroup) => haproxyGroup.firewall)
   haproxyGroups: HAProxyGroup[];
 
-  @OneToMany((type) => HAProxyRule, (haproxyRule) => haproxyRule.firewall)
+  @OneToMany(() => HAProxyRule, (haproxyRule) => haproxyRule.firewall)
   haproxyRules: HAProxyRule[];
 
-  @OneToMany((type) => DHCPGroup, (dhcpGroup) => dhcpGroup.firewall)
+  @OneToMany(() => DHCPGroup, (dhcpGroup) => dhcpGroup.firewall)
   dhcpGroups: DHCPGroup[];
 
-  @OneToMany((type) => DHCPRule, (dhcpRule) => dhcpRule.firewall)
+  @OneToMany(() => DHCPRule, (dhcpRule) => dhcpRule.firewall)
   dhcpRules: DHCPRule[];
 
-  @OneToMany((type) => KeepalivedGroup, (keepalivedGroup) => keepalivedGroup.firewall)
+  @OneToMany(() => KeepalivedGroup, (keepalivedGroup) => keepalivedGroup.firewall)
   keepalivedGroups: KeepalivedGroup[];
 
-  @OneToMany((type) => KeepalivedRule, (keepalivedRule) => keepalivedRule.firewall)
+  @OneToMany(() => KeepalivedRule, (keepalivedRule) => keepalivedRule.firewall)
   keepalivedRules: KeepalivedRule[];
 
   public getTableName(): string {
@@ -577,7 +577,7 @@ export class Firewall extends Model {
   }
 
   private static getfirewallData(row) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const firewall = new firewall_Data(row);
       resolve(firewall);
     });
@@ -701,7 +701,7 @@ export class Firewall extends Model {
 					options=${firewallData.options},
 					plugins=${firewallData.plugins}
 					WHERE id=${firewallData.id}`;
-          dbCon.query(sql, (error, result) => {
+          dbCon.query(sql, (error) => {
             if (error) return reject(error);
             resolve(true);
           });
@@ -733,7 +733,7 @@ export class Firewall extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
         const sql = `UPDATE ${tableName} SET status=status${status_action} WHERE id=${firewall} AND fwcloud=${fwcloud}`;
-        connection.query(sql, (error, result) => {
+        connection.query(sql, (error) => {
           if (error) return reject(error);
           resolve({ result: true });
         });
@@ -746,7 +746,7 @@ export class Firewall extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
         const sql = `UPDATE ${tableName} SET compiled_at=NOW() WHERE id=${firewall} AND fwcloud=${fwcloud}`;
-        connection.query(sql, (error, result) => {
+        connection.query(sql, (error) => {
           if (error) return reject(error);
           resolve();
         });
@@ -759,7 +759,7 @@ export class Firewall extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
         const sql = `UPDATE ${tableName} SET installed_at=NOW() WHERE id=${firewall} AND fwcloud=${fwcloud}`;
-        connection.query(sql, (error, result) => {
+        connection.query(sql, (error) => {
           if (error) return reject(error);
           resolve();
         });
@@ -769,7 +769,7 @@ export class Firewall extends Model {
 
   public static promoteToMaster(dbCon, firewall): Promise<void> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`UPDATE ${tableName} SET fwmaster=1 WHERE id=${firewall}`, (error, result) => {
+      dbCon.query(`UPDATE ${tableName} SET fwmaster=1 WHERE id=${firewall}`, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -1126,7 +1126,7 @@ export class Firewall extends Model {
               fwcloud +
               ' AND cluster=' +
               cluster;
-            connection.query(sql, (error, result) => {
+            connection.query(sql, (error) => {
               if (error) return reject(error);
               if (fwmaster == 1) {
                 const sql =
@@ -1142,7 +1142,7 @@ export class Firewall extends Model {
                   fwcloud +
                   ' AND cluster=' +
                   cluster;
-                connection.query(sql, (error, result) => {
+                connection.query(sql, (error) => {
                   if (error) return reject(error);
                   resolve({ result: true });
                 });
@@ -1175,7 +1175,7 @@ export class Firewall extends Model {
               ' ' +
               ' WHERE id = ' +
               firewallData.id;
-            connection.query(sql, (error, result) => {
+            connection.query(sql, (error) => {
               if (error) return reject(error);
               resolve({ result: true });
             });
@@ -1197,7 +1197,7 @@ export class Firewall extends Model {
         ' AND fwcloud=' +
         connection.escape(fwcloud) +
         ' AND fwmaster=0';
-      connection.query(sql, (error, result) => {
+      connection.query(sql, (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -1254,7 +1254,7 @@ export class Firewall extends Model {
             ' ' +
             ' WHERE id = ' +
             firewallData.id;
-          connection.query(sql, (error, result) => {
+          connection.query(sql, (error) => {
             if (error) {
               callback(error, null);
             } else {
@@ -1315,7 +1315,7 @@ export class Firewall extends Model {
             ' ' +
             ' WHERE id = ' +
             firewallData.id;
-          connection.query(sql, (error, result) => {
+          connection.query(sql, (error) => {
             if (error) {
               callback(error, null);
             } else {
@@ -1396,7 +1396,7 @@ export class Firewall extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `DELETE FROM ${tableName} WHERE id=${firewall} AND fwcloud=${fwcloud}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },

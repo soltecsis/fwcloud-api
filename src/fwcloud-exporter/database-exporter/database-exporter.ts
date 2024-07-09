@@ -56,7 +56,6 @@ import { RouteGroupExporter } from './exporters/route-group.exporter';
 import { RoutingRuleExporter } from './exporters/routing-rule.exporter';
 import { RoutingRuleToIPObjExporter } from './exporters/routing-rule-to-ipobj.exporter';
 import { RoutingRuleToIPObjGroupExporter } from './exporters/routing-rule-to-ipobj-group.exporter';
-import { RoutingRuleToOpenVPNPrefix } from '../../models/routing/routing-rule/routing-rule-to-openvpn-prefix.model';
 import { RoutingRuleToOpenVPNExporter } from './exporters/routing-rule-to-openvpn.exporter';
 import { RoutingRuleToOpenVPNPrefixExporter } from './exporters/routing-rule-to-openvpn-prefix.exporter';
 import { RoutingRuleToMarkExporter } from './exporters/routing-rule-to-mark.exporter';

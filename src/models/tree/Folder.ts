@@ -89,7 +89,7 @@ export class Folder extends Model {
             return reject(fwcError.other('This folder node is not empty'));
 
           sql = 'DELETE FROM ' + tableName + ' WHERE fwcloud=' + fwcloud + ' AND id=' + id;
-          connection.query(sql, (error, result) => {
+          connection.query(sql, (error) => {
             if (error) return reject(error);
             resolve();
           });
@@ -128,7 +128,7 @@ export class Folder extends Model {
             fwcloud +
             ' AND id=' +
             id;
-          connection.query(sql, (error, result) => {
+          connection.query(sql, (error) => {
             if (error) return reject(error);
             resolve();
           });
@@ -220,7 +220,7 @@ export class Folder extends Model {
             fwcloud +
             ' AND id=' +
             src;
-          connection.query(sql, (error, result) => {
+          connection.query(sql, (error) => {
             if (error) return reject(error);
             resolve();
           });

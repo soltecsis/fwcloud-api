@@ -68,10 +68,8 @@ describe('keepalivedGroup E2E Tests', () => {
 
   describe(KeepalivedGroupController.name, () => {
     describe('@index', () => {
-      let group: KeepalivedGroup;
-
       beforeEach(async () => {
-        group = await manager.getRepository(KeepalivedGroup).save(
+        await manager.getRepository(KeepalivedGroup).save(
           manager.getRepository(KeepalivedGroup).create({
             firewall: firewall,
             name: 'group',

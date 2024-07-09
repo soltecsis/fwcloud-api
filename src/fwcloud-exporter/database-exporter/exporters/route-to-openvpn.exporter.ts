@@ -23,7 +23,6 @@
 import { TableExporter } from './table-exporter';
 import Model from '../../../models/Model';
 import { SelectQueryBuilder } from 'typeorm';
-import { RoutingRule } from '../../../models/routing/routing-rule/routing-rule.model';
 import { RoutingRuleExporter } from './routing-rule.exporter';
 import { RouteToOpenVPN } from '../../../models/routing/route/route-to-openvpn.model';
 import { Route } from '../../../models/routing/route/route.model';

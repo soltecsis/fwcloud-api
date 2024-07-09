@@ -3,7 +3,7 @@ import { Application } from '../../../../src/Application';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';
 import { User } from '../../../../src/models/user/User';
-import { describeName, expect, testSuite } from '../../../mocha/global-setup';
+import { describeName, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { attachSession, createUser, generateSession } from '../../../utils/utils';
 import request = require('supertest');
@@ -17,7 +17,6 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
   let session: string;
   let group: IPObjGroup;
   let requestData: Record<string, unknown>;
-  let firewall: Firewall;
   let manager: EntityManager;
 
   beforeEach(async () => {
@@ -30,7 +29,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
     adminUser = await createUser({ role: 1 });
     session = generateSession(adminUser);
 
-    firewall = await manager.getRepository(Firewall).findOneOrFail({
+    await manager.getRepository(Firewall).findOneOrFail({
       where: { fwCloudId: fwcProduct.fwcloud.id },
       relations: ['policyRules'],
     });

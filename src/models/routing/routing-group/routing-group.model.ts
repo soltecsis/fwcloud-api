@@ -44,13 +44,13 @@ export class RoutingGroup extends Model {
   @Column({ name: 'firewall' })
   firewallId: number;
 
-  @ManyToOne((type) => Firewall, (firewall) => firewall.routingGroups)
+  @ManyToOne(() => Firewall, (firewall) => firewall.routingGroups)
   @JoinColumn({
     name: 'firewall',
   })
   firewall: Firewall;
 
-  @OneToMany((type) => RoutingRule, (routingRule) => routingRule.routingGroup, {
+  @OneToMany(() => RoutingRule, (routingRule) => routingRule.routingGroup, {
     eager: true,
   })
   routingRules: RoutingRule[];

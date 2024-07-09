@@ -1,6 +1,5 @@
 import { EntityManager } from 'typeorm';
 import { Application } from '../../../../src/Application';
-import rule from '../../../../src/middleware/joi_schemas/policy/rule';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { RoutingGroup } from '../../../../src/models/routing/routing-group/routing-group.model';

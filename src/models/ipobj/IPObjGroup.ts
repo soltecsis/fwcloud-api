@@ -74,19 +74,19 @@ export class IPObjGroup extends Model {
   @Column({ name: 'fwcloud' })
   fwCloudId: number;
 
-  @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.ipObjGroups)
+  @ManyToOne(() => FwCloud, (fwcloud) => fwcloud.ipObjGroups)
   @JoinColumn({
     name: 'fwcloud',
   })
   fwCloud: FwCloud;
 
-  @OneToMany((type) => IPObjToIPObjGroup, (ipObjToIPObjGroup) => ipObjToIPObjGroup.ipObjGroup)
+  @OneToMany(() => IPObjToIPObjGroup, (ipObjToIPObjGroup) => ipObjToIPObjGroup.ipObjGroup)
   ipObjToIPObjGroups!: Array<IPObjToIPObjGroup>;
 
-  @ManyToMany((type) => OpenVPN, (openVPN) => openVPN.ipObjGroups)
+  @ManyToMany(() => OpenVPN, (openVPN) => openVPN.ipObjGroups)
   openVPNs: Array<OpenVPN>;
 
-  @ManyToMany((type) => OpenVPNPrefix, (openVPNPrefix) => openVPNPrefix.ipObjGroups)
+  @ManyToMany(() => OpenVPNPrefix, (openVPNPrefix) => openVPNPrefix.ipObjGroups)
   openVPNPrefixes: Array<OpenVPNPrefix>;
 
   @OneToMany(() => RoutingRuleToIPObjGroup, (model) => model.ipObjGroup)
@@ -95,7 +95,7 @@ export class IPObjGroup extends Model {
   @OneToMany(() => RouteToIPObjGroup, (model) => model.ipObjGroup)
   routeToIPObjGroups: RouteToIPObjGroup[];
 
-  @OneToMany((type) => PolicyRuleToIPObj, (model) => model.ipObjGroup)
+  @OneToMany(() => PolicyRuleToIPObj, (model) => model.ipObjGroup)
   policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
 
   public getTableName(): string {
@@ -332,7 +332,7 @@ export class IPObjGroup extends Model {
           if (error) reject(error);
           else if (rows.length > 0) {
             group_cont = rows.length;
-            const row = rows[0];
+            //const row = rows[0];
             asyncMod.map(
               rows,
               (row, callback1) => {
@@ -364,7 +364,7 @@ export class IPObjGroup extends Model {
                         group_node.ipobjs.push(ipobj_node);
                         callback2();
                       }, //Fin de bucle de IPOBJS
-                      function (err) {
+                      function () {
                         if (group_node.ipobjs.length >= ipobjs_cont) {
                           groups.push(group_node);
                           if (groups.length >= group_cont) {
@@ -383,7 +383,7 @@ export class IPObjGroup extends Model {
                 });
                 callback1();
               }, //Fin de bucle de GROUPS
-              function (err) {
+              function () {
                 if (groups.length >= group_cont) {
                   resolve(groups);
                 }
@@ -480,7 +480,7 @@ export class IPObjGroup extends Model {
             ,type=${ipobj_gData.type}
             ,comment=${req.dbCon.escape(ipobj_gData.comment)}
             WHERE id=${ipobj_gData.id} AND fwcloud=${req.body.fwcloud}`;
-      req.dbCon.query(sql, async (error, result) => {
+      req.dbCon.query(sql, async (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -499,7 +499,7 @@ export class IPObjGroup extends Model {
 
       dbCon.query(
         `DELETE FROM ${tableName} WHERE id=${id} AND fwcloud=${fwcloud} AND type=${type}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },

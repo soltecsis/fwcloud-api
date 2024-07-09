@@ -26,7 +26,6 @@ import request = require('supertest');
 import { FwCloudFactory, FwCloudProduct } from '../../utils/fwcloud-factory';
 import { attachSession, createUser, generateSession } from '../../utils/utils';
 import { User } from '../../../src/models/user/User';
-import { EntityManager } from 'typeorm';
 import db from '../../../src/database/database-manager';
 
 describe(describeName('InputValidation Middleware E2E test'), () => {
@@ -34,12 +33,11 @@ describe(describeName('InputValidation Middleware E2E test'), () => {
   let fwcProduct: FwCloudProduct;
   let adminUser: User;
   let session: string;
-  let manager: EntityManager;
 
   beforeEach(async () => {
     await testSuite.resetDatabaseData();
     app = testSuite.app;
-    manager = db.getSource().manager;
+    db.getSource().manager;
     fwcProduct = await new FwCloudFactory().make();
     adminUser = await createUser({ role: 1 });
     session = generateSession(adminUser);

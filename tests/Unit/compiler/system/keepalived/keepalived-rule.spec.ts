@@ -22,7 +22,6 @@ import {
   KeepalivedCompiled,
   KeepalivedCompiler,
 } from '../../../../../src/compiler/system/keepalived/KeepalivedCompiler';
-import { IPObj } from '../../../../../src/models/ipobj/IPObj';
 import { KeepalivedRule } from '../../../../../src/models/system/keepalived/keepalived_r/keepalived_r.model';
 import {
   KeepalivedRuleService,

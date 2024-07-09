@@ -1,7 +1,6 @@
-import { EntityManager, QueryFailedError } from 'typeorm';
+import { EntityManager } from 'typeorm';
 import { Application } from '../../../../src/Application';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
-import { RoutingTableService } from '../../../../src/models/routing/routing-table/routing-table.service';
 import StringHelper from '../../../../src/utils/string.helper';
 import { expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
@@ -10,7 +9,6 @@ import Sinon from 'sinon';
 import { Tree } from '../../../../src/models/tree/Tree';
 import { Authorization } from '../../../../src/fonaments/authorization/policy';
 import { RouteGroupController } from '../../../../src/controllers/routing/route-group/route-group.controller';
-import { RouteService } from '../../../../src/models/routing/route/route.service';
 import { RouteGroup } from '../../../../src/models/routing/route-group/route-group.model';
 import { RouteGroupService } from '../../../../src/models/routing/route-group/route-group.service';
 import { RouteGroupPolicy } from '../../../../src/policies/route-group.policy';
@@ -22,8 +20,6 @@ describe(RouteGroupController.name, () => {
   let controller: RouteGroupController;
   let app: Application;
   let fwcProduct: FwCloudProduct;
-  let tableService: RoutingTableService;
-  let routeService: RouteService;
   let routeGroupService: RouteGroupService;
   let firewall: Firewall;
   let fwcloud: FwCloud;
@@ -32,8 +28,8 @@ describe(RouteGroupController.name, () => {
   beforeEach(async () => {
     app = testSuite.app;
     manager = db.getSource().manager;
-    tableService = await app.getService<RoutingTableService>(RoutingTableService.name);
-    routeService = await app.getService<RouteService>(RouteService.name);
+    //tableService = await app.getService<RoutingTableService>(RoutingTableService.name);
+    //routeService = await app.getService<RouteService>(RouteService.name);
     routeGroupService = await app.getService<RouteGroupService>(RouteGroupService.name);
 
     fwcProduct = await new FwCloudFactory().make();

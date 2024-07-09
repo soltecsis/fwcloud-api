@@ -20,9 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindManyOptions, FindOneOptions, Repository, SelectQueryBuilder } from 'typeorm';
+import { SelectQueryBuilder } from 'typeorm';
 import { Application } from '../../../Application';
-import db, { DatabaseManager } from '../../../database/database-manager';
+import db from '../../../database/database-manager';
 import { ValidationException } from '../../../fonaments/exceptions/validation-exception';
 import { Service } from '../../../fonaments/services/service';
 import { ErrorBag } from '../../../fonaments/validation/validator';

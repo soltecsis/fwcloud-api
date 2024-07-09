@@ -87,19 +87,19 @@ export class User extends Model {
   @Column()
   updated_by: number;
 
-  @ManyToMany((type) => FwCloud, (fwcloud) => fwcloud.users)
+  @ManyToMany(() => FwCloud, (fwcloud) => fwcloud.users)
   fwClouds: Array<FwCloud>;
 
-  @OneToMany((type) => Ca, (ca) => ca.created_by)
+  @OneToMany(() => Ca, (ca) => ca.created_by)
   created_cas: Array<Ca>;
 
-  @OneToMany((type) => Ca, (ca) => ca.updated_by)
+  @OneToMany(() => Ca, (ca) => ca.updated_by)
   updated_cas: Array<Ca>;
 
   @Column({ name: 'customer' })
   customerId: number;
 
-  @ManyToOne((type) => Customer, (customer) => customer.users)
+  @ManyToOne(() => Customer, (customer) => customer.users)
   @JoinColumn({
     name: 'customer',
   })
@@ -261,7 +261,7 @@ export class User extends Model {
                 role=${req.body.role},
                 allowed_from=${req.dbCon.escape(req.body.allowed_from)}
                 WHERE id=${req.body.user}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -278,7 +278,7 @@ export class User extends Model {
 
       req.dbCon.query(
         `UPDATE ${tableName} SET password=${req.dbCon.escape(crypt_pass)} WHERE id=${req.session.user_id}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },
@@ -302,12 +302,12 @@ export class User extends Model {
 
   public static _delete(req): Promise<void> {
     return new Promise((resolve, reject) => {
-      req.dbCon.query(`delete from user__fwcloud where user=${req.body.user}`, (error, result) => {
+      req.dbCon.query(`delete from user__fwcloud where user=${req.body.user}`, (error) => {
         if (error) return reject(error);
 
         req.dbCon.query(
           `delete from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`,
-          (error, result) => {
+          (error) => {
             if (error) return reject(error);
             resolve();
           },
@@ -361,7 +361,7 @@ export class User extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `delete from user__fwcloud where user=${user} and fwcloud=${fwcloud}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },

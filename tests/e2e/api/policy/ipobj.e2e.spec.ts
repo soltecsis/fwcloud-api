@@ -7,7 +7,6 @@ import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';
 import { IPObjToIPObjGroup } from '../../../../src/models/ipobj/IPObjToIPObjGroup';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
-import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
 import { User } from '../../../../src/models/user/User';
 import { describeName, testSuite } from '../../../mocha/global-setup';
 import { FwCloudProduct, FwCloudFactory } from '../../../utils/fwcloud-factory';
@@ -34,8 +33,6 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
   let adminUser: User;
   let session: string;
   let group: IPObjGroup;
-
-  let firewall: Firewall;
 
   let inputRuleId: number;
   let outputRuleId: number;
@@ -107,7 +104,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
       action: 1,
     });
 
-    firewall = await manager.getRepository(Firewall).findOneOrFail({
+    await manager.getRepository(Firewall).findOneOrFail({
       where: { id: fwcProduct.firewall.id },
       relations: ['fwCloud'],
     });

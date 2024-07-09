@@ -1,12 +1,4 @@
-import {
-  MigrationInterface,
-  QueryRunner,
-  Table,
-  TableColumn,
-  TableForeignKey,
-  TableIndex,
-  Unique,
-} from 'typeorm';
+import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
 export class add2faToUser1654166618845 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {

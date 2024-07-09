@@ -78,10 +78,8 @@ describe('KeepalivedRule E2E Tests', () => {
 
   describe(KeepalivedController.name, () => {
     describe('@index', () => {
-      let KeepalivedRule: KeepalivedRule;
-
       beforeEach(async () => {
-        KeepalivedRule = await keepalivedRuleServiceInstance.store({
+        await keepalivedRuleServiceInstance.store({
           active: true,
           group: group.id,
           firewallId: firewall.id,

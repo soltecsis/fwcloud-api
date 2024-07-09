@@ -64,10 +64,10 @@ describe(RoutingRuleRepository.name, () => {
 
   describe('getLastRoutingRuleInFirewall', () => {
     let table2: RoutingTable;
-    let tableRuleOrder1: RoutingRule;
-    let tableRuleOrder2: RoutingRule;
-    let table2RuleOrder1: RoutingRule;
-    let table2RuleOrder2: RoutingRule;
+    //let tableRuleOrder1: RoutingRule;
+    //let tableRuleOrder2: RoutingRule;
+    //let table2RuleOrder1: RoutingRule;
+    //let table2RuleOrder2: RoutingRule;
 
     beforeEach(async () => {
       table2 = await tableService.create({
@@ -77,25 +77,29 @@ describe(RoutingRuleRepository.name, () => {
         comment: null,
       });
 
-      tableRuleOrder1 = await repository.save({
+      //tableRuleOrder1 =
+      await repository.save({
         routingTableId: table.id,
         rule_order: 1,
         comment: 'tableRuleOrder1',
       });
 
-      tableRuleOrder2 = await repository.save({
+      //tableRuleOrder2 =
+      await repository.save({
         routingTableId: table.id,
         rule_order: 2,
         comment: 'tableRuleOrder2',
       });
 
-      table2RuleOrder1 = await repository.save({
+      //table2RuleOrder1 =
+      await repository.save({
         routingTableId: table2.id,
         rule_order: 3,
         comment: 'table2RuleOrder1',
       });
 
-      table2RuleOrder2 = await repository.save({
+      //table2RuleOrder2 =
+      await repository.save({
         routingTableId: table2.id,
         rule_order: 4,
         comment: 'table2RuleOrder2',
@@ -163,7 +167,8 @@ describe(RoutingRuleRepository.name, () => {
     });
 
     it('should add to a group is destination belongs to a group', async () => {
-      const ruleOrder1: RoutingRule = await repository.save({
+      //const ruleOrder1: RoutingRule =
+      await repository.save({
         routingTableId: table.id,
         rule_order: 1,
       });

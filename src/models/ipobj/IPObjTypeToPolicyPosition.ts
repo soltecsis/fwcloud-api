@@ -34,7 +34,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   @PrimaryColumn({ name: 'type' })
   ipObjTypeId: number;
 
-  @ManyToOne((type) => IPObjType, (model) => model.ipObjTypeToPolicyPositions)
+  @ManyToOne(() => IPObjType, (model) => model.ipObjTypeToPolicyPositions)
   @JoinColumn({
     name: 'type',
   })
@@ -43,7 +43,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   @PrimaryColumn({ name: 'position' })
   policyPositionId: number;
 
-  @ManyToOne((type) => PolicyPosition, (model) => model.ipObjTypeToPolicyPositions)
+  @ManyToOne(() => PolicyPosition, (model) => model.ipObjTypeToPolicyPositions)
   @JoinColumn({
     name: 'position',
   })
@@ -93,7 +93,7 @@ export class IPObjTypeToPolicyPosition extends Model {
       connection.query(
         'INSERT INTO ' + tableName + ' SET ?',
         ipobj_type__policy_positionData,
-        (error, result) => {
+        (error) => {
           if (error) {
             callback(error, null);
           } else {
@@ -119,7 +119,7 @@ export class IPObjTypeToPolicyPosition extends Model {
         connection.escape(ipobj_type__policy_positionData.type) +
         ' position = ' +
         connection.escape(ipobj_type__policy_positionData.position);
-      connection.query(sql, (error, result) => {
+      connection.query(sql, (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -151,7 +151,7 @@ export class IPObjTypeToPolicyPosition extends Model {
               connection.escape(type) +
               ' position = ' +
               connection.escape(position);
-            connection.query(sql, (error, result) => {
+            connection.query(sql, (error) => {
               if (error) {
                 callback(error, null);
               } else {

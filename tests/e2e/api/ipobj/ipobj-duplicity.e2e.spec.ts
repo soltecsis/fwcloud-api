@@ -1,27 +1,21 @@
 import { describeName, testSuite, expect } from '../../../mocha/global-setup';
 import request = require('supertest');
-import { _URL } from '../../../../src/fonaments/http/router/router.service';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { FwCloudService } from '../../../../src/models/fwcloud/fwcloud.service';
 import { Tree } from '../../../../src/models/tree/Tree';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import StringHelper from '../../../../src/utils/string.helper';
 import { User } from '../../../../src/models/user/User';
-import { createUser, generateSession, attachSession, sleep } from '../../../utils/utils';
+import { createUser, generateSession, attachSession } from '../../../utils/utils';
 import { Application } from '../../../../src/Application';
-import fwc_tree_node = require('../../../../src/models/tree/node');
-import { FwcTree } from '../../../../src/models/tree/fwc-tree.model';
 import db from '../../../../src/database/database-manager';
 
 describe(describeName('Ipobj duplicity E2E Tests'), () => {
   let app: Application;
   let fwCloud: FwCloud;
-  let fwcTree: Tree;
   let fwcTreeNode;
   let adminUser: User;
   let adminUserSessionId: string;
-  let regularUser: User;
-  let regularUserSessionId: string;
   let requestData: any;
 
   const ipobjCreationSchema = {
@@ -61,7 +55,8 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
 
   before(async () => {
     app = testSuite.app;
-    regularUser = await createUser({ role: 0 });
+    //regularUser =
+    await createUser({ role: 0 });
     adminUser = await createUser({ role: 1 });
 
     fwCloud = await (

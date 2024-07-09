@@ -21,16 +21,11 @@
 */
 
 import { Policy, Authorization } from '../fonaments/authorization/policy';
-import { Firewall } from '../models/firewall/Firewall';
 import { User } from '../models/user/User';
 import { FwCloud } from '../models/fwcloud/FwCloud';
 
 export class SystemctlPolicy extends Policy {
-  static async communicate(
-    user: User,
-    fwCloud: FwCloud,
-    firewall: Firewall,
-  ): Promise<Authorization> {
+  static async communicate(user: User, fwCloud: FwCloud): Promise<Authorization> {
     if (user.role === 1) {
       return Authorization.grant();
     }

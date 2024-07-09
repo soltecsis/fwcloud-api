@@ -34,7 +34,6 @@ import { _URL } from '../../../../../src/fonaments/http/router/router.service';
 import { DHCPGroup } from '../../../../../src/models/system/dhcp/dhcp_g/dhcp_g.model';
 import { EntityManager } from 'typeorm';
 import { DHCPRuleCopyDto } from '../../../../../src/controllers/system/dhcp/dto/copy.dto';
-import { DHCPRepository } from '../../../../../src/models/system/dhcp/dhcp_r/dhcp.repository';
 import { Offset } from '../../../../../src/offset';
 import { DhcpRuleBulkUpdateDto } from '../../../../../src/controllers/system/dhcp/dto/bulk-update.dto';
 import { IPObj } from '../../../../../src/models/ipobj/IPObj';
@@ -86,10 +85,8 @@ describe('DHCPRule E2E Tests', () => {
 
   describe(DhcpController.name, () => {
     describe('@index', () => {
-      let dhcpRule: DHCPRule;
-
       beforeEach(async () => {
-        dhcpRule = await DHCPRuleServiceInstance.store({
+        await DHCPRuleServiceInstance.store({
           active: true,
           group: group.id,
           firewallId: firewall.id,
@@ -677,7 +674,7 @@ describe('DHCPRule E2E Tests', () => {
       let dhcpRule1: DHCPRule;
       let dhcpRule2: DHCPRule;
       let dhcpRule3: DHCPRule;
-      let dhcpRule4: DHCPRule;
+      //let dhcpRule4: DHCPRule;
       let data: DHCPRuleCopyDto;
 
       beforeEach(async () => {
@@ -708,7 +705,8 @@ describe('DHCPRule E2E Tests', () => {
           comment: 'comment',
           rule_order: 3,
         });
-        dhcpRule4 = await DHCPRuleServiceInstance.store({
+        //dhcpRule4 =
+        await DHCPRuleServiceInstance.store({
           active: true,
           group: group.id,
           firewallId: firewall.id,

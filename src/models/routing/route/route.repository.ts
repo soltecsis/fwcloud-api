@@ -32,7 +32,6 @@ import { Offset } from '../../../offset';
 import { RoutingTable } from '../routing-table/routing-table.model';
 import { Route } from './route.model';
 import { Repository } from '../../../database/repository';
-import db from '../../../database/database-manager';
 
 interface IFindManyRoutePath {
   fwCloudId?: number;

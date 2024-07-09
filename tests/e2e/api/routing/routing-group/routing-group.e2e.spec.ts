@@ -92,10 +92,8 @@ describe(describeName('Routing Group E2E Tests'), () => {
 
   describe(RoutingGroup.name, () => {
     describe('@index', () => {
-      let group: RoutingGroup;
-
       beforeEach(async () => {
-        group = await manager.getRepository(RoutingGroup).save({
+        await manager.getRepository(RoutingGroup).save({
           name: 'group',
           firewallId: firewall.id,
           routingRules: [rule],
@@ -399,7 +397,6 @@ describe(describeName('Routing Group E2E Tests'), () => {
 
     describe('@remove', () => {
       let group: RoutingGroup;
-      let data: Record<string, unknown>;
 
       beforeEach(async () => {
         group = await manager.getRepository(RoutingGroup).save({
@@ -407,11 +404,6 @@ describe(describeName('Routing Group E2E Tests'), () => {
           firewallId: firewall.id,
           routingRules: [rule],
         });
-
-        data = {
-          name: Date.now().toString(),
-          comment: Date.now().toString(),
-        };
       });
 
       it('guest user should not remove a routing group', async () => {

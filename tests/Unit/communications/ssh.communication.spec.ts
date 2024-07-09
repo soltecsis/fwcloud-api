@@ -20,7 +20,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import axios from 'axios';
 import sinon from 'sinon';
 import { CCDHash } from '../../../src/communications/communication';
 import { expect, testSuite } from '../../mocha/global-setup';

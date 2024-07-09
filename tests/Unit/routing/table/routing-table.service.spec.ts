@@ -129,10 +129,8 @@ describe(describeName(RoutingTableService.name + ' Unit Tests'), () => {
 
   describe('remove', () => {
     let table: RoutingTable;
-    let numberUsed: number;
 
     beforeEach(async () => {
-      numberUsed = fwcloudProduct.routingTable.number;
       table = await service.create({
         name: 'newTable',
         number: 1,

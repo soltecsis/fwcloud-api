@@ -18,7 +18,6 @@
 import { SelectQueryBuilder } from 'typeorm';
 import Model from '../../../models/Model';
 import { HAProxyRuleToIPObj } from '../../../models/system/haproxy/haproxy_r/haproxy_r-to_ipobj.model';
-import { HAProxyGroupExporter } from './haproxy_g.exporter';
 import { HAProxyRule } from '../../../models/system/haproxy/haproxy_r/haproxy_r.model';
 import { HAProxyRuleExporter } from './haproxy_r.exporter';
 import { IPObj } from '../../../models/ipobj/IPObj';

@@ -1,4 +1,3 @@
-import chalk from 'chalk';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import yargs from 'yargs';
 import { Backup } from '../../backups/backup';
@@ -6,7 +5,6 @@ import { BackupService } from '../../backups/backup.service';
 import {
   EndTaskPayload,
   ErrorTaskPayload,
-  StartTaskPayload,
 } from '../../fonaments/http/progress/messages/progress-messages';
 import { ProgressPayload } from '../../sockets/messages/socket-message';
 import { Argument, Command } from '../command';

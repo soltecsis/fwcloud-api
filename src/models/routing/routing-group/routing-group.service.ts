@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindOneOptions, SelectQueryBuilder } from 'typeorm';
+import { SelectQueryBuilder } from 'typeorm';
 import { Application } from '../../../Application';
 import { Service } from '../../../fonaments/services/service';
 import { Firewall } from '../../firewall/Firewall';

@@ -119,7 +119,7 @@ export default class sshTools {
             let prevStr = '';
 
             stream
-              .on('close', (code, signal) => {
+              .on('close', (code) => {
                 //console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
                 conn.end();
                 if (code === 0) resolve(stdout_log);

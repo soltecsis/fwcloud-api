@@ -24,7 +24,7 @@ import Model from '../Model';
 import db from '../../database/database-manager';
 import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { IPObj } from '../ipobj/IPObj';
-import { app, logger } from '../../fonaments/abstract-application';
+import { logger } from '../../fonaments/abstract-application';
 import { Interface } from './Interface';
 
 const tableName: string = 'interface__ipobj';
@@ -52,13 +52,13 @@ export class InterfaceIPObj extends Model {
   @Column()
   updated_by: number;
 
-  @ManyToOne((type) => Interface, (model) => model.hosts)
+  @ManyToOne(() => Interface, (model) => model.hosts)
   @JoinColumn({
     name: 'interface',
   })
   hostInterface: Interface;
 
-  @ManyToOne((type) => IPObj, (model) => model.hosts)
+  @ManyToOne(() => IPObj, (model) => model.hosts)
   @JoinColumn({
     name: 'ipobj',
   })
@@ -186,7 +186,7 @@ export class InterfaceIPObj extends Model {
         connection.escape(get_interface) +
         ' AND ipobj=' +
         connection.escape(get_ipobj);
-      connection.query(sql, (error, result) => {
+      connection.query(sql, (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -217,7 +217,7 @@ export class InterfaceIPObj extends Model {
         connection.escape(interface__ipobjData.interface) +
         ' AND ipobj=' +
         connection.escape(interface__ipobjData.ipobj);
-      connection.query(sql, (error, result) => {
+      connection.query(sql, (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -295,7 +295,7 @@ export class InterfaceIPObj extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `DELETE FROM ${tableName} WHERE interface=${_interface} and ipobj=${host}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },

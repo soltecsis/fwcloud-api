@@ -36,8 +36,7 @@ import db from '../../database/database-manager';
 import Model from '../Model';
 import { PolicyRule } from './PolicyRule';
 import { Firewall } from '../firewall/Firewall';
-import { PolicyRuleRepository } from './policy-rule.repository';
-import { app, logger } from '../../fonaments/abstract-application';
+import { logger } from '../../fonaments/abstract-application';
 
 const tableName = 'policy_g';
 
@@ -70,7 +69,7 @@ export class PolicyGroup extends Model {
   @Column({ name: 'firewall' })
   firewallId: number;
 
-  @ManyToOne((type) => Firewall, (firewall) => firewall.policyGroups)
+  @ManyToOne(() => Firewall, (firewall) => firewall.policyGroups)
   @JoinColumn({
     name: 'firewall',
   })
@@ -79,16 +78,16 @@ export class PolicyGroup extends Model {
   @Column({ name: 'idgroup' })
   parentId: number;
 
-  @ManyToOne((type) => PolicyGroup, (policyGroup) => policyGroup.childs)
+  @ManyToOne(() => PolicyGroup, (policyGroup) => policyGroup.childs)
   @JoinColumn({
     name: 'idgroup',
   })
   parent: PolicyGroup;
 
-  @OneToMany((type) => PolicyGroup, (policyGroup) => policyGroup.parent)
+  @OneToMany(() => PolicyGroup, (policyGroup) => policyGroup.parent)
   childs: Array<PolicyGroup>;
 
-  @OneToMany((type) => PolicyRule, (policyRule) => policyRule.policyGroup)
+  @OneToMany(() => PolicyRule, (policyRule) => policyRule.policyGroup)
   policyRules: Array<PolicyRule>;
 
   public getTableName(): string {
@@ -213,7 +212,7 @@ export class PolicyGroup extends Model {
         ' WHERE id = ' +
         policy_gData.id;
 
-      connection.query(sql, (error, result) => {
+      connection.query(sql, (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -236,7 +235,7 @@ export class PolicyGroup extends Model {
         ' WHERE id = ' +
         policy_gData.id;
 
-      connection.query(sql, (error, result) => {
+      connection.query(sql, (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -292,7 +291,7 @@ export class PolicyGroup extends Model {
         if (row) {
           db.get((error, connection) => {
             const sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-            connection.query(sql, (error, result) => {
+            connection.query(sql, (error) => {
               if (error) {
                 callback(error, null);
               } else {
@@ -363,7 +362,7 @@ export class PolicyGroup extends Model {
             connection.escape(rowData.id) +
             ' AND firewall=' +
             connection.escape(rowData.newfirewall);
-          connection.query(sql, async (error, result) => {
+          connection.query(sql, async (error) => {
             if (error) return reject(error);
             resolve();
           });
@@ -379,7 +378,7 @@ export class PolicyGroup extends Model {
         if (error) return reject(error);
 
         const sql = 'DELETE FROM ' + tableName + ' WHERE firewall=' + connection.escape(idFirewall);
-        connection.query(sql, (error, rows) => {
+        connection.query(sql, (error) => {
           if (error) return reject(error);
           resolve();
         });
@@ -392,7 +391,7 @@ export class PolicyGroup extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },

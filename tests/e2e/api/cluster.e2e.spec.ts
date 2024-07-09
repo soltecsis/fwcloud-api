@@ -2,7 +2,7 @@ import { Application } from '../../../src/Application';
 import { Cluster } from '../../../src/models/firewall/Cluster';
 import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
 import { User } from '../../../src/models/user/User';
-import { describeName, expect, testSuite } from '../../mocha/global-setup';
+import { describeName, testSuite } from '../../mocha/global-setup';
 import { attachSession, createUser, generateSession } from '../../utils/utils';
 import request = require('supertest');
 import { _URL } from '../../../src/fonaments/http/router/router.service';

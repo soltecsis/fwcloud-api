@@ -22,7 +22,6 @@
 
 import { EventEmitter } from 'events';
 import { app } from '../fonaments/abstract-application';
-import { FwCloudError } from '../fonaments/exceptions/error';
 import { FireWallOptMask } from '../models/firewall/Firewall';
 import { ProgressInfoPayload, ProgressNoticePayload } from '../sockets/messages/socket-message';
 import sshTools from '../utils/ssh';

@@ -31,7 +31,6 @@ describe(KeepalivedRepository.name, () => {
   let repository: KeepalivedRepository;
   let fwCloud: FwCloud;
   let firewall: Firewall;
-  let gateway: IPObj;
   let group: KeepalivedGroup;
   let keepalivedRule: KeepalivedRule;
   let manager: EntityManager;
@@ -51,7 +50,7 @@ describe(KeepalivedRepository.name, () => {
         fwCloudId: fwCloud.id,
       }),
     );
-    gateway = await manager.getRepository(IPObj).save(
+    await manager.getRepository(IPObj).save(
       manager.getRepository(IPObj).create({
         name: 'test',
         address: '0.0.0.0',
@@ -79,7 +78,7 @@ describe(KeepalivedRepository.name, () => {
 
   describe('remove', () => {
     it('should remove a single KeepalivedRule entity', async () => {
-      const result = await repository.remove(keepalivedRule);
+      await repository.remove(keepalivedRule);
 
       expect(await repository.findOne({ where: { id: keepalivedRule.id } })).to.be.null;
     });
@@ -94,7 +93,7 @@ describe(KeepalivedRepository.name, () => {
         }),
       );
 
-      const result = await repository.remove([keepalivedRule, keepalivedRule2]);
+      await repository.remove([keepalivedRule, keepalivedRule2]);
 
       expect(await repository.findOne({ where: { id: keepalivedRule.id } })).to.be.null;
       expect(await repository.findOne({ where: { id: keepalivedRule2.id } })).to.be.null;
@@ -132,8 +131,9 @@ describe(KeepalivedRepository.name, () => {
 
   describe('getLastKeepalivedRuleInGroup', () => {
     it('should return the last Keepalived rule in the group', async () => {
-      const Keepalivedgid = group.id;
-      const expectedRule: KeepalivedRule = await manager.getRepository(KeepalivedRule).save(
+      //const Keepalivedgid = group.id;
+      //const expectedRule: KeepalivedRule =
+      await manager.getRepository(KeepalivedRule).save(
         manager.getRepository(KeepalivedRule).create({
           group: group,
           firewall: firewall,

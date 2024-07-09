@@ -22,7 +22,7 @@
 
 import { Repository } from '../../database/repository';
 import { Firewall } from './Firewall';
-import { EntityManager, In } from 'typeorm';
+import { EntityManager } from 'typeorm';
 
 export class FirewallRepository extends Repository<Firewall> {
   constructor(manager?: EntityManager) {

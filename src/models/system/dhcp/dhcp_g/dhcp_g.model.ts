@@ -36,7 +36,7 @@ export class DHCPGroup extends Model {
   @Column({ name: 'firewall' })
   firewallId: number;
 
-  @ManyToOne((type) => Firewall, (firewall) => firewall.dhcpGroups)
+  @ManyToOne(() => Firewall, (firewall) => firewall.dhcpGroups)
   @JoinColumn({
     name: 'firewall',
   })
@@ -45,7 +45,7 @@ export class DHCPGroup extends Model {
   @Column({ type: 'varchar', length: 50 })
   style: string;
 
-  @OneToMany((type) => DHCPRule, (model) => model.group, {
+  @OneToMany(() => DHCPRule, (model) => model.group, {
     eager: true,
   })
   rules: DHCPRule[];

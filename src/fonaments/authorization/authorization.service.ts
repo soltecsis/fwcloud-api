@@ -21,7 +21,6 @@
 */
 
 import { Service } from '../services/service';
-import { AbstractApplication } from '../abstract-application';
 import { Request, Response, NextFunction } from 'express';
 import { AuthorizationException } from '../exceptions/authorization-exception';
 

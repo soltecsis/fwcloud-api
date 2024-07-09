@@ -128,7 +128,7 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
           [rule],
           null,
         );
-        const result = await PolicyCompiler.compile(compiler, rulesData);
+        await PolicyCompiler.compile(compiler, rulesData);
       } catch (err) {
         error = err;
       }
@@ -161,7 +161,7 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
           [rule],
           null,
         );
-        const result = await PolicyCompiler.compile(compiler, rulesData);
+        await PolicyCompiler.compile(compiler, rulesData);
       } catch (err) {
         error = err;
       }
@@ -201,7 +201,7 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
           [rule],
           null,
         );
-        const result = await PolicyCompiler.compile(compiler, rulesData);
+        await PolicyCompiler.compile(compiler, rulesData);
       } catch (err) {
         error = err;
       }
@@ -234,7 +234,7 @@ describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
           [rule],
           null,
         );
-        const result = await PolicyCompiler.compile(compiler, rulesData);
+        await PolicyCompiler.compile(compiler, rulesData);
       } catch (err) {
         error = err;
       }

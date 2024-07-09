@@ -30,8 +30,7 @@ import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { IPObj } from '../ipobj/IPObj';
 const fwcError = require('../../utils/error_table');
 const asyncMod = require('async');
-const _Tree = require('easy-tree');
-const fwc_tree_node = require('./node.js');
+//const fwc_tree_node = require('./node.js');
 
 const tableName: string = 'fwc_tree';
 
@@ -378,7 +377,7 @@ export class Tree extends Model {
 
   // Put STD folders first.
   public static stdFoldersFirst(root_node): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       // Put standard folders at the begining.
       for (const node1 of root_node.children) {
         for (const [index, node2] of node1.children.entries()) {
@@ -454,7 +453,7 @@ export class Tree extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        connection.query(`DELETE FROM ${tableName} WHERE id=${id}`, (error, result) => {
+        connection.query(`DELETE FROM ${tableName} WHERE id=${id}`, (error) => {
           if (error) return reject(error);
           resolve({ result: true, msg: 'deleted' });
         });
@@ -555,10 +554,10 @@ export class Tree extends Model {
             logger().debug('-----> UPDATING NODES UNDER PARENT: ' + data.id);
             //Bucle por interfaces
             Promise.all(rows.map((data) => this.updateIDOBJFwc_TreeFullNode(data)))
-              .then((resp) => {
+              .then(() => {
                 //logger().debug("----------- FIN PROMISES ALL NODE PADRE: ", data.id);
                 this.updateIDOBJFwc_Tree_node(data.fwcloud, data.id, data.NEWFW)
-                  .then((resp) => {
+                  .then(() => {
                     //logger().debug("UPDATED NODE: ", data.id);
                     resolve();
                   })
@@ -572,7 +571,7 @@ export class Tree extends Model {
             resolve();
             //Node whithout children, delete node
             this.updateIDOBJFwc_Tree_node(data.fwcloud, data.id, data.NEWFW)
-              .then((resp) => {
+              .then(() => {
                 logger().debug('UPDATED NODE: ', data.id);
                 resolve();
               })
@@ -598,7 +597,7 @@ export class Tree extends Model {
           ' AND id = ' +
           connection.escape(id);
         logger().debug('SQL UPDATE NODE: ', sql);
-        connection.query(sql, (error, result) => {
+        connection.query(sql, (error) => {
           if (error) {
             logger().debug(sql);
             logger().debug(error);
@@ -624,7 +623,7 @@ export class Tree extends Model {
         const sql = `UPDATE ${tableName} SET name=${connection.escape(name).toString()} 
                     WHERE node_type='RT' AND fwcloud=${fwcloud} AND id_obj=${id}`;
 
-        connection.query(sql, (error, result) => {
+        connection.query(sql, (error) => {
           if (error) return reject(error);
           resolve();
         });
@@ -829,7 +828,7 @@ export class Tree extends Model {
             sql += `(${dbCon.escape(ipobj.name)},${node_id} ,${dbCon.escape(node_type)},${ipobj.id},${ipobj_type},NULL),`;
           }
           sql = sql.slice(0, -1);
-          dbCon.query(sql, async (error, result) => {
+          dbCon.query(sql, async (error) => {
             if (error) return reject(error);
 
             resolve();
@@ -1524,7 +1523,7 @@ export class Tree extends Model {
               (row, callback) => {
                 //logger().debug(row);
                 //logger().debug("---> DENTRO de NODO: " + row.name + " - " + row.node_type);
-                const tree_node = new fwc_tree_node(row);
+                //const tree_node = new fwc_tree_node(row);
                 //Añadimos nodos CLUSTER del CLOUD
                 const sqlnodes =
                   'SELECT id,name,fwcloud FROM cluster WHERE id=' + connection.escape(idcluster);
@@ -1532,10 +1531,8 @@ export class Tree extends Model {
                 connection.query(sqlnodes, (error, rowsnodes) => {
                   if (error) callback(error, null);
                   else {
-                    let i = 0;
                     if (rowsnodes) {
                       asyncMod.forEachSeries(rowsnodes, (rnode, callback2) => {
-                        i++;
                         //Insertamos nodos Cluster
                         const sqlinsert =
                           'INSERT INTO ' +
@@ -1574,8 +1571,6 @@ export class Tree extends Model {
                             );
                             parent_cluster = result.insertId;
 
-                            const parent_FP = 0;
-
                             //update ALL FIREWALL NODES
                             const sqlinsert =
                               'UPDATE ' +
@@ -1585,7 +1580,7 @@ export class Tree extends Model {
                               ' WHERE id_parent=' +
                               firewallNode;
                             logger().debug(sqlinsert);
-                            connection.query(sqlinsert, (error, result) => {
+                            connection.query(sqlinsert, (error) => {
                               if (error) logger().debug('ERROR ALL NODES : ' + error);
                             });
                           }
@@ -1616,7 +1611,7 @@ export class Tree extends Model {
                                 ' WHERE id=' +
                                 firewallNode;
                               logger().debug(sqlinsert);
-                              connection.query(sqlinsert, (error, result) => {
+                              connection.query(sqlinsert, (error) => {
                                 if (error) logger().debug('ERROR FIREWALL NODE : ' + error);
                               });
                             }
@@ -1702,7 +1697,7 @@ export class Tree extends Model {
                   ' WHERE id_parent=' +
                   clusterNode +
                   ' AND node_type<>"FCF"';
-                connection.query(sqlinsert, (error, result) => {
+                connection.query(sqlinsert, (error) => {
                   if (error) logger().debug('ERROR ALL NODES : ' + error);
                 });
 
@@ -1728,7 +1723,7 @@ export class Tree extends Model {
                       ' WHERE node_type= "FCF" and id_parent=' +
                       clusterNode;
                     logger().debug(sqldel);
-                    connection.query(sqldel, (error, result) => {
+                    connection.query(sqldel, (error) => {
                       if (error) logger().debug('ERROR FCF : ' + error);
                     });
                     //SEARCH IDNODE for FIREWALLS NODE
@@ -1738,8 +1733,8 @@ export class Tree extends Model {
                       ' T1  where T1.node_type="FDF" and T1.id_parent is null AND T1.fwcloud=' +
                       connection.escape(fwcloud);
                     logger().debug(sql);
-                    connection.query(sql, (error, rowsF) => {
-                      const firewallsNode = rowsF[0].id;
+                    connection.query(sql, () => {
+                      //const firewallsNode = rowsF[0].id;
                       //update  FIREWALL under NODES to FIREWALLS NODE
                       const sqlinsert =
                         'UPDATE ' +
@@ -1749,7 +1744,7 @@ export class Tree extends Model {
                         ' WHERE id=' +
                         firewallNode;
                       logger().debug(sqlinsert);
-                      connection.query(sqlinsert, (error, result) => {
+                      connection.query(sqlinsert, (error) => {
                         if (error) logger().debug('ERROR FIREWALL NODE : ' + error);
                         else {
                           //Remove nodo Firewalls Slaves
@@ -1760,7 +1755,7 @@ export class Tree extends Model {
                             ' WHERE node_type= "FW"  and id_parent=' +
                             idNodes;
                           logger().debug(sqldel);
-                          connection.query(sqldel, (error, result) => {
+                          connection.query(sqldel, (error) => {
                             if (error) logger().debug('ERROR FW - FCF : ' + error);
                             else {
                               AllDone(null, { result: true });
@@ -1821,7 +1816,7 @@ export class Tree extends Model {
         ' ' +
         ' WHERE id = ' +
         nodeTreeData.id;
-      connection.query(sql, (error, result) => {
+      connection.query(sql, (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -1836,7 +1831,7 @@ export class Tree extends Model {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET name=${dbCon.escape(FwData.name)}
 			WHERE id_obj=${FwData.id} AND fwcloud=${fwcloud} AND node_type='FW'`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -1848,7 +1843,7 @@ export class Tree extends Model {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET name=${dbCon.escape(Data.name)}
 			WHERE id_obj=${Data.id} AND fwcloud=${fwcloud} AND node_type='CL'`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -1881,7 +1876,7 @@ export class Tree extends Model {
     return new Promise((resolve, reject) => {
       const sql = `DELETE T.* FROM ${tableName} T INNER JOIN ${tableName} T2 ON T.id_parent=T2.id 
 			WHERE T.fwcloud=${fwcloud} AND T.id_obj=${id_obj} AND T2.id_obj=${id_group}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -1995,7 +1990,7 @@ export class Tree extends Model {
                         id_parent +
                         ' AND id=' +
                         rowNode.id;
-                      dbCon.query(sql, (error, result) => {
+                      dbCon.query(sql, (error) => {
                         if (error) {
                           callback2();
                         } else {
@@ -2003,14 +1998,14 @@ export class Tree extends Model {
                         }
                       });
                     }, //Fin de bucle
-                    function (err) {
+                    function () {
                       return resolve({ result: true });
                     },
                   );
                 } else callback1();
               });
             }, //Fin de bucle
-            function (err) {
+            function () {
               return resolve({ result: true });
             },
           );
@@ -2048,7 +2043,7 @@ export class Tree extends Model {
                 ' AND id=' +
                 connection.escape(rowNode.id);
               logger().debug(sql);
-              connection.query(sql, (error, result) => {
+              connection.query(sql, (error) => {
                 if (error) {
                   callback2();
                 } else {
@@ -2056,7 +2051,7 @@ export class Tree extends Model {
                 }
               });
             }, //Fin de bucle
-            function (err) {
+            function () {
               callback(null, { result: true });
             },
           );

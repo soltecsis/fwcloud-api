@@ -78,25 +78,25 @@ export class Interface extends Model {
   @Column({ name: 'firewall' })
   firewallId: number;
 
-  @ManyToOne((type) => Firewall, (firewall) => firewall.interfaces)
+  @ManyToOne(() => Firewall, (firewall) => firewall.interfaces)
   @JoinColumn({
     name: 'firewall',
   })
   firewall: Firewall;
 
-  @OneToMany((type) => IPObj, (ipObj) => ipObj.interface)
+  @OneToMany(() => IPObj, (ipObj) => ipObj.interface)
   ipObjs: Array<IPObj>;
 
-  @OneToMany((type) => InterfaceIPObj, (interfaceIPObj) => interfaceIPObj.hostInterface)
+  @OneToMany(() => InterfaceIPObj, (interfaceIPObj) => interfaceIPObj.hostInterface)
   hosts!: Array<InterfaceIPObj>;
 
   @OneToMany(
-    (type) => PolicyRuleToInterface,
+    () => PolicyRuleToInterface,
     (policyRuleToInterface) => policyRuleToInterface.policyRuleInterface,
   )
   policyRuleToInterfaces: Array<PolicyRuleToInterface>;
 
-  @OneToMany((type) => Route, (model) => model.routingTable)
+  @OneToMany(() => Route, (model) => model.routingTable)
   routes: Route[];
 
   @OneToMany(
@@ -105,7 +105,7 @@ export class Interface extends Model {
   )
   routingRuleToInterfaces: RoutingRuleToInterface[];
 
-  @OneToMany((type) => PolicyRuleToIPObj, (model) => model.interface)
+  @OneToMany(() => PolicyRuleToIPObj, (model) => model.interface)
   policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
 
   public getTableName(): string {
@@ -328,7 +328,7 @@ export class Interface extends Model {
                     reject(e);
                   });
               })
-              .catch((e) => {
+              .catch(() => {
                 resolve({});
               });
           }
@@ -1007,7 +1007,7 @@ export class Interface extends Model {
   public static deleteInterfaceFW(dbCon, _interface): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE type=10 AND id=${_interface}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -1017,7 +1017,7 @@ export class Interface extends Model {
   public static deleteInterfaceHOST(dbCon, _interface): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE type=11 AND id=${_interface}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -1069,7 +1069,7 @@ export class Interface extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`,
-        async (error, result) => {
+        async (error) => {
           if (error) return reject(error);
           resolve();
         },

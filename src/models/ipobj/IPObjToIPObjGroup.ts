@@ -22,17 +22,8 @@
 
 import Model from '../Model';
 import db from '../../database/database-manager';
-import {
-  PrimaryGeneratedColumn,
-  Column,
-  Entity,
-  Repository,
-  ManyToOne,
-  JoinTable,
-  JoinColumn,
-} from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn } from 'typeorm';
 import { IPObjGroup } from './IPObjGroup';
-import { app } from '../../fonaments/abstract-application';
 import { IPObj } from './IPObj';
 
 const tableName: string = 'ipobj__ipobjg';
@@ -60,13 +51,13 @@ export class IPObjToIPObjGroup extends Model {
   @Column()
   updated_by: number;
 
-  @ManyToOne((type) => IPObj, (ipObj) => ipObj.ipObjToIPObjGroups)
+  @ManyToOne(() => IPObj, (ipObj) => ipObj.ipObjToIPObjGroups)
   @JoinColumn({
     name: 'ipobj',
   })
   ipObj!: IPObj;
 
-  @ManyToOne((type) => IPObjGroup, (ipObjGroup) => ipObjGroup.ipObjToIPObjGroups)
+  @ManyToOne(() => IPObjGroup, (ipObjGroup) => ipObjGroup.ipObjToIPObjGroups)
   @JoinColumn({
     name: 'ipobj_g',
   })
@@ -95,7 +86,7 @@ export class IPObjToIPObjGroup extends Model {
   public static deleteIpobj__ipobjg(dbCon, ipobj_g, ipobj): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE ipobj_g=${ipobj_g} AND ipobj=${ipobj}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -105,23 +96,17 @@ export class IPObjToIPObjGroup extends Model {
   //Remove ipobj__ipobjg with id to remove
   public static deleteIpobj__ipobjgAll(dbCon, ipobj_g): Promise<void> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`DELETE FROM ${tableName} WHERE ipobj_g=${ipobj_g}`, (error, result) => {
+      dbCon.query(`DELETE FROM ${tableName} WHERE ipobj_g=${ipobj_g}`, (error) => {
         if (error) return reject(error);
 
-        dbCon.query(
-          `DELETE FROM openvpn_prefix__ipobj_g WHERE ipobj_g=${ipobj_g}`,
-          (error, result) => {
-            if (error) return reject(error);
+        dbCon.query(`DELETE FROM openvpn_prefix__ipobj_g WHERE ipobj_g=${ipobj_g}`, (error) => {
+          if (error) return reject(error);
 
-            dbCon.query(
-              `DELETE FROM openvpn__ipobj_g WHERE ipobj_g=${ipobj_g}`,
-              (error, result) => {
-                if (error) return reject(error);
-                resolve();
-              },
-            );
-          },
-        );
+          dbCon.query(`DELETE FROM openvpn__ipobj_g WHERE ipobj_g=${ipobj_g}`, (error) => {
+            if (error) return reject(error);
+            resolve();
+          });
+        });
       });
     });
   }

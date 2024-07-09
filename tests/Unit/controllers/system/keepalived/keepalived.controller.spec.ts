@@ -31,7 +31,7 @@ import db from '../../../../../src/database/database-manager';
 describe(KeepalivedController.name, () => {
   let firewall: Firewall;
   let fwCloud: FwCloud;
-  let keepalivedgroup: KeepalivedGroup;
+  //let keepalivedgroup: KeepalivedGroup;
   let Keepalivedrule: KeepalivedRule;
 
   let controller: KeepalivedController;
@@ -58,7 +58,8 @@ describe(KeepalivedController.name, () => {
       }),
     );
 
-    keepalivedgroup = await manager.getRepository(KeepalivedGroup).save({
+    //keepalivedgroup =
+    await manager.getRepository(KeepalivedGroup).save({
       name: StringHelper.randomize(10),
       firewall: firewall,
     });

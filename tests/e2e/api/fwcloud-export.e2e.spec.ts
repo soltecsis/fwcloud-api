@@ -27,7 +27,7 @@ import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
 import StringHelper from '../../../src/utils/string.helper';
 import { EntityManager } from 'typeorm';
 import { User } from '../../../src/models/user/User';
-import { createUser, generateSession, attachSession, sleep } from '../../utils/utils';
+import { createUser, generateSession, attachSession } from '../../utils/utils';
 import { Application } from '../../../src/Application';
 import { FwCloudExport } from '../../../src/fwcloud-exporter/fwcloud-export';
 import { FwCloudExportService } from '../../../src/fwcloud-exporter/fwcloud-export.service';
@@ -133,7 +133,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
           .attach('file', fwCloudExport.exportPath)
           .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(201)
-          .then(async (response) => {
+          .then(async () => {
             expect((await manager.getRepository(FwCloud).find()).length).to.be.deep.eq(
               fwCloudCount + 1,
             );

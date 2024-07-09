@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { AbstractApplication, app } from '../../../src/fonaments/abstract-application';
+import { AbstractApplication } from '../../../src/fonaments/abstract-application';
 import { describeName, testSuite } from '../../mocha/global-setup';
 import { PolicyRuleService } from '../../../src/policy-rule/policy-rule.service';
 import { FwCloudFactory, FwCloudProduct } from '../../utils/fwcloud-factory';

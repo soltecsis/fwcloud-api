@@ -34,14 +34,13 @@ describe(Mark.name, () => {
   let routingRule: RoutingRule;
   let mark: Mark;
 
-  let routeService: RouteService;
   let routingRuleService: RoutingRuleService;
   let manager: EntityManager;
 
   beforeEach(async () => {
     manager = db.getSource().manager;
     fwcloudProduct = await new FwCloudFactory().make();
-    routeService = await testSuite.app.getService<RouteService>(RouteService.name);
+    await testSuite.app.getService<RouteService>(RouteService.name);
     routingRuleService = await testSuite.app.getService<RoutingRuleService>(
       RoutingRuleService.name,
     );

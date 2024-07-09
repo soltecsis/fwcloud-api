@@ -321,7 +321,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       axios
         .post(pathUrl, params, requestConfig)
-        .then((_) => {
+        .then(() => {
           const endMessage: ProgressPayload = new ProgressPayload(
             'end',
             false,

@@ -1,10 +1,4 @@
-import {
-  registerDecorator,
-  ValidationArguments,
-  ValidationOptions,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
-} from 'class-validator';
+import { registerDecorator, ValidationArguments, ValidationOptions } from 'class-validator';
 import { In } from 'typeorm';
 import { IPObj } from '../../../models/ipobj/IPObj';
 import db from '../../../database/database-manager';

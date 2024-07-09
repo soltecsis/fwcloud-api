@@ -1,24 +1,24 @@
 {
-    "compilerOptions": {
-      "outDir": "dist",
-      "allowJs": true,
-      "lib": [ "ES2021" ],
-      "target": "ES2021",
-      "sourceMap": true,
-      "module": "CommonJS",
-      "moduleResolution": "node",
-      "resolveJsonModule": true,
-      "esModuleInterop": true,
-      "experimentalDecorators": true,
-      "emitDecoratorMetadata": true,
-      "types": [
-        "node", "mocha"
-      ],
-    },
-    "include": [
-      "./src/**/*",
-      "src/types/**/*",
-      "./tests/**/*"
+  "compilerOptions": {
+    "outDir": "dist",
+    "allowJs": true,
+    "lib": [ "ES2021" ],
+    "target": "ES2021",
+    "sourceMap": true,
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "types": [
+      "node", "mocha"
     ],
-    "exclude": ["node_modules"]
-  }
+  },
+  "include": [
+    "./src/**/*",
+    "src/types/**/*",
+    "./tests/**/*"
+  ],
+  "exclude": ["node_modules"]
+}

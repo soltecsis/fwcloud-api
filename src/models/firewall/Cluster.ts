@@ -23,16 +23,7 @@
 import Model from '../Model';
 import db from '../../database/database-manager';
 import { Firewall } from './Firewall';
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-  UpdateResult,
-  getConnection,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Tree } from '../tree/Tree';
 import { Interface } from '../../models/interface/Interface';
 import { FwCloud } from '../fwcloud/FwCloud';
@@ -171,12 +162,12 @@ export class Cluster extends Model {
     return new Promise((resolve, reject) => {
       let sql = `UPDATE ${tableName} SET name=${dbCon.escape(clusterData.name)}, comment=${dbCon.escape(clusterData.comment)}, plugins=${dbCon.escape(clusterData.plugins)}
                 WHERE id=${clusterData.id} AND fwcloud=${fwcloud}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error) => {
         if (error) return reject(error);
 
         sql = `UPDATE firewall SET status=status|3, options=${clusterData.options}
                     WHERE cluster=${clusterData.id} AND fwcloud=${fwcloud}`;
-        dbCon.query(sql, (error, result) => {
+        dbCon.query(sql, (error) => {
           if (error) return reject(error);
           resolve();
         });
@@ -205,10 +196,10 @@ export class Cluster extends Model {
             fwcloud: fwcloud,
             iduser: iduser,
           };
-          Tree.deleteFwc_TreeFullNode(dataNode).then((resp) => {
+          Tree.deleteFwc_TreeFullNode(dataNode).then(() => {
             db.get((error, connection) => {
               const sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-              connection.query(sql, (error, result) => {
+              connection.query(sql, (error) => {
                 if (error) {
                   callback(error, null);
                 } else {

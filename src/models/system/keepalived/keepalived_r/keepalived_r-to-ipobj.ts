@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, ManyToMany, JoinColumn, ManyToOne } from 'typeorm';
+import { Entity, PrimaryColumn, Column, JoinColumn, ManyToOne } from 'typeorm';
 import Model from '../../../Model';
 import { KeepalivedRule } from './keepalived_r.model';
 import { IPObj } from '../../../ipobj/IPObj';

@@ -55,7 +55,7 @@ export abstract class ErrorMiddleware {
 
   private safeHandler(error: any, req: Request, res: Response, next: NextFunction) {
     try {
-      const result = this.handle(error, req, res, next);
+      this.handle(error, req, res, next);
     } catch (e) {
       console.error(e);
       throw e;

@@ -21,7 +21,7 @@
 */
 
 import Model from '../Model';
-import { PrimaryColumn, PrimaryGeneratedColumn, Column, Entity, OneToMany } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, OneToMany } from 'typeorm';
 import { User } from './User';
 const tableName: string = 'customer';
 
@@ -57,7 +57,7 @@ export class Customer extends Model {
   @Column()
   updated_by: number;
 
-  @OneToMany((type) => User, (user) => user.customer)
+  @OneToMany(() => User, (user) => user.customer)
   users: Array<User>;
 
   public getTableName(): string {
@@ -116,7 +116,7 @@ export class Customer extends Model {
                 phone=${req.dbCon.escape(req.body.phone)},
                 web=${req.dbCon.escape(req.body.web)}
                 WHERE id=${req.body.customer}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -138,7 +138,7 @@ export class Customer extends Model {
 
   public static _delete(req): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      req.dbCon.query(`delete from ${tableName} where id=${req.body.customer}`, (error, result) => {
+      req.dbCon.query(`delete from ${tableName} where id=${req.body.customer}`, (error) => {
         if (error) return reject(error);
         resolve();
       });

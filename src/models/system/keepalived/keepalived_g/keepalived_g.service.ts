@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { FindManyOptions, FindOneOptions, Repository, SelectQueryBuilder } from 'typeorm';
+import { FindManyOptions, FindOneOptions, SelectQueryBuilder } from 'typeorm';
 import { Service } from '../../../../fonaments/services/service';
 import { KeepalivedRule } from '../keepalived_r/keepalived_r.model';
 import { KeepalivedGroup } from './keepalived_g.model';

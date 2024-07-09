@@ -7,7 +7,7 @@ import { _URL } from '../../../src/fonaments/http/router/router.service';
 import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
 import { EntityManager } from 'typeorm';
 import StringHelper from '../../../src/utils/string.helper';
-import { Firewall, FirewallInstallCommunication } from '../../../src/models/firewall/Firewall';
+import { Firewall } from '../../../src/models/firewall/Firewall';
 import { IPObj } from '../../../src/models/ipobj/IPObj';
 import sinon from 'sinon';
 import sshTools from '../../../src/utils/ssh';
@@ -454,15 +454,13 @@ describe(describeName('Firewall E2E Tests'), () => {
 
   describe('@compileHAProxyRules', () => {
     let fwcProduct: FwCloudProduct;
-    let rule1: HAProxyRule;
-    let rule2: HAProxyRule;
 
     beforeEach(async () => {
       fwcProduct = await new FwCloudFactory().make();
       fwCloud = fwcProduct.fwcloud;
       firewall = fwcProduct.firewall;
 
-      rule1 = await manager.getRepository(HAProxyRule).save(
+      await manager.getRepository(HAProxyRule).save(
         manager.getRepository(HAProxyRule).create({
           rule_type: 1,
           firewall: firewall,
@@ -486,7 +484,7 @@ describe(describeName('Firewall E2E Tests'), () => {
           rule_order: 1,
         }),
       );
-      rule2 = await manager.getRepository(HAProxyRule).save(
+      await manager.getRepository(HAProxyRule).save(
         manager.getRepository(HAProxyRule).create({
           rule_type: 1,
           firewall: firewall,

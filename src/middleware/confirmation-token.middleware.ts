@@ -24,7 +24,6 @@ import { Middleware } from '../fonaments/http/middleware/Middleware';
 import { Request, Response, NextFunction } from 'express';
 import { User } from '../models/user/User';
 import StringHelper from '../utils/string.helper';
-import { Repository } from 'typeorm';
 import { logger } from '../fonaments/abstract-application';
 
 export class ConfirmationToken extends Middleware {

@@ -22,7 +22,6 @@
 
 import { describeName, expect } from '../../../mocha/global-setup';
 import { ExporterResult } from '../../../../src/fwcloud-exporter/database-exporter/exporter-result';
-import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 
 describe(describeName('ExporterResult tests'), () => {
   describe('getTableWithEntities()', () => {

@@ -36,7 +36,7 @@ describe(DHCPRepository.name, () => {
   let repository: DHCPRepository;
   let fwCloud: FwCloud;
   let firewall: Firewall;
-  let gateway: IPObj;
+  //let gateway: IPObj;
   let group: DHCPGroup;
   let dhcpRule: DHCPRule;
   let manager: EntityManager;
@@ -56,7 +56,7 @@ describe(DHCPRepository.name, () => {
         fwCloudId: fwCloud.id,
       }),
     );
-    gateway = await manager.getRepository(IPObj).save(
+    await manager.getRepository(IPObj).save(
       manager.getRepository(IPObj).create({
         name: 'test',
         address: '0.0.0.0',

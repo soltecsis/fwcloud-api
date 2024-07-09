@@ -27,7 +27,6 @@ import { Route } from '../route/route.model';
 import { RouteGroup } from './route-group.model';
 import db from '../../../database/database-manager';
 import { DatabaseService } from '../../../database/database.service';
-import { Firewall } from '../../firewall/Firewall';
 
 interface IFindManyRouteGroupPath {
   firewallId?: number;

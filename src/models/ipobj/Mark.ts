@@ -61,13 +61,13 @@ export class Mark extends Model {
   @Column({ name: 'fwcloud' })
   fwCloudId: number;
 
-  @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.marks)
+  @ManyToOne(() => FwCloud, (fwcloud) => fwcloud.marks)
   @JoinColumn({
     name: 'fwcloud',
   })
   fwCloud: FwCloud;
 
-  @OneToMany((type) => PolicyRule, (policyRule) => policyRule.mark)
+  @OneToMany(() => PolicyRule, (policyRule) => policyRule.mark)
   policyRules: Array<PolicyRule>;
 
   @OneToMany(() => RoutingRuleToMark, (model) => model.mark)
@@ -111,7 +111,7 @@ export class Mark extends Model {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET code=${req.body.code}, name=${req.dbCon.escape(req.body.name)},
 	  comment=${req.dbCon.escape(req.body.comment)} WHERE id=${req.body.mark}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -121,7 +121,7 @@ export class Mark extends Model {
   // Delete an iptables mark.
   public static deleteMark(dbCon, mark): Promise<void> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`DELETE from ${tableName} WHERE id=${mark}`, (error, result) => {
+      dbCon.query(`DELETE from ${tableName} WHERE id=${mark}`, (error) => {
         if (error) return reject(error);
         resolve();
       });

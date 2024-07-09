@@ -1,11 +1,8 @@
 import { FwCloud } from '../models/fwcloud/FwCloud';
 import * as uuid from 'uuid';
 import * as path from 'path';
-import * as fs from 'fs';
 import { FSHelper } from '../utils/fs-helper';
 import { Snapshot } from '../snapshots/snapshot';
-import archiver from 'archiver';
-import yauzl from 'yauzl';
 import { DatabaseImporter } from './database-importer/database-importer';
 import moment from 'moment';
 import { User } from '../models/user/User';
@@ -127,7 +124,7 @@ export class FwCloudExport implements Responsable {
       );
 
       Zip.unzip(compressedFilePath, destinationPath)
-        .then(async (_) => {
+        .then(async () => {
           return resolve(await FwCloudExport.load(destinationPath));
         })
         .catch((err) => {

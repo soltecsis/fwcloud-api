@@ -316,7 +316,7 @@ export class Backup implements Responsable {
             task.addTask(() => {
               return FSHelper.rmDirectory(this.getTemporalyUnzipPath());
             }, 'Remove temporaly files');
-            task.addTask(async (_) => {
+            task.addTask(async () => {
               return this.runMigrations();
             }, 'Database migration');
           });
@@ -379,7 +379,7 @@ export class Backup implements Responsable {
 
     return new Promise((resolve, reject) => {
       //console.time("mysqldump");
-      child_process.exec(this.buildCmd('mysqldump', databaseService), (error, stdout, stderr) => {
+      child_process.exec(this.buildCmd('mysqldump', databaseService), (error) => {
         //console.timeEnd("mysqldump");
         if (error) return reject(error);
         resolve();
@@ -543,7 +543,7 @@ export class Backup implements Responsable {
    */
   existsCmd(cmd: 'mysqldump' | 'mysql'): Promise<boolean> {
     return new Promise((resolve) => {
-      child_process.exec(`${cmd} --version`, (error, stdout, stderr) => {
+      child_process.exec(`${cmd} --version`, (error) => {
         resolve(error ? false : true);
       });
     });

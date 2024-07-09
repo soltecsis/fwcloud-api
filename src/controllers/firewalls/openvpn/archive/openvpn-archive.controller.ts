@@ -20,12 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  ProgressInfoPayload,
-  ProgressSuccessPayload,
-} from './../../../../sockets/messages/socket-message';
 import { Validate } from '../../../../decorators/validate.decorator';
-import { app, logger } from '../../../../fonaments/abstract-application';
+import { app } from '../../../../fonaments/abstract-application';
 import { Controller } from '../../../../fonaments/http/controller';
 import { ResponseBuilder } from '../../../../fonaments/http/response-builder';
 import { OpenVPNService } from '../../../../models/vpn/openvpn/openvpn.service';

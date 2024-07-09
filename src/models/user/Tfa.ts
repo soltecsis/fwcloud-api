@@ -1,4 +1,3 @@
-import { type } from 'os';
 import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import Model from '../Model';
 import { User } from './User';

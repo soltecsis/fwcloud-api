@@ -22,7 +22,6 @@ describe(describeName('Ca E2E Test'), () => {
 
   let fwCloud: FwCloud;
   let ca: Ca;
-  let service: CaService;
   let manager: EntityManager;
 
   beforeEach(async () => {
@@ -46,7 +45,7 @@ describe(describeName('Ca E2E Test'), () => {
         comment: 'testComment',
       }),
     );
-    service = await app.getService<CaService>(CaService.name);
+    await app.getService<CaService>(CaService.name);
   });
 
   describe('CaController@update', () => {
@@ -110,7 +109,7 @@ describe(describeName('Ca E2E Test'), () => {
           comment: comment,
         })
         .expect(200)
-        .then(async (response) => {
+        .then(async () => {
           const caWithNewComment: Ca = await Ca.findOne({
             where: { id: ca.id },
           });

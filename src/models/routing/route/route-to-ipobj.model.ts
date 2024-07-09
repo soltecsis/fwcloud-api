@@ -1,6 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
 import { IPObj } from '../../ipobj/IPObj';
-import { IPObjGroup } from '../../ipobj/IPObjGroup';
 import Model from '../../Model';
 import { Route } from './route.model';
 

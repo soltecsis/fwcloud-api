@@ -377,7 +377,6 @@ describe(DHCPRuleService.name, () => {
 
   describe('copy', () => {
     let copyStub: sinon.SinonStub;
-    let getLastDHCPRuleInFirewallStub: sinon.SinonStub;
     let moveStub: sinon.SinonStub;
 
     beforeEach(async () => {
@@ -388,9 +387,8 @@ describe(DHCPRuleService.name, () => {
         }),
       );
       copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule as DHCPRule);
-      getLastDHCPRuleInFirewallStub = sinon
-        .stub(service['_repository'], 'getLastDHCPRuleInFirewall')
-        .resolves(dhcpRule);
+      //getLastDHCPRuleInFirewallStub =
+      sinon.stub(service['_repository'], 'getLastDHCPRuleInFirewall').resolves(dhcpRule);
       moveStub = sinon.stub(service, 'move').resolves([dhcpRule] as DHCPRule[]);
     });
 
@@ -681,7 +679,7 @@ describe(DHCPRuleService.name, () => {
     });
 
     it('should handle IP version mismatch correctly', async () => {
-      const network: IPObj = await manager.getRepository(IPObj).save(
+      await manager.getRepository(IPObj).save(
         manager.getRepository(IPObj).create({
           name: 'test',
           address: '0.0.0.0',

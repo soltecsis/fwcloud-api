@@ -2,7 +2,6 @@ import { Service } from '../fonaments/services/service';
 import { FSHelper } from '../utils/fs-helper';
 import * as winston from 'winston';
 import * as path from 'path';
-import moment from 'moment';
 
 export type LogServiceConfig = {
   level: string;

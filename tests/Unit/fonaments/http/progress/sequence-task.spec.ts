@@ -35,7 +35,7 @@ describe(describeName('Sequence Task tests'), () => {
   describe('getTasks()', () => {
     it('should return parallel task added as a task', () => {
       const task = new SequencedTask(eventEmitter, (task: Task) => {
-        task.parallel((task) => {});
+        task.parallel(() => {});
       });
 
       expect(task.getTasks()).to.have.length(1);
@@ -43,7 +43,7 @@ describe(describeName('Sequence Task tests'), () => {
 
     it('should return sequence task added as a task', () => {
       const task = new SequencedTask(eventEmitter, (task: Task) => {
-        task.sequence((task) => {});
+        task.sequence(() => {});
       });
 
       expect(task.getTasks()).to.have.length(1);

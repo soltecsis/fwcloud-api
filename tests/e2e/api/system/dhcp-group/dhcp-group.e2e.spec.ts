@@ -71,10 +71,8 @@ describe('DHCPGroup E2E Tests', () => {
 
   describe(DhcpGroupController.name, () => {
     describe('@index', () => {
-      let group: DHCPGroup;
-
       beforeEach(async () => {
-        group = await manager.getRepository(DHCPGroup).save(
+        await manager.getRepository(DHCPGroup).save(
           manager.getRepository(DHCPGroup).create({
             firewall: firewall,
             name: 'group',

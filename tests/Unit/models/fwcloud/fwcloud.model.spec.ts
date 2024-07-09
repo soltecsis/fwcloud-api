@@ -21,7 +21,6 @@
 */
 
 import { describeName, testSuite, expect } from '../../../mocha/global-setup';
-import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { FSHelper } from '../../../../src/utils/fs-helper';
 import * as fs from 'fs';
@@ -30,13 +29,10 @@ import sinon from 'sinon';
 import StringHelper from '../../../../src/utils/string.helper';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 
-let app: AbstractApplication;
-
 describe(describeName('FwCloud Unit Tests'), () => {
   let fwc: FwCloudProduct;
 
   before(async () => {
-    app = testSuite.app;
     await testSuite.resetDatabaseData();
     fwc = await new FwCloudFactory().make();
   });

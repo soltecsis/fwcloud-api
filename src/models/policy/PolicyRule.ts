@@ -127,7 +127,7 @@ export class PolicyRule extends Model {
   @Column({ name: 'idgroup' })
   policyGroupId: number;
 
-  @ManyToOne((type) => PolicyGroup, (policyGroup) => policyGroup.policyRules)
+  @ManyToOne(() => PolicyGroup, (policyGroup) => policyGroup.policyRules)
   @JoinColumn({
     name: 'idgroup',
   })
@@ -136,7 +136,7 @@ export class PolicyRule extends Model {
   @Column({ name: 'firewall' })
   firewallId: number;
 
-  @ManyToOne((type) => Firewall, (firewall) => firewall.policyRules)
+  @ManyToOne(() => Firewall, (firewall) => firewall.policyRules)
   @JoinColumn({
     name: 'firewall',
   })
@@ -145,7 +145,7 @@ export class PolicyRule extends Model {
   @Column({ name: 'mark' })
   markId: number;
 
-  @ManyToOne((type) => Mark, (mark) => mark.policyRules)
+  @ManyToOne(() => Mark, (mark) => mark.policyRules)
   @JoinColumn({
     name: 'mark',
   })
@@ -154,26 +154,26 @@ export class PolicyRule extends Model {
   @Column({ name: 'type' })
   policyTypeId: number;
 
-  @ManyToOne((type) => PolicyType, (policyType) => policyType.policyRules)
+  @ManyToOne(() => PolicyType, (policyType) => policyType.policyRules)
   @JoinColumn({
     name: 'type',
   })
   policyType: PolicyType;
 
   @OneToMany(
-    (type) => PolicyRuleToInterface,
+    () => PolicyRuleToInterface,
     (policyRuleToInterface) => policyRuleToInterface.policyRule,
   )
   policyRuleToInterfaces: Array<PolicyRuleToInterface>;
 
-  @OneToMany((type) => PolicyRuleToIPObj, (policyRuleToIPObj) => policyRuleToIPObj.policyRule)
+  @OneToMany(() => PolicyRuleToIPObj, (policyRuleToIPObj) => policyRuleToIPObj.policyRule)
   policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
 
-  @OneToMany((type) => PolicyRuleToOpenVPN, (policyRuleToOpenVPN) => policyRuleToOpenVPN.policyRule)
+  @OneToMany(() => PolicyRuleToOpenVPN, (policyRuleToOpenVPN) => policyRuleToOpenVPN.policyRule)
   policyRuleToOpenVPNs: Array<PolicyRuleToOpenVPN>;
 
   @OneToMany(
-    (type) => PolicyRuleToOpenVPNPrefix,
+    () => PolicyRuleToOpenVPNPrefix,
     (policyRuleToOpenVPNPrefix) => policyRuleToOpenVPNPrefix.policyRule,
   )
   policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
@@ -942,7 +942,7 @@ export class PolicyRule extends Model {
         sql += 'run_after=' + dbCon.escape(policy_rData.run_after) + ',';
       sql = sql.slice(0, -1) + ' WHERE id=' + policy_rData.id;
 
-      dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -989,7 +989,7 @@ export class PolicyRule extends Model {
             type +
             ' AND rule_order' +
             cond;
-          connection.query(sql, async (error, result) => {
+          connection.query(sql, async (error) => {
             if (error) return reject(error);
             resolve(free_rule_order);
           });
@@ -1016,7 +1016,7 @@ export class PolicyRule extends Model {
           if (error) return reject(error);
 
           if (result.length === 1) {
-            const result_rule_order = result[0].rule_order;
+            //const result_rule_order = result[0].rule_order;
             const free_rule_order = result[0].rule_order + 1;
             sql =
               'UPDATE ' +
@@ -1028,7 +1028,7 @@ export class PolicyRule extends Model {
               type +
               ' AND rule_order>' +
               result[0].rule_order;
-            connection.query(sql, async (error, result) => {
+            connection.query(sql, async (error) => {
               if (error) return reject(error);
               resolve(free_rule_order);
             });
@@ -1050,7 +1050,7 @@ export class PolicyRule extends Model {
         type +
         ' AND rule_order>=' +
         rule_order;
-      dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -1074,7 +1074,7 @@ export class PolicyRule extends Model {
           if (error) return reject(error);
           //Bucle por reglas
           Promise.all(rows.map((data) => this.deletePolicy_rPro(data)))
-            .then(async (data) => {
+            .then(async () => {
               await PolicyGroup.deleteFirewallGroups(idfirewall);
             })
             .then(() => resolve())
@@ -1103,10 +1103,10 @@ export class PolicyRule extends Model {
         if (error) return reject(error);
 
         //DELETE FROM policy_r__ipobj
-        PolicyRuleToIPObj.deletePolicy_r__All(rule, (error, data) => {
+        PolicyRuleToIPObj.deletePolicy_r__All(rule, (error) => {
           if (error) return reject(error);
           //DELETE FROM policy_r__interface
-          PolicyRuleToInterface.deletePolicy_r__All(rule, async (error, data) => {
+          PolicyRuleToInterface.deletePolicy_r__All(rule, async (error) => {
             if (error) return reject(error);
 
             try {
@@ -1142,7 +1142,7 @@ export class PolicyRule extends Model {
         tableName +
         ' SET fw_apply_to=null WHERE firewall=' +
         connection.escape(idfirewall);
-      connection.query(sql, async (error, result) => {
+      connection.query(sql, async (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -1240,7 +1240,7 @@ export class PolicyRule extends Model {
         }
 
         sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
-        dbCon.query(sql, async (error, result) => {
+        dbCon.query(sql, async (error) => {
           if (error) return reject(error);
           resolve();
         });
@@ -1270,7 +1270,7 @@ export class PolicyRule extends Model {
           new_negate_position_list.length === 0 ? null : new_negate_position_list.join(' ');
 
         sql = `update ${tableName} set negate=${dbCon.escape(negate)} where id=${rule} and firewall=${firewall}`;
-        dbCon.query(sql, async (error, result) => {
+        dbCon.query(sql, async (error) => {
           if (error) return reject(error);
           resolve();
         });
@@ -1327,7 +1327,7 @@ export class PolicyRule extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },
@@ -1505,7 +1505,7 @@ export class PolicyRule extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `delete from ${tableName} where firewall=${firewall} and special=${specialRule}`,
-        async (error, result) => {
+        async (error) => {
           if (error) return reject(error);
           resolve();
         },

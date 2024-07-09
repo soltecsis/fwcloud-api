@@ -67,9 +67,8 @@ describe(describeName('SnapshotService Unit Tests'), () => {
     it('should return all created snapshots belonging to the fwcloud', async () => {
       const s1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, '1');
       const s2: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, '2');
-      const s3: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud2, '3');
-
-      const expected = await service.getAll(fwCloud);
+      //const s3: Snapshot =
+      await Snapshot.create(service.config.data_dir, fwCloud2, '3');
 
       expect(await service.getAll(fwCloud)).to.be.deep.equal([s2, s1]);
     });

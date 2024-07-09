@@ -59,19 +59,19 @@ export class PolicyRuleToInterface extends Model {
   @Column()
   updated_by: number;
 
-  @ManyToOne((type) => Interface, (_interface) => _interface.policyRuleToInterfaces)
+  @ManyToOne(() => Interface, (_interface) => _interface.policyRuleToInterfaces)
   @JoinColumn({
     name: 'interface',
   })
   policyRuleInterface: Interface;
 
-  @ManyToOne((type) => PolicyRule, (policyRule) => policyRule.policyRuleToInterfaces)
+  @ManyToOne(() => PolicyRule, (policyRule) => policyRule.policyRuleToInterfaces)
   @JoinColumn({
     name: 'rule',
   })
   policyRule: PolicyRule;
 
-  @ManyToOne((type) => PolicyPosition, (policyPosition) => policyPosition.policyRuleToInterfaces)
+  @ManyToOne(() => PolicyPosition, (policyPosition) => policyPosition.policyRuleToInterfaces)
   @JoinColumn({
     name: 'position',
   })
@@ -220,7 +220,7 @@ export class PolicyRuleToInterface extends Model {
       const sql = `INSERT INTO ${tableName} (rule, interface, position,position_order)
 			(SELECT ${new_rule}, interface, position, position_order
 			from ${tableName} where rule=${rule} order by  position, position_order)`;
-      dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -353,7 +353,7 @@ export class PolicyRuleToInterface extends Model {
         ' AND  interface = ' +
         _interface;
 
-      connection.query(sql, async (error, result) => {
+      connection.query(sql, async (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -441,7 +441,6 @@ export class PolicyRuleToInterface extends Model {
     _interface,
     position,
     old_order,
-    callback,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sqlExists = `SELECT * FROM ${tableName} 
@@ -534,7 +533,7 @@ export class PolicyRuleToInterface extends Model {
                   ' AND interface=' +
                   connection.escape(row.interface);
                 //logger().debug(sql);
-                connection.query(sql, async (error, result) => {
+                connection.query(sql, async (error) => {
                   if (error) {
                     callback1();
                   } else {
@@ -543,7 +542,7 @@ export class PolicyRuleToInterface extends Model {
                 });
               });
             }, //Fin de bucle
-            function (err) {
+            function () {
               callback(null, { result: true });
             },
           );
@@ -591,7 +590,7 @@ export class PolicyRuleToInterface extends Model {
                   ' AND interface=' +
                   connection.escape(row.interface);
                 //logger().debug(sql);
-                connection.query(sql, async (error, result) => {
+                connection.query(sql, async (error) => {
                   if (error) {
                     callback1();
                   } else {
@@ -600,7 +599,7 @@ export class PolicyRuleToInterface extends Model {
                 });
               });
             }, //Fin de bucle
-            function (err) {
+            function () {
               callback(null, { result: true });
             },
           );
@@ -646,7 +645,7 @@ export class PolicyRuleToInterface extends Model {
                   ' AND interface=' +
                   connection.escape(row.interface);
                 //logger().debug(sql);
-                connection.query(sql, async (error, result) => {
+                connection.query(sql, async (error) => {
                   if (error) {
                     callback1();
                   } else {
@@ -655,7 +654,7 @@ export class PolicyRuleToInterface extends Model {
                 });
               });
             }, //Fin de bucle
-            function (err) {
+            function () {
               logger().debug('FIN De BUCLE');
               callback(null, { result: true });
             },

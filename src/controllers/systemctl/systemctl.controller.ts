@@ -36,9 +36,7 @@ import db from '../../database/database-manager';
 export class SystemCtlController extends Controller {
   @Validate(SystemCtlDto)
   async systemctlCommunication(req: Request) {
-    (
-      await SystemctlPolicy.communicate(req.session.user, req.body.fwCloud, req.body.firewall)
-    ).authorize();
+    (await SystemctlPolicy.communicate(req.session.user, req.body.fwCloud)).authorize();
     const firewall = await db
       .getSource()
       .manager.getRepository(Firewall)

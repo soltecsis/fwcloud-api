@@ -8,7 +8,7 @@ import { RoutingTableService } from '../../../../src/models/routing/routing-tabl
 import StringHelper from '../../../../src/utils/string.helper';
 import { expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
-import { EntityManager, QueryFailedError } from 'typeorm';
+import { EntityManager } from 'typeorm';
 import db from '../../../../src/database/database-manager';
 
 describe(RoutingTableController.name, () => {
@@ -19,13 +19,12 @@ describe(RoutingTableController.name, () => {
   let controller: RoutingTableController;
   let app: Application;
 
-  let tableService: RoutingTableService;
   let manager: EntityManager;
 
   beforeEach(async () => {
     app = testSuite.app;
     product = await new FwCloudFactory().make();
-    tableService = await app.getService<RoutingTableService>(RoutingTableService.name);
+    await app.getService<RoutingTableService>(RoutingTableService.name);
 
     fwcloud = product.fwcloud;
     firewall = product.firewall;

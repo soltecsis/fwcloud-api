@@ -44,7 +44,7 @@ describe(describeName('FwCloudExport Unit Tests'), () => {
 
   describe('create()', () => {
     it('should create the directory where the exportation is going to be created', async () => {
-      const fwcloudExport: FwCloudExport = await FwCloudExport.create(directory, fwCloud, user);
+      await FwCloudExport.create(directory, fwCloud, user);
 
       expect(FSHelper.directoryExistsSync(directory)).to.be.true;
     });

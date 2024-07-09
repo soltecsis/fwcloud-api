@@ -452,7 +452,7 @@ describe(KeepalivedRuleService.name, () => {
     it('should not move virtual IP if it does not exist in the "from" rule', async () => {
       data.ipObjId = 5;
 
-      const saveStub = sinon.stub(service['_repository'], 'save');
+      sinon.stub(service['_repository'], 'save');
 
       const result = await service.moveFrom(1, 2, data);
 

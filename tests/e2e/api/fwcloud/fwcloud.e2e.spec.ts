@@ -2,9 +2,8 @@ import { describeName, testSuite, expect } from '../../../mocha/global-setup';
 import request = require('supertest');
 import { _URL } from '../../../../src/fonaments/http/router/router.service';
 import { User } from '../../../../src/models/user/User';
-import { createUser, generateSession, attachSession, sleep } from '../../../utils/utils';
+import { createUser, generateSession, attachSession } from '../../../utils/utils';
 import { Application } from '../../../../src/Application';
-import fwc_tree_node = require('../../../../src/models/tree/node');
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { EntityManager } from 'typeorm';
 import StringHelper from '../../../../src/utils/string.helper';
@@ -19,15 +18,6 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
   let regularUser: User;
   let regularUserSessionId: string;
   let manager: EntityManager;
-
-  const fwcloudCreationSchema = {
-    title: 'fwcloud management schema',
-    type: 'object',
-    required: ['insertId'],
-    properties: {
-      insertId: { type: 'number', minimum: 1 },
-    },
-  };
 
   const fwcloudDataSchema = {
     title: 'fwcloud management schema',

@@ -44,7 +44,7 @@ export class ClusterService extends Service {
 
           db.getQuery().query(
             `DELETE FROM ${Cluster._getTableName()} WHERE id=${cluster[0].id}`,
-            (error, result) => {
+            (error) => {
               if (error) return reject(error);
               resolve();
             },

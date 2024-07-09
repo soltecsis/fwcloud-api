@@ -596,11 +596,7 @@ export class IptablesSaveToFWCloud extends Service {
         }
       }
 
-      const ruleData: any = await PolicyRule.getPolicy_r(
-        this.req.dbCon,
-        this.req.body.firewall,
-        this.ruleId,
-      );
+      await PolicyRule.getPolicy_r(this.req.dbCon, this.req.body.firewall, this.ruleId);
       const policy_rData = {
         id: this.ruleId,
         comment: comment,

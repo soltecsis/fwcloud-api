@@ -100,14 +100,11 @@ describe(RoutingRuleService.name, () => {
     });
 
     describe('rule_order', () => {
-      let ruleOrder1: RoutingRule;
-      let ruleOrder2: RoutingRule;
-      let ruleOrder3: RoutingRule;
-      let ruleOrder4: RoutingRule;
       let table2: RoutingTable;
 
       beforeEach(async () => {
-        ruleOrder1 = await service.create({
+        //ruleOrder1 =
+        await service.create({
           routingTableId: table.id,
           markIds: [
             {
@@ -116,7 +113,8 @@ describe(RoutingRuleService.name, () => {
             },
           ],
         });
-        ruleOrder2 = await service.create({
+        //ruleOrder2 =
+        await service.create({
           routingTableId: table.id,
           markIds: [
             {
@@ -125,7 +123,8 @@ describe(RoutingRuleService.name, () => {
             },
           ],
         });
-        ruleOrder3 = await service.create({
+        //ruleOrder3 =
+        await service.create({
           routingTableId: table.id,
           markIds: [
             {
@@ -134,7 +133,8 @@ describe(RoutingRuleService.name, () => {
             },
           ],
         });
-        ruleOrder4 = await service.create({
+        //ruleOrder4 =
+        await service.create({
           routingTableId: table.id,
           markIds: [
             {
@@ -1469,7 +1469,7 @@ describe(RoutingRuleService.name, () => {
     });
 
     it('should remove rule', async () => {
-      const removedRule: RoutingRule = await service.remove({
+      await service.remove({
         fwCloudId: fwCloud.id,
         firewallId: firewall.id,
         id: rule.id,

@@ -31,7 +31,6 @@ import { PolicyRule } from '../models/policy/PolicyRule';
 import { SSHCommunication } from '../communications/ssh.communication';
 import { Communication } from '../communications/communication';
 import { AgentCommunication } from '../communications/agent.communication';
-import { PgpHelper } from '../utils/pgp';
 import { IPObj } from '../models/ipobj/IPObj';
 import db from '../database/database-manager';
 const utilsModel = require('../utils/utils.js');

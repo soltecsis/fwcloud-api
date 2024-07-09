@@ -73,7 +73,7 @@ describe(describeName('Snapshot E2E tests'), () => {
     stubExportDatabase = sinon
       .stub(Snapshot.prototype, <any>'exportFwCloudDatabaseData')
       .callsFake(() => {
-        return new Promise<ExporterResult>((resolve, reject) => {
+        return new Promise<ExporterResult>((resolve) => {
           return resolve(new ExporterResult({}));
         });
       });
@@ -86,18 +86,8 @@ describe(describeName('Snapshot E2E tests'), () => {
   describe('SnapshotController', () => {
     describe('SnapshotController@index', () => {
       it('guest user should not see the snapshot list', async () => {
-        const s1: Snapshot = await Snapshot.create(
-          snapshotService.config.data_dir,
-          fwCloud,
-          'test',
-          null,
-        );
-        const s2: Snapshot = await Snapshot.create(
-          snapshotService.config.data_dir,
-          fwCloud,
-          'test2',
-          null,
-        );
+        await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test', null);
+        await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test2', null);
 
         await request(app.express)
           .get(_URL().getURL('snapshots.index', { fwcloud: fwCloud.id }))
@@ -105,18 +95,8 @@ describe(describeName('Snapshot E2E tests'), () => {
       });
 
       it('regular user should not see any snapshot if the snapshot belongs to other fwclouds', async () => {
-        const s1: Snapshot = await Snapshot.create(
-          snapshotService.config.data_dir,
-          fwCloud,
-          'test',
-          null,
-        );
-        const s2: Snapshot = await Snapshot.create(
-          snapshotService.config.data_dir,
-          fwCloud,
-          'test2',
-          null,
-        );
+        await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test', null);
+        await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test2', null);
 
         await request(app.express)
           .get(_URL().getURL('snapshots.index', { fwcloud: fwCloud.id }))
@@ -133,12 +113,7 @@ describe(describeName('Snapshot E2E tests'), () => {
         });
         fwCloud2 = await manager.getRepository(FwCloud).save(fwCloud2);
 
-        const s1: Snapshot = await Snapshot.create(
-          snapshotService.config.data_dir,
-          fwCloud,
-          'test',
-          null,
-        );
+        await Snapshot.create(snapshotService.config.data_dir, fwCloud, 'test', null);
         const s2: Snapshot = await Snapshot.create(
           snapshotService.config.data_dir,
           fwCloud2,
@@ -218,7 +193,7 @@ describe(describeName('Snapshot E2E tests'), () => {
         loggedUser.fwClouds = [fwCloud];
         await manager.getRepository(User).save(loggedUser);
 
-        const url = _URL().getURL('snapshots.show', {
+        _URL().getURL('snapshots.show', {
           fwcloud: fwCloud.id,
           snapshot: s1.id,
         });

@@ -44,16 +44,16 @@ export class RoutingTable extends Model {
   @Column({ name: 'firewall' })
   firewallId: number;
 
-  @ManyToOne((type) => Firewall, (firewall) => firewall.routingTables)
+  @ManyToOne(() => Firewall, (firewall) => firewall.routingTables)
   @JoinColumn({
     name: 'firewall',
   })
   firewall: Firewall;
 
-  @OneToMany((type) => Route, (model) => model.routingTable)
+  @OneToMany(() => Route, (model) => model.routingTable)
   routes: Route[];
 
-  @OneToMany((type) => RoutingRule, (model) => model.routingTable)
+  @OneToMany(() => RoutingRule, (model) => model.routingTable)
   routingRules: RoutingRule[];
 
   public getTableName(): string {

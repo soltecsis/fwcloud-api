@@ -24,7 +24,6 @@ import { ServiceProvider } from '../services/service-provider';
 import { ServiceContainer, ServiceBound } from '../services/service-container';
 import { AuthorizationService } from './authorization.service';
 import { AbstractApplication } from '../abstract-application';
-import { Service } from '../services/service';
 
 export class AuthorizationServiceProvider extends ServiceProvider {
   public register(serviceContainer: ServiceContainer): ServiceBound {

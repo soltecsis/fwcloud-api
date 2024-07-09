@@ -19,7 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { FindManyOptions, FindOneOptions, In, Repository, SelectQueryBuilder } from 'typeorm';
+import { FindManyOptions, FindOneOptions, In, SelectQueryBuilder } from 'typeorm';
 import { Service } from '../../../../fonaments/services/service';
 import { DHCPRule } from '../dhcp_r/dhcp_r.model';
 import { DHCPGroup } from './dhcp_g.model';

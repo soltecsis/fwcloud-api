@@ -1,5 +1,5 @@
 import { ValidationException } from '../exceptions/validation-exception';
-import { validate, validateSync, ValidationError } from 'class-validator';
+import { validate, ValidationError } from 'class-validator';
 import {
   ClassConstructor,
   classToPlain,

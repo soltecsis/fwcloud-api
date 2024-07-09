@@ -1,9 +1,6 @@
 import { Firewall } from './Firewall';
 import { SSHConfig } from './firewall.service';
-import { app } from '../../fonaments/abstract-application';
-import sshTools from '../../utils/ssh';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
-import { ProgressInfoPayload, ProgressNoticePayload } from '../../sockets/messages/socket-message';
 
 export class Installer {
   protected _firewall: Firewall;

@@ -60,7 +60,6 @@ describe(describeName('Model Unit Tests'), () => {
   });
 
   describe('getEntitiyColumns()', () => {
-    const data = FwCloud.getEntityColumns().map((item) => item.propertyName);
     expect(FwCloud.getEntityColumns().map((item) => item.propertyName)).to.be.deep.eq([
       'id',
       'name',

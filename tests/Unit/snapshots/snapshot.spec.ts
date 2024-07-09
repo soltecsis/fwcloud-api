@@ -56,7 +56,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
   describe('create()', () => {
     it('should create the fwcloud snapshot directory if it does not exists', async () => {
-      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+      await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       expect(fs.statSync(path.join(service.config.data_dir, fwCloud.id.toString())).isDirectory())
         .to.be.true;

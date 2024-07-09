@@ -33,14 +33,14 @@ export class HAProxyGroup extends Model {
   @Column({ name: 'firewall' })
   firewallId: number;
 
-  @ManyToOne((type) => Firewall, (firewall) => firewall.haproxyGroups)
+  @ManyToOne(() => Firewall, (firewall) => firewall.haproxyGroups)
   @JoinColumn({ name: 'firewall' })
   firewall: Firewall;
 
   @Column({ type: 'varchar', length: 50 })
   style: string;
 
-  @OneToMany((type) => HAProxyRule, (haproxy) => haproxy.group, { eager: true })
+  @OneToMany(() => HAProxyRule, (haproxy) => haproxy.group, { eager: true })
   rules: HAProxyRule[];
 
   public getTableName(): string {

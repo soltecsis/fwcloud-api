@@ -56,10 +56,10 @@ export class PolicyType extends Model {
   @Column()
   show_action: number;
 
-  @OneToMany((type) => PolicyPosition, (position) => position.policyType)
+  @OneToMany(() => PolicyPosition, (position) => position.policyType)
   policyPositions: Array<PolicyPosition>;
 
-  @OneToMany((type) => PolicyRule, (policyRule) => policyRule.policyType)
+  @OneToMany(() => PolicyRule, (policyRule) => policyRule.policyType)
   policyRules: Array<PolicyRule>;
 
   public getTableName(): string {
@@ -157,7 +157,7 @@ export class PolicyType extends Model {
         ' WHERE type = ' +
         policy_typeData.type;
       logger().debug(sql);
-      connection.query(sql, (error, result) => {
+      connection.query(sql, (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -177,7 +177,7 @@ export class PolicyType extends Model {
         if (row) {
           db.get((error, connection) => {
             const sql = 'DELETE FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
-            connection.query(sql, (error, result) => {
+            connection.query(sql, (error) => {
               if (error) {
                 callback(error, null);
               } else {

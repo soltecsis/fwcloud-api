@@ -31,7 +31,7 @@ export class KeepalivedGroup extends Model {
   @Column({ name: 'firewall' })
   firewallId: number;
 
-  @ManyToOne((type) => Firewall, (firewall) => firewall.keepalivedGroups)
+  @ManyToOne(() => Firewall, (firewall) => firewall.keepalivedGroups)
   @JoinColumn({
     name: 'firewall',
   })
@@ -40,7 +40,7 @@ export class KeepalivedGroup extends Model {
   @Column({ type: 'varchar', length: 50 })
   style: string;
 
-  @OneToMany((type) => KeepalivedRule, (model) => model.group, {
+  @OneToMany(() => KeepalivedRule, (model) => model.group, {
     eager: true,
   })
   rules: KeepalivedRule[];

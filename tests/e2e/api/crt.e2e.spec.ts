@@ -24,7 +24,6 @@ describe(describeName('Crt E2E Test'), () => {
   let fwCloud: FwCloud;
   let ca: Ca;
   let crt: Crt;
-  let service: CrtService;
   let manager: EntityManager;
 
   beforeEach(async () => {
@@ -57,7 +56,7 @@ describe(describeName('Crt E2E Test'), () => {
         comment: 'testComment',
       }),
     );
-    service = await app.getService<CrtService>(CrtService.name);
+    await app.getService<CrtService>(CrtService.name);
   });
 
   describe('CrtController@update', () => {
@@ -126,7 +125,7 @@ describe(describeName('Crt E2E Test'), () => {
           comment: comment,
         })
         .expect(200)
-        .then(async (response) => {
+        .then(async () => {
           const crtWithNewComment: Crt = await Crt.findOne({
             where: { id: crt.id },
           });

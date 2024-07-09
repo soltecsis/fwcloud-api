@@ -27,7 +27,6 @@ import { ValidationException } from '../../../fonaments/exceptions/validation-ex
 import { Service } from '../../../fonaments/services/service';
 import { ErrorBag } from '../../../fonaments/validation/validator';
 import { Offset } from '../../../offset';
-import { Cluster } from '../../firewall/Cluster';
 import { Firewall } from '../../firewall/Firewall';
 import { FirewallService } from '../../firewall/firewall.service';
 import { Interface } from '../../interface/Interface';
@@ -166,7 +165,7 @@ export class RoutingRuleService extends Service {
       },
       relations: ['firewall'],
     });
-    const firewall: Firewall = routingTable.firewall;
+    routingTable.firewall;
 
     const routingRuleData: Partial<RoutingRule> = {
       routingTableId: data.routingTableId,

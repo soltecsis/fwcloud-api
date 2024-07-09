@@ -1,6 +1,5 @@
 import { TableTerraformer, TerraformHandlerCollection } from '../table-terraformer';
 import { ImportMapping } from '../mapper/import-mapping';
-import { QueryRunner } from 'typeorm';
 import { IPObj } from '../../../../models/ipobj/IPObj';
 import { Interface } from '../../../../models/interface/Interface';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';

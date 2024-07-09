@@ -129,37 +129,34 @@ export class PolicyPosition extends Model {
   @Column()
   single_object: number;
 
-  @ManyToOne((type) => PolicyType, (type) => type.policyPositions)
+  @ManyToOne(() => PolicyType, (type) => type.policyPositions)
   @JoinColumn({
     name: 'policy_type',
   })
   policyType: PolicyType;
 
-  @ManyToMany((type) => IPObjType, (ipObjType) => ipObjType.policyPositions)
+  @ManyToMany(() => IPObjType, (ipObjType) => ipObjType.policyPositions)
   ipObjTypes: Array<IPObjType>;
 
   @OneToMany(
-    (type) => PolicyRuleToInterface,
+    () => PolicyRuleToInterface,
     (policyRuleToInterface) => policyRuleToInterface.policyPosition,
   )
   policyRuleToInterfaces: Array<PolicyRuleToInterface>;
 
-  @OneToMany((type) => PolicyRuleToIPObj, (policyRuleToIPObj) => policyRuleToIPObj.policyPosition)
+  @OneToMany(() => PolicyRuleToIPObj, (policyRuleToIPObj) => policyRuleToIPObj.policyPosition)
   policyRuleToIPObjs: Array<PolicyRuleToIPObj>;
 
-  @OneToMany(
-    (type) => PolicyRuleToOpenVPN,
-    (policyRuleToOpenVPN) => policyRuleToOpenVPN.policyPosition,
-  )
+  @OneToMany(() => PolicyRuleToOpenVPN, (policyRuleToOpenVPN) => policyRuleToOpenVPN.policyPosition)
   policyRuleToOpenVPNs: Array<PolicyRuleToOpenVPN>;
 
   @OneToMany(
-    (type) => PolicyRuleToOpenVPNPrefix,
+    () => PolicyRuleToOpenVPNPrefix,
     (policyRuleToOpenVPNPrefix) => policyRuleToOpenVPNPrefix.policyPosition,
   )
   policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
 
-  @OneToMany((type) => IPObjTypeToPolicyPosition, (model) => model.policyPosition)
+  @OneToMany(() => IPObjTypeToPolicyPosition, (model) => model.policyPosition)
   ipObjTypeToPolicyPositions!: Array<IPObjTypeToPolicyPosition>;
 
   public getTableName(): string {
@@ -283,7 +280,7 @@ export class PolicyPosition extends Model {
         ' WHERE id = ' +
         policy_positionData.id;
       logger().debug(sql);
-      connection.query(sql, (error, result) => {
+      connection.query(sql, (error) => {
         if (error) {
           callback(error, null);
         } else {
@@ -303,7 +300,7 @@ export class PolicyPosition extends Model {
         if (row) {
           db.get((error, connection) => {
             const sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
-            connection.query(sql, (error, result) => {
+            connection.query(sql, (error) => {
               if (error) {
                 callback(error, null);
               } else {

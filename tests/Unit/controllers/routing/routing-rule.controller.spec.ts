@@ -1,7 +1,6 @@
 import { Application } from '../../../../src/Application';
 import { RoutingRuleController } from '../../../../src/controllers/routing/routing-rule/routing-rule.controller';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
-import { FirewallService } from '../../../../src/models/firewall/firewall.service';
 import { RoutingRule } from '../../../../src/models/routing/routing-rule/routing-rule.model';
 import { RoutingRuleService } from '../../../../src/models/routing/routing-rule/routing-rule.service';
 import { RoutingTable } from '../../../../src/models/routing/routing-table/routing-table.model';
@@ -27,7 +26,7 @@ describe(RoutingRuleController.name, () => {
   let ruleService: RoutingRuleService;
   let firewall: Firewall;
   let mark: Mark;
-  let mark2: Mark;
+  //let mark2: Mark;
   let manager: EntityManager;
 
   beforeEach(async () => {
@@ -45,7 +44,8 @@ describe(RoutingRuleController.name, () => {
       fwCloudId: fwcProduct.fwcloud.id,
     });
 
-    mark2 = await manager.getRepository(Mark).save({
+    //mark2 =
+    await manager.getRepository(Mark).save({
       code: 2,
       name: 'test',
       fwCloudId: fwcProduct.fwcloud.id,
@@ -69,10 +69,8 @@ describe(RoutingRuleController.name, () => {
   });
 
   describe('make', () => {
-    let rule: RoutingRule;
-
     beforeEach(async () => {
-      rule = await manager.getRepository(RoutingRule).save({
+      await manager.getRepository(RoutingRule).save({
         routingTableId: fwcProduct.routingTable.id,
         rule_order: 1,
       });
@@ -154,9 +152,7 @@ describe(RoutingRuleController.name, () => {
 
   describe('bulkRemove', () => {
     beforeEach(() => {
-      const spy: Sinon.SinonSpy = Sinon.stub(RoutingRulePolicy, 'delete').resolves(
-        Authorization.grant(),
-      );
+      Sinon.stub(RoutingRulePolicy, 'delete').resolves(Authorization.grant());
     });
 
     it('should remove rules from different table which belongs to the same firewall', async () => {

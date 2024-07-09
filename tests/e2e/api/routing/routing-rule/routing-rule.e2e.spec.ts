@@ -97,10 +97,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
 
   describe(RoutingRuleController.name, () => {
     describe('@index', () => {
-      let rule: RoutingRule;
-
       beforeEach(async () => {
-        rule = await routingRuleService.create({
+        await routingRuleService.create({
           routingTableId: table.id,
           markIds: [
             {
@@ -257,7 +255,7 @@ describe(describeName('Routing Rule E2E Tests'), () => {
       let ruleOrder1: RoutingRule;
       let ruleOrder2: RoutingRule;
       let ruleOrder3: RoutingRule;
-      let ruleOrder4: RoutingRule;
+      //let ruleOrder4: RoutingRule;
       let data: RoutingRuleControllerMoveDto;
 
       beforeEach(async () => {
@@ -297,7 +295,8 @@ describe(describeName('Routing Rule E2E Tests'), () => {
           ],
         });
 
-        ruleOrder4 = await routingRuleService.create({
+        //ruleOrder4 =
+        await routingRuleService.create({
           routingTableId: table.id,
           markIds: [
             {

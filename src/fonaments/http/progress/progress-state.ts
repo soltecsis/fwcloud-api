@@ -21,7 +21,6 @@
 */
 
 import { Responsable } from '../../contracts/responsable';
-import { object } from 'joi';
 
 export class ProgressState implements Responsable {
   protected _steps: number;

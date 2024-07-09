@@ -41,13 +41,13 @@ export class IPObjType extends Model {
   @Column()
   protocol_number: number;
 
-  @OneToMany((type) => FwcTree, (fwcTree) => fwcTree.ipObjType)
+  @OneToMany(() => FwcTree, (fwcTree) => fwcTree.ipObjType)
   fwcTrees: Array<FwcTree>;
 
-  @OneToMany((type) => IPObj, (ipObj) => ipObj.ipObjType)
+  @OneToMany(() => IPObj, (ipObj) => ipObj.ipObjType)
   ipObjs: Array<IPObj>;
 
-  @ManyToMany((type) => PolicyPosition, (policyPosition) => policyPosition.ipObjTypes)
+  @ManyToMany(() => PolicyPosition, (policyPosition) => policyPosition.ipObjTypes)
   @JoinTable({
     name: 'ipobj_type__policy_position',
     joinColumn: {
@@ -59,7 +59,7 @@ export class IPObjType extends Model {
   })
   policyPositions: Array<PolicyPosition>;
 
-  @OneToMany((type) => IPObjTypeToPolicyPosition, (model) => model.ipObjType)
+  @OneToMany(() => IPObjTypeToPolicyPosition, (model) => model.ipObjType)
   ipObjTypeToPolicyPositions!: Array<IPObjTypeToPolicyPosition>;
 
   public getTableName(): string {

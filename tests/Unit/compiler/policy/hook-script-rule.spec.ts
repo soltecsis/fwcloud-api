@@ -35,14 +35,12 @@ import {
   PolicyCompiler,
 } from '../../../../src/compiler/policy/PolicyCompiler';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
-import { EntityManager } from 'typeorm';
 
 describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
   let fwcProduct: FwCloudProduct;
   let dbCon: any;
   let IPv: string;
   let compiler: AvailablePolicyCompilers;
-  let manager: EntityManager;
 
   const code_before_cmt = '###########################\n# Hook script rule code:';
   const code_end_cmt = '###########################';
@@ -66,7 +64,7 @@ describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
     comment: null,
   };
 
-  async function runTest(comment?: string): Promise<void> {
+  async function runTest(): Promise<void> {
     ruleData.run_before = run_before_code;
 
     const rule = await PolicyRule.insertPolicy_r(ruleData);
@@ -95,7 +93,6 @@ describe(describeName('Policy Compiler Unit Tests - Hook script rule'), () => {
 
   before(async () => {
     dbCon = db.getQuery();
-    manager = db.getSource().manager;
     fwcProduct = await new FwCloudFactory().make();
     ruleData.firewall = fwcProduct.firewall.id;
   });

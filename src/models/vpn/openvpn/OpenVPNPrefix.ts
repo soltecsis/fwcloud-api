@@ -56,7 +56,7 @@ export class OpenVPNPrefix extends Model {
   @Column()
   name: string;
 
-  @ManyToMany((type) => IPObjGroup, (ipObjGroup) => ipObjGroup.openVPNPrefixes)
+  @ManyToMany(() => IPObjGroup, (ipObjGroup) => ipObjGroup.openVPNPrefixes)
   @JoinTable({
     name: 'openvpn_prefix__ipobj_g',
     joinColumn: {
@@ -68,14 +68,14 @@ export class OpenVPNPrefix extends Model {
   })
   ipObjGroups: Array<IPObjGroup>;
 
-  @ManyToOne((type) => OpenVPN, (model) => model.openVPNPrefixes)
+  @ManyToOne(() => OpenVPN, (model) => model.openVPNPrefixes)
   @JoinColumn({
     name: 'openvpn',
   })
   openVPN: OpenVPN;
 
   @OneToMany(
-    (type) => PolicyRuleToOpenVPNPrefix,
+    () => PolicyRuleToOpenVPNPrefix,
     (policyRuleToOpenVPNPrefix) => policyRuleToOpenVPNPrefix.openVPNPrefix,
   )
   policyRuleToOpenVPNPrefixes: Array<PolicyRuleToOpenVPNPrefix>;
@@ -123,7 +123,7 @@ export class OpenVPNPrefix extends Model {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)} WHERE id=${req.body.prefix}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },
@@ -134,7 +134,7 @@ export class OpenVPNPrefix extends Model {
   // Delete CRT Prefix container.
   public static deletePrefix(dbCon, prefix): Promise<void> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`DELETE from ${tableName} WHERE id=${prefix}`, (error, result) => {
+      dbCon.query(`DELETE from ${tableName} WHERE id=${prefix}`, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -312,7 +312,7 @@ export class OpenVPNPrefix extends Model {
 
         // Remove from OpenVPN server node the nodes that match de prefix.
         sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} AND obj_type=311 AND name LIKE '${prefix}%'`;
-        dbCon.query(sql, (error, result) => {
+        dbCon.query(sql, (error) => {
           if (error) return reject(error);
           resolve();
         });

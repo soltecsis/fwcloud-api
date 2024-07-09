@@ -21,7 +21,7 @@ export class HAProxyPolicy extends Policy {
 
   static async show(rule: HAProxyRule, user: User): Promise<Authorization> {
     user = await this.getUser(user);
-    const firewall = await db
+    await db
       .getSource()
       .manager.getRepository(Firewall)
       .findOneOrFail({

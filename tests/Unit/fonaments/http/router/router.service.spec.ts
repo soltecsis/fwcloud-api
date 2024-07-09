@@ -26,7 +26,7 @@ import { RouterService } from '../../../../../src/fonaments/http/router/router.s
 import { Route } from '../../../../../src/fonaments/http/router/route';
 
 class TestController extends Controller {
-  public async test(request: Request) {}
+  public async test() {}
 }
 
 let service: RouterService;

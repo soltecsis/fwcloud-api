@@ -31,9 +31,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { IpObjBelongsToTypes } from '../../../../fonaments/validation/rules/ipobj-belongs-to-types.validation';
-import { IpObjGroupBelongsToTypes } from '../../../../fonaments/validation/rules/ipobj-group-belongs-to-types.validation';
-import { IsClientOpenVPN } from '../../../../fonaments/validation/rules/is-client-openvpn.validation';
 import { Offset } from '../../../../offset';
 import { PositionalEntityDto } from '../../../dtos/positional-entity.dto';
 

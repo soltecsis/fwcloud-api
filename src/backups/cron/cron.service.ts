@@ -21,8 +21,7 @@
 */
 
 import { Service } from '../../fonaments/services/service';
-import { CronJob, CronCommand, CronOnCompleteCommand } from 'cron';
-import { Moment } from 'moment';
+import { CronJob, CronCommand } from 'cron';
 
 export class CronService extends Service {
   protected _jobs: Array<CronJob> = [];

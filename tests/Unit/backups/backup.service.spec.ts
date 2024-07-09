@@ -161,7 +161,8 @@ describe(describeName('BackupService Unit tests'), async () => {
       it('should create a new backup', async () => {
         const currentBackups: number = (await service.getAll()).length;
 
-        const newBackup: Backup = await service.import(zippedFilePath);
+        //const newBackup: Backup =
+        await service.import(zippedFilePath);
 
         expect((await service.getAll()).length).to.be.eq(currentBackups + 1);
       });
@@ -173,8 +174,6 @@ describe(describeName('BackupService Unit tests'), async () => {
       });
 
       it('should set the imported flag to true', async () => {
-        const currentBackups: number = (await service.getAll()).length;
-
         const newBackup: Backup = await service.import(zippedFilePath);
 
         expect(newBackup.imported).to.be.true;

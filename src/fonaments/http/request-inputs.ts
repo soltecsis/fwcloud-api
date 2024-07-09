@@ -21,7 +21,6 @@
 */
 
 import { Request } from 'express';
-import ObjectHelpers from '../../utils/object-helpers';
 
 export class RequestInputs {
   private _req: Request;

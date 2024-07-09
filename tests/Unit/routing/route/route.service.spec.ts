@@ -78,25 +78,29 @@ describe(RouteService.name, () => {
     });
 
     describe('route_order', () => {
-      let routeOrder1: Route;
-      let routeOrder2: Route;
-      let routeOrder3: Route;
-      let routeOrder4: Route;
+      //let routeOrder1: Route;
+      //let routeOrder2: Route;
+      //let routeOrder3: Route;
+      //let routeOrder4: Route;
 
       beforeEach(async () => {
-        routeOrder1 = await service.create({
+        //routeOrder1 =
+        await service.create({
           routingTableId: table.id,
           gatewayId: gateway.id,
         });
-        routeOrder2 = await service.create({
+        //routeOrder2 =
+        await service.create({
           routingTableId: table.id,
           gatewayId: gateway.id,
         });
-        routeOrder3 = await service.create({
+        //routeOrder3 =
+        await service.create({
           routingTableId: table.id,
           gatewayId: gateway.id,
         });
-        routeOrder4 = await service.create({
+        //routeOrder4 =
+        await service.create({
           routingTableId: table.id,
           gatewayId: gateway.id,
         });

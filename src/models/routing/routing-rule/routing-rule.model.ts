@@ -26,13 +26,10 @@ import {
   Entity,
   JoinColumn,
   JoinTable,
-  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { IPObj } from '../../ipobj/IPObj';
-import { Mark } from '../../ipobj/Mark';
 import Model from '../../Model';
 import { RoutingRuleToInterface } from '../routing-rule-to-interface/routing-rule-to-interface.model';
 import { RoutingTable } from '../routing-table/routing-table.model';
@@ -73,7 +70,7 @@ export class RoutingRule extends Model {
   })
   firewallApplyToId: number;
 
-  @ManyToOne((type) => Firewall, (firewall) => firewall.routingRules)
+  @ManyToOne(() => Firewall, (firewall) => firewall.routingRules)
   @JoinColumn({
     name: 'fw_apply_to',
   })
@@ -84,7 +81,7 @@ export class RoutingRule extends Model {
   })
   routingGroupId: number;
 
-  @ManyToOne((type) => RoutingGroup, (routingGroup) => routingGroup.routingRules)
+  @ManyToOne(() => RoutingGroup, (routingGroup) => routingGroup.routingRules)
   @JoinColumn({
     name: 'group',
   })
@@ -95,14 +92,14 @@ export class RoutingRule extends Model {
   })
   routingTableId: number;
 
-  @ManyToOne((type) => RoutingTable, (routingTable) => routingTable.routingRules)
+  @ManyToOne(() => RoutingTable, (routingTable) => routingTable.routingRules)
   @JoinColumn({
     name: 'routing_table',
   })
   routingTable: RoutingTable;
 
   @OneToMany(
-    (type) => RoutingRuleToInterface,
+    () => RoutingRuleToInterface,
     (routingRuleToInterface) => routingRuleToInterface.routingRule,
   )
   @JoinTable({

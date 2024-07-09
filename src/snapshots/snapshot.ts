@@ -31,12 +31,9 @@ import { FwCloud } from '../models/fwcloud/FwCloud';
 import { Application } from '../Application';
 import { DatabaseExporter } from '../fwcloud-exporter/database-exporter/database-exporter';
 import { Progress } from '../fonaments/http/progress/progress';
-import { BulkDatabaseDelete } from './bulk-database-delete';
 import { SnapshotNotCompatibleException } from './exceptions/snapshot-not-compatible.exception';
-import { Firewall } from '../models/firewall/Firewall';
 import { FirewallRepository } from '../models/firewall/firewall.repository';
 import { Task } from '../fonaments/http/progress/task';
-import * as semver from 'semver';
 import { ExporterResult } from '../fwcloud-exporter/database-exporter/exporter-result';
 import { DatabaseImporter } from '../fwcloud-exporter/database-importer/database-importer';
 import { SnapshotService } from './snapshot.service';
@@ -469,7 +466,7 @@ export class Snapshot implements Responsable {
    * Resets the firewalls compilation & installation status
    */
   protected async resetCompiledStatus(): Promise<void> {
-    return new Promise<void>(async (resolve, reject) => {
+    return new Promise<void>(async (resolve) => {
       const fwcloud: FwCloud = await FwCloud.findOneOrFail({
         where: { id: this._restoredFwCloud.id },
         relations: ['clusters', 'firewalls'],

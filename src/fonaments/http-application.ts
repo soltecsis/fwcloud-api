@@ -30,7 +30,6 @@ import { SessionSocketMiddleware } from '../middleware/Session';
 import { WebSocketService } from '../sockets/web-socket.service';
 import { Middleware } from './http/middleware/Middleware';
 import { RouterService } from './http/router/router.service';
-import { Routes } from '../routes/routes';
 
 declare module 'express-serve-static-core' {
   interface Request {

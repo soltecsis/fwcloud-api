@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { EntityManager, QueryFailedError } from 'typeorm';
+import { EntityManager } from 'typeorm';
 import { Application } from '../../../../src/Application';
 import { RouteController } from '../../../../src/controllers/routing/route/route.controller';
 import { Firewall } from '../../../../src/models/firewall/Firewall';

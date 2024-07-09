@@ -88,7 +88,7 @@ export class KeysGenerateCommand extends Command {
   }
 
   protected async generateRandomString(): Promise<string> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       crypto.randomBytes(KeysGenerateCommand.KEY_LENGTH, (err: Error, buff: Buffer) => {
         if (err) {
           throw err;

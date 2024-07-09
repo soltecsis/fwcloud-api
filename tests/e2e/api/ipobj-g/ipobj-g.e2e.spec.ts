@@ -9,7 +9,6 @@ import { describeName, testSuite } from '../../../mocha/global-setup';
 import { attachSession, createUser, generateSession } from '../../../utils/utils';
 import { Application } from '../../../../src/Application';
 import { RoutingTable } from '../../../../src/models/routing/routing-table/routing-table.model';
-import { RouteController } from '../../../../src/controllers/routing/route/route.controller';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { RouteService } from '../../../../src/models/routing/route/route.service';
 import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';

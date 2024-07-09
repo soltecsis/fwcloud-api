@@ -97,10 +97,8 @@ describe(describeName('Route E2E Tests'), () => {
 
   describe(RouteController.name, () => {
     describe('@index', () => {
-      let route: Route;
-
       beforeEach(async () => {
-        route = await routeService.create({
+        await routeService.create({
           routingTableId: table.id,
           gatewayId: gateway.id,
         });

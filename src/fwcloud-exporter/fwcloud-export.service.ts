@@ -4,7 +4,6 @@ import { FwCloudExport } from './fwcloud-export';
 import { FwCloud } from '../models/fwcloud/FwCloud';
 import { User } from '../models/user/User';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
-import { Progress } from '../fonaments/http/progress/progress';
 import { ProgressPayload } from '../sockets/messages/socket-message';
 
 export type ExporterConfig = {

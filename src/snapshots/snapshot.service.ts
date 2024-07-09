@@ -26,7 +26,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { NotFoundException } from '../fonaments/exceptions/not-found-exception';
 import { FwCloud } from '../models/fwcloud/FwCloud';
-import { Progress } from '../fonaments/http/progress/progress';
 import { FSHelper } from '../utils/fs-helper';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 

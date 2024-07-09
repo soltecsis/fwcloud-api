@@ -21,7 +21,7 @@
 */
 
 import { Controller } from '../fonaments/http/controller';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { app } from '../fonaments/abstract-application';
 import { Application } from '../Application';
 import { Version } from '../version/version';

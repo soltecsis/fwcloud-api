@@ -28,7 +28,6 @@ import { PolicyRule } from '../../models/policy/PolicyRule';
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyPosition } from './PolicyPosition';
-import { RulePositionsMap } from '../../models/policy/PolicyPosition';
 import { IPObj } from '../ipobj/IPObj';
 const asyncMod = require('async');
 const fwcError = require('../../utils/error_table');
@@ -70,31 +69,31 @@ export class PolicyRuleToIPObj extends Model {
   @Column()
   updated_by: number;
 
-  @ManyToOne((type) => PolicyRule, (policyRule) => policyRule.policyRuleToIPObjs)
+  @ManyToOne(() => PolicyRule, (policyRule) => policyRule.policyRuleToIPObjs)
   @JoinColumn({
     name: 'rule',
   })
   policyRule: PolicyRule;
 
-  @ManyToOne((type) => IPObj, (ipObj) => ipObj.policyRuleToIPObjs)
+  @ManyToOne(() => IPObj, (ipObj) => ipObj.policyRuleToIPObjs)
   @JoinColumn({
     name: 'ipobj',
   })
   ipObj: IPObj;
 
-  @ManyToOne((type) => Interface, (model) => model.policyRuleToIPObjs)
+  @ManyToOne(() => Interface, (model) => model.policyRuleToIPObjs)
   @JoinColumn({
     name: 'interface',
   })
   interface: Interface;
 
-  @ManyToOne((type) => IPObjGroup, (model) => model.policyRuleToIPObjs)
+  @ManyToOne(() => IPObjGroup, (model) => model.policyRuleToIPObjs)
   @JoinColumn({
     name: 'ipobj_g',
   })
   ipObjGroup: IPObjGroup;
 
-  @ManyToOne((type) => PolicyPosition, (policyPosition) => policyPosition.policyRuleToIPObjs)
+  @ManyToOne(() => PolicyPosition, (policyPosition) => policyPosition.policyRuleToIPObjs)
   @JoinColumn({
     name: 'position',
   })
@@ -554,7 +553,7 @@ export class PolicyRuleToIPObj extends Model {
       const sql = `INSERT INTO ${tableModel} (rule, ipobj, ipobj_g, interface, position, position_order)
 			(SELECT ${new_rule}, ipobj, ipobj_g, interface, position, position_order
 			from ${tableModel} where rule=${rule} order by  position, position_order)`;
-      dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -985,7 +984,7 @@ export class PolicyRuleToIPObj extends Model {
                   ' AND interface=' +
                   connection.escape(row.interface);
                 //logger().debug(sql);
-                connection.query(sql, async (error, result) => {
+                connection.query(sql, async (error) => {
                   if (error) {
                     callback1();
                   } else {
@@ -994,7 +993,7 @@ export class PolicyRuleToIPObj extends Model {
                 });
               });
             }, //Fin de bucle
-            function (err) {
+            function () {
               callback(null, { result: true });
             },
           );
@@ -1044,7 +1043,7 @@ export class PolicyRuleToIPObj extends Model {
                   ' AND interface=' +
                   connection.escape(row.interface);
                 //logger().debug(sql);
-                connection.query(sql, async (error, result) => {
+                connection.query(sql, async (error) => {
                   if (error) {
                     callback1();
                   } else {
@@ -1053,7 +1052,7 @@ export class PolicyRuleToIPObj extends Model {
                 });
               });
             }, //Fin de bucle
-            function (err) {
+            function () {
               callback(null, { result: true });
             },
           );
@@ -1101,7 +1100,7 @@ export class PolicyRuleToIPObj extends Model {
                   ' AND interface=' +
                   connection.escape(row.interface);
                 //logger().debug(sql);
-                connection.query(sql, async (error, result) => {
+                connection.query(sql, async (error) => {
                   if (error) {
                     callback1();
                   } else {
@@ -1110,7 +1109,7 @@ export class PolicyRuleToIPObj extends Model {
                 });
               });
             }, //Fin de bucle
-            function (err) {
+            function () {
               logger().debug('FIN De BUCLE');
               callback(null, { result: true });
             },

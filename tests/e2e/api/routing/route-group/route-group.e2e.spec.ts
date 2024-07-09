@@ -103,9 +103,8 @@ describe(describeName('Route Group E2E Tests'), () => {
 
   describe(RouteGroup.name, () => {
     describe('@index', () => {
-      let group: RouteGroup;
       beforeEach(async () => {
-        group = await manager.getRepository(RouteGroup).save({
+        await manager.getRepository(RouteGroup).save({
           name: 'group',
           firewallId: firewall.id,
           routes: [route],

@@ -26,7 +26,6 @@ import { HAProxyGroup } from '../haproxy_g/haproxy_g.model';
 import { HAProxyRuleToIPObj } from './haproxy_r-to_ipobj.model';
 import { Firewall } from '../../../firewall/Firewall';
 import { IPObj } from '../../../ipobj/IPObj';
-import { FwCloud } from '../../../fwcloud/FwCloud';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { ErrorBag } from '../../../../fonaments/validation/validator';
 import { ValidationException } from '../../../../fonaments/exceptions/validation-exception';

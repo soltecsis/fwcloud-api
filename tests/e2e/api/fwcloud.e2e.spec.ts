@@ -62,7 +62,7 @@ describe(describeName('FwCloud E2E Tests'), () => {
             name: StringHelper.randomize(10),
           })
           .expect(201)
-          .then(async (_) => {
+          .then(async () => {
             expect((await FwCloud.findAndCount())[1]).to.be.eq(count + 1);
           });
       });
@@ -135,7 +135,7 @@ describe(describeName('FwCloud E2E Tests'), () => {
             comment: comment,
           })
           .expect(200)
-          .then(async (response) => {
+          .then(async () => {
             const persistedFwCloud: FwCloud = await FwCloud.findOne({
               where: { id: fwCloud.id },
             });

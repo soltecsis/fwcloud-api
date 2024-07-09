@@ -53,22 +53,22 @@ export class FwcTree extends Model {
   @Column({ name: 'fwcloud' })
   fwCloudId: number;
 
-  @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.fwcTrees)
+  @ManyToOne(() => FwCloud, (fwcloud) => fwcloud.fwcTrees)
   @JoinColumn({
     name: 'fwcloud',
   })
   fwCloud: FwCloud;
 
-  @ManyToOne((type) => FwcTree, (fwcTree) => fwcTree.childs)
+  @ManyToOne(() => FwcTree, (fwcTree) => fwcTree.childs)
   @JoinColumn({
     name: 'id_parent',
   })
   parent: FwcTree;
 
-  @OneToMany((type) => FwcTree, (fwcTree) => fwcTree.parent)
+  @OneToMany(() => FwcTree, (fwcTree) => fwcTree.parent)
   childs: Array<FwcTree>;
 
-  @ManyToOne((type) => IPObjType, (ipObjType) => ipObjType.fwcTrees)
+  @ManyToOne(() => IPObjType, (ipObjType) => ipObjType.fwcTrees)
   @JoinColumn({
     name: 'obj_type',
   })

@@ -89,19 +89,19 @@ export class OpenVPN extends Model {
   @Column({ name: 'openvpn' })
   parentId: number;
 
-  @ManyToOne((type) => OpenVPN, (openVPN) => openVPN.childs)
+  @ManyToOne(() => OpenVPN, (openVPN) => openVPN.childs)
   @JoinColumn({
     name: 'openvpn',
   })
   parent: OpenVPN;
 
-  @OneToMany((type) => OpenVPN, (openVPN) => openVPN.parent)
+  @OneToMany(() => OpenVPN, (openVPN) => openVPN.parent)
   childs: Array<OpenVPN>;
 
   @Column({ name: 'firewall' })
   firewallId: number;
 
-  @ManyToOne((type) => Firewall, (firewall) => firewall.openVPNs)
+  @ManyToOne(() => Firewall, (firewall) => firewall.openVPNs)
   @JoinColumn({
     name: 'firewall',
   })
@@ -110,16 +110,16 @@ export class OpenVPN extends Model {
   @Column({ name: 'crt' })
   crtId: number;
 
-  @ManyToOne((type) => Crt, (crt) => crt.openVPNs)
+  @ManyToOne(() => Crt, (crt) => crt.openVPNs)
   @JoinColumn({
     name: 'crt',
   })
   crt: Crt;
 
-  @OneToMany((type) => OpenVPNOption, (options) => options.openVPN)
+  @OneToMany(() => OpenVPNOption, (options) => options.openVPN)
   openVPNOptions: Array<OpenVPNOption>;
 
-  @ManyToMany((type) => IPObjGroup, (ipObjGroup) => ipObjGroup.openVPNs)
+  @ManyToMany(() => IPObjGroup, (ipObjGroup) => ipObjGroup.openVPNs)
   @JoinTable({
     name: 'openvpn__ipobj_g',
     joinColumn: {
@@ -131,10 +131,10 @@ export class OpenVPN extends Model {
   })
   ipObjGroups: Array<IPObjGroup>;
 
-  @OneToMany((type) => PolicyRuleToOpenVPN, (policyRuleToOpenVPN) => policyRuleToOpenVPN.openVPN)
+  @OneToMany(() => PolicyRuleToOpenVPN, (policyRuleToOpenVPN) => policyRuleToOpenVPN.openVPN)
   policyRuleToOpenVPNs: Array<PolicyRuleToOpenVPN>;
 
-  @OneToMany((type) => OpenVPNPrefix, (model) => model.openVPN)
+  @OneToMany(() => OpenVPNPrefix, (model) => model.openVPN)
   openVPNPrefixes: Array<OpenVPNPrefix>;
 
   @OneToMany(() => RoutingRuleToOpenVPN, (model) => model.openVPN)
@@ -175,7 +175,7 @@ export class OpenVPN extends Model {
                 install_name=${req.dbCon.escape(req.body.install_name)},
                 comment=${req.dbCon.escape(req.body.comment)}
                 WHERE id=${req.body.openvpn}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -184,7 +184,7 @@ export class OpenVPN extends Model {
 
   public static addCfgOpt(req, opt): Promise<void> {
     return new Promise((resolve, reject) => {
-      req.dbCon.query('insert into openvpn_opt SET ?', opt, (error, result) => {
+      req.dbCon.query('insert into openvpn_opt SET ?', opt, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -194,7 +194,7 @@ export class OpenVPN extends Model {
   public static delCfgOptAll(req): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = 'delete from openvpn_opt where openvpn=' + req.body.openvpn;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -210,13 +210,13 @@ export class OpenVPN extends Model {
       dbCon.query(sql, (error, ipobj_list) => {
         if (error) return reject(error);
 
-        dbCon.query(`delete from openvpn_opt where openvpn=${openvpn}`, (error, result) => {
+        dbCon.query(`delete from openvpn_opt where openvpn=${openvpn}`, (error) => {
           if (error) return reject(error);
 
-          dbCon.query(`delete from openvpn_prefix where openvpn=${openvpn}`, (error, result) => {
+          dbCon.query(`delete from openvpn_prefix where openvpn=${openvpn}`, (error) => {
             if (error) return reject(error);
 
-            dbCon.query(`delete from ${tableName} where id=${openvpn}`, async (error, result) => {
+            dbCon.query(`delete from ${tableName} where id=${openvpn}`, async (error) => {
               if (error) return reject(error);
 
               // Remove all the ipobj referenced by this OpenVPN configuration.
@@ -491,7 +491,7 @@ export class OpenVPN extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE openvpn SET status=status${status_action} WHERE id=${openvpn}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve({ result: true });
         },
@@ -501,7 +501,7 @@ export class OpenVPN extends Model {
 
   public static updateOpenvpnInstallDate(dbCon, openvpn) {
     return new Promise((resolve, reject) => {
-      dbCon.query(`UPDATE openvpn SET installed_at=NOW() WHERE id=${openvpn}`, (error, result) => {
+      dbCon.query(`UPDATE openvpn SET installed_at=NOW() WHERE id=${openvpn}`, (error) => {
         if (error) return reject(error);
         resolve({ result: true });
       });
@@ -515,7 +515,7 @@ export class OpenVPN extends Model {
                 INNER JOIN ipobj O ON O.id=OPT.ipobj
                 SET VPN.status=VPN.status${status_action}
                 WHERE O.fwcloud=${req.body.fwcloud} AND O.id=${ipobj}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -969,7 +969,7 @@ export class OpenVPN extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`,
-        (error, result) => {
+        (error) => {
           if (error) return reject(error);
           resolve();
         },

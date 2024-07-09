@@ -1,4 +1,4 @@
-import { EntityManager, QueryFailedError } from 'typeorm';
+import { EntityManager } from 'typeorm';
 import { Application } from '../../../../src/Application';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import StringHelper from '../../../../src/utils/string.helper';

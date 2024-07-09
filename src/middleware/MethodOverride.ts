@@ -27,7 +27,7 @@ import { Request, Response, NextFunction } from 'express';
 export class MethodOverride extends Middleware {
   public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     this.app.express.use(
-      method_override((req, res) => {
+      method_override((req) => {
         if (req.body && typeof req.body === 'object' && '_method' in req.body) {
           // look in urlencoded POST bodies and delete it
           const method = req.body._method;

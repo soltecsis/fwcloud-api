@@ -20,9 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { describeName, testSuite, expect } from '../../../mocha/global-setup';
-import { AbstractApplication } from '../../../../src/fonaments/abstract-application';
-import { PolicyGroupRepository } from '../../../../src/repositories/PolicyGroupRepository';
+import { describeName, expect } from '../../../mocha/global-setup';
 import { PolicyGroup } from '../../../../src/models/policy/PolicyGroup';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
 import { Firewall } from '../../../../src/models/firewall/Firewall';
@@ -30,12 +28,10 @@ import sinon from 'sinon';
 import { EntityManager } from 'typeorm';
 import db from '../../../../src/database/database-manager';
 
-let app: AbstractApplication;
 let manager: EntityManager;
 
 describe(describeName('PolicyRule tests'), () => {
   before(async () => {
-    app = testSuite.app;
     manager = db.getSource().manager;
   });
 

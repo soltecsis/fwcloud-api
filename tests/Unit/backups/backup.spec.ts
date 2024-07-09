@@ -55,7 +55,7 @@ describe(describeName('Backup Unit tests'), () => {
   describe('create()', () => {
     it("should throw error exception if mysqldump command doesn't exists", async () => {
       const backup: Backup = new Backup();
-      sinon.stub(backup, 'existsCmd').callsFake((cmd) => {
+      sinon.stub(backup, 'existsCmd').callsFake(() => {
         return Promise.resolve(false);
       });
 
@@ -213,7 +213,7 @@ describe(describeName('Backup Unit tests'), () => {
 
     it("should throw error exception if mysql command doesn't exists", async () => {
       const backup: Backup = new Backup();
-      sinon.stub(backup, 'existsCmd').callsFake((cmd) => {
+      sinon.stub(backup, 'existsCmd').callsFake(() => {
         return Promise.resolve(false);
       });
 
@@ -273,7 +273,7 @@ describe(describeName('Backup Unit tests'), () => {
       FSHelper.mkdirSync(path.join(app.config.get('openvpn.history').data_dir, 'test'));
       backup = await backup.create(service.config.data_dir);
 
-      backup = await backup.restore();
+      await backup.restore();
 
       expect(
         FSHelper.directoryExistsSync(path.join(app.config.get('openvpn.history').data_dir, 'test')),
@@ -286,7 +286,7 @@ describe(describeName('Backup Unit tests'), () => {
       FSHelper.mkdirSync(path.join(app.config.get('pki').data_dir, 'test'));
       backup = await backup.create(service.config.data_dir);
 
-      backup = await backup.restore();
+      await backup.restore();
 
       expect(FSHelper.directoryExistsSync(path.join(app.config.get('pki').data_dir, 'test'))).to.be
         .true;
@@ -298,7 +298,7 @@ describe(describeName('Backup Unit tests'), () => {
       FSHelper.mkdirSync(path.join(app.config.get('policy').data_dir, 'test'));
       backup = await backup.create(service.config.data_dir);
 
-      backup = await backup.restore();
+      await backup.restore();
 
       expect(FSHelper.directoryExistsSync(path.join(app.config.get('policy').data_dir, 'test'))).to
         .be.true;
@@ -310,7 +310,7 @@ describe(describeName('Backup Unit tests'), () => {
       FSHelper.mkdirSync(path.join(app.config.get('snapshot').data_dir, 'test'));
       backup = await backup.create(service.config.data_dir);
 
-      backup = await backup.restore();
+      await backup.restore();
 
       expect(FSHelper.directoryExistsSync(path.join(app.config.get('snapshot').data_dir, 'test')))
         .to.be.true;
@@ -332,7 +332,7 @@ describe(describeName('Backup Unit tests'), () => {
       let backup: Backup = new Backup();
       backup = await backup.create(service.config.data_dir);
 
-      backup = await backup.restore();
+      await backup.restore();
 
       firewall = await Firewall.findOne({ where: { id: firewall.id } });
 

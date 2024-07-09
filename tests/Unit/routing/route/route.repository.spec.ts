@@ -133,7 +133,8 @@ describe(RouteRepository.name, () => {
     });
 
     it('should add to a group is destination belongs to a group', async () => {
-      const routeOrder1: Route = await repository.save({
+      //const routeOrder1: Route =
+      await repository.save({
         routingTableId: table.id,
         route_order: 1,
         gatewayId: gateway.id,

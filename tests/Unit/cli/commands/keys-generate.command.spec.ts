@@ -41,9 +41,7 @@ describe(describeName('KeysGenerateCommand tests'), () => {
   });
 
   it('should trow an exception is .env file does not exists', async () => {
-    const stubVar = sinon
-      .stub(KeysGenerateCommand, <any>'ENV_FILENAME')
-      .value('tests/playground/env_invent');
+    sinon.stub(KeysGenerateCommand, <any>'ENV_FILENAME').value('tests/playground/env_invent');
 
     await expect(
       runCLICommandIsolated(testSuite, async () => {

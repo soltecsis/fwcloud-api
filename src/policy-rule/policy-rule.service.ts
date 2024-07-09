@@ -1,4 +1,3 @@
-import { NotFoundException } from './../fonaments/exceptions/not-found-exception';
 import { Service } from '../fonaments/services/service';
 import * as DatabaseQuery from '../database/Query';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';

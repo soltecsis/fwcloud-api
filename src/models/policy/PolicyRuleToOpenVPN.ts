@@ -54,19 +54,19 @@ export class PolicyRuleToOpenVPN extends Model {
   @Column()
   updated_by: number;
 
-  @ManyToOne((type) => PolicyPosition, (policyPosition) => policyPosition.policyRuleToOpenVPNs)
+  @ManyToOne(() => PolicyPosition, (policyPosition) => policyPosition.policyRuleToOpenVPNs)
   @JoinColumn({
     name: 'position',
   })
   policyPosition: PolicyPosition;
 
-  @ManyToOne((type) => OpenVPN, (openVPN) => openVPN.policyRuleToOpenVPNs)
+  @ManyToOne(() => OpenVPN, (openVPN) => openVPN.policyRuleToOpenVPNs)
   @JoinColumn({
     name: 'openvpn',
   })
   openVPN: OpenVPN;
 
-  @ManyToOne((type) => PolicyRule, (policyRule) => policyRule.policyRuleToOpenVPNs)
+  @ManyToOne(() => PolicyRule, (policyRule) => policyRule.policyRuleToOpenVPNs)
   @JoinColumn({
     name: 'rule',
   })
@@ -119,7 +119,7 @@ export class PolicyRuleToOpenVPN extends Model {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET rule=${req.body.new_rule}, position=${req.body.new_position}
                 WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
-      req.dbCon.query(sql, async (error, rows) => {
+      req.dbCon.query(sql, async (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -129,7 +129,7 @@ export class PolicyRuleToOpenVPN extends Model {
   public static deleteFromRulePosition(req): Promise<void> {
     return new Promise(async (resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE rule=${req.body.rule} AND openvpn=${req.body.openvpn} AND position=${req.body.position}`;
-      req.dbCon.query(sql, async (error, rows) => {
+      req.dbCon.query(sql, async (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -138,7 +138,7 @@ export class PolicyRuleToOpenVPN extends Model {
 
   public static deleteFromRule(dbCon, rule): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error, rows) => {
+      dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -151,7 +151,7 @@ export class PolicyRuleToOpenVPN extends Model {
       const sql = `INSERT INTO ${tableName} (rule, openvpn, position,position_order)
                 (SELECT ${new_rule}, openvpn, position, position_order
                 from ${tableName} where rule=${rule} order by  position, position_order)`;
-      dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error) => {
         if (error) return reject(error);
         resolve();
       });

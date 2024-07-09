@@ -36,7 +36,7 @@ import db from '../../../../../src/database/database-manager';
 describe(DhcpController.name, () => {
   let firewall: Firewall;
   let fwCloud: FwCloud;
-  let dhcpgroup: DHCPGroup;
+  //let dhcpgroup: DHCPGroup;
   let dhcprule: DHCPRule;
 
   let controller: DhcpController;
@@ -63,7 +63,8 @@ describe(DhcpController.name, () => {
       }),
     );
 
-    dhcpgroup = await manager.getRepository(DHCPGroup).save({
+    //dhcpgroup =
+    await manager.getRepository(DHCPGroup).save({
       name: StringHelper.randomize(10),
       firewall: firewall,
     });

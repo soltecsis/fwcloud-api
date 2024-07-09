@@ -59,13 +59,13 @@ export class Ca extends Model {
   @Column()
   updated_at: Date;
 
-  @ManyToOne((type) => User, (user) => user.created_cas)
+  @ManyToOne(() => User, (user) => user.created_cas)
   @JoinColumn({
     name: 'created_by',
   })
   created_by: User;
 
-  @ManyToOne((type) => User, (user) => user.updated_cas)
+  @ManyToOne(() => User, (user) => user.updated_cas)
   @JoinColumn({
     name: 'updated_by',
   })
@@ -74,16 +74,16 @@ export class Ca extends Model {
   @Column({ name: 'fwcloud' })
   fwCloudId: number;
 
-  @ManyToOne((type) => FwCloud, (fwcloud) => fwcloud.cas)
+  @ManyToOne(() => FwCloud, (fwcloud) => fwcloud.cas)
   @JoinColumn({
     name: 'fwcloud',
   })
   fwCloud: FwCloud;
 
-  @OneToMany((type) => Crt, (crt) => crt.ca)
+  @OneToMany(() => Crt, (crt) => crt.ca)
   crts: Array<Crt>;
 
-  @OneToMany((type) => CaPrefix, (caPrefix) => caPrefix.ca)
+  @OneToMany(() => CaPrefix, (caPrefix) => caPrefix.ca)
   prefixes: Array<CaPrefix>;
 
   public getTableName(): string {
@@ -118,7 +118,7 @@ export class Ca extends Model {
             fwcError.other('This CA can not be removed because it still has certificates'),
           );
 
-        req.dbCon.query('DELETE FROM ca WHERE id=' + req.body.ca, (error, result) => {
+        req.dbCon.query('DELETE FROM ca WHERE id=' + req.body.ca, (error) => {
           if (error) return reject(error);
           resolve();
         });

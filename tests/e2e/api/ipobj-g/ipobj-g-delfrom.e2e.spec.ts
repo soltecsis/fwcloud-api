@@ -17,7 +17,6 @@ import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
 import { Route } from '../../../../src/models/routing/route/route.model';
 import { OpenVPN } from '../../../../src/models/vpn/openvpn/OpenVPN';
 import { OpenVPNPrefix } from '../../../../src/models/vpn/openvpn/OpenVPNPrefix';
-import { Mark } from '../../../../src/models/ipobj/Mark';
 import db from '../../../../src/database/database-manager';
 
 enum PolicyColumn {
@@ -41,7 +40,6 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
   let session: string;
   let group: IPObjGroup;
   let requestData: Record<string, unknown>;
-  let firewall: Firewall;
 
   let inputRuleId: number;
   let outputRuleId: number;
@@ -128,7 +126,7 @@ describe(describeName('Ipobj group delfrom E2E Tests'), () => {
       routingTableId: fwcProduct.routingTable.id,
     });
 
-    firewall = await manager.getRepository(Firewall).findOneOrFail({
+    await manager.getRepository(Firewall).findOneOrFail({
       where: { id: fwcProduct.firewall.id },
       relations: ['policyRules'],
     });

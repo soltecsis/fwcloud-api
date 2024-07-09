@@ -20,22 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  JoinTable,
-  ManyToMany,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Interface } from '../../interface/Interface';
 import { IPObj } from '../../ipobj/IPObj';
-import { IPObjGroup } from '../../ipobj/IPObjGroup';
 import Model from '../../Model';
-import { OpenVPN } from '../../vpn/openvpn/OpenVPN';
-import { OpenVPNPrefix } from '../../vpn/openvpn/OpenVPNPrefix';
 import { RoutingTable } from '../routing-table/routing-table.model';
 import { RouteGroup } from '../route-group/route-group.model';
 import db from '../../../database/database-manager';
@@ -55,7 +43,7 @@ export class Route extends Model {
   @Column({ name: 'routing_table' })
   routingTableId: number;
 
-  @ManyToOne((type) => RoutingTable, (model) => model.routes)
+  @ManyToOne(() => RoutingTable, (model) => model.routes)
   @JoinColumn({
     name: 'routing_table',
   })
@@ -64,7 +52,7 @@ export class Route extends Model {
   @Column({ name: 'gateway' })
   gatewayId: number;
 
-  @ManyToOne((type) => IPObj, (model) => model.routeGateways)
+  @ManyToOne(() => IPObj, (model) => model.routeGateways)
   @JoinColumn({
     name: 'gateway',
   })
@@ -73,7 +61,7 @@ export class Route extends Model {
   @Column({ name: 'interface' })
   interfaceId: number;
 
-  @ManyToOne((type) => Interface, (model) => model.routes)
+  @ManyToOne(() => Interface, (model) => model.routes)
   @JoinColumn({
     name: 'interface',
   })
@@ -100,7 +88,7 @@ export class Route extends Model {
   })
   firewallApplyToId: number;
 
-  @ManyToOne((type) => Firewall, (firewall) => firewall.routes)
+  @ManyToOne(() => Firewall, (firewall) => firewall.routes)
   @JoinColumn({
     name: 'fw_apply_to',
   })
@@ -111,7 +99,7 @@ export class Route extends Model {
   })
   routeGroupId: number;
 
-  @ManyToOne((type) => RouteGroup, (model) => model.routes)
+  @ManyToOne(() => RouteGroup, (model) => model.routes)
   @JoinColumn({
     name: 'group',
   })

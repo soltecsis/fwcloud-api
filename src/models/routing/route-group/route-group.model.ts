@@ -46,13 +46,13 @@ export class RouteGroup extends Model {
   })
   firewallId: number;
 
-  @ManyToOne((type) => Firewall, (model) => model.routeGroups)
+  @ManyToOne(() => Firewall, (model) => model.routeGroups)
   @JoinColumn({
     name: 'firewall',
   })
   firewall: Firewall;
 
-  @OneToMany((type) => Route, (model) => model.routeGroup, {
+  @OneToMany(() => Route, (model) => model.routeGroup, {
     eager: true,
   })
   routes: Route[];

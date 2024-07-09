@@ -15,7 +15,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { IPObj } from '../../../ipobj/IPObj';
 import { KeepalivedGroup } from '../keepalived_g/keepalived_g.model';
 import Model from '../../../Model';
 import { Firewall } from '../../../firewall/Firewall';

@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, SimpleConsoleLogger } from 'typeorm';
+import { MigrationInterface, QueryRunner } from 'typeorm';
 const countries = [
   { name: 'Taiwan', continent: 'AS', code: 'TW' },
   { name: 'Afghanistan', continent: 'AS', code: 'AF' },
