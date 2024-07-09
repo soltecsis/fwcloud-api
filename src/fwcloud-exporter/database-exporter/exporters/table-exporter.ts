@@ -31,10 +31,7 @@ export class TableExporter {
     this._entity = this.getEntity();
   }
 
-  public async bootstrap(
-    connection: Connection,
-    fwCloudId: number,
-  ): Promise<void> {
+  public async bootstrap(connection: Connection, fwCloudId: number): Promise<void> {
     return;
   }
 
@@ -60,27 +57,17 @@ export class TableExporter {
     connection: Connection,
     fwCloudId: number,
   ): Promise<ExporterResult> {
-    results.addTableData(
-      this.getTableName(),
-      await this.getRows(connection, fwCloudId),
-    );
+    results.addTableData(this.getTableName(), await this.getRows(connection, fwCloudId));
 
     return results;
   }
 
-  protected async getRows(
-    connection: Connection,
-    fwCloudId: number,
-  ): Promise<Array<object>> {
+  protected async getRows(connection: Connection, fwCloudId: number): Promise<Array<object>> {
     const qb: SelectQueryBuilder<any> = connection.createQueryBuilder(
       this._entity,
       this.getTableName(),
     );
-    return await this.getFilterBuilder(
-      qb,
-      this.getTableName(),
-      fwCloudId,
-    ).getMany();
+    return await this.getFilterBuilder(qb, this.getTableName(), fwCloudId).getMany();
   }
 
   public getFilterBuilder(

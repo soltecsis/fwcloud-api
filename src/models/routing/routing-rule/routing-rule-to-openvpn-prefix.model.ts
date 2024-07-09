@@ -30,13 +30,9 @@ export class RoutingRuleToOpenVPNPrefix extends Model {
   })
   routingRule: RoutingRule;
 
-  @ManyToOne(
-    () => OpenVPNPrefix,
-    (model) => model.routingRuleToOpenVPNPrefixes,
-    {
-      orphanedRowAction: 'delete',
-    },
-  )
+  @ManyToOne(() => OpenVPNPrefix, (model) => model.routingRuleToOpenVPNPrefixes, {
+    orphanedRowAction: 'delete',
+  })
   @JoinColumn({
     name: 'openvpn_prefix',
   })

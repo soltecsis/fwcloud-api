@@ -19,13 +19,13 @@ export class Zip {
         }
 
         if (!fs.existsSync(destinationPath)) {
-          void FSHelper.mkdirSync(destinationPath);
+          FSHelper.mkdirSync(destinationPath);
         }
 
         zipfile.on('entry', (entry) => {
           if (/\/$/.test(entry.fileName)) {
             // Entry is a directory as file names end with '/'.
-            void FSHelper.mkdirSync(path.join(destinationPath, entry.fileName));
+            FSHelper.mkdirSync(path.join(destinationPath, entry.fileName));
             zipfile.readEntry();
           } else {
             // file entry
@@ -60,20 +60,19 @@ export class Zip {
   public static zip(
     workPath: string,
     destinationPath: string = null,
+    extension = null,
   ): Promise<void> {
     destinationPath = destinationPath ?? `${workPath}.zip`;
 
     return new Promise<void>((resolve, reject) => {
       if (!fs.existsSync(workPath)) {
-        return reject(
-          new Error(`Work path does not exist for being zipped: ${workPath}`),
-        );
+        return reject(new Error(`Work path does not exist for being zipped: ${workPath}`));
       }
 
       const output = fs.createWriteStream(destinationPath);
       const archive = archiver('zip', { zlib: { level: 9 } });
 
-      output.on('close', () => {
+      output.on('close', async () => {
         return resolve();
       });
 

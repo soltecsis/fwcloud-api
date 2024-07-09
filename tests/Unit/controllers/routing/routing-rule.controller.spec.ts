@@ -33,12 +33,8 @@ describe(RoutingRuleController.name, () => {
   beforeEach(async () => {
     app = testSuite.app;
     manager = db.getSource().manager;
-    tableService = await app.getService<RoutingTableService>(
-      RoutingTableService.name,
-    );
-    ruleService = await app.getService<RoutingRuleService>(
-      RoutingRuleService.name,
-    );
+    tableService = await app.getService<RoutingTableService>(RoutingTableService.name);
+    ruleService = await app.getService<RoutingRuleService>(RoutingRuleService.name);
     fwcProduct = await new FwCloudFactory().make();
 
     firewall = fwcProduct.firewall;
@@ -61,11 +57,7 @@ describe(RoutingRuleController.name, () => {
       'FIREWALLS',
       'FDF',
     )) as { id: number };
-    await Tree.insertFwc_Tree_New_firewall(
-      fwcProduct.fwcloud.id,
-      node.id,
-      firewall.id,
-    );
+    await Tree.insertFwc_Tree_New_firewall(fwcProduct.fwcloud.id, node.id, firewall.id);
 
     controller = new RoutingRuleController(app);
     await controller.make({
@@ -111,13 +103,11 @@ describe(RoutingRuleController.name, () => {
         fwCloudId: fwcProduct.fwcloud.id,
       });
 
-      const newTable: RoutingTable = await manager
-        .getRepository(RoutingTable)
-        .save({
-          name: 'table',
-          number: 1,
-          firewallId: newFirewall.id,
-        });
+      const newTable: RoutingTable = await manager.getRepository(RoutingTable).save({
+        name: 'table',
+        number: 1,
+        firewallId: newFirewall.id,
+      });
 
       const rule: RoutingRule = await manager.getRepository(RoutingRule).save({
         routingTableId: newTable.id,
@@ -164,10 +154,9 @@ describe(RoutingRuleController.name, () => {
 
   describe('bulkRemove', () => {
     beforeEach(() => {
-      const spy: Sinon.SinonSpy = Sinon.stub(
-        RoutingRulePolicy,
-        'delete',
-      ).resolves(Authorization.grant());
+      const spy: Sinon.SinonSpy = Sinon.stub(RoutingRulePolicy, 'delete').resolves(
+        Authorization.grant(),
+      );
     });
 
     it('should remove rules from different table which belongs to the same firewall', async () => {

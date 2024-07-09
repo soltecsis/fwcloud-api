@@ -2,6 +2,7 @@ import * as uuid from 'uuid';
 import { SocketMessage } from '../messages/socket-message';
 import { EventEmitter } from 'events';
 import { Request } from 'express';
+import io from 'socket.io';
 import { app } from '../../fonaments/abstract-application';
 import { WebSocketService } from '../web-socket.service';
 
@@ -34,8 +35,9 @@ export class Channel extends EventEmitter {
 
   public static async fromRequest(request: Request): Promise<Channel> {
     if (request.session.socketId && request.inputs.has('channel_id')) {
-      const websocketService: WebSocketService =
-        await app().getService<WebSocketService>(WebSocketService.name);
+      const websocketService: WebSocketService = await app().getService<WebSocketService>(
+        WebSocketService.name,
+      );
       let listener: EventEmitter = new EventEmitter();
 
       if (websocketService.hasSocket(request.session.socketId)) {

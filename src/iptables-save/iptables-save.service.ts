@@ -24,10 +24,7 @@ import { Request } from 'express';
 import { HttpException } from '../fonaments/exceptions/http/http-exception';
 import { IptablesSaveToFWCloud } from './iptables-save.model';
 import { NetFilterTables, IptablesSaveStats } from './iptables-save.data';
-import {
-  Firewall,
-  FirewallInstallCommunication,
-} from '../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../models/firewall/Firewall';
 import { Channel } from '../sockets/channels/channel';
 import { ProgressNoticePayload } from '../sockets/messages/socket-message';
 import { PolicyRule } from '../models/policy/PolicyRule';
@@ -58,36 +55,21 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     await PolicyRule.deletePolicy_r_Firewall(this.req.body.firewall); //DELETE POLICY, Objects in Positions and firewall rule groups.
     // Create default policy. The second parameter is the lo interface id. If we pass it as null the default rules
     // for the lo interface and useful icmp types will not be created.
-    await PolicyRule.insertDefaultPolicy(
-      this.req.body.firewall,
-      null,
-      fwOptions,
-    );
+    await PolicyRule.insertDefaultPolicy(this.req.body.firewall, null, fwOptions);
 
     for (this.line = 0; this.line < this.data.length; this.line++) {
-      channel.emit(
-        'message',
-        new ProgressNoticePayload(`${this.line + 1}/${this.data.length}`),
-      );
+      channel.emit('message', new ProgressNoticePayload(`${this.line + 1}/${this.data.length}`));
 
       // Get items of current string.
       this.items = this.data[this.line].trim().split(/\s+/);
 
       // Ignore comments or empty lines.
-      if (
-        this.items[0] === '#' ||
-        this.items.length === 0 ||
-        this.items[0] === ''
-      )
-        continue;
+      if (this.items[0] === '#' || this.items.length === 0 || this.items[0] === '') continue;
 
       // Iptables table with which we are working now.
       if (!this.table) {
         if (!NetFilterTables.has(this.items[0].substr(1)))
-          throw new HttpException(
-            `Bad iptables-save data (line: ${this.line + 1})`,
-            400,
-          );
+          throw new HttpException(`Bad iptables-save data (line: ${this.line + 1})`, 400);
         this.table = this.items[0].substr(1);
         this.chain = null;
         this.customChainsMap = new Map();
@@ -107,8 +89,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
       if (this.table === 'mangle' || this.table === 'raw') continue;
 
       try {
-        if (this.data[this.line].charAt(0) === ':')
-          await this.generateCustomChainsMap();
+        if (this.data[this.line].charAt(0) === ':') await this.generateCustomChainsMap();
         else if (this.items[0] === '-A') {
           // Generate rule.
           if (await this.generateRule()) {
@@ -132,9 +113,7 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
     return this.stats;
   }
 
-  public async importThroughCommunication(
-    request: Request,
-  ): Promise<IptablesSaveStats> {
+  public async importThroughCommunication(request: Request): Promise<IptablesSaveStats> {
     let communication: Communication<unknown>;
 
     if (request.body.communication === FirewallInstallCommunication.SSH) {
@@ -195,16 +174,10 @@ export class IptablesSaveService extends IptablesSaveToFWCloud {
           port: Object.prototype.hasOwnProperty.call(request.body, 'port')
             ? request.body.port
             : firewall.install_port,
-          username: Object.prototype.hasOwnProperty.call(
-            request.body,
-            'sshuser',
-          )
+          username: Object.prototype.hasOwnProperty.call(request.body, 'sshuser')
             ? request.body.sshuser
             : utilsModel.decrypt(firewall.install_user),
-          password: Object.prototype.hasOwnProperty.call(
-            request.body,
-            'sshpass',
-          )
+          password: Object.prototype.hasOwnProperty.call(request.body, 'sshpass')
             ? request.body.sshpass
             : utilsModel.decrypt(firewall.install_pass),
           options: null,

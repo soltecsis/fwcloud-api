@@ -91,10 +91,8 @@ export class FwCloudFactory {
     this._ipobjRepository = this._manager.getRepository(IPObj);
     this._ipobjGroupRepository = this._manager.getRepository(IPObjGroup);
     this._interfaceRepository = this._manager.getRepository(Interface);
-    this._interfaceIPObjRepository =
-      this._manager.getRepository(InterfaceIPObj);
-    this._ipobjToGroupRepository =
-      this._manager.getRepository(IPObjToIPObjGroup);
+    this._interfaceIPObjRepository = this._manager.getRepository(InterfaceIPObj);
+    this._ipobjToGroupRepository = this._manager.getRepository(IPObjToIPObjGroup);
     this._caRepository = this._manager.getRepository(Ca);
     this._crtRepository = this._manager.getRepository(Crt);
     this._openvpnRepository = this._manager.getRepository(OpenVPN);
@@ -581,13 +579,10 @@ export class FwCloudFactory {
   }
 
   private async makeRouting(): Promise<void> {
-    const routeService = await testSuite.app.getService<RouteService>(
-      RouteService.name,
+    const routeService = await testSuite.app.getService<RouteService>(RouteService.name);
+    const routingRuleService = await testSuite.app.getService<RoutingRuleService>(
+      RoutingRuleService.name,
     );
-    const routingRuleService =
-      await testSuite.app.getService<RoutingRuleService>(
-        RoutingRuleService.name,
-      );
     let lastRouteId = this.randomId(10, 100000);
     let lastRoutingRuleId = this.randomId(10, 100000);
 
@@ -730,9 +725,7 @@ export class FwCloudFactory {
         { id: this.fwc.ipobjs.get('networkNoCIDR').id, order: 4 },
         { id: this.fwc.ipobjs.get('host').id, order: 5 },
       ],
-      openVPNIds: [
-        { id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 },
-      ],
+      openVPNIds: [{ id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 }],
       openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
     });
 
@@ -748,9 +741,7 @@ export class FwCloudFactory {
         { id: this.fwc.ipobjs.get('networkNoCIDR').id, order: 4 },
         { id: this.fwc.ipobjs.get('host').id, order: 5 },
       ],
-      openVPNIds: [
-        { id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 },
-      ],
+      openVPNIds: [{ id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 }],
       openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
     });
 
@@ -758,65 +749,49 @@ export class FwCloudFactory {
       ipObjGroupIds: [{ id: this.fwc.ipobjGroup.id, order: 1 }],
     });
 
-    await routingRuleService.update(
-      this.fwc.routingRules.get('routing-rule-1').id,
-      {
-        ipObjIds: [
-          { id: this.fwc.ipobjs.get('address').id, order: 1 },
-          { id: this.fwc.ipobjs.get('addressRange').id, order: 2 },
-          { id: this.fwc.ipobjs.get('network').id, order: 3 },
-          { id: this.fwc.ipobjs.get('networkNoCIDR').id, order: 4 },
-          { id: this.fwc.ipobjs.get('host').id, order: 5 },
-        ],
-        openVPNIds: [
-          { id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 },
-        ],
-        openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
-        markIds: [
-          {
-            id: this.fwc.mark.id,
-            order: 8,
-          },
-        ],
-      },
-    );
+    await routingRuleService.update(this.fwc.routingRules.get('routing-rule-1').id, {
+      ipObjIds: [
+        { id: this.fwc.ipobjs.get('address').id, order: 1 },
+        { id: this.fwc.ipobjs.get('addressRange').id, order: 2 },
+        { id: this.fwc.ipobjs.get('network').id, order: 3 },
+        { id: this.fwc.ipobjs.get('networkNoCIDR').id, order: 4 },
+        { id: this.fwc.ipobjs.get('host').id, order: 5 },
+      ],
+      openVPNIds: [{ id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 }],
+      openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
+      markIds: [
+        {
+          id: this.fwc.mark.id,
+          order: 8,
+        },
+      ],
+    });
 
-    await routingRuleService.update(
-      this.fwc.routingRules.get('routing-rule-4').id,
-      {
-        ipObjIds: [
-          { id: this.fwc.ipobjs.get('address').id, order: 1 },
-          { id: this.fwc.ipobjs.get('addressRange').id, order: 2 },
-          { id: this.fwc.ipobjs.get('network').id, order: 3 },
-          { id: this.fwc.ipobjs.get('networkNoCIDR').id, order: 4 },
-          { id: this.fwc.ipobjs.get('host').id, order: 5 },
-        ],
-        openVPNIds: [
-          { id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 },
-        ],
-        openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
-        markIds: [
-          {
-            id: this.fwc.mark.id,
-            order: 8,
-          },
-        ],
-      },
-    );
+    await routingRuleService.update(this.fwc.routingRules.get('routing-rule-4').id, {
+      ipObjIds: [
+        { id: this.fwc.ipobjs.get('address').id, order: 1 },
+        { id: this.fwc.ipobjs.get('addressRange').id, order: 2 },
+        { id: this.fwc.ipobjs.get('network').id, order: 3 },
+        { id: this.fwc.ipobjs.get('networkNoCIDR').id, order: 4 },
+        { id: this.fwc.ipobjs.get('host').id, order: 5 },
+      ],
+      openVPNIds: [{ id: this.fwc.openvpnClients.get('OpenVPN-Cli-3').id, order: 6 }],
+      openVPNPrefixIds: [{ id: this.fwc.openvpnPrefix.id, order: 7 }],
+      markIds: [
+        {
+          id: this.fwc.mark.id,
+          order: 8,
+        },
+      ],
+    });
 
-    await routingRuleService.update(
-      this.fwc.routingRules.get('routing-rule-2').id,
-      {
-        ipObjGroupIds: [{ id: this.fwc.ipobjGroup.id, order: 1 }],
-      },
-    );
+    await routingRuleService.update(this.fwc.routingRules.get('routing-rule-2').id, {
+      ipObjGroupIds: [{ id: this.fwc.ipobjGroup.id, order: 1 }],
+    });
 
-    await routingRuleService.update(
-      this.fwc.routingRules.get('routing-rule-5').id,
-      {
-        ipObjGroupIds: [{ id: this.fwc.ipobjGroup.id, order: 1 }],
-      },
-    );
+    await routingRuleService.update(this.fwc.routingRules.get('routing-rule-5').id, {
+      ipObjGroupIds: [{ id: this.fwc.ipobjGroup.id, order: 1 }],
+    });
   }
 
   private async makeMark(): Promise<void> {

@@ -38,9 +38,7 @@ export class UpdateController extends Controller {
   protected _updateUpdaterService: UpdateService;
 
   async make() {
-    this._updateUpdaterService = await app().getService<UpdateService>(
-      UpdateService.name,
-    );
+    this._updateUpdaterService = await app().getService<UpdateService>(UpdateService.name);
   }
 
   @Validate()
@@ -53,9 +51,7 @@ export class UpdateController extends Controller {
   }
 
   @Validate()
-  public async pkgInstallUpdatesData(
-    request: Request,
-  ): Promise<ResponseBuilder> {
+  public async pkgInstallUpdatesData(request: Request): Promise<ResponseBuilder> {
     const updatesInfo: UpdatesInfo = {
       websrv: null,
       ui: await this._updateUpdaterService.compareVersions(Apps.UI),

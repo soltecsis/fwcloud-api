@@ -21,9 +21,7 @@ describe(KeepalivedGroupService.name, () => {
     manager = db.getSource().manager;
     await testSuite.resetDatabaseData();
 
-    service = await testSuite.app.getService<KeepalivedGroupService>(
-      KeepalivedGroupService.name,
-    );
+    service = await testSuite.app.getService<KeepalivedGroupService>(KeepalivedGroupService.name);
     repository = manager.getRepository(KeepalivedGroup);
     fwCloud = await manager.getRepository(FwCloud).save(
       manager.getRepository(FwCloud).create({
@@ -51,15 +49,9 @@ describe(KeepalivedGroupService.name, () => {
         style: 'default',
       };
 
-      const findOneStub = sinon
-        .stub(manager.getRepository(Firewall), 'findOne')
-        .resolves(firewall);
-      const saveStub = sinon
-        .stub(repository, 'save')
-        .resolves({ id: 1 } as KeepalivedGroup);
-      const findOneStub2 = sinon
-        .stub(repository, 'findOne')
-        .resolves({ id: 1 } as KeepalivedGroup);
+      const findOneStub = sinon.stub(manager.getRepository(Firewall), 'findOne').resolves(firewall);
+      const saveStub = sinon.stub(repository, 'save').resolves({ id: 1 } as KeepalivedGroup);
+      const findOneStub2 = sinon.stub(repository, 'findOne').resolves({ id: 1 } as KeepalivedGroup);
 
       const result = await service.create(data);
 
@@ -76,16 +68,12 @@ describe(KeepalivedGroupService.name, () => {
         style: 'default',
       };
 
-      const findOneStub = sinon
-        .stub(manager.getRepository(Firewall), 'findOne')
-        .resolves(firewall);
+      const findOneStub = sinon.stub(manager.getRepository(Firewall), 'findOne').resolves(firewall);
       const saveStub = sinon
         .stub(repository, 'save')
         .rejects(new Error('Failed to create KeepalivedGroup'));
 
-      await expect(service.create(data)).to.be.rejectedWith(
-        'Failed to create KeepalivedGroup',
-      );
+      await expect(service.create(data)).to.be.rejectedWith('Failed to create KeepalivedGroup');
 
       expect(findOneStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
@@ -98,19 +86,13 @@ describe(KeepalivedGroupService.name, () => {
         style: 'default',
       };
 
-      const findOneStub = sinon
-        .stub(manager.getRepository(Firewall), 'findOne')
-        .resolves(firewall);
-      const saveStub = sinon
-        .stub(repository, 'save')
-        .resolves({ id: 1 } as KeepalivedGroup);
+      const findOneStub = sinon.stub(manager.getRepository(Firewall), 'findOne').resolves(firewall);
+      const saveStub = sinon.stub(repository, 'save').resolves({ id: 1 } as KeepalivedGroup);
       const findOneStub2 = sinon
         .stub(repository, 'findOne')
         .rejects(new Error('Failed to retrieve KeepalivedGroup'));
 
-      await expect(service.create(data)).to.be.rejectedWith(
-        'Failed to retrieve KeepalivedGroup',
-      );
+      await expect(service.create(data)).to.be.rejectedWith('Failed to retrieve KeepalivedGroup');
 
       expect(findOneStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
@@ -145,9 +127,7 @@ describe(KeepalivedGroupService.name, () => {
 
       expect(saveStub.calledOnce).to.be.true;
       expect(findOneStub2.calledOnce).to.be.true;
-      expect(result).to.deep.equal(
-        await repository.findOne({ where: { id: id } }),
-      );
+      expect(result).to.deep.equal(await repository.findOne({ where: { id: id } }));
     });
 
     it('should throw an error if KeepalivedGroup is not found', async () => {
@@ -163,9 +143,7 @@ describe(KeepalivedGroupService.name, () => {
         .stub(repository, 'save')
         .rejects(new Error('KeepalivedGroup not found'));
 
-      await expect(service.update(id, data)).to.be.rejectedWith(
-        'KeepalivedGroup not found',
-      );
+      await expect(service.update(id, data)).to.be.rejectedWith('KeepalivedGroup not found');
 
       expect(findOneStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
@@ -184,9 +162,7 @@ describe(KeepalivedGroupService.name, () => {
         .stub(repository, 'save')
         .rejects(new Error('Failed to update KeepalivedGroup'));
 
-      await expect(service.update(id, data)).to.be.rejectedWith(
-        'Failed to update KeepalivedGroup',
-      );
+      await expect(service.update(id, data)).to.be.rejectedWith('Failed to update KeepalivedGroup');
 
       expect(findOneStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
@@ -228,9 +204,7 @@ describe(KeepalivedGroupService.name, () => {
 
     it('should handle errors during rules update', async () => {
       sinon.stub(service, 'findOneInPath').resolves(group);
-      sinon
-        .stub(repository, 'remove')
-        .rejects(new Error('Failed to remove KeepalivedGroup'));
+      sinon.stub(repository, 'remove').rejects(new Error('Failed to remove KeepalivedGroup'));
 
       await expect(service.remove(iFindOneKeepalivedGPath)).to.be.rejectedWith(
         'Failed to remove KeepalivedGroup',
@@ -238,9 +212,7 @@ describe(KeepalivedGroupService.name, () => {
     });
 
     it('should handle errors during the group removal', async () => {
-      sinon
-        .stub(service, 'findOneInPath')
-        .rejects(new Error('Failed to find KeepalivedGroup'));
+      sinon.stub(service, 'findOneInPath').rejects(new Error('Failed to find KeepalivedGroup'));
       sinon.stub(repository, 'remove').resolves(group);
 
       await expect(service.remove(iFindOneKeepalivedGPath)).to.be.rejectedWith(

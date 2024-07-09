@@ -127,22 +127,10 @@ describe(DhcpController.name, () => {
         },
       } as unknown as Request;
 
-      const dhcpruleStub = sinon.stub(
-        manager.getRepository(DHCPRule),
-        'findOneOrFail',
-      );
-      const dhcpgroupStub = sinon.stub(
-        manager.getRepository(DHCPGroup),
-        'findOneOrFail',
-      );
-      const firewallStub = sinon.stub(
-        manager.getRepository(Firewall),
-        'findOneOrFail',
-      );
-      const fwCloudStub = sinon.stub(
-        manager.getRepository(FwCloud),
-        'findOneOrFail',
-      );
+      const dhcpruleStub = sinon.stub(manager.getRepository(DHCPRule), 'findOneOrFail');
+      const dhcpgroupStub = sinon.stub(manager.getRepository(DHCPGroup), 'findOneOrFail');
+      const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail');
+      const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail');
 
       await controller.make(requestMock);
 
@@ -170,9 +158,7 @@ describe(DhcpController.name, () => {
         .stub(manager.getRepository(DHCPRule), 'findOneOrFail')
         .throws(new Error('DHCPRule not found'));
 
-      await expect(controller.make(requestMock)).to.be.rejectedWith(
-        'DHCPRule not found',
-      );
+      await expect(controller.make(requestMock)).to.be.rejectedWith('DHCPRule not found');
 
       dhcpruleStub.restore();
     });

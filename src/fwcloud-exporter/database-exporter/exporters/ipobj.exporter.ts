@@ -43,28 +43,18 @@ export class IPObjExporter extends TableExporter {
       new Brackets((qb) => {
         qb.where((qb) => {
           qb.where((qb) => {
-            const subquery = qb
-              .subQuery()
-              .from(FwCloud, 'fwcloud')
-              .select('fwcloud.id');
+            const subquery = qb.subQuery().from(FwCloud, 'fwcloud').select('fwcloud.id');
 
             return (
               `${alias}.fwCloudId IN ` +
-              new FwCloudExporter()
-                .getFilterBuilder(subquery, 'fwcloud', fwCloudId)
-                .getQuery()
+              new FwCloudExporter().getFilterBuilder(subquery, 'fwcloud', fwCloudId).getQuery()
             );
           }).orWhere((qb) => {
-            const subquery = qb
-              .subQuery()
-              .from(Interface, 'interface')
-              .select('interface.id');
+            const subquery = qb.subQuery().from(Interface, 'interface').select('interface.id');
 
             return (
               `${alias}.interfaceId IN ` +
-              new InterfaceExporter()
-                .getFilterBuilder(subquery, 'interface', fwCloudId)
-                .getQuery()
+              new InterfaceExporter().getFilterBuilder(subquery, 'interface', fwCloudId).getQuery()
             );
           });
         });

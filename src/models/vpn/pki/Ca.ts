@@ -21,14 +21,7 @@
 */
 
 import Model from '../../Model';
-import {
-  PrimaryGeneratedColumn,
-  Column,
-  Entity,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { CaPrefix } from './CaPrefix';
 import { FwCloud } from '../../fwcloud/FwCloud';
 import { User } from '../../user/User';
@@ -118,39 +111,28 @@ export class Ca extends Model {
   public static deleteCA(req): Promise<void> {
     return new Promise((resolve, reject) => {
       // Verify that the CA can be deleted.
-      req.dbCon.query(
-        'SELECT count(*) AS n FROM crt WHERE ca=' + req.body.ca,
-        (error, result) => {
-          if (error) return reject(error);
-          if (result[0].n > 0)
-            return reject(
-              fwcError.other(
-                'This CA can not be removed because it still has certificates',
-              ),
-            );
-
-          req.dbCon.query(
-            'DELETE FROM ca WHERE id=' + req.body.ca,
-            (error) => {
-              if (error) return reject(error);
-              resolve();
-            },
+      req.dbCon.query('SELECT count(*) AS n FROM crt WHERE ca=' + req.body.ca, (error, result) => {
+        if (error) return reject(error);
+        if (result[0].n > 0)
+          return reject(
+            fwcError.other('This CA can not be removed because it still has certificates'),
           );
-        },
-      );
+
+        req.dbCon.query('DELETE FROM ca WHERE id=' + req.body.ca, (error, result) => {
+          if (error) return reject(error);
+          resolve();
+        });
+      });
     });
   }
 
   // Get CA list for a fwcloud.
   public static getCAlist(dbCon, fwcloud) {
     return new Promise((resolve, reject) => {
-      dbCon.query(
-        `SELECT * FROM ca WHERE fwcloud=${fwcloud}`,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result);
-        },
-      );
+      dbCon.query(`SELECT * FROM ca WHERE fwcloud=${fwcloud}`, (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      });
     });
   }
 
@@ -177,12 +159,7 @@ export class Ca extends Model {
   public static runEasyRsaCmd(req, easyrsaDataCmd) {
     return new Promise((resolve, reject) => {
       const pki_dir =
-        '--pki-dir=' +
-        config.get('pki').data_dir +
-        '/' +
-        req.body.fwcloud +
-        '/' +
-        req.caId;
+        '--pki-dir=' + config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.caId;
       const argv = ['--batch', pki_dir];
 
       switch (easyrsaDataCmd) {
@@ -281,8 +258,7 @@ export class Ca extends Model {
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
 
-        if (result.length > 0)
-          resolve({ result: true, restrictions: { caHasCertificates: true } });
+        if (result.length > 0) resolve({ result: true, restrictions: { caHasCertificates: true } });
         else resolve({ result: false });
       });
     });
@@ -296,8 +272,7 @@ export class Ca extends Model {
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
 
-        if (result.length > 0)
-          resolve({ result: true, restrictions: { caHasPrefixes: true } });
+        if (result.length > 0) resolve({ result: true, restrictions: { caHasPrefixes: true } });
         else resolve({ result: false });
       });
     });

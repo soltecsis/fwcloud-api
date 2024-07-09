@@ -115,9 +115,7 @@ describe(describeName('Request tests'), () => {
 
       const request = new RequestInputs(req);
 
-      expect(request.get('testInput2', 'defaultValue')).to.be.deep.equal(
-        'defaultValue',
-      );
+      expect(request.get('testInput2', 'defaultValue')).to.be.deep.equal('defaultValue');
     });
   });
 });

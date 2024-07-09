@@ -4,6 +4,7 @@ import { User } from '../../../src/models/user/User';
 import { createUser, generateSession, attachSession } from '../../utils/utils';
 import request = require('supertest');
 import { _URL } from '../../../src/fonaments/http/router/router.service';
+import { Repository } from 'typeorm';
 
 let app: Application;
 let adminUser: User;
@@ -83,9 +84,7 @@ describe(describeName('ConfirmationTokenMiddleware E2E test'), () => {
       .then(async (response) => {
         expect(response.body).to.haveOwnProperty('fwc_confirm_token');
         adminUser = await User.findOne({ where: { id: adminUser.id } });
-        expect(response.body.fwc_confirm_token).to.be.deep.eq(
-          adminUser.confirmation_token,
-        );
+        expect(response.body.fwc_confirm_token).to.be.deep.eq(adminUser.confirmation_token);
       });
   });
 });

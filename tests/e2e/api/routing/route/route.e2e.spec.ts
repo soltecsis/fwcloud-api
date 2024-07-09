@@ -26,16 +26,8 @@ import { Firewall } from '../../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
 import { User } from '../../../../../src/models/user/User';
 import StringHelper from '../../../../../src/utils/string.helper';
-import {
-  describeName,
-  expect,
-  testSuite,
-} from '../../../../mocha/global-setup';
-import {
-  attachSession,
-  createUser,
-  generateSession,
-} from '../../../../utils/utils';
+import { describeName, expect, testSuite } from '../../../../mocha/global-setup';
+import { attachSession, createUser, generateSession } from '../../../../utils/utils';
 import request = require('supertest');
 import { _URL } from '../../../../../src/fonaments/http/router/router.service';
 import { RoutingTable } from '../../../../../src/models/routing/routing-table/routing-table.model';
@@ -53,10 +45,7 @@ import { RouteControllerCopyDto } from '../../../../../src/controllers/routing/r
 import { RouteRepository } from '../../../../../src/models/routing/route/route.repository';
 import { Offset } from '../../../../../src/offset';
 import { RouteMoveToDto } from '../../../../../src/controllers/routing/route/dtos/move-to.dto';
-import {
-  FwCloudFactory,
-  FwCloudProduct,
-} from '../../../../utils/fwcloud-factory';
+import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import { RouteMoveInterfaceDto } from '../../../../../src/controllers/routing/route/dtos/move-interface.dto';
 import { RouteMoveToGatewayDto } from '../../../../../src/controllers/routing/route/dtos/move-to-gateway.dto';
 import db from '../../../../../src/database/database-manager';
@@ -257,32 +246,20 @@ describe(describeName('Route E2E Tests'), () => {
           });
 
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOne({ where: { id: routeOrder1.id } })
-          ).route_order,
+          (await manager.getRepository(Route).findOne({ where: { id: routeOrder1.id } }))
+            .route_order,
         ).to.eq(1);
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOne({ where: { id: routeOrder2.id } })
-          ).route_order,
+          (await manager.getRepository(Route).findOne({ where: { id: routeOrder2.id } }))
+            .route_order,
         ).to.eq(2);
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOne({ where: { id: routeOrder3.id } })
-          ).route_order,
+          (await manager.getRepository(Route).findOne({ where: { id: routeOrder3.id } }))
+            .route_order,
         ).to.eq(3);
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOne({ where: { id: routeOrder4.id } })
-          ).route_order,
+          (await manager.getRepository(Route).findOne({ where: { id: routeOrder4.id } }))
+            .route_order,
         ).to.eq(4);
       });
 
@@ -303,32 +280,20 @@ describe(describeName('Route E2E Tests'), () => {
           });
 
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOne({ where: { id: routeOrder1.id } })
-          ).route_order,
+          (await manager.getRepository(Route).findOne({ where: { id: routeOrder1.id } }))
+            .route_order,
         ).to.eq(1);
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOne({ where: { id: routeOrder2.id } })
-          ).route_order,
+          (await manager.getRepository(Route).findOne({ where: { id: routeOrder2.id } }))
+            .route_order,
         ).to.eq(2);
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOne({ where: { id: routeOrder3.id } })
-          ).route_order,
+          (await manager.getRepository(Route).findOne({ where: { id: routeOrder3.id } }))
+            .route_order,
         ).to.eq(3);
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOne({ where: { id: routeOrder4.id } })
-          ).route_order,
+          (await manager.getRepository(Route).findOne({ where: { id: routeOrder4.id } }))
+            .route_order,
         ).to.eq(4);
       });
     });
@@ -462,14 +427,11 @@ describe(describeName('Route E2E Tests'), () => {
       it('guest user should not move from items to gateway between rules', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.moveToGateway',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: fwcProduct.routingTable.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.moveToGateway', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: fwcProduct.routingTable.id,
+            }),
           )
           .expect(401);
       });
@@ -477,14 +439,11 @@ describe(describeName('Route E2E Tests'), () => {
       it('regular user which does not belong to the fwcloud should not move from items to gateway between rules', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.moveToGateway',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: fwcProduct.routingTable.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.moveToGateway', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: fwcProduct.routingTable.id,
+            }),
           )
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .send(data)
@@ -496,50 +455,38 @@ describe(describeName('Route E2E Tests'), () => {
         await manager.getRepository(User).save(loggedUser);
         await request(app.express)
           .put(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.moveToGateway',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: fwcProduct.routingTable.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.moveToGateway', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: fwcProduct.routingTable.id,
+            }),
           )
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .send(data)
           .expect(200);
 
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOneOrFail({ where: { id: route2.id } })
-          ).gatewayId,
+          (await manager.getRepository(Route).findOneOrFail({ where: { id: route2.id } }))
+            .gatewayId,
         ).to.eq(gateway.id);
       });
 
       it('admin user should move from items to gateway between rules', async () => {
         await request(app.express)
           .put(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.moveToGateway',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: fwcProduct.routingTable.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.moveToGateway', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: fwcProduct.routingTable.id,
+            }),
           )
           .set('Cookie', [attachSession(adminUserSessionId)])
           .send(data)
           .expect(200);
 
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOneOrFail({ where: { id: route2.id } })
-          ).gatewayId,
+          (await manager.getRepository(Route).findOneOrFail({ where: { id: route2.id } }))
+            .gatewayId,
         ).to.eq(gateway.id);
       });
     });
@@ -571,14 +518,11 @@ describe(describeName('Route E2E Tests'), () => {
       it('guest user should not move interface items between rules', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.moveInterface',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.moveInterface', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .expect(401);
       });
@@ -586,14 +530,11 @@ describe(describeName('Route E2E Tests'), () => {
       it('regular user which does not belong to the fwcloud should not move interface items between rules', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.moveInterface',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.moveInterface', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .send(data)
@@ -606,64 +547,46 @@ describe(describeName('Route E2E Tests'), () => {
 
         await request(app.express)
           .put(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.moveInterface',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.moveInterface', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .send(data)
           .expect(200);
 
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOneOrFail({ where: { id: rule1.id } })
-          ).interfaceId,
+          (await manager.getRepository(Route).findOneOrFail({ where: { id: rule1.id } }))
+            .interfaceId,
         ).to.be.null;
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOneOrFail({ where: { id: rule2.id } })
-          ).interfaceId,
+          (await manager.getRepository(Route).findOneOrFail({ where: { id: rule2.id } }))
+            .interfaceId,
         ).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
       });
 
       it('admin user should move from interface between rules', async () => {
         await request(app.express)
           .put(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.moveInterface',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.moveInterface', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .set('Cookie', [attachSession(adminUserSessionId)])
           .send(data)
           .expect(200);
 
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOneOrFail({ where: { id: rule1.id } })
-          ).interfaceId,
+          (await manager.getRepository(Route).findOneOrFail({ where: { id: rule1.id } }))
+            .interfaceId,
         ).to.be.null;
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOneOrFail({ where: { id: rule2.id } })
-          ).interfaceId,
+          (await manager.getRepository(Route).findOneOrFail({ where: { id: rule2.id } }))
+            .interfaceId,
         ).to.eq(fwcProduct.interfaces.get('firewall-interface1').id);
       });
     });
@@ -723,9 +646,7 @@ describe(describeName('Route E2E Tests'), () => {
           .then((response) => {
             expect(response.body.data.gatewayId).to.deep.eq(route.gatewayId);
             expect(response.body.data.id).to.deep.eq(route.id);
-            expect(response.body.data.routingTableId).to.deep.eq(
-              route.routingTableId,
-            );
+            expect(response.body.data.routingTableId).to.deep.eq(route.routingTableId);
           });
       });
 
@@ -744,9 +665,7 @@ describe(describeName('Route E2E Tests'), () => {
           .then((response) => {
             expect(response.body.data.gatewayId).to.deep.eq(route.gatewayId);
             expect(response.body.data.id).to.deep.eq(route.id);
-            expect(response.body.data.routingTableId).to.deep.eq(
-              route.routingTableId,
-            );
+            expect(response.body.data.routingTableId).to.deep.eq(route.routingTableId);
           });
       });
     });
@@ -920,11 +839,7 @@ describe(describeName('Route E2E Tests'), () => {
 
         data = {
           routes: [routeOrder1.id, routeOrder2.id],
-          to: (
-            await new RouteRepository(manager).getLastRouteInRoutingTable(
-              table.id,
-            )
-          ).id,
+          to: (await new RouteRepository(manager).getLastRouteInRoutingTable(table.id)).id,
           offset: Offset.Below,
         };
       });
@@ -975,16 +890,12 @@ describe(describeName('Route E2E Tests'), () => {
             expect(response.body.data).to.have.length(2);
           });
 
-        expect(
-          await manager
-            .getRepository(Route)
-            .count({ where: { comment: 'comment1' } }),
-        ).to.eq(2);
-        expect(
-          await manager
-            .getRepository(Route)
-            .count({ where: { comment: 'comment2' } }),
-        ).to.eq(2);
+        expect(await manager.getRepository(Route).count({ where: { comment: 'comment1' } })).to.eq(
+          2,
+        );
+        expect(await manager.getRepository(Route).count({ where: { comment: 'comment2' } })).to.eq(
+          2,
+        );
       });
 
       it('admin user should copy routes', async () => {
@@ -1003,16 +914,12 @@ describe(describeName('Route E2E Tests'), () => {
             expect(response.body.data).to.have.length(2);
           });
 
-        expect(
-          await manager
-            .getRepository(Route)
-            .count({ where: { comment: 'comment1' } }),
-        ).to.eq(2);
-        expect(
-          await manager
-            .getRepository(Route)
-            .count({ where: { comment: 'comment2' } }),
-        ).to.eq(2);
+        expect(await manager.getRepository(Route).count({ where: { comment: 'comment1' } })).to.eq(
+          2,
+        );
+        expect(await manager.getRepository(Route).count({ where: { comment: 'comment2' } })).to.eq(
+          2,
+        );
       });
     });
 
@@ -1241,14 +1148,11 @@ describe(describeName('Route E2E Tests'), () => {
       it('guest user should not bulk update routes', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.bulkUpdate',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkUpdate', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .query({
             routes: [routeOrder1.id, routeOrder2.id],
@@ -1260,14 +1164,11 @@ describe(describeName('Route E2E Tests'), () => {
       it('regular user which does not belong to the fwcloud should not bulk update routes', async () => {
         return await request(app.express)
           .put(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.bulkUpdate',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkUpdate', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .query({
@@ -1283,14 +1184,11 @@ describe(describeName('Route E2E Tests'), () => {
 
         await request(app.express)
           .put(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.bulkUpdate',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkUpdate', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .query({
@@ -1303,32 +1201,21 @@ describe(describeName('Route E2E Tests'), () => {
           });
 
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOne({ where: { id: routeOrder1.id } })
-          ).style,
+          (await manager.getRepository(Route).findOne({ where: { id: routeOrder1.id } })).style,
         ).to.eq('style!');
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOne({ where: { id: routeOrder2.id } })
-          ).style,
+          (await manager.getRepository(Route).findOne({ where: { id: routeOrder2.id } })).style,
         ).to.eq('style!');
       });
 
       it('admin user should bulk update routes', async () => {
         await request(app.express)
           .put(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.bulkUpdate',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkUpdate', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .set('Cookie', [attachSession(adminUserSessionId)])
           .query({
@@ -1341,18 +1228,10 @@ describe(describeName('Route E2E Tests'), () => {
           });
 
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOne({ where: { id: routeOrder1.id } })
-          ).style,
+          (await manager.getRepository(Route).findOne({ where: { id: routeOrder1.id } })).style,
         ).to.eq('style!');
         expect(
-          (
-            await manager
-              .getRepository(Route)
-              .findOne({ where: { id: routeOrder2.id } })
-          ).style,
+          (await manager.getRepository(Route).findOne({ where: { id: routeOrder2.id } })).style,
         ).to.eq('style!');
       });
     });
@@ -1465,14 +1344,11 @@ describe(describeName('Route E2E Tests'), () => {
       it('guest user should not bulk remove routes', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.bulkRemove',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkRemove', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .query({
             routes: [routeOrder1.id, routeOrder2.id],
@@ -1483,14 +1359,11 @@ describe(describeName('Route E2E Tests'), () => {
       it('regular user which does not belong to the fwcloud should not bulk remove routes', async () => {
         return await request(app.express)
           .delete(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.bulkRemove',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkRemove', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .query({
@@ -1505,14 +1378,11 @@ describe(describeName('Route E2E Tests'), () => {
 
         await request(app.express)
           .delete(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.bulkRemove',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkRemove', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .query({
@@ -1522,29 +1392,20 @@ describe(describeName('Route E2E Tests'), () => {
           .then((response) => {
             expect(response.body.data).to.have.length(2);
           });
-        expect(
-          await manager
-            .getRepository(Route)
-            .findOne({ where: { id: routeOrder1.id } }),
-        ).to.be.null;
-        expect(
-          await manager
-            .getRepository(Route)
-            .findOne({ where: { id: routeOrder2.id } }),
-        ).to.be.null;
+        expect(await manager.getRepository(Route).findOne({ where: { id: routeOrder1.id } })).to.be
+          .null;
+        expect(await manager.getRepository(Route).findOne({ where: { id: routeOrder2.id } })).to.be
+          .null;
       });
 
       it('admin user should bulk remove routes', async () => {
         await request(app.express)
           .delete(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.bulkRemove',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkRemove', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .set('Cookie', [attachSession(adminUserSessionId)])
           .query({
@@ -1555,29 +1416,20 @@ describe(describeName('Route E2E Tests'), () => {
             expect(response.body.data).to.have.length(2);
           });
 
-        expect(
-          await manager
-            .getRepository(Route)
-            .findOne({ where: { id: routeOrder1.id } }),
-        ).to.be.null;
-        expect(
-          await manager
-            .getRepository(Route)
-            .findOne({ where: { id: routeOrder2.id } }),
-        ).to.be.null;
+        expect(await manager.getRepository(Route).findOne({ where: { id: routeOrder1.id } })).to.be
+          .null;
+        expect(await manager.getRepository(Route).findOne({ where: { id: routeOrder2.id } })).to.be
+          .null;
       });
 
       it('should throw validation error if query rules is not provided', async () => {
         await request(app.express)
           .delete(
-            _URL().getURL(
-              'fwclouds.firewalls.routing.tables.routes.bulkRemove',
-              {
-                fwcloud: fwCloud.id,
-                firewall: firewall.id,
-                routingTable: table.id,
-              },
-            ),
+            _URL().getURL('fwclouds.firewalls.routing.tables.routes.bulkRemove', {
+              fwcloud: fwCloud.id,
+              firewall: firewall.id,
+              routingTable: table.id,
+            }),
           )
           .set('Cookie', [attachSession(adminUserSessionId)])
           .query({

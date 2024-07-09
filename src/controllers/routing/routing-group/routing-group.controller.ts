@@ -61,12 +61,9 @@ export class RoutingGroupController extends Controller {
       .createQueryBuilder('firewall')
       .where('firewall.id = :id', { id: parseInt(request.params.firewall) });
     if (request.params.routingGroup) {
-      firewallQueryBuilder.innerJoin(
-        'firewall.routingGroups',
-        'group',
-        'group.id = :groupId',
-        { groupId: parseInt(request.params.routingGroup) },
-      );
+      firewallQueryBuilder.innerJoin('firewall.routingGroups', 'group', 'group.id = :groupId', {
+        groupId: parseInt(request.params.routingGroup),
+      });
     }
     this._firewall = await firewallQueryBuilder.getOneOrFail();
 
@@ -84,41 +81,32 @@ export class RoutingGroupController extends Controller {
 
   @Validate()
   async index(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingGroupPolicy.index(this._firewall, request.session.user)
-    ).authorize();
+    (await RoutingGroupPolicy.index(this._firewall, request.session.user)).authorize();
 
-    const groups: RoutingGroup[] =
-      await this._routingGroupService.findManyInPath({
-        firewallId: this._firewall.id,
-        fwCloudId: this._fwCloud.id,
-      });
+    const groups: RoutingGroup[] = await this._routingGroupService.findManyInPath({
+      firewallId: this._firewall.id,
+      fwCloudId: this._fwCloud.id,
+    });
 
     return ResponseBuilder.buildResponse().status(200).body(groups);
   }
 
   @Validate()
   async show(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingGroupPolicy.show(this._routingGroup, request.session.user)
-    ).authorize();
+    (await RoutingGroupPolicy.show(this._routingGroup, request.session.user)).authorize();
 
     return ResponseBuilder.buildResponse().status(200).body(this._routingGroup);
   }
 
   @Validate(RoutingGroupControllerCreateDto)
   async create(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingGroupPolicy.create(this._firewall, request.session.user)
-    ).authorize();
+    (await RoutingGroupPolicy.create(this._firewall, request.session.user)).authorize();
 
     const group: RoutingGroup = await this._routingGroupService.create({
       name: request.inputs.get('name'),
       comment: request.inputs.get('comment'),
       firewallId: this._firewall.id,
-      routingRules: request.inputs
-        .get<number[]>('routingRules')
-        .map((id) => ({ id })),
+      routingRules: request.inputs.get<number[]>('routingRules').map((id) => ({ id })),
     });
 
     return ResponseBuilder.buildResponse().status(201).body(group);
@@ -126,9 +114,7 @@ export class RoutingGroupController extends Controller {
 
   @Validate(RoutingGroupControllerUpdateDto)
   async update(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingGroupPolicy.update(this._routingGroup, request.session.user)
-    ).authorize();
+    (await RoutingGroupPolicy.update(this._routingGroup, request.session.user)).authorize();
 
     const updated: RoutingGroup = await this._routingGroupService.update(
       this._routingGroup.id,
@@ -140,9 +126,7 @@ export class RoutingGroupController extends Controller {
 
   @Validate()
   async remove(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingGroupPolicy.remove(this._routingGroup, request.session.user)
-    ).authorize();
+    (await RoutingGroupPolicy.remove(this._routingGroup, request.session.user)).authorize();
 
     const removedGroup: RoutingGroup = await this._routingGroupService.remove({
       firewallId: this._firewall.id,

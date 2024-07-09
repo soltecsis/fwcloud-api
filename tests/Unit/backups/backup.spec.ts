@@ -20,17 +20,10 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  Backup,
-  backupDigestContent,
-  BackupMetadata,
-} from '../../../src/backups/backup';
+import { Backup, backupDigestContent, BackupMetadata } from '../../../src/backups/backup';
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  DatabaseConfig,
-  DatabaseService,
-} from '../../../src/database/database.service';
+import { DatabaseConfig, DatabaseService } from '../../../src/database/database.service';
 import { expect, testSuite, describeName } from '../../mocha/global-setup';
 import { BackupService } from '../../../src/backups/backup.service';
 import { Application } from '../../../src/Application';
@@ -103,34 +96,24 @@ describe(describeName('Backup Unit tests'), () => {
     it('should create a compressed dump data file', async () => {
       let backup: Backup = new Backup();
       backup = await backup.create(service.config.data_dir);
-      expect(
-        fs.existsSync(path.join(backup.path, `${Backup.DUMP_FILENAME}.zip`)),
-      ).to.be.true;
+      expect(fs.existsSync(path.join(backup.path, `${Backup.DUMP_FILENAME}.zip`))).to.be.true;
     });
 
     it('should remove a dump data file', async () => {
       let backup: Backup = new Backup();
       backup = await backup.create(service.config.data_dir);
-      expect(fs.existsSync(path.join(backup.path, Backup.DUMP_FILENAME))).to.be
-        .false;
+      expect(fs.existsSync(path.join(backup.path, Backup.DUMP_FILENAME))).to.be.false;
     });
 
     it('should copy archive data file if exists', async () => {
       let backup: Backup = new Backup();
 
-      FSHelper.mkdirSync(
-        path.join(app.config.get('openvpn.history').data_dir, 'test'),
-      );
+      FSHelper.mkdirSync(path.join(app.config.get('openvpn.history').data_dir, 'test'));
       backup = await backup.create(service.config.data_dir);
 
       expect(
         FSHelper.directoryExistsSync(
-          path.join(
-            backup.path,
-            Backup.DATA_DIRNAME,
-            'archive/openvpn/history',
-            'test',
-          ),
+          path.join(backup.path, Backup.DATA_DIRNAME, 'archive/openvpn/history', 'test'),
         ),
       ).to.be.true;
     });
@@ -142,9 +125,7 @@ describe(describeName('Backup Unit tests'), () => {
       backup = await backup.create(service.config.data_dir);
 
       expect(
-        FSHelper.directoryExistsSync(
-          path.join(backup.path, Backup.DATA_DIRNAME, 'pki', 'test'),
-        ),
+        FSHelper.directoryExistsSync(path.join(backup.path, Backup.DATA_DIRNAME, 'pki', 'test')),
       ).to.be.true;
     });
 
@@ -155,18 +136,14 @@ describe(describeName('Backup Unit tests'), () => {
       backup = await backup.create(service.config.data_dir);
 
       expect(
-        FSHelper.directoryExistsSync(
-          path.join(backup.path, Backup.DATA_DIRNAME, 'policy', 'test'),
-        ),
+        FSHelper.directoryExistsSync(path.join(backup.path, Backup.DATA_DIRNAME, 'policy', 'test')),
       ).to.be.true;
     });
 
     it('should copy snapshots data files if exists', async () => {
       let backup: Backup = new Backup();
 
-      FSHelper.mkdirSync(
-        path.join(app.config.get('snapshot').data_dir, 'test'),
-      );
+      FSHelper.mkdirSync(path.join(app.config.get('snapshot').data_dir, 'test'));
       backup = await backup.create(service.config.data_dir);
 
       expect(
@@ -181,13 +158,10 @@ describe(describeName('Backup Unit tests'), () => {
       backup.setComment('test comment');
       backup = await backup.create(service.config.data_dir);
 
-      expect(fs.existsSync(path.join(backup.path, Backup.METADATA_FILENAME))).to
-        .be.true;
+      expect(fs.existsSync(path.join(backup.path, Backup.METADATA_FILENAME))).to.be.true;
 
       const metadata: object = JSON.parse(
-        fs
-          .readFileSync(path.join(backup.path, Backup.METADATA_FILENAME))
-          .toString(),
+        fs.readFileSync(path.join(backup.path, Backup.METADATA_FILENAME)).toString(),
       );
 
       expect(metadata).to.be.deep.equal({
@@ -220,9 +194,7 @@ describe(describeName('Backup Unit tests'), () => {
 
     it('an absolute path should transform the path to relative', async () => {
       let backup: Backup = new Backup();
-      backup = await backup.create(
-        path.join(process.cwd(), service.config.data_dir),
-      );
+      backup = await backup.create(path.join(process.cwd(), service.config.data_dir));
 
       expect(backup.path.startsWith(service.config.data_dir)).to.be.true;
     });
@@ -236,9 +208,7 @@ describe(describeName('Backup Unit tests'), () => {
       backup = new Backup();
       backup = await backup.create(service.config.data_dir);
 
-      databaseService = await app.getService<DatabaseService>(
-        DatabaseService.name,
-      );
+      databaseService = await app.getService<DatabaseService>(DatabaseService.name);
     });
 
     it("should throw error exception if mysql command doesn't exists", async () => {
@@ -261,8 +231,7 @@ describe(describeName('Backup Unit tests'), () => {
 
       backup = await backup.restore();
 
-      const queryRunner: QueryRunner =
-        databaseService.dataSource.createQueryRunner();
+      const queryRunner: QueryRunner = databaseService.dataSource.createQueryRunner();
 
       expect(await queryRunner.hasTable('ca')).to.be.true;
 
@@ -281,8 +250,7 @@ describe(describeName('Backup Unit tests'), () => {
 
       backup = await backup.restore();
 
-      const queryRunner: QueryRunner =
-        databaseService.dataSource.createQueryRunner();
+      const queryRunner: QueryRunner = databaseService.dataSource.createQueryRunner();
 
       expect(await queryRunner.hasTable('ca')).to.be.true;
 
@@ -294,10 +262,7 @@ describe(describeName('Backup Unit tests'), () => {
 
       expect(
         FSHelper.directoryExistsSync(
-          path.join(
-            app.config.get('tmp.directory'),
-            path.basename(backup.path),
-          ),
+          path.join(app.config.get('tmp.directory'), path.basename(backup.path)),
         ),
       ).to.be.false;
     });
@@ -305,17 +270,13 @@ describe(describeName('Backup Unit tests'), () => {
     it('should import archive directories if it exists in the backup', async () => {
       let backup: Backup = new Backup();
 
-      FSHelper.mkdirSync(
-        path.join(app.config.get('openvpn.history').data_dir, 'test'),
-      );
+      FSHelper.mkdirSync(path.join(app.config.get('openvpn.history').data_dir, 'test'));
       backup = await backup.create(service.config.data_dir);
 
       backup = await backup.restore();
 
       expect(
-        FSHelper.directoryExistsSync(
-          path.join(app.config.get('openvpn.history').data_dir, 'test'),
-        ),
+        FSHelper.directoryExistsSync(path.join(app.config.get('openvpn.history').data_dir, 'test')),
       ).to.be.true;
     });
 
@@ -327,11 +288,8 @@ describe(describeName('Backup Unit tests'), () => {
 
       backup = await backup.restore();
 
-      expect(
-        FSHelper.directoryExistsSync(
-          path.join(app.config.get('pki').data_dir, 'test'),
-        ),
-      ).to.be.true;
+      expect(FSHelper.directoryExistsSync(path.join(app.config.get('pki').data_dir, 'test'))).to.be
+        .true;
     });
 
     it('should import policy directories if it exists in the backup', async () => {
@@ -342,34 +300,24 @@ describe(describeName('Backup Unit tests'), () => {
 
       backup = await backup.restore();
 
-      expect(
-        FSHelper.directoryExistsSync(
-          path.join(app.config.get('policy').data_dir, 'test'),
-        ),
-      ).to.be.true;
+      expect(FSHelper.directoryExistsSync(path.join(app.config.get('policy').data_dir, 'test'))).to
+        .be.true;
     });
 
     it('should import snapshot directories if it exists in the backup', async () => {
       let backup: Backup = new Backup();
 
-      FSHelper.mkdirSync(
-        path.join(app.config.get('snapshot').data_dir, 'test'),
-      );
+      FSHelper.mkdirSync(path.join(app.config.get('snapshot').data_dir, 'test'));
       backup = await backup.create(service.config.data_dir);
 
       backup = await backup.restore();
 
-      expect(
-        FSHelper.directoryExistsSync(
-          path.join(app.config.get('snapshot').data_dir, 'test'),
-        ),
-      ).to.be.true;
+      expect(FSHelper.directoryExistsSync(path.join(app.config.get('snapshot').data_dir, 'test')))
+        .to.be.true;
     });
 
     it('should remove compilation status from firewalls', async () => {
-      const fwCloud: FwCloud = await FwCloud.save(
-        FwCloud.create({ name: 'test' }),
-      );
+      const fwCloud: FwCloud = await FwCloud.save(FwCloud.create({ name: 'test' }));
 
       let firewall: Firewall = await Firewall.save(
         Firewall.create({
@@ -394,8 +342,7 @@ describe(describeName('Backup Unit tests'), () => {
     });
 
     it('should run migrations', async () => {
-      const migrations: Migration[] =
-        await databaseService.getExecutedMigrations();
+      const migrations: Migration[] = await databaseService.getExecutedMigrations();
 
       await databaseService.rollbackMigrations(3);
 
@@ -403,16 +350,13 @@ describe(describeName('Backup Unit tests'), () => {
       await backup.create(service.config.data_dir);
       await backup.restore();
 
-      const newMigrations: Migration[] =
-        await databaseService.getExecutedMigrations();
+      const newMigrations: Migration[] = await databaseService.getExecutedMigrations();
 
       expect(newMigrations.length).to.be.deep.eq(migrations.length);
     });
 
     it('should remove encrypted data if export snapshot hash is not equal', async () => {
-      const fwCloud: FwCloud = await FwCloud.save(
-        FwCloud.create({ name: 'test' }),
-      );
+      const fwCloud: FwCloud = await FwCloud.save(FwCloud.create({ name: 'test' }));
       let firewall: Firewall = await Firewall.save(
         Firewall.create({
           name: 'firewall_test',
@@ -427,9 +371,7 @@ describe(describeName('Backup Unit tests'), () => {
       await backup.create(service.config.data_dir);
 
       const backupMetadata: BackupMetadata = JSON.parse(
-        fs
-          .readFileSync(path.join(backup.path, Backup.METADATA_FILENAME))
-          .toString(),
+        fs.readFileSync(path.join(backup.path, Backup.METADATA_FILENAME)).toString(),
       );
       backupMetadata.hash = 'test';
       fs.writeFileSync(
@@ -479,19 +421,14 @@ describe(describeName('Backup Unit tests'), () => {
     let dbConfig: DatabaseConfig;
 
     beforeEach(async () => {
-      databaseService = await app.getService<DatabaseService>(
-        DatabaseService.name,
-      );
+      databaseService = await app.getService<DatabaseService>(DatabaseService.name);
       dbConfig = databaseService.config;
     });
 
     it('should build the correct mysldump/mysql command', async () => {
       const backup: Backup = new Backup();
       await backup.create(service.config.data_dir);
-      const tmpPath = path.join(
-        app.config.get('tmp.directory'),
-        path.basename(backup.path),
-      );
+      const tmpPath = path.join(app.config.get('tmp.directory'), path.basename(backup.path));
 
       testSuite.app.config.set('db.mysqldump.protocol', 'socket');
 
@@ -507,10 +444,7 @@ describe(describeName('Backup Unit tests'), () => {
     it('should include --protocol=TCP in test environment', async () => {
       const backup: Backup = new Backup();
       await backup.create(service.config.data_dir);
-      const tmpPath = path.join(
-        app.config.get('tmp.directory'),
-        path.basename(backup.path),
-      );
+      const tmpPath = path.join(app.config.get('tmp.directory'), path.basename(backup.path));
 
       process.env.NODE_ENV = 'test';
       expect(backup.buildCmd('mysqldump', databaseService)).to.be.deep.eq(

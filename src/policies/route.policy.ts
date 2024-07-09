@@ -112,9 +112,7 @@ export class RoutePolicy extends Policy {
       });
   }
 
-  protected static getRoutingTable(
-    routingTableId: number,
-  ): Promise<RoutingTable> {
+  protected static getRoutingTable(routingTableId: number): Promise<RoutingTable> {
     return db
       .getSource()
       .manager.getRepository(RoutingTable)
@@ -130,11 +128,7 @@ export class RoutePolicy extends Policy {
       .manager.getRepository(Route)
       .findOne({
         where: { id: routeId },
-        relations: [
-          'routingTable',
-          'routingTable.firewall',
-          'routingTable.firewall.fwCloud',
-        ],
+        relations: ['routingTable', 'routingTable.firewall', 'routingTable.firewall.fwCloud'],
       });
   }
 }

@@ -58,9 +58,7 @@ export class FirewallService extends Service {
     this._headerPath = this._app.config.get('policy').header_file;
     this._footerPath = this._app.config.get('policy').footer_file;
     this._databaseService = await this._app.getService(DatabaseService.name);
-    this._repository = new FirewallRepository(
-      this._databaseService.dataSource.manager,
-    );
+    this._repository = new FirewallRepository(this._databaseService.dataSource.manager);
 
     return this;
   }
@@ -79,11 +77,7 @@ export class FirewallService extends Service {
     }
 
     await this.createFirewallPolicyDirectory(firewall);
-    await new Compiler(firewall).compile(
-      this._headerPath,
-      this._footerPath,
-      eventEmitter,
-    );
+    await new Compiler(firewall).compile(this._headerPath, this._footerPath, eventEmitter);
 
     return firewall;
   }
@@ -121,9 +115,7 @@ export class FirewallService extends Service {
 
   public async markAsUncompiled(ids: number[]): Promise<Firewall[]>;
   public async markAsUncompiled(id: number): Promise<Firewall>;
-  public async markAsUncompiled(
-    idOrIds: number | number[],
-  ): Promise<Firewall | Firewall[]> {
+  public async markAsUncompiled(idOrIds: number | number[]): Promise<Firewall | Firewall[]> {
     if (Array.isArray(idOrIds)) {
       const firewalls: Firewall[] = await this._repository.find({
         where: {
@@ -157,20 +149,11 @@ export class FirewallService extends Service {
       .leftJoinAndSelect('route.routeToIPObjs', 'routeToIPObjs')
       .leftJoinAndSelect('route.routeToIPObjGroups', 'routeToIPObjGroups')
       .leftJoinAndSelect('route.routeToOpenVPNs', 'routeToOpenVPNs')
-      .leftJoinAndSelect(
-        'route.routeToOpenVPNPrefixes',
-        'routeToOpenVPNPrefixes',
-      )
+      .leftJoinAndSelect('route.routeToOpenVPNPrefixes', 'routeToOpenVPNPrefixes')
 
       .leftJoinAndSelect('rule.routingRuleToOpenVPNs', 'routingRuleToOpenVPNs')
-      .leftJoinAndSelect(
-        'rule.routingRuleToOpenVPNPrefixes',
-        'routingRuleToOpenVPNPrefixes',
-      )
-      .leftJoinAndSelect(
-        'rule.routingRuleToIPObjGroups',
-        'routingRuleToIPObjGroups',
-      )
+      .leftJoinAndSelect('rule.routingRuleToOpenVPNPrefixes', 'routingRuleToOpenVPNPrefixes')
+      .leftJoinAndSelect('rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
       .leftJoinAndSelect('rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
       .leftJoinAndSelect('rule.routingRuleToMarks', 'routingRuleToMarks')
       .getMany();
@@ -192,9 +175,7 @@ export class FirewallService extends Service {
           table.routes.map((route) => {
             route.id = undefined;
             route.routingTableId = persistedTable.id;
-            const mapIndex: number = dataI
-              .map((item) => item.id_org)
-              .indexOf(route.interfaceId);
+            const mapIndex: number = dataI.map((item) => item.id_org).indexOf(route.interfaceId);
 
             if (mapIndex >= 0) {
               route.interfaceId = dataI[mapIndex].id_clon;
@@ -216,26 +197,16 @@ export class FirewallService extends Service {
     }
   }
 
-  public async remove(
-    firewallId: number,
-    fwcloudId: number,
-    userId: number,
-  ): Promise<void> {
+  public async remove(firewallId: number, fwcloudId: number, userId: number): Promise<void> {
     const routingTableService: RoutingTableService = await app().getService(
       RoutingTableService.name,
     );
-    const routingRuleService: RoutingRuleService = await app().getService(
-      RoutingRuleService.name,
-    );
-    const dhcpRuleService: DHCPRuleService = await app().getService(
-      DHCPRuleService.name,
-    );
+    const routingRuleService: RoutingRuleService = await app().getService(RoutingRuleService.name);
+    const dhcpRuleService: DHCPRuleService = await app().getService(DHCPRuleService.name);
     const keepalivedRuleService: KeepalivedRuleService = await app().getService(
       KeepalivedRuleService.name,
     );
-    const haproxyRuleService: HAProxyRuleService = await app().getService(
-      HAProxyRuleService.name,
-    );
+    const haproxyRuleService: HAProxyRuleService = await app().getService(HAProxyRuleService.name);
 
     const firewallEntity: Firewall = await db
       .getSource()
@@ -251,9 +222,7 @@ export class FirewallService extends Service {
         where: { id: firewallId },
       });
     for (const table of firewallEntity.routingTables) {
-      await routingRuleService.bulkRemove(
-        table.routingRules.map((item) => item.id),
-      );
+      await routingRuleService.bulkRemove(table.routingRules.map((item) => item.id));
       await routingTableService.remove({
         fwCloudId: firewallEntity.fwCloudId,
         firewallId: firewallEntity.id,
@@ -261,15 +230,9 @@ export class FirewallService extends Service {
       });
     }
 
-    await dhcpRuleService.bulkRemove(
-      firewallEntity.dhcpRules.map((item) => item.id),
-    );
-    await keepalivedRuleService.bulkRemove(
-      firewallEntity.keepalivedRules.map((item) => item.id),
-    );
-    await haproxyRuleService.bulkRemove(
-      firewallEntity.haproxyRules.map((item) => item.id),
-    );
+    await dhcpRuleService.bulkRemove(firewallEntity.dhcpRules.map((item) => item.id));
+    await keepalivedRuleService.bulkRemove(firewallEntity.keepalivedRules.map((item) => item.id));
+    await haproxyRuleService.bulkRemove(firewallEntity.haproxyRules.map((item) => item.id));
 
     await Firewall.deleteFirewall(userId, fwcloudId, firewallId);
   }
@@ -279,9 +242,7 @@ export class FirewallService extends Service {
    *
    * @param firewall
    */
-  protected async createFirewallPolicyDirectory(
-    firewall: Firewall,
-  ): Promise<void> {
+  protected async createFirewallPolicyDirectory(firewall: Firewall): Promise<void> {
     const directoryPath: string = path.join(
       this._dataDir,
       firewall.fwCloudId.toString(),
@@ -327,57 +288,29 @@ export class FirewallService extends Service {
             const idNewFM = rowS[0].id;
             try {
               // Rename data directory with the new firewall master id.
-              await utilsModel.renameFirewallDataDir(
-                fwcloudId,
-                firewallId,
-                idNewFM,
-              );
+              await utilsModel.renameFirewallDataDir(fwcloudId, firewallId, idNewFM);
 
               // Move all related objects to the new firewall.
-              await PolicyRule.moveToOtherFirewall(
-                db.getQuery(),
-                firewallId,
-                idNewFM,
-              );
-              await PolicyGroup.moveToOtherFirewall(
-                db.getQuery(),
-                firewallId,
-                idNewFM,
-              );
-              await Interface.moveToOtherFirewall(
-                db.getQuery(),
-                firewallId,
-                idNewFM,
-              );
-              await OpenVPN.moveToOtherFirewall(
-                db.getQuery(),
-                firewallId,
-                idNewFM,
-              );
+              await PolicyRule.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
+              await PolicyGroup.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
+              await Interface.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
+              await OpenVPN.moveToOtherFirewall(db.getQuery(), firewallId, idNewFM);
               await DHCPGroup.moveToOtherFirewall(firewallId, idNewFM);
               await DHCPRule.moveToOtherFirewall(firewallId, idNewFM);
               await KeepalivedGroup.moveToOtherFirewall(firewallId, idNewFM);
               await KeepalivedRule.moveToOtherFirewall(firewallId, idNewFM);
 
               // Move routing tables.
-              const routingTableService =
-                await app().getService<RoutingTableService>(
-                  RoutingTableService.name,
-                );
-              await routingTableService.moveToOtherFirewall(
-                firewallId,
-                idNewFM,
+              const routingTableService = await app().getService<RoutingTableService>(
+                RoutingTableService.name,
               );
+              await routingTableService.moveToOtherFirewall(firewallId, idNewFM);
 
               // Promote the new master.
               await Firewall.promoteToMaster(db.getQuery(), idNewFM);
 
               // Delete the old firewall node.
-              await Firewall.deleteFirewallRow(
-                db.getQuery(),
-                fwcloudId,
-                firewallId,
-              );
+              await Firewall.deleteFirewallRow(db.getQuery(), fwcloudId, firewallId);
             } catch (error) {
               return reject(error);
             }
@@ -417,11 +350,7 @@ export class FirewallService extends Service {
               fwcloud: fwcloudId,
               iduser: userId,
             });
-            await Firewall.deleteFirewallRow(
-              db.getQuery(),
-              fwcloudId,
-              firewallId,
-            );
+            await Firewall.deleteFirewallRow(db.getQuery(), fwcloudId, firewallId);
             resolve();
           } catch (error) {
             reject(error);

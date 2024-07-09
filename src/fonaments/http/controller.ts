@@ -29,9 +29,6 @@ export class Controller {
   public async make(request: Request): Promise<void> {}
 
   public static methodExists(method: string): boolean {
-    return (
-      typeof this[method] === 'function' ||
-      typeof this.prototype[method] === 'function'
-    );
+    return typeof this[method] === 'function' || typeof this.prototype[method] === 'function';
   }
 }

@@ -66,9 +66,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
    * @param path
    * @returns
    */
-  findOneInPath(
-    path: IFindOneRoutingRulePath,
-  ): Promise<RoutingRule | undefined> {
+  findOneInPath(path: IFindOneRoutingRulePath): Promise<RoutingRule | undefined> {
     return this.getFindInPathOptions(path).getOne();
   }
 
@@ -81,9 +79,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
     return this.getFindInPathOptions(path).getOneOrFail();
   }
 
-  async getLastRoutingRuleInFirewall(
-    firewallId: number,
-  ): Promise<RoutingRule | undefined> {
+  async getLastRoutingRuleInFirewall(firewallId: number): Promise<RoutingRule | undefined> {
     return this.createQueryBuilder('rule')
       .innerJoin('rule.routingTable', 'table')
       .where('table.firewallId = :firewallId', { firewallId })
@@ -99,11 +95,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
    * @param to
    * @returns
    */
-  async move(
-    ids: number[],
-    toRuleId: number,
-    offset: Offset,
-  ): Promise<RoutingRule[]> {
+  async move(ids: number[], toRuleId: number, offset: Offset): Promise<RoutingRule[]> {
     const rules: RoutingRule[] = await this.find({
       where: {
         id: In(ids),
@@ -219,14 +211,8 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
    * @param entities
    * @param options
    */
-  async remove(
-    entities: RoutingRule[],
-    options?: RemoveOptions,
-  ): Promise<RoutingRule[]>;
-  async remove(
-    entity: RoutingRule,
-    options?: RemoveOptions,
-  ): Promise<RoutingRule>;
+  async remove(entities: RoutingRule[], options?: RemoveOptions): Promise<RoutingRule[]>;
+  async remove(entity: RoutingRule, options?: RemoveOptions): Promise<RoutingRule>;
   async remove(
     entityOrEntities: RoutingRule | RoutingRule[],
     options?: RemoveOptions,
@@ -245,21 +231,14 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
 
     for (const entity of entitiesWithFirewall) {
       if (
-        !Object.prototype.hasOwnProperty.call(
-          affectedFirewalls,
-          entity.routingTable.firewallId,
-        )
+        !Object.prototype.hasOwnProperty.call(affectedFirewalls, entity.routingTable.firewallId)
       ) {
-        affectedFirewalls[entity.routingTable.firewallId] =
-          entity.routingTable.firewall;
+        affectedFirewalls[entity.routingTable.firewallId] = entity.routingTable.firewall;
       }
     }
 
     // Using Type assertion because TypeScript compiler fails
-    const result = await super.remove(
-      entityOrEntities as RoutingRule[],
-      options,
-    );
+    const result = await super.remove(entityOrEntities as RoutingRule[], options);
 
     for (const firewall of Object.values(affectedFirewalls)) {
       await this.refreshOrders(firewall.id);
@@ -332,11 +311,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
     return qb;
   }
 
-  getRoutingRules(
-    fwcloud: number,
-    firewall: number,
-    rules?: number[],
-  ): Promise<RoutingRule[]> {
+  getRoutingRules(fwcloud: number, firewall: number, rules?: number[]): Promise<RoutingRule[]> {
     let query = this.createQueryBuilder('rule')
       .innerJoinAndSelect('rule.routingTable', 'table')
       .leftJoinAndSelect('rule.routingGroup', 'group')
@@ -346,8 +321,7 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
       .where('firewall.id = :firewall', { firewall: firewall })
       .andWhere('fwcloud.id = :fwcloud', { fwcloud: fwcloud });
 
-    if (rules)
-      query = query.andWhere('rule.id IN (:...rules)', { rules: rules });
+    if (rules) query = query.andWhere('rule.id IN (:...rules)', { rules: rules });
 
     return query.orderBy('rule.rule_order').getMany();
   }

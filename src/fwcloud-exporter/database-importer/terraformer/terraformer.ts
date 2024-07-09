@@ -21,10 +21,7 @@
 */
 
 import { QueryRunner } from 'typeorm';
-import {
-  ExporterResult,
-  ExporterResultData,
-} from '../../database-exporter/exporter-result';
+import { ExporterResult, ExporterResultData } from '../../database-exporter/exporter-result';
 import { ImportMapping } from './mapper/import-mapping';
 import { TableTerraformer } from './table-terraformer';
 import { FwcTreeTerraformer } from './table-terraformers/fwc-tree.terraformer';
@@ -65,9 +62,7 @@ export class Terraformer {
     return await terraformer.terraform(tableName, data);
   }
 
-  protected async getTerraformer(
-    tableName: string,
-  ): Promise<typeof TableTerraformer> {
+  protected async getTerraformer(tableName: string): Promise<typeof TableTerraformer> {
     if (tableName in TERRAFORMERS) {
       return TERRAFORMERS[tableName];
     }

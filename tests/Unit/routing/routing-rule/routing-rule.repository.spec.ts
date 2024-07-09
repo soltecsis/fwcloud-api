@@ -28,9 +28,7 @@ describe(RoutingRuleRepository.name, () => {
     await testSuite.resetDatabaseData();
 
     repository = new RoutingRuleRepository(manager);
-    tableService = await testSuite.app.getService<RoutingTableService>(
-      RoutingTableService.name,
-    );
+    tableService = await testSuite.app.getService<RoutingTableService>(RoutingTableService.name);
     routingGroupService = await testSuite.app.getService<RoutingGroupService>(
       RoutingGroupService.name,
     );
@@ -105,9 +103,7 @@ describe(RoutingRuleRepository.name, () => {
     });
 
     it('should return the rule which has the last order', async () => {
-      const last: RoutingRule = await repository.getLastRoutingRuleInFirewall(
-        firewall.id,
-      );
+      const last: RoutingRule = await repository.getLastRoutingRuleInFirewall(firewall.id);
 
       expect(last.rule_order).to.be.equals(4);
     });
@@ -134,18 +130,10 @@ describe(RoutingRuleRepository.name, () => {
 
       await repository.move([ruleOrder2.id], ruleOrder4.id, Offset.Below);
 
-      expect(
-        (await repository.findOne({ where: { id: ruleOrder1.id } })).rule_order,
-      ).to.eq(1);
-      expect(
-        (await repository.findOne({ where: { id: ruleOrder2.id } })).rule_order,
-      ).to.eq(4);
-      expect(
-        (await repository.findOne({ where: { id: ruleOrder3.id } })).rule_order,
-      ).to.eq(2);
-      expect(
-        (await repository.findOne({ where: { id: ruleOrder4.id } })).rule_order,
-      ).to.eq(3);
+      expect((await repository.findOne({ where: { id: ruleOrder1.id } })).rule_order).to.eq(1);
+      expect((await repository.findOne({ where: { id: ruleOrder2.id } })).rule_order).to.eq(4);
+      expect((await repository.findOne({ where: { id: ruleOrder3.id } })).rule_order).to.eq(2);
+      expect((await repository.findOne({ where: { id: ruleOrder4.id } })).rule_order).to.eq(3);
     });
 
     it('should manage rule_order backward changes', async () => {
@@ -168,18 +156,10 @@ describe(RoutingRuleRepository.name, () => {
 
       await repository.move([ruleOrder4.id], ruleOrder2.id, Offset.Above);
 
-      expect(
-        (await repository.findOne({ where: { id: ruleOrder1.id } })).rule_order,
-      ).to.eq(1);
-      expect(
-        (await repository.findOne({ where: { id: ruleOrder2.id } })).rule_order,
-      ).to.eq(3);
-      expect(
-        (await repository.findOne({ where: { id: ruleOrder3.id } })).rule_order,
-      ).to.eq(4);
-      expect(
-        (await repository.findOne({ where: { id: ruleOrder4.id } })).rule_order,
-      ).to.eq(2);
+      expect((await repository.findOne({ where: { id: ruleOrder1.id } })).rule_order).to.eq(1);
+      expect((await repository.findOne({ where: { id: ruleOrder2.id } })).rule_order).to.eq(3);
+      expect((await repository.findOne({ where: { id: ruleOrder3.id } })).rule_order).to.eq(4);
+      expect((await repository.findOne({ where: { id: ruleOrder4.id } })).rule_order).to.eq(2);
     });
 
     it('should add to a group is destination belongs to a group', async () => {
@@ -204,14 +184,12 @@ describe(RoutingRuleRepository.name, () => {
 
       await repository.move([ruleOrder3.id], ruleOrder2.id, Offset.Above);
 
-      expect(
-        (await repository.findOne({ where: { id: ruleOrder2.id } }))
-          .routingGroupId,
-      ).to.eq(group.id);
-      expect(
-        (await repository.findOne({ where: { id: ruleOrder3.id } }))
-          .routingGroupId,
-      ).to.eq(group.id);
+      expect((await repository.findOne({ where: { id: ruleOrder2.id } })).routingGroupId).to.eq(
+        group.id,
+      );
+      expect((await repository.findOne({ where: { id: ruleOrder3.id } })).routingGroupId).to.eq(
+        group.id,
+      );
     });
 
     describe('bulk', () => {
@@ -233,28 +211,12 @@ describe(RoutingRuleRepository.name, () => {
           rule_order: 4,
         });
 
-        await repository.move(
-          [ruleOrder1.id, ruleOrder2.id],
-          ruleOrder4.id,
-          Offset.Above,
-        );
+        await repository.move([ruleOrder1.id, ruleOrder2.id], ruleOrder4.id, Offset.Above);
 
-        expect(
-          (await repository.findOne({ where: { id: ruleOrder1.id } }))
-            .rule_order,
-        ).to.eq(2);
-        expect(
-          (await repository.findOne({ where: { id: ruleOrder2.id } }))
-            .rule_order,
-        ).to.eq(3);
-        expect(
-          (await repository.findOne({ where: { id: ruleOrder3.id } }))
-            .rule_order,
-        ).to.eq(1);
-        expect(
-          (await repository.findOne({ where: { id: ruleOrder4.id } }))
-            .rule_order,
-        ).to.eq(4);
+        expect((await repository.findOne({ where: { id: ruleOrder1.id } })).rule_order).to.eq(2);
+        expect((await repository.findOne({ where: { id: ruleOrder2.id } })).rule_order).to.eq(3);
+        expect((await repository.findOne({ where: { id: ruleOrder3.id } })).rule_order).to.eq(1);
+        expect((await repository.findOne({ where: { id: ruleOrder4.id } })).rule_order).to.eq(4);
       });
 
       it('should manage rule_order backward changes', async () => {
@@ -275,28 +237,12 @@ describe(RoutingRuleRepository.name, () => {
           rule_order: 4,
         });
 
-        await repository.move(
-          [ruleOrder3.id, ruleOrder4.id],
-          ruleOrder2.id,
-          Offset.Above,
-        );
+        await repository.move([ruleOrder3.id, ruleOrder4.id], ruleOrder2.id, Offset.Above);
 
-        expect(
-          (await repository.findOne({ where: { id: ruleOrder1.id } }))
-            .rule_order,
-        ).to.eq(1);
-        expect(
-          (await repository.findOne({ where: { id: ruleOrder2.id } }))
-            .rule_order,
-        ).to.eq(4);
-        expect(
-          (await repository.findOne({ where: { id: ruleOrder3.id } }))
-            .rule_order,
-        ).to.eq(2);
-        expect(
-          (await repository.findOne({ where: { id: ruleOrder4.id } }))
-            .rule_order,
-        ).to.eq(3);
+        expect((await repository.findOne({ where: { id: ruleOrder1.id } })).rule_order).to.eq(1);
+        expect((await repository.findOne({ where: { id: ruleOrder2.id } })).rule_order).to.eq(4);
+        expect((await repository.findOne({ where: { id: ruleOrder3.id } })).rule_order).to.eq(2);
+        expect((await repository.findOne({ where: { id: ruleOrder4.id } })).rule_order).to.eq(3);
       });
 
       it('should add to a group if destination belongs to a group', async () => {
@@ -319,20 +265,14 @@ describe(RoutingRuleRepository.name, () => {
           firewallId: firewall.id,
         });
 
-        await repository.move(
-          [ruleOrder2.id, ruleOrder3.id],
-          ruleOrder1.id,
-          Offset.Above,
-        );
+        await repository.move([ruleOrder2.id, ruleOrder3.id], ruleOrder1.id, Offset.Above);
 
-        expect(
-          (await repository.findOne({ where: { id: ruleOrder2.id } }))
-            .routingGroupId,
-        ).to.eq(group.id);
-        expect(
-          (await repository.findOne({ where: { id: ruleOrder3.id } }))
-            .routingGroupId,
-        ).to.eq(group.id);
+        expect((await repository.findOne({ where: { id: ruleOrder2.id } })).routingGroupId).to.eq(
+          group.id,
+        );
+        expect((await repository.findOne({ where: { id: ruleOrder3.id } })).routingGroupId).to.eq(
+          group.id,
+        );
       });
     });
   });
@@ -381,12 +321,10 @@ describe(RoutingRuleRepository.name, () => {
       await repository.remove([tableRuleOrder2, table2RuleOrder1]);
 
       expect(
-        (await repository.findOne({ where: { id: tableRuleOrder1.id } }))
-          .rule_order,
+        (await repository.findOne({ where: { id: tableRuleOrder1.id } })).rule_order,
       ).to.be.equals(1);
       expect(
-        (await repository.findOne({ where: { id: table2RuleOrder2.id } }))
-          .rule_order,
+        (await repository.findOne({ where: { id: table2RuleOrder2.id } })).rule_order,
       ).to.be.equals(2);
     });
   });

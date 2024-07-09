@@ -27,9 +27,7 @@ export type HAProxyCompiled = {
 };
 
 export class HAProxyCompiler {
-  public ruleCompile(
-    ruleData: HAProxyRulesData<HAProxyRuleItemForCompiler>,
-  ): string {
+  public ruleCompile(ruleData: HAProxyRulesData<HAProxyRuleItemForCompiler>): string {
     let cs = '';
 
     switch (ruleData.rule_type) {
@@ -86,9 +84,7 @@ export class HAProxyCompiler {
         active: data[i].active,
         cs:
           data[i].active || data.length === 1
-            ? this.ruleCompile(
-                data[i] as HAProxyRulesData<HAProxyRuleItemForCompiler>,
-              )
+            ? this.ruleCompile(data[i] as HAProxyRulesData<HAProxyRuleItemForCompiler>)
             : '',
       });
     }

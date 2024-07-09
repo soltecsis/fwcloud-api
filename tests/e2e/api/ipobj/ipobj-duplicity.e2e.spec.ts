@@ -7,12 +7,7 @@ import { Tree } from '../../../../src/models/tree/Tree';
 import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import StringHelper from '../../../../src/utils/string.helper';
 import { User } from '../../../../src/models/user/User';
-import {
-  createUser,
-  generateSession,
-  attachSession,
-  sleep,
-} from '../../../utils/utils';
+import { createUser, generateSession, attachSession, sleep } from '../../../utils/utils';
 import { Application } from '../../../../src/Application';
 import fwc_tree_node = require('../../../../src/models/tree/node');
 import { FwcTree } from '../../../../src/models/tree/fwc-tree.model';
@@ -95,11 +90,7 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
         await IPObj.insertIpobj(db.getQuery(), ipobjData);
 
         // Get the tree node in which insert the new object.
-        fwcTreeNode = await Tree.getNodeByNameAndType(
-          fwCloud.id,
-          'Addresses',
-          'OIA',
-        );
+        fwcTreeNode = await Tree.getNodeByNameAndType(fwCloud.id, 'Addresses', 'OIA');
 
         requestData = {
           fwcloud: fwCloud.id,
@@ -122,16 +113,9 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
           .send(requestData)
           .expect(400)
           .then((response) => {
-            expect(response.body)
-              .to.have.property('fwcErr')
-              .which.is.equal(1003);
-            expect(response.body)
-              .to.have.property('msg')
-              .which.is.equal('Already exists');
-            expect(response.body)
-              .to.have.property('data')
-              .which.is.an('array')
-              .to.have.lengthOf(1);
+            expect(response.body).to.have.property('fwcErr').which.is.equal(1003);
+            expect(response.body).to.have.property('msg').which.is.equal('Already exists');
+            expect(response.body).to.have.property('data').which.is.an('array').to.have.lengthOf(1);
             expect(response.body.data[0])
               .to.have.property('address')
               .which.is.equal(ipobjData.address);
@@ -150,16 +134,9 @@ describe(describeName('Ipobj duplicity E2E Tests'), () => {
           .send(requestData)
           .expect(400)
           .then((response) => {
-            expect(response.body)
-              .to.have.property('fwcErr')
-              .which.is.equal(1003);
-            expect(response.body)
-              .to.have.property('msg')
-              .which.is.equal('Already exists');
-            expect(response.body)
-              .to.have.property('data')
-              .which.is.an('array')
-              .to.have.lengthOf(2);
+            expect(response.body).to.have.property('fwcErr').which.is.equal(1003);
+            expect(response.body).to.have.property('msg').which.is.equal('Already exists');
+            expect(response.body).to.have.property('data').which.is.an('array').to.have.lengthOf(2);
             expect(response.body.data[0])
               .to.have.property('address')
               .which.is.equal(ipobjData.address);

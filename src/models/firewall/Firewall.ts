@@ -220,10 +220,7 @@ export class Firewall extends Model {
   @OneToMany((type) => RouteGroup, (model) => model.firewall)
   routeGroups: RouteGroup[];
 
-  @OneToMany(
-    (type) => RoutingRule,
-    (routingRule) => routingRule.firewallApplyTo,
-  )
+  @OneToMany((type) => RoutingRule, (routingRule) => routingRule.firewallApplyTo)
   routingRules: RoutingRule[];
 
   @OneToMany((type) => Route, (route) => route.firewallApplyTo)
@@ -241,16 +238,10 @@ export class Firewall extends Model {
   @OneToMany((type) => DHCPRule, (dhcpRule) => dhcpRule.firewall)
   dhcpRules: DHCPRule[];
 
-  @OneToMany(
-    (type) => KeepalivedGroup,
-    (keepalivedGroup) => keepalivedGroup.firewall,
-  )
+  @OneToMany((type) => KeepalivedGroup, (keepalivedGroup) => keepalivedGroup.firewall)
   keepalivedGroups: KeepalivedGroup[];
 
-  @OneToMany(
-    (type) => KeepalivedRule,
-    (keepalivedRule) => keepalivedRule.firewall,
-  )
+  @OneToMany((type) => KeepalivedRule, (keepalivedRule) => keepalivedRule.firewall)
   keepalivedRules: KeepalivedRule[];
 
   public getTableName(): string {
@@ -337,42 +328,27 @@ export class Firewall extends Model {
     );
   }
 
-  public static getClusterId(
-    dbCon: any,
-    firewall: number,
-  ): Promise<number | null> {
+  public static getClusterId(dbCon: any, firewall: number): Promise<number | null> {
     return new Promise((resolve, reject) => {
-      dbCon.query(
-        `select cluster from ${tableName} where id=${firewall}`,
-        (error, rows) => {
-          if (error) return reject(error);
-          if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
-          resolve(rows[0].cluster);
-        },
-      );
+      dbCon.query(`select cluster from ${tableName} where id=${firewall}`, (error, rows) => {
+        if (error) return reject(error);
+        if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
+        resolve(rows[0].cluster);
+      });
     });
   }
 
-  public static getFWCloud(
-    dbCon: any,
-    firewall: number,
-  ): Promise<number | null> {
+  public static getFWCloud(dbCon: any, firewall: number): Promise<number | null> {
     return new Promise((resolve, reject) => {
-      dbCon.query(
-        `select fwcloud from ${tableName} where id=${firewall}`,
-        (error, rows) => {
-          if (error) return reject(error);
-          if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
-          resolve(rows[0].fwcloud);
-        },
-      );
+      dbCon.query(`select fwcloud from ${tableName} where id=${firewall}`, (error, rows) => {
+        if (error) return reject(error);
+        if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
+        resolve(rows[0].fwcloud);
+      });
     });
   }
 
-  public static getLastClusterNodeId(
-    dbCon: any,
-    cluster: number,
-  ): Promise<number> {
+  public static getLastClusterNodeId(dbCon: any, cluster: number): Promise<number> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where cluster=${cluster} order by id desc limit 1`,
@@ -411,9 +387,7 @@ export class Firewall extends Model {
 
         try {
           const firewall_data: any = (
-            await Promise.all(
-              rows.map((data) => utilsModel.decryptFirewallData(data)),
-            )
+            await Promise.all(rows.map((data) => utilsModel.decryptFirewallData(data)))
           )[0];
           resolve(firewall_data);
         } catch (error) {
@@ -509,9 +483,7 @@ export class Firewall extends Model {
 
         // If we have no user or password for the ssh connection, then error.
         if (!SSHconn.username || !SSHconn.password)
-          throw fwcError.other(
-            'User or password for the SSH connection not found',
-          );
+          throw fwcError.other('User or password for the SSH connection not found');
 
         data.SSHconn = SSHconn;
         resolve(data);
@@ -592,11 +564,9 @@ export class Firewall extends Model {
         else {
           Promise.all(rows.map((data) => utilsModel.decryptFirewallData(data)))
             .then((data) => {
-              Promise.all(data.map((data) => this.getfirewallData(data))).then(
-                (dataF) => {
-                  callback(null, dataF);
-                },
-              );
+              Promise.all(data.map((data) => this.getfirewallData(data))).then((dataF) => {
+                callback(null, dataF);
+              });
             })
             .catch((e) => {
               callback(e, null);
@@ -671,14 +641,10 @@ export class Firewall extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        connection.query(
-          `INSERT INTO ${tableName} SET ?`,
-          firewallData,
-          (error, result) => {
-            if (error) return reject(error);
-            resolve(result.insertId);
-          },
-        );
+        connection.query(`INSERT INTO ${tableName} SET ?`, firewallData, (error, result) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        });
       });
     });
   }
@@ -803,20 +769,14 @@ export class Firewall extends Model {
 
   public static promoteToMaster(dbCon, firewall): Promise<void> {
     return new Promise((resolve, reject) => {
-      dbCon.query(
-        `UPDATE ${tableName} SET fwmaster=1 WHERE id=${firewall}`,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve();
-        },
-      );
+      dbCon.query(`UPDATE ${tableName} SET fwmaster=1 WHERE id=${firewall}`, (error, result) => {
+        if (error) return reject(error);
+        resolve();
+      });
     });
   }
 
-  public static async updateFirewallStatusIPOBJ(
-    fwcloudId: any,
-    ipObjIds: number[],
-  ): Promise<void> {
+  public static async updateFirewallStatusIPOBJ(fwcloudId: any, ipObjIds: number[]): Promise<void> {
     if (ipObjIds.length === 0) {
       return;
     }
@@ -847,14 +807,9 @@ export class Firewall extends Model {
           .from(Firewall, 'firewall')
           .innerJoin('firewall.policyRules', 'policy_rule')
           .innerJoin('policy_rule.policyRuleToIPObjs', 'policyRuleToIPObjs')
-          .innerJoin(
-            'policyRuleToIPObjs.ipObj',
-            'ipobj',
-            'ipobj.id IN (:ipobjIds)',
-            {
-              ipobjIds: ipObjs.map((item) => item.id).join(','),
-            },
-          );
+          .innerJoin('policyRuleToIPObjs.ipObj', 'ipobj', 'ipobj.id IN (:ipobjIds)', {
+            ipobjIds: ipObjs.map((item) => item.id).join(','),
+          });
 
         const subQueryRoutesFrom = qb
           .subQuery()
@@ -863,14 +818,9 @@ export class Firewall extends Model {
           .innerJoin('firewall.routingTables', 'table')
           .innerJoin('table.routes', 'route')
           .innerJoin('route.routeToIPObjs', 'routeToIPObjs')
-          .innerJoin(
-            'routeToIPObjs.ipObj',
-            'ipobj',
-            'ipobj.id IN (:ipobjIds)',
-            {
-              ipobjIds: ipObjs.map((item) => item.id).join(','),
-            },
-          );
+          .innerJoin('routeToIPObjs.ipObj', 'ipobj', 'ipobj.id IN (:ipobjIds)', {
+            ipobjIds: ipObjs.map((item) => item.id).join(','),
+          });
 
         const subQueryRoutesGateway = qb
           .subQuery()
@@ -889,14 +839,9 @@ export class Firewall extends Model {
           .innerJoin('firewall.routingTables', 'table')
           .innerJoin('table.routingRules', 'rule')
           .innerJoin('rule.routingRuleToIPObjs', 'routingRuleToIPObjs')
-          .innerJoin(
-            'routingRuleToIPObjs.ipObj',
-            'ipobj',
-            'ipobj.id IN (:ipobjIds)',
-            {
-              ipobjIds: ipObjs.map((item) => item.id).join(','),
-            },
-          );
+          .innerJoin('routingRuleToIPObjs.ipObj', 'ipobj', 'ipobj.id IN (:ipobjIds)', {
+            ipobjIds: ipObjs.map((item) => item.id).join(','),
+          });
 
         return `firewall.id IN ${subqueryPolicy.getQuery()} OR firewall.id IN ${subQueryRoutesFrom.getQuery()} OR firewall.id IN ${subQueryRoutesGateway.getQuery()} OR firewall.id IN ${subQueryRoutingRules.getQuery()}`;
       });
@@ -990,12 +935,9 @@ export class Firewall extends Model {
           .from(Firewall, 'firewall')
           .innerJoin('firewall.policyRules', 'policy_rule')
           .innerJoin('policy_rule.policyRuleToIPObjs', 'policyRuleToIPObjs')
-          .innerJoin(
-            'policyRuleToIPObjs.ipObjGroup',
-            'group',
-            'group.id IN (:id)',
-            { id: ipObjGroupIds },
-          );
+          .innerJoin('policyRuleToIPObjs.ipObjGroup', 'group', 'group.id IN (:id)', {
+            id: ipObjGroupIds,
+          });
 
         const subQueryRoutes = qb
           .subQuery()
@@ -1004,12 +946,9 @@ export class Firewall extends Model {
           .innerJoin('firewall.routingTables', 'table')
           .innerJoin('table.routes', 'route')
           .innerJoin('route.routeToIPObjGroups', 'routeToIPObjGroups')
-          .innerJoin(
-            'routeToIPObjGroups.ipObjGroup',
-            'group',
-            'group.id IN (:ids)',
-            { ids: ipObjGroups.map((item) => item.id).join(',') },
-          );
+          .innerJoin('routeToIPObjGroups.ipObjGroup', 'group', 'group.id IN (:ids)', {
+            ids: ipObjGroups.map((item) => item.id).join(','),
+          });
 
         const subQueryRoutingRules = qb
           .subQuery()
@@ -1017,16 +956,10 @@ export class Firewall extends Model {
           .from(Firewall, 'firewall')
           .innerJoin('firewall.routingTables', 'table')
           .innerJoin('table.routingRules', 'rule')
-          .innerJoin(
-            'rule.routingRuleToIPObjGroups',
-            'routingRuleToIPObjGroups',
-          )
-          .innerJoin(
-            'routingRuleToIPObjGroups.ipObjGroup',
-            'group',
-            'group.id IN (:ids)',
-            { ids: ipObjGroups.map((item) => item.id).join(',') },
-          );
+          .innerJoin('rule.routingRuleToIPObjGroups', 'routingRuleToIPObjGroups')
+          .innerJoin('routingRuleToIPObjGroups.ipObjGroup', 'group', 'group.id IN (:ids)', {
+            ids: ipObjGroups.map((item) => item.id).join(','),
+          });
 
         return `firewall.id IN ${subqueryPolicy.getQuery()} OR firewall.id IN ${subQueryRoutes.getQuery()} OR firewall.id IN ${subQueryRoutingRules.getQuery()}`;
       });
@@ -1081,18 +1014,10 @@ export class Firewall extends Model {
             .select('firewall.id')
             .from(Firewall, 'firewall')
             .innerJoin('firewall.policyRules', 'policy_rule')
-            .innerJoin(
-              'policy_rule.policyRuleToInterfaces',
-              'policyRuleToInterfaces',
-            )
-            .innerJoin(
-              'policyRuleToInterfaces.policyRuleInterface',
-              'int',
-              'int.id IN (:intIds)',
-              {
-                intIds: interfaces.map((item) => item.id).join(','),
-              },
-            );
+            .innerJoin('policy_rule.policyRuleToInterfaces', 'policyRuleToInterfaces')
+            .innerJoin('policyRuleToInterfaces.policyRuleInterface', 'int', 'int.id IN (:intIds)', {
+              intIds: interfaces.map((item) => item.id).join(','),
+            });
 
           const subqueryRoutes = qb
             .subQuery()
@@ -1130,14 +1055,9 @@ export class Firewall extends Model {
       .getSource()
       .manager.getRepository(IPObj)
       .createQueryBuilder('ipObj')
-      .innerJoin(
-        'ipObj.hosts',
-        'hosts',
-        'hosts.hostInterface IN (:interfaceIds)',
-        {
-          interfaceIds: interfaceIds,
-        },
-      )
+      .innerJoin('ipObj.hosts', 'hosts', 'hosts.hostInterface IN (:interfaceIds)', {
+        interfaceIds: interfaceIds,
+      })
       .getMany();
 
     if (hosts.length > 0) {
@@ -1472,11 +1392,7 @@ export class Firewall extends Model {
     });
   };
 
-  public static deleteFirewallRow = (
-    dbCon,
-    fwcloud,
-    firewall,
-  ): Promise<void> => {
+  public static deleteFirewallRow = (dbCon, fwcloud, firewall): Promise<void> => {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `DELETE FROM ${tableName} WHERE id=${firewall} AND fwcloud=${fwcloud}`,
@@ -1494,22 +1410,12 @@ export class Firewall extends Model {
         let param: any = '';
         if (!isNew) {
           param = body.id;
-          if (
-            param === undefined ||
-            param === '' ||
-            isNaN(param) ||
-            param == null
-          ) {
+          if (param === undefined || param === '' || isNaN(param) || param == null) {
             reject('Firewall ID not valid');
           }
         }
         param = body.cluster;
-        if (
-          param === undefined ||
-          param === '' ||
-          isNaN(param) ||
-          param == null
-        ) {
+        if (param === undefined || param === '' || isNaN(param) || param == null) {
           body.cluster = null;
         }
 
@@ -1519,12 +1425,7 @@ export class Firewall extends Model {
         }
 
         param = body.save_user_pass;
-        if (
-          param === undefined ||
-          param === '' ||
-          param == null ||
-          param == 0
-        ) {
+        if (param === undefined || param === '' || param == null || param == 0) {
           body.save_user_pass = false;
         } else body.save_user_pass = true;
         param = body.install_user;
@@ -1536,30 +1437,15 @@ export class Firewall extends Model {
           body.install_pass = '';
         }
         param = body.install_interface;
-        if (
-          param === undefined ||
-          param === '' ||
-          isNaN(param) ||
-          param == null
-        ) {
+        if (param === undefined || param === '' || isNaN(param) || param == null) {
           body.install_interface = null;
         }
         param = body.install_ipobj;
-        if (
-          param === undefined ||
-          param === '' ||
-          isNaN(param) ||
-          param == null
-        ) {
+        if (param === undefined || param === '' || isNaN(param) || param == null) {
           body.install_ipobj = null;
         }
         param = body.install_port;
-        if (
-          param === undefined ||
-          param === '' ||
-          isNaN(param) ||
-          param == null
-        ) {
+        if (param === undefined || param === '' || isNaN(param) || param == null) {
           body.install_port = 22;
         }
         param = body.install_protocol;
@@ -1571,12 +1457,7 @@ export class Firewall extends Model {
           body.install_apikey = null;
         }
         param = body.fwmaster;
-        if (
-          param === undefined ||
-          param === '' ||
-          isNaN(param) ||
-          param == null
-        ) {
+        if (param === undefined || param === '' || isNaN(param) || param == null) {
           body.fwmaster = 0;
         }
         resolve(body);
@@ -1586,10 +1467,7 @@ export class Firewall extends Model {
     }
   }
 
-  public static getFirewallOptions(
-    fwcloud: number,
-    firewall: number,
-  ): Promise<number> {
+  public static getFirewallOptions(fwcloud: number, firewall: number): Promise<number> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1613,8 +1491,7 @@ export class Firewall extends Model {
     return new Promise(async (resolve, reject) => {
       try {
         // Compiler defined for the firewall is stored in the 3 more significative bits of the 16 bit options field.
-        const compilerNumber =
-          (await this.getFirewallOptions(fwcloud, firewall)) & 0xf000;
+        const compilerNumber = (await this.getFirewallOptions(fwcloud, firewall)) & 0xf000;
 
         if (compilerNumber == 0x0000) resolve('IPTables');
         else if (compilerNumber == 0x1000) resolve('NFTables');
@@ -1668,27 +1545,13 @@ export class Firewall extends Model {
 						  	
 						  Verify too that these objects are not being used in any group.
 				*/
-        const r1: any =
-          await Interface.searchInterfaceUsageOutOfThisFirewall(req);
+        const r1: any = await Interface.searchInterfaceUsageOutOfThisFirewall(req);
         const r2: any = await OpenVPN.searchOpenvpnUsageOutOfThisFirewall(req);
-        const r3: any =
-          await OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
+        const r3: any = await OpenVPNPrefix.searchPrefixUsageOutOfThisFirewall(req);
 
-        if (r1)
-          search.restrictions = utilsModel.mergeObj(
-            search.restrictions,
-            r1.restrictions,
-          );
-        if (r2)
-          search.restrictions = utilsModel.mergeObj(
-            search.restrictions,
-            r2.restrictions,
-          );
-        if (r3)
-          search.restrictions = utilsModel.mergeObj(
-            search.restrictions,
-            r3.restrictions,
-          );
+        if (r1) search.restrictions = utilsModel.mergeObj(search.restrictions, r1.restrictions);
+        if (r2) search.restrictions = utilsModel.mergeObj(search.restrictions, r2.restrictions);
+        if (r3) search.restrictions = utilsModel.mergeObj(search.restrictions, r3.restrictions);
 
         for (const key in search.restrictions) {
           if (search.restrictions[key].length > 0) {

@@ -18,8 +18,7 @@ describe(describeName('FwcTree Exporter Unit Tests'), () => {
   let dataSource: DataSource;
 
   beforeEach(async () => {
-    dataSource = (await app().getService<DatabaseService>(DatabaseService.name))
-      .dataSource;
+    dataSource = (await app().getService<DatabaseService>(DatabaseService.name)).dataSource;
     result = new ExporterResult();
 
     fwCloud = await dataSource.manager.getRepository(FwCloud).save(
@@ -67,14 +66,12 @@ describe(describeName('FwcTree Exporter Unit Tests'), () => {
     });
 
     it('should return the fwc_tree which belongs indirectly with the fwcloud', async () => {
-      const parentNode: FwcTree = await dataSource.manager
-        .getRepository(FwcTree)
-        .save(
-          dataSource.manager.getRepository(FwcTree).create({
-            name: StringHelper.randomize(10),
-            fwCloudId: fwCloud.id,
-          }),
-        );
+      const parentNode: FwcTree = await dataSource.manager.getRepository(FwcTree).save(
+        dataSource.manager.getRepository(FwcTree).create({
+          name: StringHelper.randomize(10),
+          fwCloudId: fwCloud.id,
+        }),
+      );
 
       await dataSource.manager.getRepository(FwcTree).save(
         dataSource.manager.getRepository(FwcTree).create({

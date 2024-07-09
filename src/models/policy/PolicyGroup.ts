@@ -291,11 +291,7 @@ export class PolicyGroup extends Model {
         //If exists Id from policy_g to remove
         if (row) {
           db.get((error, connection) => {
-            const sql =
-              'DELETE FROM ' +
-              tableName +
-              ' WHERE id = ' +
-              connection.escape(id);
+            const sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
             connection.query(sql, (error, result) => {
               if (error) {
                 callback(error, null);
@@ -382,11 +378,7 @@ export class PolicyGroup extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        const sql =
-          'DELETE FROM ' +
-          tableName +
-          ' WHERE firewall=' +
-          connection.escape(idFirewall);
+        const sql = 'DELETE FROM ' + tableName + ' WHERE firewall=' + connection.escape(idFirewall);
         connection.query(sql, (error, rows) => {
           if (error) return reject(error);
           resolve();
@@ -396,11 +388,7 @@ export class PolicyGroup extends Model {
   }
 
   //Move rules from one firewall to other.
-  public static moveToOtherFirewall(
-    dbCon,
-    src_firewall,
-    dst_firewall,
-  ): Promise<void> {
+  public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`,

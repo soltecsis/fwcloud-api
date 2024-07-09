@@ -37,9 +37,7 @@ export class FwCloudController extends Controller {
   protected _fwCloudService: FwCloudService;
 
   public async make(request: Request): Promise<void> {
-    this._fwCloudService = await this._app.getService<FwCloudService>(
-      FwCloudService.name,
-    );
+    this._fwCloudService = await this._app.getService<FwCloudService>(FwCloudService.name);
   }
 
   @Validate(FwCloudControllerStoreDto)
@@ -48,18 +46,14 @@ export class FwCloudController extends Controller {
 
     (await FwCloudPolicy.store(request.session.user)).authorize();
 
-    await FwCloud.getFwclouds(request.dbCon, request.session.user_id).then(
-      (result: FwCloud[]) => {
-        errorLimit =
-          this._app.config.get('limits').fwclouds > 0 &&
-          result.length >= this._app.config.get('limits').fwclouds;
-      },
-    );
+    await FwCloud.getFwclouds(request.dbCon, request.session.user_id).then((result: FwCloud[]) => {
+      errorLimit =
+        this._app.config.get('limits').fwclouds > 0 &&
+        result.length >= this._app.config.get('limits').fwclouds;
+    });
 
     if (errorLimit) {
-      return ResponseBuilder.buildResponse()
-        .status(403)
-        .body(fwcError.LIMIT_FWCLOUDS);
+      return ResponseBuilder.buildResponse().status(403).body(fwcError.LIMIT_FWCLOUDS);
     } else {
       const fwCloud: FwCloud = await this._fwCloudService.store({
         name: request.body.name,
@@ -109,8 +103,6 @@ export class FwCloudController extends Controller {
       availablecommunications = ['agent', 'ssh'];
     }
 
-    return ResponseBuilder.buildResponse()
-      .status(200)
-      .body({ availablecommunications });
+    return ResponseBuilder.buildResponse().status(200).body({ availablecommunications });
   }
 }

@@ -59,28 +59,19 @@ export class PolicyRuleToInterface extends Model {
   @Column()
   updated_by: number;
 
-  @ManyToOne(
-    (type) => Interface,
-    (_interface) => _interface.policyRuleToInterfaces,
-  )
+  @ManyToOne((type) => Interface, (_interface) => _interface.policyRuleToInterfaces)
   @JoinColumn({
     name: 'interface',
   })
   policyRuleInterface: Interface;
 
-  @ManyToOne(
-    (type) => PolicyRule,
-    (policyRule) => policyRule.policyRuleToInterfaces,
-  )
+  @ManyToOne((type) => PolicyRule, (policyRule) => policyRule.policyRuleToInterfaces)
   @JoinColumn({
     name: 'rule',
   })
   policyRule: PolicyRule;
 
-  @ManyToOne(
-    (type) => PolicyPosition,
-    (policyPosition) => policyPosition.policyRuleToInterfaces,
-  )
+  @ManyToOne((type) => PolicyPosition, (policyPosition) => policyPosition.policyRuleToInterfaces)
   @JoinColumn({
     name: 'position',
   })
@@ -143,10 +134,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Add new policy_r__interface
-  public static insertPolicy_r__interface(
-    idfirewall,
-    policy_r__interfaceData,
-  ): Promise<void> {
+  public static insertPolicy_r__interface(idfirewall, policy_r__interfaceData): Promise<void> {
     return new Promise((resolve, reject) => {
       //Check if IPOBJ TYPE is ALLOWED in this Position
       this.checkInterfacePosition(
@@ -201,7 +189,7 @@ export class PolicyRuleToInterface extends Model {
         if (error) reject(error);
         connection.query(
           'INSERT INTO ' + tableName + ' SET ?',
-          p_interfaceData,
+          [p_interfaceData],
           async (error, result) => {
             if (error) {
               reject(error);
@@ -227,11 +215,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Duplicate policy_r__interface RULES
-  public static duplicatePolicy_r__interface = (
-    dbCon,
-    rule,
-    new_rule,
-  ): Promise<void> => {
+  public static duplicatePolicy_r__interface = (dbCon, rule, new_rule): Promise<void> => {
     return new Promise((resolve, reject) => {
       const sql = `INSERT INTO ${tableName} (rule, interface, position,position_order)
 			(SELECT ${new_rule}, interface, position, position_order
@@ -333,21 +317,9 @@ export class PolicyRuleToInterface extends Model {
             if (error) return reject(error);
             if (result.affectedRows > 0) {
               //Order New position
-              this.OrderList(
-                new_order,
-                new_rule,
-                new_position,
-                999999,
-                _interface,
-              );
+              this.OrderList(new_order, new_rule, new_position, 999999, _interface);
               //Order OLD position
-              this.OrderList(
-                999999,
-                rule,
-                old_position,
-                old_position_order,
-                _interface,
-              );
+              this.OrderList(999999, rule, old_position, old_position_order, _interface);
 
               resolve();
             } else reject(fwcError.NOT_FOUND);
@@ -447,13 +419,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Check if a object (type) can be inserted in a position type
-  private static checkInterfacePosition(
-    idfirewall,
-    rule,
-    id,
-    position,
-    callback,
-  ) {
+  private static checkInterfacePosition(idfirewall, rule, id, position, callback) {
     db.get((error, connection) => {
       if (error) return callback(null, 0);
 
@@ -506,21 +472,13 @@ export class PolicyRuleToInterface extends Model {
   public static deletePolicy_r__All(rule, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      const sqlExists =
-        'SELECT * FROM ' +
-        tableName +
-        ' WHERE rule = ' +
-        connection.escape(rule);
+      const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
       connection.query(sqlExists, (error, row) => {
         //If exists Id from policy_r__interface to remove
         if (row) {
           logger().debug('DELETING INTERFACES FROM RULE: ' + rule);
           db.get(async (error, connection) => {
-            const sql =
-              'DELETE FROM ' +
-              tableName +
-              ' WHERE rule = ' +
-              connection.escape(rule);
+            const sql = 'DELETE FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
             connection.query(sql, async (error, result) => {
               if (error) {
                 logger().debug(error);
@@ -657,10 +615,7 @@ export class PolicyRuleToInterface extends Model {
   public static orderAllPolicy(callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      const sqlRule =
-        'SELECT * FROM ' +
-        tableName +
-        ' ORDER by rule,position, position_order';
+      const sqlRule = 'SELECT * FROM ' + tableName + ' ORDER by rule,position, position_order';
       //logger().debug(sqlRule);
       connection.query(sqlRule, (error, rows) => {
         if (rows.length > 0) {
@@ -768,10 +723,7 @@ export class PolicyRuleToInterface extends Model {
   //check if HOST ALL INTERFACEs Exists in any rule
   public static checkHostAllInterfacesInRule(ipobj_host, fwcloud, callback) {
     logger().debug(
-      'CHECK DELETING HOST ALL interfaces I POSITIONS:' +
-        ipobj_host +
-        '  fwcloud:' +
-        fwcloud,
+      'CHECK DELETING HOST ALL interfaces I POSITIONS:' + ipobj_host + '  fwcloud:' + fwcloud,
     );
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -814,13 +766,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //search if INTERFACE Exists in any rule I POSITIONS
-  public static SearchInterfaceInRules = (
-    _interface,
-    type,
-    fwcloud,
-    firewall,
-    diff_firewall,
-  ) => {
+  public static SearchInterfaceInRules = (_interface, type, fwcloud, firewall, diff_firewall) => {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);

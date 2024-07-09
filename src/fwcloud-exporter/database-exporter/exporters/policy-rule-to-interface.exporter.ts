@@ -41,29 +41,19 @@ export class PolicyRuleToInterfaceExporter extends TableExporter {
   ): SelectQueryBuilder<any> {
     return qb
       .where((qb) => {
-        const subquery = qb
-          .subQuery()
-          .from(Interface, 'interface')
-          .select('interface.id');
+        const subquery = qb.subQuery().from(Interface, 'interface').select('interface.id');
 
         return (
           `${alias}.interfaceId IN ` +
-          new InterfaceExporter()
-            .getFilterBuilder(subquery, 'interface', fwCloudId)
-            .getQuery()
+          new InterfaceExporter().getFilterBuilder(subquery, 'interface', fwCloudId).getQuery()
         );
       })
       .orWhere((qb) => {
-        const subquery = qb
-          .subQuery()
-          .from(PolicyRule, 'policy_r')
-          .select('policy_r.id');
+        const subquery = qb.subQuery().from(PolicyRule, 'policy_r').select('policy_r.id');
 
         return (
           `${alias}.policyRuleId IN ` +
-          new PolicyRuleExporter()
-            .getFilterBuilder(subquery, 'policy_r', fwCloudId)
-            .getQuery()
+          new PolicyRuleExporter().getFilterBuilder(subquery, 'policy_r', fwCloudId).getQuery()
         );
       });
   }

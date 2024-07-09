@@ -150,14 +150,10 @@ export class InterfaceIPObj extends Model {
   //Add new interface__ipobj
   public static insertInterface__ipobj(dbCon, interface__ipobjData) {
     return new Promise((resolve, reject) => {
-      dbCon.query(
-        `INSERT INTO ${tableName} SET ?`,
-        interface__ipobjData,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result.affectedRows > 0 ? result.insertId : null);
-        },
-      );
+      dbCon.query(`INSERT INTO ${tableName} SET ?`, interface__ipobjData, (error, result) => {
+        if (error) return reject(error);
+        resolve(result.affectedRows > 0 ? result.insertId : null);
+      });
     });
   }
 
@@ -169,11 +165,7 @@ export class InterfaceIPObj extends Model {
     interface__ipobjData,
     callback,
   ) {
-    await this.OrderList(
-      interface__ipobjData.interface_order,
-      get_interface,
-      get_interface_order,
-    );
+    await this.OrderList(interface__ipobjData.interface_order, get_interface, get_interface_order);
 
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -205,11 +197,7 @@ export class InterfaceIPObj extends Model {
   }
 
   //Update ORDER interface__ipobj
-  public static async updateInterface__ipobj_order(
-    new_order,
-    interface__ipobjData,
-    callback,
-  ) {
+  public static async updateInterface__ipobj_order(new_order, interface__ipobjData, callback) {
     await this.OrderList(
       new_order,
       interface__ipobjData.interface,

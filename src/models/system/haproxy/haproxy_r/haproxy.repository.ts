@@ -51,11 +51,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
     return this.getFindInPathOptions(path, options).getMany();
   }
 
-  async move(
-    ids: number[],
-    haproxyDestId: number,
-    offset: Offset,
-  ): Promise<HAProxyRule[]> {
+  async move(ids: number[], haproxyDestId: number, offset: Offset): Promise<HAProxyRule[]> {
     const haproxy_rs: HAProxyRule[] = await this.find({
       where: {
         id: In(ids),
@@ -78,17 +74,9 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
     });
 
     if (offset === Offset.Above) {
-      affectedHAProxies = await this.moveAbove(
-        haproxy_rs,
-        affectedHAProxies,
-        destHAProxy,
-      );
+      affectedHAProxies = await this.moveAbove(haproxy_rs, affectedHAProxies, destHAProxy);
     } else {
-      affectedHAProxies = await this.moveBelow(
-        haproxy_rs,
-        affectedHAProxies,
-        destHAProxy,
-      );
+      affectedHAProxies = await this.moveBelow(haproxy_rs, affectedHAProxies, destHAProxy);
     }
 
     await this.save(affectedHAProxies);
@@ -138,9 +126,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
     destRule: HAProxyRule,
   ): Promise<HAProxyRule[]> {
     const destPosition: number = destRule.rule_order;
-    const movingIds: number[] = rules.map(
-      (haproxy_r: HAProxyRule) => haproxy_r.id,
-    );
+    const movingIds: number[] = rules.map((haproxy_r: HAProxyRule) => haproxy_r.id);
 
     const currentPosition = rules[0].rule_order;
     const forward: boolean = currentPosition < destRule.rule_order;
@@ -176,14 +162,8 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
     return affectedRules;
   }
 
-  async remove(
-    entities: HAProxyRule[],
-    options?: RemoveOptions,
-  ): Promise<HAProxyRule[]>;
-  async remove(
-    entity: HAProxyRule,
-    options?: RemoveOptions,
-  ): Promise<HAProxyRule>;
+  async remove(entities: HAProxyRule[], options?: RemoveOptions): Promise<HAProxyRule[]>;
+  async remove(entity: HAProxyRule, options?: RemoveOptions): Promise<HAProxyRule>;
   async remove(
     entityOrEntities: HAProxyRule | HAProxyRule[],
     options?: RemoveOptions,
@@ -283,9 +263,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
     rules?: number[],
     forCompilation: boolean = false,
   ): Promise<HAProxyRule[]> {
-    const query: SelectQueryBuilder<HAProxyRule> = this.createQueryBuilder(
-      'haproxy',
-    )
+    const query: SelectQueryBuilder<HAProxyRule> = this.createQueryBuilder('haproxy')
       .leftJoinAndSelect('haproxy.group', 'group')
       .leftJoinAndSelect('haproxy.frontendIp', 'frontendIp')
       .leftJoinAndSelect('haproxy.frontendPort', 'frontendPort')
@@ -293,14 +271,8 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
       .leftJoinAndSelect('haproxy.backendPort', 'backendPort')
       .leftJoinAndSelect('frontendIp.interface', 'frontendIpInterface')
       .leftJoinAndSelect('frontendIpInterface.firewall', 'frontendIpFirewall')
-      .leftJoinAndSelect(
-        'frontendIpInterface.hosts',
-        'frontendIpInterfaceHosts',
-      )
-      .leftJoinAndSelect(
-        'frontendIpInterfaceHosts.hostIPObj',
-        'frontendIpInterfaceHostIPObj',
-      )
+      .leftJoinAndSelect('frontendIpInterface.hosts', 'frontendIpInterfaceHosts')
+      .leftJoinAndSelect('frontendIpInterfaceHosts.hostIPObj', 'frontendIpInterfaceHostIPObj')
       .leftJoinAndSelect('frontendIpFirewall.cluster', 'frontendIpCluster')
       .leftJoinAndSelect('haproxy.firewall', 'firewall')
       .leftJoinAndSelect('firewall.fwCloud', 'fwCloud')
@@ -311,9 +283,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
       query.andWhere('haproxy.id IN (:...rules)', { rules });
     }
 
-    const haproxyRules: HAProxyRule[] = await query
-      .orderBy('haproxy.rule_order', 'ASC')
-      .getMany();
+    const haproxyRules: HAProxyRule[] = await query.orderBy('haproxy.rule_order', 'ASC').getMany();
 
     if (forCompilation) {
       haproxyRules.sort((item) => item.rule_type);

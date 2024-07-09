@@ -19,13 +19,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import {
-  FindManyOptions,
-  FindOneOptions,
-  In,
-  Repository,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { FindManyOptions, FindOneOptions, In, Repository, SelectQueryBuilder } from 'typeorm';
 import { Service } from '../../../../fonaments/services/service';
 import { DHCPRule } from '../dhcp_r/dhcp_r.model';
 import { DHCPGroup } from './dhcp_g.model';
@@ -125,10 +119,7 @@ export class DHCPGroupService extends Service {
       style: data.style,
     };
 
-    const group: DHCPGroup = await db
-      .getSource()
-      .manager.getRepository(DHCPGroup)
-      .save(groupData);
+    const group: DHCPGroup = await db.getSource().manager.getRepository(DHCPGroup).save(groupData);
     return db
       .getSource()
       .manager.getRepository(DHCPGroup)
@@ -160,10 +151,7 @@ export class DHCPGroupService extends Service {
       await db
         .getSource()
         .manager.getRepository(DHCPRule)
-        .update(
-          { id: In(group.rules.map((rule) => rule.id)) },
-          { group: null },
-        );
+        .update({ id: In(group.rules.map((rule) => rule.id)) }, { group: null });
     }
 
     await db.getSource().manager.getRepository(DHCPGroup).remove(group);

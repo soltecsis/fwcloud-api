@@ -89,9 +89,7 @@ export abstract class HTTPApplication extends AbstractApplication {
 
     this.registerMiddlewares('before');
 
-    const routerService: RouterService = await this.getService<RouterService>(
-      RouterService.name,
-    );
+    const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
     routerService.registerRoutes();
 
     this.registerMiddlewares('after');

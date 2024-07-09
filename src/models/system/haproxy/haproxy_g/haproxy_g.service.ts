@@ -15,12 +15,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  FindManyOptions,
-  FindOneOptions,
-  Repository,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { FindManyOptions, FindOneOptions, Repository, SelectQueryBuilder } from 'typeorm';
 import { Service } from '../../../../fonaments/services/service';
 import { Application } from '../../../../Application';
 import { HAProxyGroup } from './haproxy_g.model';

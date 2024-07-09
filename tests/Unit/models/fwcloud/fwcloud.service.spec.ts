@@ -43,9 +43,9 @@ describe(describeName('FwCloudService Unit tests'), async () => {
 
   describe('Bootstrap', () => {
     it('service is instantiated in during bootstrap process', async () => {
-      expect(
-        await app.getService<FwCloudService>(FwCloudService.name),
-      ).to.be.instanceof(FwCloudService);
+      expect(await app.getService<FwCloudService>(FwCloudService.name)).to.be.instanceof(
+        FwCloudService,
+      );
     });
   });
 
@@ -55,11 +55,8 @@ describe(describeName('FwCloudService Unit tests'), async () => {
         name: StringHelper.randomize(10),
       });
 
-      expect(
-        await manager
-          .getRepository(FwCloud)
-          .findOne({ where: { id: fwCloud.id } }),
-      ).not.to.be.null;
+      expect(await manager.getRepository(FwCloud).findOne({ where: { id: fwCloud.id } })).not.to.be
+        .null;
     });
 
     it('should grant access to all admin users', async () => {
@@ -75,12 +72,8 @@ describe(describeName('FwCloudService Unit tests'), async () => {
         relations: ['users'],
       });
 
-      expect(
-        fwCloud.users.filter((user) => user.id === regular.id),
-      ).to.have.length(0);
-      expect(
-        fwCloud.users.filter((user) => user.id === admin.id),
-      ).to.have.length(1);
+      expect(fwCloud.users.filter((user) => user.id === regular.id)).to.have.length(0);
+      expect(fwCloud.users.filter((user) => user.id === admin.id)).to.have.length(1);
     });
 
     it('should create the fwcloud tree node', async () => {

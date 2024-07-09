@@ -4,10 +4,7 @@ import { FwCloudExportService } from '../../../src/fwcloud-exporter/fwcloud-expo
 import { FSHelper } from '../../../src/utils/fs-helper';
 import { FwCloudExport } from '../../../src/fwcloud-exporter/fwcloud-export';
 import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
-import {
-  colorUsage,
-  fwcloudColors,
-} from '../../../src/models/fwcloud/FwCloud-colors';
+import { colorUsage, fwcloudColors } from '../../../src/models/fwcloud/FwCloud-colors';
 import StringHelper from '../../../src/utils/string.helper';
 import { User } from '../../../src/models/user/User';
 import { createUser, sleep, ramdomInteger } from '../../utils/utils';
@@ -24,9 +21,7 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
   before(async () => {
     app = testSuite.app;
     manager = db.getSource().manager;
-    service = await app.getService<FwCloudExportService>(
-      FwCloudExportService.name,
-    );
+    service = await app.getService<FwCloudExportService>(FwCloudExportService.name);
     fwCloud = await manager.getRepository(FwCloud).save(
       manager.getRepository(FwCloud).create({
         name: StringHelper.randomize(10),
@@ -37,9 +32,9 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
   });
 
   it('should be provided as a service', async () => {
-    expect(
-      await app.getService<FwCloudExportService>(FwCloudExportService.name),
-    ).to.be.instanceOf(FwCloudExportService);
+    expect(await app.getService<FwCloudExportService>(FwCloudExportService.name)).to.be.instanceOf(
+      FwCloudExportService,
+    );
   });
 
   describe('build()', () => {
@@ -48,11 +43,8 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
 
       await FwCloudExportService.make(app);
 
-      expect(FSHelper.directoryExistsSync(app.config.get('exporter').data_dir))
-        .to.be.true;
-      expect(
-        FSHelper.directoryExistsSync(app.config.get('exporter').upload_dir),
-      ).to.be.true;
+      expect(FSHelper.directoryExistsSync(app.config.get('exporter').data_dir)).to.be.true;
+      expect(FSHelper.directoryExistsSync(app.config.get('exporter').upload_dir)).to.be.true;
     });
   });
 
@@ -71,11 +63,7 @@ describe(describeName('FwCloudExportService Unit Tests'), () => {
     });
 
     it('should remove all generated files after ttl', async () => {
-      const fwCloudExport: FwCloudExport = await service.create(
-        fwCloud,
-        user,
-        1,
-      );
+      const fwCloudExport: FwCloudExport = await service.create(fwCloud, user, 1);
 
       await sleep(4);
       expect(FSHelper.fileExistsSync(fwCloudExport.exportPath)).to.be.false;

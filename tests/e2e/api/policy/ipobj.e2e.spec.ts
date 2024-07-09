@@ -11,11 +11,7 @@ import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPO
 import { User } from '../../../../src/models/user/User';
 import { describeName, testSuite } from '../../../mocha/global-setup';
 import { FwCloudProduct, FwCloudFactory } from '../../../utils/fwcloud-factory';
-import {
-  createUser,
-  generateSession,
-  attachSession,
-} from '../../../utils/utils';
+import { createUser, generateSession, attachSession } from '../../../utils/utils';
 import db from '../../../../src/database/database-manager';
 
 enum PolicyColumn {
@@ -120,9 +116,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
 
     await manager.getRepository(User).save(adminUser);
 
-    const service = await manager
-      .getRepository(IPObj)
-      .findOneOrFail({ where: { id: 10040 } });
+    const service = await manager.getRepository(IPObj).findOneOrFail({ where: { id: 10040 } });
 
     group = await manager.getRepository(IPObjGroup).save({
       name: 'group',
@@ -147,9 +141,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
 
   describe('INPUT', () => {
     beforeEach(async () => {
-      rule = await manager
-        .getRepository(PolicyRule)
-        .findOneOrFail({ where: { id: inputRuleId } });
+      rule = await manager.getRepository(PolicyRule).findOneOrFail({ where: { id: inputRuleId } });
       data.rule = rule.id;
     });
 
@@ -182,9 +174,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
 
   describe('OUTPUT', () => {
     beforeEach(async () => {
-      rule = await manager
-        .getRepository(PolicyRule)
-        .findOneOrFail({ where: { id: outputRuleId } });
+      rule = await manager.getRepository(PolicyRule).findOneOrFail({ where: { id: outputRuleId } });
       data.rule = rule.id;
     });
 
@@ -252,9 +242,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
 
   describe('SNAT', () => {
     beforeEach(async () => {
-      rule = await manager
-        .getRepository(PolicyRule)
-        .findOneOrFail({ where: { id: snatRuleId } });
+      rule = await manager.getRepository(PolicyRule).findOneOrFail({ where: { id: snatRuleId } });
       data.rule = rule.id;
     });
 
@@ -287,9 +275,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
 
   describe('DNAT', () => {
     beforeEach(async () => {
-      rule = await manager
-        .getRepository(PolicyRule)
-        .findOneOrFail({ where: { id: dnatRuleId } });
+      rule = await manager.getRepository(PolicyRule).findOneOrFail({ where: { id: dnatRuleId } });
       data.rule = rule.id;
     });
 

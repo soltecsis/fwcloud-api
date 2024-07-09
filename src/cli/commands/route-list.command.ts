@@ -20,10 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  RouterService,
-  HttpMethod,
-} from '../../fonaments/http/router/router.service';
+import { RouterService, HttpMethod } from '../../fonaments/http/router/router.service';
 import { PathParams } from 'express-serve-static-core';
 import { Gate } from '../../fonaments/http/router/gate';
 import { Route } from '../../fonaments/http/router/route';
@@ -46,8 +43,9 @@ export class RouteListCommand extends Command {
   public description: string = 'List all routes';
 
   async handle(args: yargs.Arguments) {
-    const routerService: RouterService =
-      await this._app.getService<RouterService>(RouterService.name);
+    const routerService: RouterService = await this._app.getService<RouterService>(
+      RouterService.name,
+    );
     const routes: Route[] = routerService.getRoutes();
     const rows: Array<RouteRow> = [];
 
@@ -57,9 +55,7 @@ export class RouteListCommand extends Command {
         httpMethod: route.httpMethod,
         pathParams: route.pathParams,
         handler: route.isControllerHandler()
-          ? route.controllerSignature.controller.name +
-            '@' +
-            route.controllerSignature.method
+          ? route.controllerSignature.controller.name + '@' + route.controllerSignature.method
           : 'callback',
         name: route.name,
         gates: route.gates.map((gate: typeof Gate) => {

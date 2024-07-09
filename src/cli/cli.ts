@@ -63,10 +63,7 @@ class CLI {
     return cli;
   }
 
-  protected parseCommands(
-    cli: yargs.Argv,
-    commands: (typeof Command)[],
-  ): yargs.Argv {
+  protected parseCommands(cli: yargs.Argv, commands: (typeof Command)[]): yargs.Argv {
     commands.forEach((commmand: typeof Command) => {
       // @ts-ignore: command is not abstract
       const instance: Command = new commmand();

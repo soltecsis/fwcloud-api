@@ -38,9 +38,7 @@ describe(describeName('Route Unit tests'), () => {
       const route = new Route();
       route.setPathParams('/this/:is/a/test/path');
 
-      expect(route.generateURL({ is: 'isnot' })).to.be.deep.eq(
-        '/this/isnot/a/test/path',
-      );
+      expect(route.generateURL({ is: 'isnot' })).to.be.deep.eq('/this/isnot/a/test/path');
     });
 
     it('should not accept params with slashes', () => {
@@ -69,9 +67,7 @@ describe(describeName('Route Unit tests'), () => {
       const route = new Route();
       route.setPathParams('/this/:is/test/path(\\d+)');
 
-      expect(route.generateURL({ is: 'isnot' })).to.be.deep.eq(
-        '/this/isnot/test/path',
-      );
+      expect(route.generateURL({ is: 'isnot' })).to.be.deep.eq('/this/isnot/test/path');
     });
 
     it('should remove multiple parenthesis', () => {

@@ -85,9 +85,9 @@ describe(describeName('PolicyGroupRepository tests'), () => {
 
         await policyGroupRepository.deleteIfEmpty(policyGroup);
 
-        expect(
-          await PolicyGroup.findOne({ where: { id: policyGroup.id } }),
-        ).to.be.instanceOf(PolicyGroup);
+        expect(await PolicyGroup.findOne({ where: { id: policyGroup.id } })).to.be.instanceOf(
+          PolicyGroup,
+        );
       });
     });
   });

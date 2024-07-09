@@ -57,12 +57,9 @@ describe(describeName('Service container tests'), () => {
   describe('singleton()', () => {
     it('should include a service reference with an instance', async () => {
       const sc = new ServiceContainer(app);
-      sc.singleton<TestService>(
-        TestService.name,
-        async (app: AbstractApplication) => {
-          return await TestService.make(app);
-        },
-      );
+      sc.singleton<TestService>(TestService.name, async (app: AbstractApplication) => {
+        return await TestService.make(app);
+      });
 
       expect(await sc.get<TestService>('TestService')).to.be.deep.equal(
         await TestService.make(app),
@@ -73,14 +70,9 @@ describe(describeName('Service container tests'), () => {
   describe('get()', () => {
     it('should return an instance of the service if the service has been registered using bind', async () => {
       const sc = new ServiceContainer(app);
-      sc.bind(
-        TestService.name,
-        async (app: AbstractApplication) => await TestService.make(app),
-      );
+      sc.bind(TestService.name, async (app: AbstractApplication) => await TestService.make(app));
 
-      expect(await sc.get(TestService.name)).to.be.deep.equal(
-        await TestService.make(app),
-      );
+      expect(await sc.get(TestService.name)).to.be.deep.equal(await TestService.make(app));
     });
 
     it('should return the instance of the service if the service has been registered using singleton', async () => {
@@ -92,9 +84,9 @@ describe(describeName('Service container tests'), () => {
         return c;
       });
 
-      expect(
+      expect((await sc.get<TestService>(TestService.name)).tag).to.be.deep.equal(
         (await sc.get<TestService>(TestService.name)).tag,
-      ).to.be.deep.equal((await sc.get<TestService>(TestService.name)).tag);
+      );
     });
 
     it('should return a new instance of the service if the service is not singleton', async () => {
@@ -106,9 +98,9 @@ describe(describeName('Service container tests'), () => {
         return c;
       });
 
-      expect(
+      expect((await sc.get<TestService>(TestService.name)).tag).not.be.deep.equal(
         (await sc.get<TestService>(TestService.name)).tag,
-      ).not.be.deep.equal((await sc.get<TestService>(TestService.name)).tag);
+      );
     });
   });
 });

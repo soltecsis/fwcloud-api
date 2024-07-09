@@ -19,8 +19,9 @@ export class BackupRestoreCommand extends Command {
   public description: string = 'Restore an existing backup';
 
   async handle(args: yargs.Arguments) {
-    const backupService: BackupService =
-      await this._app.getService<BackupService>(BackupService.name);
+    const backupService: BackupService = await this._app.getService<BackupService>(
+      BackupService.name,
+    );
     const backup: Backup = await backupService.findOneOrFail(args.id as number);
     const eventEmitter = new EventEmitter();
 

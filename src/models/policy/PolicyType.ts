@@ -70,13 +70,10 @@ export class PolicyType extends Model {
   public static getPolicy_types(callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      connection.query(
-        'SELECT * FROM ' + tableName + ' ORDER BY type_order',
-        (error, rows) => {
-          if (error) callback(error, null);
-          else callback(null, rows);
-        },
-      );
+      connection.query('SELECT * FROM ' + tableName + ' ORDER BY type_order', (error, rows) => {
+        if (error) callback(error, null);
+        else callback(null, rows);
+      });
     });
   }
 
@@ -84,8 +81,7 @@ export class PolicyType extends Model {
   public static getPolicy_type(id, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      const sql =
-        'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
+      const sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
         else {
@@ -99,8 +95,7 @@ export class PolicyType extends Model {
   public static getPolicy_typeL(id, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      const sql =
-        'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(id);
+      const sql = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(id);
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
         else {
@@ -132,18 +127,14 @@ export class PolicyType extends Model {
   public static insertPolicy_type(policy_typeData, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      connection.query(
-        'INSERT INTO ' + tableName + ' SET ?',
-        policy_typeData,
-        (error, result) => {
-          if (error) {
-            callback(error, null);
-          } else {
-            //devolvemos la última id insertada
-            callback(null, { insertId: result.insertId });
-          }
-        },
-      );
+      connection.query('INSERT INTO ' + tableName + ' SET ?', policy_typeData, (error, result) => {
+        if (error) {
+          callback(error, null);
+        } else {
+          //devolvemos la última id insertada
+          callback(null, { insertId: result.insertId });
+        }
+      });
     });
   }
 
@@ -180,20 +171,12 @@ export class PolicyType extends Model {
   public static deletePolicy_type(type, callback) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      const sqlExists =
-        'SELECT * FROM ' +
-        tableName +
-        ' WHERE type = ' +
-        connection.escape(type);
+      const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
       connection.query(sqlExists, (error, row) => {
         //If exists Id from policy_type to remove
         if (row) {
           db.get((error, connection) => {
-            const sql =
-              'DELETE FROM ' +
-              tableName +
-              ' WHERE type = ' +
-              connection.escape(type);
+            const sql = 'DELETE FROM ' + tableName + ' WHERE type = ' + connection.escape(type);
             connection.query(sql, (error, result) => {
               if (error) {
                 callback(error, null);

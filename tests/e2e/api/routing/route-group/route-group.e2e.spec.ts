@@ -34,11 +34,7 @@ import { RoutingTable } from '../../../../../src/models/routing/routing-table/ro
 import { User } from '../../../../../src/models/user/User';
 import StringHelper from '../../../../../src/utils/string.helper';
 import { describeName, testSuite } from '../../../../mocha/global-setup';
-import {
-  createUser,
-  generateSession,
-  attachSession,
-} from '../../../../utils/utils';
+import { createUser, generateSession, attachSession } from '../../../../utils/utils';
 import { EntityManager } from 'typeorm';
 import db from '../../../../../src/database/database-manager';
 

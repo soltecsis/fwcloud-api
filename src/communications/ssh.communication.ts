@@ -24,17 +24,9 @@ import { EventEmitter } from 'events';
 import { app } from '../fonaments/abstract-application';
 import { FwCloudError } from '../fonaments/exceptions/error';
 import { FireWallOptMask } from '../models/firewall/Firewall';
-import {
-  ProgressInfoPayload,
-  ProgressNoticePayload,
-} from '../sockets/messages/socket-message';
+import { ProgressInfoPayload, ProgressNoticePayload } from '../sockets/messages/socket-message';
 import sshTools from '../utils/ssh';
-import {
-  CCDHash,
-  Communication,
-  FwcAgentInfo,
-  OpenVPNHistoryRecord,
-} from './communication';
+import { CCDHash, Communication, FwcAgentInfo, OpenVPNHistoryRecord } from './communication';
 const config = require('../config/config');
 const fwcError = require('../utils/error_table');
 
@@ -61,35 +53,22 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
       }
       eventEmitter.emit(
         'message',
-        new ProgressNoticePayload(
-          `Uploading firewall script (${this.connectionData.host})`,
-        ),
+        new ProgressNoticePayload(`Uploading firewall script (${this.connectionData.host})`),
       );
-      await sshTools.uploadFile(
-        this.connectionData,
-        scriptPath,
-        config.get('policy').script_name,
-      );
+      await sshTools.uploadFile(this.connectionData, scriptPath, config.get('policy').script_name);
 
       // Enable sh debug if it is selected in firewalls/cluster options.
-      const sh_debug =
-        this.connectionData.options & FireWallOptMask.DEBUG ? '-x' : '';
+      const sh_debug = this.connectionData.options & FireWallOptMask.DEBUG ? '-x' : '';
 
       const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
 
-      eventEmitter.emit(
-        'message',
-        new ProgressNoticePayload('Installing firewall script.'),
-      );
+      eventEmitter.emit('message', new ProgressNoticePayload('Installing firewall script.'));
       await sshTools.runCommand(
         this.connectionData,
         `${sudo} sh ${sh_debug} ./${config.get('policy').script_name} install`,
       );
 
-      eventEmitter.emit(
-        'message',
-        new ProgressNoticePayload('Loading firewall policy.'),
-      );
+      eventEmitter.emit('message', new ProgressNoticePayload('Loading firewall policy.'));
       const cmd = `${sudo} sh ${sh_debug} -c 'if [ -d /etc/fwcloud ]; then
                 sh ${sh_debug} /etc/fwcloud/${config.get('policy').script_name} start;
                 else sh ${sh_debug} /config/scripts/post-config.d/${config.get('policy').script_name} start;
@@ -118,22 +97,10 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         `if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`,
       );
       if (existsDir === '0') {
-        eventEmitter.emit(
-          'message',
-          new ProgressNoticePayload(`Creating install directory.\n`),
-        );
-        await sshTools.runCommand(
-          this.connectionData,
-          `${sudo} mkdir "${dir}"`,
-        );
-        await sshTools.runCommand(
-          this.connectionData,
-          `${sudo} chown root:root "${dir}"`,
-        );
-        await sshTools.runCommand(
-          this.connectionData,
-          `${sudo} chmod 755 "${dir}"`,
-        );
+        eventEmitter.emit('message', new ProgressNoticePayload(`Creating install directory.\n`));
+        await sshTools.runCommand(this.connectionData, `${sudo} mkdir "${dir}"`);
+        await sshTools.runCommand(this.connectionData, `${sudo} chown root:root "${dir}"`);
+        await sshTools.runCommand(this.connectionData, `${sudo} chmod 755 "${dir}"`);
       }
 
       for (const config of configs) {
@@ -147,27 +114,14 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
           'message',
           new ProgressNoticePayload(`Installing OpenVPN configuration file.\n`),
         );
-        await sshTools.uploadStringToFile(
-          this.connectionData,
-          config.content,
-          config.name,
-        );
-        await sshTools.runCommand(
-          this.connectionData,
-          `${sudo} mv ${config.name} ${dir}/`,
-        );
-        eventEmitter.emit(
-          'message',
-          new ProgressNoticePayload(`Setting up file permissions.\n\n`),
-        );
+        await sshTools.uploadStringToFile(this.connectionData, config.content, config.name);
+        await sshTools.runCommand(this.connectionData, `${sudo} mv ${config.name} ${dir}/`);
+        eventEmitter.emit('message', new ProgressNoticePayload(`Setting up file permissions.\n\n`));
         await sshTools.runCommand(
           this.connectionData,
           `${sudo} chown root:root ${dir}/${config.name}`,
         );
-        await sshTools.runCommand(
-          this.connectionData,
-          `${sudo} chmod 600 ${dir}/${config.name}`,
-        );
+        await sshTools.runCommand(this.connectionData, `${sudo} chmod 600 ${dir}/${config.name}`);
       }
 
       return;
@@ -192,22 +146,10 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         `if [ -d "${dir}" ]; then echo -n 1; else echo -n 0; fi`,
       );
       if (existsDir === '0') {
-        eventEmitter.emit(
-          'message',
-          new ProgressNoticePayload(`Creating install directory.\n`),
-        );
-        await sshTools.runCommand(
-          this.connectionData,
-          `${sudo} mkdir "${dir}"`,
-        );
-        await sshTools.runCommand(
-          this.connectionData,
-          `${sudo} chown root:root "${dir}"`,
-        );
-        await sshTools.runCommand(
-          this.connectionData,
-          `${sudo} chmod 755 "${dir}"`,
-        );
+        eventEmitter.emit('message', new ProgressNoticePayload(`Creating install directory.\n`));
+        await sshTools.runCommand(this.connectionData, `${sudo} mkdir "${dir}"`);
+        await sshTools.runCommand(this.connectionData, `${sudo} chown root:root "${dir}"`);
+        await sshTools.runCommand(this.connectionData, `${sudo} chmod 755 "${dir}"`);
       }
 
       for (const config of configs) {
@@ -221,27 +163,14 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
           'message',
           new ProgressNoticePayload(`Installing OpenVPN configuration file.\n`),
         );
-        await sshTools.uploadStringToFile(
-          this.connectionData,
-          config.content,
-          config.name,
-        );
-        await sshTools.runCommand(
-          this.connectionData,
-          `${sudo} mv ${config.name} ${dir}/`,
-        );
-        eventEmitter.emit(
-          'message',
-          new ProgressNoticePayload(`Setting up file permissions.\n\n`),
-        );
+        await sshTools.uploadStringToFile(this.connectionData, config.content, config.name);
+        await sshTools.runCommand(this.connectionData, `${sudo} mv ${config.name} ${dir}/`);
+        eventEmitter.emit('message', new ProgressNoticePayload(`Setting up file permissions.\n\n`));
         await sshTools.runCommand(
           this.connectionData,
           `${sudo} chown root:root ${dir}/${config.name}`,
         );
-        await sshTools.runCommand(
-          this.connectionData,
-          `${sudo} chmod 644 ${dir}/${config.name}`,
-        );
+        await sshTools.runCommand(this.connectionData, `${sudo} chmod 644 ${dir}/${config.name}`);
       }
 
       return;
@@ -269,10 +198,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
           ),
         );
 
-        await sshTools.runCommand(
-          this.connectionData,
-          `${sudo} rm -f "${dir}/${file}"`,
-        );
+        await sshTools.runCommand(this.connectionData, `${sudo} rm -f "${dir}/${file}"`);
       }
 
       return;
@@ -287,10 +213,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         throw fwcError.SSH_COMMUNICATION_DISABLE;
       }
       const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
-      const data: any = await sshTools.runCommand(
-        this.connectionData,
-        `${sudo} ip a`,
-      );
+      const data: any = await sshTools.runCommand(this.connectionData, `${sudo} ip a`);
 
       // Before answer, parse data to see if we have get a valid answer.
 
@@ -306,14 +229,10 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
         throw fwcError.SSH_COMMUNICATION_DISABLE;
       }
       const sudo = this.connectionData.username === 'root' ? '' : 'sudo';
-      const data: string = await sshTools.runCommand(
-        this.connectionData,
-        `${sudo} iptables-save`,
-      );
+      const data: string = await sshTools.runCommand(this.connectionData, `${sudo} iptables-save`);
       let iptablesSaveOutput: string[] = data.split('\r\n');
 
-      if (iptablesSaveOutput[0].startsWith('[sudo]'))
-        iptablesSaveOutput.shift();
+      if (iptablesSaveOutput[0].startsWith('[sudo]')) iptablesSaveOutput.shift();
       if (iptablesSaveOutput[iptablesSaveOutput.length - 1] === '')
         iptablesSaveOutput = iptablesSaveOutput.slice(0, -1);
 
@@ -335,9 +254,7 @@ export class SSHCommunication extends Communication<SSHConnectionData> {
 
       eventEmitter.emit(
         'message',
-        new ProgressInfoPayload(
-          `Comparing files with OpenVPN client configurations.\n`,
-        ),
+        new ProgressInfoPayload(`Comparing files with OpenVPN client configurations.\n`),
       );
 
       const commandResult: string = await sshTools.runCommand(

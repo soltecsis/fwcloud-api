@@ -24,11 +24,7 @@ import { describeName, expect, testSuite } from '../../mocha/global-setup';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { Application } from '../../../src/Application';
-import {
-  Snapshot,
-  snapshotDigestContent,
-  SnapshotMetadata,
-} from '../../../src/snapshots/snapshot';
+import { Snapshot, snapshotDigestContent, SnapshotMetadata } from '../../../src/snapshots/snapshot';
 import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
 import { SnapshotService } from '../../../src/snapshots/snapshot.service';
 import { FSHelper } from '../../../src/utils/fs-helper';
@@ -60,59 +56,32 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
   describe('create()', () => {
     it('should create the fwcloud snapshot directory if it does not exists', async () => {
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
-      expect(
-        fs
-          .statSync(path.join(service.config.data_dir, fwCloud.id.toString()))
-          .isDirectory(),
-      ).to.be.true;
+      expect(fs.statSync(path.join(service.config.data_dir, fwCloud.id.toString())).isDirectory())
+        .to.be.true;
     });
 
     it('should create a directory which name is the snapshot id', async () => {
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
-      expect(snapshot.id).to.be.deep.equal(
-        parseInt(path.basename(snapshot.path)),
-      );
+      expect(snapshot.id).to.be.deep.equal(parseInt(path.basename(snapshot.path)));
       expect(snapshot.id).to.be.deep.equal(snapshot.date.valueOf());
     });
 
     it('should create the snapshot directory', async () => {
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       expect(fs.statSync(snapshot.path).isDirectory()).to.be.true;
-      expect(
-        fs
-          .statSync(path.join(snapshot.path, Snapshot.METADATA_FILENAME))
-          .isFile(),
-      ).to.be.true;
+      expect(fs.statSync(path.join(snapshot.path, Snapshot.METADATA_FILENAME)).isFile()).to.be.true;
     });
 
     it('should create the sanapshot metadata file', async () => {
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       expect(
         JSON.parse(
-          fs
-            .readFileSync(path.join(snapshot.path, Snapshot.METADATA_FILENAME))
-            .toString(),
+          fs.readFileSync(path.join(snapshot.path, Snapshot.METADATA_FILENAME)).toString(),
         ),
       ).to.be.deep.equal({
         timestamp: snapshot.date.valueOf(),
@@ -128,46 +97,22 @@ describe(describeName('Snapshot Unit Tests'), () => {
     });
 
     it('should create a data directory in the snapshot directory', async () => {
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
-      expect(
-        FSHelper.directoryExistsSync(
-          path.join(snapshot.path, Snapshot.DATA_DIRECTORY),
-        ),
-      ).to.be.true;
+      expect(FSHelper.directoryExistsSync(path.join(snapshot.path, Snapshot.DATA_DIRECTORY))).to.be
+        .true;
     });
 
     it('should copy the pki fwcloud directory if it exists', async () => {
       FSHelper.mkdirSync(fwCloud.getPkiDirectoryPath());
 
-      fs.writeFileSync(
-        path.join(fwCloud.getPkiDirectoryPath(), 'test.txt'),
-        'test file content',
-      );
+      fs.writeFileSync(path.join(fwCloud.getPkiDirectoryPath(), 'test.txt'), 'test file content');
 
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
+      expect(fs.statSync(path.join(snapshot.path, Snapshot.PKI_DIRECTORY, 'test.txt')).isFile());
       expect(
-        fs
-          .statSync(
-            path.join(snapshot.path, Snapshot.PKI_DIRECTORY, 'test.txt'),
-          )
-          .isFile(),
-      );
-      expect(
-        fs
-          .readFileSync(
-            path.join(snapshot.path, Snapshot.PKI_DIRECTORY, 'test.txt'),
-          )
-          .toString(),
+        fs.readFileSync(path.join(snapshot.path, Snapshot.PKI_DIRECTORY, 'test.txt')).toString(),
       ).to.be.deep.eq('test file content');
     });
 
@@ -179,45 +124,22 @@ describe(describeName('Snapshot Unit Tests'), () => {
         'test file content',
       );
 
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
+      expect(fs.statSync(path.join(snapshot.path, Snapshot.POLICY_DIRECTORY, 'test.txt')).isFile());
       expect(
-        fs
-          .statSync(
-            path.join(snapshot.path, Snapshot.POLICY_DIRECTORY, 'test.txt'),
-          )
-          .isFile(),
-      );
-      expect(
-        fs
-          .readFileSync(
-            path.join(snapshot.path, Snapshot.POLICY_DIRECTORY, 'test.txt'),
-          )
-          .toString(),
+        fs.readFileSync(path.join(snapshot.path, Snapshot.POLICY_DIRECTORY, 'test.txt')).toString(),
       ).to.be.deep.eq('test file content');
     });
 
     it('should export the fwcloud into the data file', async () => {
-      const snaphost: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
-      expect(
-        fs.statSync(path.join(snaphost.path, Snapshot.DATA_FILENAME)).isFile(),
-      ).to.be.true;
+      expect(fs.statSync(path.join(snaphost.path, Snapshot.DATA_FILENAME)).isFile()).to.be.true;
     });
 
     it('should use the date as a name if the name is empty', async () => {
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud);
 
       expect(snapshot.name).to.be.deep.equal(snapshot.date.utc().format());
     });
@@ -225,21 +147,13 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
   describe('load()', () => {
     it('should load a snapshot from filesystem', async () => {
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       expect(await Snapshot.load(snapshot.path)).to.be.deep.equal(snapshot);
     });
 
     it('should guess the fwcloud by its directory name', async () => {
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       const snaphost = await Snapshot.load(snapshot.path);
 
@@ -247,20 +161,13 @@ describe(describeName('Snapshot Unit Tests'), () => {
     });
 
     it('should set incompatible if migrations metadata attribute is not provided', async () => {
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       const metadata: SnapshotMetadata = fs.readJSONSync(
         path.join(snapshot.path, Snapshot.METADATA_FILENAME),
       );
       delete metadata['migrations'];
-      fs.writeJSONSync(
-        path.join(snapshot.path, Snapshot.METADATA_FILENAME),
-        metadata,
-      );
+      fs.writeJSONSync(path.join(snapshot.path, Snapshot.METADATA_FILENAME), metadata);
 
       const snaphost = await Snapshot.load(snapshot.path);
 
@@ -284,22 +191,14 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
       await snapshot.update(data);
 
-      expect((await Snapshot.load(snapshot.path)).name).to.be.deep.equal(
-        'test',
-      );
-      expect((await Snapshot.load(snapshot.path)).comment).to.be.deep.equal(
-        'test',
-      );
+      expect((await Snapshot.load(snapshot.path)).name).to.be.deep.equal('test');
+      expect((await Snapshot.load(snapshot.path)).comment).to.be.deep.equal('test');
     });
   });
 
   describe('delete()', () => {
     it('should remove the snapshot if it exists', async () => {
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       await snapshot.destroy();
 
@@ -310,11 +209,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
   describe('restore()', () => {
     it('should restore a fwcloud as a new fwcloud', async () => {
-      const snaphost: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       await snaphost.restore();
 
@@ -326,11 +221,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
     });
 
     it('should return the restored fwcloud', async () => {
-      const snapshot: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snapshot: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       const restoredFwCloud: FwCloud = await snapshot.restore();
 
@@ -338,11 +229,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
     });
 
     it('should remove the old fwcloud and all its dependencies', async () => {
-      const snaphost: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       await snaphost.restore();
 
@@ -350,54 +237,31 @@ describe(describeName('Snapshot Unit Tests'), () => {
     });
 
     it('should remove the old fwcloud data directories', async () => {
-      const snaphost: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
       FSHelper.mkdirSync(fwCloud.getPolicyDirectoryPath());
       FSHelper.mkdirSync(fwCloud.getPkiDirectoryPath());
 
       await snaphost.restore();
 
-      expect(FSHelper.directoryExistsSync(fwCloud.getPkiDirectoryPath())).to.be
-        .false;
-      expect(FSHelper.directoryExistsSync(fwCloud.getPolicyDirectoryPath())).to
-        .be.false;
+      expect(FSHelper.directoryExistsSync(fwCloud.getPkiDirectoryPath())).to.be.false;
+      expect(FSHelper.directoryExistsSync(fwCloud.getPolicyDirectoryPath())).to.be.false;
     });
 
     it('should remove the new fwcloud data directories if they exist previously', async () => {
-      const snaphost: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
-      FSHelper.mkdirSync(
-        path.join(
-          app.config.get('policy').data_dir,
-          (fwCloud.id + 1).toString(),
-        ),
-      );
-      FSHelper.mkdirSync(
-        path.join(app.config.get('pki').data_dir, (fwCloud.id + 1).toString()),
-      );
+      const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+      FSHelper.mkdirSync(path.join(app.config.get('policy').data_dir, (fwCloud.id + 1).toString()));
+      FSHelper.mkdirSync(path.join(app.config.get('pki').data_dir, (fwCloud.id + 1).toString()));
 
       await snaphost.restore();
 
       expect(
         FSHelper.directoryExistsSync(
-          path.join(
-            app.config.get('policy').data_dir,
-            (fwCloud.id + 1).toString(),
-          ),
+          path.join(app.config.get('policy').data_dir, (fwCloud.id + 1).toString()),
         ),
       ).to.be.false;
       expect(
         FSHelper.directoryExistsSync(
-          path.join(
-            app.config.get('pki').data_dir,
-            (fwCloud.id + 1).toString(),
-          ),
+          path.join(app.config.get('pki').data_dir, (fwCloud.id + 1).toString()),
         ),
       ).to.be.false;
     });
@@ -407,11 +271,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
         return false;
       });
 
-      let snaphost: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       snaphost = await Snapshot.load(snaphost.path);
 
@@ -440,11 +300,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
         }),
       );
 
-      const snaphost: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       await snaphost.restore();
 
@@ -452,12 +308,8 @@ describe(describeName('Snapshot Unit Tests'), () => {
         where: { id: fwCloud.id + 1 },
       });
 
-      firewall = (
-        await Firewall.find({ where: { fwCloudId: newFwCloud.id } })
-      )[0];
-      firewall2 = (
-        await Firewall.find({ where: { fwCloudId: newFwCloud.id } })
-      )[1];
+      firewall = (await Firewall.find({ where: { fwCloudId: newFwCloud.id } }))[0];
+      firewall2 = (await Firewall.find({ where: { fwCloudId: newFwCloud.id } }))[1];
 
       expect(firewall.status).to.be.deep.eq(3);
       expect(firewall.compiled_at).to.be.null;
@@ -479,16 +331,10 @@ describe(describeName('Snapshot Unit Tests'), () => {
         }),
       );
 
-      let snaphost: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      let snaphost: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       const metadata: SnapshotMetadata = JSON.parse(
-        fs
-          .readFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME))
-          .toString(),
+        fs.readFileSync(path.join(snaphost.path, Snapshot.METADATA_FILENAME)).toString(),
       );
       metadata.hash = 'test';
       fs.writeFileSync(
@@ -503,28 +349,19 @@ describe(describeName('Snapshot Unit Tests'), () => {
         where: { id: fwCloud.id + 1 },
       });
 
-      firewall = (
-        await Firewall.find({ where: { fwCloudId: newFwCloud.id } })
-      )[0];
+      firewall = (await Firewall.find({ where: { fwCloudId: newFwCloud.id } }))[0];
 
       expect(firewall.install_user).to.be.null;
       expect(firewall.install_pass).to.be.null;
     });
 
     it('should migrate snapshot from the old fwcloud to the new one', async () => {
-      const snapshotService: SnapshotService =
-        await app.getService<SnapshotService>(SnapshotService.name);
+      const snapshotService: SnapshotService = await app.getService<SnapshotService>(
+        SnapshotService.name,
+      );
 
-      const snaphost1: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
-      const snaphost2: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snaphost1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
+      const snaphost2: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       await snaphost2.restore();
 
@@ -534,19 +371,12 @@ describe(describeName('Snapshot Unit Tests'), () => {
 
       expect(fs.existsSync(snaphost1.path)).to.be.false;
       expect(fs.existsSync(snaphost2.path)).to.be.false;
-      expect(
-        fs.existsSync(
-          path.join(snapshotService.config.data_dir, newFwCloud.id.toString()),
-        ),
-      ).to.be.true;
+      expect(fs.existsSync(path.join(snapshotService.config.data_dir, newFwCloud.id.toString()))).to
+        .be.true;
     });
 
     it('should not copy the policy directory if data directory is not present in the snapshot', async () => {
-      const snaphost1: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snaphost1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       await snaphost1.restore();
 
@@ -554,16 +384,11 @@ describe(describeName('Snapshot Unit Tests'), () => {
         where: { id: fwCloud.id + 1 },
       });
 
-      expect(FSHelper.directoryExistsSync(newFwCloud.getPolicyDirectoryPath()))
-        .to.be.false;
+      expect(FSHelper.directoryExistsSync(newFwCloud.getPolicyDirectoryPath())).to.be.false;
     });
 
     it('should not copy the pki directory if data directory is not present in the snapshot', async () => {
-      const snaphost1: Snapshot = await Snapshot.create(
-        service.config.data_dir,
-        fwCloud,
-        'test',
-      );
+      const snaphost1: Snapshot = await Snapshot.create(service.config.data_dir, fwCloud, 'test');
 
       await snaphost1.restore();
 
@@ -571,8 +396,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
         where: { id: fwCloud.id + 1 },
       });
 
-      expect(FSHelper.directoryExistsSync(newFwCloud.getPkiDirectoryPath())).to
-        .be.false;
+      expect(FSHelper.directoryExistsSync(newFwCloud.getPkiDirectoryPath())).to.be.false;
     });
   });
 });

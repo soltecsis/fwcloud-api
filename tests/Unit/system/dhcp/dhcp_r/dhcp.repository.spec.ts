@@ -87,8 +87,7 @@ describe(DHCPRepository.name, () => {
       const result = await repository.remove(dhcpRule);
 
       expect(result).to.deep.equal(dhcpRule);
-      expect(await repository.findOne({ where: { id: dhcpRule.id } })).to.be
-        .null;
+      expect(await repository.findOne({ where: { id: dhcpRule.id } })).to.be.null;
     });
 
     it('should remove multiple DHCPRule entities', async () => {
@@ -104,17 +103,12 @@ describe(DHCPRepository.name, () => {
       const result = await repository.remove([dhcpRule, dhcpRule2]);
 
       expect(result).to.deep.equal([dhcpRule, dhcpRule2]);
-      expect(await repository.findOne({ where: { id: dhcpRule.id } })).to.be
-        .null;
-      expect(await repository.findOne({ where: { id: dhcpRule2.id } })).to.be
-        .null;
+      expect(await repository.findOne({ where: { id: dhcpRule.id } })).to.be.null;
+      expect(await repository.findOne({ where: { id: dhcpRule2.id } })).to.be.null;
     });
 
     it('should refresh orders after remove', async () => {
-      const refreshOrdersSpy = sinon.spy(
-        repository,
-        'refreshOrders' as keyof DHCPRepository,
-      );
+      const refreshOrdersSpy = sinon.spy(repository, 'refreshOrders' as keyof DHCPRepository);
 
       await repository.remove(dhcpRule);
 
@@ -137,10 +131,7 @@ describe(DHCPRepository.name, () => {
 
       await repository.save([dhcpRule, dhcpRule2]);
 
-      const refreshOrdersSpy = sinon.spy(
-        repository,
-        'refreshOrders' as keyof DHCPRepository,
-      );
+      const refreshOrdersSpy = sinon.spy(repository, 'refreshOrders' as keyof DHCPRepository);
 
       await repository.remove([dhcpRule, dhcpRule2]);
 
@@ -151,10 +142,7 @@ describe(DHCPRepository.name, () => {
       dhcpRule.group = null;
       dhcpRule.save();
 
-      const refreshOrdersSpy = sinon.spy(
-        repository,
-        'refreshOrders' as keyof DHCPRepository,
-      );
+      const refreshOrdersSpy = sinon.spy(repository, 'refreshOrders' as keyof DHCPRepository);
 
       await repository.remove(dhcpRule);
 
@@ -175,10 +163,7 @@ describe(DHCPRepository.name, () => {
 
     it('should update affected rules after move', async () => {
       mockFind.resolves([dhcpRule]);
-      const updateAffectedRulesSpy = sinon.spy(
-        repository,
-        'save' as keyof DHCPRepository,
-      );
+      const updateAffectedRulesSpy = sinon.spy(repository, 'save' as keyof DHCPRepository);
 
       await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
 
@@ -187,10 +172,7 @@ describe(DHCPRepository.name, () => {
 
     it('should refresh orders after move', async () => {
       mockFind.resolves([dhcpRule]);
-      const refreshOrdersSpy = sinon.spy(
-        repository,
-        'refreshOrders' as keyof DHCPRepository,
-      );
+      const refreshOrdersSpy = sinon.spy(repository, 'refreshOrders' as keyof DHCPRepository);
 
       await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
 
@@ -199,11 +181,7 @@ describe(DHCPRepository.name, () => {
 
     it('should return the updated rules after move', async () => {
       mockFind.resolves([dhcpRule]);
-      const updatedRules = await repository.move(
-        [dhcpRule.id],
-        dhcpRule.id,
-        Offset.Above,
-      );
+      const updatedRules = await repository.move([dhcpRule.id], dhcpRule.id, Offset.Above);
 
       expect(updatedRules).to.be.an('array');
       expect(updatedRules).to.have.lengthOf(1);
@@ -230,12 +208,7 @@ describe(DHCPRepository.name, () => {
       const firewallId = 1;
       const ruleTypes = [1, 2, 3];
 
-      const result = await repository.getDHCPRules(
-        fwcloudId,
-        firewallId,
-        null,
-        ruleTypes,
-      );
+      const result = await repository.getDHCPRules(fwcloudId, firewallId, null, ruleTypes);
 
       expect(result).to.be.an('array');
 
@@ -250,11 +223,7 @@ describe(DHCPRepository.name, () => {
       const firewallId = 1;
       const ruleIds = [1, 2, 3];
 
-      const result = await repository.getDHCPRules(
-        fwcloudId,
-        firewallId,
-        ruleIds,
-      );
+      const result = await repository.getDHCPRules(fwcloudId, firewallId, ruleIds);
 
       expect(result).to.be.an('array');
 

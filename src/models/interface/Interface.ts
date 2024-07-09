@@ -27,14 +27,7 @@ import { PolicyRuleToIPObj } from '../../models/policy/PolicyRuleToIPObj';
 import { PolicyRuleToInterface } from '../../models/policy/PolicyRuleToInterface';
 import { InterfaceIPObj } from '../../models/interface/InterfaceIPObj';
 import { IPObj } from '../../models/ipobj/IPObj';
-import {
-  Column,
-  PrimaryGeneratedColumn,
-  Entity,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
+import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Firewall } from '../firewall/Firewall';
 import { logger } from '../../fonaments/abstract-application';
 import { Route } from '../routing/route/route.model';
@@ -94,10 +87,7 @@ export class Interface extends Model {
   @OneToMany((type) => IPObj, (ipObj) => ipObj.interface)
   ipObjs: Array<IPObj>;
 
-  @OneToMany(
-    (type) => InterfaceIPObj,
-    (interfaceIPObj) => interfaceIPObj.hostInterface,
-  )
+  @OneToMany((type) => InterfaceIPObj, (interfaceIPObj) => interfaceIPObj.hostInterface)
   hosts!: Array<InterfaceIPObj>;
 
   @OneToMany(
@@ -329,11 +319,7 @@ export class Interface extends Model {
                     //dataI.ipobjs = dataO;
                     //logger().debug("-------------------------> FINAL de IPOBJS UNDER INTERFACE : " + id + " ----");
                     //resolve({"id": position.id, "name": position.name, "position_order": position.position_order, "ipobjs": dataI});
-                    const _interface = new data_policy_position_ipobjs(
-                      row[0],
-                      0,
-                      'I',
-                    );
+                    const _interface = new data_policy_position_ipobjs(row[0], 0, 'I');
                     _interface.ipobjs = dataO;
                     resolve(_interface);
                     //resolve(dataO);
@@ -394,9 +380,7 @@ export class Interface extends Model {
           let result = [];
           try {
             for (const _interface of interfaces) {
-              result = result.concat(
-                await this.getInterfaceAddr(dbCon, _interface.interface),
-              );
+              result = result.concat(await this.getInterfaceAddr(dbCon, _interface.interface));
             }
           } catch (error) {
             return reject(error);
@@ -436,14 +420,12 @@ export class Interface extends Model {
             req.body.firewall,
           );
           if (data.result) {
-            answer.restrictions.InterfaceInRules_I =
-              answer.restrictions.InterfaceInRules_I.concat(
-                data.restrictions.InterfaceInRules_I,
-              );
-            answer.restrictions.InterfaceInRules_O =
-              answer.restrictions.InterfaceInRules_O.concat(
-                data.restrictions.InterfaceInRules_O,
-              );
+            answer.restrictions.InterfaceInRules_I = answer.restrictions.InterfaceInRules_I.concat(
+              data.restrictions.InterfaceInRules_I,
+            );
+            answer.restrictions.InterfaceInRules_O = answer.restrictions.InterfaceInRules_O.concat(
+              data.restrictions.InterfaceInRules_O,
+            );
             answer.restrictions.IpobjInterfaceInRule =
               answer.restrictions.IpobjInterfaceInRule.concat(
                 data.restrictions.IpobjInterfaceInRule,
@@ -468,10 +450,9 @@ export class Interface extends Model {
         }
 
         // Remove items of this firewall.
-        answer.restrictions.IpobjInterfaceInRule =
-          answer.restrictions.IpobjInterfaceInRule.filter(
-            (item) => item.firewall_id != req.body.firewall,
-          );
+        answer.restrictions.IpobjInterfaceInRule = answer.restrictions.IpobjInterfaceInRule.filter(
+          (item) => item.firewall_id != req.body.firewall,
+        );
         answer.restrictions.IpobjInterfaceInRoute =
           answer.restrictions.IpobjInterfaceInRoute.filter(
             (item) => item.firewall_id != req.body.firewall,
@@ -508,14 +489,13 @@ export class Interface extends Model {
                 null,
                 diff_firewall,
               ); //SEARCH INTERFACE IN RULES I POSITIONS
-            search.restrictions.InterfaceInRules_O =
-              await PolicyRuleToIPObj.searchInterfaceInRule(
-                id,
-                type,
-                fwcloud,
-                null,
-                diff_firewall,
-              ); //SEARCH INTERFACE IN RULES O POSITIONS
+            search.restrictions.InterfaceInRules_O = await PolicyRuleToIPObj.searchInterfaceInRule(
+              id,
+              type,
+              fwcloud,
+              null,
+              diff_firewall,
+            ); //SEARCH INTERFACE IN RULES O POSITIONS
             search.restrictions.IpobjInterfaceInRule =
               await PolicyRuleToIPObj.searchIpobjInterfaceInRule(
                 id,
@@ -526,16 +506,20 @@ export class Interface extends Model {
               ); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN RULES
             search.restrictions.IpobjInterfaceInGroup =
               await PolicyRuleToIPObj.searchIpobjInterfaceInGroup(id, type); //SEARCH IPOBJ UNDER INTERFACES WITH IPOBJ IN GROUPS
-            search.restrictions.IpobjInterfaceInOpenvpn =
-              await IPObj.searchIpobjInterfaceInOpenvpn(
-                id,
-                fwcloud,
-                diff_firewall,
-              ); //SEARCH IPOBJ UNDER INTERFACES USED IN OPENVPN
-            search.restrictions.InterfaceInFirewall =
-              await this.searchInterfaceInFirewall(id, type, fwcloud); //SEARCH INTERFACE IN FIREWALL
-            search.restrictions.InterfaceInHost =
-              await InterfaceIPObj.getInterface__ipobj_hosts(id, fwcloud); //SEARCH INTERFACE IN HOSTS
+            search.restrictions.IpobjInterfaceInOpenvpn = await IPObj.searchIpobjInterfaceInOpenvpn(
+              id,
+              fwcloud,
+              diff_firewall,
+            ); //SEARCH IPOBJ UNDER INTERFACES USED IN OPENVPN
+            search.restrictions.InterfaceInFirewall = await this.searchInterfaceInFirewall(
+              id,
+              type,
+              fwcloud,
+            ); //SEARCH INTERFACE IN FIREWALL
+            search.restrictions.InterfaceInHost = await InterfaceIPObj.getInterface__ipobj_hosts(
+              id,
+              fwcloud,
+            ); //SEARCH INTERFACE IN HOSTS
             search.restrictions.LastInterfaceWithAddrInHostInRule =
               await IPObj.searchLastInterfaceWithAddrInHostInRule(id, fwcloud);
 
@@ -547,12 +531,9 @@ export class Interface extends Model {
               .addSelect('firewall.name', 'firewall_name')
               .addSelect('cluster.id', 'cluster_id')
               .addSelect('cluster.name', 'cluster_name')
-              .innerJoinAndSelect(
-                'route.interface',
-                'interface',
-                'interface.id = :interface',
-                { interface: id },
-              )
+              .innerJoinAndSelect('route.interface', 'interface', 'interface.id = :interface', {
+                interface: id,
+              })
               .innerJoinAndSelect('route.routingTable', 'table')
               .innerJoin('table.firewall', 'firewall')
               .leftJoin('firewall.cluster', 'cluster')
@@ -568,12 +549,9 @@ export class Interface extends Model {
               .addSelect('cluster.id', 'cluster_id')
               .addSelect('cluster.name', 'cluster_name')
               .innerJoin('routeToIPObj.ipObj', 'ipobj')
-              .innerJoin(
-                'ipobj.interface',
-                'interface',
-                'interface.id = :interface',
-                { interface: id },
-              )
+              .innerJoin('ipobj.interface', 'interface', 'interface.id = :interface', {
+                interface: id,
+              })
               .innerJoinAndSelect('routeToIPObj.route', 'route')
               .innerJoinAndSelect('route.routingTable', 'table')
               .innerJoin('table.firewall', 'firewall')
@@ -590,12 +568,9 @@ export class Interface extends Model {
               .addSelect('cluster.id', 'cluster_id')
               .addSelect('cluster.name', 'cluster_name')
               .innerJoin('routingRuleToIPObj.ipObj', 'ipobj')
-              .innerJoin(
-                'ipobj.interface',
-                'interface',
-                'interface.id = :interface',
-                { interface: id },
-              )
+              .innerJoin('ipobj.interface', 'interface', 'interface.id = :interface', {
+                interface: id,
+              })
               .innerJoinAndSelect('routingRuleToIPObj.routingRule', 'rule')
               .innerJoin('rule.routingTable', 'table')
               .innerJoin('table.firewall', 'firewall')
@@ -603,8 +578,10 @@ export class Interface extends Model {
               .where('firewall.fwCloudId = :fwcloud', { fwcloud })
               .getRawMany();
 
-            search.restrictions.InterfaceInDhcpRule =
-              await this.searchInterfaceInDhcpRule(id, fwcloud);
+            search.restrictions.InterfaceInDhcpRule = await this.searchInterfaceInDhcpRule(
+              id,
+              fwcloud,
+            );
 
             search.restrictions.InterfaceInKeepalivedRule =
               await this.searchInterfaceInKeepalivedRule(id, fwcloud);
@@ -653,12 +630,7 @@ export class Interface extends Model {
     });
   }
 
-  public static searchInterfaceInFirewallByName(
-    dbCon,
-    fwcloud,
-    firewall,
-    ifName,
-  ) {
+  public static searchInterfaceInFirewallByName(dbCon, fwcloud, firewall, ifName) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT I.id from interface I
 			INNER JOIN ipobj_type T on T.id=I.interface_type
@@ -674,10 +646,7 @@ export class Interface extends Model {
     });
   }
 
-  public static async searchInterfaceInDhcpRule(
-    id: string,
-    fwcloud: string,
-  ): Promise<any> {
+  public static async searchInterfaceInDhcpRule(id: string, fwcloud: string): Promise<any> {
     return await db
       .getSource()
       .manager.getRepository(DHCPRule)
@@ -690,12 +659,7 @@ export class Interface extends Model {
       .addSelect('firewall.name', 'firewall_name')
       .addSelect('cluster.id', 'cluster_id')
       .addSelect('cluster.name', 'cluster_name')
-      .leftJoin(
-        'dhcp_rule.interface',
-        'interface',
-        'interface.id = :interface',
-        { interface: id },
-      )
+      .leftJoin('dhcp_rule.interface', 'interface', 'interface.id = :interface', { interface: id })
       .innerJoin('dhcp_rule.firewall', 'firewall')
       .leftJoin('firewall.cluster', 'cluster')
       .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', {
@@ -705,10 +669,7 @@ export class Interface extends Model {
       .getRawMany();
   }
 
-  public static async searchInterfaceInKeepalivedRule(
-    id: string,
-    fwcloud: string,
-  ) {
+  public static async searchInterfaceInKeepalivedRule(id: string, fwcloud: string) {
     return await db
       .getSource()
       .manager.getRepository(KeepalivedRule)
@@ -721,12 +682,9 @@ export class Interface extends Model {
       .addSelect('firewall.name', 'firewall_name')
       .addSelect('cluster.id', 'cluster_id')
       .addSelect('cluster.name', 'cluster_name')
-      .leftJoin(
-        'keepalived_rule.interface',
-        'interface',
-        'interface.id = :interface',
-        { interface: id },
-      )
+      .leftJoin('keepalived_rule.interface', 'interface', 'interface.id = :interface', {
+        interface: id,
+      })
       .innerJoin('keepalived_rule.firewall', 'firewall')
       .leftJoin('firewall.cluster', 'cluster')
       .where('firewall.fwCloudId = :fwcloud AND interface.id IS NOT NULL', {
@@ -738,22 +696,14 @@ export class Interface extends Model {
   //Add new interface from user
   public static insertInterface(dbCon, interfaceData) {
     return new Promise((resolve, reject) => {
-      dbCon.query(
-        `INSERT INTO ${tableName} SET ?`,
-        interfaceData,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result.affectedRows > 0 ? result.insertId : null);
-        },
-      );
+      dbCon.query(`INSERT INTO ${tableName} SET ?`, interfaceData, (error, result) => {
+        if (error) return reject(error);
+        resolve(result.affectedRows > 0 ? result.insertId : null);
+      });
     });
   }
 
-  public static createLoInterface(
-    dbCon: any,
-    fwcloud: number,
-    firewall: number,
-  ): Promise<any> {
+  public static createLoInterface(dbCon: any, fwcloud: number, firewall: number): Promise<any> {
     return new Promise((resolve, reject) => {
       // Loopback interface.
       const interfaceData = {
@@ -768,48 +718,44 @@ export class Interface extends Model {
       };
 
       // Create the IPv4 loopbackup interface address.
-      dbCon.query(
-        'INSERT INTO ' + tableName + ' SET ?',
-        interfaceData,
-        async (error, result) => {
-          if (error) return reject(error);
+      dbCon.query('INSERT INTO ' + tableName + ' SET ?', interfaceData, async (error, result) => {
+        if (error) return reject(error);
 
-          const interfaceId = result.insertId;
-          const ipobjData = {
-            id: null,
-            fwcloud: fwcloud,
-            interface: interfaceId,
-            name: 'lo',
-            type: 5,
-            protocol: null,
-            address: '127.0.0.1',
-            netmask: '/8',
-            diff_serv: null,
-            ip_version: 4,
-            icmp_code: null,
-            icmp_type: null,
-            tcp_flags_mask: null,
-            tcp_flags_settings: null,
-            range_start: null,
-            range_end: null,
-            source_port_start: 0,
-            source_port_end: 0,
-            destination_port_start: 0,
-            destination_port_end: 0,
-            options: null,
-            comment: 'IPv4 loopback interface address.',
-          };
-          const ipv4Id = await IPObj.insertIpobj(dbCon, ipobjData);
+        const interfaceId = result.insertId;
+        const ipobjData = {
+          id: null,
+          fwcloud: fwcloud,
+          interface: interfaceId,
+          name: 'lo',
+          type: 5,
+          protocol: null,
+          address: '127.0.0.1',
+          netmask: '/8',
+          diff_serv: null,
+          ip_version: 4,
+          icmp_code: null,
+          icmp_type: null,
+          tcp_flags_mask: null,
+          tcp_flags_settings: null,
+          range_start: null,
+          range_end: null,
+          source_port_start: 0,
+          source_port_end: 0,
+          destination_port_start: 0,
+          destination_port_end: 0,
+          options: null,
+          comment: 'IPv4 loopback interface address.',
+        };
+        const ipv4Id = await IPObj.insertIpobj(dbCon, ipobjData);
 
-          ipobjData.address = '::1';
-          ipobjData.netmask = '/128';
-          ipobjData.ip_version = 6;
-          ipobjData.comment = 'IPv6 loopback interface address.';
-          const ipv6Id = await IPObj.insertIpobj(dbCon, ipobjData);
+        ipobjData.address = '::1';
+        ipobjData.netmask = '/128';
+        ipobjData.ip_version = 6;
+        ipobjData.comment = 'IPv6 loopback interface address.';
+        const ipv6Id = await IPObj.insertIpobj(dbCon, ipobjData);
 
-          resolve({ ifId: interfaceId, ipv4Id: ipv4Id, ipv6Id: ipv6Id });
-        },
-      );
+        resolve({ ifId: interfaceId, ipv4Id: ipv4Id, ipv6Id: ipv6Id });
+      });
     });
   }
 
@@ -823,19 +769,14 @@ export class Interface extends Model {
 
       const checkDhcpReferences = async () => {
         return new Promise((resolve, reject) => {
-          const dhcpCheckSql =
-            'SELECT COUNT(*) as count FROM dhcp_r WHERE interface = ?';
-          connection.query(
-            dhcpCheckSql,
-            [interfaceData.id],
-            (error, result) => {
-              if (error) {
-                reject(error);
-              } else {
-                resolve(result[0].count);
-              }
-            },
-          );
+          const dhcpCheckSql = 'SELECT COUNT(*) as count FROM dhcp_r WHERE interface = ?';
+          connection.query(dhcpCheckSql, [interfaceData.id], (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(result[0].count);
+            }
+          });
         });
       };
 
@@ -847,8 +788,7 @@ export class Interface extends Model {
               interfaceData.mac === '' ||
               interfaceData.mac === undefined)
           ) {
-            const errorMessage =
-              'The interface cannot be updated. There are references in dhcp_r.';
+            const errorMessage = 'The interface cannot be updated. There are references in dhcp_r.';
             callback({ data: errorMessage }, null);
           } else {
             const sql = `
@@ -883,17 +823,13 @@ export class Interface extends Model {
         return new Promise((resolve, reject) => {
           const keepalivedCheckSql =
             'SELECT COUNT(*) as count FROM keepalived_r WHERE interface = ?';
-          connection.query(
-            keepalivedCheckSql,
-            [interfaceData.id],
-            (error, result) => {
-              if (error) {
-                return reject(error);
-              } else {
-                resolve(result[0].count);
-              }
-            },
-          );
+          connection.query(keepalivedCheckSql, [interfaceData.id], (error, result) => {
+            if (error) {
+              return reject(error);
+            } else {
+              resolve(result[0].count);
+            }
+          });
         });
       };
 
@@ -940,12 +876,7 @@ export class Interface extends Model {
   }
 
   //Clone interfaces and IPOBJ
-  public static cloneFirewallInterfaces(
-    iduser,
-    fwcloud,
-    idfirewall,
-    idNewfirewall,
-  ) {
+  public static cloneFirewallInterfaces(iduser, fwcloud, idfirewall, idNewfirewall) {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1022,9 +953,7 @@ export class Interface extends Model {
           }
           //Bucle por IPOBJS
           Promise.all(rows.map((data) => IPObj.cloneIpobj(data)))
-            .then((data) =>
-              resolve({ id_org: id_org, id_clon: id_clon, addr: data }),
-            )
+            .then((data) => resolve({ id_org: id_org, id_clon: id_clon, addr: data }))
             .catch((e) => reject(e));
         });
       });
@@ -1063,8 +992,7 @@ export class Interface extends Model {
                 logger().debug(error);
                 callback(error, null);
               } else {
-                if (result.affectedRows > 0)
-                  callback(null, { result: true, msg: 'deleted' });
+                if (result.affectedRows > 0) callback(null, { result: true, msg: 'deleted' });
                 else callback(null, { result: false, msg: 'notExist' });
               }
             });
@@ -1129,8 +1057,7 @@ export class Interface extends Model {
         const sql = `DELETE FROM ${tableName} WHERE firewall=${firewall}`;
         connection.query(sql, (error, result) => {
           if (error) return reject(error);
-          if (result.affectedRows > 0)
-            resolve({ result: true, msg: 'deleted' });
+          if (result.affectedRows > 0) resolve({ result: true, msg: 'deleted' });
           else resolve({ result: false, msg: 'notExist' });
         });
       });
@@ -1138,11 +1065,7 @@ export class Interface extends Model {
   }
 
   //Move rules from one firewall to other.
-  public static moveToOtherFirewall(
-    dbCon,
-    src_firewall,
-    dst_firewall,
-  ): Promise<void> {
+  public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`,
@@ -1203,8 +1126,7 @@ export class Interface extends Model {
           ifData.name = currentData.substring(0, match.index);
           // For interfaces with name like this one: ens193.40@ens193:
           // take as interface name the substring before the '@' character.
-          if ((match = ifData.name.match(/@/)))
-            ifData.name = ifData.name.substring(0, match.index);
+          if ((match = ifData.name.match(/@/))) ifData.name = ifData.name.substring(0, match.index);
 
           // Now the MAC address.
           if ((match = currentData.match(/\n {4}link\/ether /))) {

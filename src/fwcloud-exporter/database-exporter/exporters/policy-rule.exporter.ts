@@ -43,29 +43,19 @@ export class PolicyRuleExporter extends TableExporter {
   ): SelectQueryBuilder<any> {
     return qb
       .where((qb) => {
-        const subquery = qb
-          .subQuery()
-          .from(PolicyGroup, 'policy_g')
-          .select('policy_g.id');
+        const subquery = qb.subQuery().from(PolicyGroup, 'policy_g').select('policy_g.id');
 
         return (
           `${alias}.policyGroupId IN ` +
-          new PolicyGroupExporter()
-            .getFilterBuilder(subquery, 'policy_g', fwCloudId)
-            .getQuery()
+          new PolicyGroupExporter().getFilterBuilder(subquery, 'policy_g', fwCloudId).getQuery()
         );
       })
       .where((qb) => {
-        const subquery = qb
-          .subQuery()
-          .from(Firewall, 'firewall')
-          .select('firewall.id');
+        const subquery = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
 
         return (
           `${alias}.firewallId IN ` +
-          new FirewallExporter()
-            .getFilterBuilder(subquery, 'firewall', fwCloudId)
-            .getQuery()
+          new FirewallExporter().getFilterBuilder(subquery, 'firewall', fwCloudId).getQuery()
         );
       })
       .orWhere((qb) => {
@@ -73,9 +63,7 @@ export class PolicyRuleExporter extends TableExporter {
 
         return (
           `${alias}.markId IN ` +
-          new MarkExporter()
-            .getFilterBuilder(subquery, 'mark', fwCloudId)
-            .getQuery()
+          new MarkExporter().getFilterBuilder(subquery, 'mark', fwCloudId).getQuery()
         );
       });
   }

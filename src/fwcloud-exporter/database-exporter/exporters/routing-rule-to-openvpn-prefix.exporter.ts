@@ -39,16 +39,11 @@ export class RoutingRuleToOpenVPNPrefixExporter extends TableExporter {
     fwCloudId: number,
   ): SelectQueryBuilder<any> {
     return qb.where((qb) => {
-      const subquery = qb
-        .subQuery()
-        .from(RoutingRule, 'rule')
-        .select('rule.id');
+      const subquery = qb.subQuery().from(RoutingRule, 'rule').select('rule.id');
 
       return (
         `${alias}.routingRuleId IN` +
-        new RoutingRuleExporter()
-          .getFilterBuilder(subquery, 'rule', fwCloudId)
-          .getQuery()
+        new RoutingRuleExporter().getFilterBuilder(subquery, 'rule', fwCloudId).getQuery()
       );
     });
   }

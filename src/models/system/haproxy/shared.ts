@@ -49,9 +49,7 @@ export type HAProxyRuleItemForCompiler = {
 };
 
 export class HAProxyUtils {
-  public static async mapEntityData<
-    T extends ItemForGrid | HAProxyRuleItemForCompiler,
-  >(
+  public static async mapEntityData<T extends ItemForGrid | HAProxyRuleItemForCompiler>(
     sql: SelectQueryBuilder<IPObj | IPObjGroup>,
     ItemsArrayMap: Map<number, T[]>,
   ): Promise<void> {

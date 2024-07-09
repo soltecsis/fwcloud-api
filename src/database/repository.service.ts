@@ -56,9 +56,7 @@ export class RepositoryService extends Service {
   ];
 
   public async build(): Promise<RepositoryService> {
-    this._databaseService = await this._app.getService<DatabaseService>(
-      DatabaseService.name,
-    );
+    this._databaseService = await this._app.getService<DatabaseService>(DatabaseService.name);
     return this;
   }
 

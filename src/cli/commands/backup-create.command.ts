@@ -11,8 +11,9 @@ export class BackupCreateCommand extends Command {
   public description: string = 'Create a new backup';
 
   async handle(args: yargs.Arguments) {
-    const backupService: BackupService =
-      await this._app.getService<BackupService>(BackupService.name);
+    const backupService: BackupService = await this._app.getService<BackupService>(
+      BackupService.name,
+    );
 
     const backup: Backup = await backupService.create(
       args.comment ? (args.comment as string) : null,

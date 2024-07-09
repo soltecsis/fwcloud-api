@@ -17,9 +17,7 @@ export class CrtService extends Service {
   }
 
   public async update(id: number, data: IUpdateCrt): Promise<Crt> {
-    let crt: Crt = await this._repository.preload(
-      Object.assign({ comment: data.comment }, { id }),
-    );
+    let crt: Crt = await this._repository.preload(Object.assign({ comment: data.comment }, { id }));
 
     crt = await this._repository.save(crt);
 

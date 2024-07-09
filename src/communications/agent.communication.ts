@@ -28,11 +28,7 @@ import {
   OpenVPNHistoryRecord,
   SystemCtlInfo,
 } from './communication';
-import axios, {
-  AxiosRequestConfig,
-  AxiosResponse,
-  CancelTokenSource,
-} from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
 import {
   ProgressErrorPayload,
   ProgressInfoPayload,
@@ -73,9 +69,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
 
     this.url = `${this.connectionData.protocol}://${this.connectionData.host}:${this.connectionData.port}`;
-    this.ws_url = this.url
-      .replace('http://', 'ws://')
-      .replace('https://', 'wss://');
+    this.ws_url = this.url.replace('http://', 'ws://').replace('https://', 'wss://');
     this.cancel_token = axios.CancelToken.source();
     this.config = {
       timeout: app().config.get('openvpn.agent.timeout'),
@@ -107,9 +101,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       eventEmitter.emit(
         'message',
-        new ProgressNoticePayload(
-          `Uploading firewall policy (${this.connectionData.host})`,
-        ),
+        new ProgressNoticePayload(`Uploading firewall policy (${this.connectionData.host})`),
       );
 
       const config: AxiosRequestConfig = Object.assign({}, this.config);
@@ -119,17 +111,11 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       config.headers = Object.assign({}, form.getHeaders(), config.headers);
 
-      const response: AxiosResponse<string> = await axios.post(
-        pathUrl,
-        form,
-        config,
-      );
+      const response: AxiosResponse<string> = await axios.post(pathUrl, form, config);
 
       response.data
         .split('\n')
-        .forEach((item) =>
-          eventEmitter.emit('message', new ProgressSSHCmdPayload(item)),
-        );
+        .forEach((item) => eventEmitter.emit('message', new ProgressSSHCmdPayload(item)));
 
       return 'DONE';
     } catch (error) {
@@ -159,11 +145,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       });
 
       const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
-      requestConfig.headers = Object.assign(
-        {},
-        form.getHeaders(),
-        requestConfig.headers,
-      );
+      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
 
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
@@ -226,10 +208,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     try {
       const pathUrl: string = this.url + '/api/v1/interfaces/info';
 
-      const response: AxiosResponse<string> = await axios.get(
-        pathUrl,
-        this.config,
-      );
+      const response: AxiosResponse<string> = await axios.get(pathUrl, this.config);
 
       if (response.status === 200) {
         return response.data;
@@ -245,10 +224,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     try {
       const pathUrl: string = this.url + '/api/v1/iptables-save/data';
 
-      const response: AxiosResponse<string> = await axios.get(
-        pathUrl,
-        this.config,
-      );
+      const response: AxiosResponse<string> = await axios.get(pathUrl, this.config);
 
       if (response.status === 200) {
         return response.data.split('\n');
@@ -309,10 +285,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     try {
       const pathUrl: string = this.url + '/api/v1/info';
 
-      const response: AxiosResponse<FwcAgentInfo> = await axios.get(
-        pathUrl,
-        this.config,
-      );
+      const response: AxiosResponse<FwcAgentInfo> = await axios.get(pathUrl, this.config);
 
       if (response.status === 200) {
         return response.data;
@@ -357,18 +330,12 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
           this.WSisClosed
             ? eventEmitter.emit('message', endMessage)
-            : this.eventEmitterWSClose.on('close', () =>
-                eventEmitter.emit('message', endMessage),
-              );
+            : this.eventEmitterWSClose.on('close', () => eventEmitter.emit('message', endMessage));
         })
         .catch((err) => {
           eventEmitter.emit(
             'message',
-            new ProgressPayload(
-              'error',
-              false,
-              'Plugin action failed: ' + err.message,
-            ),
+            new ProgressPayload('error', false, 'Plugin action failed: ' + err.message),
           );
         });
 
@@ -409,10 +376,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           resolve(`${data}`);
         } else {
           //console.log('Data: %s', data);
-          eventEmitter.emit(
-            'message',
-            new ProgressPayload('ssh_cmd_output', false, `${data}`),
-          );
+          eventEmitter.emit('message', new ProgressPayload('ssh_cmd_output', false, `${data}`));
         }
       });
 
@@ -461,9 +425,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     }
   }
 
-  async getOpenVPNHistoryFile(
-    filepath: string,
-  ): Promise<OpenVPNHistoryRecord[]> {
+  async getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]> {
     try {
       const filename: string = path.basename(filepath);
       const dir: string = path.dirname(filepath);
@@ -509,11 +471,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         command: command,
         service: service,
       };
-      const response: AxiosResponse<string> = await axios.post(
-        pathUrl,
-        systemCtlInfo,
-        this.config,
-      );
+      const response: AxiosResponse<string> = await axios.post(pathUrl, systemCtlInfo, this.config);
       if (response.status === 200) {
         return response.data;
       }
@@ -525,14 +483,8 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
     if (axios.isAxiosError(error)) {
-      if (
-        error.code === 'ECONNABORTED' &&
-        new RegExp(/timeout/).test(error.message)
-      ) {
-        eventEmitter?.emit(
-          'message',
-          new ProgressErrorPayload(`ERROR: Timeout\n`),
-        );
+      if (error.code === 'ECONNABORTED' && new RegExp(/timeout/).test(error.message)) {
+        eventEmitter?.emit('message', new ProgressErrorPayload(`ERROR: Timeout\n`));
         throw new HttpException(`ECONNABORTED: Timeout`, 400);
       }
 
@@ -552,8 +504,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
         }
 
         if (
-          error.response.data.message ===
-          'Authorization error, access from your IP is not allowed'
+          error.response.data.message === 'Authorization error, access from your IP is not allowed'
         ) {
           message = `NotAllowedIP: ${error.response.data.message}`;
         }
@@ -587,23 +538,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       requestConfig.timeout = 0;
 
-      requestConfig.headers = Object.assign(
-        {},
-        form.getHeaders(),
-        requestConfig.headers,
-      );
+      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
 
-      const response: AxiosResponse<string> = await axios.post(
-        pathUrl,
-        form,
-        requestConfig,
-      );
+      const response: AxiosResponse<string> = await axios.post(pathUrl, form, requestConfig);
 
       response.data
         .split('\n')
-        .forEach((item) =>
-          eventEmitter.emit('message', new ProgressSSHCmdPayload(item)),
-        );
+        .forEach((item) => eventEmitter.emit('message', new ProgressSSHCmdPayload(item)));
 
       return 'DONE';
     } catch (error) {
@@ -629,23 +570,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       requestConfig.timeout = 0;
 
-      requestConfig.headers = Object.assign(
-        {},
-        form.getHeaders(),
-        requestConfig.headers,
-      );
+      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
 
-      const response: AxiosResponse<string> = await axios.post(
-        pathUrl,
-        form,
-        requestConfig,
-      );
+      const response: AxiosResponse<string> = await axios.post(pathUrl, form, requestConfig);
 
       response.data
         .split('\n')
-        .forEach((item) =>
-          eventEmitter.emit('message', new ProgressSSHCmdPayload(item)),
-        );
+        .forEach((item) => eventEmitter.emit('message', new ProgressSSHCmdPayload(item)));
 
       return 'DONE';
     } catch (error) {
@@ -672,23 +603,13 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       requestConfig.timeout = 0;
 
-      requestConfig.headers = Object.assign(
-        {},
-        form.getHeaders(),
-        requestConfig.headers,
-      );
+      requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
 
-      const response: AxiosResponse<string> = await axios.post(
-        pathUrl,
-        form,
-        requestConfig,
-      );
+      const response: AxiosResponse<string> = await axios.post(pathUrl, form, requestConfig);
 
       response.data
         .split('\n')
-        .forEach((item) =>
-          eventEmitter.emit('message', new ProgressSSHCmdPayload(item)),
-        );
+        .forEach((item) => eventEmitter.emit('message', new ProgressSSHCmdPayload(item)));
 
       return 'DONE';
     } catch (error) {
@@ -719,11 +640,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
     });
 
     const requestConfig: AxiosRequestConfig = Object.assign({}, this.config);
-    requestConfig.headers = Object.assign(
-      {},
-      form.getHeaders(),
-      requestConfig.headers,
-    );
+    requestConfig.headers = Object.assign({}, form.getHeaders(), requestConfig.headers);
     return requestConfig;
   }
 }

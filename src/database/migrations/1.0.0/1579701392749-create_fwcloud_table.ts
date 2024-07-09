@@ -20,12 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  MigrationInterface,
-  QueryRunner,
-  Table,
-  TableForeignKey,
-} from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm';
 import { findForeignKeyInTable } from '../../../utils/typeorm/TableUtils';
 
 export class createFwcloudTable1579701392749 implements MigrationInterface {
@@ -152,28 +147,16 @@ export class createFwcloudTable1579701392749 implements MigrationInterface {
     let table: Table;
 
     table = await queryRunner.getTable('fwc_tree');
-    await queryRunner.dropForeignKey(
-      table,
-      findForeignKeyInTable(table, 'fwcloud'),
-    );
+    await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'fwcloud'));
 
     table = await queryRunner.getTable('firewall');
-    await queryRunner.dropForeignKey(
-      table,
-      findForeignKeyInTable(table, 'fwcloud'),
-    );
+    await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'fwcloud'));
 
     table = await queryRunner.getTable('cluster');
-    await queryRunner.dropForeignKey(
-      table,
-      findForeignKeyInTable(table, 'fwcloud'),
-    );
+    await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'fwcloud'));
 
     table = await queryRunner.getTable('ca');
-    await queryRunner.dropForeignKey(
-      table,
-      findForeignKeyInTable(table, 'fwcloud'),
-    );
+    await queryRunner.dropForeignKey(table, findForeignKeyInTable(table, 'fwcloud'));
 
     await queryRunner.dropTable('fwcloud', true);
   }

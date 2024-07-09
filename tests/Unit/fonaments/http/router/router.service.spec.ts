@@ -20,11 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  describeName,
-  testSuite,
-  expect,
-} from '../../../../mocha/global-setup';
+import { describeName, testSuite, expect } from '../../../../mocha/global-setup';
 import { Controller } from '../../../../../src/fonaments/http/controller';
 import { RouterService } from '../../../../../src/fonaments/http/router/router.service';
 import { Route } from '../../../../../src/fonaments/http/router/route';
@@ -51,9 +47,7 @@ describe(describeName('RouterService Unit tests'), () => {
 
   describe('getRouteByName()', () => {
     it('should return a route by its name', async () => {
-      expect(service.findRouteByName('ping.pong').name).to.be.deep.equal(
-        'ping.pong',
-      );
+      expect(service.findRouteByName('ping.pong').name).to.be.deep.equal('ping.pong');
     });
   });
 });

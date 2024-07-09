@@ -74,10 +74,7 @@ export class FwCloudExport implements Responsable {
     FSHelper.mkdirSync(this._path);
 
     const snapshot: Snapshot = await Snapshot.create(this._path, this._fwCloud);
-    await FSHelper.copy(
-      snapshot.path,
-      path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY),
-    );
+    await FSHelper.copy(snapshot.path, path.join(this._path, FwCloudExport.FWCLOUD_DATA_DIRECTORY));
     await FSHelper.remove(path.dirname(snapshot.path));
     await this.copyFwCloudSnapshots(this._fwCloud);
   }
@@ -92,9 +89,7 @@ export class FwCloudExport implements Responsable {
   /**
    * Imports a fwcloud
    */
-  public async import(
-    eventEmitter: EventEmitter = new EventEmitter(),
-  ): Promise<FwCloud> {
+  public async import(eventEmitter: EventEmitter = new EventEmitter()): Promise<FwCloud> {
     const importer: DatabaseImporter = new DatabaseImporter(eventEmitter);
 
     const snapshot: Snapshot = await Snapshot.load(
@@ -124,9 +119,7 @@ export class FwCloudExport implements Responsable {
     return fwCloudExport;
   }
 
-  public static loadCompressed(
-    compressedFilePath: string,
-  ): Promise<FwCloudExport> {
+  public static loadCompressed(compressedFilePath: string): Promise<FwCloudExport> {
     return new Promise<FwCloudExport>((resolve, reject) => {
       const destinationPath: string = path.join(
         path.dirname(compressedFilePath),

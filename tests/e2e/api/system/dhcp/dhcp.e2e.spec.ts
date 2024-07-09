@@ -25,16 +25,9 @@ import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
 import { DHCPRule } from '../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.model';
 import { User } from '../../../../../src/models/user/User';
 import { expect, testSuite } from '../../../../mocha/global-setup';
-import {
-  attachSession,
-  createUser,
-  generateSession,
-} from '../../../../utils/utils';
+import { attachSession, createUser, generateSession } from '../../../../utils/utils';
 import { DHCPRuleService } from '../../../../../src/models/system/dhcp/dhcp_r/dhcp_r.service';
-import {
-  FwCloudFactory,
-  FwCloudProduct,
-} from '../../../../utils/fwcloud-factory';
+import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import { DhcpController } from '../../../../../src/controllers/system/dhcp/dhcp.controller';
 import request = require('supertest');
 import { _URL } from '../../../../../src/fonaments/http/router/router.service';
@@ -1066,18 +1059,10 @@ describe('DHCPRule E2E Tests', () => {
           });
 
         expect(
-          (
-            await manager
-              .getRepository(DHCPRule)
-              .findOneOrFail({ where: { id: rule1.id } })
-          ).active,
+          (await manager.getRepository(DHCPRule).findOneOrFail({ where: { id: rule1.id } })).active,
         ).to.equal(false);
         expect(
-          (
-            await manager
-              .getRepository(DHCPRule)
-              .findOneOrFail({ where: { id: rule2.id } })
-          ).active,
+          (await manager.getRepository(DHCPRule).findOneOrFail({ where: { id: rule2.id } })).active,
         ).to.equal(false);
       });
 
@@ -1100,18 +1085,10 @@ describe('DHCPRule E2E Tests', () => {
           });
 
         expect(
-          (
-            await manager
-              .getRepository(DHCPRule)
-              .findOneOrFail({ where: { id: rule1.id } })
-          ).active,
+          (await manager.getRepository(DHCPRule).findOneOrFail({ where: { id: rule1.id } })).active,
         ).to.equal(false);
         expect(
-          (
-            await manager
-              .getRepository(DHCPRule)
-              .findOneOrFail({ where: { id: rule2.id } })
-          ).active,
+          (await manager.getRepository(DHCPRule).findOneOrFail({ where: { id: rule2.id } })).active,
         ).to.equal(false);
       });
     });
@@ -1190,16 +1167,10 @@ describe('DHCPRule E2E Tests', () => {
             expect(response.body.data).to.have.length(2);
           });
 
-        expect(
-          await manager
-            .getRepository(DHCPRule)
-            .findOne({ where: { id: rule1.id } }),
-        ).to.be.null;
-        expect(
-          await manager
-            .getRepository(DHCPRule)
-            .findOne({ where: { id: rule2.id } }),
-        ).to.be.null;
+        expect(await manager.getRepository(DHCPRule).findOne({ where: { id: rule1.id } })).to.be
+          .null;
+        expect(await manager.getRepository(DHCPRule).findOne({ where: { id: rule2.id } })).to.be
+          .null;
       });
 
       it('admin user should bulk remove a dhcp rule', async () => {
@@ -1219,16 +1190,10 @@ describe('DHCPRule E2E Tests', () => {
             expect(response.body.data).to.have.length(2);
           });
 
-        expect(
-          await manager
-            .getRepository(DHCPRule)
-            .findOne({ where: { id: rule1.id } }),
-        ).to.be.null;
-        expect(
-          await manager
-            .getRepository(DHCPRule)
-            .findOne({ where: { id: rule2.id } }),
-        ).to.be.null;
+        expect(await manager.getRepository(DHCPRule).findOne({ where: { id: rule1.id } })).to.be
+          .null;
+        expect(await manager.getRepository(DHCPRule).findOne({ where: { id: rule2.id } })).to.be
+          .null;
       });
     });
   });

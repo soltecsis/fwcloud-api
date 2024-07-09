@@ -44,9 +44,9 @@ describe(IPObj.name, () => {
           fwcloudProduct.ipobjs.get('address').id,
           5,
         );
-        expect(
-          whereUsed.restrictions.IpobjInRoute.map((route) => route.route_id),
-        ).to.contains(fwcloudProduct.routes.get('route1').id);
+        expect(whereUsed.restrictions.IpobjInRoute.map((route) => route.route_id)).to.contains(
+          fwcloudProduct.routes.get('route1').id,
+        );
       });
 
       it('should detect address range usages', async () => {
@@ -56,9 +56,9 @@ describe(IPObj.name, () => {
           fwcloudProduct.ipobjs.get('addressRange').id,
           5,
         );
-        expect(
-          whereUsed.restrictions.IpobjInRoute.map((route) => route.route_id),
-        ).to.contains(fwcloudProduct.routes.get('route1').id);
+        expect(whereUsed.restrictions.IpobjInRoute.map((route) => route.route_id)).to.contains(
+          fwcloudProduct.routes.get('route1').id,
+        );
       });
 
       it('should detect network in CIDR notation usages', async () => {
@@ -68,9 +68,9 @@ describe(IPObj.name, () => {
           fwcloudProduct.ipobjs.get('network').id,
           5,
         );
-        expect(
-          whereUsed.restrictions.IpobjInRoute.map((route) => route.route_id),
-        ).to.contains(fwcloudProduct.routes.get('route1').id);
+        expect(whereUsed.restrictions.IpobjInRoute.map((route) => route.route_id)).to.contains(
+          fwcloudProduct.routes.get('route1').id,
+        );
       });
 
       it('should detect network not in CIDR notation usages', async () => {
@@ -80,9 +80,9 @@ describe(IPObj.name, () => {
           fwcloudProduct.ipobjs.get('networkNoCIDR').id,
           5,
         );
-        expect(
-          whereUsed.restrictions.IpobjInRoute.map((route) => route.route_id),
-        ).to.contains(fwcloudProduct.routes.get('route1').id);
+        expect(whereUsed.restrictions.IpobjInRoute.map((route) => route.route_id)).to.contains(
+          fwcloudProduct.routes.get('route1').id,
+        );
       });
 
       it('should detect host usages', async () => {
@@ -92,9 +92,9 @@ describe(IPObj.name, () => {
           fwcloudProduct.ipobjs.get('host').id,
           5,
         );
-        expect(
-          whereUsed.restrictions.IpobjInRoute.map((route) => route.route_id),
-        ).to.contains(fwcloudProduct.routes.get('route1').id);
+        expect(whereUsed.restrictions.IpobjInRoute.map((route) => route.route_id)).to.contains(
+          fwcloudProduct.routes.get('route1').id,
+        );
       });
 
       it('should detect last addr in host in route', async () => {
@@ -123,9 +123,7 @@ describe(IPObj.name, () => {
           5,
         );
         expect(
-          whereUsed.restrictions.IpobjInRoutingRule.map(
-            (rule) => rule.routing_rule_id,
-          ),
+          whereUsed.restrictions.IpobjInRoutingRule.map((rule) => rule.routing_rule_id),
         ).to.contains(fwcloudProduct.routingRules.get('routing-rule-1').id);
       });
 
@@ -137,9 +135,7 @@ describe(IPObj.name, () => {
           5,
         );
         expect(
-          whereUsed.restrictions.IpobjInRoutingRule.map(
-            (rule) => rule.routing_rule_id,
-          ),
+          whereUsed.restrictions.IpobjInRoutingRule.map((rule) => rule.routing_rule_id),
         ).to.contains(fwcloudProduct.routingRules.get('routing-rule-1').id);
       });
 
@@ -151,9 +147,7 @@ describe(IPObj.name, () => {
           5,
         );
         expect(
-          whereUsed.restrictions.IpobjInRoutingRule.map(
-            (rule) => rule.routing_rule_id,
-          ),
+          whereUsed.restrictions.IpobjInRoutingRule.map((rule) => rule.routing_rule_id),
         ).to.contains(fwcloudProduct.routingRules.get('routing-rule-1').id);
       });
 
@@ -165,9 +159,7 @@ describe(IPObj.name, () => {
           5,
         );
         expect(
-          whereUsed.restrictions.IpobjInRoutingRule.map(
-            (rule) => rule.routing_rule_id,
-          ),
+          whereUsed.restrictions.IpobjInRoutingRule.map((rule) => rule.routing_rule_id),
         ).to.contains(fwcloudProduct.routingRules.get('routing-rule-1').id);
       });
 
@@ -179,9 +171,7 @@ describe(IPObj.name, () => {
           5,
         );
         expect(
-          whereUsed.restrictions.IpobjInRoutingRule.map(
-            (rule) => rule.routing_rule_id,
-          ),
+          whereUsed.restrictions.IpobjInRoutingRule.map((rule) => rule.routing_rule_id),
         ).to.contains(fwcloudProduct.routingRules.get('routing-rule-1').id);
       });
 
@@ -199,9 +189,7 @@ describe(IPObj.name, () => {
           5,
         );
         expect(
-          whereUsed.restrictions.LastAddrInHostInRoutingRule.map(
-            (rule) => rule.routing_rule_id,
-          ),
+          whereUsed.restrictions.LastAddrInHostInRoutingRule.map((rule) => rule.routing_rule_id),
         ).to.contains(fwcloudProduct.routingRules.get('routing-rule-1').id);
       });
     });

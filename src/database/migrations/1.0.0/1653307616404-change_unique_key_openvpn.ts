@@ -1,20 +1,11 @@
 import { query } from 'express';
-import {
-  MigrationInterface,
-  QueryRunner,
-  TableForeignKey,
-  TableIndex,
-} from 'typeorm';
+import { MigrationInterface, QueryRunner, TableForeignKey, TableIndex } from 'typeorm';
 
 export class changeUniqueKeyOpenvpn1653307616404 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     const table = await queryRunner.getTable('openvpn');
-    const fk_firewall = table.foreignKeys.find(
-      (fk) => fk.columnNames.indexOf('firewall') !== -1,
-    );
-    const fk_crt = table.foreignKeys.find(
-      (fk) => fk.columnNames.indexOf('crt') !== -1,
-    );
+    const fk_firewall = table.foreignKeys.find((fk) => fk.columnNames.indexOf('firewall') !== -1);
+    const fk_crt = table.foreignKeys.find((fk) => fk.columnNames.indexOf('crt') !== -1);
     await queryRunner.dropForeignKey('openvpn', fk_firewall);
     await queryRunner.dropForeignKey('openvpn', fk_crt);
 
@@ -47,12 +38,8 @@ export class changeUniqueKeyOpenvpn1653307616404 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     const table = await queryRunner.getTable('openvpn');
-    const fk_openvpn = table.foreignKeys.find(
-      (fk) => fk.columnNames.indexOf('openvpn') !== -1,
-    );
-    const fk_crt = table.foreignKeys.find(
-      (fk) => fk.columnNames.indexOf('crt') !== -1,
-    );
+    const fk_openvpn = table.foreignKeys.find((fk) => fk.columnNames.indexOf('openvpn') !== -1);
+    const fk_crt = table.foreignKeys.find((fk) => fk.columnNames.indexOf('crt') !== -1);
     await queryRunner.dropForeignKey('openvpn', fk_openvpn);
     await queryRunner.dropForeignKey('openvpn', fk_crt);
 

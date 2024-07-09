@@ -33,11 +33,11 @@ describe(describeName('MigrationRunCommand tests'), () => {
   });
   it('should run the migrations', async () => {
     const app: AbstractApplication = testSuite.app;
-    const databaseService: DatabaseService =
-      await app.getService<DatabaseService>(DatabaseService.name);
+    const databaseService: DatabaseService = await app.getService<DatabaseService>(
+      DatabaseService.name,
+    );
 
-    let queryRunner: QueryRunner =
-      databaseService.dataSource.createQueryRunner();
+    let queryRunner: QueryRunner = databaseService.dataSource.createQueryRunner();
     const migration = await queryRunner.query('SELECT name FROM migrations');
     await queryRunner.release();
     await databaseService.emptyDatabase();
@@ -54,9 +54,7 @@ describe(describeName('MigrationRunCommand tests'), () => {
     }
 
     queryRunner = databaseService.dataSource.createQueryRunner();
-    const afterMigration = await queryRunner.query(
-      'SELECT name FROM migrations',
-    );
+    const afterMigration = await queryRunner.query('SELECT name FROM migrations');
     await queryRunner.release();
 
     expect(afterMigration).to.be.deep.eq(migration);

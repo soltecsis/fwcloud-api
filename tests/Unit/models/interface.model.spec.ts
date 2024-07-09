@@ -42,9 +42,7 @@ describe(Interface.name, () => {
         );
 
         expect(
-          whereUsed.restrictions.InterfaceInRoute.map(
-            (route) => route.interface_id,
-          ),
+          whereUsed.restrictions.InterfaceInRoute.map((route) => route.interface_id),
         ).to.contains(fwcloudProduct.interfaces.get('firewall-interface1').id);
       });
     });

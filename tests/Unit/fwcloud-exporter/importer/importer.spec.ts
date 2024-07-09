@@ -35,9 +35,7 @@ describe(describeName('Importer tests'), () => {
   let snapshotService: SnapshotService;
 
   beforeEach(async () => {
-    snapshotService = await testSuite.app.getService<SnapshotService>(
-      SnapshotService.name,
-    );
+    snapshotService = await testSuite.app.getService<SnapshotService>(SnapshotService.name);
   });
 
   describe('import()', () => {
@@ -56,18 +54,13 @@ describe(describeName('Importer tests'), () => {
         }),
       );
 
-      FSHelper.mkdirSync(
-        path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString()),
-      );
+      FSHelper.mkdirSync(path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString()));
       fs.writeFileSync(
         path.join(fwCloud.getPkiDirectoryPath(), ca.id.toString(), 'test.txt'),
         'test',
       );
 
-      const snapshot: Snapshot = await Snapshot.create(
-        snapshotService.config.data_dir,
-        fwCloud,
-      );
+      const snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
 
       await snapshot.restore();
 
@@ -97,22 +90,13 @@ describe(describeName('Importer tests'), () => {
         }),
       );
 
-      FSHelper.mkdirSync(
-        path.join(fwCloud.getPolicyDirectoryPath(), firewall.id.toString()),
-      );
+      FSHelper.mkdirSync(path.join(fwCloud.getPolicyDirectoryPath(), firewall.id.toString()));
       fs.writeFileSync(
-        path.join(
-          fwCloud.getPolicyDirectoryPath(),
-          firewall.id.toString(),
-          'test.txt',
-        ),
+        path.join(fwCloud.getPolicyDirectoryPath(), firewall.id.toString(), 'test.txt'),
         'test',
       );
 
-      const snapshot: Snapshot = await Snapshot.create(
-        snapshotService.config.data_dir,
-        fwCloud,
-      );
+      const snapshot: Snapshot = await Snapshot.create(snapshotService.config.data_dir, fwCloud);
 
       await snapshot.restore();
 
@@ -125,10 +109,7 @@ describe(describeName('Importer tests'), () => {
 
       expect(
         FSHelper.directoryExistsSync(
-          path.join(
-            newFwCloud.getPolicyDirectoryPath(),
-            newFirewall.id.toString(),
-          ),
+          path.join(newFwCloud.getPolicyDirectoryPath(), newFirewall.id.toString()),
         ),
       ).to.be.true;
     });

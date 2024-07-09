@@ -43,11 +43,7 @@ describe(describeName('Policy-rules E2E Test'), () => {
 
     fwCloud = await manager
       .getRepository(FwCloud)
-      .save(
-        manager
-          .getRepository(FwCloud)
-          .create({ name: StringHelper.randomize(10) }),
-      );
+      .save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }));
     const ipObj: IPObj = await manager.getRepository(IPObj).save(
       manager.getRepository(IPObj).create({
         name: 'test',
@@ -68,11 +64,7 @@ describe(describeName('Policy-rules E2E Test'), () => {
     await service.compile(firewall.fwCloudId, firewall.id);
     content = await service.content(firewall.fwCloudId, firewall.id);
 
-    filePath = new PolicyScript(
-      db.getQuery(),
-      fwCloud.id,
-      firewall.id,
-    ).getScriptPath();
+    filePath = new PolicyScript(db.getQuery(), fwCloud.id, firewall.id).getScriptPath();
   });
 
   describe('PolicyRuleController@read', () => {

@@ -2,12 +2,7 @@ import { describeName, testSuite, expect } from '../../../mocha/global-setup';
 import request = require('supertest');
 import { _URL } from '../../../../src/fonaments/http/router/router.service';
 import { User } from '../../../../src/models/user/User';
-import {
-  createUser,
-  generateSession,
-  attachSession,
-  sleep,
-} from '../../../utils/utils';
+import { createUser, generateSession, attachSession, sleep } from '../../../utils/utils';
 import { Application } from '../../../../src/Application';
 import fwc_tree_node = require('../../../../src/models/tree/node');
 import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
@@ -89,9 +84,7 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
     regularUserSessionId = generateSession(regularUser);
     adminUserSessionId = generateSession(adminUser);
 
-    fwCloud = await (
-      await app.getService<FwCloudService>(FwCloudService.name)
-    ).store(fwcData);
+    fwCloud = await (await app.getService<FwCloudService>(FwCloudService.name)).store(fwcData);
   });
 
   describe('FwCloudManagement', () => {
@@ -118,15 +111,9 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
           .expect(200)
           .then((response) => {
             expect(response.body).to.be.jsonSchema(fwcloudDataSchema);
-            expect(response.body)
-              .to.have.property('name')
-              .which.is.equal(fwcData.name);
-            expect(response.body)
-              .to.have.property('image')
-              .which.is.equal(fwcData.image);
-            expect(response.body)
-              .to.have.property('comment')
-              .which.is.equal(fwcData.comment);
+            expect(response.body).to.have.property('name').which.is.equal(fwcData.name);
+            expect(response.body).to.have.property('image').which.is.equal(fwcData.image);
+            expect(response.body).to.have.property('comment').which.is.equal(fwcData.comment);
           });
       });
 
@@ -137,18 +124,11 @@ describe(describeName('FwCloud Management E2E Tests'), () => {
           .expect(200)
           .then((response) => {
             expect(response.body).to.be.an('array').not.to.be.empty;
-            for (const item of response.body)
-              expect(response.body).to.be.jsonSchema(item);
+            for (const item of response.body) expect(response.body).to.be.jsonSchema(item);
 
-            expect(response.body[0])
-              .to.have.property('name')
-              .which.is.equal(fwcData.name);
-            expect(response.body[0])
-              .to.have.property('image')
-              .which.is.equal(fwcData.image);
-            expect(response.body[0])
-              .to.have.property('comment')
-              .which.is.equal(fwcData.comment);
+            expect(response.body[0]).to.have.property('name').which.is.equal(fwcData.name);
+            expect(response.body[0]).to.have.property('image').which.is.equal(fwcData.image);
+            expect(response.body[0]).to.have.property('comment').which.is.equal(fwcData.comment);
           });
       });
     });

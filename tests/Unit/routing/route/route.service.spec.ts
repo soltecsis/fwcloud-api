@@ -218,11 +218,7 @@ describe(RouteService.name, () => {
       });
       await firewall.reload();
 
-      await service.copy(
-        [routeOrder1.id, routeOrder2.id],
-        routeOrder1.id,
-        Offset.Above,
-      );
+      await service.copy([routeOrder1.id, routeOrder2.id], routeOrder1.id, Offset.Above);
       await firewall.reload();
 
       expect(firewall.status).to.eq(3);
@@ -468,15 +464,13 @@ describe(RouteService.name, () => {
           }),
         );
 
-        const _interface: Interface = await manager
-          .getRepository(Interface)
-          .save(
-            manager.getRepository(Interface).create({
-              name: 'eth1',
-              type: '11',
-              interface_type: '11',
-            }),
-          );
+        const _interface: Interface = await manager.getRepository(Interface).save(
+          manager.getRepository(Interface).create({
+            name: 'eth1',
+            type: '11',
+            interface_type: '11',
+          }),
+        );
 
         const host = await manager.getRepository(IPObj).save(
           manager.getRepository(IPObj).create({
@@ -607,9 +601,7 @@ describe(RouteService.name, () => {
       });
 
       it('should not allow attach a service group', async () => {
-        const _service = await manager
-          .getRepository(IPObj)
-          .findOneOrFail({ where: { id: 10040 } });
+        const _service = await manager.getRepository(IPObj).findOneOrFail({ where: { id: 10040 } });
 
         const group = await manager.getRepository(IPObjGroup).save({
           name: 'group',
@@ -896,8 +888,7 @@ describe(RouteService.name, () => {
           interfaceId: null,
         });
 
-        expect((await service.findOneInPath({ id: route.id })).interfaceId).to
-          .be.null;
+        expect((await service.findOneInPath({ id: route.id })).interfaceId).to.be.null;
       });
 
       it('should not attach a host interface', async () => {
@@ -981,22 +972,18 @@ describe(RouteService.name, () => {
           ipObjId: fwcProduct.ipobjs.get('address').id,
         });
 
-        const refreshedRoute1: Route = await manager
-          .getRepository(Route)
-          .findOne({
-            where: {
-              id: route1.id,
-            },
-            relations: ['routeToIPObjs'],
-          });
-        const refreshedroute2: Route = await manager
-          .getRepository(Route)
-          .findOne({
-            where: {
-              id: route2.id,
-            },
-            relations: ['routeToIPObjs'],
-          });
+        const refreshedRoute1: Route = await manager.getRepository(Route).findOne({
+          where: {
+            id: route1.id,
+          },
+          relations: ['routeToIPObjs'],
+        });
+        const refreshedroute2: Route = await manager.getRepository(Route).findOne({
+          where: {
+            id: route2.id,
+          },
+          relations: ['routeToIPObjs'],
+        });
 
         expect(refreshedRoute1.routeToIPObjs).length(0);
         expect(refreshedroute2.routeToIPObjs).length(1);
@@ -1020,22 +1007,18 @@ describe(RouteService.name, () => {
           ipObjGroupId: fwcProduct.ipobjGroup.id,
         });
 
-        const refreshedroute1: Route = await manager
-          .getRepository(Route)
-          .findOne({
-            where: {
-              id: route1.id,
-            },
-            relations: ['routeToIPObjGroups'],
-          });
-        const refreshedroute2: Route = await manager
-          .getRepository(Route)
-          .findOne({
-            where: {
-              id: route2.id,
-            },
-            relations: ['routeToIPObjGroups'],
-          });
+        const refreshedroute1: Route = await manager.getRepository(Route).findOne({
+          where: {
+            id: route1.id,
+          },
+          relations: ['routeToIPObjGroups'],
+        });
+        const refreshedroute2: Route = await manager.getRepository(Route).findOne({
+          where: {
+            id: route2.id,
+          },
+          relations: ['routeToIPObjGroups'],
+        });
 
         expect(refreshedroute1.routeToIPObjGroups).length(0);
         expect(refreshedroute2.routeToIPObjGroups).length(1);
@@ -1059,22 +1042,18 @@ describe(RouteService.name, () => {
           openVPNId: fwcProduct.openvpnClients.get('OpenVPN-Cli-1').id,
         });
 
-        const refreshedroute1: Route = await manager
-          .getRepository(Route)
-          .findOne({
-            where: {
-              id: route1.id,
-            },
-            relations: ['routeToOpenVPNs'],
-          });
-        const refreshedroute2: Route = await manager
-          .getRepository(Route)
-          .findOne({
-            where: {
-              id: route2.id,
-            },
-            relations: ['routeToOpenVPNs'],
-          });
+        const refreshedroute1: Route = await manager.getRepository(Route).findOne({
+          where: {
+            id: route1.id,
+          },
+          relations: ['routeToOpenVPNs'],
+        });
+        const refreshedroute2: Route = await manager.getRepository(Route).findOne({
+          where: {
+            id: route2.id,
+          },
+          relations: ['routeToOpenVPNs'],
+        });
 
         expect(refreshedroute1.routeToOpenVPNs).length(0);
         expect(refreshedroute2.routeToOpenVPNs).length(1);
@@ -1098,22 +1077,18 @@ describe(RouteService.name, () => {
           openVPNPrefixId: fwcProduct.openvpnPrefix.id,
         });
 
-        const refreshedroute1: Route = await manager
-          .getRepository(Route)
-          .findOne({
-            where: {
-              id: route1.id,
-            },
-            relations: ['routeToOpenVPNPrefixes'],
-          });
-        const refreshedroute2: Route = await manager
-          .getRepository(Route)
-          .findOne({
-            where: {
-              id: route2.id,
-            },
-            relations: ['routeToOpenVPNPrefixes'],
-          });
+        const refreshedroute1: Route = await manager.getRepository(Route).findOne({
+          where: {
+            id: route1.id,
+          },
+          relations: ['routeToOpenVPNPrefixes'],
+        });
+        const refreshedroute2: Route = await manager.getRepository(Route).findOne({
+          where: {
+            id: route2.id,
+          },
+          relations: ['routeToOpenVPNPrefixes'],
+        });
 
         expect(refreshedroute1.routeToOpenVPNPrefixes).length(0);
         expect(refreshedroute2.routeToOpenVPNPrefixes).length(1);
@@ -1159,14 +1134,12 @@ describe(RouteService.name, () => {
         ipObjId: gateway.id,
       });
 
-      const refreshedRoute1: Route = await manager
-        .getRepository(Route)
-        .findOne({
-          where: {
-            id: route1.id,
-          },
-          relations: ['routeToIPObjs'],
-        });
+      const refreshedRoute1: Route = await manager.getRepository(Route).findOne({
+        where: {
+          id: route1.id,
+        },
+        relations: ['routeToIPObjs'],
+      });
       const refreshedroute2: Route = await manager
         .getRepository(Route)
         .findOne({ where: { id: route2.id } });

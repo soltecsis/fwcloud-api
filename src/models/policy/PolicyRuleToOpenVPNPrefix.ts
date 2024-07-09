@@ -63,19 +63,13 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
   })
   policyPosition: PolicyPosition;
 
-  @ManyToOne(
-    (type) => OpenVPNPrefix,
-    (openVPNPrefix) => openVPNPrefix.policyRuleToOpenVPNPrefixes,
-  )
+  @ManyToOne((type) => OpenVPNPrefix, (openVPNPrefix) => openVPNPrefix.policyRuleToOpenVPNPrefixes)
   @JoinColumn({
     name: 'prefix',
   })
   openVPNPrefix: OpenVPNPrefix;
 
-  @ManyToOne(
-    (type) => PolicyRule,
-    (policyRule) => policyRule.policyRuleToOpenVPNPrefixes,
-  )
+  @ManyToOne((type) => PolicyRule, (policyRule) => policyRule.policyRuleToOpenVPNPrefixes)
   @JoinColumn({
     name: 'rule',
   })
@@ -94,14 +88,10 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
         position: req.body.position,
         position_order: req.body.position_order,
       };
-      req.dbCon.query(
-        `insert into ${tableName} set ?`,
-        policyPrefix,
-        async (error, result) => {
-          if (error) return reject(error);
-          resolve(result.insertId);
-        },
-      );
+      req.dbCon.query(`insert into ${tableName} set ?`, policyPrefix, async (error, result) => {
+        if (error) return reject(error);
+        resolve(result.insertId);
+      });
     });
   };
 
@@ -117,13 +107,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     });
   };
 
-  public static checkExistsInPosition = (
-    dbCon,
-    rule,
-    prefix,
-    openvpn,
-    position,
-  ) => {
+  public static checkExistsInPosition = (dbCon, rule, prefix, openvpn, position) => {
     return new Promise((resolve, reject) => {
       const sql = `SELECT rule FROM ${tableName}
                 WHERE rule=${rule} AND prefix=${prefix} AND position=${position}`;
@@ -157,22 +141,15 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
 
   public static deleteFromRule(dbCon, rule): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      dbCon.query(
-        `DELETE FROM ${tableName} WHERE rule=${rule}`,
-        async (error, rows) => {
-          if (error) return reject(error);
-          resolve();
-        },
-      );
+      dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error, rows) => {
+        if (error) return reject(error);
+        resolve();
+      });
     });
   }
 
   //Duplicate policy_r__openvpn_prefix RULES
-  public static duplicatePolicy_r__prefix(
-    dbCon,
-    rule,
-    new_rule,
-  ): Promise<void> {
+  public static duplicatePolicy_r__prefix(dbCon, rule, new_rule): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `INSERT INTO ${tableName} (rule, prefix, position, position_order)
                 (SELECT ${new_rule}, prefix, position, position_order

@@ -1,11 +1,7 @@
 import { Application } from '../../../../src/Application';
 import { User } from '../../../../src/models/user/User';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
-import {
-  attachSession,
-  createUser,
-  generateSession,
-} from '../../../utils/utils';
+import { attachSession, createUser, generateSession } from '../../../utils/utils';
 import request = require('supertest');
 import Sinon = require('sinon');
 const speakeasy = require('speakeasy');
@@ -129,9 +125,7 @@ describe(describeName('FwCloud 2 Factor Authentication E2E Test'), () => {
 
   describe('TFAController@deleteSetup', () => {
     it('Guest User should not delete 2FA', async () => {
-      return await request(app.express)
-        .delete('/profile/tfa/setup')
-        .expect(401);
+      return await request(app.express).delete('/profile/tfa/setup').expect(401);
     });
     it('User delete 2FA', async () => {
       return await request(app.express)

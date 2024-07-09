@@ -20,12 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  describeName,
-  testSuite,
-  playgroundPath,
-  expect,
-} from '../../mocha/global-setup';
+import { describeName, testSuite, playgroundPath, expect } from '../../mocha/global-setup';
 import { Application } from '../../../src/Application';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -53,13 +48,12 @@ describe(describeName('Application Unit Test'), () => {
     it('schema version should be the migration version directory', async () => {
       const directory: string = path.join(playgroundPath, 'migrations');
       FSHelper.mkdirSync(path.join(directory, '100.100.100'));
-      const databaseService: DatabaseService =
-        await app.getService<DatabaseService>(DatabaseService.name);
+      const databaseService: DatabaseService = await app.getService<DatabaseService>(
+        DatabaseService.name,
+      );
       databaseService['_config'].migration_directory = directory;
 
-      expect(await databaseService.getSchemaVersion()).to.be.deep.eq(
-        '100.100.100',
-      );
+      expect(await databaseService.getSchemaVersion()).to.be.deep.eq('100.100.100');
     });
 
     it('schema version should be the last version migration directory', async () => {
@@ -68,8 +62,9 @@ describe(describeName('Application Unit Test'), () => {
       FSHelper.mkdirSync(path.join(directory, '1.0.0'));
       FSHelper.mkdirSync(path.join(directory, '1.0.1'));
 
-      const databaseService: DatabaseService =
-        await app.getService<DatabaseService>(DatabaseService.name);
+      const databaseService: DatabaseService = await app.getService<DatabaseService>(
+        DatabaseService.name,
+      );
       databaseService['_config'].migration_directory = directory;
 
       expect(await databaseService.getSchemaVersion()).to.be.deep.eq('1.0.1');

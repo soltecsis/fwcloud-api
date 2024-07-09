@@ -24,9 +24,7 @@ export class FwCloudError extends Error {
   constructor(error: Error);
   constructor(message: string, stack?: string);
   constructor(errorOrMessage: Error | string = null, stack?: string) {
-    super(
-      errorOrMessage instanceof Error ? errorOrMessage.message : errorOrMessage,
-    );
+    super(errorOrMessage instanceof Error ? errorOrMessage.message : errorOrMessage);
     this.name = this.constructor.name;
 
     if (errorOrMessage instanceof Error) {

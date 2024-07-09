@@ -16,9 +16,7 @@ export class PolicyRuleController extends Controller {
   protected _fwCloud: FwCloud;
 
   async make(req: Request): Promise<void> {
-    this._PolicyRuleService = await app().getService<PolicyRuleService>(
-      PolicyRuleService.name,
-    );
+    this._PolicyRuleService = await app().getService<PolicyRuleService>(PolicyRuleService.name);
 
     const firewallQueryBuilder = db
       .getSource()
@@ -41,9 +39,7 @@ export class PolicyRuleController extends Controller {
 
   @Validate()
   public async read(request: Request): Promise<ResponseBuilder> {
-    (
-      await PolicyRulePolicy.read(this._firewall, request.session.user)
-    ).authorize();
+    (await PolicyRulePolicy.read(this._firewall, request.session.user)).authorize();
     try {
       const content: string = await this._PolicyRuleService.content(
         this._fwCloud.id,
@@ -59,9 +55,7 @@ export class PolicyRuleController extends Controller {
   }
   @Validate()
   public async download(request: Request): Promise<ResponseBuilder> {
-    (
-      await PolicyRulePolicy.download(this._firewall, request.session.user)
-    ).authorize();
+    (await PolicyRulePolicy.download(this._firewall, request.session.user)).authorize();
 
     const content: string = await this._PolicyRuleService.content(
       this._fwCloud.id,

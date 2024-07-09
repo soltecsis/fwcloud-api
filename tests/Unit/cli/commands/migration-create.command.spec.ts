@@ -23,12 +23,7 @@
 import { MigrationCreateCommand } from '../../../../src/cli/commands/migration-create.command';
 import * as path from 'path';
 import * as fs from 'fs';
-import {
-  expect,
-  describeName,
-  testSuite,
-  playgroundPath,
-} from '../../../mocha/global-setup';
+import { expect, describeName, testSuite, playgroundPath } from '../../../mocha/global-setup';
 import { FSHelper } from '../../../../src/utils/fs-helper';
 import { runCLICommandIsolated } from '../../../utils/utils';
 
@@ -66,9 +61,7 @@ describe(describeName('MigrationCreateCommand tests'), () => {
       });
     });
 
-    const files = fs.readdirSync(
-      path.join(process.cwd(), migrationDirectory, version),
-    );
+    const files = fs.readdirSync(path.join(process.cwd(), migrationDirectory, version));
 
     files.filter((item: string) => {
       new RegExp('w{13}-migration_test', 'g').test(item);

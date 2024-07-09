@@ -20,17 +20,11 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  Validate,
-  ValidateQuery,
-} from '../../../decorators/validate.decorator';
+import { Validate, ValidateQuery } from '../../../decorators/validate.decorator';
 import { Controller } from '../../../fonaments/http/controller';
 import { Firewall } from '../../../models/firewall/Firewall';
 import { FwCloud } from '../../../models/fwcloud/FwCloud';
-import {
-  ICreateRoute,
-  RouteService,
-} from '../../../models/routing/route/route.service';
+import { ICreateRoute, RouteService } from '../../../models/routing/route/route.service';
 import { RoutingTable } from '../../../models/routing/routing-table/routing-table.model';
 import { Request } from 'express';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
@@ -64,9 +58,7 @@ export class RouteController extends Controller {
   protected _routingTableService: RoutingTableService;
 
   public async make(request: Request): Promise<void> {
-    this._routeService = await this._app.getService<RouteService>(
-      RouteService.name,
-    );
+    this._routeService = await this._app.getService<RouteService>(RouteService.name);
     this._routingTableService = await this._app.getService<RoutingTableService>(
       RoutingTableService.name,
     );
@@ -84,12 +76,9 @@ export class RouteController extends Controller {
       .createQueryBuilder('table')
       .where('table.id = :id', { id: parseInt(request.params.routingTable) });
     if (request.params.route) {
-      routingTableQueryBuilder.innerJoin(
-        'table.routes',
-        'route',
-        'route.id = :routeId',
-        { routeId: parseInt(request.params.route) },
-      );
+      routingTableQueryBuilder.innerJoin('table.routes', 'route', 'route.id = :routeId', {
+        routeId: parseInt(request.params.route),
+      });
     }
     this._routingTable = await routingTableQueryBuilder.getOneOrFail();
 
@@ -116,9 +105,7 @@ export class RouteController extends Controller {
 
   @Validate()
   async index(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutePolicy.index(this._routingTable, request.session.user)
-    ).authorize();
+    (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
 
     const routes: Route[] = await this._routeService.findManyInPath({
       fwCloudId: this._fwCloud.id,
@@ -131,9 +118,7 @@ export class RouteController extends Controller {
 
   @Validate(RouteControllerMoveDto)
   async move(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutePolicy.index(this._routingTable, request.session.user)
-    ).authorize();
+    (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
 
     const routes: Route[] = await db
       .getSource()
@@ -183,15 +168,12 @@ export class RouteController extends Controller {
 
   @Validate(RouteControllerStoreDto)
   async store(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutePolicy.create(this._routingTable, request.session.user)
-    ).authorize();
+    (await RoutePolicy.create(this._routingTable, request.session.user)).authorize();
 
     //Get the routingTable from the URL
-    const data: ICreateRoute = Object.assign(
-      request.inputs.all<RouteControllerStoreDto>(),
-      { routingTableId: this._routingTable.id },
-    );
+    const data: ICreateRoute = Object.assign(request.inputs.all<RouteControllerStoreDto>(), {
+      routingTableId: this._routingTable.id,
+    });
     const route: Route = await this._routeService.create(data);
 
     return ResponseBuilder.buildResponse().status(201).body(route);
@@ -270,9 +252,7 @@ export class RouteController extends Controller {
 
   @Validate(RouteMoveToDto)
   async moveTo(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutePolicy.index(this._routingTable, request.session.user)
-    ).authorize();
+    (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
 
     const fromRule: Route = await db
       .getSource()
@@ -311,9 +291,7 @@ export class RouteController extends Controller {
 
   @Validate(RouteMoveToGatewayDto)
   async moveToGateway(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutePolicy.index(this._routingTable, request.session.user)
-    ).authorize();
+    (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
 
     const fromRule: Route = await db
       .getSource()
@@ -352,9 +330,7 @@ export class RouteController extends Controller {
 
   @Validate(RouteMoveInterfaceDto)
   async moveInterface(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutePolicy.index(this._routingTable, request.session.user)
-    ).authorize();
+    (await RoutePolicy.index(this._routingTable, request.session.user)).authorize();
 
     const fromRule: Route = await db
       .getSource()
@@ -428,9 +404,7 @@ export class RouteController extends Controller {
       throw new HttpException(`Missing routes ids to be removed`, 400);
     }
 
-    const returned: Route[] = await this._routeService.bulkRemove(
-      routes.map((item) => item.id),
-    );
+    const returned: Route[] = await this._routeService.bulkRemove(routes.map((item) => item.id));
 
     return ResponseBuilder.buildResponse().status(200).body(returned);
   }

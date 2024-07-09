@@ -84,9 +84,7 @@ export class createFwcTreeTable1579701360195 implements MigrationInterface {
             default: null,
           },
         ],
-        uniques: [
-          { columnNames: ['id_obj', 'obj_type', 'id_parent', 'nodE_type'] },
-        ],
+        uniques: [{ columnNames: ['id_obj', 'obj_type', 'id_parent', 'nodE_type'] }],
         foreignKeys: [
           {
             columnNames: ['id_parent'],

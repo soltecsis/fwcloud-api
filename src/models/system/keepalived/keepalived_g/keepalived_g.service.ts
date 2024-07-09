@@ -14,12 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import {
-  FindManyOptions,
-  FindOneOptions,
-  Repository,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { FindManyOptions, FindOneOptions, Repository, SelectQueryBuilder } from 'typeorm';
 import { Service } from '../../../../fonaments/services/service';
 import { KeepalivedRule } from '../keepalived_r/keepalived_r.model';
 import { KeepalivedGroup } from './keepalived_g.model';
@@ -69,9 +64,7 @@ export class KeepalivedGroupService extends Service {
 
   protected getFindInPathOptions(
     path: Partial<IFindOneKeepalivedGPath>,
-    options:
-      | FindOneOptions<KeepalivedGroup>
-      | FindManyOptions<KeepalivedGroup> = {},
+    options: FindOneOptions<KeepalivedGroup> | FindManyOptions<KeepalivedGroup> = {},
   ): SelectQueryBuilder<KeepalivedGroup> {
     const qb: SelectQueryBuilder<KeepalivedGroup> = db
       .getSource()
@@ -129,10 +122,7 @@ export class KeepalivedGroupService extends Service {
       .findOne({ where: { id: group.id } });
   }
 
-  async update(
-    id: number,
-    data: IUpdateKeepalivedGroup,
-  ): Promise<KeepalivedGroup> {
+  async update(id: number, data: IUpdateKeepalivedGroup): Promise<KeepalivedGroup> {
     const group: KeepalivedGroup | undefined = await db
       .getSource()
       .manager.getRepository(KeepalivedGroup)

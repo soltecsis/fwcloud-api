@@ -17,10 +17,7 @@ export class KeepalivedGroupPolicy extends Policy {
     return this.checkAuthorization(user, firewall);
   }
 
-  static async show(
-    group: KeepalivedGroup,
-    user: User,
-  ): Promise<Authorization> {
+  static async show(group: KeepalivedGroup, user: User): Promise<Authorization> {
     user = await this.getUser(user.id);
     const firewall = await db
       .getSource()
@@ -44,10 +41,7 @@ export class KeepalivedGroupPolicy extends Policy {
     return this.checkAuthorization(user, firewall);
   }
 
-  static async update(
-    group: KeepalivedGroup,
-    user: User,
-  ): Promise<Authorization> {
+  static async update(group: KeepalivedGroup, user: User): Promise<Authorization> {
     user = await this.getUser(user.id);
     const firewall = await db
       .getSource()
@@ -59,10 +53,7 @@ export class KeepalivedGroupPolicy extends Policy {
     return this.checkAuthorization(user, firewall);
   }
 
-  static async remove(
-    group: KeepalivedGroup,
-    user: User,
-  ): Promise<Authorization> {
+  static async remove(group: KeepalivedGroup, user: User): Promise<Authorization> {
     user = await this.getUser(user.id);
     const firewall = await db
       .getSource()

@@ -122,8 +122,9 @@ export class DatabaseExporter {
   protected _result: ExporterResult;
 
   public async export(fwcloudId: number): Promise<ExporterResult> {
-    const databaseService: DatabaseService =
-      await app().getService<DatabaseService>(DatabaseService.name);
+    const databaseService: DatabaseService = await app().getService<DatabaseService>(
+      DatabaseService.name,
+    );
     const dataSource: DataSource = databaseService.dataSource;
     this._result = new ExporterResult();
 

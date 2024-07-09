@@ -108,18 +108,9 @@ describe(HAProxyGroupController.name, () => {
         },
       } as unknown as Request;
 
-      const dhcpGroupServiceStub = sinon.stub(
-        HAProxyGroupService.prototype,
-        'findOneInPath',
-      );
-      const firewallStub = sinon.stub(
-        manager.getRepository(Firewall),
-        'findOneOrFail',
-      );
-      const fwCloudStub = sinon.stub(
-        manager.getRepository(FwCloud),
-        'findOneOrFail',
-      );
+      const dhcpGroupServiceStub = sinon.stub(HAProxyGroupService.prototype, 'findOneInPath');
+      const firewallStub = sinon.stub(manager.getRepository(Firewall), 'findOneOrFail');
+      const fwCloudStub = sinon.stub(manager.getRepository(FwCloud), 'findOneOrFail');
 
       await controller.make(requestMock);
 
@@ -145,9 +136,7 @@ describe(HAProxyGroupController.name, () => {
         .stub(HAProxyGroupService.prototype, 'findOneInPath')
         .throws(new Error('HAProxy Group not found'));
 
-      await expect(controller.make(requestMock)).to.be.rejectedWith(
-        'HAProxy Group not found',
-      );
+      await expect(controller.make(requestMock)).to.be.rejectedWith('HAProxy Group not found');
 
       dhcpGroupServiceStub.restore();
     });

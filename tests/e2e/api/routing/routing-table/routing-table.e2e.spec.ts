@@ -27,25 +27,14 @@ import { Firewall } from '../../../../../src/models/firewall/Firewall';
 import { FwCloud } from '../../../../../src/models/fwcloud/FwCloud';
 import { User } from '../../../../../src/models/user/User';
 import StringHelper from '../../../../../src/utils/string.helper';
-import {
-  describeName,
-  expect,
-  testSuite,
-} from '../../../../mocha/global-setup';
-import {
-  attachSession,
-  createUser,
-  generateSession,
-} from '../../../../utils/utils';
+import { describeName, expect, testSuite } from '../../../../mocha/global-setup';
+import { attachSession, createUser, generateSession } from '../../../../utils/utils';
 import request = require('supertest');
 import { _URL } from '../../../../../src/fonaments/http/router/router.service';
 import { RoutingTable } from '../../../../../src/models/routing/routing-table/routing-table.model';
 import { RoutingTableService } from '../../../../../src/models/routing/routing-table/routing-table.service';
 import { Tree } from '../../../../../src/models/tree/Tree';
-import {
-  FwCloudFactory,
-  FwCloudProduct,
-} from '../../../../utils/fwcloud-factory';
+import { FwCloudFactory, FwCloudProduct } from '../../../../utils/fwcloud-factory';
 import { RouteService } from '../../../../../src/models/routing/route/route.service';
 import { Route } from '../../../../../src/models/routing/route/route.model';
 import { RoutingRuleService } from '../../../../../src/models/routing/routing-rule/routing-rule.service';
@@ -544,13 +533,10 @@ describe(describeName('Routing Table E2E Tests'), () => {
           .set('Cookie', [attachSession(loggedUserSessionId)])
           .expect(403)
           .then((response) => {
-            expect(
-              response.body.data.restrictions.routingTableUsedInRule,
-            ).to.has.length(1);
-            expect(
-              response.body.data.restrictions.routingTableUsedInRule[0]
-                .routing_rule_id,
-            ).to.eq(rule.id);
+            expect(response.body.data.restrictions.routingTableUsedInRule).to.has.length(1);
+            expect(response.body.data.restrictions.routingTableUsedInRule[0].routing_rule_id).to.eq(
+              rule.id,
+            );
           });
       });
 
@@ -566,13 +552,10 @@ describe(describeName('Routing Table E2E Tests'), () => {
           .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(403)
           .then((response) => {
-            expect(
-              response.body.data.restrictions.routingTableUsedInRule,
-            ).to.has.length(1);
-            expect(
-              response.body.data.restrictions.routingTableUsedInRule[0]
-                .routing_rule_id,
-            ).to.eq(rule.id);
+            expect(response.body.data.restrictions.routingTableUsedInRule).to.has.length(1);
+            expect(response.body.data.restrictions.routingTableUsedInRule[0].routing_rule_id).to.eq(
+              rule.id,
+            );
           });
       });
     });

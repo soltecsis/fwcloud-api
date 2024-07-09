@@ -7,10 +7,7 @@ import { _URL } from '../../../src/fonaments/http/router/router.service';
 import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
 import { EntityManager } from 'typeorm';
 import StringHelper from '../../../src/utils/string.helper';
-import {
-  Firewall,
-  FirewallInstallCommunication,
-} from '../../../src/models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../../../src/models/firewall/Firewall';
 import { IPObj } from '../../../src/models/ipobj/IPObj';
 import sinon from 'sinon';
 import sshTools from '../../../src/utils/ssh';
@@ -49,11 +46,7 @@ describe(describeName('Firewall E2E Tests'), () => {
 
     fwCloud = await manager
       .getRepository(FwCloud)
-      .save(
-        manager
-          .getRepository(FwCloud)
-          .create({ name: StringHelper.randomize(10) }),
-      );
+      .save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }));
     const ipObj: IPObj = await manager.getRepository(IPObj).save(
       manager.getRepository(IPObj).create({
         name: 'test',
@@ -203,8 +196,9 @@ describe(describeName('Firewall E2E Tests'), () => {
       firewall = fwcProduct.firewall;
       table = fwcProduct.routingTable;
 
-      const ruleService: RoutingRuleService =
-        await app.getService<RoutingRuleService>(RoutingRuleService.name);
+      const ruleService: RoutingRuleService = await app.getService<RoutingRuleService>(
+        RoutingRuleService.name,
+      );
 
       rule1 = await ruleService.create({
         routingTableId: table.id,

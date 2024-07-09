@@ -27,12 +27,7 @@ import { FwCloud } from '../../../src/models/fwcloud/FwCloud';
 import StringHelper from '../../../src/utils/string.helper';
 import { EntityManager } from 'typeorm';
 import { User } from '../../../src/models/user/User';
-import {
-  createUser,
-  generateSession,
-  attachSession,
-  sleep,
-} from '../../utils/utils';
+import { createUser, generateSession, attachSession, sleep } from '../../utils/utils';
 import { Application } from '../../../src/Application';
 import { FwCloudExport } from '../../../src/fwcloud-exporter/fwcloud-export';
 import { FwCloudExportService } from '../../../src/fwcloud-exporter/fwcloud-export.service';
@@ -63,9 +58,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
       }),
     );
 
-    fwCloudExportService = await app.getService<FwCloudExportService>(
-      FwCloudExportService.name,
-    );
+    fwCloudExportService = await app.getService<FwCloudExportService>(FwCloudExportService.name);
   });
 
   beforeEach(async () => {
@@ -80,17 +73,13 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
     describe('FwCloudExportController@create', () => {
       it('guest user should not create a fwcloud export file', async () => {
         return await request(app.express)
-          .post(
-            _URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }),
-          )
+          .post(_URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }))
           .expect(401);
       });
 
       it('regular user which does not belong to the fwcloud can not create a fwcloud export file', async () => {
         return await request(app.express)
-          .post(
-            _URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }),
-          )
+          .post(_URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }))
           .set('Cookie', [attachSession(regularUserSessionId)])
           .expect(401);
       });
@@ -100,9 +89,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
         await manager.getRepository(User).save(regularUser);
 
         return await request(app.express)
-          .post(
-            _URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }),
-          )
+          .post(_URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }))
           .set('Cookie', [attachSession(regularUserSessionId)])
           .expect('Content-Type', /application/)
           .expect(201);
@@ -110,9 +97,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
 
       it('admin user can create a fwcloud export file', async () => {
         return await request(app.express)
-          .post(
-            _URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }),
-          )
+          .post(_URL().getURL('fwclouds.exports.store', { fwcloud: fwCloud.id }))
           .set('Cookie', [attachSession(adminUserSessionId)])
           .expect('Content-Type', /application/)
           .expect(201);
@@ -141,9 +126,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
       });
 
       it('admin user should import a fwcloud export file', async () => {
-        const fwCloudCount: number = (
-          await manager.getRepository(FwCloud).find()
-        ).length;
+        const fwCloudCount: number = (await manager.getRepository(FwCloud).find()).length;
 
         return await request(app.express)
           .post(_URL().getURL('fwclouds.exports.import'))
@@ -151,9 +134,9 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
           .set('Cookie', [attachSession(adminUserSessionId)])
           .expect(201)
           .then(async (response) => {
-            expect(
-              (await manager.getRepository(FwCloud).find()).length,
-            ).to.be.deep.eq(fwCloudCount + 1);
+            expect((await manager.getRepository(FwCloud).find()).length).to.be.deep.eq(
+              fwCloudCount + 1,
+            );
           });
       });
 
@@ -165,10 +148,7 @@ describe(describeName('FwCloudExport E2E Tests'), () => {
       });
 
       it('should return 422 if the file does not have .fwcloud extension', async () => {
-        const _path: string = path.join(
-          path.dirname(fwCloudExport.exportPath),
-          'file.other',
-        );
+        const _path: string = path.join(path.dirname(fwCloudExport.exportPath), 'file.other');
         fs.moveSync(fwCloudExport.exportPath, _path);
         return await request(app.express)
           .post(_URL().getURL('fwclouds.exports.import'))

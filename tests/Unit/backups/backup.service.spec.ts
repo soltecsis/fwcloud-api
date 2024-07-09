@@ -22,10 +22,7 @@
 
 import { AbstractApplication } from '../../../src/fonaments/abstract-application';
 import { Backup } from '../../../src/backups/backup';
-import {
-  BackupService,
-  BackupUpdateableConfig,
-} from '../../../src/backups/backup.service';
+import { BackupService, BackupUpdateableConfig } from '../../../src/backups/backup.service';
 import { testSuite, expect, describeName } from '../../mocha/global-setup';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -122,9 +119,7 @@ describe(describeName('BackupService Unit tests'), async () => {
 
     describe('create()', () => {
       it('should create a backup', async () => {
-        const backup: Backup = await new Backup().create(
-          service.config.data_dir,
-        );
+        const backup: Backup = await new Backup().create(service.config.data_dir);
 
         expect(backup.exists()).to.be.true;
       });
@@ -186,24 +181,13 @@ describe(describeName('BackupService Unit tests'), async () => {
       });
 
       it('should throw an exception if the file is not a valid backup', async () => {
-        const tmpDirectoryPath: string = path.join(
-          app.config.get('tmp.directory'),
-          'test',
-        );
+        const tmpDirectoryPath: string = path.join(app.config.get('tmp.directory'), 'test');
         fs.mkdirSync(tmpDirectoryPath);
-        fs.writeFileSync(
-          path.join(tmpDirectoryPath, 'test.txt'),
-          'this is a file',
-        );
-        await Zip.zip(
-          tmpDirectoryPath,
-          path.join(app.config.get('tmp.directory'), 'test.zip'),
-        );
+        fs.writeFileSync(path.join(tmpDirectoryPath, 'test.txt'), 'this is a file');
+        await Zip.zip(tmpDirectoryPath, path.join(app.config.get('tmp.directory'), 'test.zip'));
 
         const t = () => {
-          return service.import(
-            path.join(app.config.get('tmp.directory'), 'test.zip'),
-          );
+          return service.import(path.join(app.config.get('tmp.directory'), 'test.zip'));
         };
 
         await expect(t()).to.be.rejected;
@@ -224,9 +208,7 @@ describe(describeName('BackupService Unit tests'), async () => {
         const expectedRemoved: number =
           (await service.getAll()).length - service['_config'].max_copies;
 
-        expect(await service.applyRetentionPolicy()).to.have.length(
-          expectedRemoved,
-        );
+        expect(await service.applyRetentionPolicy()).to.have.length(expectedRemoved);
       });
 
       it('should remove a backup if retention policy by expiration date is enabled', async () => {
@@ -236,15 +218,11 @@ describe(describeName('BackupService Unit tests'), async () => {
         service['_config'].max_copies = 0;
         service['_config'].max_days = 1;
 
-        let stubDate = sinon
-          .stub(Date, 'now')
-          .returns(new Date(Date.UTC(2017, 1, 14)).valueOf());
+        let stubDate = sinon.stub(Date, 'now').returns(new Date(Date.UTC(2017, 1, 14)).valueOf());
         await b1.create(service.config.data_dir);
         stubDate.restore();
 
-        stubDate = sinon
-          .stub(Date, 'now')
-          .returns(new Date(Date.UTC(2017, 1, 15)).valueOf());
+        stubDate = sinon.stub(Date, 'now').returns(new Date(Date.UTC(2017, 1, 15)).valueOf());
         await b2.create(service.config.data_dir);
         stubDate.restore();
 

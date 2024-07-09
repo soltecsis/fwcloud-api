@@ -90,8 +90,7 @@ export class IptablesSaveToFWCloud extends Service {
     this.items.shift(); // -A
 
     // If the new chain is a standard one and is different from the current one, reset rule position.
-    if (StdChains.has(this.items[0]) && this.chain !== this.items[0])
-      this.ruleOrder = 1;
+    if (StdChains.has(this.items[0]) && this.chain !== this.items[0]) this.ruleOrder = 1;
     this.chain = this.items[0];
     this.items.shift();
 
@@ -111,9 +110,7 @@ export class IptablesSaveToFWCloud extends Service {
     };
 
     // If don't find type map, ignore this rule.
-    this.policyType = NetfilterTablePolicyTypeMap.get(
-      `${this.table}:${this.chain}`,
-    );
+    this.policyType = NetfilterTablePolicyTypeMap.get(`${this.table}:${this.chain}`);
     if (!this.policyType) return false;
     policy_rData.type = this.policyType;
 
@@ -134,9 +131,7 @@ export class IptablesSaveToFWCloud extends Service {
             await this.eatCommentString(itemsCopy2);
             itemsCopy = itemsCopy.slice(0, i).concat(itemsCopy2);
           } catch (err) {
-            throw new Error(
-              `Error eating rule comment string: ${JSON.stringify(err)}`,
-            );
+            throw new Error(`Error eating rule comment string: ${JSON.stringify(err)}`);
           }
         }
       }
@@ -144,19 +139,12 @@ export class IptablesSaveToFWCloud extends Service {
       action = `${itemsCopy[0]} ${itemsCopy[1]} ${itemsCopy[2]} ${itemsCopy[3]} ${itemsCopy[4]} ${itemsCopy[5]}`;
 
       // Ignore RELATED,ESTABLISHED rules.
-      if (action === '-m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT')
-        return false;
-      if (action === '-m state --state RELATED,ESTABLISHED -j ACCEPT')
-        return false;
+      if (action === '-m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT') return false;
+      if (action === '-m state --state RELATED,ESTABLISHED -j ACCEPT') return false;
 
       // Ignore catch all rules.
       action = `${itemsCopy[0]} ${itemsCopy[1]}`;
-      if (
-        action === '-j ACCEPT' ||
-        action === '-j DROP' ||
-        action === '-j REJECT'
-      )
-        return false;
+      if (action === '-j ACCEPT' || action === '-j DROP' || action === '-j REJECT') return false;
     }
 
     // Create new policy rule.
@@ -214,10 +202,7 @@ export class IptablesSaveToFWCloud extends Service {
       // Target is a custom chain.
       for (const l of lines) {
         // If we found a FWCloud accounting chain, then this is an accounting rule.
-        if (
-          this.ruleTarget.startsWith('FWCRULE') &&
-          this.ruleTarget.endsWith('.ACC')
-        )
+        if (this.ruleTarget.startsWith('FWCRULE') && this.ruleTarget.endsWith('.ACC'))
           this.accountingRule = true;
 
         await this.fillRulePositions(l); // RECURSIVE CALL!!!
@@ -300,8 +285,7 @@ export class IptablesSaveToFWCloud extends Service {
         lineItems.shift();
         if (this.ruleTarget === 'RETURN') await this.negateLinePositions(line);
         else if (this.ruleTarget === 'SNAT' || this.ruleTarget === 'DNAT') {
-          if (!this.ruleTargetSet)
-            await this.eatNAT(lineItems[0], lineItems[1]);
+          if (!this.ruleTargetSet) await this.eatNAT(lineItems[0], lineItems[1]);
           lineItems.shift();
           lineItems.shift();
         } else if (this.ruleTarget === 'MASQUERADE') {
@@ -368,8 +352,7 @@ export class IptablesSaveToFWCloud extends Service {
       }
 
       // Add the ignored module to statistics information.
-      if (this.stats.modulesIgnored.indexOf(module) === -1)
-        this.stats.modulesIgnored.push(module);
+      if (this.stats.modulesIgnored.indexOf(module) === -1) this.stats.modulesIgnored.push(module);
 
       return;
     }
@@ -407,15 +390,9 @@ export class IptablesSaveToFWCloud extends Service {
         const portsList = data.trim().split(',');
         for (const ports of portsList) {
           const sports =
-            opt === '--source-ports' || opt === '--sports' || opt === '--ports'
-              ? ports
-              : '0';
+            opt === '--source-ports' || opt === '--sports' || opt === '--ports' ? ports : '0';
           const dports =
-            opt === '--destination-ports' ||
-            opt === '--dports' ||
-            opt === '--ports'
-              ? ports
-              : '0';
+            opt === '--destination-ports' || opt === '--dports' || opt === '--ports' ? ports : '0';
           await this.eatPort(sports, dports, null, null);
         }
         items.shift();
@@ -438,11 +415,8 @@ export class IptablesSaveToFWCloud extends Service {
       */
       case 'icmp': {
         if (this.ipProtocol !== 'icmp')
-          throw new Error(
-            'IPTables icmp module can only be used in conjunction with -p icmp',
-          );
-        if (opt !== '--icmp-type')
-          throw new Error(`Bad ${module} module option`);
+          throw new Error('IPTables icmp module can only be used in conjunction with -p icmp');
+        if (opt !== '--icmp-type') throw new Error(`Bad ${module} module option`);
         await this.eatICMP(data);
         items.shift();
         items.shift();
@@ -549,11 +523,7 @@ export class IptablesSaveToFWCloud extends Service {
         if (items[0].charAt(0) === '"') {
           // Log prefix string.
           items.shift();
-          while (
-            items.length > 0 &&
-            items[0].charAt(items[0].length - 1) !== '"'
-          )
-            items.shift();
+          while (items.length > 0 && items[0].charAt(items[0].length - 1) !== '"') items.shift();
           if (items[0].charAt(items[0].length - 1) != '"')
             throw new Error('End of log prefix not found');
         }
@@ -583,11 +553,7 @@ export class IptablesSaveToFWCloud extends Service {
 
     // Comment is surrounded by double quotes.
     comment = item.substr(1); // Remove start double quote.
-    if (
-      size > 1 &&
-      item.charAt(size - 1) === '"' &&
-      item.charAt(size - 2) !== '\\'
-    ) {
+    if (size > 1 && item.charAt(size - 1) === '"' && item.charAt(size - 2) !== '\\') {
       // Comment is a single word surrounded by double quotes.
     } else {
       // Comment is a several items string surrounded by doble quotes.
@@ -602,9 +568,7 @@ export class IptablesSaveToFWCloud extends Service {
 
         if (
           item === '"' ||
-          (size > 1 &&
-            item.charAt(size - 1) === '"' &&
-            item.charAt(size - 2) !== '\\')
+          (size > 1 && item.charAt(size - 1) === '"' && item.charAt(size - 2) !== '\\')
         ) {
           endFound = true;
           break; // End of comment string.
@@ -644,28 +608,21 @@ export class IptablesSaveToFWCloud extends Service {
 
       if (ruleMetadata) {
         // Rule style.
-        if (ruleMetadata['fwc_rs'])
-          policy_rData['style'] = ruleMetadata['fwc_rs'];
+        if (ruleMetadata['fwc_rs']) policy_rData['style'] = ruleMetadata['fwc_rs'];
 
         // Rule group name.
         if (ruleMetadata['fwc_rgn']) {
           // The rule belongs to the current rules group.
-          if (
-            this.ruleGroupName &&
-            this.ruleGroupName === ruleMetadata['fwc_rgn']
-          )
+          if (this.ruleGroupName && this.ruleGroupName === ruleMetadata['fwc_rgn'])
             policy_rData['idgroup'] = this.ruleGroupId;
           else {
             // Create new rules group.
-            const policyGroupRepository = db
-              .getSource()
-              .manager.getRepository(PolicyGroup);
+            const policyGroupRepository = db.getSource().manager.getRepository(PolicyGroup);
             let policyGroup = policyGroupRepository.create({
               name: ruleMetadata['fwc_rgn'],
               firewallId: this.req.body.firewall,
             });
-            if (ruleMetadata['fwc_rgs'])
-              policyGroup['groupstyle'] = ruleMetadata['fwc_rgs'];
+            if (ruleMetadata['fwc_rgs']) policyGroup['groupstyle'] = ruleMetadata['fwc_rgs'];
             policyGroup = await policyGroupRepository.save(policyGroup);
             this.ruleGroupId = policyGroup.id;
             this.ruleGroupName = ruleMetadata['fwc_rgn'];
@@ -680,10 +637,7 @@ export class IptablesSaveToFWCloud extends Service {
     }
   }
 
-  private async composeAndEatPort(
-    item: string,
-    items: string[],
-  ): Promise<void> {
+  private async composeAndEatPort(item: string, items: string[]): Promise<void> {
     if (
       (item === '--source-port' ||
         item === '--sport' ||
@@ -692,13 +646,9 @@ export class IptablesSaveToFWCloud extends Service {
       this.ipProtocol !== 'tcp' &&
       this.ipProtocol !== 'udp'
     )
-      throw new Error(
-        '--sport/--dport can only be used in conjunction with -p tcp or -p udp',
-      );
+      throw new Error('--sport/--dport can only be used in conjunction with -p tcp or -p udp');
     if (item === '--tcp-flags' && this.ipProtocol !== 'tcp')
-      throw new Error(
-        '--tcp-flags can only be used in conjunction with -p tcp',
-      );
+      throw new Error('--tcp-flags can only be used in conjunction with -p tcp');
 
     let srcPorts = '0';
     let dstPorts = '0';
@@ -707,8 +657,7 @@ export class IptablesSaveToFWCloud extends Service {
 
     while (items.length > 0) {
       if (item === '--source-port' || item === '--sport') srcPorts = items[0];
-      else if (item === '--destination-port' || item === '--dport')
-        dstPorts = items[0];
+      else if (item === '--destination-port' || item === '--dport') dstPorts = items[0];
       else if (item === '--tcp-flags') {
         tcpFlags = await this.generateBitMask(items[0]);
         tcpFlagsSet = await this.generateBitMask(items[1]);
@@ -780,17 +729,9 @@ export class IptablesSaveToFWCloud extends Service {
           this.req.body.firewall,
           'FDI',
         );
-        await Tree.insertFwc_TreeOBJ(
-          this.req,
-          fwcTreeNode.id,
-          99999,
-          'IFF',
-          interfaceData,
-        );
+        await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'IFF', interfaceData);
       } catch (err) {
-        throw new Error(
-          `Error creating firewall interface: ${JSON.stringify(err)}`,
-        );
+        throw new Error(`Error creating firewall interface: ${JSON.stringify(err)}`);
       }
 
       this.stats.interfaces++;
@@ -799,9 +740,7 @@ export class IptablesSaveToFWCloud extends Service {
     // Add the interface to the rule position.
     const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${dir}`);
     if (!rulePosition)
-      throw new Error(
-        `Rule position not found for: ${this.table}:${this.chain}:${dir}`,
-      );
+      throw new Error(`Rule position not found for: ${this.table}:${this.chain}:${dir}`);
 
     const policy_r__interfaceData = {
       rule: this.ruleId,
@@ -826,9 +765,7 @@ export class IptablesSaveToFWCloud extends Service {
           policy_r__interfaceData,
         );
     } catch (err) {
-      throw new Error(
-        `Error inserting interface in policy rule: ${JSON.stringify(err)}`,
-      );
+      throw new Error(`Error inserting interface in policy rule: ${JSON.stringify(err)}`);
     }
   }
 
@@ -847,18 +784,8 @@ export class IptablesSaveToFWCloud extends Service {
     let addrId: any;
 
     if (mask === '32' || mask === '128')
-      addrId = await IPObj.searchAddr(
-        this.req.dbCon,
-        this.req.body.fwcloud,
-        ip,
-      );
-    else
-      addrId = await IPObj.searchAddrWithMask(
-        this.req.dbCon,
-        this.req.body.fwcloud,
-        ip,
-        mask,
-      );
+      addrId = await IPObj.searchAddr(this.req.dbCon, this.req.body.fwcloud, ip);
+    else addrId = await IPObj.searchAddrWithMask(this.req.dbCon, this.req.body.fwcloud, ip, mask);
 
     // If not found create it.
     if (!addrId) {
@@ -874,22 +801,11 @@ export class IptablesSaveToFWCloud extends Service {
       };
 
       try {
-        ipobjData.id = addrId = await IPObj.insertIpobj(
-          this.req.dbCon,
-          ipobjData,
-        );
+        ipobjData.id = addrId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
         const fwcTreeNode: any =
           mask === fullMask
-            ? await Tree.getNodeByNameAndType(
-                this.req.body.fwcloud,
-                'Addresses',
-                'OIA',
-              )
-            : await Tree.getNodeByNameAndType(
-                this.req.body.fwcloud,
-                'Networks',
-                'OIN',
-              );
+            ? await Tree.getNodeByNameAndType(this.req.body.fwcloud, 'Addresses', 'OIA')
+            : await Tree.getNodeByNameAndType(this.req.body.fwcloud, 'Networks', 'OIN');
         await Tree.insertFwc_TreeOBJ(
           this.req,
           fwcTreeNode.id,
@@ -907,18 +823,13 @@ export class IptablesSaveToFWCloud extends Service {
       await this.addIPObjToRulePosition(dir, addrId);
     } else {
       // Search if the address object is part of an OpenVPN ifconfig-push configuration option.
-      const result: any = await IPObj.addrInIfconfigPushOpenVPN(
-        addrId,
-        this.req.body.fwcloud,
-      );
+      const result: any = await IPObj.addrInIfconfigPushOpenVPN(addrId, this.req.body.fwcloud);
 
       // If it is, then add the OpenVPN config to the rule position instead of the address object.
       if (result.length && result.length > 0) {
         this.req.body.rule = this.ruleId;
         this.req.body.openvpn = result[0].id;
-        this.req.body.position = PositionMap.get(
-          `${this.table}:${this.chain}:${dir}`,
-        );
+        this.req.body.position = PositionMap.get(`${this.table}:${this.chain}:${dir}`);
         this.req.body.position_order = 999999;
         if (
           !(await PolicyRuleToOpenVPN.checkExistsInPosition(
@@ -967,26 +878,15 @@ export class IptablesSaveToFWCloud extends Service {
       };
 
       try {
-        ipobjData.id = iprangeId = await IPObj.insertIpobj(
-          this.req.dbCon,
-          ipobjData,
-        );
+        ipobjData.id = iprangeId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
         const fwcTreeNode: any = await Tree.getNodeByNameAndType(
           this.req.body.fwcloud,
           'Address Ranges',
           'OIR',
         );
-        await Tree.insertFwc_TreeOBJ(
-          this.req,
-          fwcTreeNode.id,
-          99999,
-          'OIR',
-          ipobjData,
-        );
+        await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'OIR', ipobjData);
       } catch (err) {
-        throw new Error(
-          `Error creating address range object: ${JSON.stringify(err)}`,
-        );
+        throw new Error(`Error creating address range object: ${JSON.stringify(err)}`);
       }
 
       this.stats.ipObjs++;
@@ -1023,8 +923,7 @@ export class IptablesSaveToFWCloud extends Service {
       );
     }
 
-    if (protocolId === '')
-      throw new Error(`IP protocol not found: ${protocol}`);
+    if (protocolId === '') throw new Error(`IP protocol not found: ${protocol}`);
 
     // Add the protocol object to the rule position.
     await this.addIPObjToRulePosition('-p', protocolId);
@@ -1091,22 +990,11 @@ export class IptablesSaveToFWCloud extends Service {
       };
 
       try {
-        ipobjData.id = portId = await IPObj.insertIpobj(
-          this.req.dbCon,
-          ipobjData,
-        );
+        ipobjData.id = portId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
         const fwcTreeNode: any =
           this.ipProtocol === 'tcp'
-            ? await Tree.getNodeByNameAndType(
-                this.req.body.fwcloud,
-                'TCP',
-                'SOT',
-              )
-            : await Tree.getNodeByNameAndType(
-                this.req.body.fwcloud,
-                'UDP',
-                'SOU',
-              );
+            ? await Tree.getNodeByNameAndType(this.req.body.fwcloud, 'TCP', 'SOT')
+            : await Tree.getNodeByNameAndType(this.req.body.fwcloud, 'UDP', 'SOU');
         await Tree.insertFwc_TreeOBJ(
           this.req,
           fwcTreeNode.id,
@@ -1115,9 +1003,7 @@ export class IptablesSaveToFWCloud extends Service {
           ipobjData,
         );
       } catch (err) {
-        throw new Error(
-          `Error creating service object: ${JSON.stringify(err)}`,
-        );
+        throw new Error(`Error creating service object: ${JSON.stringify(err)}`);
       }
 
       this.stats.ipObjs++;
@@ -1134,8 +1020,7 @@ export class IptablesSaveToFWCloud extends Service {
     if (data === 'any') icmp = ['-1', '-1'];
     else {
       icmp = data.split('/');
-      for (const val of icmp)
-        await Joi.number().integer().min(-1).max(255).validateAsync(val);
+      for (const val of icmp) await Joi.number().integer().min(-1).max(255).validateAsync(val);
 
       if (icmp.length < 2) icmp.push('-1');
     }
@@ -1162,22 +1047,13 @@ export class IptablesSaveToFWCloud extends Service {
       };
 
       try {
-        ipobjData.id = icmpId = await IPObj.insertIpobj(
-          this.req.dbCon,
-          ipobjData,
-        );
+        ipobjData.id = icmpId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
         const fwcTreeNode: any = await Tree.getNodeByNameAndType(
           this.req.body.fwcloud,
           'ICMP',
           'SOM',
         );
-        await Tree.insertFwc_TreeOBJ(
-          this.req,
-          fwcTreeNode.id,
-          99999,
-          'SOM',
-          ipobjData,
-        );
+        await Tree.insertFwc_TreeOBJ(this.req, fwcTreeNode.id, 99999, 'SOM', ipobjData);
       } catch (err) {
         throw new Error(`Error creating ICMP object: ${JSON.stringify(err)}`);
       }
@@ -1189,15 +1065,10 @@ export class IptablesSaveToFWCloud extends Service {
     await this.addIPObjToRulePosition('srvc', icmpId);
   }
 
-  private async addIPObjToRulePosition(
-    item: string,
-    id: string,
-  ): Promise<void> {
+  private async addIPObjToRulePosition(item: string, id: string): Promise<void> {
     const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${item}`);
     if (!rulePosition)
-      throw new Error(
-        `Rule position not found for: ${this.table}:${this.chain}:${item}`,
-      );
+      throw new Error(`Rule position not found for: ${this.table}:${this.chain}:${item}`);
 
     const policy_r__ipobjData = {
       rule: this.ruleId,
@@ -1212,16 +1083,11 @@ export class IptablesSaveToFWCloud extends Service {
       if (!(await PolicyRuleToIPObj.checkExistsInPosition(policy_r__ipobjData)))
         await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
     } catch (err) {
-      throw new Error(
-        `Error inserting IP object in policy rule: ${JSON.stringify(err)}`,
-      );
+      throw new Error(`Error inserting IP object in policy rule: ${JSON.stringify(err)}`);
     }
   }
 
-  private async addIPObjGroupToRulePosition(
-    position: number,
-    group: number,
-  ): Promise<void> {
+  private async addIPObjGroupToRulePosition(position: number, group: number): Promise<void> {
     const policy_r__ipobjData = {
       rule: this.ruleId,
       ipobj: -1,
@@ -1234,24 +1100,17 @@ export class IptablesSaveToFWCloud extends Service {
     try {
       await PolicyRuleToIPObj.insertPolicy_r__ipobj(policy_r__ipobjData);
     } catch (err) {
-      throw new Error(
-        `Error inserting IP objects group in policy rule: ${JSON.stringify(err)}`,
-      );
+      throw new Error(`Error inserting IP objects group in policy rule: ${JSON.stringify(err)}`);
     }
   }
 
   public async groupRulePositionItems(): Promise<void> {
     let i: number;
-    const groupsData: any = await IPObjGroup.getIpobjGroups(
-      this.req.dbCon,
-      this.req.body.fwcloud,
-    );
+    const groupsData: any = await IPObjGroup.getIpobjGroups(this.req.dbCon, this.req.body.fwcloud);
     const ipobjGroups = groupsData.map(({ id }) => {
       return id;
     });
-    const positionsList = GroupablePositionMap.get(
-      `${this.table}:${this.chain}`,
-    );
+    const positionsList = GroupablePositionMap.get(`${this.table}:${this.chain}`);
 
     // For all positions for which it is possible to group objects.
     for (const position of positionsList) {
@@ -1271,12 +1130,7 @@ export class IptablesSaveToFWCloud extends Service {
           this.req.body.fwcloud,
           group,
         );
-        if (
-          !groupData ||
-          !groupData[0] ||
-          !groupData[0].ipobjs ||
-          groupData[0].ipobjs.length < 2
-        )
+        if (!groupData || !groupData[0] || !groupData[0].ipobjs || groupData[0].ipobjs.length < 2)
           continue;
         const ipobjsInGroup = groupData[0].ipobjs.map(({ id }) => {
           return id;
@@ -1421,11 +1275,7 @@ export class IptablesSaveToFWCloud extends Service {
         */
         if (obj.type >= 1 && obj.type <= 7) {
           // Verify that object doesn't already exists in position.
-          if (
-            !(await PolicyRuleToIPObj.checkExistsInPosition(
-              policy_r__ipobjData,
-            ))
-          )
+          if (!(await PolicyRuleToIPObj.checkExistsInPosition(policy_r__ipobjData)))
             await PolicyRuleToIPObj.updatePolicy_r__ipobj_position(
               this.req.dbCon,
               currentRule.id,

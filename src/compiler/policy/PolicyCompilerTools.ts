@@ -22,10 +22,7 @@
 
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import { AvailablePolicyCompilers } from './PolicyCompiler';
-import {
-  SpecialPolicyRules,
-  PolicyRuleOptMask,
-} from '../../models/policy/PolicyRule';
+import { SpecialPolicyRules, PolicyRuleOptMask } from '../../models/policy/PolicyRule';
 import { FireWallOptMask } from '../../models/firewall/Firewall';
 
 const ip = require('ip');
@@ -39,14 +36,7 @@ export const RuleActionsMap = new Map<string, number>([
   ['ACCOUNTING', 4],
 ]);
 
-export const POLICY_TYPE = [
-  '',
-  'INPUT',
-  'OUTPUT',
-  'FORWARD',
-  'POSTROUTING',
-  'PREROUTING',
-];
+export const POLICY_TYPE = ['', 'INPUT', 'OUTPUT', 'FORWARD', 'POSTROUTING', 'PREROUTING'];
 POLICY_TYPE[61] = 'INPUT'; // IPv6
 POLICY_TYPE[62] = 'OUTPUT'; // IPv6
 POLICY_TYPE[63] = 'FORWARD'; // IPv6
@@ -126,13 +116,10 @@ export abstract class PolicyCompilerTools {
     let comment: string = this._ruleData.comment ? this._ruleData.comment : '';
 
     if (this._ruleData.style) metaData['fwc_rs'] = this._ruleData.style;
-    if (this._ruleData.group_name)
-      metaData['fwc_rgn'] = this._ruleData.group_name;
-    if (this._ruleData.group_style)
-      metaData['fwc_rgs'] = this._ruleData.group_style;
+    if (this._ruleData.group_name) metaData['fwc_rgn'] = this._ruleData.group_name;
+    if (this._ruleData.group_style) metaData['fwc_rgs'] = this._ruleData.group_style;
 
-    if (JSON.stringify(metaData) !== '{}')
-      comment = `${JSON.stringify(metaData)}${comment}`;
+    if (JSON.stringify(metaData) !== '{}') comment = `${JSON.stringify(metaData)}${comment}`;
 
     comment = comment.trim();
 
@@ -195,10 +182,7 @@ export abstract class PolicyCompilerTools {
         break;
       }
       case SpecialPolicyRules.FAIL2BAN:
-        if (
-          this._family === 'ip6' ||
-          this._policyType != PolicyTypesMap.get('IPv4:INPUT')
-        )
+        if (this._family === 'ip6' || this._policyType != PolicyTypesMap.get('IPv4:INPUT'))
           throw fwcError.other('Invalid chain for Fail2Ban special rule');
       // eslint-disable-next-line no-fallthrough
       case SpecialPolicyRules.HOOKSCRIPT: {
@@ -234,9 +218,7 @@ export abstract class PolicyCompilerTools {
     ) {
       // SNAT / DNAT
       const chain =
-        this._policyType === PolicyTypesMap.get('IPv4:SNAT')
-          ? 'POSTROUTING'
-          : 'PREROUTING';
+        this._policyType === PolicyTypesMap.get('IPv4:SNAT') ? 'POSTROUTING' : 'PREROUTING';
       if (this._compiler === 'IPTables') {
         this._table = '-t nat';
         this._cs += this._table + ` -A ${chain} ${this._comment}`;
@@ -273,30 +255,22 @@ export abstract class PolicyCompilerTools {
         this._action = CompilerAction.get(`${this._compiler}:1`); // 1 = ACCEPT
       else if (this._ruleData.special === SpecialPolicyRules.CATCHALL)
         // Special rule for catch-all.
-        this._action = CompilerAction.get(
-          `${this._compiler}:${this._ruleData.action}`,
-        );
+        this._action = CompilerAction.get(`${this._compiler}:${this._ruleData.action}`);
       else {
-        this._action = CompilerAction.get(
-          `${this._compiler}:${this._ruleData.action}`,
-        );
+        this._action = CompilerAction.get(`${this._compiler}:${this._ruleData.action}`);
         if (this._action === CompilerAction.get(`${this._compiler}:1`)) {
           // 1 = ACCEPT
           if (this._ruleData.options & FireWallOptMask.STATEFUL)
             // Stateful rule.
             this._stateful =
-              this._compiler == 'IPTables'
-                ? '-m conntrack --ctstate  NEW '
-                : 'ct state new ';
+              this._compiler == 'IPTables' ? '-m conntrack --ctstate  NEW ' : 'ct state new ';
           else if (
             this._ruleData.firewall_options & FireWallOptMask.STATEFUL &&
             !(this._ruleData.options & PolicyRuleOptMask.STATELESS)
           )
             // Stateful firewall and this rule is not stateless.
             this._stateful =
-              this._compiler == 'IPTables'
-                ? '-m conntrack --ctstate  NEW '
-                : 'ct state new ';
+              this._compiler == 'IPTables' ? '-m conntrack --ctstate  NEW ' : 'ct state new ';
         } else if (this._action === 'ACCOUNTING') {
           this._accChain = 'FWCRULE' + this._ruleData.id + '.ACC';
           this._action = `${this._compiler == 'NFTables' ? 'jump ' : ''}${this._accChain}`;
@@ -314,9 +288,7 @@ export abstract class PolicyCompilerTools {
         if (!this._accChain) {
           this._afterLogAction = this._action;
           this._action = `${this._compiler == 'NFTables' ? 'jump ' : ''}${this._logChain}`;
-        } else
-          this._afterLogAction =
-            this._compiler == 'IPTables' ? 'RETURN' : 'counter return';
+        } else this._afterLogAction = this._compiler == 'IPTables' ? 'RETURN' : 'counter return';
       }
     }
   }
@@ -337,11 +309,7 @@ export abstract class PolicyCompilerTools {
     // Apply rule only to the selected firewall.
     if (this._ruleData.fw_apply_to && this._ruleData.firewall_name)
       this._cs =
-        'if [ "$HOSTNAME" = "' +
-        this._ruleData.firewall_name +
-        '" ]; then\n' +
-        this._cs +
-        'fi\n';
+        'if [ "$HOSTNAME" = "' + this._ruleData.firewall_name + '" ]; then\n' + this._cs + 'fi\n';
 
     // Include before and/or after rule script code.
     if (
@@ -357,12 +325,7 @@ export abstract class PolicyCompilerTools {
     return this._cs;
   }
 
-  private compileSrcDst(
-    dir: 'SRC' | 'DST',
-    sd: any,
-    negate: boolean,
-    ipv: 4 | 6,
-  ): void {
+  private compileSrcDst(dir: 'SRC' | 'DST', sd: any, negate: boolean, ipv: 4 | 6): void {
     const cmpPos: CompiledPosition = { negate: negate, items: [] };
     const opt = `${this._compiler === 'NFTables' ? (ipv === 4 ? 'ip ' : 'ip6 ') : ''}${CompilerDir.get(`${this._compiler}:${dir}`)}`;
 
@@ -373,9 +336,7 @@ export abstract class PolicyCompilerTools {
       else if (sd[i].type === 24) {
         // Country
         if (this._compiler === 'IPTables')
-          cmpPos.items.push(
-            `-m geoip ${dir === 'SRC' ? '--src-cc' : '--dst-cc'} ${sd[i].name}`,
-          );
+          cmpPos.items.push(`-m geoip ${dir === 'SRC' ? '--src-cc' : '--dst-cc'} ${sd[i].name}`);
         else throw 'Country objects not supported yet for NFTables compiler';
       } else if (ipv === sd[i].ip_version) {
         // Only add this type of IP objects if they have the same IP version than the compiled rule.
@@ -390,9 +351,7 @@ export abstract class PolicyCompilerTools {
             cmpPos.items.push(`${opt} ${sd[i].address}${sd[i].netmask}`);
           else {
             const net = ip.subnet(sd[i].address, sd[i].netmask);
-            cmpPos.items.push(
-              `${opt} ${sd[i].address}/${net.subnetMaskLength}`,
-            );
+            cmpPos.items.push(`${opt} ${sd[i].address}/${net.subnetMaskLength}`);
           }
         } else if (sd[i].type === 6) {
           // Address range
@@ -486,10 +445,7 @@ export abstract class PolicyCompilerTools {
 
           if (!mask || mask === 0) {
             // No TCP flags.
-            if (
-              svc[i].source_port_end === 0 ||
-              svc[i].source_port_end === null
-            ) {
+            if (svc[i].source_port_end === 0 || svc[i].source_port_end === null) {
               // No source port.
               if (tcpPorts) tcpPorts += ',';
               tcpPorts +=
@@ -509,23 +465,15 @@ export abstract class PolicyCompilerTools {
             if (svc[i].source_port_end !== 0 && svc[i].source_port_end !== null)
               // Exists source port
               tmp += ` ${this._compiler == 'IPTables' ? '--sport' : 'tcp sport'} ${svc[i].source_port_start === svc[i].source_port_end ? svc[i].source_port_start : `${svc[i].source_port_start}${sep}${svc[i].source_port_end}`}`;
-            if (
-              svc[i].destination_port_end !== 0 &&
-              svc[i].destination_port_end !== null
-            )
+            if (svc[i].destination_port_end !== 0 && svc[i].destination_port_end !== null)
               // Exists destination port
               tmp += ` ${this._compiler == 'IPTables' ? '--dport' : 'tcp dport'} ${svc[i].destination_port_start === svc[i].destination_port_end ? svc[i].destination_port_start : `${svc[i].destination_port_start}${sep}${svc[i].destination_port_end}`}`;
-            tmp +=
-              this._compiler == 'IPTables'
-                ? ' --tcp-flags '
-                : ' tcp flags \\& \\(';
+            tmp += this._compiler == 'IPTables' ? ' --tcp-flags ' : ' tcp flags \\& \\(';
 
             // If all mask bits are set.
             if (mask === 0b00111111)
               tmp +=
-                this._compiler == 'IPTables'
-                  ? 'ALL '
-                  : 'fin\\|syn\\|rst\\|psh\\|ack\\|urg\\) == ';
+                this._compiler == 'IPTables' ? 'ALL ' : 'fin\\|syn\\|rst\\|psh\\|ack\\|urg\\) == ';
             else {
               // Compose the mask.
               if (mask & 0b00000001)
@@ -554,8 +502,7 @@ export abstract class PolicyCompilerTools {
 
             // Compose the flags that must be set.
             const settings = svc[i].tcp_flags_settings;
-            if (!settings || settings === 0)
-              tmp += this._compiler == 'IPTables' ? ' NONE' : '0x0';
+            if (!settings || settings === 0) tmp += this._compiler == 'IPTables' ? ' NONE' : '0x0';
             else {
               // Compose the mask.
               if (settings & 0b00000001)
@@ -605,9 +552,7 @@ export abstract class PolicyCompilerTools {
         case 1: {
           // ICMP
           const iptablesOpt =
-            ipv === 4
-              ? '-p icmp -m icmp --icmp-type'
-              : '-p icmpv6 -m ipv6-icmp --icmpv6-type';
+            ipv === 4 ? '-p icmp -m icmp --icmp-type' : '-p icmpv6 -m ipv6-icmp --icmpv6-type';
 
           if (svc[i].icmp_type === -1 && svc[i].icmp_code === -1)
             // Any ICMP
@@ -648,18 +593,14 @@ export abstract class PolicyCompilerTools {
       this._ruleData.positions[4].ipobjs.length > 1 ||
       this._ruleData.positions[5].ipobjs.length > 1
     )
-      throw fwcError.other(
-        'Translated fields must contain a maximum of one item',
-      );
+      throw fwcError.other('Translated fields must contain a maximum of one item');
 
     if (
       this._policyType === PolicyTypesMap.get('IPv4:SNAT') &&
       this._ruleData.positions[4].ipobjs.length === 0
     ) {
       if (this._ruleData.positions[5].ipobjs.length === 0)
-        return this._compiler == 'IPTables'
-          ? 'MASQUERADE'
-          : 'counter masquerade';
+        return this._compiler == 'IPTables' ? 'MASQUERADE' : 'counter masquerade';
       throw fwcError.other(
         "For SNAT 'Translated Service' must be empty if 'Translated Source' is empty",
       );
@@ -679,18 +620,13 @@ export abstract class PolicyCompilerTools {
       this._ruleData.positions[5].ipobjs[0].protocol !== 6 &&
       this._ruleData.positions[5].ipobjs[0].protocol !== 17
     )
-      throw fwcError.other(
-        "For 'Translated Service' only protocols TCP and UDP are allowed",
-      );
+      throw fwcError.other("For 'Translated Service' only protocols TCP and UDP are allowed");
 
     let protocol = '';
     let action: string;
     if (this._compiler == 'IPTables') {
       if (this._ruleData.positions[5].ipobjs.length === 1)
-        protocol =
-          this._ruleData.positions[5].ipobjs[0].protocol == 6
-            ? '-p tcp '
-            : '-p udp ';
+        protocol = this._ruleData.positions[5].ipobjs[0].protocol == 6 ? '-p tcp ' : '-p udp ';
       action =
         this._policyType === PolicyTypesMap.get('IPv4:SNAT')
           ? `SNAT ${protocol}--to-source `
@@ -790,10 +726,7 @@ export abstract class PolicyCompilerTools {
       return;
     for (i = 0; i < this._compiledPositions.length; i++) {
       for (p = i, j = i + 1; j < this._compiledPositions.length; j++) {
-        if (
-          this._compiledPositions[j].items.length <
-          this._compiledPositions[p].items.length
-        )
+        if (this._compiledPositions[j].items.length < this._compiledPositions[p].items.length)
           p = j;
       }
       const tmp = this._compiledPositions[i];
@@ -814,9 +747,7 @@ export abstract class PolicyCompilerTools {
       else position_items_negate.push(this._compiledPositions[i]);
     }
 
-    this._compiledPositions = position_items_not_negate.concat(
-      position_items_negate,
-    );
+    this._compiledPositions = position_items_not_negate.concat(position_items_negate);
   }
 
   protected generateCompilationString(id: string, cs: string): string {
@@ -826,10 +757,7 @@ export abstract class PolicyCompilerTools {
     if (this._compiledPositions.length === 0)
       // No conditions rule.
       cs += this._csEnd;
-    else if (
-      this._compiledPositions.length === 1 &&
-      !this._compiledPositions[0].negate
-    ) {
+    else if (this._compiledPositions.length === 1 && !this._compiledPositions[0].negate) {
       // One condition rule and no negated position.
       if (this._compiledPositions[0].items.length === 1)
         // Only one item in the condition.
@@ -849,10 +777,7 @@ export abstract class PolicyCompilerTools {
         i++
       ) {
         // We have the position_items array ordered by arrays length.
-        if (
-          this._compiledPositions[i].items.length === 1 &&
-          !this._compiledPositions[i].negate
-        )
+        if (this._compiledPositions[i].items.length === 1 && !this._compiledPositions[i].negate)
           cs += `${this._compiledPositions[i].items[0]} `;
         else {
           chainName = `FWCRULE${id}.CH${chainNumber}`;
@@ -905,10 +830,7 @@ export abstract class PolicyCompilerTools {
 
   protected addAccounting(): void {
     // Accounting, logging and marking is not allowed with SNAT and DNAT chains.
-    if (
-      this._accChain &&
-      this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')
-    ) {
+    if (this._accChain && this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')) {
       let createChain: string;
       let chainAction: string;
 
@@ -927,10 +849,7 @@ export abstract class PolicyCompilerTools {
 
   protected addLog(): void {
     // Accounting, logging and marking is not allowed with SNAT and DNAT chains.
-    if (
-      this._logChain &&
-      this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')
-    ) {
+    if (this._logChain && this._policyType <= PolicyTypesMap.get('IPv4:FORWARD')) {
       let createChain: string;
       let chainAction: string;
       let afterLog: string;
@@ -974,16 +893,10 @@ export abstract class PolicyCompilerTools {
         cs2 = `${this._cmd} add rule ${this._family} ${this._table} PREROUTING `;
       }
 
-      this._cs += this.generateCompilationString(
-        `${this._ruleData.id}-M1`,
-        cs1,
-      );
+      this._cs += this.generateCompilationString(`${this._ruleData.id}-M1`, cs1);
       // Add the mark to the PREROUTING chain of the mangle table.
       if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
-        let str = this.generateCompilationString(
-          `${this._ruleData.id}-M1`,
-          cs2,
-        );
+        let str = this.generateCompilationString(`${this._ruleData.id}-M1`, cs2);
         str = str.replace(/-o \w+ /g, '');
         this._cs += str;
       }
@@ -997,16 +910,10 @@ export abstract class PolicyCompilerTools {
         this._csEnd = `${this._stateful} ${this._action}\n`;
       }
 
-      this._cs += this.generateCompilationString(
-        `${this._ruleData.id}-M2`,
-        cs1,
-      );
+      this._cs += this.generateCompilationString(`${this._ruleData.id}-M2`, cs1);
       // Add the mark to the PREROUTING chain of the mangle table.
       if (this._policyType === PolicyTypesMap.get('IPv4:FORWARD')) {
-        let str = this.generateCompilationString(
-          `${this._ruleData.id}-M2`,
-          cs2,
-        );
+        let str = this.generateCompilationString(`${this._ruleData.id}-M2`, cs2);
         str = str.replace(/-o \w+ /g, '');
         this._cs += str;
       }

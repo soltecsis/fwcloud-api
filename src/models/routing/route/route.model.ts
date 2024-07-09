@@ -164,10 +164,7 @@ export class Route extends Model {
     const result: RouteToIPObj[] = [];
 
     for (const routeToIPObj of routeToIPObjs) {
-      const addrs: any = await Interface.getHostAddr(
-        db.getQuery(),
-        routeToIPObj.ipObjId,
-      );
+      const addrs: any = await Interface.getHostAddr(db.getQuery(), routeToIPObj.ipObjId);
 
       // Count the amount of interface address with the same IP version of the rule.
       let n = 0;
@@ -230,12 +227,8 @@ export class Route extends Model {
     const result: RouteToIPObjGroup[] = [];
 
     for (const routeToIPObjGroup of routeToIPObjGroups) {
-      for (const ipObjToIPObjGroup of routeToIPObjGroup.ipObjGroup
-        .ipObjToIPObjGroups) {
-        const addrs: any = await Interface.getHostAddr(
-          db.getQuery(),
-          ipObjToIPObjGroup.ipObjId,
-        );
+      for (const ipObjToIPObjGroup of routeToIPObjGroup.ipObjGroup.ipObjToIPObjGroups) {
+        const addrs: any = await Interface.getHostAddr(db.getQuery(), ipObjToIPObjGroup.ipObjId);
 
         // Count the amount of interface address with the same IP version of the rule.
         let n = 0;

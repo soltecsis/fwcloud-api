@@ -38,16 +38,11 @@ export class OpenVPNPrefixExporter extends TableExporter {
     fwCloudId: number,
   ): SelectQueryBuilder<any> {
     return qb.where((qb) => {
-      const subquery = qb
-        .subQuery()
-        .from(OpenVPN, 'openvpn')
-        .select('openvpn.id');
+      const subquery = qb.subQuery().from(OpenVPN, 'openvpn').select('openvpn.id');
 
       return (
         `${alias}.openVPNId IN ` +
-        new OpenVPNExporter()
-          .getFilterBuilder(subquery, 'openvpn', fwCloudId)
-          .getQuery()
+        new OpenVPNExporter().getFilterBuilder(subquery, 'openvpn', fwCloudId).getQuery()
       );
     });
   }

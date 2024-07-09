@@ -15,10 +15,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { ServiceProvider } from '../../../../fonaments/services/service-provider';
-import {
-  ServiceBound,
-  ServiceContainer,
-} from '../../../../fonaments/services/service-container';
+import { ServiceBound, ServiceContainer } from '../../../../fonaments/services/service-container';
 import { AbstractApplication } from '../../../../fonaments/abstract-application';
 import { HAProxyRuleService } from './haproxy_r.service';
 

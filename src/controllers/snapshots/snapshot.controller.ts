@@ -39,9 +39,7 @@ export class SnapshotController extends Controller {
   protected _fwCloud: FwCloud;
 
   public async make(request: Request) {
-    this._snapshotService = await this._app.getService<SnapshotService>(
-      SnapshotService.name,
-    );
+    this._snapshotService = await this._app.getService<SnapshotService>(SnapshotService.name);
     this._fwCloud = await FwCloud.findOneOrFail({
       where: { id: parseInt(request.params.fwcloud) },
     });
@@ -49,16 +47,12 @@ export class SnapshotController extends Controller {
 
   @Validate()
   public async index(request: Request): Promise<ResponseBuilder> {
-    const snapshots: Array<Snapshot> = await this._snapshotService.getAll(
-      this._fwCloud,
-    );
+    const snapshots: Array<Snapshot> = await this._snapshotService.getAll(this._fwCloud);
 
     const result: Array<Snapshot> = [];
 
     for (let i = 0; i < snapshots.length; i++) {
-      if (
-        (await SnapshotPolicy.read(snapshots[i], request.session.user)).can()
-      ) {
+      if ((await SnapshotPolicy.read(snapshots[i], request.session.user)).can()) {
         result.push(snapshots[i]);
       }
     }
@@ -82,9 +76,7 @@ export class SnapshotController extends Controller {
 
   @Validate(SnapshotControllerStoreDto)
   public async store(request: Request): Promise<ResponseBuilder> {
-    (
-      await SnapshotPolicy.create(this._fwCloud, request.session.user)
-    ).authorize();
+    (await SnapshotPolicy.create(this._fwCloud, request.session.user)).authorize();
 
     const channel: Channel = await Channel.fromRequest(request);
 
@@ -126,10 +118,7 @@ export class SnapshotController extends Controller {
 
     const channel: Channel = await Channel.fromRequest(request);
 
-    const fwCloud: FwCloud = await this._snapshotService.restore(
-      snapshot,
-      channel,
-    );
+    const fwCloud: FwCloud = await this._snapshotService.restore(snapshot, channel);
 
     return ResponseBuilder.buildResponse().status(200).body(fwCloud);
   }

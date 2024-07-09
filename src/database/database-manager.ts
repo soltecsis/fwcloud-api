@@ -38,8 +38,9 @@ export class DatabaseManager {
   } = config.get('db');
 
   public async connect(app: AbstractApplication): Promise<DataSource> {
-    const databaseService: DatabaseService =
-      await app.getService<DatabaseService>(DatabaseService.name);
+    const databaseService: DatabaseService = await app.getService<DatabaseService>(
+      DatabaseService.name,
+    );
 
     this._dataSource = databaseService.dataSource;
     return this._dataSource;

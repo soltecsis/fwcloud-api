@@ -107,42 +107,34 @@ export class Cluster extends Model {
         if (row && row.length > 0) {
           const dataCluster = row[0];
           //SEARCH FIREWALL NODES
-          Firewall.getFirewallCluster(
-            req.session.user_id,
-            req.body.cluster,
-            (error, dataFw) => {
-              if (error) return reject(error);
-              //get data
-              if (dataFw && dataFw.length > 0) {
-                dataCluster.nodes = dataFw;
-                //SEARCH INTERFACES FW-MASTER
-                Firewall.getFirewallClusterMaster(
-                  req.session.user_id,
-                  req.body.cluster,
-                  (error, dataFwM) => {
-                    if (error) return reject(error);
-                    if (dataFwM && dataFwM.length > 0) {
-                      const idFwMaster = dataFwM[0].id;
-                      Interface.getInterfacesFull(
-                        idFwMaster,
-                        req.body.fwcloud,
-                        (error, dataI) => {
-                          if (error) return reject(error);
-                          if (dataI && dataI.length > 0) {
-                            dataCluster.interfaces = dataI;
-                          } else dataCluster.interfaces = [];
-                          resolve(dataCluster);
-                        },
-                      );
-                    } else resolve(dataCluster);
-                  },
-                );
-              } else {
-                dataCluster.nodes = [];
-                resolve(dataCluster);
-              }
-            },
-          );
+          Firewall.getFirewallCluster(req.session.user_id, req.body.cluster, (error, dataFw) => {
+            if (error) return reject(error);
+            //get data
+            if (dataFw && dataFw.length > 0) {
+              dataCluster.nodes = dataFw;
+              //SEARCH INTERFACES FW-MASTER
+              Firewall.getFirewallClusterMaster(
+                req.session.user_id,
+                req.body.cluster,
+                (error, dataFwM) => {
+                  if (error) return reject(error);
+                  if (dataFwM && dataFwM.length > 0) {
+                    const idFwMaster = dataFwM[0].id;
+                    Interface.getInterfacesFull(idFwMaster, req.body.fwcloud, (error, dataI) => {
+                      if (error) return reject(error);
+                      if (dataI && dataI.length > 0) {
+                        dataCluster.interfaces = dataI;
+                      } else dataCluster.interfaces = [];
+                      resolve(dataCluster);
+                    });
+                  } else resolve(dataCluster);
+                },
+              );
+            } else {
+              dataCluster.nodes = [];
+              resolve(dataCluster);
+            }
+          });
         } else resolve();
       });
     });
@@ -153,11 +145,7 @@ export class Cluster extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        'SELECT * FROM ' +
-        tableName +
-        ' WHERE name like  "%' +
-        connection.escape(name) +
-        '%"';
+        'SELECT * FROM ' + tableName + ' WHERE name like  "%' + connection.escape(name) + '%"';
       connection.query(sql, (error, row) => {
         if (error) callback(error, null);
         else callback(null, row);
@@ -170,14 +158,10 @@ export class Cluster extends Model {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
-        connection.query(
-          `INSERT INTO ${tableName} SET ?`,
-          clusterData,
-          (error, result) => {
-            if (error) return reject(error);
-            resolve(result.insertId);
-          },
-        );
+        connection.query(`INSERT INTO ${tableName} SET ?`, clusterData, (error, result) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        });
       });
     });
   }
@@ -223,11 +207,7 @@ export class Cluster extends Model {
           };
           Tree.deleteFwc_TreeFullNode(dataNode).then((resp) => {
             db.get((error, connection) => {
-              const sql =
-                'DELETE FROM ' +
-                tableName +
-                ' WHERE id = ' +
-                connection.escape(id);
+              const sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
               connection.query(sql, (error, result) => {
                 if (error) {
                   callback(error, null);

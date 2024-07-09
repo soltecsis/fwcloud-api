@@ -84,9 +84,8 @@ export interface IUpdateKeepalivedRule {
   group?: number;
 }
 
-export interface KeepalivedRulesData<
-  T extends ItemForGrid | KeepalivedRuleItemForCompiler,
-> extends KeepalivedRule {
+export interface KeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemForCompiler>
+  extends KeepalivedRule {
   items: (T & { _order: number })[];
 }
 
@@ -109,12 +108,8 @@ export class KeepalivedRuleService extends Service {
 
   public async build(): Promise<Service> {
     this._databaseService = await this._app.getService(DatabaseService.name);
-    this._repository = new KeepalivedRepository(
-      this._databaseService.dataSource.manager,
-    );
-    this._ipobjRepository = new IPObjRepository(
-      this._databaseService.dataSource.manager,
-    );
+    this._repository = new KeepalivedRepository(this._databaseService.dataSource.manager);
+    this._ipobjRepository = new IPObjRepository(this._databaseService.dataSource.manager);
 
     return this;
   }
@@ -157,10 +152,9 @@ export class KeepalivedRuleService extends Service {
         .findOneOrFail({ where: { id: data.firewallId } })) as Firewall;
     }
 
-    const lastKeepalivedRule =
-      (await this._repository.getLastKeepalivedRuleInFirewall(
-        data.firewallId,
-      )) as KeepalivedRule;
+    const lastKeepalivedRule = (await this._repository.getLastKeepalivedRuleInFirewall(
+      data.firewallId,
+    )) as KeepalivedRule;
     keepalivedRuleData.rule_order = lastKeepalivedRule?.rule_order
       ? lastKeepalivedRule.rule_order + 1
       : 1;
@@ -179,12 +173,8 @@ export class KeepalivedRuleService extends Service {
 
       const hasMatchingIpVersion = persisted.virtualIps.some(
         async (virtualIp) =>
-          (
-            await db
-              .getSource()
-              .manager.getRepository(IPObj)
-              .findOneOrFail(virtualIp.ipObj)
-          ).ip_version ===
+          (await db.getSource().manager.getRepository(IPObj).findOneOrFail(virtualIp.ipObj))
+            .ip_version ===
           (
             await db
               .getSource()
@@ -210,29 +200,17 @@ export class KeepalivedRuleService extends Service {
     return persisted;
   }
 
-  async copy(
-    ids: number[],
-    destRule: number,
-    offset: Offset,
-  ): Promise<KeepalivedRule[]> {
+  async copy(ids: number[], destRule: number, offset: Offset): Promise<KeepalivedRule[]> {
     const keepalived_rs: KeepalivedRule[] = await this._repository.find({
       where: {
         id: In(ids),
       },
-      relations: [
-        'group',
-        'firewall',
-        'firewall.fwCloud',
-        'interface',
-        'virtualIps',
-        'masterNode',
-      ],
+      relations: ['group', 'firewall', 'firewall.fwCloud', 'interface', 'virtualIps', 'masterNode'],
     });
 
-    const lastRule: KeepalivedRule =
-      await this._repository.getLastKeepalivedRuleInFirewall(
-        keepalived_rs[0].firewallId,
-      );
+    const lastRule: KeepalivedRule = await this._repository.getLastKeepalivedRuleInFirewall(
+      keepalived_rs[0].firewallId,
+    );
 
     keepalived_rs.map((item, index) => {
       item.id = undefined;
@@ -249,11 +227,7 @@ export class KeepalivedRuleService extends Service {
     );
   }
 
-  async move(
-    ids: number[],
-    destRule: number,
-    offset: Offset,
-  ): Promise<KeepalivedRule[]> {
+  async move(ids: number[], destRule: number, offset: Offset): Promise<KeepalivedRule[]> {
     return await this._repository.move(ids, destRule, offset);
   }
 
@@ -288,9 +262,7 @@ export class KeepalivedRuleService extends Service {
     });
 
     if (data.ipObjId !== undefined) {
-      const index: number = fromRule.virtualIps.findIndex(
-        (item) => item.ipObjId === data.ipObjId,
-      );
+      const index: number = fromRule.virtualIps.findIndex((item) => item.ipObjId === data.ipObjId);
       if (index >= 0) {
         fromRule.virtualIps.splice(index, 1);
         toRule.virtualIps.push({
@@ -301,29 +273,16 @@ export class KeepalivedRuleService extends Service {
       }
     }
 
-    return [
-      await this._repository.save(fromRule),
-      await this._repository.save(toRule),
-    ];
+    return [await this._repository.save(fromRule), await this._repository.save(toRule)];
   }
 
-  async update(
-    id: number,
-    data: Partial<ICreateKeepalivedRule>,
-  ): Promise<KeepalivedRule> {
-    const keepalivedRule: KeepalivedRule | undefined =
-      await this._repository.findOne({
-        where: {
-          id: id,
-        },
-        relations: [
-          'group',
-          'firewall',
-          'interface',
-          'virtualIps',
-          'masterNode',
-        ],
-      });
+  async update(id: number, data: Partial<ICreateKeepalivedRule>): Promise<KeepalivedRule> {
+    const keepalivedRule: KeepalivedRule | undefined = await this._repository.findOne({
+      where: {
+        id: id,
+      },
+      relations: ['group', 'firewall', 'interface', 'virtualIps', 'masterNode'],
+    });
 
     if (!keepalivedRule) {
       throw new Error('keepalivedRule not found');
@@ -331,15 +290,10 @@ export class KeepalivedRuleService extends Service {
 
     Object.assign(keepalivedRule, {
       active: data.active !== undefined ? data.active : keepalivedRule.active,
-      comment:
-        data.comment !== undefined ? data.comment : keepalivedRule.comment,
+      comment: data.comment !== undefined ? data.comment : keepalivedRule.comment,
       style: data.style !== undefined ? data.style : keepalivedRule.style,
-      cfg_text:
-        data.cfg_text !== undefined ? data.cfg_text : keepalivedRule.cfg_text,
-      rule_order:
-        data.rule_order !== undefined
-          ? data.rule_order
-          : keepalivedRule.rule_order,
+      cfg_text: data.cfg_text !== undefined ? data.cfg_text : keepalivedRule.cfg_text,
+      rule_order: data.rule_order !== undefined ? data.rule_order : keepalivedRule.rule_order,
     });
 
     if (data.group !== undefined) {
@@ -361,12 +315,8 @@ export class KeepalivedRuleService extends Service {
       );
       const hasMatchingIpVersion = keepalivedRule.virtualIps.some(
         async (virtualIp) =>
-          (
-            await db
-              .getSource()
-              .manager.getRepository(IPObj)
-              .findOneOrFail(virtualIp.ipObj)
-          ).ip_version ===
+          (await db.getSource().manager.getRepository(IPObj).findOneOrFail(virtualIp.ipObj))
+            .ip_version ===
           (
             await db
               .getSource()
@@ -472,9 +422,7 @@ export class KeepalivedRuleService extends Service {
     return qb;
   }
 
-  public async getKeepalivedRulesData<
-    T extends ItemForGrid | KeepalivedRuleItemForCompiler,
-  >(
+  public async getKeepalivedRulesData<T extends ItemForGrid | KeepalivedRuleItemForCompiler>(
     dst: AvailableDestinations,
     fwcloud: number,
     firewall: number,
@@ -522,10 +470,7 @@ export class KeepalivedRuleService extends Service {
     });
   }
 
-  public async bulkUpdate(
-    ids: number[],
-    data: IUpdateKeepalivedRule,
-  ): Promise<KeepalivedRule[]> {
+  public async bulkUpdate(ids: number[], data: IUpdateKeepalivedRule): Promise<KeepalivedRule[]> {
     if (data.group) {
       await this._repository.update(
         {
@@ -542,11 +487,7 @@ export class KeepalivedRuleService extends Service {
           relations: ['group'],
         })) as KeepalivedRule
       ).group;
-      if (
-        data.group !== undefined &&
-        group &&
-        group.rules.length - ids.length < 1
-      ) {
+      if (data.group !== undefined && group && group.rules.length - ids.length < 1) {
         await this._groupService.remove({ id: group.id });
       }
 
@@ -584,13 +525,7 @@ export class KeepalivedRuleService extends Service {
     firewall: number,
     rules?: number[],
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
-    return [
-      this._ipobjRepository.getIpobjsInKeepalived_ForGrid(
-        'rule',
-        fwcloud,
-        firewall,
-      ),
-    ];
+    return [this._ipobjRepository.getIpobjsInKeepalived_ForGrid('rule', fwcloud, firewall)];
   }
 
   private buildKeepalivedRulesCompilerSql(
@@ -598,19 +533,10 @@ export class KeepalivedRuleService extends Service {
     firewall: number,
     rules?: number[],
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
-    return [
-      this._ipobjRepository.getIpobjsInKeepalived_ForGrid(
-        'rule',
-        fwcloud,
-        firewall,
-      ),
-    ];
+    return [this._ipobjRepository.getIpobjsInKeepalived_ForGrid('rule', fwcloud, firewall)];
   }
 
-  async validateVirtualIps(
-    firewall: Firewall,
-    data: IUpdateKeepalivedRule,
-  ): Promise<void> {
+  async validateVirtualIps(firewall: Firewall, data: IUpdateKeepalivedRule): Promise<void> {
     const errors: ErrorBag = {};
 
     if (!data.virutalIpsIds || !data.virutalIpsIds.length) {

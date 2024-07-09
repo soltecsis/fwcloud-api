@@ -42,9 +42,7 @@ describe(HAProxyRuleService.name, () => {
     manager = db.getSource().manager;
     await testSuite.resetDatabaseData();
 
-    service = await testSuite.app.getService<HAProxyRuleService>(
-      HAProxyRuleService.name,
-    );
+    service = await testSuite.app.getService<HAProxyRuleService>(HAProxyRuleService.name);
 
     fwCloud = await manager.getRepository(FwCloud).save(
       manager.getRepository(FwCloud).create({
@@ -74,22 +72,14 @@ describe(HAProxyRuleService.name, () => {
 
   describe('getHAProxyRulesData', () => {
     it('should return an array of HAProxyRules', async () => {
-      const result = await service.getHAProxyRulesData(
-        'compiler',
-        fwCloud.id,
-        firewall.id,
-      );
+      const result = await service.getHAProxyRulesData('compiler', fwCloud.id, firewall.id);
 
       expect(result).to.be.an('array').that.is.not.empty;
       expect(result[0]).to.be.an.instanceOf(HAProxyRule);
     });
 
     it('should return compiler rules data', async () => {
-      const result = await service.getHAProxyRulesData(
-        'compiler',
-        fwCloud.id,
-        firewall.id,
-      );
+      const result = await service.getHAProxyRulesData('compiler', fwCloud.id, firewall.id);
 
       expect(result).to.be.an('array').that.is.not.empty;
       expect(result[0]).to.have.property('rule_order');
@@ -97,9 +87,7 @@ describe(HAProxyRuleService.name, () => {
     });
 
     it('should handle errors calling getHAProxyRulesData', async () => {
-      sinon
-        .stub(service['_repository'], 'getHAProxyRules')
-        .rejects(new Error('Get rules error'));
+      sinon.stub(service['_repository'], 'getHAProxyRules').rejects(new Error('Get rules error'));
 
       await expect(
         service.getHAProxyRulesData('compiler', fwCloud.id, firewall.id),
@@ -137,9 +125,7 @@ describe(HAProxyRuleService.name, () => {
       const getLastHAProxyRuleInFirewallStub = sinon
         .stub(service['_repository'], 'getLastHAProxyRuleInFirewall')
         .returns(null);
-      const saveStub = sinon
-        .stub(service['_repository'], 'save')
-        .resolves(expected);
+      const saveStub = sinon.stub(service['_repository'], 'save').resolves(expected);
 
       const result = await service.store(data);
 
@@ -184,9 +170,7 @@ describe(HAProxyRuleService.name, () => {
         frontendPortId: 1,
       };
 
-      const saveStub = sinon
-        .stub(service['_repository'], 'save')
-        .rejects(new Error('Save error'));
+      const saveStub = sinon.stub(service['_repository'], 'save').rejects(new Error('Save error'));
 
       await expect(service.store(data)).to.be.rejectedWith('Save error');
 
@@ -236,9 +220,7 @@ describe(HAProxyRuleService.name, () => {
       const getLastHAProxyRuleInFirewallStub = sinon
         .stub(service['_repository'], 'getLastHAProxyRuleInFirewall')
         .returns(null);
-      const saveStub = sinon
-        .stub(service['_repository'], 'save')
-        .resolves(expected);
+      const saveStub = sinon.stub(service['_repository'], 'save').resolves(expected);
       const moveStub = sinon.stub(service, 'move').resolves([expected]);
 
       const result = await service.store(data as ICreateHAProxyRule);
@@ -284,9 +266,7 @@ describe(HAProxyRuleService.name, () => {
       data.frontendIpId = frontEndIP.id;
       data.backendIpsIds = [{ id: virtualIP.id, order: 1 }];
 
-      await expect(service.store(data)).to.be.rejectedWith(
-        'IP version mismatch',
-      );
+      await expect(service.store(data)).to.be.rejectedWith('IP version mismatch');
     });
   });
 
@@ -302,15 +282,11 @@ describe(HAProxyRuleService.name, () => {
           firewall: firewall,
         }),
       );
-      copyStub = sinon
-        .stub(service['_repository'], 'save')
-        .resolves(haproxyRule as HAProxyRule);
+      copyStub = sinon.stub(service['_repository'], 'save').resolves(haproxyRule as HAProxyRule);
       getLastHAProxyRuleInFirewallStub = sinon
         .stub(service['_repository'], 'getLastHAProxyRuleInFirewall')
         .resolves(haproxyRule);
-      moveStub = sinon
-        .stub(service['_repository'], 'move')
-        .resolves([haproxyRule]);
+      moveStub = sinon.stub(service['_repository'], 'move').resolves([haproxyRule]);
     });
 
     afterEach(() => {
@@ -320,11 +296,7 @@ describe(HAProxyRuleService.name, () => {
     });
 
     it('should copy a HAProxyRule', async () => {
-      const result = await service.copy(
-        [haproxyRule.id],
-        haproxyRule.id,
-        Offset.Above,
-      );
+      const result = await service.copy([haproxyRule.id], haproxyRule.id, Offset.Above);
 
       expect(copyStub.calledOnce).to.be.true;
       expect(getLastHAProxyRuleInFirewallStub.calledOnce).to.be.true;
@@ -335,37 +307,22 @@ describe(HAProxyRuleService.name, () => {
     it('should correctly handle different positions', async () => {
       await service.copy([haproxyRule.id], haproxyRule.id, Offset.Below);
 
-      expect(
-        moveStub.calledOnceWith(
-          [haproxyRule.id],
-          haproxyRule.rule_order,
-          Offset.Below,
-        ),
-      ).to.be.true;
+      expect(moveStub.calledOnceWith([haproxyRule.id], haproxyRule.rule_order, Offset.Below)).to.be
+        .true;
     });
 
     it('should correctly modify rule_order for each copied rule', async () => {
       await service.copy([haproxyRule.id], haproxyRule.id, Offset.Above);
 
-      expect(
-        moveStub.calledOnceWith(
-          [haproxyRule.id],
-          haproxyRule.rule_order,
-          Offset.Above,
-        ),
-      ).to.be.true;
+      expect(moveStub.calledOnceWith([haproxyRule.id], haproxyRule.rule_order, Offset.Above)).to.be
+        .true;
     });
 
     it('should call move method with correct parameters after copying', async () => {
       await service.copy([haproxyRule.id], haproxyRule.id, Offset.Above);
 
-      expect(
-        moveStub.calledOnceWith(
-          [haproxyRule.id],
-          haproxyRule.rule_order,
-          Offset.Above,
-        ),
-      ).to.be.true;
+      expect(moveStub.calledOnceWith([haproxyRule.id], haproxyRule.rule_order, Offset.Above)).to.be
+        .true;
     });
   });
 
@@ -391,14 +348,9 @@ describe(HAProxyRuleService.name, () => {
       const destRule = 4;
       const offset = Offset.Above;
 
-      const moveStub = sinon
-        .stub(service, 'move')
-        .rejects(new Error('Move error'));
+      const moveStub = sinon.stub(service, 'move').rejects(new Error('Move error'));
 
-      await expect(service.move(ids, destRule, offset)).to.be.rejectedWith(
-        Error,
-        'Move error',
-      );
+      await expect(service.move(ids, destRule, offset)).to.be.rejectedWith(Error, 'Move error');
 
       moveStub.restore();
     });
@@ -499,17 +451,14 @@ describe(HAProxyRuleService.name, () => {
 
       const result = await service.update(haproxyRule.id, { rule_order: 2 });
 
-      expect(updateStub.calledOnceWith(haproxyRule.id, { rule_order: 2 })).to.be
-        .true;
+      expect(updateStub.calledOnceWith(haproxyRule.id, { rule_order: 2 })).to.be.true;
       expect(result).to.deep.equal(haproxyRule);
 
       updateStub.restore();
     });
 
     it('should handle errors when the HAProxyRule to update is not found', async () => {
-      const updateStub = sinon
-        .stub(service, 'update')
-        .rejects(new Error('DHCPRule not found'));
+      const updateStub = sinon.stub(service, 'update').rejects(new Error('DHCPRule not found'));
 
       await expect(service.update(1, { rule_order: 2 })).to.be.rejectedWith(
         Error,
@@ -543,8 +492,7 @@ describe(HAProxyRuleService.name, () => {
 
       const result = await service.update(haproxyRule.id, { group: group2.id });
 
-      expect(updateStub.calledOnceWith(haproxyRule.id, { group: group2.id })).to
-        .be.true;
+      expect(updateStub.calledOnceWith(haproxyRule.id, { group: group2.id })).to.be.true;
       expect(result).to.deep.equal(haproxyRule);
 
       updateStub.restore();
@@ -664,9 +612,7 @@ describe(HAProxyRuleService.name, () => {
       const ids = [1, 2, 3];
       const data = { rule_order: 2 };
 
-      const bulkUpdateStub = sinon
-        .stub(service, 'bulkUpdate')
-        .resolves([haproxyRule]);
+      const bulkUpdateStub = sinon.stub(service, 'bulkUpdate').resolves([haproxyRule]);
 
       const result = await service.bulkUpdate(ids, data);
 
@@ -684,10 +630,7 @@ describe(HAProxyRuleService.name, () => {
         .stub(service, 'bulkUpdate')
         .rejects(new Error('Bulk update error'));
 
-      await expect(service.bulkUpdate(ids, data)).to.be.rejectedWith(
-        Error,
-        'Bulk update error',
-      );
+      await expect(service.bulkUpdate(ids, data)).to.be.rejectedWith(Error, 'Bulk update error');
 
       bulkUpdateStub.restore();
     });
@@ -697,9 +640,7 @@ describe(HAProxyRuleService.name, () => {
     it('should remove the rules successfully', async () => {
       const ids = [1, 2, 3];
 
-      const bulkRemoveStub = sinon
-        .stub(service, 'bulkRemove')
-        .resolves([haproxyRule]);
+      const bulkRemoveStub = sinon.stub(service, 'bulkRemove').resolves([haproxyRule]);
 
       const result = await service.bulkRemove(ids);
 
@@ -716,10 +657,7 @@ describe(HAProxyRuleService.name, () => {
         .stub(service, 'bulkRemove')
         .rejects(new Error('Bulk remove error'));
 
-      await expect(service.bulkRemove(ids)).to.be.rejectedWith(
-        Error,
-        'Bulk remove error',
-      );
+      await expect(service.bulkRemove(ids)).to.be.rejectedWith(Error, 'Bulk remove error');
 
       bulkRemoveStub.restore();
     });
@@ -728,14 +666,12 @@ describe(HAProxyRuleService.name, () => {
       const ids = [1, 2, 3];
 
       const removeStub = sinon.stub(service, 'remove').resolves(haproxyRule);
-      const bulkRemoveStub = sinon
-        .stub(service, 'bulkRemove')
-        .callsFake(async (ids) => {
-          for (const id of ids) {
-            await service.remove({ id });
-          }
-          return [haproxyRule];
-        });
+      const bulkRemoveStub = sinon.stub(service, 'bulkRemove').callsFake(async (ids) => {
+        for (const id of ids) {
+          await service.remove({ id });
+        }
+        return [haproxyRule];
+      });
 
       const result = await service.bulkRemove(ids);
 
@@ -754,14 +690,12 @@ describe(HAProxyRuleService.name, () => {
       const ids = [1, 2, 3];
 
       const removeStub = sinon.stub(service, 'remove').resolves(haproxyRule);
-      const bulkRemoveStub = sinon
-        .stub(service, 'bulkRemove')
-        .callsFake(async (ids) => {
-          for (const id of ids) {
-            await service.remove({ id });
-          }
-          return [haproxyRule];
-        });
+      const bulkRemoveStub = sinon.stub(service, 'bulkRemove').callsFake(async (ids) => {
+        for (const id of ids) {
+          await service.remove({ id });
+        }
+        return [haproxyRule];
+      });
 
       const result = await service.bulkRemove(ids);
 

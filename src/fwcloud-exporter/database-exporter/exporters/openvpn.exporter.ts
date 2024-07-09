@@ -41,16 +41,11 @@ export class OpenVPNExporter extends TableExporter {
   ): SelectQueryBuilder<any> {
     return qb
       .where((qb) => {
-        const subquery = qb
-          .subQuery()
-          .from(Firewall, 'firewall')
-          .select('firewall.id');
+        const subquery = qb.subQuery().from(Firewall, 'firewall').select('firewall.id');
 
         return (
           `${alias}.firewallId IN ` +
-          new FirewallExporter()
-            .getFilterBuilder(subquery, 'firewall', fwCloudId)
-            .getQuery()
+          new FirewallExporter().getFilterBuilder(subquery, 'firewall', fwCloudId).getQuery()
         );
       })
       .orWhere((qb) => {
@@ -58,9 +53,7 @@ export class OpenVPNExporter extends TableExporter {
 
         return (
           `${alias}.crtId IN ` +
-          new CrtExporter()
-            .getFilterBuilder(subquery, 'crt', fwCloudId)
-            .getQuery()
+          new CrtExporter().getFilterBuilder(subquery, 'crt', fwCloudId).getQuery()
         );
       });
   }

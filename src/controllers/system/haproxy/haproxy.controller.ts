@@ -15,10 +15,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { Request } from 'express';
-import {
-  Validate,
-  ValidateQuery,
-} from '../../../decorators/validate.decorator';
+import { Validate, ValidateQuery } from '../../../decorators/validate.decorator';
 import { Controller } from '../../../fonaments/http/controller';
 import { Firewall } from '../../../models/firewall/Firewall';
 import { FwCloud } from '../../../models/fwcloud/FwCloud';
@@ -84,41 +81,33 @@ export class HAProxyController extends Controller {
 
   @Validate()
   public async index(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyPolicy.create(this._firewall, request.session.user)
-    ).authorize();
+    (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
 
-    const rules: HAProxyRule[] =
-      await this._haproxyRuleService.getHAProxyRulesData(
-        'compiler',
-        this._fwCloud.id,
-        this._firewall.id,
-      );
+    const rules: HAProxyRule[] = await this._haproxyRuleService.getHAProxyRulesData(
+      'compiler',
+      this._fwCloud.id,
+      this._firewall.id,
+    );
 
     return ResponseBuilder.buildResponse().status(200).body(rules);
   }
 
   @Validate()
   public async grid(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyPolicy.create(this._firewall, request.session.user)
-    ).authorize();
+    (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
 
-    const rules: HAProxyRule[] =
-      await this._haproxyRuleService.getHAProxyRulesData(
-        'haproxy_grid',
-        this._fwCloud.id,
-        this._firewall.id,
-      );
+    const rules: HAProxyRule[] = await this._haproxyRuleService.getHAProxyRulesData(
+      'haproxy_grid',
+      this._fwCloud.id,
+      this._firewall.id,
+    );
 
     return ResponseBuilder.buildResponse().status(200).body(rules);
   }
 
   @Validate(HAProxyRuleCreateDto)
   public async create(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyPolicy.create(this._firewall, request.session.user)
-    ).authorize();
+    (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
 
     const data: ICreateHAProxyRule = Object.assign(
       request.inputs.all<HAProxyRuleCreateDto>(),
@@ -129,9 +118,7 @@ export class HAProxyController extends Controller {
 
       return ResponseBuilder.buildResponse().status(201).body(rule);
     } catch (err) {
-      return ResponseBuilder.buildResponse()
-        .status(422)
-        .body({ message: err.message });
+      return ResponseBuilder.buildResponse().status(422).body({ message: err.message });
     }
   }
 
@@ -157,9 +144,7 @@ export class HAProxyController extends Controller {
 
   @Validate(HAProxyRuleUpdateDto)
   public async update(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyPolicy.show(this._haproxyRule, request.session.user)
-    ).authorize();
+    (await HAProxyPolicy.show(this._haproxyRule, request.session.user)).authorize();
     try {
       const result: HAProxyRule = await this._haproxyRuleService.update(
         this._haproxyRule.id,
@@ -168,17 +153,13 @@ export class HAProxyController extends Controller {
 
       return ResponseBuilder.buildResponse().status(200).body(result);
     } catch (err) {
-      return ResponseBuilder.buildResponse()
-        .status(422)
-        .body({ message: err.message });
+      return ResponseBuilder.buildResponse().status(422).body({ message: err.message });
     }
   }
 
   @Validate()
   public async remove(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyPolicy.show(this._haproxyRule, request.session.user)
-    ).authorize();
+    (await HAProxyPolicy.show(this._haproxyRule, request.session.user)).authorize();
 
     await this._haproxyRuleService.remove({
       fwcloudId: this._fwCloud.id,
@@ -191,18 +172,14 @@ export class HAProxyController extends Controller {
 
   @Validate()
   public async show(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyPolicy.show(this._haproxyRule, request.session.user)
-    ).authorize();
+    (await HAProxyPolicy.show(this._haproxyRule, request.session.user)).authorize();
 
     return ResponseBuilder.buildResponse().status(200).body(this._haproxyRule);
   }
 
   @Validate(HAProxyRuleCopyDto)
   public async move(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyPolicy.create(this._firewall, request.session.user)
-    ).authorize();
+    (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
 
     const rules: HAProxyRule[] = await db
       .getSource()
@@ -227,9 +204,7 @@ export class HAProxyController extends Controller {
 
   @Validate(HAProxyMoveFromDto)
   async moveFrom(request: Request): Promise<ResponseBuilder> {
-    (
-      await HAProxyPolicy.create(this._firewall, request.session.user)
-    ).authorize();
+    (await HAProxyPolicy.create(this._firewall, request.session.user)).authorize();
 
     const result: HAProxyRule[] = await this._haproxyRuleService.moveFrom(
       request.inputs.get('fromId'),
@@ -283,24 +258,16 @@ export class HAProxyController extends Controller {
     }
 
     const rules: HAProxyRulesData<HAProxyRuleItemForCompiler>[] =
-      await this._haproxyRuleService.getHAProxyRulesData(
-        'compiler',
-        this._fwCloud.id,
-        firewallId,
-      );
+      await this._haproxyRuleService.getHAProxyRulesData('compiler', this._fwCloud.id, firewallId);
 
     const content: string = new HAProxyCompiler()
       .compile(rules, channel)
       .map((item) => item.cs)
       .join('\n');
 
-    const communication: Communication<unknown> =
-      await firewall.getCommunication();
+    const communication: Communication<unknown> = await firewall.getCommunication();
 
-    channel.emit(
-      'message',
-      new ProgressPayload('start', false, 'Installing HAProxy rules'),
-    );
+    channel.emit('message', new ProgressPayload('start', false, 'Installing HAProxy rules'));
 
     await communication.installHAPRoxyConfigs(
       '/etc/haproxy',
@@ -308,10 +275,7 @@ export class HAProxyController extends Controller {
       channel,
     );
 
-    channel.emit(
-      'message',
-      new ProgressPayload('end', false, 'Installing HAProxy rules'),
-    );
+    channel.emit('message', new ProgressPayload('end', false, 'Installing HAProxy rules'));
 
     return ResponseBuilder.buildResponse().status(200).body(null);
   }

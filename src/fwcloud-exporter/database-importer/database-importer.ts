@@ -44,9 +44,7 @@ export class DatabaseImporter {
   protected _mapper: ImportMapping;
   protected _idManager: IdManager;
 
-  constructor(
-    protected readonly eventEmitter: EventEmitter = new EventEmitter(),
-  ) {}
+  constructor(protected readonly eventEmitter: EventEmitter = new EventEmitter()) {}
 
   get mapper(): ImportMapping {
     return this._mapper;
@@ -62,11 +60,7 @@ export class DatabaseImporter {
       await app().getService<DatabaseService>(DatabaseService.name)
     ).dataSource.createQueryRunner();
     const data: ExporterResult = new ExporterResult(
-      JSON.parse(
-        fs
-          .readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME))
-          .toString(),
-      ),
+      JSON.parse(fs.readFileSync(path.join(snapshot.path, Snapshot.DATA_FILENAME)).toString()),
     );
     let fwCloudId: number = null;
 
@@ -91,12 +85,7 @@ export class DatabaseImporter {
                 idMaps: this._mapper.maps,
                 idState: this._idManager.getIdState(),
               }
-            : await this.handleTableResultTerraform(
-                tableName,
-                this._mapper,
-                this._idManager,
-                data,
-              );
+            : await this.handleTableResultTerraform(tableName, this._mapper, this._idManager, data);
 
         //Update mapper and id manager after worker run
         this._mapper.maps = outputData.idMaps;
@@ -145,11 +134,7 @@ export class DatabaseImporter {
       );
     }
 
-    await DatabaseImporter.importDataDirectories(
-      snapshot.path,
-      fwCloud,
-      this._mapper,
-    );
+    await DatabaseImporter.importDataDirectories(snapshot.path, fwCloud, this._mapper);
 
     return fwCloud;
   }
@@ -178,12 +163,9 @@ export class DatabaseImporter {
         idState: idManager.getIdState(),
       };
 
-      const worker = new Worker(
-        path.join(__dirname, 'terraform_table.worker.js'),
-        {
-          workerData: wData,
-        },
-      );
+      const worker = new Worker(path.join(__dirname, 'terraform_table.worker.js'), {
+        workerData: wData,
+      });
 
       worker.on('message', (data: OutputData) => {
         if (data.error) {
@@ -209,11 +191,7 @@ export class DatabaseImporter {
     FSHelper.rmDirectorySync(fwCloud.getPolicyDirectoryPath());
     FSHelper.rmDirectorySync(fwCloud.getSnapshotDirectoryPath());
 
-    if (
-      FSHelper.directoryExistsSync(
-        path.join(snapshotPath, Snapshot.PKI_DIRECTORY),
-      )
-    ) {
+    if (FSHelper.directoryExistsSync(path.join(snapshotPath, Snapshot.PKI_DIRECTORY))) {
       await this.importPKIDirectory(
         path.join(snapshotPath, Snapshot.PKI_DIRECTORY),
         fwCloud,
@@ -221,11 +199,7 @@ export class DatabaseImporter {
       );
     }
 
-    if (
-      FSHelper.directoryExistsSync(
-        path.join(snapshotPath, Snapshot.POLICY_DIRECTORY),
-      )
-    ) {
+    if (FSHelper.directoryExistsSync(path.join(snapshotPath, Snapshot.POLICY_DIRECTORY))) {
       await this.importPolicyDirectory(
         path.join(snapshotPath, Snapshot.POLICY_DIRECTORY),
         fwCloud,
@@ -239,8 +213,7 @@ export class DatabaseImporter {
     fwCloud: FwCloud,
     mapper: ImportMapping,
   ): Promise<void> {
-    const directories: Array<string> =
-      await FSHelper.directories(directoryPath);
+    const directories: Array<string> = await FSHelper.directories(directoryPath);
 
     for (let i = 0; i < directories.length; i++) {
       const directory: string = directories[i];
@@ -251,11 +224,7 @@ export class DatabaseImporter {
         oldCaId,
       );
       const importDirectory: string = path.join(
-        path.join(
-          app().config.get('pki').data_dir,
-          fwCloud.id.toString(),
-          newCaId.toString(),
-        ),
+        path.join(app().config.get('pki').data_dir, fwCloud.id.toString(), newCaId.toString()),
       );
       await FSHelper.copy(directory, importDirectory);
     }
@@ -266,14 +235,11 @@ export class DatabaseImporter {
     fwCloud: FwCloud,
     mapper: ImportMapping,
   ): Promise<void> {
-    const directories: Array<string> =
-      await FSHelper.directories(directoryPath);
+    const directories: Array<string> = await FSHelper.directories(directoryPath);
 
     for (let i = 0; i < directories.length; i++) {
       const directory: string = directories[i];
-      const oldFirewallId: number = parseInt(
-        PathHelper.directoryName(directory),
-      );
+      const oldFirewallId: number = parseInt(PathHelper.directoryName(directory));
       const newFirewallId: number = mapper.getMappedId(
         Firewall._getTableName(),
         Firewall.getPrimaryKeys()[0].propertyName,

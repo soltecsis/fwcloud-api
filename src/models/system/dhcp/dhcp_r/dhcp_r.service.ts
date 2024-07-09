@@ -30,12 +30,7 @@ import { Application } from '../../../../Application';
 import { Service } from '../../../../fonaments/services/service';
 import { IPObjRepository } from '../../../ipobj/IPObj.repository';
 import { IPObjGroup } from '../../../ipobj/IPObjGroup';
-import {
-  AvailableDestinations,
-  DHCPRuleItemForCompiler,
-  DHCPUtils,
-  ItemForGrid,
-} from '../shared';
+import { AvailableDestinations, DHCPRuleItemForCompiler, DHCPUtils, ItemForGrid } from '../shared';
 import { Firewall } from '../../../firewall/Firewall';
 import { DHCPRuleToIPObj } from './dhcp_r-to-ipobj.model';
 import { ErrorBag } from '../../../../fonaments/validation/validator';
@@ -88,8 +83,7 @@ export interface IUpdateDHCPRule {
   group?: number;
 }
 
-export interface DHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler>
-  extends DHCPRule {
+export interface DHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler> extends DHCPRule {
   items: (T & { _order: number })[];
 }
 
@@ -112,12 +106,8 @@ export class DHCPRuleService extends Service {
 
   public async build(): Promise<Service> {
     this._databaseService = await this._app.getService(DatabaseService.name);
-    this._repository = new DHCPRepository(
-      this._databaseService.dataSource.manager,
-    );
-    this._ipobjRepository = new IPObjRepository(
-      this._databaseService.dataSource.manager,
-    );
+    this._repository = new DHCPRepository(this._databaseService.dataSource.manager);
+    this._ipobjRepository = new IPObjRepository(this._databaseService.dataSource.manager);
 
     return this;
   }
@@ -182,15 +172,11 @@ export class DHCPRuleService extends Service {
       throw new Error('IP version mismatch');
     }
 
-    const lastDHCPRule: DHCPRule =
-      (await this._repository.getLastDHCPRuleInFirewall(
-        data.firewallId,
-      )) as DHCPRule;
-    dhcpRuleData.rule_order = lastDHCPRule?.rule_order
-      ? lastDHCPRule.rule_order + 1
-      : 1;
-    const persisted: Partial<DHCPRule> & DHCPRule =
-      await this._repository.save(dhcpRuleData);
+    const lastDHCPRule: DHCPRule = (await this._repository.getLastDHCPRuleInFirewall(
+      data.firewallId,
+    )) as DHCPRule;
+    dhcpRuleData.rule_order = lastDHCPRule?.rule_order ? lastDHCPRule.rule_order + 1 : 1;
+    const persisted: Partial<DHCPRule> & DHCPRule = await this._repository.save(dhcpRuleData);
 
     if (
       Object.prototype.hasOwnProperty.call(data, 'to') &&
@@ -202,11 +188,7 @@ export class DHCPRuleService extends Service {
     return persisted;
   }
 
-  async copy(
-    ids: number[],
-    destRule: number,
-    offset: Offset,
-  ): Promise<DHCPRule[]> {
+  async copy(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
     const dhcp_rs: DHCPRule[] = await this._repository.find({
       where: {
         id: In(ids),
@@ -242,11 +224,7 @@ export class DHCPRuleService extends Service {
     );
   }
 
-  async move(
-    ids: number[],
-    destRule: number,
-    offset: Offset,
-  ): Promise<DHCPRule[]> {
+  async move(ids: number[], destRule: number, offset: Offset): Promise<DHCPRule[]> {
     const destinationRule: DHCPRule = await this._repository.findOneOrFail({
       where: { id: destRule },
       relations: ['group'],
@@ -302,10 +280,7 @@ export class DHCPRuleService extends Service {
       }
     }
 
-    return (await this._repository.save([fromRule, toRule])) as [
-      DHCPRule,
-      DHCPRule,
-    ];
+    return (await this._repository.save([fromRule, toRule])) as [DHCPRule, DHCPRule];
   }
 
   async update(id: number, data: Partial<ICreateDHCPRule>): Promise<DHCPRule> {
@@ -322,11 +297,9 @@ export class DHCPRuleService extends Service {
       active: data.active !== undefined ? data.active : dhcpRule.active,
       comment: data.comment !== undefined ? data.comment : dhcpRule.comment,
       style: data.style !== undefined ? data.style : dhcpRule.style,
-      max_lease:
-        data.max_lease !== undefined ? data.max_lease : dhcpRule.max_lease,
+      max_lease: data.max_lease !== undefined ? data.max_lease : dhcpRule.max_lease,
       cfg_text: data.cfg_text !== undefined ? data.cfg_text : dhcpRule.cfg_text,
-      rule_order:
-        data.rule_order !== undefined ? data.rule_order : dhcpRule.rule_order,
+      rule_order: data.rule_order !== undefined ? data.rule_order : dhcpRule.rule_order,
     });
 
     if (data.group !== undefined) {
@@ -373,9 +346,7 @@ export class DHCPRuleService extends Service {
             dhcpRule[field.slice(0, -2)] = (await db
               .getSource()
               .manager.getRepository(field === 'firewallId' ? Firewall : IPObj)
-              .findOneOrFail({ where: { id: data[field] } })) as
-              | Firewall
-              | IPObj;
+              .findOneOrFail({ where: { id: data[field] } })) as Firewall | IPObj;
           }
         }
       }
@@ -416,8 +387,7 @@ export class DHCPRuleService extends Service {
     path: IFindOneDHCPRulePath,
     options?: FindOneOptions<DHCPRule>,
   ): Promise<DHCPRule | undefined> {
-    const result: SelectQueryBuilder<DHCPRule> =
-      await this.getFindInPathOptions(path, options);
+    const result: SelectQueryBuilder<DHCPRule> = await this.getFindInPathOptions(path, options);
     return result.getOne();
   }
 
@@ -450,9 +420,7 @@ export class DHCPRuleService extends Service {
     return qb;
   }
 
-  public async getDHCPRulesData<
-    T extends ItemForGrid | DHCPRuleItemForCompiler,
-  >(
+  public async getDHCPRulesData<T extends ItemForGrid | DHCPRuleItemForCompiler>(
     dst: AvailableDestinations,
     fwcloud: number,
     firewall: number,
@@ -471,12 +439,9 @@ export class DHCPRuleService extends Service {
         break;
       case 'fixed_grid':
         // It passes the value 2 because it corresponds to the type of fixed ip rules.
-        rulesData = (await this._repository.getDHCPRules(
-          fwcloud,
-          firewall,
-          rules,
-          [2],
-        )) as DHCPRulesData<T>[];
+        rulesData = (await this._repository.getDHCPRules(fwcloud, firewall, rules, [
+          2,
+        ])) as DHCPRulesData<T>[];
         break;
       case 'compiler':
         rulesData = (await this._repository.getDHCPRules(
@@ -501,9 +466,7 @@ export class DHCPRuleService extends Service {
         ? this.buildDHCPRulesCompilerSql(fwcloud, firewall)
         : this.getDHCPRulesGridSql(fwcloud, firewall);
 
-    await Promise.all(
-      sqls.map((sql) => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)),
-    );
+    await Promise.all(sqls.map((sql) => DHCPUtils.mapEntityData<T>(sql, ItemsArrayMap)));
 
     return rulesData.map((rule) => {
       if (rule.items) {
@@ -513,10 +476,7 @@ export class DHCPRuleService extends Service {
     });
   }
 
-  public async bulkUpdate(
-    ids: number[],
-    data: IUpdateDHCPRule,
-  ): Promise<DHCPRule[]> {
+  public async bulkUpdate(ids: number[], data: IUpdateDHCPRule): Promise<DHCPRule[]> {
     if (data.group) {
       await this._repository.update(
         {
@@ -533,11 +493,7 @@ export class DHCPRuleService extends Service {
           relations: ['group'],
         })
       ).group;
-      if (
-        data.group !== undefined &&
-        group &&
-        group.rules.length - ids.length < 1
-      ) {
+      if (data.group !== undefined && group && group.rules.length - ids.length < 1) {
         await this._groupService.remove({ id: group.id });
       }
 
@@ -574,24 +530,17 @@ export class DHCPRuleService extends Service {
     fwcloud: number,
     firewall: number,
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
-    return [
-      this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall),
-    ];
+    return [this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall)];
   }
 
   private buildDHCPRulesCompilerSql(
     fwcloud: number,
     firewall: number,
   ): SelectQueryBuilder<IPObj | IPObjGroup>[] {
-    return [
-      this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall),
-    ];
+    return [this._ipobjRepository.getIPObjsInDhcp_ForGrid('rule', fwcloud, firewall)];
   }
 
-  async validateUpdateIpObjIds(
-    firewall: Firewall,
-    data: IUpdateDHCPRule,
-  ): Promise<void> {
+  async validateUpdateIpObjIds(firewall: Firewall, data: IUpdateDHCPRule): Promise<void> {
     const errors: ErrorBag = {};
 
     if (!data.ipObjIds || data.ipObjIds.length === 0) {

@@ -37,21 +37,13 @@ export class PolicyRuleRepository extends Repository<PolicyRule> {
    * @param policyRule
    * @param style
    */
-  public async updateStyle(
-    policyRule: PolicyRule,
-    style: string,
-  ): Promise<PolicyRule>;
-  public async updateStyle(
-    policyRules: Array<PolicyRule>,
-    style: string,
-  ): Promise<PolicyRule>;
+  public async updateStyle(policyRule: PolicyRule, style: string): Promise<PolicyRule>;
+  public async updateStyle(policyRules: Array<PolicyRule>, style: string): Promise<PolicyRule>;
   public async updateStyle(
     oneOrMany: PolicyRule | Array<PolicyRule>,
     style: string,
   ): Promise<PolicyRule | Array<PolicyRule>> {
-    const entities: Array<PolicyRule> = isArray(oneOrMany)
-      ? oneOrMany
-      : [oneOrMany];
+    const entities: Array<PolicyRule> = isArray(oneOrMany) ? oneOrMany : [oneOrMany];
 
     await this.createQueryBuilder()
       .update(PolicyRule)
@@ -80,9 +72,7 @@ export class PolicyRuleRepository extends Repository<PolicyRule> {
     oneOrMany: PolicyRule | Array<PolicyRule>,
     newPolicyGroup: PolicyGroup = null,
   ): Promise<PolicyRule | Array<PolicyRule>> {
-    const entities: Array<PolicyRule> = isArray(oneOrMany)
-      ? oneOrMany
-      : [oneOrMany];
+    const entities: Array<PolicyRule> = isArray(oneOrMany) ? oneOrMany : [oneOrMany];
 
     const criterias: any = {
       id: In(this.getIdsFromEntityCollection(entities)),
@@ -107,10 +97,7 @@ export class PolicyRuleRepository extends Repository<PolicyRule> {
    * @param policyRule
    * @param active
    */
-  public async updateActive(
-    policyRule: PolicyRule,
-    active: 0 | 1,
-  ): Promise<PolicyRule>;
+  public async updateActive(policyRule: PolicyRule, active: 0 | 1): Promise<PolicyRule>;
   public async updateActive(
     policyRules: Array<PolicyRule>,
     active: 0 | 1,
@@ -119,9 +106,7 @@ export class PolicyRuleRepository extends Repository<PolicyRule> {
     oneOrMany: PolicyRule | Array<PolicyRule>,
     active: 0 | 1,
   ): Promise<PolicyRule | Array<PolicyRule>> {
-    const entities: Array<PolicyRule> = isArray(oneOrMany)
-      ? oneOrMany
-      : [oneOrMany];
+    const entities: Array<PolicyRule> = isArray(oneOrMany) ? oneOrMany : [oneOrMany];
 
     await this.createQueryBuilder()
       .update(PolicyRule)

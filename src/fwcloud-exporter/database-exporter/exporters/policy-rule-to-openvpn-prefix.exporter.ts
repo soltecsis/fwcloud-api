@@ -41,16 +41,11 @@ export class PolicyRuleToOpenVPNPrefixExporter extends TableExporter {
   ): SelectQueryBuilder<any> {
     return qb
       .where((qb) => {
-        const subquery = qb
-          .subQuery()
-          .from(PolicyRule, 'policy_r')
-          .select('policy_r.id');
+        const subquery = qb.subQuery().from(PolicyRule, 'policy_r').select('policy_r.id');
 
         return (
           `${alias}.policyRuleId IN` +
-          new PolicyRuleExporter()
-            .getFilterBuilder(subquery, 'policy_r', fwCloudId)
-            .getQuery()
+          new PolicyRuleExporter().getFilterBuilder(subquery, 'policy_r', fwCloudId).getQuery()
         );
       })
       .orWhere((qb) => {

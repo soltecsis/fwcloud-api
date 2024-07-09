@@ -40,10 +40,9 @@ export class FwCloudExportController extends Controller {
   protected _fwCloudExportService: FwCloudExportService;
 
   public async make(request: Request): Promise<void> {
-    this._fwCloudExportService =
-      await this._app.getService<FwCloudExportService>(
-        FwCloudExportService.name,
-      );
+    this._fwCloudExportService = await this._app.getService<FwCloudExportService>(
+      FwCloudExportService.name,
+    );
   }
 
   @Validate()
@@ -53,19 +52,16 @@ export class FwCloudExportController extends Controller {
       .manager.getRepository(FwCloud)
       .findOneOrFail({ where: { id: parseInt(request.params.fwcloud) } });
 
-    (
-      await FwCloudExportPolicy.store(fwCloud, request.session.user)
-    ).authorize();
+    (await FwCloudExportPolicy.store(fwCloud, request.session.user)).authorize();
 
     const channel: Channel = await Channel.fromRequest(request);
 
-    const fwCloudExport: FwCloudExport =
-      await this._fwCloudExportService.create(
-        fwCloud,
-        request.session.user,
-        30000,
-        channel,
-      );
+    const fwCloudExport: FwCloudExport = await this._fwCloudExportService.create(
+      fwCloud,
+      request.session.user,
+      30000,
+      channel,
+    );
 
     return ResponseBuilder.buildResponse()
       .status(201)
@@ -81,18 +77,14 @@ export class FwCloudExportController extends Controller {
 
     (await FwCloudExportPolicy.import(request.session.user)).authorize();
 
-    await FwCloud.getFwclouds(request.dbCon, request.session.user_id).then(
-      (result: FwCloud[]) => {
-        errorLimit =
-          this._app.config.get('limits').fwclouds > 0 &&
-          result.length >= this._app.config.get('limits').fwclouds;
-      },
-    );
+    await FwCloud.getFwclouds(request.dbCon, request.session.user_id).then((result: FwCloud[]) => {
+      errorLimit =
+        this._app.config.get('limits').fwclouds > 0 &&
+        result.length >= this._app.config.get('limits').fwclouds;
+    });
 
     if (errorLimit) {
-      return ResponseBuilder.buildResponse()
-        .status(403)
-        .body(fwcError.LIMIT_FWCLOUDS);
+      return ResponseBuilder.buildResponse().status(403).body(fwcError.LIMIT_FWCLOUDS);
     } else {
       const channel: Channel = await Channel.fromRequest(request);
 

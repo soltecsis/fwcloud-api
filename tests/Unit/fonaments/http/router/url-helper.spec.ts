@@ -20,11 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  describeName,
-  testSuite,
-  expect,
-} from '../../../../mocha/global-setup';
+import { describeName, testSuite, expect } from '../../../../mocha/global-setup';
 import { RouterService } from '../../../../../src/fonaments/http/router/router.service';
 import { URLHelper } from '../../../../../src/fonaments/http/router/url-helper';
 

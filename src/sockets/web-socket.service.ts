@@ -72,9 +72,7 @@ export class WebSocketService extends Service {
       // Make sure we have session data in store synchronized with the object in memory.
       socket.request.session.reload((err) => {
         if (err) {
-          logger().error(
-            `WebSocket: Reloading session data from store: ${err.message}`,
-          );
+          logger().error(`WebSocket: Reloading session data from store: ${err.message}`);
           socket.disconnect(true);
           return;
         }
@@ -96,10 +94,8 @@ export class WebSocketService extends Service {
         socket.request.session.socketId = socket.id;
         socket.request.session.save((err) => {
           if (err) {
-            logger().error(
-              `WebSocket: Storing socket.io id in session file: ${err.message}`,
-            );
-          } else socket.request.session.reload(() => {});
+            logger().error(`WebSocket: Storing socket.io id in session file: ${err.message}`);
+          } else socket.request.session.reload((err) => {});
         });
 
         logger().info(

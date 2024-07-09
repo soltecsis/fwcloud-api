@@ -47,9 +47,7 @@ describe(AgentCommunication.name, () => {
       apikey: '',
     });
 
-    expect(
-      (agent['config'].httpsAgent as https.Agent).options.rejectUnauthorized,
-    ).to.be.false;
+    expect((agent['config'].httpsAgent as https.Agent).options.rejectUnauthorized).to.be.false;
   });
 
   describe('ccdHashList', () => {

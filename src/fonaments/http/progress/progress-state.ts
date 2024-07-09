@@ -74,15 +74,8 @@ export class ProgressState implements Responsable {
   ): ProgressState {
     this._message = message ? message : this._message;
     this._status = status;
-    this._currentStep = incrementStep
-      ? this._currentStep + 1
-      : this._currentStep;
+    this._currentStep = incrementStep ? this._currentStep + 1 : this._currentStep;
 
-    return new ProgressState(
-      this._steps,
-      this._currentStep,
-      this._status,
-      this._message,
-    );
+    return new ProgressState(this._steps, this._currentStep, this._status, this._message);
   }
 }

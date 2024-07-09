@@ -24,10 +24,7 @@ import { Controller } from '../../../fonaments/http/controller';
 import { Firewall } from '../../../models/firewall/Firewall';
 import { Request } from 'express';
 import { ResponseBuilder } from '../../../fonaments/http/response-builder';
-import {
-  Validate,
-  ValidateQuery,
-} from '../../../decorators/validate.decorator';
+import { Validate, ValidateQuery } from '../../../decorators/validate.decorator';
 import {
   ICreateRoutingRule,
   RoutingRulesData,
@@ -99,9 +96,7 @@ export class RoutingRuleController extends Controller {
 
   @Validate()
   async index(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingRulePolicy.index(this._firewall, request.session.user)
-    ).authorize();
+    (await RoutingRulePolicy.index(this._firewall, request.session.user)).authorize();
 
     const tables: RoutingRule[] = await this.routingRuleService.findManyInPath({
       fwCloudId: this._fwCloud.id,
@@ -113,9 +108,7 @@ export class RoutingRuleController extends Controller {
 
   @Validate()
   async grid(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingRulePolicy.index(this._firewall, request.session.user)
-    ).authorize();
+    (await RoutingRulePolicy.index(this._firewall, request.session.user)).authorize();
 
     const grid = await this.routingRuleService.getRoutingRulesData(
       'grid',
@@ -128,18 +121,14 @@ export class RoutingRuleController extends Controller {
 
   @Validate()
   async show(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingRulePolicy.show(this._routingRule, request.session.user)
-    ).authorize();
+    (await RoutingRulePolicy.show(this._routingRule, request.session.user)).authorize();
 
     return ResponseBuilder.buildResponse().status(200).body(this._routingRule);
   }
 
   @Validate(RoutingRuleControllerCreateDto)
   async create(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingRulePolicy.create(this._firewall, request.session.user)
-    ).authorize();
+    (await RoutingRulePolicy.create(this._firewall, request.session.user)).authorize();
 
     const rule: RoutingRule = await this.routingRuleService.create(
       request.inputs.all<ICreateRoutingRule>(),
@@ -155,12 +144,11 @@ export class RoutingRuleController extends Controller {
     const ids: string[] = request.inputs.get('rules');
 
     for (const id of ids) {
-      const rule: RoutingRule =
-        await this.routingRuleService.findOneInPathOrFail({
-          fwCloudId: this._fwCloud.id,
-          firewallId: this._firewall.id,
-          id: parseInt(id),
-        });
+      const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
+        fwCloudId: this._fwCloud.id,
+        firewallId: this._firewall.id,
+        id: parseInt(id),
+      });
 
       (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();
 
@@ -178,9 +166,7 @@ export class RoutingRuleController extends Controller {
 
   @Validate(RoutingRuleControllerUpdateDto)
   async update(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingRulePolicy.update(this._routingRule, request.session.user)
-    ).authorize();
+    (await RoutingRulePolicy.update(this._routingRule, request.session.user)).authorize();
 
     const result: RoutingRule = await this.routingRuleService.update(
       this._routingRule.id,
@@ -197,12 +183,11 @@ export class RoutingRuleController extends Controller {
     const ids: string[] = (request.query.rules as string[]) || [];
 
     for (const id of ids) {
-      const rule: RoutingRule =
-        await this.routingRuleService.findOneInPathOrFail({
-          fwCloudId: this._fwCloud.id,
-          firewallId: this._firewall.id,
-          id: parseInt(id),
-        });
+      const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
+        fwCloudId: this._fwCloud.id,
+        firewallId: this._firewall.id,
+        id: parseInt(id),
+      });
 
       (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();
 
@@ -223,9 +208,7 @@ export class RoutingRuleController extends Controller {
 
   @Validate(RoutingRuleControllerMoveDto)
   async move(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingRulePolicy.index(this._firewall, request.session.user)
-    ).authorize();
+    (await RoutingRulePolicy.index(this._firewall, request.session.user)).authorize();
 
     const rules: RoutingRule[] = await db
       .getSource()
@@ -252,9 +235,7 @@ export class RoutingRuleController extends Controller {
 
   @Validate(RoutingRuleMoveFromDto)
   async moveFrom(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingRulePolicy.index(this._firewall, request.session.user)
-    ).authorize();
+    (await RoutingRulePolicy.index(this._firewall, request.session.user)).authorize();
 
     const fromRule: RoutingRule = await db
       .getSource()
@@ -295,9 +276,7 @@ export class RoutingRuleController extends Controller {
 
   @Validate()
   async compile(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingRulePolicy.show(this._routingRule, request.session.user)
-    ).authorize();
+    (await RoutingRulePolicy.show(this._routingRule, request.session.user)).authorize();
 
     const rules: RoutingRulesData<RoutingRuleItemForCompiler>[] =
       await this.routingRuleService.getRoutingRulesData<RoutingRuleItemForCompiler>(
@@ -314,9 +293,7 @@ export class RoutingRuleController extends Controller {
 
   @Validate()
   async remove(request: Request): Promise<ResponseBuilder> {
-    (
-      await RoutingRulePolicy.delete(this._routingRule, request.session.user)
-    ).authorize();
+    (await RoutingRulePolicy.delete(this._routingRule, request.session.user)).authorize();
 
     await this.routingRuleService.remove({
       fwCloudId: this._fwCloud.id,
@@ -334,12 +311,11 @@ export class RoutingRuleController extends Controller {
     const ids: string[] = (request.query.rules as string[]) || [];
 
     for (const id of ids) {
-      const rule: RoutingRule =
-        await this.routingRuleService.findOneInPathOrFail({
-          fwCloudId: this._fwCloud.id,
-          firewallId: this._firewall.id,
-          id: parseInt(id),
-        });
+      const rule: RoutingRule = await this.routingRuleService.findOneInPathOrFail({
+        fwCloudId: this._fwCloud.id,
+        firewallId: this._firewall.id,
+        id: parseInt(id),
+      });
 
       (await RoutingRulePolicy.delete(rule, request.session.user)).authorize();
 

@@ -259,17 +259,11 @@ export class createCountriesFwcTree1652811323710 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     const continents = [...new Set(countries.map((item) => item.continent))];
 
-    await queryRunner.query(
-      `INSERT INTO ipobj_type VALUES(22,'GROUP COUNTRIES', NULL)`,
-    );
+    await queryRunner.query(`INSERT INTO ipobj_type VALUES(22,'GROUP COUNTRIES', NULL)`);
 
-    await queryRunner.query(
-      `INSERT INTO ipobj_type VALUES(23, 'CONTINENT', NULL)`,
-    );
+    await queryRunner.query(`INSERT INTO ipobj_type VALUES(23, 'CONTINENT', NULL)`);
 
-    await queryRunner.query(
-      `INSERT INTO ipobj_type VALUES(24, 'COUNTRY', NULL)`,
-    );
+    await queryRunner.query(`INSERT INTO ipobj_type VALUES(24, 'COUNTRY', NULL)`);
 
     await queryRunner.query(
       "INSERT INTO `fwc_tree_node_types` (`node_type`, `obj_type`, `name`) VALUES( 'COF', 22, 'Folder Countries')",
@@ -296,10 +290,10 @@ export class createCountriesFwcTree1652811323710 implements MigrationInterface {
 
     //Add countries as ipobj
     for (let i = 0; i < countries.length; i++) {
-      await queryRunner.query(
-        'INSERT INTO `ipobj` (`name`, `type`) VALUES (?, ?)',
-        [countries[i].code, 24],
-      );
+      await queryRunner.query('INSERT INTO `ipobj` (`name`, `type`) VALUES (?, ?)', [
+        countries[i].code,
+        24,
+      ]);
     }
 
     //Add continents as ipobj_g
@@ -313,23 +307,19 @@ export class createCountriesFwcTree1652811323710 implements MigrationInterface {
     }
 
     for (let i = 0; i < countries.length; i++) {
-      const idContinent = await queryRunner.query(
-        `SELECT id FROM ipobj_g WHERE name=?`,
-        [countries[i].continent],
-      );
-      const idCountry = await queryRunner.query(
-        `SELECT id FROM ipobj WHERE name=?`,
-        [countries[i].code],
-      );
-      await queryRunner.query(
-        'INSERT INTO `ipobj__ipobjg` (`ipobj_g`, `ipobj`) VALUES (?, ?)',
-        [idContinent[0].id, idCountry[0].id],
-      );
+      const idContinent = await queryRunner.query(`SELECT id FROM ipobj_g WHERE name=?`, [
+        countries[i].continent,
+      ]);
+      const idCountry = await queryRunner.query(`SELECT id FROM ipobj WHERE name=?`, [
+        countries[i].code,
+      ]);
+      await queryRunner.query('INSERT INTO `ipobj__ipobjg` (`ipobj_g`, `ipobj`) VALUES (?, ?)', [
+        idContinent[0].id,
+        idCountry[0].id,
+      ]);
     }
 
-    const dataCountries = await queryRunner.query(
-      `SELECT id FROM fwc_tree WHERE node_type='COF'`,
-    );
+    const dataCountries = await queryRunner.query(`SELECT id FROM fwc_tree WHERE node_type='COF'`);
 
     for (let i = 0; i < dataCountries.length; i++) {
       let id = 6;
@@ -375,9 +365,7 @@ export class createCountriesFwcTree1652811323710 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     const countryCodes = [...new Set(countries.map((item) => item.code))];
 
-    const continents = [
-      ...new Set(countries.map((item) => `'${item.continent}'`)),
-    ];
+    const continents = [...new Set(countries.map((item) => `'${item.continent}'`))];
 
     await queryRunner.query(`DELETE FROM fwc_tree WHERE obj_type=?`, [24]);
 
@@ -391,22 +379,16 @@ export class createCountriesFwcTree1652811323710 implements MigrationInterface {
       countryCodes.map((item) => item),
     );
 
-    await queryRunner.query(
-      `DELETE FROM ipobj_g WHERE name IN (${continents.join(', ')}) `,
-    );
+    await queryRunner.query(`DELETE FROM ipobj_g WHERE name IN (${continents.join(', ')}) `);
 
     countries.forEach((element) => {
       queryRunner.query(`DELETE FROM ipobj WHERE name='${element.code}'`);
     });
 
-    const countriesIds = await queryRunner.query(
-      `SELECT id FROM fwc_tree WHERE node_type='COF'`,
-    );
+    const countriesIds = await queryRunner.query(`SELECT id FROM fwc_tree WHERE node_type='COF'`);
 
     for (let i = 0; i < countriesIds.length; i++) {
-      await queryRunner.query(
-        `DELETE FROM fwc_tree WHERE id_parent=${countriesIds[i].id}`,
-      );
+      await queryRunner.query(`DELETE FROM fwc_tree WHERE id_parent=${countriesIds[i].id}`);
     }
     await queryRunner.query(`DELETE FROM fwc_tree WHERE node_type='COF'`);
 
@@ -414,14 +396,8 @@ export class createCountriesFwcTree1652811323710 implements MigrationInterface {
     await queryRunner.query(`DELETE FROM ipobj_type WHERE id=23`);
     await queryRunner.query(`DELETE FROM ipobj_type WHERE id=22`);
 
-    await queryRunner.query(
-      `DELETE FROM fwc_tree_node_types WHERE node_type='CON'`,
-    );
-    await queryRunner.query(
-      `DELETE FROM fwc_tree_node_types WHERE node_type='COF'`,
-    );
-    await queryRunner.query(
-      `DELETE FROM fwc_tree_node_types WHERE node_type='COD'`,
-    );
+    await queryRunner.query(`DELETE FROM fwc_tree_node_types WHERE node_type='CON'`);
+    await queryRunner.query(`DELETE FROM fwc_tree_node_types WHERE node_type='COF'`);
+    await queryRunner.query(`DELETE FROM fwc_tree_node_types WHERE node_type='COD'`);
   }
 }

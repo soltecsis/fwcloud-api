@@ -47,9 +47,7 @@ describe(describeName('Version E2E tests'), () => {
   describe('VersionController', () => {
     describe('VersionController@show', () => {
       it('guest user should not see the version', async () => {
-        return await request(app.express)
-          .get(_URL().getURL('versions.show'))
-          .expect(401);
+        return await request(app.express).get(_URL().getURL('versions.show')).expect(401);
       });
 
       it('regular user should not see version', async () => {

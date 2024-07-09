@@ -23,10 +23,7 @@
 import { Validate } from '../../decorators/validate.decorator';
 import { Controller } from '../../fonaments/http/controller';
 import { ResponseBuilder } from '../../fonaments/http/response-builder';
-import {
-  Firewall,
-  FirewallInstallCommunication,
-} from '../../models/firewall/Firewall';
+import { Firewall, FirewallInstallCommunication } from '../../models/firewall/Firewall';
 import { SystemCtlDto } from './dtos/systemctl.dto';
 import { Request } from 'express';
 import { SystemctlPolicy } from '../../policies/systemctl.policy';
@@ -40,11 +37,7 @@ export class SystemCtlController extends Controller {
   @Validate(SystemCtlDto)
   async systemctlCommunication(req: Request) {
     (
-      await SystemctlPolicy.communicate(
-        req.session.user,
-        req.body.fwCloud,
-        req.body.firewall,
-      )
+      await SystemctlPolicy.communicate(req.session.user, req.body.fwCloud, req.body.firewall)
     ).authorize();
     const firewall = await db
       .getSource()
@@ -76,10 +69,7 @@ export class SystemCtlController extends Controller {
       communication = await firewall.getCommunication();
     }
 
-    const response = await communication.systemctlManagement(
-      req.body.command,
-      req.body.service,
-    );
+    const response = await communication.systemctlManagement(req.body.command, req.body.service);
     return ResponseBuilder.buildResponse().status(200).body(response);
   }
 }

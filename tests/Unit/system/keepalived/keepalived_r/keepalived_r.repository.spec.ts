@@ -81,8 +81,7 @@ describe(KeepalivedRepository.name, () => {
     it('should remove a single KeepalivedRule entity', async () => {
       const result = await repository.remove(keepalivedRule);
 
-      expect(await repository.findOne({ where: { id: keepalivedRule.id } })).to
-        .be.null;
+      expect(await repository.findOne({ where: { id: keepalivedRule.id } })).to.be.null;
     });
 
     it('should remove multiple KeepalivedRule entities', async () => {
@@ -97,17 +96,12 @@ describe(KeepalivedRepository.name, () => {
 
       const result = await repository.remove([keepalivedRule, keepalivedRule2]);
 
-      expect(await repository.findOne({ where: { id: keepalivedRule.id } })).to
-        .be.null;
-      expect(await repository.findOne({ where: { id: keepalivedRule2.id } })).to
-        .be.null;
+      expect(await repository.findOne({ where: { id: keepalivedRule.id } })).to.be.null;
+      expect(await repository.findOne({ where: { id: keepalivedRule2.id } })).to.be.null;
     });
 
     it('should refresh orders after remove', async () => {
-      const refreshOrdersSpy = sinon.spy(
-        repository,
-        'refreshOrders' as keyof KeepalivedRepository,
-      );
+      const refreshOrdersSpy = sinon.spy(repository, 'refreshOrders' as keyof KeepalivedRepository);
 
       await repository.remove(keepalivedRule);
 
@@ -120,31 +114,17 @@ describe(KeepalivedRepository.name, () => {
       keepalivedRule.group = null;
       keepalivedRule.save();
 
-      const moveAboveSpy = sinon.spy(
-        repository,
-        'moveAbove' as keyof KeepalivedRepository,
-      );
+      const moveAboveSpy = sinon.spy(repository, 'moveAbove' as keyof KeepalivedRepository);
 
-      await repository.move(
-        [keepalivedRule.id],
-        keepalivedRule.id,
-        Offset.Above,
-      );
+      await repository.move([keepalivedRule.id], keepalivedRule.id, Offset.Above);
 
       expect(moveAboveSpy.calledOnce).to.be.true;
     });
 
     it('should refresh orders after move', async () => {
-      const refreshOrdersSpy = sinon.spy(
-        repository,
-        'refreshOrders' as keyof KeepalivedRepository,
-      );
+      const refreshOrdersSpy = sinon.spy(repository, 'refreshOrders' as keyof KeepalivedRepository);
 
-      await repository.move(
-        [keepalivedRule.id],
-        keepalivedRule.id,
-        Offset.Above,
-      );
+      await repository.move([keepalivedRule.id], keepalivedRule.id, Offset.Above);
 
       expect(refreshOrdersSpy.calledOnce).to.be.true;
     });
@@ -153,16 +133,14 @@ describe(KeepalivedRepository.name, () => {
   describe('getLastKeepalivedRuleInGroup', () => {
     it('should return the last Keepalived rule in the group', async () => {
       const Keepalivedgid = group.id;
-      const expectedRule: KeepalivedRule = await manager
-        .getRepository(KeepalivedRule)
-        .save(
-          manager.getRepository(KeepalivedRule).create({
-            group: group,
-            firewall: firewall,
-            rule_order: 2,
-            interface: null,
-          }),
-        );
+      const expectedRule: KeepalivedRule = await manager.getRepository(KeepalivedRule).save(
+        manager.getRepository(KeepalivedRule).create({
+          group: group,
+          firewall: firewall,
+          rule_order: 2,
+          interface: null,
+        }),
+      );
 
       //const result = await repository.getLastKeepalivedRuleInGroup(Keepalivedgid);
 

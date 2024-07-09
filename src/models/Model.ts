@@ -44,18 +44,13 @@ export default abstract class Model extends BaseEntity implements IModel {
   public abstract getTableName(): string;
 
   public static methodExists(method: string): boolean {
-    return (
-      typeof this[method] === 'function' ||
-      typeof this.prototype[method] === 'function'
-    );
+    return typeof this[method] === 'function' || typeof this.prototype[method] === 'function';
   }
 
   public static _getTableName(): string {
-    const data = getMetadataArgsStorage().tables.filter(
-      (item: TableMetadataArgs) => {
-        return item.target === this;
-      },
-    );
+    const data = getMetadataArgsStorage().tables.filter((item: TableMetadataArgs) => {
+      return item.target === this;
+    });
 
     return data.length > 0 ? data[0].name : null;
   }
@@ -66,18 +61,15 @@ export default abstract class Model extends BaseEntity implements IModel {
    * @param tableName
    * @param entityName
    */
-  public static getEntitiyDefinition(
-    tableName: string,
-    entityName?: string,
-  ): typeof Model {
-    const matches: Array<TableMetadataArgs> =
-      getMetadataArgsStorage().tables.filter((item: TableMetadataArgs) => {
+  public static getEntitiyDefinition(tableName: string, entityName?: string): typeof Model {
+    const matches: Array<TableMetadataArgs> = getMetadataArgsStorage().tables.filter(
+      (item: TableMetadataArgs) => {
         const target = <any>item.target;
         return (
-          tableName === item.name &&
-          (!entityName || (entityName && entityName === target.name))
+          tableName === item.name && (!entityName || (entityName && entityName === target.name))
         );
-      });
+      },
+    );
 
     return matches.length > 0 ? <any>matches[0].target : null;
   }
@@ -87,9 +79,7 @@ export default abstract class Model extends BaseEntity implements IModel {
    *
    * @param options
    */
-  public toJSON<T>(
-    options: ToJSONOptions = defaultToJSONOptions,
-  ): DeepPartial<T> {
+  public toJSON<T>(options: ToJSONOptions = defaultToJSONOptions): DeepPartial<T> {
     const result: DeepPartial<T> = {} as DeepPartial<T>;
     const propertyReferences: Array<ColumnMetadataArgs> = (<typeof Model>(
       (<any>this.constructor)
@@ -110,11 +100,7 @@ export default abstract class Model extends BaseEntity implements IModel {
         continue;
       }
 
-      if (
-        propertyName in this &&
-        !this[propertyName] &&
-        options.removeNullFields === false
-      ) {
+      if (propertyName in this && !this[propertyName] && options.removeNullFields === false) {
         result[propertyName] = null;
       }
     }
@@ -126,34 +112,28 @@ export default abstract class Model extends BaseEntity implements IModel {
    * Returns model properties which are Column
    */
   public static getEntityColumns(): Array<ColumnMetadataArgs> {
-    return getMetadataArgsStorage().columns.filter(
-      (column: ColumnMetadataArgs) => {
-        return column.target === this;
-      },
-    );
+    return getMetadataArgsStorage().columns.filter((column: ColumnMetadataArgs) => {
+      return column.target === this;
+    });
   }
 
   /**
    * Returns model relations
    */
   public static getEntityRelations(): Array<RelationMetadataArgs> {
-    return getMetadataArgsStorage().relations.filter(
-      (relation: RelationMetadataArgs) => {
-        const type = <any>relation.type;
-        return relation.target === this || type().constructor === this;
-      },
-    );
+    return getMetadataArgsStorage().relations.filter((relation: RelationMetadataArgs) => {
+      const type = <any>relation.type;
+      return relation.target === this || type().constructor === this;
+    });
   }
 
   /**
    * Returns model primary keys
    */
   public static getPrimaryKeys(): Array<ColumnMetadataArgs> {
-    return getMetadataArgsStorage().columns.filter(
-      (column: ColumnMetadataArgs) => {
-        return column.target === this && column.options.primary === true;
-      },
-    );
+    return getMetadataArgsStorage().columns.filter((column: ColumnMetadataArgs) => {
+      return column.target === this && column.options.primary === true;
+    });
   }
 
   public static getPrimaryKey(propertyName: string): ColumnMetadataArgs {
@@ -187,19 +167,15 @@ export default abstract class Model extends BaseEntity implements IModel {
    * Returns model join columns
    */
   public static getJoinColumns(): Array<JoinColumnMetadataArgs> {
-    return getMetadataArgsStorage().joinColumns.filter(
-      (item: JoinColumnMetadataArgs) => {
-        return item.target === this;
-      },
-    );
+    return getMetadataArgsStorage().joinColumns.filter((item: JoinColumnMetadataArgs) => {
+      return item.target === this;
+    });
   }
 
   public static getJoinTables(): Array<JoinTableMetadataArgs> {
-    return getMetadataArgsStorage().joinTables.filter(
-      (item: JoinTableMetadataArgs) => {
-        return item.target === this;
-      },
-    );
+    return getMetadataArgsStorage().joinTables.filter((item: JoinTableMetadataArgs) => {
+      return item.target === this;
+    });
   }
 
   /**
@@ -233,13 +209,14 @@ export default abstract class Model extends BaseEntity implements IModel {
    */
   public static isForeignKey(propertyName: string): boolean {
     //First get the column metadata argument of the propertyName
-    const columnMetadatas: Array<ColumnMetadataArgs> =
-      this.getEntityColumns().filter((item: ColumnMetadataArgs) => {
+    const columnMetadatas: Array<ColumnMetadataArgs> = this.getEntityColumns().filter(
+      (item: ColumnMetadataArgs) => {
         return (
           item.propertyName === propertyName ||
           (item.options.name ? item.options.name === propertyName : false)
         );
-      });
+      },
+    );
 
     if (columnMetadatas.length === 0) {
       return false;
@@ -266,13 +243,14 @@ export default abstract class Model extends BaseEntity implements IModel {
    * @param propertyName
    */
   public static getOriginalColumnName(propertyName: string): string {
-    const matchingColumns: Array<ColumnMetadataArgs> =
-      this.getEntityColumns().filter((item: ColumnMetadataArgs) => {
+    const matchingColumns: Array<ColumnMetadataArgs> = this.getEntityColumns().filter(
+      (item: ColumnMetadataArgs) => {
         return (
           item.propertyName === propertyName ||
           (item.options.name ? item.options.name === propertyName : false)
         );
-      });
+      },
+    );
 
     if (matchingColumns.length > 1) {
       throw new Error('Unexpected metadata length');
@@ -291,9 +269,7 @@ export default abstract class Model extends BaseEntity implements IModel {
    * Returns the relation from a property which is ForeignKey (usually relationNameId)
    * @param propertyName
    */
-  public static getRelationFromPropertyName(
-    propertyName: string,
-  ): RelationMetadataArgs {
+  public static getRelationFromPropertyName(propertyName: string): RelationMetadataArgs {
     if (this.isForeignKey(propertyName)) {
       return this.getRelationFromForeignKey(propertyName);
     }
@@ -308,22 +284,19 @@ export default abstract class Model extends BaseEntity implements IModel {
    *
    * @param propertyName
    */
-  protected static getRelationFromForeignKey(
-    propertyName: string,
-  ): RelationMetadataArgs {
+  protected static getRelationFromForeignKey(propertyName: string): RelationMetadataArgs {
     const originalColumName: string = this.getOriginalColumnName(propertyName);
 
-    const joinColumns: Array<JoinColumnMetadataArgs> =
-      this.getJoinColumns().filter((item: JoinColumnMetadataArgs) => {
+    const joinColumns: Array<JoinColumnMetadataArgs> = this.getJoinColumns().filter(
+      (item: JoinColumnMetadataArgs) => {
         return item.name === originalColumName;
-      });
+      },
+    );
 
     if (joinColumns.length === 1) {
-      const matchRelations = this.getEntityRelations().filter(
-        (item: RelationMetadataArgs) => {
-          return item.propertyName === joinColumns[0].propertyName;
-        },
-      );
+      const matchRelations = this.getEntityRelations().filter((item: RelationMetadataArgs) => {
+        return item.propertyName === joinColumns[0].propertyName;
+      });
 
       if (joinColumns.length === 1) {
         return matchRelations[0];
@@ -337,13 +310,12 @@ export default abstract class Model extends BaseEntity implements IModel {
    * Returns the relation which references the join table propertyName
    * @param propertyName
    */
-  protected static getRelationFromJoinTable(
-    propertyName: string,
-  ): RelationMetadataArgs {
-    const relations: Array<RelationMetadataArgs> =
-      this.getEntityRelations().filter((item: RelationMetadataArgs) => {
+  protected static getRelationFromJoinTable(propertyName: string): RelationMetadataArgs {
+    const relations: Array<RelationMetadataArgs> = this.getEntityRelations().filter(
+      (item: RelationMetadataArgs) => {
         return item.propertyName === propertyName;
-      });
+      },
+    );
 
     if (relations.length !== 1) {
       throw new Error('Unexpected metadata length');

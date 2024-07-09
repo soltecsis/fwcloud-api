@@ -7,15 +7,8 @@ import { FileInfo } from '../../http/files/file-info';
 
 @ValidatorConstraint({ async: false })
 export class HasExtension implements ValidatorConstraintInterface {
-  validate(
-    value: any,
-    validationArguments?: ValidationArguments,
-  ): boolean | Promise<boolean> {
-    if (
-      value === undefined ||
-      value === null ||
-      value instanceof FileInfo === false
-    ) {
+  validate(value: any, validationArguments?: ValidationArguments): boolean | Promise<boolean> {
+    if (value === undefined || value === null || value instanceof FileInfo === false) {
       return true;
     }
 

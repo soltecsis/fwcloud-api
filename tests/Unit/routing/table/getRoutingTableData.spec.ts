@@ -30,10 +30,7 @@ import {
   RoutingTableService,
   RouteData,
 } from '../../../../src/models/routing/routing-table/routing-table.service';
-import {
-  ItemForGrid,
-  RouteItemForCompiler,
-} from '../../../../src/models/routing/shared';
+import { ItemForGrid, RouteItemForCompiler } from '../../../../src/models/routing/shared';
 import { expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
 import { EntityManager } from 'typeorm';
@@ -54,9 +51,7 @@ describe('Routing table data fetch for compiler or grid', () => {
 
     fwc = await new FwCloudFactory().make();
 
-    routeService = await testSuite.app.getService<RouteService>(
-      RouteService.name,
-    );
+    routeService = await testSuite.app.getService<RouteService>(RouteService.name);
     routingTableService = await testSuite.app.getService<RoutingTableService>(
       RoutingTableService.name,
     );
@@ -66,13 +61,12 @@ describe('Routing table data fetch for compiler or grid', () => {
     let item: RouteItemForCompiler;
 
     before(async () => {
-      routes =
-        await routingTableService.getRoutingTableData<RouteItemForCompiler>(
-          'compiler',
-          fwc.fwcloud.id,
-          fwc.firewall.id,
-          fwc.routingTable.id,
-        );
+      routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+        fwc.routingTable.id,
+      );
     });
 
     describe('Out of group', () => {
@@ -357,14 +351,13 @@ describe('Routing table data fetch for compiler or grid', () => {
   describe('Get data for only some routes', () => {
     it('should get data for route 2', async () => {
       const ids = [fwc.routes.get('route2').id];
-      routes =
-        await routingTableService.getRoutingTableData<RouteItemForCompiler>(
-          'compiler',
-          fwc.fwcloud.id,
-          fwc.firewall.id,
-          fwc.routingTable.id,
-          ids,
-        );
+      routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+        fwc.routingTable.id,
+        ids,
+      );
 
       expect(routes.length).to.equal(1);
       expect(routes[0].id).to.equal(ids[0]);
@@ -372,14 +365,13 @@ describe('Routing table data fetch for compiler or grid', () => {
 
     it('should get data for routes 1 and 3', async () => {
       const ids = [fwc.routes.get('route1').id, fwc.routes.get('route3').id];
-      routes =
-        await routingTableService.getRoutingTableData<RouteItemForCompiler>(
-          'compiler',
-          fwc.fwcloud.id,
-          fwc.firewall.id,
-          fwc.routingTable.id,
-          ids,
-        );
+      routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+        fwc.routingTable.id,
+        ids,
+      );
 
       expect(routes.length).to.equal(2);
       expect(routes[0].id).to.equal(ids[0]);
@@ -388,14 +380,13 @@ describe('Routing table data fetch for compiler or grid', () => {
 
     it('should get data for routes 2 and 4', async () => {
       const ids = [fwc.routes.get('route2').id, fwc.routes.get('route4').id];
-      routes =
-        await routingTableService.getRoutingTableData<RouteItemForCompiler>(
-          'compiler',
-          fwc.fwcloud.id,
-          fwc.firewall.id,
-          fwc.routingTable.id,
-          ids,
-        );
+      routes = await routingTableService.getRoutingTableData<RouteItemForCompiler>(
+        'compiler',
+        fwc.fwcloud.id,
+        fwc.firewall.id,
+        fwc.routingTable.id,
+        ids,
+      );
 
       expect(routes.length).to.equal(2);
       expect(routes[0].id).to.equal(ids[0]);

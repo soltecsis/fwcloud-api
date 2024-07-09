@@ -21,13 +21,7 @@
 */
 
 import { Service } from '../fonaments/services/service';
-import {
-  DataSource,
-  QueryRunner,
-  Migration,
-  DataSourceOptions,
-  MigrationExecutor,
-} from 'typeorm';
+import { DataSource, QueryRunner, Migration, DataSourceOptions, MigrationExecutor } from 'typeorm';
 import * as path from 'path';
 import * as fs from 'fs';
 import moment from 'moment';
@@ -132,12 +126,11 @@ export class DatabaseService extends Service {
     return this._dataSource;
   }
 
-  public async getDataSource(
-    options: Partial<DataSourceOptions>,
-  ): Promise<DataSource> {
+  public async getDataSource(options: Partial<DataSourceOptions>): Promise<DataSource> {
     const dataSourceOptions: DataSourceOptions = <DataSourceOptions>(
       ObjectHelpers.merge(this.getDefaultDataSourceConfiguration(), options)
     );
+
     const dataSource: DataSource = new DataSource(dataSourceOptions);
 
     if (!dataSource.isInitialized) {
@@ -156,8 +149,7 @@ export class DatabaseService extends Service {
       const tables: Array<string> = await this.getTables(dataSource);
 
       let query = 'SET FOREIGN_KEY_CHECKS=0;';
-      for (let i = 0; i < tables.length; i++)
-        query += `DROP TABLE ${tables[i]};`;
+      for (let i = 0; i < tables.length; i++) query += `DROP TABLE ${tables[i]};`;
       query += 'SET FOREIGN_KEY_CHECKS=1;';
 
       await queryRunner.query(query);
@@ -170,9 +162,7 @@ export class DatabaseService extends Service {
     }
   }
 
-  public async isDatabaseEmpty(
-    dataSource: DataSource = null,
-  ): Promise<boolean> {
+  public async isDatabaseEmpty(dataSource: DataSource = null): Promise<boolean> {
     dataSource = dataSource ? dataSource : this._dataSource;
 
     const queryRunner: QueryRunner = dataSource.createQueryRunner();
@@ -184,26 +174,18 @@ export class DatabaseService extends Service {
     return result.length === 0;
   }
 
-  public async runMigrations(
-    dataSource: DataSource = null,
-  ): Promise<Migration[]> {
+  public async runMigrations(dataSource: DataSource = null): Promise<Migration[]> {
     dataSource = dataSource ? dataSource : this._dataSource;
 
     return await dataSource.runMigrations();
   }
 
-  public async getExecutedMigrations(
-    dataSource?: DataSource,
-  ): Promise<Migration[]> {
+  public async getExecutedMigrations(dataSource?: DataSource): Promise<Migration[]> {
     dataSource = dataSource ?? this._dataSource;
     const queryRunner: QueryRunner = dataSource.createQueryRunner();
 
-    const migrationExecutor: MigrationExecutor = new MigrationExecutor(
-      dataSource,
-      queryRunner,
-    );
-    const migrations: Migration[] =
-      await migrationExecutor.getExecutedMigrations();
+    const migrationExecutor: MigrationExecutor = new MigrationExecutor(dataSource, queryRunner);
+    const migrations: Migration[] = await migrationExecutor.getExecutedMigrations();
 
     await queryRunner.release();
 
@@ -216,10 +198,7 @@ export class DatabaseService extends Service {
     return await this.emptyDatabase(dataSource);
   }
 
-  public async rollbackMigrations(
-    steps: number = 1,
-    dataSource?: DataSource,
-  ): Promise<void> {
+  public async rollbackMigrations(steps: number = 1, dataSource?: DataSource): Promise<void> {
     dataSource = dataSource ?? this._dataSource;
 
     for (let i = 0; i < steps; i++) {
@@ -275,9 +254,7 @@ export class DatabaseService extends Service {
   public async getSchemaVersion(): Promise<string> {
     let version: string = '0.0.0';
 
-    const directories: Array<string> = await FSHelper.directories(
-      this._config.migration_directory,
-    );
+    const directories: Array<string> = await FSHelper.directories(this._config.migration_directory);
     for (let i = 0; i < directories.length; i++) {
       const directoryName: string = path.basename(directories[i]);
       if (semver.valid(directoryName) && semver.gte(directoryName, version)) {
@@ -289,9 +266,7 @@ export class DatabaseService extends Service {
   }
 
   protected getDefaultDataSourceConfiguration(): DataSourceOptions {
-    const loggerOptions: ('error' | 'query')[] = this._app.config.get(
-      'log.queries',
-    )
+    const loggerOptions: ('error' | 'query')[] = this._app.config.get('log.queries')
       ? ['error', 'query']
       : ['error'];
 
@@ -368,16 +343,14 @@ export class DatabaseService extends Service {
     };
   }
 
-  protected async importSQLFile(
-    path: string,
-    dataSource: DataSource = null,
-  ): Promise<void> {
+  protected async importSQLFile(path: string, dataSource: DataSource = null): Promise<void> {
     dataSource = dataSource ? dataSource : this._dataSource;
     const queryRunner: QueryRunner = dataSource.createQueryRunner();
     const queries = fs
       .readFileSync(path, { encoding: 'utf-8' })
       .replace(new RegExp("'", 'gm'), '"')
-      .replace(new RegExp('^--.*\\n', 'gm'), '')
+      .replace(new RegExp('^--.*\n', 'gm'), '')
+      .replace(/(\r\n|\n|\r)/gm, ' ')
       .replace(/\s+/g, ' ')
       .split(';');
 
@@ -404,9 +377,7 @@ export class DatabaseService extends Service {
     }
   }
 
-  protected async getTables(
-    dataSource: DataSource = null,
-  ): Promise<Array<string>> {
+  protected async getTables(dataSource: DataSource = null): Promise<Array<string>> {
     dataSource = dataSource ? dataSource : this._dataSource;
     const queryRunner: QueryRunner = dataSource.createQueryRunner();
 

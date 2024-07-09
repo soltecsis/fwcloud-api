@@ -44,12 +44,9 @@ export class IptablesSaveController extends Controller {
 
     let result: IptablesSaveStats;
 
-    if (request.body.type === 'data')
-      result = await this._iptablesSaveService.import(request);
+    if (request.body.type === 'data') result = await this._iptablesSaveService.import(request);
     // ssh
-    else
-      result =
-        await this._iptablesSaveService.importThroughCommunication(request);
+    else result = await this._iptablesSaveService.importThroughCommunication(request);
 
     return ResponseBuilder.buildResponse().status(200).body(result);
   }

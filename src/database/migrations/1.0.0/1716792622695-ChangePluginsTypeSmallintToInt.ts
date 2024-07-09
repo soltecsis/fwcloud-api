@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
 
-export class ChangePluginsTypeSmallintToInt1716792622695
-  implements MigrationInterface
-{
+export class ChangePluginsTypeSmallintToInt1716792622695 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.changeColumn(
       'firewall',

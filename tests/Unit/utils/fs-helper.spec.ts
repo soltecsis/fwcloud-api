@@ -51,10 +51,7 @@ describe(describeName('FsHelper Unit Tests'), () => {
       fs.mkdirSync(directory1);
       fs.mkdirSync(directory2);
 
-      expect(await FSHelper.directories(directoryTest)).to.be.deep.eq([
-        directory1,
-        directory2,
-      ]);
+      expect(await FSHelper.directories(directoryTest)).to.be.deep.eq([directory1, directory2]);
     });
   });
 
@@ -85,26 +82,18 @@ describe(describeName('FsHelper Unit Tests'), () => {
   describe('copy()', () => {
     it('should copy a directory', async () => {
       const sourcePath: string = path.join(playgroundPath, 'sourceTest');
-      const destinationPath: string = path.join(
-        playgroundPath,
-        'destinationTest',
-      );
+      const destinationPath: string = path.join(playgroundPath, 'destinationTest');
 
       FSHelper.mkdirSync(sourcePath);
       fs.writeFileSync(path.join(sourcePath, 'test'), 'test');
       await FSHelper.copy(sourcePath, destinationPath);
 
-      expect(
-        fs.readFileSync(path.join(destinationPath, 'test')).toString(),
-      ).to.be.deep.eq('test');
+      expect(fs.readFileSync(path.join(destinationPath, 'test')).toString()).to.be.deep.eq('test');
     });
 
     it('should copy a file', async () => {
       const sourcePath: string = path.join(playgroundPath, 'sourceTest.txt');
-      const destinationPath: string = path.join(
-        playgroundPath,
-        'destinationTest',
-      );
+      const destinationPath: string = path.join(playgroundPath, 'destinationTest');
 
       fs.writeFileSync(path.join(sourcePath), 'test');
       await FSHelper.copy(sourcePath, destinationPath);

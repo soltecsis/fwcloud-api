@@ -74,11 +74,7 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
   };
   let manager: EntityManager;
 
-  async function runTest(
-    policyType: number,
-    rulePosition: number,
-    cs: string,
-  ): Promise<void> {
+  async function runTest(policyType: number, rulePosition: number, cs: string): Promise<void> {
     ruleData.type = policyType;
     const rule = await PolicyRule.insertPolicy_r(ruleData);
     let result: any;
@@ -129,8 +125,7 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
           ipObjId: natIP,
           ipObjGroupId: -1,
           interfaceId: -1,
-          policyPositionId:
-            policyType === PolicyTypesMap.get(`${IPv}:SNAT`) ? 14 : 34,
+          policyPositionId: policyType === PolicyTypesMap.get(`${IPv}:SNAT`) ? 14 : 34,
           position_order: 1,
         }),
       );
@@ -156,11 +151,9 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
       usePrefix &&
       vpnCli2 &&
       ((policyType === PolicyTypesMap.get(`${IPv}:SNAT`) &&
-        rulePosition ===
-          RulePositionsMap.get(`${IPv}:${policy}:Translated Source`)) ||
+        rulePosition === RulePositionsMap.get(`${IPv}:${policy}:Translated Source`)) ||
         (policyType === PolicyTypesMap.get(`${IPv}:DNAT`) &&
-          rulePosition ===
-            RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`)))
+          rulePosition === RulePositionsMap.get(`${IPv}:${policy}:Translated Destination`)))
     ) {
       expect(error).to.eql({
         fwcErr: 999999,
@@ -184,11 +177,7 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
     fwcloud = (
       await manager
         .getRepository(FwCloud)
-        .save(
-          manager
-            .getRepository(FwCloud)
-            .create({ name: StringHelper.randomize(10) }),
-        )
+        .save(manager.getRepository(FwCloud).create({ name: StringHelper.randomize(10) }))
     ).id;
     ruleData.firewall = (
       await manager
@@ -242,18 +231,14 @@ describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
       await manager
         .getRepository(OpenVPN)
         .save(
-          manager
-            .getRepository(OpenVPN)
-            .create({ firewallId: ruleData.firewall, crtId: crtSrv }),
+          manager.getRepository(OpenVPN).create({ firewallId: ruleData.firewall, crtId: crtSrv }),
         )
     ).id;
     vpnPrefix = (
       await manager
         .getRepository(OpenVPNPrefix)
         .save(
-          manager
-            .getRepository(OpenVPNPrefix)
-            .create({ openVPNId: vpnSrv, name: 'SOLTECSIS-' }),
+          manager.getRepository(OpenVPNPrefix).create({ openVPNId: vpnSrv, name: 'SOLTECSIS-' }),
         )
     ).id;
     vpnCli1 = (

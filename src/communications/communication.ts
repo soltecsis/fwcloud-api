@@ -88,9 +88,7 @@ export abstract class Communication<ConnectionData> {
     eventEmitter?: EventEmitter,
   ): Promise<string>;
   abstract ccdHashList(dir: string, channel?: EventEmitter): Promise<CCDHash[]>;
-  abstract getOpenVPNHistoryFile(
-    filepath: string,
-  ): Promise<OpenVPNHistoryRecord[]>;
+  abstract getOpenVPNHistoryFile(filepath: string): Promise<OpenVPNHistoryRecord[]>;
   abstract getRealtimeStatus(statusFilepath: string): Promise<string>;
   abstract uninstallOpenVPNConfigs(
     dir: string,
@@ -98,18 +96,12 @@ export abstract class Communication<ConnectionData> {
     channel?: EventEmitter,
   ): Promise<void>;
 
-  abstract installFirewallPolicy(
-    sourcePath: string,
-    eventEmitter?: EventEmitter,
-  ): Promise<string>;
+  abstract installFirewallPolicy(sourcePath: string, eventEmitter?: EventEmitter): Promise<string>;
   abstract getFirewallInterfaces(): Promise<string>;
   abstract getFirewallIptablesSave(): Promise<string[]>;
   abstract ping(): Promise<void>;
   abstract info(): Promise<FwcAgentInfo>;
-  abstract systemctlManagement(
-    command: string,
-    service: string,
-  ): Promise<string>;
+  abstract systemctlManagement(command: string, service: string): Promise<string>;
   abstract installPlugin(name: string, enabled: boolean): Promise<string>;
 
   protected handleRequestException(error: Error, eventEmitter?: EventEmitter) {
@@ -123,31 +115,20 @@ export abstract class Communication<ConnectionData> {
       }
 
       if (error.code === 'ETIMEDOUT') {
-        eventEmitter?.emit(
-          'message',
-          new ProgressErrorPayload(`ETIMEDOUT: Host is not valid\n`),
-        );
+        eventEmitter?.emit('message', new ProgressErrorPayload(`ETIMEDOUT: Host is not valid\n`));
         throw new HttpException(`ETIMEDOUT: IP is not valid`, 400);
       }
 
       if (error.code === 'ECONNRESET') {
         eventEmitter?.emit(
           'message',
-          new ProgressErrorPayload(
-            `ECONNRESET: Port or protocol might not be valid\n`,
-          ),
+          new ProgressErrorPayload(`ECONNRESET: Port or protocol might not be valid\n`),
         );
-        throw new HttpException(
-          `ECONNRESET: Port or protocol might not be valid`,
-          400,
-        );
+        throw new HttpException(`ECONNRESET: Port or protocol might not be valid`, 400);
       }
 
       if (error.code === 'EPROTO') {
-        eventEmitter?.emit(
-          'message',
-          new ProgressErrorPayload(`EPROTO: Protocol error\n`),
-        );
+        eventEmitter?.emit('message', new ProgressErrorPayload(`EPROTO: Protocol error\n`));
         throw new HttpException(`EPROTO: Protocol error`, 400);
       }
     }

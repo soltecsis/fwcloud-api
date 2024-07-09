@@ -43,56 +43,38 @@ describe(describeName('FwCloud Unit Tests'), () => {
 
   describe('removeDataDirectories()', () => {
     it('should remove fwcloud pki directory if it exists', async () => {
-      const fwCloud: FwCloud = await FwCloud.save(
-        FwCloud.create({ name: 'test' }),
-      );
+      const fwCloud: FwCloud = await FwCloud.save(FwCloud.create({ name: 'test' }));
 
       FSHelper.mkdirSync(fwCloud.getPkiDirectoryPath());
-      fs.writeFileSync(
-        path.join(fwCloud.getPkiDirectoryPath(), 'test'),
-        'test',
-      );
+      fs.writeFileSync(path.join(fwCloud.getPkiDirectoryPath(), 'test'), 'test');
 
       fwCloud.removeDataDirectories();
 
-      expect(FSHelper.directoryExistsSync(fwCloud.getPkiDirectoryPath())).to.be
-        .false;
+      expect(FSHelper.directoryExistsSync(fwCloud.getPkiDirectoryPath())).to.be.false;
     });
 
     it('should remove fwcloud policy directory if it exists', async () => {
-      const fwCloud: FwCloud = await FwCloud.save(
-        FwCloud.create({ name: 'test' }),
-      );
+      const fwCloud: FwCloud = await FwCloud.save(FwCloud.create({ name: 'test' }));
 
       FSHelper.mkdirSync(fwCloud.getPolicyDirectoryPath());
-      fs.writeFileSync(
-        path.join(fwCloud.getPolicyDirectoryPath(), 'test'),
-        'test',
-      );
+      fs.writeFileSync(path.join(fwCloud.getPolicyDirectoryPath(), 'test'), 'test');
 
       fwCloud.removeDataDirectories();
 
-      expect(FSHelper.directoryExistsSync(fwCloud.getPolicyDirectoryPath())).to
-        .be.false;
+      expect(FSHelper.directoryExistsSync(fwCloud.getPolicyDirectoryPath())).to.be.false;
     });
 
     it('should not remove data directories if they do not exist', async () => {
-      const fwCloud: FwCloud = await FwCloud.save(
-        FwCloud.create({ name: 'test' }),
-      );
+      const fwCloud: FwCloud = await FwCloud.save(FwCloud.create({ name: 'test' }));
 
       fwCloud.removeDataDirectories();
 
-      expect(FSHelper.directoryExistsSync(fwCloud.getPolicyDirectoryPath())).to
-        .be.false;
-      expect(FSHelper.directoryExistsSync(fwCloud.getPkiDirectoryPath())).to.be
-        .false;
+      expect(FSHelper.directoryExistsSync(fwCloud.getPolicyDirectoryPath())).to.be.false;
+      expect(FSHelper.directoryExistsSync(fwCloud.getPkiDirectoryPath())).to.be.false;
     });
 
     it('should be called before remove', async () => {
-      const fwCloud: FwCloud = await FwCloud.save(
-        FwCloud.create({ name: 'test' }),
-      );
+      const fwCloud: FwCloud = await FwCloud.save(FwCloud.create({ name: 'test' }));
 
       const spy = sinon.spy(FwCloud.prototype, 'removeDataDirectories');
 

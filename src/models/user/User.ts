@@ -135,13 +135,10 @@ export class User extends Model {
 
   public static getAllAdminUserIds(req) {
     return new Promise((resolve, reject) => {
-      req.dbCon.query(
-        `select id from ${tableName} where role=1`,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result);
-        },
-      );
+      req.dbCon.query(`select id from ${tableName} where role=1`, (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      });
     });
   }
 
@@ -156,24 +153,17 @@ export class User extends Model {
         name: req.body.name,
         email: req.body.email,
         username: req.body.username,
-        password: bcrypt.hashSync(
-          req.body.customer + req.body.username + req.body.password,
-          salt,
-        ),
+        password: bcrypt.hashSync(req.body.customer + req.body.username + req.body.password, salt),
         enabled: req.body.enabled,
         role: req.body.role,
         allowed_from: req.body.allowed_from,
       };
 
       try {
-        req.dbCon.query(
-          `INSERT INTO ${tableName} SET ?`,
-          userData,
-          (error, result) => {
-            if (error) return reject(error);
-            resolve(result.insertId);
-          },
-        );
+        req.dbCon.query(`INSERT INTO ${tableName} SET ?`, userData, (error, result) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        });
       } catch (error) {
         reject(error);
       }
@@ -271,7 +261,7 @@ export class User extends Model {
                 role=${req.body.role},
                 allowed_from=${req.dbCon.escape(req.body.allowed_from)}
                 WHERE id=${req.body.user}`;
-      req.dbCon.query(sql, (error) => {
+      req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve();
       });
@@ -288,7 +278,7 @@ export class User extends Model {
 
       req.dbCon.query(
         `UPDATE ${tableName} SET password=${req.dbCon.escape(crypt_pass)} WHERE id=${req.session.user_id}`,
-        (error) => {
+        (error, result) => {
           if (error) return reject(error);
           resolve();
         },
@@ -302,8 +292,7 @@ export class User extends Model {
 
       if (req.body.user)
         sql = `select id,customer,name,email,username,enabled,role,allowed_from,last_login from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`;
-      else
-        sql = `select id,customer,name from ${tableName} where customer=${req.body.customer}`;
+      else sql = `select id,customer,name from ${tableName} where customer=${req.body.customer}`;
       req.dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
         resolve(result);
@@ -313,20 +302,17 @@ export class User extends Model {
 
   public static _delete(req): Promise<void> {
     return new Promise((resolve, reject) => {
-      req.dbCon.query(
-        `delete from user__fwcloud where user=${req.body.user}`,
-        (error) => {
-          if (error) return reject(error);
+      req.dbCon.query(`delete from user__fwcloud where user=${req.body.user}`, (error, result) => {
+        if (error) return reject(error);
 
-          req.dbCon.query(
-            `delete from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`,
-            (error) => {
-              if (error) return reject(error);
-              resolve();
-            },
-          );
-        },
-      );
+        req.dbCon.query(
+          `delete from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`,
+          (error, result) => {
+            if (error) return reject(error);
+            resolve();
+          },
+        );
+      });
     });
   }
 
@@ -337,8 +323,7 @@ export class User extends Model {
         async (error, result) => {
           if (error) return reject(error);
 
-          if (result[0].n < 2)
-            resolve({ result: true, restrictions: { LastAdminUser: true } });
+          if (result[0].n < 2) resolve({ result: true, restrictions: { LastAdminUser: true } });
           else resolve({ result: false });
         },
       );
@@ -347,13 +332,10 @@ export class User extends Model {
 
   public static allowFwcloudAccess(dbCon, user, fwcloud) {
     return new Promise((resolve, reject) => {
-      dbCon.query(
-        `INSERT IGNORE user__fwcloud values(${user},${fwcloud})`,
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result.insertId);
-        },
-      );
+      dbCon.query(`INSERT IGNORE user__fwcloud values(${user},${fwcloud})`, (error, result) => {
+        if (error) return reject(error);
+        resolve(result.insertId);
+      });
     });
   }
 
@@ -379,7 +361,7 @@ export class User extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `delete from user__fwcloud where user=${user} and fwcloud=${fwcloud}`,
-        (error) => {
+        (error, result) => {
           if (error) return reject(error);
           resolve();
         },

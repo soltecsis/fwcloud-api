@@ -30,10 +30,7 @@ export class PolicyRulePolicy extends Policy {
 
     return match.length > 0 ? Authorization.grant() : Authorization.revoke();
   }
-  static async download(
-    firewall: Firewall,
-    user: User,
-  ): Promise<Authorization> {
+  static async download(firewall: Firewall, user: User): Promise<Authorization> {
     user = await db
       .getSource()
       .manager.getRepository(User)

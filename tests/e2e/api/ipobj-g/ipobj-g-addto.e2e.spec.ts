@@ -5,11 +5,7 @@ import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';
 import { User } from '../../../../src/models/user/User';
 import { describeName, expect, testSuite } from '../../../mocha/global-setup';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
-import {
-  attachSession,
-  createUser,
-  generateSession,
-} from '../../../utils/utils';
+import { attachSession, createUser, generateSession } from '../../../utils/utils';
 import request = require('supertest');
 import { Firewall } from '../../../../src/models/firewall/Firewall';
 import db from '../../../../src/database/database-manager';

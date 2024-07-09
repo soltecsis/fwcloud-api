@@ -60,23 +60,16 @@ export class RoutingGroupService extends Service {
     return this.getFindInPathOptions(path).getMany();
   }
 
-  findOneInPath(
-    path: IFindOneRoutingGroupPath,
-  ): Promise<RoutingGroup | undefined> {
+  findOneInPath(path: IFindOneRoutingGroupPath): Promise<RoutingGroup | undefined> {
     return this.getFindInPathOptions(path).getOne();
   }
 
-  async findOneInPathOrFail(
-    path: IFindOneRoutingGroupPath,
-  ): Promise<RoutingGroup> {
+  async findOneInPathOrFail(path: IFindOneRoutingGroupPath): Promise<RoutingGroup> {
     return this.getFindInPathOptions(path).getOneOrFail();
   }
 
   async create(data: ICreateRoutingGroup): Promise<RoutingGroup> {
-    const group: RoutingGroup = await db
-      .getSource()
-      .manager.getRepository(RoutingGroup)
-      .save(data);
+    const group: RoutingGroup = await db.getSource().manager.getRepository(RoutingGroup).save(data);
     return db
       .getSource()
       .manager.getRepository(RoutingGroup)
@@ -105,10 +98,7 @@ export class RoutingGroupService extends Service {
       group.routingRules = data.routingRules as RoutingRule[];
     }
 
-    group = await db
-      .getSource()
-      .manager.getRepository(RoutingGroup)
-      .save(group);
+    group = await db.getSource().manager.getRepository(RoutingGroup).save(group);
 
     return db
       .getSource()

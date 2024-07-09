@@ -41,16 +41,11 @@ export class InterfaceToIPObjExporter extends TableExporter {
   ): SelectQueryBuilder<any> {
     return qb
       .where((qb) => {
-        const subquery = qb
-          .subQuery()
-          .from(Interface, 'interface')
-          .select('interface.id');
+        const subquery = qb.subQuery().from(Interface, 'interface').select('interface.id');
 
         return (
           `${alias}.interfaceId IN ` +
-          new InterfaceExporter()
-            .getFilterBuilder(subquery, 'interface', fwCloudId)
-            .getQuery()
+          new InterfaceExporter().getFilterBuilder(subquery, 'interface', fwCloudId).getQuery()
         );
       })
       .orWhere((qb) => {
@@ -58,9 +53,7 @@ export class InterfaceToIPObjExporter extends TableExporter {
 
         return (
           `${alias}.ipObjId IN ` +
-          new IPObjExporter()
-            .getFilterBuilder(subquery, 'ipobj', fwCloudId)
-            .getQuery()
+          new IPObjExporter().getFilterBuilder(subquery, 'ipobj', fwCloudId).getQuery()
         );
       });
   }

@@ -1,9 +1,4 @@
-import {
-  IsArray,
-  IsEnum,
-  IsNumber,
-  IsPositive,
-} from 'class-validator';
+import { IsArray, IsEnum, IsNumber, IsPositive, IsString } from 'class-validator';
 import { Offset } from '../../../../offset';
 
 export class RouteControllerMoveDto {

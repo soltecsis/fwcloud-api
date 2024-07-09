@@ -7,9 +7,7 @@ import {
 } from 'class-validator';
 
 @ValidatorConstraint({ async: true })
-export class IsRoutingTableNumberConstraint
-  implements ValidatorConstraintInterface
-{
+export class IsRoutingTableNumberConstraint implements ValidatorConstraintInterface {
   validate(number: number) {
     return number === 254 || (number > 0 && number <= 250);
   }

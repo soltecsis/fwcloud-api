@@ -68,11 +68,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
    * @param offset - The offset indicating whether the selected rules should be moved above or below the destination DHCP rule.
    * @returns A promise that resolves to an array of DHCPR objects representing the updated DHCP rules.
    */
-  async move(
-    ids: number[],
-    dhcpDestId: number,
-    offset: Offset,
-  ): Promise<DHCPRule[]> {
+  async move(ids: number[], dhcpDestId: number, offset: Offset): Promise<DHCPRule[]> {
     const dhcp_rs: DHCPRule[] = await this.find({
       where: {
         id: In(ids),
@@ -199,10 +195,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
     return affectedRules;
   }
 
-  async remove(
-    entities: DHCPRule[],
-    options?: RemoveOptions,
-  ): Promise<DHCPRule[]>;
+  async remove(entities: DHCPRule[], options?: RemoveOptions): Promise<DHCPRule[]>;
   async remove(entity: DHCPRule, options?: RemoveOptions): Promise<DHCPRule>;
   /**
    * Removes one or more DHCP entities from the repository.
@@ -215,10 +208,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
     entityOrEntities: DHCPRule | DHCPRule[],
     options?: RemoveOptions,
   ): Promise<DHCPRule | DHCPRule[]> {
-    const result: DHCPRule[] = await super.remove(
-      entityOrEntities as DHCPRule[],
-      options,
-    );
+    const result: DHCPRule[] = await super.remove(entityOrEntities as DHCPRule[], options);
 
     if (result && !Array.isArray(result)) {
       const dhcpRule: DHCPRule = result;
@@ -306,9 +296,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
     );
   }
 
-  async getLastDHCPRuleInFirewall(
-    firewall: number,
-  ): Promise<DHCPRule | undefined> {
+  async getLastDHCPRuleInFirewall(firewall: number): Promise<DHCPRule | undefined> {
     return this.createQueryBuilder('rule')
       .where('rule.firewall = :firewall', { firewall })
       .orderBy('rule.rule_order', 'DESC')
@@ -323,9 +311,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
     rule_types?: number[],
     forCompilation: boolean = false,
   ): Promise<DHCPRule[]> {
-    const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder(
-      'dhcp_r',
-    )
+    const query: SelectQueryBuilder<DHCPRule> = this.createQueryBuilder('dhcp_r')
       .leftJoinAndSelect('dhcp_r.group', 'group')
       .leftJoinAndSelect('dhcp_r.network', 'network')
       .leftJoinAndSelect('dhcp_r.range', 'range')
@@ -333,10 +319,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
       .leftJoinAndSelect('router.interface', 'routerInterface')
       .leftJoinAndSelect('routerInterface.firewall', 'routerFirewall')
       .leftJoinAndSelect('routerInterface.hosts', 'routerInterfaceHosts')
-      .leftJoinAndSelect(
-        'routerInterfaceHosts.hostIPObj',
-        'routerInterfaceHostIPObj',
-      )
+      .leftJoinAndSelect('routerInterfaceHosts.hostIPObj', 'routerInterfaceHostIPObj')
       .leftJoinAndSelect('routerFirewall.cluster', 'routerCluster')
       .leftJoinAndSelect('dhcp_r.interface', 'interface')
       .leftJoinAndSelect('interface.firewall', 'interfaceFirewall')
@@ -349,9 +332,7 @@ export class DHCPRepository extends Repository<DHCPRule> {
       .andWhere('fwCloud.id = :fwCloudId', { fwCloudId: FWCloud });
 
     if (rule_types) {
-      query
-        .andWhere('dhcp_r.rule_type IN (:...rule_types)')
-        .setParameter('rule_types', rule_types);
+      query.andWhere('dhcp_r.rule_type IN (:...rule_types)').setParameter('rule_types', rule_types);
 
       if (forCompilation) {
         query

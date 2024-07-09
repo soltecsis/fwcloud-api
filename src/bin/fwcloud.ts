@@ -28,16 +28,7 @@ import * as path from 'path';
 async function loadApiApplication(): Promise<Application> {
   const application = await Application.run();
   const worker: Worker = new Worker(
-    path.join(
-      application.path,
-      'dist',
-      'src',
-      'models',
-      'vpn',
-      'openvpn',
-      'status',
-      'worker.js',
-    ),
+    path.join(application.path, 'dist', 'src', 'models', 'vpn', 'openvpn', 'status', 'worker.js'),
     {
       stdout: false,
     },

@@ -18,11 +18,7 @@ export class Validator {
 
   public async validate(options?: ClassTransformOptions): Promise<void> {
     if (this._dto) {
-      const dtoInstance: object = plainToClass(
-        this._dto,
-        classToPlain(this._data),
-        options,
-      );
+      const dtoInstance: object = plainToClass(this._dto, classToPlain(this._data), options);
       const errors: ValidationError[] = await validate(dtoInstance, {
         forbidUnknownValues: true,
         whitelist: true,

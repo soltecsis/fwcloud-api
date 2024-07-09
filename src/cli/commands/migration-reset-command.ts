@@ -33,8 +33,9 @@ export class MigrationResetCommand extends Command {
   public description: string = 'Reset all migrations';
 
   async handle(args: yargs.Arguments) {
-    const databaseService: DatabaseService =
-      await this._app.getService<DatabaseService>(DatabaseService.name);
+    const databaseService: DatabaseService = await this._app.getService<DatabaseService>(
+      DatabaseService.name,
+    );
     const dataSource: DataSource = await databaseService.getDataSource({
       name: 'cli',
     });

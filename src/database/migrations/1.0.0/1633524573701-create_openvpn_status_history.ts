@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
-export class createOpenvpnStatusHistory1633524573701
-  implements MigrationInterface
-{
+export class createOpenvpnStatusHistory1633524573701 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
       new Table({

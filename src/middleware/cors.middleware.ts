@@ -32,10 +32,7 @@ export class CORS extends Middleware {
 
     const options: CorsOptions = {
       credentials: true,
-      origin: (
-        origin: string,
-        callback: (error: Error, status?: boolean) => void,
-      ) => {
+      origin: (origin: string, callback: (error: Error, status?: boolean) => void) => {
         if (this.isOriginAllowed(origin)) {
           return callback(null, true);
         }
@@ -47,11 +44,7 @@ export class CORS extends Middleware {
     this.app.express.use(cors(options));
   }
 
-  public async handle(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
     return;
   }
 

@@ -55,10 +55,7 @@ export class RouteRepository extends Repository<Route> {
    * @param path
    * @returns
    */
-  findManyInPath(
-    path: IFindManyRoutePath,
-    options?: FindManyOptions<Route>,
-  ): Promise<Route[]> {
+  findManyInPath(path: IFindManyRoutePath, options?: FindManyOptions<Route>): Promise<Route[]> {
     return this.getFindInPathOptions(path, options).getMany();
   }
 
@@ -80,11 +77,7 @@ export class RouteRepository extends Repository<Route> {
     return this.getFindInPathOptions(path).getOneOrFail();
   }
 
-  async move(
-    ids: number[],
-    toRouteId: number,
-    offset: Offset,
-  ): Promise<Route[]> {
+  async move(ids: number[], toRouteId: number, offset: Offset): Promise<Route[]> {
     const routes: Route[] = await this.find({
       where: {
         id: In(ids),
@@ -207,12 +200,7 @@ export class RouteRepository extends Repository<Route> {
     });
 
     for (const entity of entitiesWithRoutingTable) {
-      if (
-        !Object.prototype.hasOwnProperty.call(
-          affectedTables,
-          entity.routingTableId,
-        )
-      ) {
+      if (!Object.prototype.hasOwnProperty.call(affectedTables, entity.routingTableId)) {
         affectedTables[entity.routingTableId] = entity.routingTable;
       }
     }
@@ -227,9 +215,7 @@ export class RouteRepository extends Repository<Route> {
     return result;
   }
 
-  async getLastRouteInRoutingTable(
-    routingTableId: number,
-  ): Promise<Route | undefined> {
+  async getLastRouteInRoutingTable(routingTableId: number): Promise<Route | undefined> {
     return (
       await this.find({
         where: {
@@ -261,8 +247,7 @@ export class RouteRepository extends Repository<Route> {
       .andWhere('firewall.id = :firewall', { firewall: firewall })
       .andWhere('fwcloud.id = :fwcloud', { fwcloud: fwcloud });
 
-    if (routes)
-      query = query.andWhere('route.id IN (:...routes)', { routes: routes });
+    if (routes) query = query.andWhere('route.id IN (:...routes)', { routes: routes });
 
     return query.orderBy('route.route_order').getMany();
   }

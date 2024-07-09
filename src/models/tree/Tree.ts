@@ -28,7 +28,6 @@ import { logger } from '../../fonaments/abstract-application';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { OpenVPNOption } from '../vpn/openvpn/openvpn-option.model';
 import { IPObj } from '../ipobj/IPObj';
-import { promisify } from 'util';
 const fwcError = require('../../utils/error_table');
 const asyncMod = require('async');
 const _Tree = require('easy-tree');
@@ -96,13 +95,9 @@ export class Tree extends Model {
       req.dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
         if (rows.length === 0)
-          return reject(
-            fwcError.other(`Root node of type '${type}' not found`),
-          );
+          return reject(fwcError.other(`Root node of type '${type}' not found`));
         if (rows.length > 1)
-          return reject(
-            fwcError.other(`Found more than one root nodes of type '${type}'`),
-          );
+          return reject(fwcError.other(`Found more than one root nodes of type '${type}'`));
         resolve(rows[0]);
       });
     });
@@ -121,8 +116,7 @@ export class Tree extends Model {
       dbCon.query(sql, (error, rows) => {
         if (error) return reject(error);
         if (rows.length === 0) return reject(fwcError.other(`Node not found`));
-        if (rows.length > 1)
-          return reject(fwcError.other(`Found more than one nodes`));
+        if (rows.length > 1) return reject(fwcError.other(`Found more than one nodes`));
         resolve(rows[0]);
       });
     });
@@ -194,7 +188,7 @@ export class Tree extends Model {
     childrenArrayMap: ChildrenArrayMap,
     customOrder?: string[],
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       const sql = `select id from fwc_tree where fwcloud=${fwcloud} and node_type in (${nodeType.map((value) => `'${value}'`).join(', ')})`;
 
       dbCon.query(sql, async (error, nodes) => {
@@ -203,26 +197,19 @@ export class Tree extends Model {
         switch (sortType) {
           case 'TEXT':
             for (let i = 0; i < nodes.length; i++) {
-              childrenArrayMap
-                .get(nodes[i].id)
-                .sort((a: TreeNode, b: TreeNode) => {
-                  if (a.text.toLowerCase() < b.text.toLowerCase()) return -1;
-                  if (a.text.toLowerCase() > b.text.toLowerCase()) return 1;
-                  return 0;
-                });
+              childrenArrayMap.get(nodes[i].id).sort((a: TreeNode, b: TreeNode) => {
+                if (a.text.toLowerCase() < b.text.toLowerCase()) return -1;
+                if (a.text.toLowerCase() > b.text.toLowerCase()) return 1;
+                return 0;
+              });
             }
             break;
 
           case 'NODE_TYPE':
             for (let i = 0; i < nodes.length; i++) {
-              childrenArrayMap
-                .get(nodes[i].id)
-                .sort((a: TreeNode, b: TreeNode) => {
-                  return (
-                    customOrder.indexOf(a.node_type) -
-                    customOrder.indexOf(b.node_type)
-                  );
-                });
+              childrenArrayMap.get(nodes[i].id).sort((a: TreeNode, b: TreeNode) => {
+                return customOrder.indexOf(a.node_type) - customOrder.indexOf(b.node_type);
+              });
             }
             break;
         }
@@ -249,11 +236,7 @@ export class Tree extends Model {
     });
   }
 
-  public static dumpTree(
-    dbCon: any,
-    treeType: TreeType,
-    fwcloud: number,
-  ): Promise<TreeNode> {
+  public static dumpTree(dbCon: any, treeType: TreeType, fwcloud: number): Promise<TreeNode> {
     return new Promise((resolve, reject) => {
       // Query for get the root node.
       const sql = `select id, name as text, id_parent as pid, node_type, id_obj, obj_type, fwcloud  
@@ -268,20 +251,14 @@ export class Tree extends Model {
           rootNode.children = [];
 
           // Map each fwc_tree node id with its TreeNode children array.
-          const childrenArrayMap: ChildrenArrayMap = new Map<
-            number,
-            TreeNode[]
-          >();
+          const childrenArrayMap: ChildrenArrayMap = new Map<number, TreeNode[]>();
           childrenArrayMap.set(rootNode.id, rootNode.children);
 
           let orderBy: string;
           // Next levels nodes.
           for (let level = 1; nodes.length > 0; level++) {
             if (treeType === 'FIREWALLS' && level > 1) orderBy = 'id';
-            else if (
-              (treeType === 'OBJECTS' || treeType === 'SERVICES') &&
-              level === 1
-            )
+            else if ((treeType === 'OBJECTS' || treeType === 'SERVICES') && level === 1)
               orderBy = 'id';
             else orderBy = 'name';
 
@@ -298,31 +275,24 @@ export class Tree extends Model {
               childrenArrayMap.set(nodes[i].id, nodes[i].children);
 
               // Add the current node to the children array of its parent node.
-              const parentChildren: TreeNode[] = childrenArrayMap.get(
-                nodes[i].pid,
-              );
+              const parentChildren: TreeNode[] = childrenArrayMap.get(nodes[i].pid);
               parentChildren.push(nodes[i]);
             }
           }
 
           if (treeType === 'FIREWALLS') {
             // Sort nodes into FD (folders) and FDI (Interfaces) nodes type by name in the text field.
-            await this.sortChildBy(
-              dbCon,
-              'TEXT',
-              fwcloud,
-              ['FD', 'FDI'],
-              childrenArrayMap,
-            );
+            await this.sortChildBy(dbCon, 'TEXT', fwcloud, ['FD', 'FDI'], childrenArrayMap);
             // Sort nodes into FL (firewalls) and CL (clusters) nodes type by custom order.
-            await this.sortChildBy(
-              dbCon,
-              'NODE_TYPE',
-              fwcloud,
-              ['FW', 'CL'],
-              childrenArrayMap,
-              ['FP', 'FP6', 'FDI', 'FCF', 'OPN', 'ROU', 'SYS'],
-            );
+            await this.sortChildBy(dbCon, 'NODE_TYPE', fwcloud, ['FW', 'CL'], childrenArrayMap, [
+              'FP',
+              'FP6',
+              'FDI',
+              'FCF',
+              'OPN',
+              'ROU',
+              'SYS',
+            ]);
           } else if (treeType === 'SERVICES' || treeType === 'OBJECTS') {
             // Include data for advanced search.
             await this.addSearchInfo(dbCon, childrenArrayMap, treeType);
@@ -346,8 +316,7 @@ export class Tree extends Model {
       let nodeTypes: string[];
 
       if (treeType === 'SERVICES') {
-        fields =
-          'source_port_start, source_port_end, destination_port_start, destination_port_end';
+        fields = 'source_port_start, source_port_end, destination_port_start, destination_port_end';
         nodeTypes = ['SOT', 'SOU'];
       } else if (treeType === 'OBJECTS') {
         fields = 'address, range_start, range_end';
@@ -359,17 +328,10 @@ export class Tree extends Model {
 
       let item: [number, TreeNode[]];
       let ids = '';
-      for (
-        let mapIter = childrenArrayMap.entries();
-        (item = mapIter.next().value);
-
-      ) {
+      for (let mapIter = childrenArrayMap.entries(); (item = mapIter.next().value); ) {
         const nodesArray = item[1];
         for (let i = 0; i < nodesArray.length; i++) {
-          if (
-            nodeTypes.indexOf(nodesArray[i].node_type) !== -1 &&
-            nodesArray[i].id_obj
-          ) {
+          if (nodeTypes.indexOf(nodesArray[i].node_type) !== -1 && nodesArray[i].id_obj) {
             nodesMap.set(nodesArray[i].id_obj, nodesArray[i]);
             ids += `${nodesArray[i].id_obj},`;
           }
@@ -394,9 +356,7 @@ export class Tree extends Model {
     });
   }
 
-  private static async addSearchInfoOpenVPN(
-    node: OpenVPNNode,
-  ): Promise<OpenVPNNode> {
+  private static async addSearchInfoOpenVPN(node: OpenVPNNode): Promise<OpenVPNNode> {
     const qb: SelectQueryBuilder<IPObj> = db
       .getSource()
       .manager.getRepository(IPObj)
@@ -477,9 +437,7 @@ export class Tree extends Model {
 
           try {
             if (rows.length > 0)
-              await Promise.all(
-                rows.map((data) => this.deleteFwc_TreeFullNode(data)),
-              );
+              await Promise.all(rows.map((data) => this.deleteFwc_TreeFullNode(data)));
             await this.deleteFwc_Tree_node(data.id);
             resolve();
           } catch (err) {
@@ -496,13 +454,10 @@ export class Tree extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
 
-        connection.query(
-          `DELETE FROM ${tableName} WHERE id=${id}`,
-          (error, result) => {
-            if (error) return reject(error);
-            resolve({ result: true, msg: 'deleted' });
-          },
-        );
+        connection.query(`DELETE FROM ${tableName} WHERE id=${id}`, (error, result) => {
+          if (error) return reject(error);
+          resolve({ result: true, msg: 'deleted' });
+        });
       });
     });
   }
@@ -517,9 +472,7 @@ export class Tree extends Model {
 
         try {
           if (rows.length > 0)
-            await Promise.all(
-              rows.map((data) => this.deleteFwc_TreeFullNode(data)),
-            );
+            await Promise.all(rows.map((data) => this.deleteFwc_TreeFullNode(data)));
 
           resolve();
         } catch (err) {
@@ -535,16 +488,11 @@ export class Tree extends Model {
       db.get((error, connection) => {
         if (error) return reject(error);
         const sql =
-          'select fwcloud,id_obj FROM ' +
-          tableName +
-          ' WHERE id=' +
-          connection.escape(id);
+          'select fwcloud,id_obj FROM ' + tableName + ' WHERE id=' + connection.escape(id);
         connection.query(sql, (error, result) => {
           if (error) return reject(error);
 
-          result.length === 1 &&
-          fwcloud === result[0].fwcloud &&
-          id_obj === result[0].id_obj
+          result.length === 1 && fwcloud === result[0].fwcloud && id_obj === result[0].id_obj
             ? resolve(true)
             : resolve(false);
         });
@@ -553,15 +501,7 @@ export class Tree extends Model {
   }
 
   //Create new node.
-  public static newNode(
-    dbCon,
-    fwcloud,
-    name,
-    id_parent,
-    node_type,
-    id_obj,
-    obj_type,
-  ) {
+  public static newNode(dbCon, fwcloud, name, id_parent, node_type, id_obj, obj_type) {
     return new Promise((resolve, reject) => {
       const sql =
         'INSERT INTO ' +
@@ -614,9 +554,7 @@ export class Tree extends Model {
           if (rows.length > 0) {
             logger().debug('-----> UPDATING NODES UNDER PARENT: ' + data.id);
             //Bucle por interfaces
-            Promise.all(
-              rows.map((data) => this.updateIDOBJFwc_TreeFullNode(data)),
-            )
+            Promise.all(rows.map((data) => this.updateIDOBJFwc_TreeFullNode(data)))
               .then((resp) => {
                 //logger().debug("----------- FIN PROMISES ALL NODE PADRE: ", data.id);
                 this.updateIDOBJFwc_Tree_node(data.fwcloud, data.id, data.NEWFW)
@@ -694,407 +632,193 @@ export class Tree extends Model {
     });
   }
 
-  public static async createObjectsTree(dbCon: Query, fwCloudId: number) {
-    const ids: any = {};
-    let id: any;
+  public static createObjectsTree(dbCon: Query, fwCloudId: number) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const ids: any = {};
+        let id: any;
 
-    // OBJECTS
-    ids.OBJECTS = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'OBJECTS',
-      null,
-      'FDO',
-      null,
-      null,
-    );
+        // OBJECTS
+        ids.OBJECTS = await this.newNode(dbCon, fwCloudId, 'OBJECTS', null, 'FDO', null, null);
 
-    // OBJECTS / Addresses
-    ids.Addresses = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Addresses',
-      ids.OBJECTS,
-      'OIA',
-      null,
-      5,
-    );
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Standard',
-      ids.Addresses,
-      'STD',
-      null,
-      null,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'OIA', 5);
+        // OBJECTS / Addresses
+        ids.Addresses = await this.newNode(
+          dbCon,
+          fwCloudId,
+          'Addresses',
+          ids.OBJECTS,
+          'OIA',
+          null,
+          5,
+        );
+        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Addresses, 'STD', null, null);
+        await this.createStdObjectsTree(dbCon, id, 'OIA', 5);
 
-    // OBJECTS / Addresses Ranges
-    ids.AddressesRanges = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Address Ranges',
-      ids.OBJECTS,
-      'OIR',
-      null,
-      6,
-    );
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Standard',
-      ids.AddressesRanges,
-      'STD',
-      null,
-      null,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'OIR', 6);
+        // OBJECTS / Addresses Ranges
+        ids.AddressesRanges = await this.newNode(
+          dbCon,
+          fwCloudId,
+          'Address Ranges',
+          ids.OBJECTS,
+          'OIR',
+          null,
+          6,
+        );
+        id = await this.newNode(
+          dbCon,
+          fwCloudId,
+          'Standard',
+          ids.AddressesRanges,
+          'STD',
+          null,
+          null,
+        );
+        await this.createStdObjectsTree(dbCon, id, 'OIR', 6);
 
-    // OBJECTS / Networks
-    ids.Networks = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Networks',
-      ids.OBJECTS,
-      'OIN',
-      null,
-      7,
-    );
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Standard',
-      ids.Networks,
-      'STD',
-      null,
-      null,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'OIN', 7);
+        // OBJECTS / Networks
+        ids.Networks = await this.newNode(
+          dbCon,
+          fwCloudId,
+          'Networks',
+          ids.OBJECTS,
+          'OIN',
+          null,
+          7,
+        );
+        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Networks, 'STD', null, null);
+        await this.createStdObjectsTree(dbCon, id, 'OIN', 7);
 
-    // OBJECTS / DNS
-    ids.DNS = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'DNS',
-      ids.OBJECTS,
-      'ONS',
-      null,
-      9,
-    );
+        // OBJECTS / DNS
+        ids.DNS = await this.newNode(dbCon, fwCloudId, 'DNS', ids.OBJECTS, 'ONS', null, 9);
 
-    // OBJECTS / Hosts
-    await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Hosts',
-      ids.OBJECTS,
-      'OIH',
-      null,
-      8,
-    );
+        // OBJECTS / Hosts
+        await this.newNode(dbCon, fwCloudId, 'Hosts', ids.OBJECTS, 'OIH', null, 8);
 
-    // OBJECTS / Marks
-    ids.Marks = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Iptables Marks',
-      ids.OBJECTS,
-      'MRK',
-      null,
-      30,
-    );
+        // OBJECTS / Marks
+        ids.Marks = await this.newNode(
+          dbCon,
+          fwCloudId,
+          'Iptables Marks',
+          ids.OBJECTS,
+          'MRK',
+          null,
+          30,
+        );
 
-    // OBJECTS / Groups
-    ids.Groups = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Groups',
-      ids.OBJECTS,
-      'OIG',
-      null,
-      20,
-    );
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Standard',
-      ids.Groups,
-      'STD',
-      null,
-      null,
-    );
-    await this.createStdGroupsTree(dbCon, id, 'OIG', 20);
+        // OBJECTS / Groups
+        ids.Groups = await this.newNode(dbCon, fwCloudId, 'Groups', ids.OBJECTS, 'OIG', null, 20);
+        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Groups, 'STD', null, null);
+        await this.createStdGroupsTree(dbCon, id, 'OIG', 20);
 
-    // COUNTRIES
-    ids.COUNTRIES = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'COUNTRIES',
-      null,
-      'COF',
-      null,
-      null,
-    );
+        // COUNTRIES
+        ids.COUNTRIES = await this.newNode(dbCon, fwCloudId, 'COUNTRIES', null, 'COF', null, null);
 
-    // COUNTRIES / AS
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'AS',
-      ids.COUNTRIES,
-      'CON',
-      6,
-      23,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        // COUNTRIES / AS
+        id = await this.newNode(dbCon, fwCloudId, 'AS', ids.COUNTRIES, 'CON', 6, 23);
+        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-    // COUNTRIES / EU
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'EU',
-      ids.COUNTRIES,
-      'CON',
-      7,
-      23,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        // COUNTRIES / EU
+        id = await this.newNode(dbCon, fwCloudId, 'EU', ids.COUNTRIES, 'CON', 7, 23);
+        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-    // CONTRIES / AF
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'AF',
-      ids.COUNTRIES,
-      'CON',
-      8,
-      23,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        // CONTRIES / AF
+        id = await this.newNode(dbCon, fwCloudId, 'AF', ids.COUNTRIES, 'CON', 8, 23);
+        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-    // COUNTRIES / OC
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'OC',
-      ids.COUNTRIES,
-      'CON',
-      9,
-      23,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        // COUNTRIES / OC
+        id = await this.newNode(dbCon, fwCloudId, 'OC', ids.COUNTRIES, 'CON', 9, 23);
+        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-    // COUNTRIES / NA
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'NA',
-      ids.COUNTRIES,
-      'CON',
-      10,
-      23,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        // COUNTRIES / NA
+        id = await this.newNode(dbCon, fwCloudId, 'NA', ids.COUNTRIES, 'CON', 10, 23);
+        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-    // COUNTRIES / AN
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'AN',
-      ids.COUNTRIES,
-      'CON',
-      11,
-      23,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        // COUNTRIES / AN
+        id = await this.newNode(dbCon, fwCloudId, 'AN', ids.COUNTRIES, 'CON', 11, 23);
+        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-    // COUNTRIES / SA
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'SA',
-      ids.COUNTRIES,
-      'CON',
-      12,
-      23,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'COD', 24);
+        // COUNTRIES / SA
+        id = await this.newNode(dbCon, fwCloudId, 'SA', ids.COUNTRIES, 'CON', 12, 23);
+        await this.createStdObjectsTree(dbCon, id, 'COD', 24);
 
-    return ids;
+        resolve(ids);
+      } catch (error) {
+        return reject(error);
+      }
+    });
   }
-  
 
-  public static async createServicesTree(dbCon: Query, fwCloudId: number) {
-    const ids: any = {};
-    let id;
+  public static createServicesTree(dbCon: Query, fwCloudId: number) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const ids: any = {};
+        let id;
 
-    // SERVICES
-    ids.SERVICES = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'SERVICES',
-      null,
-      'FDS',
-      null,
-      null,
-    );
+        // SERVICES
+        ids.SERVICES = await this.newNode(dbCon, fwCloudId, 'SERVICES', null, 'FDS', null, null);
 
-    // SERVICES / IP
-    ids.IP = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'IP',
-      ids.SERVICES,
-      'SOI',
-      null,
-      1,
-    );
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Standard',
-      ids.IP,
-      'STD',
-      null,
-      null,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'SOI', 1);
+        // SERVICES / IP
+        ids.IP = await this.newNode(dbCon, fwCloudId, 'IP', ids.SERVICES, 'SOI', null, 1);
+        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.IP, 'STD', null, null);
+        await this.createStdObjectsTree(dbCon, id, 'SOI', 1);
 
-    // SERVICES / ICMP
-    ids.ICMP = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'ICMP',
-      ids.SERVICES,
-      'SOM',
-      null,
-      3,
-    );
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Standard',
-      ids.ICMP,
-      'STD',
-      null,
-      null,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'SOM', 3);
+        // SERVICES / ICMP
+        ids.ICMP = await this.newNode(dbCon, fwCloudId, 'ICMP', ids.SERVICES, 'SOM', null, 3);
+        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.ICMP, 'STD', null, null);
+        await this.createStdObjectsTree(dbCon, id, 'SOM', 3);
 
-    // SERVICES / TCP
-    ids.TCP = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'TCP',
-      ids.SERVICES,
-      'SOT',
-      null,
-      2,
-    );
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Standard',
-      ids.TCP,
-      'STD',
-      null,
-      null,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'SOT', 2);
+        // SERVICES / TCP
+        ids.TCP = await this.newNode(dbCon, fwCloudId, 'TCP', ids.SERVICES, 'SOT', null, 2);
+        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.TCP, 'STD', null, null);
+        await this.createStdObjectsTree(dbCon, id, 'SOT', 2);
 
-    // SERVICES / UDP
-    ids.UDP = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'UDP',
-      ids.SERVICES,
-      'SOU',
-      null,
-      4,
-    );
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Standard',
-      ids.UDP,
-      'STD',
-      null,
-      null,
-    );
-    await this.createStdObjectsTree(dbCon, id, 'SOU', 4);
+        // SERVICES / UDP
+        ids.UDP = await this.newNode(dbCon, fwCloudId, 'UDP', ids.SERVICES, 'SOU', null, 4);
+        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.UDP, 'STD', null, null);
+        await this.createStdObjectsTree(dbCon, id, 'SOU', 4);
 
-    // SERVICES / Groups
-    ids.Groups = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Groups',
-      ids.SERVICES,
-      'SOG',
-      null,
-      21,
-    );
-    id = await this.newNode(
-      dbCon,
-      fwCloudId,
-      'Standard',
-      ids.Groups,
-      'STD',
-      null,
-      null,
-    );
-    await this.createStdGroupsTree(dbCon, id, 'SOG', 21);
+        // SERVICES / Groups
+        ids.Groups = await this.newNode(dbCon, fwCloudId, 'Groups', ids.SERVICES, 'SOG', null, 21);
+        id = await this.newNode(dbCon, fwCloudId, 'Standard', ids.Groups, 'STD', null, null);
+        await this.createStdGroupsTree(dbCon, id, 'SOG', 21);
 
-    return ids;
+        resolve(ids);
+      } catch (error) {
+        return reject(error);
+      }
+    });
   }
-  
 
-  public static async createAllTreeCloud(fwCloud: FwCloud): Promise<void> {
+  public static createAllTreeCloud(fwCloud: FwCloud): Promise<void> {
     const dbCon: Query = db.getQuery();
-  
-    try {
-      // FIREWALLS
-      await this.newNode(
-        dbCon,
-        fwCloud.id,
-        'FIREWALLS',
-        null,
-        'FDF',
-        null,
-        null,
-      );
-  
-      // OBJECTS
-      await this.createObjectsTree(dbCon, fwCloud.id);
-  
-      // SERVICES
-      await this.createServicesTree(dbCon, fwCloud.id);
-  
-      // Creating root node for CA (Certification Authorities).
-      await this.newNode(dbCon, fwCloud.id, 'CA', null, 'FCA', null, null);
-  
-      // Resolve the promise to indicate successful completion
-      return Promise.resolve();
-    } catch (error) {
-      // Reject the promise with the caught error
-      return Promise.reject(error);
-    }
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        // FIREWALLS
+        await this.newNode(dbCon, fwCloud.id, 'FIREWALLS', null, 'FDF', null, null);
+
+        // OBJECTS
+        await this.createObjectsTree(dbCon, fwCloud.id);
+
+        // SERVICES
+        await this.createServicesTree(dbCon, fwCloud.id);
+
+        // Creating root node for CA (Certification Authorities).
+        await this.newNode(dbCon, fwCloud.id, 'CA', null, 'FCA', null, null);
+        resolve();
+      } catch (error) {
+        return reject(error);
+      }
+    });
   }
 
   // Create tree with standard objects.
-  public static createStdObjectsTree(
-    dbCon,
-    node_id,
-    node_type,
-    ipobj_type,
-  ): Promise<void> {
+  public static createStdObjectsTree(dbCon, node_id, node_type, ipobj_type): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql: string;
       ipobj_type === 24 && node_type === 'COD'
         ? (sql = `SELECT i.id, i.name FROM ipobj i JOIN ipobj__ipobjg ii ON i.id=ii.ipobj JOIN ipobj_g ig ON ii.ipobj_g=ig.id WHERE ig.id=(SELECT fwt.id_obj FROM fwc_tree fwt WHERE fwt.id=${node_id})`)
-        : (sql =
-            'SELECT id,name FROM ipobj WHERE fwcloud is null and type=' +
-            ipobj_type);
+        : (sql = 'SELECT id,name FROM ipobj WHERE fwcloud is null and type=' + ipobj_type);
       dbCon.query(sql, async (error, result) => {
         if (error) return reject(error);
 
@@ -1118,12 +842,7 @@ export class Tree extends Model {
   }
 
   // Create nodes under group.
-  public static createGroupNodes(
-    dbCon,
-    fwcloud,
-    node_id,
-    group,
-  ): Promise<void> {
+  public static createGroupNodes(dbCon, fwcloud, node_id, group): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql = `SELECT O.id,O.name,O.type FROM ipobj__ipobjg G
 			INNER JOIN ipobj O ON O.id=G.ipobj
@@ -1166,15 +885,7 @@ export class Tree extends Model {
 
           try {
             for (const openvpn of openvpns)
-              await this.newNode(
-                dbCon,
-                fwcloud,
-                openvpn.cn,
-                node_id,
-                'OCL',
-                openvpn.id,
-                311,
-              );
+              await this.newNode(dbCon, fwcloud, openvpn.cn, node_id, 'OCL', openvpn.id, 311);
           } catch (error) {
             return reject(error);
           }
@@ -1187,15 +898,7 @@ export class Tree extends Model {
 
             try {
               for (const prefix of prefixes)
-                await this.newNode(
-                  dbCon,
-                  fwcloud,
-                  prefix.name,
-                  node_id,
-                  'PRO',
-                  prefix.id,
-                  401,
-                );
+                await this.newNode(dbCon, fwcloud, prefix.name, node_id, 'PRO', prefix.id, 401);
             } catch (error) {
               return reject(error);
             }
@@ -1207,16 +910,9 @@ export class Tree extends Model {
   }
 
   // Create tree with standard groups.
-  public static createStdGroupsTree(
-    dbCon,
-    node_id,
-    node_type,
-    ipobj_type,
-  ): Promise<void> {
+  public static createStdGroupsTree(dbCon, node_id, node_type, ipobj_type): Promise<void> {
     return new Promise((resolve, reject) => {
-      const sql =
-        'SELECT id,name FROM ipobj_g WHERE fwcloud is null and type=' +
-        ipobj_type;
+      const sql = 'SELECT id,name FROM ipobj_g WHERE fwcloud is null and type=' + ipobj_type;
       dbCon.query(sql, async (error, groups) => {
         if (error) return reject(error);
 
@@ -1243,12 +939,7 @@ export class Tree extends Model {
   }
 
   //Generate the IPs nodes for each interface.
-  public static interfacesIpTree(
-    connection,
-    fwcloud,
-    nodeId,
-    ifId,
-  ): Promise<void> {
+  public static interfacesIpTree(connection, fwcloud, nodeId, ifId): Promise<void> {
     return new Promise((resolve, reject) => {
       // Get interface IPs.
       const sql =
@@ -1281,13 +972,7 @@ export class Tree extends Model {
   }
 
   //Generate the interfaces nodes.
-  public static interfacesTree(
-    connection,
-    fwcloud,
-    nodeId,
-    ownerId,
-    ownerType,
-  ): Promise<void> {
+  public static interfacesTree(connection, fwcloud, nodeId, ownerId, ownerType): Promise<void> {
     return new Promise((resolve, reject) => {
       // Get firewall interfaces.
       let sql = '';
@@ -1319,8 +1004,7 @@ export class Tree extends Model {
             const id = await this.newNode(
               connection,
               fwcloud,
-              _interface.name +
-                (_interface.labelName ? ' [' + _interface.labelName + ']' : ''),
+              _interface.name + (_interface.labelName ? ' [' + _interface.labelName + ']' : ''),
               nodeId,
               ownerType === 'FW' ? 'IFF' : 'IFH',
               _interface.id,
@@ -1337,13 +1021,7 @@ export class Tree extends Model {
   }
 
   //Generate the OpenVPN client nodes.
-  public static openvpnClientTree(
-    connection,
-    fwcloud,
-    firewall,
-    server_vpn,
-    node,
-  ): Promise<void> {
+  public static openvpnClientTree(connection, fwcloud, firewall, server_vpn, node): Promise<void> {
     return new Promise((resolve, reject) => {
       // Get client OpenVPN configurations.
       const sql = `SELECT VPN.id,CRT.cn FROM openvpn VPN
@@ -1355,15 +1033,7 @@ export class Tree extends Model {
 
         try {
           for (const vpn of vpns) {
-            await this.newNode(
-              connection,
-              fwcloud,
-              vpn.cn,
-              node,
-              'OCL',
-              vpn.id,
-              311,
-            );
+            await this.newNode(connection, fwcloud, vpn.cn, node, 'OCL', vpn.id, 311);
           }
         } catch (error) {
           return reject(error);
@@ -1374,12 +1044,7 @@ export class Tree extends Model {
   }
 
   //Generate the OpenVPN server nodes.
-  public static openvpnServerTree(
-    connection,
-    fwcloud,
-    firewall,
-    node,
-  ): Promise<void> {
+  public static openvpnServerTree(connection, fwcloud, firewall, node): Promise<void> {
     return new Promise((resolve, reject) => {
       // Get server OpenVPN configurations.
       const sql = `SELECT VPN.id,CRT.cn FROM openvpn VPN
@@ -1400,13 +1065,7 @@ export class Tree extends Model {
               vpn.id,
               312,
             );
-            await this.openvpnClientTree(
-              connection,
-              fwcloud,
-              firewall,
-              vpn.id,
-              newNodeId,
-            );
+            await this.openvpnClientTree(connection, fwcloud, firewall, vpn.id, newNodeId);
           }
         } catch (error) {
           return reject(error);
@@ -1417,122 +1076,75 @@ export class Tree extends Model {
   }
 
   //Generate the routing nodes.
-  public static async routingTree(
+  public static routingTree(
     connection: any,
     fwcloud: number,
     firewall: number,
     node: number,
   ): Promise<void> {
-      // Create 'Routing' node
-      const id2: any = await this.newNode(
-        connection,
-        fwcloud,
-        'Routing',
-        node,
-        'ROU',
-        firewall,
-        null,
-      );
-  
-      // Create 'POLICY' node
-      await this.newNode(
-        connection,
-        fwcloud,
-        'POLICY',
-        id2,
-        'RR',
-        firewall,
-        null,
-      );
-  
-      // Create 'TABLES' node
-      const id3: any = await this.newNode(
-        connection,
-        fwcloud,
-        'TABLES',
-        id2,
-        'RTS',
-        firewall,
-        null,
-      );
-  
-      const sql = `SELECT id, name FROM routing_table WHERE firewall=${firewall}`;
-      const queryAsync = promisify(connection.query).bind(connection);
-      const tables = await queryAsync(sql);
-  
-      if (tables.length === 0) return;
-  
-      await Promise.all(tables.map(async (table: any) => {
-        await this.newNode(
-          connection,
-          fwcloud,
-          table.name,
-          id3,
-          'RT',
-          table.id,
-          null,
-        );
-      }));
+    return new Promise(async (resolve, reject) => {
+      let id3: any;
+      try {
+        const id2 = await this.newNode(connection, fwcloud, 'Routing', node, 'ROU', firewall, null);
+        await this.newNode(connection, fwcloud, 'POLICY', id2, 'RR', firewall, null);
+        id3 = await this.newNode(connection, fwcloud, 'TABLES', id2, 'RTS', firewall, null);
+      } catch (error) {
+        return reject(error);
+      }
+
+      const sql = `SELECT id,name FROM routing_table WHERE firewall=${firewall}`;
+      connection.query(sql, async (error, tables) => {
+        if (error) return reject(error);
+        if (tables.length === 0) return resolve();
+
+        try {
+          for (const table of tables)
+            await this.newNode(connection, fwcloud, table.name, id3, 'RT', table.id, null);
+        } catch (error) {
+          return reject(error);
+        }
+        resolve();
+      });
+    });
   }
 
   //Generate the system nodes.
-  public static async systemTree(
+  public static systemTree(
     connection: any,
     fwcloud: number,
     firewall: number,
     node: number,
   ): Promise<void> {
-    const idSystem = await this.newNode(
-      connection,
-      fwcloud,
-      'System',
-      node,
-      'SYS',
-      firewall,
-      null,
-    );
-  
-    await this.newNode(
-      connection,
-      fwcloud,
-      'DHCP',
-      idSystem,
-      'S01',
-      firewall,
-      null,
-    );
-  
-    await this.newNode(
-      connection,
-      fwcloud,
-      'Fixed Ips',
-      idSystem,
-      'S04',
-      firewall,
-      null,
-    );
-  
-    await this.newNode(
-      connection,
-      fwcloud,
-      'Keepalived',
-      idSystem,
-      'S02',
-      firewall,
-      null,
-    );
-  
-    await this.newNode(
-      connection,
-      fwcloud,
-      'HAProxy',
-      idSystem,
-      'S03',
-      firewall,
-      null,
-    );
+    return new Promise(async (resolve, reject) => {
+      try {
+        const idSystem = await this.newNode(
+          connection,
+          fwcloud,
+          'System',
+          node,
+          'SYS',
+          firewall,
+          null,
+        );
+        const idDHCP = await this.newNode(
+          connection,
+          fwcloud,
+          'DHCP',
+          idSystem,
+          'S01',
+          firewall,
+          null,
+        );
+        await this.newNode(connection, fwcloud, 'Fixed Ips', idDHCP, 'S04', firewall, null);
+        await this.newNode(connection, fwcloud, 'Keepalived', idSystem, 'S02', firewall, null);
+        await this.newNode(connection, fwcloud, 'HAProxy', idSystem, 'S03', firewall, null);
+        resolve();
+      } catch (error) {
+        return reject(error);
+      }
+    });
   }
-  
+
   // //Generate the routing nodes.
   // public static makeSureRoutingTreeExists(connection: any, fwcloud: number, children: any): Promise<boolean> {
   //     return new Promise(async (resolve, reject) => {
@@ -1570,27 +1182,17 @@ export class Tree extends Model {
   // };
 
   //Add new TREE FIREWALL for a New Firewall
-  public static insertFwc_Tree_New_firewall(
-    fwcloud,
-    nodeId,
-    firewallId,
-  ): Promise<void> {
+  public static insertFwc_Tree_New_firewall(fwcloud, nodeId, firewallId): Promise<void> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
 
         // Obtain cluster data required for tree nodes creation.
-        const sql =
-          'SELECT name FROM firewall WHERE id=' +
-          firewallId +
-          ' AND fwcloud=' +
-          fwcloud;
+        const sql = 'SELECT name FROM firewall WHERE id=' + firewallId + ' AND fwcloud=' + fwcloud;
         connection.query(sql, async (error, firewalls) => {
           if (error) return reject(error);
           if (firewalls.length !== 1)
-            return reject(
-              fwcError.other('Firewall with id ' + firewallId + ' not found'),
-            );
+            return reject(fwcError.other('Firewall with id ' + firewallId + ' not found'));
 
           try {
             // Create root firewall node
@@ -1613,51 +1215,11 @@ export class Tree extends Model {
               firewallId,
               null,
             );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'INPUT',
-              id2,
-              'PI',
-              firewallId,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'OUTPUT',
-              id2,
-              'PO',
-              firewallId,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'FORWARD',
-              id2,
-              'PF',
-              firewallId,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'SNAT',
-              id2,
-              'NTS',
-              firewallId,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'DNAT',
-              id2,
-              'NTD',
-              firewallId,
-              null,
-            );
+            await this.newNode(connection, fwcloud, 'INPUT', id2, 'PI', firewallId, null);
+            await this.newNode(connection, fwcloud, 'OUTPUT', id2, 'PO', firewallId, null);
+            await this.newNode(connection, fwcloud, 'FORWARD', id2, 'PF', firewallId, null);
+            await this.newNode(connection, fwcloud, 'SNAT', id2, 'NTS', firewallId, null);
+            await this.newNode(connection, fwcloud, 'DNAT', id2, 'NTD', firewallId, null);
 
             id2 = await this.newNode(
               connection,
@@ -1668,78 +1230,16 @@ export class Tree extends Model {
               firewallId,
               null,
             );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'INPUT',
-              id2,
-              'PI6',
-              firewallId,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'OUTPUT',
-              id2,
-              'PO6',
-              firewallId,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'FORWARD',
-              id2,
-              'PF6',
-              firewallId,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'SNAT',
-              id2,
-              'NS6',
-              firewallId,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'DNAT',
-              id2,
-              'ND6',
-              firewallId,
-              null,
-            );
+            await this.newNode(connection, fwcloud, 'INPUT', id2, 'PI6', firewallId, null);
+            await this.newNode(connection, fwcloud, 'OUTPUT', id2, 'PO6', firewallId, null);
+            await this.newNode(connection, fwcloud, 'FORWARD', id2, 'PF6', firewallId, null);
+            await this.newNode(connection, fwcloud, 'SNAT', id2, 'NS6', firewallId, null);
+            await this.newNode(connection, fwcloud, 'DNAT', id2, 'ND6', firewallId, null);
 
-            id2 = await this.newNode(
-              connection,
-              fwcloud,
-              'Interfaces',
-              id1,
-              'FDI',
-              firewallId,
-              10,
-            );
-            await this.interfacesTree(
-              connection,
-              fwcloud,
-              id2,
-              firewallId,
-              'FW',
-            );
+            id2 = await this.newNode(connection, fwcloud, 'Interfaces', id1, 'FDI', firewallId, 10);
+            await this.interfacesTree(connection, fwcloud, id2, firewallId, 'FW');
 
-            id2 = await this.newNode(
-              connection,
-              fwcloud,
-              'OpenVPN',
-              id1,
-              'OPN',
-              firewallId,
-              0,
-            );
+            id2 = await this.newNode(connection, fwcloud, 'OpenVPN', id1, 'OPN', firewallId, 0);
             await this.openvpnServerTree(connection, fwcloud, firewallId, id2);
 
             await this.routingTree(connection, fwcloud, firewallId, id1);
@@ -1775,18 +1275,9 @@ export class Tree extends Model {
           ' AND node_type="FCF"';
         connection.query(sql, async (error, nodes) => {
           if (error) return reject(error);
-          if (nodes.length !== 1)
-            return reject(fwcError.other('Node NODES not found'));
+          if (nodes.length !== 1) return reject(fwcError.other('Node NODES not found'));
 
-          await this.newNode(
-            connection,
-            fwcloud,
-            firewallName,
-            nodes[0].id,
-            'FW',
-            firewallId,
-            0,
-          );
+          await this.newNode(connection, fwcloud, firewallName, nodes[0].id, 'FW', firewallId, 0);
           resolve();
         });
       });
@@ -1794,11 +1285,7 @@ export class Tree extends Model {
   }
 
   //Add new TREE CLUSTER for a New CLuster
-  public static insertFwc_Tree_New_cluster(
-    fwcloud,
-    nodeId,
-    clusterId,
-  ): Promise<void> {
+  public static insertFwc_Tree_New_cluster(fwcloud, nodeId, clusterId): Promise<void> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1815,9 +1302,7 @@ export class Tree extends Model {
         connection.query(sql, async (error, clusters) => {
           if (error) return reject(error);
           if (clusters.length !== 1)
-            return reject(
-              fwcError.other('Cluster with id ' + clusterId + ' not found'),
-            );
+            return reject(fwcError.other('Cluster with id ' + clusterId + ' not found'));
 
           try {
             // Create root cluster node
@@ -1950,13 +1435,7 @@ export class Tree extends Model {
               clusters[0].fwmaster_id,
               10,
             );
-            await this.interfacesTree(
-              connection,
-              fwcloud,
-              id2,
-              clusters[0].fwmaster_id,
-              'FW',
-            );
+            await this.interfacesTree(connection, fwcloud, id2, clusters[0].fwmaster_id, 'FW');
 
             id2 = await this.newNode(
               connection,
@@ -1967,26 +1446,11 @@ export class Tree extends Model {
               clusters[0].fwmaster_id,
               0,
             );
-            await this.openvpnServerTree(
-              connection,
-              fwcloud,
-              clusters[0].fwmaster_id,
-              id2,
-            );
+            await this.openvpnServerTree(connection, fwcloud, clusters[0].fwmaster_id, id2);
 
-            await this.routingTree(
-              connection,
-              fwcloud,
-              clusters[0].fwmaster_id,
-              id1,
-            );
+            await this.routingTree(connection, fwcloud, clusters[0].fwmaster_id, id1);
 
-            await this.systemTree(
-              connection,
-              fwcloud,
-              clusters[0].fwmaster_id,
-              id1,
-            );
+            await this.systemTree(connection, fwcloud, clusters[0].fwmaster_id, id1);
 
             id2 = await this.newNode(
               connection,
@@ -2000,29 +1464,16 @@ export class Tree extends Model {
 
             // Create the nodes for the cluster firewalls.
             sql =
-              'SELECT id,name FROM firewall WHERE cluster=' +
-              clusterId +
-              ' AND fwcloud=' +
-              fwcloud;
+              'SELECT id,name FROM firewall WHERE cluster=' + clusterId + ' AND fwcloud=' + fwcloud;
             connection.query(sql, async (error, firewalls) => {
               if (error) return reject(error);
               if (firewalls.length === 0)
                 return reject(
-                  fwcError.other(
-                    'No firewalls found for cluster with id ' + clusters[0].id,
-                  ),
+                  fwcError.other('No firewalls found for cluster with id ' + clusters[0].id),
                 );
 
               for (const firewall of firewalls)
-                await this.newNode(
-                  connection,
-                  fwcloud,
-                  firewall.name,
-                  id2,
-                  'FW',
-                  firewall.id,
-                  0,
-                );
+                await this.newNode(connection, fwcloud, firewall.name, id2, 'FW', firewall.id, 0);
 
               resolve();
             });
@@ -2076,8 +1527,7 @@ export class Tree extends Model {
                 const tree_node = new fwc_tree_node(row);
                 //Añadimos nodos CLUSTER del CLOUD
                 const sqlnodes =
-                  'SELECT id,name,fwcloud FROM cluster WHERE id=' +
-                  connection.escape(idcluster);
+                  'SELECT id,name,fwcloud FROM cluster WHERE id=' + connection.escape(idcluster);
                 //logger().debug(sqlnodes);
                 connection.query(sqlnodes, (error, rowsnodes) => {
                   if (error) callback(error, null);
@@ -2136,8 +1586,7 @@ export class Tree extends Model {
                               firewallNode;
                             logger().debug(sqlinsert);
                             connection.query(sqlinsert, (error, result) => {
-                              if (error)
-                                logger().debug('ERROR ALL NODES : ' + error);
+                              if (error) logger().debug('ERROR ALL NODES : ' + error);
                             });
                           }
 
@@ -2168,10 +1617,7 @@ export class Tree extends Model {
                                 firewallNode;
                               logger().debug(sqlinsert);
                               connection.query(sqlinsert, (error, result) => {
-                                if (error)
-                                  logger().debug(
-                                    'ERROR FIREWALL NODE : ' + error,
-                                  );
+                                if (error) logger().debug('ERROR FIREWALL NODE : ' + error);
                               });
                             }
                           });
@@ -2304,8 +1750,7 @@ export class Tree extends Model {
                         firewallNode;
                       logger().debug(sqlinsert);
                       connection.query(sqlinsert, (error, result) => {
-                        if (error)
-                          logger().debug('ERROR FIREWALL NODE : ' + error);
+                        if (error) logger().debug('ERROR FIREWALL NODE : ' + error);
                         else {
                           //Remove nodo Firewalls Slaves
                           const sqldel =
@@ -2316,8 +1761,7 @@ export class Tree extends Model {
                             idNodes;
                           logger().debug(sqldel);
                           connection.query(sqldel, (error, result) => {
-                            if (error)
-                              logger().debug('ERROR FW - FCF : ' + error);
+                            if (error) logger().debug('ERROR FW - FCF : ' + error);
                             else {
                               AllDone(null, { result: true });
                             }
@@ -2336,13 +1780,7 @@ export class Tree extends Model {
   }
 
   //Add new NODE from IPOBJ or Interface
-  public static insertFwc_TreeOBJ(
-    req,
-    node_parent,
-    node_order,
-    node_type,
-    node_Data,
-  ) {
+  public static insertFwc_TreeOBJ(req, node_parent, node_order, node_type, node_Data) {
     return new Promise((resolve, reject) => {
       const fwc_treeData = {
         id: null,
@@ -2355,31 +1793,18 @@ export class Tree extends Model {
       };
 
       // Firewall and host interfaces.
-      if (
-        (node_Data.type === 10 || node_Data.type === 11) &&
-        node_Data.labelName
-      )
+      if ((node_Data.type === 10 || node_Data.type === 11) && node_Data.labelName)
         fwc_treeData.name += ' [' + node_Data.labelName + ']';
       // Interface address.
       if (node_Data.type === 5 && node_Data.interface)
         fwc_treeData.name += ' (' + node_Data.address + ')';
 
-      req.dbCon.query(
-        `INSERT INTO ${tableName} SET ?`,
-        fwc_treeData,
-        (error, result) => {
-          if (error) return reject(error);
-          this.OrderList(
-            node_order,
-            req.body.fwcloud,
-            node_parent,
-            999999,
-            result.insertId,
-          );
-          //devolvemos la última id insertada
-          resolve(result.insertId);
-        },
-      );
+      req.dbCon.query(`INSERT INTO ${tableName} SET ?`, fwc_treeData, (error, result) => {
+        if (error) return reject(error);
+        this.OrderList(node_order, req.body.fwcloud, node_parent, 999999, result.insertId);
+        //devolvemos la última id insertada
+        resolve(result.insertId);
+      });
     });
   }
 
@@ -2435,14 +1860,10 @@ export class Tree extends Model {
     return new Promise((resolve, reject) => {
       let name = ipobjData.name;
       // Firewall and host interfaces.
-      if (
-        (ipobjData.type === 10 || ipobjData.type === 11) &&
-        ipobjData.labelName
-      )
+      if ((ipobjData.type === 10 || ipobjData.type === 11) && ipobjData.labelName)
         name += ' [' + ipobjData.labelName + ']';
       // Interface address.
-      if (ipobjData.type === 5 && ipobjData.interface)
-        name += ' (' + ipobjData.address + ')';
+      if (ipobjData.type === 5 && ipobjData.interface) name += ' (' + ipobjData.address + ')';
 
       const sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(name)}
 			WHERE node_type NOT LIKE "F%" AND id_obj=${ipobjData.id} AND obj_type=${ipobjData.type} AND fwcloud=${req.body.fwcloud}`;
@@ -2456,12 +1877,7 @@ export class Tree extends Model {
   }
 
   //Remove NODE FROM GROUP with id_obj to remove
-  public static deleteFwc_TreeGroupChild(
-    dbCon,
-    fwcloud,
-    id_group,
-    id_obj,
-  ): Promise<void> {
+  public static deleteFwc_TreeGroupChild(dbCon, fwcloud, id_group, id_obj): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `DELETE T.* FROM ${tableName} T INNER JOIN ${tableName} T2 ON T.id_parent=T2.id 
 			WHERE T.fwcloud=${fwcloud} AND T.id_obj=${id_obj} AND T2.id_obj=${id_group}`;
@@ -2477,10 +1893,7 @@ export class Tree extends Model {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
-        'SELECT id FROM  ' +
-        tableName +
-        '  where node_type="FW" AND id_obj = ' +
-        idfirewall;
+        'SELECT id FROM  ' + tableName + '  where node_type="FW" AND id_obj = ' + idfirewall;
       connection.query(sql, (error, rows) => {
         if (rows.length > 0) {
           ret = rows[0].id;

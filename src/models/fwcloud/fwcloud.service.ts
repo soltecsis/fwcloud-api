@@ -27,10 +27,7 @@ export class FwCloudService extends Service {
     return FwCloud.findOne({ where: { id: fwCloud.id } });
   }
 
-  public async update(
-    fwCloud: FwCloud,
-    data: DeepPartial<FwCloud>,
-  ): Promise<FwCloud> {
+  public async update(fwCloud: FwCloud, data: DeepPartial<FwCloud>): Promise<FwCloud> {
     fwCloud = Object.assign(fwCloud, data);
     await fwCloud.save();
 

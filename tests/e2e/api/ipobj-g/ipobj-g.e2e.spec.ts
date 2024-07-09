@@ -6,11 +6,7 @@ import { FwCloud } from '../../../../src/models/fwcloud/FwCloud';
 import { User } from '../../../../src/models/user/User';
 import StringHelper from '../../../../src/utils/string.helper';
 import { describeName, testSuite } from '../../../mocha/global-setup';
-import {
-  attachSession,
-  createUser,
-  generateSession,
-} from '../../../utils/utils';
+import { attachSession, createUser, generateSession } from '../../../utils/utils';
 import { Application } from '../../../../src/Application';
 import { RoutingTable } from '../../../../src/models/routing/routing-table/routing-table.model';
 import { RouteController } from '../../../../src/controllers/routing/route/route.controller';
@@ -45,9 +41,7 @@ describe(describeName('IPObjGroup E2E Tests'), () => {
     adminUserSessionId = generateSession(adminUser);
 
     routeService = await app.getService<RouteService>(RouteService.name);
-    routingRuleService = await app.getService<RoutingRuleService>(
-      RoutingRuleService.name,
-    );
+    routingRuleService = await app.getService<RoutingRuleService>(RoutingRuleService.name);
 
     fwCloud = await manager.getRepository(FwCloud).save(
       manager.getRepository(FwCloud).create({
@@ -73,15 +67,13 @@ describe(describeName('IPObjGroup E2E Tests'), () => {
       let table: RoutingTable;
 
       beforeEach(async () => {
-        const _interface: Interface = await manager
-          .getRepository(Interface)
-          .save(
-            manager.getRepository(Interface).create({
-              name: 'eth1',
-              type: '11',
-              interface_type: '11',
-            }),
-          );
+        const _interface: Interface = await manager.getRepository(Interface).save(
+          manager.getRepository(Interface).create({
+            name: 'eth1',
+            type: '11',
+            interface_type: '11',
+          }),
+        );
 
         ipobj = await manager.getRepository(IPObj).save(
           manager.getRepository(IPObj).create({

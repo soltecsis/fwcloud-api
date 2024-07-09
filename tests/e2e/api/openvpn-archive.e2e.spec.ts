@@ -55,21 +55,15 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
     fwcProduct = await new FwCloudFactory().make();
 
     openVPNService = await app.getService(OpenVPNService.name);
-    openVPNStatusHistoryService = await app.getService(
-      OpenVPNStatusHistoryService.name,
-    );
+    openVPNStatusHistoryService = await app.getService(OpenVPNStatusHistoryService.name);
 
     loggedUser = await createUser({ role: 0 });
     loggedUserSessionId = generateSession(loggedUser);
 
     adminUser = await createUser({ role: 1 });
     adminUserSessionId = generateSession(adminUser);
-    const date1 = parseInt(
-      (new Date('2022-01-01').getTime() / 1000).toFixed(0),
-    );
-    const date2 = parseInt(
-      (new Date('2000-01-01').getTime() / 1000).toFixed(0),
-    );
+    const date1 = parseInt((new Date('2022-01-01').getTime() / 1000).toFixed(0));
+    const date2 = parseInt((new Date('2000-01-01').getTime() / 1000).toFixed(0));
     data = [
       {
         timestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0)),
@@ -77,9 +71,7 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
         address: '1.1.1.1',
         bytesReceived: 100,
         bytesSent: 200,
-        connectedAtTimestampInSeconds: parseInt(
-          (new Date().getTime() / 1000).toFixed(0),
-        ),
+        connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0)),
       },
       {
         timestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0)),
@@ -87,9 +79,7 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
         address: '1.1.1.1',
         bytesReceived: 100,
         bytesSent: 200,
-        connectedAtTimestampInSeconds: parseInt(
-          (new Date().getTime() / 1000).toFixed(0),
-        ),
+        connectedAtTimestampInSeconds: parseInt((new Date().getTime() / 1000).toFixed(0)),
       },
       {
         timestampInSeconds: date1,
@@ -117,9 +107,7 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
   describe('OpenVPNArchiveController', () => {
     describe('OpenVPNArchiveController@store', async () => {
       it('guest user should not create a history VPN archiver', async () => {
-        await request(app.express)
-          .post(_URL().getURL('openvpnarchives.store'))
-          .expect(401);
+        await request(app.express).post(_URL().getURL('openvpnarchives.store')).expect(401);
       });
 
       it('regular user should not create a history VPN archiver', async () => {
@@ -153,9 +141,7 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
   describe('OpenVPNArchiveConfigController', () => {
     describe('OpenVPNArchiveConfigController@show', async () => {
       it('guest user should not see history openVPN archiver config', async () => {
-        await request(app.express)
-          .get(_URL().getURL('openvpnarchives.config.show'))
-          .expect(401);
+        await request(app.express).get(_URL().getURL('openvpnarchives.config.show')).expect(401);
       });
 
       it('regular user should not see history openVPN archiver config', async () => {
@@ -172,10 +158,8 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
           .expect(200)
           .then((response) => {
             expect(response.body.data).to.be.deep.equal({
-              archive_days:
-                openVPNService.getCustomizedConfig().history.archive_days,
-              retention_days:
-                openVPNService.getCustomizedConfig().history.retention_days,
+              archive_days: openVPNService.getCustomizedConfig().history.archive_days,
+              retention_days: openVPNService.getCustomizedConfig().history.retention_days,
             });
           });
       });
@@ -183,9 +167,7 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
 
     describe('OpenVPNArchiveConfigController@update', async () => {
       it('guest user should not update history VPN archiver config', async () => {
-        await request(app.express)
-          .put(_URL().getURL('openvpnarchives.config.update'))
-          .expect(401);
+        await request(app.express).put(_URL().getURL('openvpnarchives.config.update')).expect(401);
       });
 
       it('regular user should not update history VPN archiver config', async () => {
@@ -206,10 +188,8 @@ describe(describeName('OpenVPNArchive E2E tests'), () => {
           .expect(201)
           .then((response) => {
             expect(response.body.data).to.be.deep.equal({
-              archive_days:
-                openVPNService.getCustomizedConfig().history.archive_days,
-              retention_days:
-                openVPNService.getCustomizedConfig().history.retention_days,
+              archive_days: openVPNService.getCustomizedConfig().history.archive_days,
+              retention_days: openVPNService.getCustomizedConfig().history.retention_days,
             });
           });
       });

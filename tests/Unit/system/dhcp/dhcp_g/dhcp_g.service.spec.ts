@@ -21,9 +21,7 @@ describe(DHCPGroupService.name, () => {
     manager = db.getSource().manager;
     await testSuite.resetDatabaseData();
 
-    service = await testSuite.app.getService<DHCPGroupService>(
-      DHCPGroupService.name,
-    );
+    service = await testSuite.app.getService<DHCPGroupService>(DHCPGroupService.name);
     repository = manager.getRepository(DHCPGroup);
     fwCloud = await manager.getRepository(FwCloud).save(
       manager.getRepository(FwCloud).create({
@@ -52,15 +50,9 @@ describe(DHCPGroupService.name, () => {
         style: 'default',
       };
 
-      const findOneStub = sinon
-        .stub(manager.getRepository(Firewall), 'findOne')
-        .resolves(firewall);
-      const saveStub = sinon
-        .stub(repository, 'save')
-        .resolves({ id: 1 } as DHCPGroup);
-      const findOneStub2 = sinon
-        .stub(repository, 'findOne')
-        .resolves({ id: 1 } as DHCPGroup);
+      const findOneStub = sinon.stub(manager.getRepository(Firewall), 'findOne').resolves(firewall);
+      const saveStub = sinon.stub(repository, 'save').resolves({ id: 1 } as DHCPGroup);
+      const findOneStub2 = sinon.stub(repository, 'findOne').resolves({ id: 1 } as DHCPGroup);
 
       const result = await service.create(data);
 
@@ -77,16 +69,12 @@ describe(DHCPGroupService.name, () => {
         style: 'default',
       };
 
-      const findOneStub = sinon
-        .stub(manager.getRepository(Firewall), 'findOne')
-        .resolves(firewall);
+      const findOneStub = sinon.stub(manager.getRepository(Firewall), 'findOne').resolves(firewall);
       const saveStub = sinon
         .stub(repository, 'save')
         .rejects(new Error('Failed to create DHCPGroup'));
 
-      await expect(service.create(data)).to.be.rejectedWith(
-        'Failed to create DHCPGroup',
-      );
+      await expect(service.create(data)).to.be.rejectedWith('Failed to create DHCPGroup');
 
       expect(findOneStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
@@ -99,19 +87,13 @@ describe(DHCPGroupService.name, () => {
         style: 'default',
       };
 
-      const findOneStub = sinon
-        .stub(manager.getRepository(Firewall), 'findOne')
-        .resolves(firewall);
-      const saveStub = sinon
-        .stub(repository, 'save')
-        .resolves({ id: 1 } as DHCPGroup);
+      const findOneStub = sinon.stub(manager.getRepository(Firewall), 'findOne').resolves(firewall);
+      const saveStub = sinon.stub(repository, 'save').resolves({ id: 1 } as DHCPGroup);
       const findOneStub2 = sinon
         .stub(repository, 'findOne')
         .rejects(new Error('Failed to retrieve DHCPGroup'));
 
-      await expect(service.create(data)).to.be.rejectedWith(
-        'Failed to retrieve DHCPGroup',
-      );
+      await expect(service.create(data)).to.be.rejectedWith('Failed to retrieve DHCPGroup');
 
       expect(findOneStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
@@ -146,9 +128,7 @@ describe(DHCPGroupService.name, () => {
 
       expect(saveStub.calledOnce).to.be.true;
       expect(findOneStub2.calledOnce).to.be.true;
-      expect(result).to.deep.equal(
-        await repository.findOne({ where: { id: id } }),
-      );
+      expect(result).to.deep.equal(await repository.findOne({ where: { id: id } }));
     });
 
     it('should throw an error if DHCPGroup is not found', async () => {
@@ -161,9 +141,7 @@ describe(DHCPGroupService.name, () => {
 
       const findOneStub = sinon.stub(repository, 'findOne').resolves(undefined);
 
-      await expect(service.update(id, data)).to.be.rejectedWith(
-        'DHCPGroup not found',
-      );
+      await expect(service.update(id, data)).to.be.rejectedWith('DHCPGroup not found');
 
       expect(findOneStub.calledOnce).to.be.true;
     });
@@ -181,9 +159,7 @@ describe(DHCPGroupService.name, () => {
         .stub(repository, 'save')
         .rejects(new Error('Failed to update DHCPGroup'));
 
-      await expect(service.update(id, data)).to.be.rejectedWith(
-        'Failed to update DHCPGroup',
-      );
+      await expect(service.update(id, data)).to.be.rejectedWith('Failed to update DHCPGroup');
 
       expect(findOneStub.calledOnce).to.be.true;
       expect(saveStub.calledOnce).to.be.true;
@@ -218,16 +194,12 @@ describe(DHCPGroupService.name, () => {
     it('should handle errors when the DHCPGroup is not found', async () => {
       sinon.stub(service, 'findOneInPath').resolves(null);
 
-      await expect(service.remove(iFindOneDHCPGPath)).to.be.rejectedWith(
-        'DHCPGroup not found',
-      );
+      await expect(service.remove(iFindOneDHCPGPath)).to.be.rejectedWith('DHCPGroup not found');
     });
 
     it('should handle errors during rules update', async () => {
       sinon.stub(service, 'findOneInPath').resolves(group);
-      sinon
-        .stub(repository, 'remove')
-        .rejects(new Error('Failed to remove DHCPGroup'));
+      sinon.stub(repository, 'remove').rejects(new Error('Failed to remove DHCPGroup'));
 
       await expect(service.remove(iFindOneDHCPGPath)).to.be.rejectedWith(
         'Failed to remove DHCPGroup',
@@ -235,9 +207,7 @@ describe(DHCPGroupService.name, () => {
     });
 
     it('should handle errors during the group removal', async () => {
-      sinon
-        .stub(service, 'findOneInPath')
-        .rejects(new Error('Failed to find DHCPGroup'));
+      sinon.stub(service, 'findOneInPath').rejects(new Error('Failed to find DHCPGroup'));
       sinon.stub(repository, 'remove').resolves(group);
 
       await expect(service.remove(iFindOneDHCPGPath)).to.be.rejectedWith(

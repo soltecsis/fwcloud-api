@@ -14,14 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Firewall } from '../../../firewall/Firewall';
 import { KeepalivedRule } from '../keepalived_r/keepalived_r.model';
 import Model from '../../../Model';
@@ -56,10 +49,7 @@ export class KeepalivedGroup extends Model {
     return tableName;
   }
 
-  public static moveToOtherFirewall(
-    src_firewall: number,
-    dst_firewall: number,
-  ) {
+  public static moveToOtherFirewall(src_firewall: number, dst_firewall: number) {
     return KeepalivedGroup.createQueryBuilder()
       .update()
       .set({ firewallId: dst_firewall })

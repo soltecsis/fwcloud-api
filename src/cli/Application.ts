@@ -71,9 +71,7 @@ export class Application extends CLIApplication {
     this.setCLIConfiguration();
     await super.bootstrap();
 
-    const routerService: RouterService = await this.getService<RouterService>(
-      RouterService.name,
-    );
+    const routerService: RouterService = await this.getService<RouterService>(RouterService.name);
 
     routerService.registerRoutes();
 
