@@ -7,7 +7,6 @@ import { IPObj } from '../../../../src/models/ipobj/IPObj';
 import { IPObjGroup } from '../../../../src/models/ipobj/IPObjGroup';
 import { IPObjToIPObjGroup } from '../../../../src/models/ipobj/IPObjToIPObjGroup';
 import { PolicyRule } from '../../../../src/models/policy/PolicyRule';
-import { PolicyRuleToIPObj } from '../../../../src/models/policy/PolicyRuleToIPObj';
 import { User } from '../../../../src/models/user/User';
 import { describeName, testSuite } from '../../../mocha/global-setup';
 import { FwCloudProduct, FwCloudFactory } from '../../../utils/fwcloud-factory';
