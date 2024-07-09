@@ -34,6 +34,8 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
   let session: string;
   let group: IPObjGroup;
 
+  let firewall: Firewall;
+
   let inputRuleId: number;
   let outputRuleId: number;
   let forwardRuleId: number;
@@ -104,7 +106,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
       action: 1,
     });
 
-    await manager.getRepository(Firewall).findOneOrFail({
+    firewall = await manager.getRepository(Firewall).findOneOrFail({
       where: { id: fwcProduct.firewall.id },
       relations: ['fwCloud'],
     });
