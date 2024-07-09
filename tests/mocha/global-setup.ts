@@ -21,11 +21,7 @@
 */
 
 import * as chai from 'chai';
-let ChaiAsPromised;
-import('chai-as-promised').then((module) => {
-  ChaiAsPromised = module.default;
-  chai.use(ChaiAsPromised);
-});
+import ChaiAsPromised from 'chai-as-promised';
 import ChaiJsonSchema from 'chai-json-schema';
 import { Application } from '../../src/Application';
 import { DatabaseService } from '../../src/database/database.service';
@@ -34,6 +30,7 @@ import * as path from 'path';
 import StringHelper from '../../src/utils/string.helper';
 
 chai.should();
+chai.use(ChaiAsPromised);
 chai.use(ChaiJsonSchema);
 
 export const expect = chai.expect;
