@@ -655,7 +655,11 @@ export class RoutingRuleService extends Service {
       dst === 'grid'
         ? this.buildSQLsForGrid(fwcloud, firewall)
         : this.buildSQLsForCompiler(fwcloud, firewall, rules);
-    await Promise.all(sqls.map((sql) => RoutingUtils.mapEntityData<T>(sql, ItemsArrayMap)));
+    await Promise.all(
+      sqls.map((sql: SelectQueryBuilder<IPObj | IPObjGroup | OpenVPN | OpenVPNPrefix | Mark>) =>
+        RoutingUtils.mapEntityData<T>(sql, ItemsArrayMap),
+      ),
+    );
 
     return rulesData.map((data) => {
       data.items = data.items.sort((a, b) => a._order - b._order);

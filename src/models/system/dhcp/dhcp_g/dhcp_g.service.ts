@@ -19,7 +19,14 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { FindManyOptions, FindOneOptions, In, SelectQueryBuilder } from 'typeorm';
+import {
+  Brackets,
+  FindManyOptions,
+  FindOneOptions,
+  In,
+  ObjectLiteral,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { Service } from '../../../../fonaments/services/service';
 import { DHCPRule } from '../dhcp_r/dhcp_r.model';
 import { DHCPGroup } from './dhcp_g.model';
@@ -97,7 +104,9 @@ export class DHCPGroupService extends Service {
     Object.entries(options).forEach(([key, value]) => {
       switch (key) {
         case 'where':
-          qb.andWhere(value);
+          qb.andWhere(
+            value as string | Brackets | ((qb: this) => string) | ObjectLiteral | ObjectLiteral[],
+          );
           break;
         case 'relations':
           qb.leftJoinAndSelect(`keepalived.${value}`, `${value}`);

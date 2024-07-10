@@ -14,7 +14,13 @@
     You should have received a copy of the GNU General Public License
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { FindManyOptions, FindOneOptions, SelectQueryBuilder } from 'typeorm';
+import {
+  Brackets,
+  FindManyOptions,
+  FindOneOptions,
+  ObjectLiteral,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { Service } from '../../../../fonaments/services/service';
 import { KeepalivedRule } from '../keepalived_r/keepalived_r.model';
 import { KeepalivedGroup } from './keepalived_g.model';
@@ -90,7 +96,9 @@ export class KeepalivedGroupService extends Service {
     Object.entries(options).forEach(([key, value]) => {
       switch (key) {
         case 'where':
-          qb.andWhere(value);
+          qb.andWhere(
+            value as string | Brackets | ((qb: this) => string) | ObjectLiteral | ObjectLiteral[],
+          );
           break;
         case 'relations':
           qb.leftJoinAndSelect(`group.${value}`, `${value}`);

@@ -338,12 +338,12 @@ export class FwCloud extends Model {
    *           updated_at	datetime
    *           by_user	int(11)
    */
-  public static getFwclouds(dbCon, user) {
+  public static getFwclouds(dbCon, user: number) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT distinctrow C.* FROM ${tableName} C
 				INNER JOIN user__fwcloud U ON C.id=U.fwcloud
 				WHERE U.user=${user} ORDER BY C.name`;
-      dbCon.query(sql, (error, rows) => {
+      dbCon.query(sql, (error: Error, rows) => {
         if (error) return reject(error);
         resolve(rows);
       });
@@ -374,7 +374,7 @@ export class FwCloud extends Model {
    *           updated_at	datetime
    *           by_user	int(11)
    */
-  public static getFwcloud(iduser, fwcloud, callback) {
+  public static getFwcloud(iduser: number, fwcloud: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
@@ -387,7 +387,7 @@ export class FwCloud extends Model {
         connection.escape(iduser) +
         ' AND C.id=' +
         connection.escape(fwcloud);
-      connection.query(sql, (error, row) => {
+      connection.query(sql, (error: Error, row) => {
         if (error) callback(error, null);
         else callback(null, row);
       });
@@ -408,7 +408,7 @@ export class FwCloud extends Model {
    * @return {Boolean} Returns `LOCKED STATUS`
    *
    */
-  public static getFwcloudAccess(iduser, fwcloud) {
+  public static getFwcloudAccess(iduser: number, fwcloud: number) {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(false);
@@ -554,20 +554,24 @@ export class FwCloud extends Model {
         comment: req.body.comment,
       };
 
-      req.dbCon.query(`INSERT INTO ${tableName} SET ?`, fwcloudData, async (error, result) => {
-        if (error) return reject(error);
+      req.dbCon.query(
+        `INSERT INTO ${tableName} SET ?`,
+        fwcloudData,
+        async (error: Error, result) => {
+          if (error) return reject(error);
 
-        const fwcloud = result.insertId;
-        try {
-          const admins: any = await User.getAllAdminUserIds(req);
-          for (const admin of admins) {
-            await User.allowFwcloudAccess(req.dbCon, admin.id, fwcloud);
+          const fwcloud = result.insertId;
+          try {
+            const admins: any = await User.getAllAdminUserIds(req);
+            for (const admin of admins) {
+              await User.allowFwcloudAccess(req.dbCon, admin.id, fwcloud);
+            }
+            resolve(fwcloud);
+          } catch (error) {
+            reject(error);
           }
-          resolve(fwcloud);
-        } catch (error) {
-          reject(error);
-        }
-      });
+        },
+      );
     });
   }
 
@@ -600,7 +604,7 @@ export class FwCloud extends Model {
   public static updateFwcloudLock(fwcloudData) {
     return new Promise((resolve, reject) => {
       const locked = 1;
-      db.get((error, connection) => {
+      db.get((error: Error, connection) => {
         if (error) return reject(error);
 
         //Check if FWCloud is unlocked or locked by the same user

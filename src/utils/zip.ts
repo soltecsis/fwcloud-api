@@ -1,8 +1,10 @@
-import yauzl from 'yauzl';
+import yauzl from 'yauzl'; //https://www.npmjs.com/package/yauzl/v/3.1.3?activeTab=readme
 import { FSHelper } from './fs-helper';
 import * as path from 'path';
 import * as fs from 'fs';
 import archiver from 'archiver';
+import { Readable } from 'stream';
+import { ReadableStream } from 'stream/web';
 
 export class Zip {
   /**
@@ -13,7 +15,7 @@ export class Zip {
    */
   public static unzip(zipPath: string, destinationPath: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      yauzl.open(zipPath, { lazyEntries: true }, function (err, zipfile) {
+      yauzl.open(zipPath, { lazyEntries: true }, function (err: Error, zipfile: yauzl.ZipFile) {
         if (err) {
           return reject(err);
         }
@@ -22,14 +24,14 @@ export class Zip {
           FSHelper.mkdirSync(destinationPath);
         }
 
-        zipfile.on('entry', (entry) => {
-          if (/\/$/.test(entry.fileName)) {
+        zipfile.on('entry', (entry: yauzl.Entry) => {
+          if (/\/$/.test(entry.fileName as string)) {
             // Entry is a directory as file names end with '/'.
-            FSHelper.mkdirSync(path.join(destinationPath, entry.fileName));
+            FSHelper.mkdirSync(path.join(destinationPath, entry.fileName as string));
             zipfile.readEntry();
           } else {
             // file entry
-            zipfile.openReadStream(entry, function (err, readStream) {
+            zipfile.openReadStream(entry, function (err: Error, readStream) {
               if (err) {
                 return reject(err);
               }
@@ -37,7 +39,7 @@ export class Zip {
                 zipfile.readEntry();
               });
               const ws: fs.WriteStream = fs.createWriteStream(
-                path.join(destinationPath, entry.fileName),
+                path.join(destinationPath, entry.fileName as string),
               );
               readStream.pipe(ws);
             });

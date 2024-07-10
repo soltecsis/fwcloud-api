@@ -20,7 +20,14 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindManyOptions, FindOneOptions, In, SelectQueryBuilder } from 'typeorm';
+import {
+  Brackets,
+  FindManyOptions,
+  FindOneOptions,
+  In,
+  ObjectLiteral,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { Application } from '../../../Application';
 import db from '../../../database/database-manager';
 import { ValidationException } from '../../../fonaments/exceptions/validation-exception';
@@ -849,7 +856,9 @@ export class RouteService extends Service {
     Object.entries(options).forEach(([key, value]) => {
       switch (key) {
         case 'where':
-          qb.andWhere(value);
+          qb.andWhere(
+            value as string | Brackets | ((qb: this) => string) | ObjectLiteral | ObjectLiteral[],
+          );
           break;
         case 'relations':
           qb.leftJoinAndSelect(`route.${value}`, `${value}`);

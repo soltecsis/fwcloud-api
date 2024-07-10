@@ -43,6 +43,9 @@ import { Migration } from 'typeorm';
 import { DatabaseService } from '../database/database.service';
 import * as crypto from 'crypto';
 import db from '../database/database-manager';
+import { ExporterResultData } from '../fwcloud-exporter/database-exporter/exporter-result';
+import { Path } from 'glob';
+import { PathLike } from 'fs';
 
 export type SnapshotMetadata = {
   timestamp: number;
@@ -231,7 +234,9 @@ export class Snapshot implements Responsable {
     const dataPath: string = path.join(snapshotPath, Snapshot.DATA_FILENAME);
     const fwCloudId: number = parseInt(path.dirname(snapshotPath).split(path.sep).pop());
 
-    const snapshotMetadata: SnapshotMetadata = JSON.parse(fs.readFileSync(metadataPath).toString());
+    const snapshotMetadata: SnapshotMetadata = JSON.parse(
+      fs.readFileSync(metadataPath).toString() as string,
+    );
     const dataContent: string = fs.readFileSync(dataPath).toString();
 
     this._id = parseInt(path.basename(snapshotPath));
@@ -247,7 +252,7 @@ export class Snapshot implements Responsable {
       this._migrations,
       executedMigrations.map((migration) => migration.name),
     );
-    this._data = new ExporterResult(JSON.parse(dataContent));
+    this._data = new ExporterResult(JSON.parse(dataContent) as ExporterResultData);
     this._hash = snapshotMetadata.hash ?? undefined;
 
     return this;
@@ -327,7 +332,7 @@ export class Snapshot implements Responsable {
       return migration.name;
     });
     this._hash = crypto
-      .createHmac('sha256', app().config.get('crypt.secret'))
+      .createHmac('sha256', app().config.get('crypt.secret') as string)
       .update(snapshotDigestContent)
       .digest('hex');
 
@@ -457,8 +462,8 @@ export class Snapshot implements Responsable {
    * Creates the snapshot/fwcloud.id directory if it does not exists (is the first snapshot for the given fwcloud)
    */
   protected static async generateSnapshotDirectoryIfDoesNotExist() {
-    if (!(await FSHelper.directoryExists(app().config.get('snapshot').data_dir))) {
-      FSHelper.mkdir(app().config.get('snapshot').data_dir);
+    if (!(await FSHelper.directoryExists(app().config.get('snapshot').data_dir as string))) {
+      FSHelper.mkdir(app().config.get('snapshot').data_dir as string);
     }
   }
 

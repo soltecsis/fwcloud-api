@@ -156,7 +156,7 @@ export class Ca extends Model {
   }
 
   // Execute EASY-RSA command.
-  public static runEasyRsaCmd(req, easyrsaDataCmd) {
+  public static runEasyRsaCmd(req, easyrsaDataCmd: string) {
     return new Promise((resolve, reject) => {
       const pki_dir =
         '--pki-dir=' + config.get('pki').data_dir + '/' + req.body.fwcloud + '/' + req.caId;

@@ -20,10 +20,12 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 import {
+  Brackets,
   EntityManager,
   FindManyOptions,
   FindOneOptions,
   In,
+  ObjectLiteral,
   RemoveOptions,
   SelectQueryBuilder,
 } from 'typeorm';
@@ -260,7 +262,9 @@ export class DHCPRepository extends Repository<DHCPRule> {
     Object.entries(options).forEach(([key, value]) => {
       switch (key) {
         case 'where':
-          qb.andWhere(value);
+          qb.andWhere(
+            value as string | Brackets | ((qb: this) => string) | ObjectLiteral | ObjectLiteral[],
+          );
           break;
         case 'relations':
           qb.leftJoinAndSelect(`dhcp.${value}`, `${value}`);

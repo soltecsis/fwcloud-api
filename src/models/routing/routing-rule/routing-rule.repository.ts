@@ -21,10 +21,12 @@
 */
 
 import {
+  Brackets,
   EntityManager,
   FindManyOptions,
   FindOneOptions,
   In,
+  ObjectLiteral,
   RemoveOptions,
   SelectQueryBuilder,
 } from 'typeorm';
@@ -300,7 +302,9 @@ export class RoutingRuleRepository extends Repository<RoutingRule> {
     Object.entries(options).forEach(([key, value]) => {
       switch (key) {
         case 'where':
-          qb.andWhere(value);
+          qb.andWhere(
+            value as string | Brackets | ((qb: this) => string) | ObjectLiteral | ObjectLiteral[],
+          );
           break;
         case 'relations':
           qb.leftJoinAndSelect(`rule.${value}`, `${value}`);

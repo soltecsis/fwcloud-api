@@ -32,6 +32,7 @@ import { DatabaseService } from '../database/database.service';
 import { LogServiceProvider } from '../logs/log.provider';
 import { LoggerType, LogService } from '../logs/log.service';
 import winston from 'winston';
+import { Path } from 'glob';
 
 let _runningApplication: AbstractApplication = null;
 
@@ -148,17 +149,17 @@ export abstract class AbstractApplication {
    */
   public generateDirectories(): void {
     try {
-      FSHelper.mkdirSync(this._config.get('policy').data_dir);
-      FSHelper.mkdirSync(this._config.get('pki').data_dir);
-      FSHelper.mkdirSync(this._config.get('session').files_path);
-      FSHelper.mkdirSync(this._config.get('backup').data_dir);
-      FSHelper.mkdirSync(this._config.get('snapshot').data_dir);
-      FSHelper.mkdirSync(this._config.get('openvpn.history').data_dir);
+      FSHelper.mkdirSync(this._config.get('policy').data_dir as string);
+      FSHelper.mkdirSync(this._config.get('pki').data_dir as string);
+      FSHelper.mkdirSync(this._config.get('session').files_path as string);
+      FSHelper.mkdirSync(this._config.get('backup').data_dir as string);
+      FSHelper.mkdirSync(this._config.get('snapshot').data_dir as string);
+      FSHelper.mkdirSync(this._config.get('openvpn.history').data_dir as string);
 
-      if (FSHelper.directoryExistsSync(this._config.get('tmp').directory)) {
-        FSHelper.rmDirectorySync(this._config.get('tmp').directory);
+      if (FSHelper.directoryExistsSync(this._config.get('tmp').directory as fs.PathLike)) {
+        FSHelper.rmDirectorySync(this._config.get('tmp').directory as string);
       }
-      FSHelper.mkdirSync(this._config.get('tmp').directory);
+      FSHelper.mkdirSync(this._config.get('tmp').directory as string);
     } catch (e) {
       console.error('Could not create the logs directory. ERROR: ', e.message);
       process.exit(1);

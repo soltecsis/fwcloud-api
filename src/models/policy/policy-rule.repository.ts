@@ -20,7 +20,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EntityManager, In } from 'typeorm';
+import { Brackets, EntityManager, In, ObjectLiteral } from 'typeorm';
 import { PolicyRule, SpecialPolicyRules } from './PolicyRule';
 import { PolicyGroup } from './PolicyGroup';
 import { Repository } from '../../database/repository';
@@ -74,9 +74,10 @@ export class PolicyRuleRepository extends Repository<PolicyRule> {
   ): Promise<PolicyRule | Array<PolicyRule>> {
     const entities: Array<PolicyRule> = isArray(oneOrMany) ? oneOrMany : [oneOrMany];
 
-    const criterias: any = {
-      id: In(this.getIdsFromEntityCollection(entities)),
-    };
+    const criterias: string | ((qb: this) => string) | Brackets | ObjectLiteral | ObjectLiteral[] =
+      {
+        id: In(this.getIdsFromEntityCollection(entities)),
+      };
 
     if (newPolicyGroup && newPolicyGroup.firewall) {
       criterias.firewall = newPolicyGroup.firewall;

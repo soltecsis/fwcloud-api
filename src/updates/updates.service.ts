@@ -124,14 +124,14 @@ export class UpdateService extends Service {
 
     // Make sure install dir exists.
     try {
-      fs.lstatSync(installDir).isDirectory();
+      fs.lstatSync(installDir as fs.PathLike).isDirectory();
     } catch (err) {
       logger().error(`Directory not found: ${installDir}`);
       throw new Error('fwcloud-updater install directory not found');
     }
 
     try {
-      fs.readdirSync(installDir);
+      fs.readdirSync(installDir as fs.PathLike);
     } catch (err) {
       logger().error(`Accessing directory: ${installDir}`);
       throw new Error('fwcloud-updater install directory not accessible');

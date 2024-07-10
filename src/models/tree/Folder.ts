@@ -80,7 +80,7 @@ export class Folder extends Model {
           fwcloud +
           ' AND id=' +
           id;
-        connection.query(sql, (error, result) => {
+        connection.query(sql, (error: Error, result) => {
           if (error) return reject(error);
           if (result.length !== 1) return reject(fwcError.NOT_FOUND);
           if (result[0].node_type !== 'FD')

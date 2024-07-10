@@ -213,7 +213,7 @@ export class PolicyPosition extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select * from ${tableName} WHERE policy_type=${type} order by position_order`,
-        (error, positions) => {
+        (error, positions: PositionNode[]) => {
           if (error) return reject(error);
 
           for (let i = 0; i < positions.length; i++) {
@@ -241,7 +241,7 @@ export class PolicyPosition extends Model {
   }
 
   //Add new policy_position
-  public static insertPolicy_position(policy_positionData, callback) {
+  public static insertPolicy_position(policy_positionData, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query(

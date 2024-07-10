@@ -119,7 +119,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       return 'DONE';
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      if (error instanceof Error) this.handleRequestException(error, eventEmitter);
     }
   }
 
@@ -149,7 +149,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      if (error instanceof Error) this.handleRequestException(error, eventEmitter);
     }
   }
 
@@ -171,7 +171,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       await axios.post(pathUrl, form, requestConfig);
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      if (error instanceof Error) this.handleRequestException(error, eventEmitter);
     }
   }
 
@@ -200,7 +200,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       await axios.delete(pathUrl, config);
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      if (error instanceof Error) this.handleRequestException(error, eventEmitter);
     }
   }
 
@@ -216,7 +216,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       throw new Error('Unexpected getInterfaces response');
     } catch (error) {
-      this.handleRequestException(error);
+      if (error instanceof Error) this.handleRequestException(error);
     }
   }
 
@@ -232,7 +232,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       throw new Error('Unexpected getInterfaces response');
     } catch (error) {
-      this.handleRequestException(error);
+      if (error instanceof Error) this.handleRequestException(error);
     }
   }
 
@@ -265,7 +265,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       throw new Error('Unexpected ccdHashList response');
     } catch (error) {
-      this.handleRequestException(error);
+      if (error instanceof Error) this.handleRequestException(error);
     }
   }
 
@@ -277,7 +277,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       return;
     } catch (error) {
-      return this.handleRequestException(error);
+      if (error instanceof Error) return this.handleRequestException(error);
     }
   }
 
@@ -293,7 +293,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       throw new Error('Unexpected FWCloud-Agent info response');
     } catch (error) {
-      this.handleRequestException(error);
+      if (error instanceof Error) this.handleRequestException(error);
     }
   }
 
@@ -341,7 +341,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       return '';
     } catch (error) {
-      this.handleRequestException(error);
+      if (error instanceof Error) this.handleRequestException(error);
     }
   }
 
@@ -421,7 +421,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       throw new Error('Unexpected getRealtimeStatus response');
     } catch (error) {
-      this.handleRequestException(error);
+      if (error instanceof Error) this.handleRequestException(error);
     }
   }
 
@@ -460,7 +460,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       throw new Error('Unexpected getOpenVPNHistoryFile response');
     } catch (error) {
-      this.handleRequestException(error);
+      if (error instanceof Error) this.handleRequestException(error);
     }
   }
   async systemctlManagement(command: string, service: string): Promise<string> {
@@ -477,7 +477,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
       }
       throw new Error('Unexpected FWCloud-Agent info response');
     } catch (error) {
-      this.handleRequestException(error);
+      if (error instanceof Error) this.handleRequestException(error);
     }
   }
 
@@ -493,7 +493,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
           'message',
           new ProgressErrorPayload(`ERROR: ${error.response.data.message}\n`),
         );
-        let message = error.response.data.message;
+        let message: string = error.response.data.message;
 
         if (error.response.data.message === 'API key not found') {
           message = `ApiKeyNotFound: ${error.response.data.message}`;
@@ -548,7 +548,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       return 'DONE';
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      if (error instanceof Error) this.handleRequestException(error, eventEmitter);
     }
   }
 
@@ -580,7 +580,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       return 'DONE';
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      if (error instanceof Error) this.handleRequestException(error, eventEmitter);
     }
   }
 
@@ -613,7 +613,7 @@ export class AgentCommunication extends Communication<AgentCommunicationData> {
 
       return 'DONE';
     } catch (error) {
-      this.handleRequestException(error, eventEmitter);
+      if (error instanceof Error) this.handleRequestException(error, eventEmitter);
     }
   }
 

@@ -777,11 +777,14 @@ export class IptablesSaveToFWCloud extends Service {
     const mask: string = addrData[1];
 
     // Search to find out if it already exists.
-    let addrId: any;
+    let addrId: string;
 
     if (mask === '32' || mask === '128')
-      addrId = await IPObj.searchAddr(this.req.dbCon, this.req.body.fwcloud, ip);
-    else addrId = await IPObj.searchAddrWithMask(this.req.dbCon, this.req.body.fwcloud, ip, mask);
+      addrId = (await IPObj.searchAddr(this.req.dbCon, this.req.body.fwcloud, ip)).toString();
+    else
+      addrId = (
+        await IPObj.searchAddrWithMask(this.req.dbCon, this.req.body.fwcloud, ip, mask)
+      ).toString();
 
     // If not found create it.
     if (!addrId) {
@@ -797,7 +800,7 @@ export class IptablesSaveToFWCloud extends Service {
       };
 
       try {
-        ipobjData.id = addrId = await IPObj.insertIpobj(this.req.dbCon, ipobjData);
+        ipobjData.id = addrId = (await IPObj.insertIpobj(this.req.dbCon, ipobjData)).toString();
         const fwcTreeNode: any =
           mask === fullMask
             ? await Tree.getNodeByNameAndType(this.req.body.fwcloud, 'Addresses', 'OIA')

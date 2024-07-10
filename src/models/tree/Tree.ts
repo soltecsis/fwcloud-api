@@ -227,7 +227,7 @@ export class Tree extends Model {
       const sql = `select id, name as text, id_parent as pid, node_type, id_obj, obj_type, fwcloud
                 from fwc_tree where id_parent in (${nodes.map((node) => node.id).join(', ')}) order by ${orderBy}`;
 
-      dbCon.query(sql, async (error, nodes) => {
+      dbCon.query(sql, async (error, nodes: TreeNode[]) => {
         if (error) return reject(error);
 
         resolve(nodes);
@@ -519,7 +519,7 @@ export class Tree extends Model {
         ',' +
         fwcloud +
         ')';
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error: Error, result) => {
         if (error) return reject(error);
         resolve(result.insertId);
       });
@@ -1181,7 +1181,11 @@ export class Tree extends Model {
   // };
 
   //Add new TREE FIREWALL for a New Firewall
-  public static insertFwc_Tree_New_firewall(fwcloud, nodeId, firewallId): Promise<void> {
+  public static insertFwc_Tree_New_firewall(
+    fwcloud: number,
+    nodeId: number,
+    firewallId: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1284,7 +1288,11 @@ export class Tree extends Model {
   }
 
   //Add new TREE CLUSTER for a New CLuster
-  public static insertFwc_Tree_New_cluster(fwcloud, nodeId, clusterId): Promise<void> {
+  public static insertFwc_Tree_New_cluster(
+    fwcloud: number,
+    nodeId: number,
+    clusterId: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1298,7 +1306,7 @@ export class Tree extends Model {
           ' AND C.fwcloud=' +
           fwcloud +
           ' AND F.fwmaster=1';
-        connection.query(sql, async (error, clusters) => {
+        connection.query(sql, async (error: Error, clusters) => {
           if (error) return reject(error);
           if (clusters.length !== 1)
             return reject(fwcError.other('Cluster with id ' + clusterId + ' not found'));

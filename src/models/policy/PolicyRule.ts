@@ -524,7 +524,7 @@ export class PolicyRule extends Model {
 
   //Get rule type for a rule
   public static getPolicyRuleIPversion(dbCon, fwcloud, firewall, rule) {
-    return new Promise((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
       const sql = `SELECT R.type FROM ${tableName} R
 				inner join firewall F on F.id=R.firewall
 				WHERE F.fwcloud=${fwcloud} and R.firewall=${firewall} AND R.id=${rule}`;

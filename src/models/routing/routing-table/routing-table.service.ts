@@ -43,6 +43,7 @@ import { RouteService } from '../route/route.service';
 import { AvailableDestinations, ItemForGrid, RouteItemForCompiler, RoutingUtils } from '../shared';
 import { RoutingTable } from './routing-table.model';
 import { DatabaseService } from '../../../database/database.service';
+import { Mark } from '../../ipobj/Mark';
 
 interface IFindManyRoutingTablePath {
   firewallId?: number;
@@ -267,7 +268,11 @@ export class RoutingTableService extends Service {
       dst === 'grid'
         ? this.buildSQLsForGrid(fwcloud, firewall, routingTable)
         : this.buildSQLsForCompiler(fwcloud, firewall, routingTable, routes);
-    await Promise.all(sqls.map((sql) => RoutingUtils.mapEntityData<T>(sql, ItemsArrayMap)));
+    await Promise.all(
+      sqls.map((sql: SelectQueryBuilder<IPObj | IPObjGroup | OpenVPN | OpenVPNPrefix | Mark>) =>
+        RoutingUtils.mapEntityData<T>(sql, ItemsArrayMap),
+      ),
+    );
 
     return routesData.map((data) => {
       data.items = data.items.sort((a, b) => a._order - b._order);

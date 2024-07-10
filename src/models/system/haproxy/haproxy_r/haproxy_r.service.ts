@@ -15,7 +15,7 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { FindOneOptions, In, SelectQueryBuilder } from 'typeorm';
+import { Brackets, FindOneOptions, In, ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 import { Service } from '../../../../fonaments/services/service';
 import { Offset } from '../../../../offset';
 import { HAProxyRuleRepository } from './haproxy.repository';
@@ -452,7 +452,9 @@ export class HAProxyRuleService extends Service {
     Object.entries(options).forEach(([key, value]) => {
       switch (key) {
         case 'where':
-          qb.andWhere(value);
+          qb.andWhere(
+            value as string | Brackets | ((qb: this) => string) | ObjectLiteral | ObjectLiteral[],
+          );
           break;
         case 'relations':
           qb.leftJoinAndSelect(`haproxy.${value}`, `${value}`);

@@ -24,9 +24,9 @@ export class Channel extends EventEmitter {
     return this._listener.emit(this._id, message);
   }
 
-  public emit(event: string | symbol, ...args: any[]): boolean {
+  public emit(event: string | symbol, ...args: unknown[]): boolean {
     if (event === 'message') {
-      return this.message(args[0]);
+      return this.message(args[0] as object);
     }
 
     return super.emit(event, ...args);

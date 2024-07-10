@@ -703,7 +703,7 @@ export class IPObj extends Model {
    *      {result: false, "insertId": ''}
    * */
   public static insertIpobj(dbCon, ipobjData) {
-    return new Promise((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
       // The IDs for the user defined IP Objects begin from the value 100000.
       // IDs values from 0 to 99999 are reserved for standard IP Objects.
       dbCon.query(`SELECT ID FROM ${tableName} ORDER BY ID DESC LIMIT 1`, (error, result) => {
@@ -1717,7 +1717,7 @@ export class IPObj extends Model {
 
   // Search if IP with mask exists. (IP is given in CIDR notation)
   public static searchIPRange(dbCon, fwcloud, start, end) {
-    return new Promise((resolve, reject) => {
+    return new Promise<Number>((resolve, reject) => {
       const sql = `select id from ipobj where (fwcloud IS NULL OR fwcloud=${fwcloud}) 
             AND range_start=${dbCon.escape(start)} AND range_end=${dbCon.escape(end)} AND type=6`; // 6: ADDRESS RANGE
 

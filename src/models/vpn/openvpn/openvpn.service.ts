@@ -70,7 +70,7 @@ export class OpenVPNService extends Service {
   protected _archiveMutex = new Mutex();
 
   public async build(): Promise<OpenVPNService> {
-    this._config = this.loadCustomizedConfig(this._app.config.get('openvpn'));
+    this._config = this.loadCustomizedConfig(this._app.config.get('openvpn') as OpenVPNConfig);
     this._cronService = await this._app.getService<CronService>(CronService.name);
 
     const archiveDirectory: string = this._config.history.data_dir;
@@ -156,7 +156,7 @@ export class OpenVPNService extends Service {
   }
 
   public getCustomizedConfig(): OpenVPNUpdateableConfig {
-    this._config = this.loadCustomizedConfig(this._app.config.get('openvpn'));
+    this._config = this.loadCustomizedConfig(this._app.config.get('openvpn') as OpenVPNConfig);
 
     return {
       history: {
@@ -186,7 +186,9 @@ export class OpenVPNService extends Service {
     try {
       return await tryAcquire(this._archiveMutex).runExclusive(() => {
         return new Promise<number>(async (resolve, reject) => {
-          this._config = this.loadCustomizedConfig(this._app.config.get('openvpn'));
+          this._config = this.loadCustomizedConfig(
+            this._app.config.get('openvpn') as OpenVPNConfig,
+          );
 
           eventEmitter.emit(
             'message',
@@ -341,20 +343,22 @@ export class OpenVPNService extends Service {
       try {
         //Create an array with all files their paths
         const allFiles: { file: string; path: string }[] = [];
-        fs.readdirSync(this._config.history.data_dir).filter((dirent) => {
+        fs.readdirSync(this._config.history.data_dir).filter((dirent: string) => {
           if (fs.existsSync(path.join(this._config.history.data_dir, dirent))) {
-            fs.readdirSync(path.join(this._config.history.data_dir, dirent)).filter((subDirent) => {
-              if (fs.existsSync(path.join(this._config.history.data_dir, dirent, subDirent))) {
-                fs.readdirSync(path.join(this._config.history.data_dir, dirent, subDirent)).map(
-                  (file) => {
-                    allFiles.push({
-                      file: file,
-                      path: path.join(this._config.history.data_dir, dirent, subDirent),
-                    });
-                  },
-                );
-              }
-            });
+            fs.readdirSync(path.join(this._config.history.data_dir, dirent)).filter(
+              (subDirent: string) => {
+                if (fs.existsSync(path.join(this._config.history.data_dir, dirent, subDirent))) {
+                  fs.readdirSync(path.join(this._config.history.data_dir, dirent, subDirent)).map(
+                    (file) => {
+                      allFiles.push({
+                        file: file,
+                        path: path.join(this._config.history.data_dir, dirent, subDirent),
+                      });
+                    },
+                  );
+                }
+              },
+            );
           }
         });
         const filesToRemove = allFiles
@@ -406,7 +410,9 @@ export class OpenVPNService extends Service {
     const openvpnConfigFile: string = path.join(base_config.history.data_dir, 'config.json');
 
     if (fs.existsSync(openvpnConfigFile)) {
-      const backupConfig = JSON.parse(fs.readFileSync(openvpnConfigFile, 'utf8'));
+      const backupConfig: Partial<OpenVPNConfig> = JSON.parse(
+        fs.readFileSync(openvpnConfigFile, 'utf8') as string,
+      );
       config = ObjectHelpers.deepMerge<OpenVPNConfig>(config, backupConfig);
     }
 

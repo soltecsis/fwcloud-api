@@ -392,11 +392,11 @@ export class PolicyRuleToIPObj extends Model {
           const type = parseInt(rows[0].type);
           if (type === 10 || type === 11) {
             // 10 = INTERFACE FIREWALL, 11 = INTERFACE HOST
-            const addrs: any = await Interface.getInterfaceAddr(req.dbCon, req.body.interface);
+            const addrs: IPObj[] = await Interface.getInterfaceAddr(req.dbCon, req.body.interface);
             let n = 0;
             for (const addr of addrs) {
               // Count the amount of interface address with the same IP version of the rule.
-              if (parseInt(addr.ip_version) === rule_ip_version) n++;
+              if (addr.ip_version === rule_ip_version) n++;
             }
             if (n === 0) return resolve(true);
           } else if (type === 8) {
@@ -405,7 +405,7 @@ export class PolicyRuleToIPObj extends Model {
             let n = 0;
             for (const addr of addrs) {
               // Count the amount of interface address with the same IP version of the rule.
-              if (parseInt(addr.ip_version) === rule_ip_version) n++;
+              if (addr.ip_version === rule_ip_version) n++;
             }
             if (n === 0) return resolve(true);
           } else if (
