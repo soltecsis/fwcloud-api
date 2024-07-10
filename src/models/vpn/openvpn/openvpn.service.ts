@@ -95,7 +95,8 @@ export class OpenVPNService extends Service {
             `OpenVPNHistory archive job completed: ${removedItemsCount} rows archived.`,
           );
         } catch (error) {
-          logger().error('OpenVPNHistory archive job ERROR: ', error.message);
+          if (error instanceof Error)
+            logger().error('OpenVPNHistory archive job ERROR: ', error.message);
         }
       },
     );
@@ -111,7 +112,8 @@ export class OpenVPNService extends Service {
             `OpenVPNHistory archive job completed: ${removedItemsCount} files removed.`,
           );
         } catch (error) {
-          logger().error('OpenVPNHistory retention job ERROR: ', error.message);
+          if (error instanceof Error)
+            logger().error('OpenVPNHistory retention job ERROR: ', error.message);
         }
       },
     );

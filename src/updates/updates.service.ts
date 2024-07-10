@@ -27,8 +27,8 @@ import * as fs from 'fs';
 import axios, { AxiosRequestConfig, Method } from 'axios';
 import * as https from 'https';
 import cmp from 'semver-compare';
-const spawn = require('child-process-promise').spawn;
-
+import { spawn } from 'child-process-promise';
+import { Err } from 'joi';
 export interface Versions {
   current: string;
   last: string;
@@ -67,14 +67,20 @@ export class UpdateService extends Service {
       const res = await axios(req);
       return res && res.data ? res.data : null;
     } catch (err) {
-      logger().error(`Proxying update request: ${err.message}`);
+      if (err instanceof Error) logger().error(`Proxying update request: ${err.message}`);
       throw new Error('Proxying update request');
     }
   }
 
   public async compareVersions(app: Apps): Promise<Versions | null> {
-    let localJson: any = {};
-    let remoteJson: any = {};
+    let localJson = {
+      version: '',
+    };
+    let remoteJson = {
+      data: {
+        version: '',
+      },
+    };
 
     const localPath = `${this._app.config.get(app).installDir}/package.json`;
     try {
@@ -150,7 +156,8 @@ export class UpdateService extends Service {
       // is available.
       await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (err) {
-      logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
+      if (err instanceof Error)
+        logger().error(`Error during fwcloud-updater update procedure: ${err.message}`);
       throw new Error('Error during fwcloud-updater update procedure');
     }
 

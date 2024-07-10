@@ -21,7 +21,7 @@ export function IsClientOpenVPN(validationOptions?: ValidationOptions) {
               .getSource()
               .manager.getRepository(OpenVPN)
               .find({
-                where: { id: In(value as number[]) },
+                where: { id: In(value) },
               });
 
             if (openvpns.length === 0) return resolve(true);

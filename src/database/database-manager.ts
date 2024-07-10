@@ -46,7 +46,7 @@ export class DatabaseManager {
     return this._dataSource;
   }
 
-  public get(done: (err, query: Query) => void) {
+  public get(done: (err: Error, query: Query) => void) {
     if (!this._dataSource) {
       done(new Error('Connection not found'), null);
     }

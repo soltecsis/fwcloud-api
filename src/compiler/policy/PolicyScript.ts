@@ -47,6 +47,7 @@ import {
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import * as path from 'path';
 import { mkdirpSync } from 'fs-extra';
+import Query from '../../database/Query';
 
 const config = require('../../config/config');
 
@@ -57,7 +58,7 @@ export class PolicyScript {
   private stream: any;
 
   constructor(
-    private dbCon: any,
+    private dbCon: Query,
     private fwcloud: number,
     private firewall: number,
     private channel: EventEmitter = new EventEmitter(),

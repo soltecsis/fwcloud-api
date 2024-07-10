@@ -21,7 +21,7 @@ export function IpObjBelongsToTypes(typeIds: number[], validationOptions?: Valid
             .getSource()
             .manager.getRepository(IPObj)
             .find({
-              where: { id: In(value as number[]) },
+              where: { id: In(value) },
             });
 
           const failed: IPObj[] = ipObjs.filter(

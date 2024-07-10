@@ -75,11 +75,12 @@ async function iterate(application: Application): Promise<void> {
 
         await service.create(openvpn.id, entries);
       } catch (error) {
-        application.logger().error(`WorkerError: OpenVPN ${openvpn.id} failed: ${error.message}`);
+        if (error instanceof Error)
+          application.logger().error(`WorkerError: OpenVPN ${openvpn.id} failed: ${error.message}`);
       }
     }
   } catch (error) {
-    application.logger().error(`WorkerError: ${error.message}`);
+    if (error instanceof Error) application.logger().error(`WorkerError: ${error.message}`);
   }
 }
 

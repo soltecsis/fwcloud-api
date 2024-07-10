@@ -179,7 +179,7 @@ export class HAProxyRuleRepository extends Repository<HAProxyRule> {
         await this.refreshOrders(haproxy.firewallId);
       }
     } else if (result && Array.isArray(result) && result.length > 0) {
-      const haproxy: HAProxyRule = (result as HAProxyRule[])[0];
+      const haproxy: HAProxyRule = result[0];
       if (haproxy.group) {
         await this.refreshOrders(haproxy.firewallId);
       }

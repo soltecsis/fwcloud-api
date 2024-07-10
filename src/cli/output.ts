@@ -65,7 +65,7 @@ export class Output {
     };
   }
 
-  public static colors(): any {
+  public static colors(): object {
     {
       return {
         green: 32,

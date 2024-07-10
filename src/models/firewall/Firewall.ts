@@ -69,6 +69,7 @@ import { DHCPGroup } from '../system/dhcp/dhcp_g/dhcp_g.model';
 import { DHCPRule } from '../system/dhcp/dhcp_r/dhcp_r.model';
 import { KeepalivedGroup } from '../system/keepalived/keepalived_g/keepalived_g.model';
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
+import Query from '../../database/Query';
 
 const tableName: string = 'firewall';
 
@@ -328,7 +329,7 @@ export class Firewall extends Model {
     );
   }
 
-  public static getClusterId(dbCon: any, firewall: number): Promise<number | null> {
+  public static getClusterId(dbCon: Query, firewall: number): Promise<number | null> {
     return new Promise((resolve, reject) => {
       dbCon.query(`select cluster from ${tableName} where id=${firewall}`, (error, rows) => {
         if (error) return reject(error);
@@ -338,7 +339,7 @@ export class Firewall extends Model {
     });
   }
 
-  public static getFWCloud(dbCon: any, firewall: number): Promise<number | null> {
+  public static getFWCloud(dbCon: Query, firewall: number): Promise<number | null> {
     return new Promise((resolve, reject) => {
       dbCon.query(`select fwcloud from ${tableName} where id=${firewall}`, (error, rows) => {
         if (error) return reject(error);
@@ -348,7 +349,7 @@ export class Firewall extends Model {
     });
   }
 
-  public static getLastClusterNodeId(dbCon: any, cluster: number): Promise<number> {
+  public static getLastClusterNodeId(dbCon: Query, cluster: number): Promise<number> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where cluster=${cluster} order by id desc limit 1`,

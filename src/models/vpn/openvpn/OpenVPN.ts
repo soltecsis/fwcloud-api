@@ -48,6 +48,7 @@ import { RouteToOpenVPN } from '../../routing/route/route-to-openvpn.model';
 import { RoutingRuleToOpenVPN } from '../../routing/routing-rule/routing-rule-to-openvpn.model';
 import { OpenVPNStatusHistory } from './status/openvpn-status-history';
 import db from '../../../database/database-manager';
+import Query from '../../../database/Query';
 const fwcError = require('../../../utils/error_table');
 const fs = require('fs');
 const ip = require('ip');
@@ -571,7 +572,7 @@ export class OpenVPN extends Model {
   }
 
   public static searchOpenvpnUsage(
-    dbCon: any,
+    dbCon: Query,
     fwcloud: number,
     openvpn: number,
     extendedSearch?: boolean,
@@ -837,7 +838,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static addToGroup(dbCon: any, openvpn: number, ipobj_g: number) {
+  public static addToGroup(dbCon: Query, openvpn: number, ipobj_g: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(`INSERT INTO openvpn__ipobj_g values(${openvpn},${ipobj_g})`, (error, result) => {
         if (error) return reject(error);

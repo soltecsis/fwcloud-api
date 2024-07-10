@@ -5,7 +5,7 @@ import { OpenVPNPrefix } from './OpenVPNPrefix';
 import { Request } from 'express';
 import { FirewallService } from '../../firewall/firewall.service';
 import { FwcTree } from '../../tree/fwc-tree.model';
-const fwcError = require('../../../utils/error_table');
+import fwcError from '../../../utils/error_table';
 
 export class OpenVPNPrefixService extends Service {
   protected _firewallService: FirewallService;

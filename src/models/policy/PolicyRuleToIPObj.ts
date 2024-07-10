@@ -29,8 +29,12 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 't
 import { logger } from '../../fonaments/abstract-application';
 import { PolicyPosition } from './PolicyPosition';
 import { IPObj } from '../ipobj/IPObj';
+import Query from '../../database/Query';
+import f from 'session-file-store';
+import { object } from 'joi';
 const asyncMod = require('async');
-const fwcError = require('../../utils/error_table');
+import fwcError from '../../utils/error_table';
+import { Func } from 'mocha';
 
 const tableModel: string = 'policy_r__ipobj';
 
@@ -104,8 +108,8 @@ export class PolicyRuleToIPObj extends Model {
   }
 
   //Get All policy_r__ipobj by Policy_r (rule)
-  public static getPolicy_r__ipobjs(rule, callback) {
-    db.get((error, connection) => {
+  public static getPolicy_r__ipobjs(rule: any, callback: Function) {
+    db.get((error: Error, connection: Query) => {
       if (error) callback(error, null);
 
       const sql =
@@ -141,8 +145,8 @@ export class PolicyRuleToIPObj extends Model {
   }
 
   //Get All policy_r__ipobj by Policy_r (rule) and position
-  public static getPolicy_r__ipobjs_position_data(rule, position, callback) {
-    db.get((error, connection) => {
+  public static getPolicy_r__ipobjs_position_data(rule: any, position: any, callback: Function) {
+    db.get((error: Error, connection: Query) => {
       if (error) callback(error, null);
 
       const sql_obj = ' INNER JOIN ipobj O on O.id=P.ipobj ';
@@ -165,7 +169,14 @@ export class PolicyRuleToIPObj extends Model {
   }
 
   //Get  policy_r__ipobj by primarykey
-  public static getPolicy_r__ipobj(rule, ipobj, ipobj_g, _interface, position, callback) {
+  public static getPolicy_r__ipobj(
+    rule: any,
+    ipobj: any,
+    ipobj_g: any,
+    _interface: any,
+    position: any,
+    callback: Function,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
@@ -340,12 +351,12 @@ export class PolicyRuleToIPObj extends Model {
   };
 
   //Check if group is empty.
-  public static isGroupEmpty = (dbCon, group) => {
+  public static isGroupEmpty = (dbCon: any, group: any) => {
     return new Promise((resolve, reject) => {
       const sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
 			union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
 			union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error: Error, result: any) => {
         if (error) return reject(error);
 
         if (result.length === 0) return resolve(true);
@@ -363,7 +374,7 @@ export class PolicyRuleToIPObj extends Model {
 			${req.body.interface > 0 ? `(select type from interface where id=${req.body.interface}) as type` : ``}
 			${req.body.ipobj_g > 0 ? `(select type from ipobj_g where id=${req.body.ipobj_g}) as type` : ``}
 			from policy_position where id=${req.body.position}`;
-      req.dbCon.query(sql, async (error, rows) => {
+      req.dbCon.query(sql, async (error: Error, rows) => {
         if (error) return reject(error);
 
         // We are not moving to a object (O) content position.
@@ -548,12 +559,16 @@ export class PolicyRuleToIPObj extends Model {
     });
   }
   //Duplicate policy_r__ipobj RULES
-  public static duplicatePolicy_r__ipobj = (dbCon, rule, new_rule): Promise<void> => {
+  public static duplicatePolicy_r__ipobj = (
+    dbCon: any,
+    rule: any,
+    new_rule: any,
+  ): Promise<void> => {
     return new Promise((resolve, reject) => {
       const sql = `INSERT INTO ${tableModel} (rule, ipobj, ipobj_g, interface, position, position_order)
 			(SELECT ${new_rule}, ipobj, ipobj_g, interface, position, position_order
 			from ${tableModel} where rule=${rule} order by  position, position_order)`;
-      dbCon.query(sql, async (error) => {
+      dbCon.query(sql, async (error: Error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -569,7 +584,7 @@ export class PolicyRuleToIPObj extends Model {
     position,
     position_order,
     policy_r__ipobjData,
-    callback,
+    callback: Function,
   ) {
     //Check if IPOBJ TYPE is ALLOWED in this Position
     //checkIpobjPosition(rule, ipobj, ipobj_g, interface, position, callback) {
@@ -578,7 +593,7 @@ export class PolicyRuleToIPObj extends Model {
       null,
       policy_r__ipobjData.interface,
       policy_r__ipobjData.position,
-      (error, data) => {
+      (error: Error, data) => {
         if (error) {
           callback(error, null);
         } else {
@@ -677,7 +692,7 @@ export class PolicyRuleToIPObj extends Model {
     position,
     position_order,
     new_order,
-    callback,
+    callback: Function,
   ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -811,7 +826,7 @@ export class PolicyRuleToIPObj extends Model {
     });
   }
 
-  private static checkIpobjPosition(ipobj, ipobj_g, _interface, position, callback) {
+  private static checkIpobjPosition(ipobj, ipobj_g, _interface, position, callback: Function) {
     db.get((error, connection) => {
       if (error) return callback(error, 0);
 
@@ -858,7 +873,7 @@ export class PolicyRuleToIPObj extends Model {
     });
   }
 
-  public static getPositionsContent = (dbCon, position, new_position) => {
+  public static getPositionsContent = (dbCon, position: number, new_position: number) => {
     return new Promise(async (resolve, reject) => {
       dbCon.query(
         `SELECT id, content FROM policy_position WHERE id=${position}`,
@@ -917,7 +932,7 @@ export class PolicyRuleToIPObj extends Model {
     });
   }
   //Remove policy_r__ipobj
-  public static deletePolicy_r__All(rule, callback) {
+  public static deletePolicy_r__All(rule, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists = 'SELECT * FROM ' + tableModel + ' WHERE rule = ' + connection.escape(rule);
@@ -947,7 +962,7 @@ export class PolicyRuleToIPObj extends Model {
     });
   }
   //Order policy_r__ipobj Position
-  public static orderPolicyPosition(rule, position, callback) {
+  public static orderPolicyPosition(rule, position, callback: Function) {
     logger().debug('DENTRO ORDER   Rule: ' + rule + '  Position: ' + position);
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -965,7 +980,7 @@ export class PolicyRuleToIPObj extends Model {
           let order = 0;
           asyncMod.map(
             rows,
-            (row, callback1) => {
+            (row, callback1: Function) => {
               order++;
               db.get((error, connection) => {
                 const sql =
@@ -1004,7 +1019,7 @@ export class PolicyRuleToIPObj extends Model {
     });
   }
   //Order policy_r__ipobj Position
-  public static orderPolicy(rule, callback) {
+  public static orderPolicy(rule, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlRule =
@@ -1020,7 +1035,7 @@ export class PolicyRuleToIPObj extends Model {
           let prev_position = 0;
           asyncMod.map(
             rows,
-            (row, callback1) => {
+            (row, callback1: Function) => {
               const position = row.position;
               if (position !== prev_position) {
                 order = 1;
@@ -1063,7 +1078,7 @@ export class PolicyRuleToIPObj extends Model {
     });
   }
   //Order policy_r__ipobj Position
-  public static orderAllPolicy(callback) {
+  public static orderAllPolicy(callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlRule = 'SELECT * FROM ' + tableModel + ' ORDER by rule,position, position_order';
@@ -1075,7 +1090,7 @@ export class PolicyRuleToIPObj extends Model {
           let prev_position = 0;
           asyncMod.map(
             rows,
-            (row, callback1) => {
+            (row, callback1: Function) => {
               const position = row.position;
               const rule = row.rule;
               if (position !== prev_position || rule !== prev_rule) {
@@ -1123,7 +1138,7 @@ export class PolicyRuleToIPObj extends Model {
   //FALTA CORREGIR PROBLEMA AL CONTABILIZAR REGISTROS EXISTENTES
 
   //check if IPOBJ Exists in any rule
-  public static checkIpobjInRule(ipobj, type, fwcloud, callback) {
+  public static checkIpobjInRule(ipobj, type, fwcloud, callback: Function) {
     logger().debug('CHECK DELETING ipobj:' + ipobj + ' Type:' + type + '  fwcloud:' + fwcloud);
     db.get((error, connection) => {
       if (error) callback(error, null);
@@ -1202,7 +1217,7 @@ export class PolicyRuleToIPObj extends Model {
   }
 
   //check if INTERFACE Exists in any rule 'O' POSITIONS
-  public static checkInterfaceInRule(_interface, type, fwcloud, callback) {
+  public static checkInterfaceInRule(_interface, type, fwcloud, callback: Function) {
     logger().debug(
       'CHECK DELETING interface O POSITIONS:' +
         _interface +
@@ -1254,7 +1269,7 @@ export class PolicyRuleToIPObj extends Model {
     });
   }
   //check if ALL INTERFACE UNDER HOST Exists in any rule
-  public static checkHostAllInterfacesInRule(ipobj_host, fwcloud, callback) {
+  public static checkHostAllInterfacesInRule(ipobj_host, fwcloud, callback: Function) {
     logger().debug(
       'CHECK DELETING HOST ALL interfaces O POSITIONS:' + ipobj_host + '  fwcloud:' + fwcloud,
     );
@@ -1298,7 +1313,7 @@ export class PolicyRuleToIPObj extends Model {
     });
   }
   //check if ALL IPOBJS UNDER ALL INTERFACE UNDER HOST Exists in any rule
-  public static checkHostAllInterfaceAllIpobjInRule(ipobj_host, fwcloud, callback) {
+  public static checkHostAllInterfaceAllIpobjInRule(ipobj_host, fwcloud, callback: Function) {
     logger().debug(
       'CHECK DELETING HOST ALL IPOBJ UNDER ALL interfaces O POSITIONS:' +
         ipobj_host +
@@ -1344,7 +1359,7 @@ export class PolicyRuleToIPObj extends Model {
     });
   }
   //check if IPOBJ UNDER INTERFACE Exists in any rule
-  public static checkOBJInterfaceInRule(_interface, type, fwcloud, firewall, callback) {
+  public static checkOBJInterfaceInRule(_interface, type, fwcloud, firewall, callback: Function) {
     logger().debug(
       'CHECK DELETING IPOBJ UNDER interface :' +
         _interface +
@@ -1397,7 +1412,7 @@ export class PolicyRuleToIPObj extends Model {
     });
   }
   //check if HOST INTERFACE Exists in any rule
-  public static checkHOSTInterfaceInRule(_interface, type, fwcloud, firewall, callback) {
+  public static checkHOSTInterfaceInRule(_interface, type, fwcloud, firewall, callback: Function) {
     logger().debug(
       'CHECK DELETING HOST interface :' + _interface + ' Type:' + type + '  fwcloud:' + fwcloud,
     );
@@ -1603,7 +1618,7 @@ export class PolicyRuleToIPObj extends Model {
 			INNER JOIN policy_type PT ON PT.id=R.type
 			INNER JOIN fwcloud C ON C.id=F.fwcloud
 			WHERE I.id=${ipobj} AND I.type=8 AND F.fwcloud=${fwcloud}`;
-      dbCon.query(sql, (error, rows) => {
+      dbCon.query(sql, (error: Error, rows) => {
         if (error) return reject(error);
         resolve(rows);
       });
@@ -1628,7 +1643,7 @@ export class PolicyRuleToIPObj extends Model {
 			INNER JOIN policy_type PT ON PT.id=R.type
 			INNER JOIN fwcloud C ON C.id=F.fwcloud
 			WHERE J.ipobj=${ipobj} AND I.type=5 AND F.fwcloud=${fwcloud}`;
-      dbCon.query(sql, (error, rows) => {
+      dbCon.query(sql, (error: Error, rows) => {
         if (error) return reject(error);
         resolve(rows);
       });
@@ -1652,7 +1667,7 @@ export class PolicyRuleToIPObj extends Model {
 			INNER JOIN policy_type PT ON PT.id=R.type
 			INNER JOIN fwcloud C ON C.id=F.fwcloud 
 			WHERE I.id=${ipobj} AND I.type=${type} AND F.fwcloud=${fwcloud}`;
-      dbCon.query(sql, async (error, rows) => {
+      dbCon.query(sql, async (error: Error, rows) => {
         if (error) return reject(error);
 
         const result = [];
@@ -1707,7 +1722,7 @@ export class PolicyRuleToIPObj extends Model {
 			INNER JOIN firewall F ON F.id=R.firewall
 			INNER JOIN fwcloud C ON C.id=F.fwcloud
 			WHERE I.id=${ipobj} AND I.type=${type} AND F.fwcloud=${fwcloud}`;
-      dbCon.query(sql, async (error, rows) => {
+      dbCon.query(sql, async (error: Error, rows) => {
         if (error) return reject(error);
 
         const result = [];
@@ -1892,7 +1907,7 @@ export class PolicyRuleToIPObj extends Model {
         // Verify the IP version of the IP object that we are moving.
         req.dbCon.query(
           `select ip_version,type from ipobj where id=${req.body.ipobj}`,
-          (error, result) => {
+          (error: Error, result) => {
             if (error) return reject(error);
             if (result.length !== 1) return reject(fwcError.NOT_FOUND);
 

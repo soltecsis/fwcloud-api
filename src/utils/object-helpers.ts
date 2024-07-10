@@ -67,10 +67,10 @@ export default class ObjectHelpers {
     if (typeof inner != typeof container) return false;
     if (Array.isArray(inner) && Array.isArray(container)) {
       // assuming same order at least
-      let i;
-      let j;
-      let la;
-      let lb;
+      let i: number;
+      let j: number;
+      let la: number;
+      let lb: number;
       for (i = 0, j = 0, la = inner.length, lb = container.length; i < la && j < lb; j++)
         if (ObjectHelpers.contains(inner[i], container[j])) i++;
       return i == la;

@@ -93,7 +93,7 @@ export default abstract class Model extends BaseEntity implements IModel {
         let value: any = this[propertyName];
 
         if (value instanceof Date) {
-          value = (value as Date).toISOString();
+          value = value.toISOString();
         }
 
         result[propertyName] = value;

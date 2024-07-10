@@ -192,9 +192,9 @@ export class HAProxyRuleService extends Service {
       }
     }
 
-    const lastHAProxy: HAProxyRule = (await this._repository.getLastHAProxyRuleInFirewall(
+    const lastHAProxy: HAProxyRule = await this._repository.getLastHAProxyRuleInFirewall(
       data.firewallId,
-    )) as HAProxyRule;
+    );
     haProxyRule.rule_order = lastHAProxy?.rule_order ? lastHAProxy.rule_order + 1 : 1;
     const persisted: HAProxyRule = await this._repository.save(haProxyRule);
 

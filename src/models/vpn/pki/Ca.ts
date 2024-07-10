@@ -28,9 +28,9 @@ import { User } from '../../user/User';
 import { Crt } from './Crt';
 const config = require('../../../config/config');
 const fwcError = require('../../../utils/error_table');
-const spawn = require('child-process-promise').spawn;
-const readline = require('readline');
-const fs = require('fs');
+import { spawn } from 'child-process-promise';
+import * as readline from 'readline';
+import * as fs from 'fs';
 
 const tableName: string = 'ca';
 

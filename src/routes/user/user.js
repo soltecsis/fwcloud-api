@@ -20,7 +20,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 var express = require('express');
 var router = express.Router();
 const restrictedCheck = require('../../middleware/restricted');
@@ -29,6 +28,7 @@ import { User } from '../../models/user/User';
 import { FwCloud } from '../../models/fwcloud/FwCloud';
 import { PgpHelper } from '../../utils/pgp';
 import { app, logger } from '../../fonaments/abstract-application';
+import { Request, Response } from 'express';
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 const fwcError = require('../../utils/error_table');
@@ -37,18 +37,17 @@ const config = require('../../config/config');
 
 var bcrypt = require('bcryptjs');
 
-
 /**
  * @api {POST} /login Log into the API
  * @apiName LoginUser
  *  * @apiGroup USER
- * 
+ *
  * @apiDescription Validate the user credentials and initialize data in the session file.
  *
  * @apiParam {Number} customer Customert's id to which this user belongs to.
  * @apiParam {String} username Username for login into the FWCloud.net web interface.
- * @apiParam {String} password Username's password. 
- * 
+ * @apiParam {String} password Username's password.
+ *
  * @apiParamExample {json} Request-Example:
  * {
  *   "customer": 1,
@@ -61,27 +60,27 @@ var bcrypt = require('bcryptjs');
  * {
  *   "user": 1,
  * 	 "role": 1
- * } 
+ * }
  *
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 401 Unauthorized
  * {
  *   "fwcErr": 1001,
  *   "msg": "Bad username or password"
- * } 
-*/
-router.post('/login',async (req, res) => {
-	// In the JOI schema used for the input validation process the req.body.customer, req.body.username and req.body.password 
-	// fields are mandatory.
-	try {
-		const data = await User.getUserName(req.body.customer, req.body.username);
-		if (data.length===0) {
-			req.session.destroy(err => {});
-			throw fwcError.BAD_LOGIN;
-		}
-		
-		// Validate credentials.
-		/* WARNING: As recommended in the bcrypt manual:
+ * }
+ */
+router.post('/login', async (req, res) => {
+  // In the JOI schema used for the input validation process the req.body.customer, req.body.username and req.body.password
+  // fields are mandatory.
+  try {
+    const data = await User.getUserName(req.body.customer, req.body.username);
+    if (data.length === 0) {
+      req.session.destroy((err) => {});
+      throw fwcError.BAD_LOGIN;
+    }
+
+    // Validate credentials.
+    /* WARNING: As recommended in the bcrypt manual:
 		Why is async mode recommended over sync mode?
 		If you are using bcrypt on a simple script, using the sync mode is perfectly fine.
 		However, if you are using bcrypt on a server, the async mode is recommended.
@@ -89,91 +88,100 @@ router.post('/login',async (req, res) => {
 		will block the event loop and prevent your application from servicing any other
 		inbound requests or events.
 		*/
-		if (await bcrypt.compare(req.body.customer+req.body.username+req.body.password, data[0].password)) {
-			// Return authorization token.
-			req.session.customer_id = data[0].customer;
-			req.session.user_id = data[0].id;
-			req.session.username = data[0].username;
-			req.session.admin_role = await User.isLoggedUserAdmin(req); 
-			req.session.keepalive_ts = Date.now();
+    if (
+      await bcrypt.compare(
+        req.body.customer + req.body.username + req.body.password,
+        data[0].password,
+      )
+    ) {
+      // Return authorization token.
+      req.session.customer_id = data[0].customer;
+      req.session.user_id = data[0].id;
+      req.session.username = data[0].username;
+      req.session.admin_role = await User.isLoggedUserAdmin(req);
+      req.session.keepalive_ts = Date.now();
 
-			const pgp = new PgpHelper; 
-			await pgp.init(config.get('session').pgp_rsa_bits);
-			req.session.pgp = {
-				public: pgp.publicKey,
-				private: pgp.privateKey
-			};
-			
-			// Store the fwcloud-ui session public key.
-                        req.session.uiPublicKey = req.body.publicKey;
+      const pgp = new PgpHelper();
+      await pgp.init(config.get('session').pgp_rsa_bits);
+      req.session.pgp = {
+        public: pgp.publicKey,
+        private: pgp.privateKey,
+      };
 
-			if(!req.session.tfa){
-				res.status(200).json({"user": req.session.user_id, "role": data[0].role, "publicKey": pgp.publicKey});
-			} else {
-				if(!req.headers['x-tfa']) {
-					throw fwcError.BAD_LOGIN;
-				} else {
+      // Store the fwcloud-ui session public key.
+      req.session.uiPublicKey = req.body.publicKey;
 
-					let isVerified = speakeasy.totp.verify({
-						secret: req.session.tfa,
-						encoding: 'base32',
-						token: req.headers['x-tfa']
-					});
-					if(isVerified) {
-						res.status(200).json({"user":req.session.user_id,"role":data[0].role,"publicKey":pgp.publicKey,"tfa":req.session.tfa});
-					} else {
-						throw fwcError.BAD_LOGIN;
-					}
-				}
-			}
-		} else {
-			req.session.destroy(err => {} );
-			throw fwcError.BAD_LOGIN;
-		}
-	} catch(error) {
-		logger().error(`Login error${error.message ? `: ${error.message}`: '.'}`);
-		res.status(401).json(error);
-	}
+      if (!req.session.tfa) {
+        res
+          .status(200)
+          .json({ user: req.session.user_id, role: data[0].role, publicKey: pgp.publicKey });
+      } else {
+        if (!req.headers['x-tfa']) {
+          throw fwcError.BAD_LOGIN;
+        } else {
+          let isVerified = speakeasy.totp.verify({
+            secret: req.session.tfa,
+            encoding: 'base32',
+            token: req.headers['x-tfa'],
+          });
+          if (isVerified) {
+            res.status(200).json({
+              user: req.session.user_id,
+              role: data[0].role,
+              publicKey: pgp.publicKey,
+              tfa: req.session.tfa,
+            });
+          } else {
+            throw fwcError.BAD_LOGIN;
+          }
+        }
+      }
+    } else {
+      req.session.destroy((err) => {});
+      throw fwcError.BAD_LOGIN;
+    }
+  } catch (error) {
+    logger().error(`Login error${error.message ? `: ${error.message}` : '.'}`);
+    res.status(401).json(error);
+  }
 });
 
 /**
  * @api {POST} /logout Log out the API
  * @apiName LogoutUser
  *  * @apiGroup USER
- * 
+ *
  * @apiDescription Close a previous created user session.
  *
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 204 OK
-*/
-router.post('/logout',(req, res) => {
-	req.session.destroy(err => {});
-	res.status(204).end();
+ */
+router.post('/logout', (req, res) => {
+  req.session.destroy((err) => {});
+  res.status(204).end();
 });
-
-
 
 /**
  * @api {POST} /user New user
  * @apiName NewUser
  *  * @apiGroup USER
- * 
+ *
  * @apiDescription Create new user.<br>
  *
  * @apiParam {Number} customer Customert id to which this user belongs to.
- * <br>The API will check that exists a customer with this id. If the customer don't exists a not found error will 
+ * <br>The API will check that exists a customer with this id. If the customer don't exists a not found error will
  * be generated.
  * @apiParam {String} name Full name of the owner of this user.
  * @apiParam {String} [email] User's e-mail.
  * @apiParam {String} username Username for login into the FWCloud.net web interface.
- * @apiParam {String} password Username's password. 
+ * @apiParam {String} password Username's password.
  * @apiParam {Number} enabled If the user access is enabled or not.
  * @apiParam {Number} role The role assigned to this user.
  * <br>1 = Admin. Full access.
- * <br>2 = Manager. Cand manage the assigned clouds. Clouds are assigned by an user with admin role. 
+ * <br>2 = Manager. Cand manage the assigned clouds. Clouds are assigned by an user with admin role.
  * @apiParam {String} allowed_from Comma separated list of IPs from which the user will be allowed to access to the
  * FWCloud.net web interface.
- * 
+ *
  * @apiParamExample {json} Request-Example:
  * {
  *   "customer": 2,
@@ -198,7 +206,7 @@ router.post('/logout',(req, res) => {
  *   "fwcErr": 1002,
  * 	 "msg":	"Not found"
  * }
- * 
+ *
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 400 Bad Request
  * {
@@ -207,37 +215,34 @@ router.post('/logout',(req, res) => {
  * }
  */
 router.post('', async (req, res) => {
-	try {
-		// Remember that in the access control middleware we have already verified that the logged user
-		// has the admin role. Then, we don't need to check it again.
-	
-		// Verify that exists the customer to which the new user will belong.
-		if (!(await Customer.existsId(req.dbCon,req.body.customer))) 
-			throw fwcError.NOT_FOUND;
+  try {
+    // Remember that in the access control middleware we have already verified that the logged user
+    // has the admin role. Then, we don't need to check it again.
 
-		// Verify that for the indicated customer we don't have another user with the same username.
-		if (await User.existsCustomerUserName(req.dbCon,req.body.customer,req.body.username))
-			throw fwcError.ALREADY_EXISTS;
+    // Verify that exists the customer to which the new user will belong.
+    if (!(await Customer.existsId(req.dbCon, req.body.customer))) throw fwcError.NOT_FOUND;
 
-		const new_user_id = await User._insert(req);
+    // Verify that for the indicated customer we don't have another user with the same username.
+    if (await User.existsCustomerUserName(req.dbCon, req.body.customer, req.body.username))
+      throw fwcError.ALREADY_EXISTS;
 
-		// If the new user has the administrator role, then, allow him/her to see all existing fwclouds.
-		if (req.body.role===1)
-			await User.allowAllFwcloudAccess(req.dbCon,new_user_id);
+    const new_user_id = await User._insert(req);
 
-		res.status(200).json({"user": new_user_id});
-	} catch (error) {
-		logger().error('Error creating a user: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
+    // If the new user has the administrator role, then, allow him/her to see all existing fwclouds.
+    if (req.body.role === 1) await User.allowAllFwcloudAccess(req.dbCon, new_user_id);
+
+    res.status(200).json({ user: new_user_id });
+  } catch (error) {
+    logger().error('Error creating a user: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
-
 
 /**
  * @api {PUT} /user Update user
  * @apiName UpdateUser
  *  * @apiGroup USER
- * 
+ *
  * @apiDescription Update user's data.
  *
  * @apiParam {Number} user User's id.
@@ -246,14 +251,14 @@ router.post('', async (req, res) => {
  * @apiParam {String} name Full name of the owner of this user.
  * @apiParam {String} [email] User's e-mail.
  * @apiParam {String} username Username for login into the FWCloud.net web interface.
- * @apiParam {String} password Username's password. 
+ * @apiParam {String} password Username's password.
  * @apiParam {Number} enabled If the user access is enabled or not.
  * @apiParam {Number} role The role assigned to this user.
  * <br>1 = Admin. Full access.
- * <br>2 = Manager. Cand manage the assigned clouds. Clouds are assigned by an user with admin role. 
+ * <br>2 = Manager. Cand manage the assigned clouds. Clouds are assigned by an user with admin role.
  * @apiParam {String} allowed_from Comma separated list of IPs from which the user will be allowed to access to the
  * FWCloud.net web interface.
- * 
+ *
  * @apiParamExample {json} Request-Example:
  * {
  *   "customer": 2,
@@ -277,56 +282,59 @@ router.post('', async (req, res) => {
  * }
  */
 router.put('', async (req, res) => {
-	try {
-		// Verify that the customer exists.
-		if (!(await Customer.existsId(req.dbCon,req.body.customer))) 
-			throw fwcError.NOT_FOUND;
+  try {
+    // Verify that the customer exists.
+    if (!(await Customer.existsId(req.dbCon, req.body.customer))) throw fwcError.NOT_FOUND;
 
-		// Verify that the user exists and belongs to the indicated customer.
-		if (!(await User.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
-			throw fwcError.NOT_FOUND;
+    // Verify that the user exists and belongs to the indicated customer.
+    if (!(await User.existsCustomerUserId(req.dbCon, req.body.customer, req.body.user)))
+      throw fwcError.NOT_FOUND;
 
-		// Veriry that don't exists another user with the same username into the same customer.
-		if(await User.existsCustomerUserNameOtherId(req.dbCon,req.body.customer,req.body.username,req.body.user))
-			throw fwcError.ALREADY_EXISTS_NAME;
+    // Veriry that don't exists another user with the same username into the same customer.
+    if (
+      await User.existsCustomerUserNameOtherId(
+        req.dbCon,
+        req.body.customer,
+        req.body.username,
+        req.body.user,
+      )
+    )
+      throw fwcError.ALREADY_EXISTS_NAME;
 
-		// If there is only on administrator user left and we want to change his role from administrator to manager,
-		// don't allow it.
-		if(await User.isAdmin(req) && req.body.role!==1) {
-			const data = await User.lastAdminUser(req); 
-			if (data.result) 
-				throw fwcError.other('It is not allowed to change the role of the last administrator user');
-		}
+    // If there is only on administrator user left and we want to change his role from administrator to manager,
+    // don't allow it.
+    if ((await User.isAdmin(req)) && req.body.role !== 1) {
+      const data = await User.lastAdminUser(req);
+      if (data.result)
+        throw fwcError.other('It is not allowed to change the role of the last administrator user');
+    }
 
-		// Don't allow to change the role of the current logged user.
-		// If we allow it the logged user will lost the power of change customers and users information.
-		if (req.body.user===req.session.user_id && req.body.role!==1)
-			throw fwcError.other('It is not allowed to change the role of the logged user');
+    // Don't allow to change the role of the current logged user.
+    // If we allow it the logged user will lost the power of change customers and users information.
+    if (req.body.user === req.session.user_id && req.body.role !== 1)
+      throw fwcError.other('It is not allowed to change the role of the logged user');
 
-		await User._update(req);
+    await User._update(req);
 
-		// If the modified user has the administrator role, then, allow him/her to see all existing fwclouds.
-		if (req.body.role===1)
-			await User.allowAllFwcloudAccess(req.dbCon,req.body.user);
+    // If the modified user has the administrator role, then, allow him/her to see all existing fwclouds.
+    if (req.body.role === 1) await User.allowAllFwcloudAccess(req.dbCon, req.body.user);
 
-		res.status(204).end();
-	} catch (error) {
-		logger().error('Error updating a user: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
+    res.status(204).end();
+  } catch (error) {
+    logger().error('Error updating a user: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
-
-
 
 /**
  * @api {PUT} /user/changepass Modify logged user password
  * @apiName ChangePassUser
  *  * @apiGroup USER
- * 
+ *
  * @apiDescription Modify the password of the logged user.
  *
- * @apiParam {String} password New user's password. 
- * 
+ * @apiParam {String} password New user's password.
+ *
  * @apiParamExample {json} Request-Example:
  * {
  *   "password": "mynewsecrec"
@@ -343,28 +351,27 @@ router.put('', async (req, res) => {
  * }
  */
 router.put('/changepass', async (req, res) => {
-	try {
-		await User.changeLoggedUserPass(req);
-		res.status(204).end();
-	} catch (error) {
-		logger().error('Error updating user credentials: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
+  try {
+    await User.changeLoggedUserPass(req);
+    res.status(204).end();
+  } catch (error) {
+    logger().error('Error updating user credentials: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
-
 
 /**
  * @api {PUT} /user/get Get user data
  * @apiName GetUser
  *  * @apiGroup USER
- * 
- * @apiDescription Get user data. 
+ *
+ * @apiDescription Get user data.
  *
  * @apiParam {Number} customer Id of the customer the user belongs to.
  * @apiParam {Number} [user] Id of the user.
  * <br>If empty, the API will return the id and name for all the users of this customer..
  * <br>If it is not empty, it will return all the data for the indicated user.
- * 
+ *
  * @apiParamExample {json} Request-Example:
  * {
  *   "customer": 2,
@@ -390,7 +397,7 @@ router.put('/changepass', async (req, res) => {
  *    "created_by": 0,
  *    "updated_by": 0
  * }
- * 
+ *
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 400 Bad Request
  * {
@@ -399,36 +406,37 @@ router.put('/changepass', async (req, res) => {
  * }
  */
 router.put('/get', async (req, res) => {
-	try {
-		// Verify that the customer exists.
-		if (!(await Customer.existsId(req.dbCon,req.body.customer))) 
-			throw fwcError.NOT_FOUND;
+  try {
+    // Verify that the customer exists.
+    if (!(await Customer.existsId(req.dbCon, req.body.customer))) throw fwcError.NOT_FOUND;
 
-		// Check that the user indicated in the requests exists and belongs to the customer send in the request body.
-		// req.body.customer is a mandatory parameter in Joi schema.
-		if (req.body.user && !(await User.existsCustomerUserId(req.dbCon,req.body.customer,req.body.user)))
-			throw fwcError.NOT_FOUND;
+    // Check that the user indicated in the requests exists and belongs to the customer send in the request body.
+    // req.body.customer is a mandatory parameter in Joi schema.
+    if (
+      req.body.user &&
+      !(await User.existsCustomerUserId(req.dbCon, req.body.customer, req.body.user))
+    )
+      throw fwcError.NOT_FOUND;
 
-		const data = await User.get(req);
-		res.status(200).json(req.body.user ? data[0] : data);
-	} catch (error) {
-		logger().error('Error finding a user: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
+    const data = await User.get(req);
+    res.status(200).json(req.body.user ? data[0] : data);
+  } catch (error) {
+    logger().error('Error finding a user: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
-
 
 /**
  * @api {PUT} /user/del Delete user
  * @apiName DelUser
  *  * @apiGroup USER
- * 
- * @apiDescription Delete user from the database. 
+ *
+ * @apiDescription Delete user from the database.
  * <br>A middleware is used for verify that this is not the last user with the admin role in the database.
  *
  * @apiParam {Number} customer Id of the customer the user belongs to.
  * @apiParam {Number} user Id of the user.
- * 
+ *
  * @apiParamExample {json} Request-Example:
  * {
  *   "customer": 2
@@ -436,7 +444,7 @@ router.put('/get', async (req, res) => {
  *
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 204 OK
- * 
+ *
  * @apiErrorExample {json} Error-Response:
  * HTTP/1.1 400 Bad Request
  * {
@@ -444,35 +452,32 @@ router.put('/get', async (req, res) => {
  * 	 "msg":	"Not found"
  * }
  */
-router.put('/del', 
-restrictedCheck.user,
-async (req, res) => {
-	try {
-		if (!(await User.existsCustomerUserId(req.dbCon, req.body.customer, req.body.user)))
-			throw fwcError.NOT_FOUND;
+router.put('/del', restrictedCheck.user, async (req, res) => {
+  try {
+    if (!(await User.existsCustomerUserId(req.dbCon, req.body.customer, req.body.user)))
+      throw fwcError.NOT_FOUND;
 
-		if (req.body.user===req.session.user_id)
-			throw fwcError.other('It is not allowed to delete the logged user');
+    if (req.body.user === req.session.user_id)
+      throw fwcError.other('It is not allowed to delete the logged user');
 
-		await User._delete(req);
-		res.status(204).end();
-	} catch (error) {
-		logger().error('Error removing user: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
+    await User._delete(req);
+    res.status(204).end();
+  } catch (error) {
+    logger().error('Error removing user: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
-
 
 /**
  * @api {PUT} /user/restricted Restrictions for user deletion
  * @apiName RestrictedUser
  *  * @apiGroup USER
- * 
+ *
  * @apiDescription Check that there are no restrictions for user deletion.
  *
  * @apiParam {Number} customer Customer's id.
  * @apiParam {Number} user User's id.
- * 
+ *
  * @apiParamExample {json} Request-Example:
  * {
  *   "customer": 10,
@@ -492,7 +497,7 @@ async (req, res) => {
  *     },
  *     "data": {}
  * }
- * 
+ *
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 204 No Content
  *
@@ -503,21 +508,20 @@ async (req, res) => {
  *   "restrictions": {
  *     "CustomerHasUsers": true
  *   }
- * } 
+ * }
  */
 router.put('/restricted', restrictedCheck.user, (req, res) => res.status(204).end());
-
 
 /**
  * @api {POST} /user/fwcloud Enable cloud access.
  * @apiName UserAccessFwcloud
  *  * @apiGroup USER
- * 
+ *
  * @apiDescription Allow a user the access to a fwcloud.
  *
  * @apiParam {Number} user User's id.
  * @apiParam {Number} fwcloud FWCloud's id.
- * 
+ *
  * @apiParamExample {json} Request-Example:
  * {
  *   "user": 5,
@@ -528,29 +532,28 @@ router.put('/restricted', restrictedCheck.user, (req, res) => res.status(204).en
  * HTTP/1.1 204 No Content
  */
 router.post('/fwcloud', async (req, res) => {
-	try {
-		// Remember that in the access control middleware we have already verified that the logged user
-		// has the admin role. Then, we don't have to check it again.
+  try {
+    // Remember that in the access control middleware we have already verified that the logged user
+    // has the admin role. Then, we don't have to check it again.
 
-		await User.allowFwcloudAccess(req.dbCon,req.body.user,req.body.fwcloud);
-		res.status(204).end();
-	} catch (error) {
-		logger().error('Error enabling fwcloud access: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
+    await User.allowFwcloudAccess(req.dbCon, req.body.user, req.body.fwcloud);
+    res.status(204).end();
+  } catch (error) {
+    logger().error('Error enabling fwcloud access: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
-
 
 /**
  * @api {PUT} /user/fwcloud/del Disable cloud access.
  * @apiName UserDisableFwcloud
  *  * @apiGroup USER
- * 
+ *
  * @apiDescription Disable user access to a fwcloud.
  *
  * @apiParam {Number} user User's id.
  * @apiParam {Number} fwcloud FWCloud's id.
- * 
+ *
  * @apiParamExample {json} Request-Example:
  * {
  *   "user": 5,
@@ -561,28 +564,27 @@ router.post('/fwcloud', async (req, res) => {
  * HTTP/1.1 204 No Content
  */
 router.put('/fwcloud/del', async (req, res) => {
-	try {
-		// Remember that in the access control middleware we have already verified that the logged user
-		// has the admin role. Then, we don't have to check it again.
+  try {
+    // Remember that in the access control middleware we have already verified that the logged user
+    // has the admin role. Then, we don't have to check it again.
 
-		await User.disableFwcloudAccess(req.dbCon,req.body.user,req.body.fwcloud);
-		res.status(204).end();
-	} catch (error) {
-		logger().error('Error disabling fwcloud access: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
+    await User.disableFwcloudAccess(req.dbCon, req.body.user, req.body.fwcloud);
+    res.status(204).end();
+  } catch (error) {
+    logger().error('Error disabling fwcloud access: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
-
 
 /**
  * @api {PUT} /user/fwcloud/get List of fwclouds with access.
  * @apiName ListUserAccessFwcloud
  *  * @apiGroup USER
- * 
+ *
  * @apiDescription List of fwclouds to which the indicated user has access to.
  *
  * @apiParam {Number} user User's id.
- * 
+ *
  * @apiParamExample {json} Request-Example:
  * {
  *   "user": 5
@@ -621,16 +623,14 @@ router.put('/fwcloud/del', async (req, res) => {
  * ]
  */
 router.put('/fwcloud/get', async (req, res) => {
-	try {
-		const data = await FwCloud.getFwclouds(req.dbCon, req.body.user);
-		if (data && data.length > 0)
-			res.status(200).json(data);
-		else
-			res.status(204).end();
-	} catch(error) {
-		logger().error('Error getting user fwclouds: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
+  try {
+    const data = await FwCloud.getFwclouds(req.dbCon, req.body.user);
+    if (data && data.length > 0) res.status(200).json(data);
+    else res.status(204).end();
+  } catch (error) {
+    logger().error('Error getting user fwclouds: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
 
 module.exports = router;

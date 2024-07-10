@@ -38,7 +38,7 @@ export class Server {
     this._config = app.config;
   }
 
-  public async start(): Promise<any> {
+  public async start(): Promise<Server> {
     try {
       this.validateApplicationConfiguration();
 
@@ -100,7 +100,7 @@ export class Server {
       pingInterval: this._config.get('socket_io').pingInterval,
       pingTimeout: this._config.get('socket_io').pingTimeout,
     });
-    await (<Application>this._application).setSocketIO(_io);
+    await this._application.setSocketIO(_io);
   }
 
   protected validateApplicationConfiguration() {

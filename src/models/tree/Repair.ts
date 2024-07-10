@@ -140,7 +140,7 @@ export class Repair extends Model {
             ' WHERE fwcloud=' +
             dbCon.escape(fwcloud) +
             ' AND id_parent is null';
-          dbCon.query(sql, (error) => {
+          dbCon.query(sql, (error, result) => {
             if (error) return reject(error);
             resolve(nodes);
           });

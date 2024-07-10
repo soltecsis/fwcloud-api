@@ -61,13 +61,13 @@ export class Crt extends Model {
   @Column({ name: 'ca' })
   caId: number;
 
-  @ManyToOne(() => Ca, (ca) => ca.crts)
+  @ManyToOne((type) => Ca, (ca) => ca.crts)
   @JoinColumn({
     name: 'ca',
   })
   ca: Ca;
 
-  @OneToMany(() => OpenVPN, (openVPN) => openVPN.crt)
+  @OneToMany((type) => OpenVPN, (openVPN) => openVPN.crt)
   openVPNs: Array<OpenVPN>;
 
   public getTableName(): string {
@@ -119,7 +119,7 @@ export class Crt extends Model {
               ),
             );
 
-          req.dbCon.query('DELETE FROM crt WHERE id=' + req.body.crt, (error) => {
+          req.dbCon.query('DELETE FROM crt WHERE id=' + req.body.crt, (error, result) => {
             if (error) return reject(error);
             resolve();
           });

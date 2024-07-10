@@ -53,7 +53,7 @@ export class HAProxyUtils {
     sql: SelectQueryBuilder<IPObj | IPObjGroup>,
     ItemsArrayMap: Map<number, T[]>,
   ): Promise<void> {
-    const data: T[] = (await sql.getRawMany()) as T[];
+    const data: T[] = await sql.getRawMany();
 
     for (let i = 0; i < data.length; i++) {
       const items: T[] = ItemsArrayMap.get(data[i].entityId);

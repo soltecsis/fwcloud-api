@@ -36,6 +36,7 @@ import { PolicyType } from './PolicyType';
 import { Firewall, FireWallOptMask } from '../firewall/Firewall';
 import { Mark } from '../ipobj/Mark';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
+import Query from '../../database/Query';
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'policy_r';
@@ -377,7 +378,7 @@ export class PolicyRule extends Model {
   }
 
   private static mapPolicyData(
-    dbCon: any,
+    dbCon: Query,
     rulePositionsMap: RulePosMap,
     sql: string,
   ): Promise<void> {
@@ -402,7 +403,7 @@ export class PolicyRule extends Model {
   // Get all the policy data necessary for the compilation process.
   public static getPolicyData(
     dst: 'grid' | 'compiler',
-    dbCon: any,
+    dbCon: Query,
     fwcloud: number,
     firewall: number,
     type: number,
@@ -1336,7 +1337,7 @@ export class PolicyRule extends Model {
   }
 
   // Check that the catch-all special rule exists. If not, create it.
-  public static checkCatchAllRules(dbCon: any, firewall: number): Promise<void> {
+  public static checkCatchAllRules(dbCon: Query, firewall: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       const policy_rData = {
         id: null,
@@ -1393,7 +1394,7 @@ export class PolicyRule extends Model {
   }
 
   // Returns true if firewall is not part of a cluster or if it is part of a cluster and it is the master node of the cluster.
-  public static aloneFirewallOrMasterNode(dbCon: any, firewall: number): Promise<boolean> {
+  public static aloneFirewallOrMasterNode(dbCon: Query, firewall: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from firewall where id=${firewall} and (cluster is null or fwmaster=1)`,
@@ -1409,7 +1410,7 @@ export class PolicyRule extends Model {
 
   // Check if exists the catch all special rule by firewall and type.
   public static existsSpecialRule(
-    dbCon: any,
+    dbCon: Query,
     firewall: number,
     specialRule: SpecialPolicyRules,
     type?: number,
@@ -1424,7 +1425,7 @@ export class PolicyRule extends Model {
   }
 
   public static createSpecialRule(
-    dbCon: any,
+    dbCon: Query,
     firewall: number,
     specialRule: SpecialPolicyRules,
   ): Promise<void> {
@@ -1498,7 +1499,7 @@ export class PolicyRule extends Model {
   }
 
   public static deleteSpecialRule(
-    dbCon: any,
+    dbCon: Query,
     firewall: number,
     specialRule: SpecialPolicyRules,
   ): Promise<void> {
@@ -1514,7 +1515,7 @@ export class PolicyRule extends Model {
   }
 
   public static checkSpecialRule(
-    dbCon: any,
+    dbCon: Query,
     firewall: number,
     options: number,
     specialRule: SpecialPolicyRules,
@@ -1539,7 +1540,7 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static checkSpecialRules(dbCon: any, firewall: number, options: number): Promise<void> {
+  public static checkSpecialRules(dbCon: Query, firewall: number, options: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         // If firewall is not an alone firewall or it is in a cluster but it is not the cluster's master node,

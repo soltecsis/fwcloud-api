@@ -39,6 +39,7 @@ import { PolicyRuleToIPObj } from './PolicyRuleToIPObj';
 import { PolicyRuleToOpenVPN } from './PolicyRuleToOpenVPN';
 import { IPObjTypeToPolicyPosition } from '../ipobj/IPObjTypeToPolicyPosition';
 import { logger } from '../../fonaments/abstract-application';
+import Query from '../../database/Query';
 
 const tableName: string = 'policy_position';
 
@@ -203,7 +204,7 @@ export class PolicyPosition extends Model {
 
   //Get policy_position by type
   public static getRulePositions(
-    dbCon: any,
+    dbCon: Query,
     fwcloud: number,
     firewall: number,
     rule: number,

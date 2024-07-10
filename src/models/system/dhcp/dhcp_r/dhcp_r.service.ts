@@ -123,44 +123,44 @@ export class DHCPRuleService extends Service {
     };
 
     if (data.group) {
-      dhcpRuleData.group = (await db
+      dhcpRuleData.group = await db
         .getSource()
         .manager.getRepository(DHCPGroup)
-        .findOneOrFail({ where: { id: data.group } })) as DHCPGroup;
+        .findOneOrFail({ where: { id: data.group } });
     }
     if (data.networkId) {
-      dhcpRuleData.network = (await db
+      dhcpRuleData.network = await db
         .getSource()
         .manager.getRepository(IPObj)
-        .findOneOrFail({ where: { id: data.networkId } })) as IPObj;
+        .findOneOrFail({ where: { id: data.networkId } });
     }
     if (data.rangeId) {
-      dhcpRuleData.range = (await db
+      dhcpRuleData.range = await db
         .getSource()
         .manager.getRepository(IPObj)
-        .findOneOrFail({ where: { id: data.rangeId } })) as IPObj;
+        .findOneOrFail({ where: { id: data.rangeId } });
     }
     if (data.routerId) {
-      dhcpRuleData.router = (await db
+      dhcpRuleData.router = await db
         .getSource()
         .manager.getRepository(IPObj)
-        .findOneOrFail({ where: { id: data.routerId } })) as IPObj;
+        .findOneOrFail({ where: { id: data.routerId } });
     }
     if (data.interfaceId) {
-      const interfaceData: Interface = (await db
+      const interfaceData: Interface = await db
         .getSource()
         .manager.getRepository(Interface)
-        .findOneOrFail({ where: { id: data.interfaceId } })) as Interface;
+        .findOneOrFail({ where: { id: data.interfaceId } });
       if (!interfaceData.mac || interfaceData.mac === '') {
         throw new Error('Interface mac is not defined');
       }
       dhcpRuleData.interface = interfaceData;
     }
     if (data.firewallId) {
-      dhcpRuleData.firewall = (await db
+      dhcpRuleData.firewall = await db
         .getSource()
         .manager.getRepository(Firewall)
-        .findOneOrFail({ where: { id: data.firewallId } })) as Firewall;
+        .findOneOrFail({ where: { id: data.firewallId } });
     }
 
     if (
@@ -172,9 +172,9 @@ export class DHCPRuleService extends Service {
       throw new Error('IP version mismatch');
     }
 
-    const lastDHCPRule: DHCPRule = (await this._repository.getLastDHCPRuleInFirewall(
+    const lastDHCPRule: DHCPRule = await this._repository.getLastDHCPRuleInFirewall(
       data.firewallId,
-    )) as DHCPRule;
+    );
     dhcpRuleData.rule_order = lastDHCPRule?.rule_order ? lastDHCPRule.rule_order + 1 : 1;
     const persisted: Partial<DHCPRule> & DHCPRule = await this._repository.save(dhcpRuleData);
 
@@ -334,10 +334,10 @@ export class DHCPRuleService extends Service {
       for (const field of fieldsToUpdate) {
         if (data[field]) {
           if (field === 'interfaceId') {
-            const interfaceData = (await db
+            const interfaceData = await db
               .getSource()
               .manager.getRepository(Interface)
-              .findOneOrFail({ where: { id: data[field] } })) as Interface;
+              .findOneOrFail({ where: { id: data[field] } });
             if (interfaceData.mac === '' || !interfaceData.mac) {
               throw new Error('Interface mac is not defined');
             }

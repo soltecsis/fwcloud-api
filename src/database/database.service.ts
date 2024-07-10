@@ -349,7 +349,7 @@ export class DatabaseService extends Service {
     const queries = fs
       .readFileSync(path, { encoding: 'utf-8' })
       .replace(new RegExp("'", 'gm'), '"')
-      .replace(new RegExp('^--.*\n', 'gm'), '')
+      .replace(new RegExp('^--.*\\n', 'gm'), '')
       .replace(/(\r\n|\n|\r)/gm, ' ')
       .replace(/\s+/g, ' ')
       .split(';');

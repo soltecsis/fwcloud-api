@@ -64,7 +64,7 @@ export class RouterService extends Service {
     this._list = [];
 
     if (this._app instanceof HTTPApplication) {
-      this._express = (<HTTPApplication>this._app).express;
+      this._express = this._app.express;
       this._router = this._express;
     }
 

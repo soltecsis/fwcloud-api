@@ -36,6 +36,7 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { Ca } from '../vpn/pki/Ca';
 import { Customer } from './Customer';
 import { Tfa } from './Tfa';
+import { Request } from 'express';
 
 const fwcError = require('../../utils/error_table');
 
@@ -135,7 +136,7 @@ export class User extends Model {
 
   public static getAllAdminUserIds(req) {
     return new Promise((resolve, reject) => {
-      req.dbCon.query(`select id from ${tableName} where role=1`, (error, result) => {
+      req.dbCon.query(`select id from ${tableName} where role=1`, (error: Error, result) => {
         if (error) return reject(error);
         resolve(result);
       });
@@ -160,7 +161,7 @@ export class User extends Model {
       };
 
       try {
-        req.dbCon.query(`INSERT INTO ${tableName} SET ?`, userData, (error, result) => {
+        req.dbCon.query(`INSERT INTO ${tableName} SET ?`, userData, (error: Error, result) => {
           if (error) return reject(error);
           resolve(result.insertId);
         });
@@ -200,7 +201,7 @@ export class User extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where customer=${customer} and id=${user}`,
-        (error, result) => {
+        (error: Error, result) => {
           if (error) return reject(error);
           if (result.length > 0) return resolve(true);
           resolve(false);
@@ -213,7 +214,7 @@ export class User extends Model {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select role from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`,
-        (error, result) => {
+        (error: Error, result) => {
           if (error) return reject(error);
           if (result.length === 0) return reject(fwcError.NOT_FOUND);
 
@@ -231,7 +232,7 @@ export class User extends Model {
 
       req.dbCon.query(
         `select role from ${tableName} where id=${req.session.user_id}`,
-        (error, result) => {
+        (error: Error, result) => {
           if (error) return reject(error);
           if (result.length === 0) reject(fwcError.NOT_FOUND);
 
@@ -307,7 +308,7 @@ export class User extends Model {
 
         req.dbCon.query(
           `delete from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`,
-          (error) => {
+          (error: Error) => {
             if (error) return reject(error);
             resolve();
           },
@@ -320,7 +321,7 @@ export class User extends Model {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select count(*) as n from ${tableName} where role=1`,
-        async (error, result) => {
+        async (error: Error, result) => {
           if (error) return reject(error);
 
           if (result[0].n < 2) resolve({ result: true, restrictions: { LastAdminUser: true } });
@@ -332,16 +333,19 @@ export class User extends Model {
 
   public static allowFwcloudAccess(dbCon, user, fwcloud) {
     return new Promise((resolve, reject) => {
-      dbCon.query(`INSERT IGNORE user__fwcloud values(${user},${fwcloud})`, (error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+      dbCon.query(
+        `INSERT IGNORE user__fwcloud values(${user},${fwcloud})`,
+        (error: Error, result) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
     });
   }
 
   public static allowAllFwcloudAccess(dbCon, user): Promise<void> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`select id from fwcloud`, async (error, result) => {
+      dbCon.query(`select id from fwcloud`, async (error: Error, result) => {
         if (error) return reject(error);
 
         try {

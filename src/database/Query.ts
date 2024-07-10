@@ -48,7 +48,7 @@ export default class Query {
           callback(null, result);
         }
       })
-      .catch(async (err) => {
+      .catch(async (err: Error) => {
         await queryRunner.release();
         if (callback) {
           callback(err, null);

@@ -180,7 +180,7 @@ export class Tree extends Model {
   }
 
   private static sortChildBy(
-    dbCon: any,
+    dbCon: Query,
     sortType: sortType,
     fwcloud: number,
     nodeType: string[],
@@ -219,7 +219,7 @@ export class Tree extends Model {
   }
 
   private static nodesUnderNodes(
-    dbCon: any,
+    dbCon: Query,
     nodes: TreeNode[],
     orderBy: string,
   ): Promise<TreeNode[]> {
@@ -235,7 +235,7 @@ export class Tree extends Model {
     });
   }
 
-  public static dumpTree(dbCon: any, treeType: TreeType, fwcloud: number): Promise<TreeNode> {
+  public static dumpTree(dbCon: Query, treeType: TreeType, fwcloud: number): Promise<TreeNode> {
     return new Promise((resolve, reject) => {
       // Query for get the root node.
       const sql = `select id, name as text, id_parent as pid, node_type, id_obj, obj_type, fwcloud  
@@ -306,7 +306,7 @@ export class Tree extends Model {
   }
 
   private static addSearchInfo(
-    dbCon: any,
+    dbCon: Query,
     childrenArrayMap: ChildrenArrayMap,
     treeType: TreeType,
   ): Promise<void> {
@@ -345,7 +345,7 @@ export class Tree extends Model {
         if (error) return reject(error);
 
         for (let i = 0; i < ipobjs.length; i++) {
-          const node: TreeNode = <TreeNode>nodesMap.get(ipobjs[i].id);
+          const node: TreeNode = nodesMap.get(ipobjs[i].id);
           delete ipobjs[i].id;
           Object.assign(node, ipobjs[i]);
         }
@@ -501,7 +501,7 @@ export class Tree extends Model {
 
   //Create new node.
   public static newNode(dbCon, fwcloud, name, id_parent, node_type, id_obj, obj_type) {
-    return new Promise((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
       const sql =
         'INSERT INTO ' +
         tableName +
@@ -635,7 +635,7 @@ export class Tree extends Model {
     return new Promise(async (resolve, reject) => {
       try {
         const ids: any = {};
-        let id: any;
+        let id: number;
 
         // OBJECTS
         ids.OBJECTS = await this.newNode(dbCon, fwCloudId, 'OBJECTS', null, 'FDO', null, null);
@@ -751,7 +751,7 @@ export class Tree extends Model {
     return new Promise(async (resolve, reject) => {
       try {
         const ids: any = {};
-        let id;
+        let id: number;
 
         // SERVICES
         ids.SERVICES = await this.newNode(dbCon, fwCloudId, 'SERVICES', null, 'FDS', null, null);
@@ -1082,7 +1082,7 @@ export class Tree extends Model {
     node: number,
   ): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      let id3: any;
+      let id3: number;
       try {
         const id2 = await this.newNode(connection, fwcloud, 'Routing', node, 'ROU', firewall, null);
         await this.newNode(connection, fwcloud, 'POLICY', id2, 'RR', firewall, null);
@@ -1195,7 +1195,7 @@ export class Tree extends Model {
 
           try {
             // Create root firewall node
-            const id1: any = await this.newNode(
+            const id1: number = await this.newNode(
               connection,
               fwcloud,
               firewalls[0].name,
@@ -1305,7 +1305,7 @@ export class Tree extends Model {
 
           try {
             // Create root cluster node
-            const id1: any = await this.newNode(
+            const id1: number = await this.newNode(
               connection,
               fwcloud,
               clusters[0].name,

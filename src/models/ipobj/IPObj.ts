@@ -42,6 +42,7 @@ import { DHCPRule } from '../system/dhcp/dhcp_r/dhcp_r.model';
 import { KeepalivedToIPObj } from '../system/keepalived/keepalived_r/keepalived_r-to-ipobj';
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
 import { HAProxyRule } from '../system/haproxy/haproxy_r/haproxy_r.model';
+import Query from '../../database/Query';
 
 const ip = require('ip');
 const asyncMod = require('async');
@@ -1090,7 +1091,7 @@ export class IPObj extends Model {
      }
      *      
      * */
-  public static searchIpobjUsage(dbCon: any, fwcloud: number, id: number, type: number) {
+  public static searchIpobjUsage(dbCon: Query, fwcloud: number, id: number, type: number) {
     return new Promise(async (resolve, reject) => {
       try {
         const search: any = {};
@@ -1537,7 +1538,7 @@ export class IPObj extends Model {
   }
 
   public static async searchInterfaceHostInDhcpRule(
-    dbCon: any,
+    dbCon: Query,
     fwcloud: number,
     id: number,
   ): Promise<any> {
@@ -1565,7 +1566,11 @@ export class IPObj extends Model {
       .getRawMany();
   }
 
-  public static async searchInterfaceHostInKeepalivedRule(dbCon: any, fwcloid: number, id: number) {
+  public static async searchInterfaceHostInKeepalivedRule(
+    dbCon: Query,
+    fwcloid: number,
+    id: number,
+  ) {
     return await db
       .getSource()
       .manager.getRepository(KeepalivedRule)
@@ -1582,7 +1587,7 @@ export class IPObj extends Model {
   }
 
   public static async searchInterfaceHostInHAProxyRule(
-    dbCon: any,
+    dbCon: Query,
     fwcloud: number,
     ipObjId: number,
   ): Promise<any> {

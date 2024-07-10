@@ -82,10 +82,7 @@ export class HAProxyCompiler {
       compiled.push({
         id: data[i].id,
         active: data[i].active,
-        cs:
-          data[i].active || data.length === 1
-            ? this.ruleCompile(data[i] as HAProxyRulesData<HAProxyRuleItemForCompiler>)
-            : '',
+        cs: data[i].active || data.length === 1 ? this.ruleCompile(data[i]) : '',
       });
     }
 
