@@ -43,9 +43,10 @@ import {
   PolicyCompiler,
 } from '../../../../src/compiler/policy/PolicyCompiler';
 import { EntityManager } from 'typeorm';
+import Query from '../../../../src/database/Query';
 
 describe(describeName('Policy Compiler Unit Tests - OpenVPN'), () => {
-  let dbCon: any;
+  let dbCon: Query;
   let fwcloud: number;
   let vpnSrv: number;
   let vpnCli1: number;

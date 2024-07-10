@@ -37,10 +37,11 @@ import {
   PolicyCompiler,
 } from '../../../../src/compiler/policy/PolicyCompiler';
 import { EntityManager } from 'typeorm';
+import Query from '../../../../src/database/Query';
 
 describe(describeName('Policy Compiler Unit Tests - Empty rule'), () => {
   let fwcloud: number;
-  let dbCon: any;
+  let dbCon: Query;
 
   let IPv: string;
   let compiler: AvailablePolicyCompilers;

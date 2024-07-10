@@ -34,10 +34,11 @@ import {
   PolicyCompiler,
 } from '../../../../src/compiler/policy/PolicyCompiler';
 import { EntityManager } from 'typeorm';
+import Query from '../../../../src/database/Query';
 
 describe(describeName('Policy Compiler Unit Tests - SNAT and DNAT'), () => {
   let fwcloud: number;
-  let dbCon: any;
+  let dbCon: Query;
   let rule: number;
   let translatedAddr: number;
   let translatedService: number;

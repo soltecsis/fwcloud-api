@@ -386,7 +386,7 @@ describe(DHCPRuleService.name, () => {
           firewall: firewall,
         }),
       );
-      copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule as DHCPRule);
+      copyStub = sinon.stub(service['_repository'], 'save').resolves(dhcpRule);
       //getLastDHCPRuleInFirewallStub =
       sinon.stub(service['_repository'], 'getLastDHCPRuleInFirewall').resolves(dhcpRule);
       moveStub = sinon.stub(service, 'move').resolves([dhcpRule] as DHCPRule[]);

@@ -153,7 +153,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
         .send(data)
         .expect(400)
         .then((response) => {
-          expect((response.body as any).fwcErr).to.eq(1006);
+          expect(response.body.fwcErr).to.eq(1006);
         });
     });
 
@@ -166,7 +166,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
         .send(data)
         .expect(400)
         .then((response) => {
-          expect((response.body as any).fwcErr).to.eq(1006);
+          expect(response.body.fwcErr).to.eq(1006);
         });
     });
   });
@@ -186,7 +186,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
         .send(data)
         .expect(400)
         .then((response) => {
-          expect((response.body as any).fwcErr).to.eq(1006);
+          expect(response.body.fwcErr).to.eq(1006);
         });
     });
 
@@ -199,7 +199,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
         .send(data)
         .expect(400)
         .then((response) => {
-          expect((response.body as any).fwcErr).to.eq(1006);
+          expect(response.body.fwcErr).to.eq(1006);
         });
     });
   });
@@ -221,7 +221,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
         .send(data)
         .expect(400)
         .then((response) => {
-          expect((response.body as any).fwcErr).to.eq(1006);
+          expect(response.body.fwcErr).to.eq(1006);
         });
     });
 
@@ -234,7 +234,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
         .send(data)
         .expect(400)
         .then((response) => {
-          expect((response.body as any).fwcErr).to.eq(1006);
+          expect(response.body.fwcErr).to.eq(1006);
         });
     });
   });
@@ -254,7 +254,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
         .send(data)
         .expect(400)
         .then((response) => {
-          expect((response.body as any).fwcErr).to.eq(1006);
+          expect(response.body.fwcErr).to.eq(1006);
         });
     });
 
@@ -267,7 +267,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
         .send(data)
         .expect(400)
         .then((response) => {
-          expect((response.body as any).fwcErr).to.eq(1006);
+          expect(response.body.fwcErr).to.eq(1006);
         });
     });
   });
@@ -287,7 +287,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
         .send(data)
         .expect(400)
         .then((response) => {
-          expect((response.body as any).fwcErr).to.eq(1006);
+          expect(response.body.fwcErr).to.eq(1006);
         });
     });
 
@@ -300,7 +300,7 @@ describe(describeName('Ipobj group policy rule attach E2E Tests'), () => {
         .send(data)
         .expect(400)
         .then((response) => {
-          expect((response.body as any).fwcErr).to.eq(1006);
+          expect(response.body.fwcErr).to.eq(1006);
         });
     });
   });

@@ -34,10 +34,11 @@ import {
   PolicyCompiler,
 } from '../../../../src/compiler/policy/PolicyCompiler';
 import { EntityManager } from 'typeorm';
+import Query from '../../../../src/database/Query';
 
 describe(describeName('Policy Compiler Unit Tests - Hook scripts'), () => {
   let fwcloud: number;
-  let dbCon: any;
+  let dbCon: Query;
   const IPv = 'IPv4';
   let compiler: AvailablePolicyCompilers;
   let manager: EntityManager;

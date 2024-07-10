@@ -282,7 +282,7 @@ describe(HAProxyRuleService.name, () => {
           firewall: firewall,
         }),
       );
-      copyStub = sinon.stub(service['_repository'], 'save').resolves(haproxyRule as HAProxyRule);
+      copyStub = sinon.stub(service['_repository'], 'save').resolves(haproxyRule);
       getLastHAProxyRuleInFirewallStub = sinon
         .stub(service['_repository'], 'getLastHAProxyRuleInFirewall')
         .resolves(haproxyRule);

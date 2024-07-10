@@ -31,10 +31,11 @@ import {
   PolicyCompiler,
 } from '../../../../src/compiler/policy/PolicyCompiler';
 import { FwCloudFactory, FwCloudProduct } from '../../../utils/fwcloud-factory';
+import Query from '../../../../src/database/Query';
 
 describe(describeName('Policy Compiler Unit Tests - Fail2Ban special rule'), () => {
   let fwcProduct: FwCloudProduct;
-  let dbCon: any;
+  let dbCon: Query;
   let IPv: string;
   let compiler: AvailablePolicyCompilers;
   let chain: string;
