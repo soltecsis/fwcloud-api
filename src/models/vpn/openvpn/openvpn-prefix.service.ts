@@ -2,7 +2,6 @@ import db from '../../../database/database-manager';
 import { Service } from '../../../fonaments/services/service';
 import { Firewall } from '../../firewall/Firewall';
 import { OpenVPNPrefix } from './OpenVPNPrefix';
-import { Request } from 'express';
 import { FirewallService } from '../../firewall/firewall.service';
 import { FwcTree } from '../../tree/fwc-tree.model';
 import fwcError from '../../../utils/error_table';
@@ -16,7 +15,7 @@ export class OpenVPNPrefixService extends Service {
   }
 
   // Activate the compile/install flags of all the firewalls that use this OpenVPN prefix.
-  public async update(req: Request): Promise<void> {
+  public async update(req): Promise<void> {
     // Verify that the new prefix name doesn't already exists.
     req.body.ca = (req as any).prefix.ca;
 

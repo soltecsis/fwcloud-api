@@ -21,6 +21,8 @@
 */
 
 import Model from '../../Model';
+import * as fs from 'fs';
+import * as readline from 'readline';
 import { Firewall } from '../../../models/firewall/Firewall';
 import { PolicyRuleToOpenVPN } from '../../../models/policy/PolicyRuleToOpenVPN';
 import { Interface } from '../../../models/interface/Interface';
@@ -36,7 +38,6 @@ import {
 } from 'typeorm';
 const config = require('../../../config/config');
 import { IPObj } from '../../ipobj/IPObj';
-const readline = require('readline');
 import { Tree } from '../../../models/tree/Tree';
 import { Crt } from '../pki/Crt';
 import { OpenVPNOption } from './openvpn-option.model';
@@ -50,7 +51,6 @@ import { OpenVPNStatusHistory } from './status/openvpn-status-history';
 import db from '../../../database/database-manager';
 import Query from '../../../database/Query';
 const fwcError = require('../../../utils/error_table');
-const fs = require('fs');
 const ip = require('ip');
 
 const tableName: string = 'openvpn';
@@ -153,7 +153,7 @@ export class OpenVPN extends Model {
 
   // Insert new OpenVPN configuration register in the database.
   public static addCfg(req) {
-    return new Promise((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
       const cfg = {
         openvpn: req.body.openvpn,
         firewall: req.body.firewall,
@@ -163,7 +163,7 @@ export class OpenVPN extends Model {
         comment: req.body.comment,
         status: 1,
       };
-      req.dbCon.query(`insert into ${tableName} SET ?`, cfg, (error, result) => {
+      req.dbCon.query(`insert into ${tableName} SET ?`, cfg, (error: Error, result) => {
         if (error) return reject(error);
         resolve(result.insertId);
       });
@@ -176,7 +176,7 @@ export class OpenVPN extends Model {
                 install_name=${req.dbCon.escape(req.body.install_name)},
                 comment=${req.dbCon.escape(req.body.comment)}
                 WHERE id=${req.body.openvpn}`;
-      req.dbCon.query(sql, (error) => {
+      req.dbCon.query(sql, (error: Error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -185,7 +185,7 @@ export class OpenVPN extends Model {
 
   public static addCfgOpt(req, opt): Promise<void> {
     return new Promise((resolve, reject) => {
-      req.dbCon.query('insert into openvpn_opt SET ?', opt, (error) => {
+      req.dbCon.query('insert into openvpn_opt SET ?', opt, (error: Error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -195,29 +195,29 @@ export class OpenVPN extends Model {
   public static delCfgOptAll(req): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = 'delete from openvpn_opt where openvpn=' + req.body.openvpn;
-      req.dbCon.query(sql, (error) => {
+      req.dbCon.query(sql, (error: Error) => {
         if (error) return reject(error);
         resolve();
       });
     });
   }
 
-  public static delCfg(dbCon, fwcloud, openvpn): Promise<void> {
+  public static delCfg(dbCon: Query, fwcloud: number, openvpn: number): Promise<void> {
     return new Promise((resolve, reject) => {
       // Get all the ipobj referenced by this OpenVPN configuration.
       const sql = `select OBJ.id,OBJ.type from openvpn_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
                 where OPT.openvpn=${openvpn} and OPT.name!='remote'`;
-      dbCon.query(sql, (error, ipobj_list) => {
+      dbCon.query(sql, (error: Error, ipobj_list) => {
         if (error) return reject(error);
 
-        dbCon.query(`delete from openvpn_opt where openvpn=${openvpn}`, (error) => {
+        dbCon.query(`delete from openvpn_opt where openvpn=${openvpn}`, (error: Error) => {
           if (error) return reject(error);
 
-          dbCon.query(`delete from openvpn_prefix where openvpn=${openvpn}`, (error) => {
+          dbCon.query(`delete from openvpn_prefix where openvpn=${openvpn}`, (error: Error) => {
             if (error) return reject(error);
 
-            dbCon.query(`delete from ${tableName} where id=${openvpn}`, async (error) => {
+            dbCon.query(`delete from ${tableName} where id=${openvpn}`, async (error: Error) => {
               if (error) return reject(error);
 
               // Remove all the ipobj referenced by this OpenVPN configuration.
@@ -239,7 +239,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static delCfgAll(dbCon, fwcloud, firewall): Promise<void> {
+  public static delCfgAll(dbCon: Query, fwcloud: number, firewall: number): Promise<void> {
     return new Promise((resolve, reject) => {
       // Remove all the ipobj referenced by this OpenVPN configuration.
       // In the restrictions check we have already checked that it is possible to remove them.
@@ -248,7 +248,7 @@ export class OpenVPN extends Model {
       const sql = `select VPN.id,CRT.type from ${tableName} VPN
                 inner join crt CRT on CRT.id=VPN.crt
                 where VPN.firewall=${firewall} order by CRT.type asc`;
-      dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error: Error, result) => {
         if (error) return reject(error);
 
         try {
@@ -267,7 +267,7 @@ export class OpenVPN extends Model {
   public static getCfgId(req) {
     return new Promise((resolve, reject) => {
       const sql = `select id from ${tableName} where firewall=${req.body.firewall} and crt=${req.body.crt}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error: Error, result) => {
         if (error) return reject(error);
         resolve(result[0].id);
       });
@@ -277,12 +277,12 @@ export class OpenVPN extends Model {
   public static getCfg(req) {
     return new Promise((resolve, reject) => {
       let sql = `select * from ${tableName} where id=${req.body.openvpn}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error: Error, result) => {
         if (error) return reject(error);
 
         const data = result[0];
         sql = 'select * from openvpn_opt where openvpn=' + req.body.openvpn;
-        req.dbCon.query(sql, (error, result) => {
+        req.dbCon.query(sql, (error: Error, result) => {
           if (error) return reject(error);
 
           data.options = result;
@@ -292,7 +292,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static getOptData(dbCon, openvpn, name) {
+  public static getOptData(dbCon: Query, openvpn: number, name: string) {
     return new Promise((resolve, reject) => {
       const sql =
         'select * from openvpn_opt where openvpn=' + openvpn + ' and name=' + dbCon.escape(name);
@@ -304,15 +304,15 @@ export class OpenVPN extends Model {
   }
 
   // Get certificate data form file.
-  public static getCRTData(file) {
+  public static getCRTData(file: string) {
     return new Promise((resolve, reject) => {
       let data = '';
       let onData = 0;
-      const rs = fs.createReadStream(file);
+      const rs: fs.ReadStream = fs.createReadStream(file);
 
-      rs.on('error', (error) => reject(error));
+      rs.on('error', (error: Error) => reject(error));
 
-      const rl = readline.createInterface({
+      const rl: readline.Interface = readline.createInterface({
         input: rs,
         crlfDelay: Infinity,
       });
@@ -332,7 +332,7 @@ export class OpenVPN extends Model {
   }
 
   // Get data of an OpenVPN server clients.
-  public static getOpenvpnClients(dbCon, openvpn) {
+  public static getOpenvpnClients(dbCon: Query, openvpn: number) {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.id,CRT.cn,VPN.status from openvpn VPN 
                 inner join crt CRT on CRT.id=VPN.crt
@@ -345,7 +345,7 @@ export class OpenVPN extends Model {
   }
 
   // Get data of OpenVPN servers of a firewall.
-  public static getOpenvpnServersByFirewall(dbCon, firewall) {
+  public static getOpenvpnServersByFirewall(dbCon: Query, firewall: number) {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.id,CRT.cn from openvpn VPN 
                 inner join crt CRT on CRT.id=VPN.crt
@@ -358,7 +358,7 @@ export class OpenVPN extends Model {
   }
 
   // Get OpenVPN client configuration data.
-  public static getOpenvpnInfo(dbCon, fwcloud, openvpn, type) {
+  public static getOpenvpnInfo(dbCon: Query, fwcloud: number, openvpn: number, type: number) {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.*, FW.fwcloud, FW.id firewall_id, FW.name firewall_name, CRT.cn, CA.cn as CA_cn, O.address, FW.cluster cluster_id,
                 IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name,
@@ -371,7 +371,7 @@ export class OpenVPN extends Model {
                 inner join openvpn_opt OPT on OPT.openvpn=${openvpn}
                 inner join ipobj O on O.id=OPT.ipobj
                 where FW.fwcloud=${fwcloud} and VPN.id=${openvpn} ${type === 1 ? `and OPT.name='ifconfig-push'` : ``}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error: Error, result) => {
         if (error) return reject(error);
         for (let i = 0; i < result.length; i++) {
           result[i].type = type === 1 ? 311 : 312;
@@ -381,20 +381,20 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static getOpenvpnServersByCloud(dbCon, fwcloud) {
+  public static getOpenvpnServersByCloud(dbCon: Query, fwcloud: number) {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.id,CRT.cn from openvpn VPN 
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ca CA on CA.id=CRT.ca
                 where CA.fwcloud=${fwcloud} and CRT.type=2`; // 2 = Server certificate.
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error: Error, result) => {
         if (error) return reject(error);
         resolve(result);
       });
     });
   }
 
-  public static dumpCfg(dbCon, fwcloud, openvpn) {
+  public static dumpCfg(dbCon: Query, fwcloud: number, openvpn: number) {
     return new Promise((resolve, reject) => {
       // First obtain the CN of the certificate.
       let sql = `select CRT.cn, CRT.ca, CRT.type, FW.name as fw_name, CL.name as cl_name,
@@ -405,7 +405,7 @@ export class OpenVPN extends Model {
                 LEFT JOIN cluster CL ON CL.id=FW.cluster
 			    WHERE VPN.id=${openvpn}`;
 
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error: Error, result) => {
         if (error) return reject(error);
 
         const ca_dir = config.get('pki').data_dir + '/' + fwcloud + '/' + result[0].ca + '/';
@@ -430,7 +430,7 @@ export class OpenVPN extends Model {
 
         // Get all the configuration options.
         sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${openvpn} order by openvpn_opt.order`;
-        dbCon.query(sql, async (error, result) => {
+        dbCon.query(sql, async (error: Error, result) => {
           if (error) return reject(error);
 
           try {
@@ -488,7 +488,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static updateOpenvpnStatus(dbCon, openvpn, status_action) {
+  public static updateOpenvpnStatus(dbCon: Query, openvpn: number, status_action: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE openvpn SET status=status${status_action} WHERE id=${openvpn}`,
@@ -500,7 +500,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static updateOpenvpnInstallDate(dbCon, openvpn) {
+  public static updateOpenvpnInstallDate(dbCon: Query, openvpn: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(`UPDATE openvpn SET installed_at=NOW() WHERE id=${openvpn}`, (error) => {
         if (error) return reject(error);
@@ -509,14 +509,14 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static updateOpenvpnStatusIPOBJ(req, ipobj, status_action): Promise<void> {
+  public static updateOpenvpnStatusIPOBJ(req, ipobj: number, status_action: number): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE openvpn VPN
                 INNER JOIN openvpn_opt OPT ON OPT.openvpn=VPN.id
                 INNER JOIN ipobj O ON O.id=OPT.ipobj
                 SET VPN.status=VPN.status${status_action}
                 WHERE O.fwcloud=${req.body.fwcloud} AND O.id=${ipobj}`;
-      req.dbCon.query(sql, (error) => {
+      req.dbCon.query(sql, (error: Error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -529,7 +529,7 @@ export class OpenVPN extends Model {
       let sql = `select OBJ.address,OBJ.netmask from openvpn_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
                 where OPT.openvpn=${req.body.openvpn} and OPT.name='server' and OPT.ipobj is not null`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error: Error, result) => {
         if (error) return reject(error);
 
         // If we have no VPN LAN we can not give any free IP.
@@ -550,7 +550,7 @@ export class OpenVPN extends Model {
                     inner join openvpn_opt OPT on OPT.openvpn=VPN.id
                     inner join ipobj OBJ on OBJ.id=OPT.ipobj
                     where VPN.openvpn=${req.body.openvpn} and OPT.ipobj is not null and OBJ.type=5`; // 5=ADDRESS
-        req.dbCon.query(sql, (error, result) => {
+        req.dbCon.query(sql, (error: Error, result) => {
           if (error) return reject(error);
 
           let freeIPLong;
@@ -744,7 +744,7 @@ export class OpenVPN extends Model {
       // First get all firewalls OpenVPN configurations.
       const sql = 'select id from openvpn where firewall=' + req.body.firewall;
 
-      req.dbCon.query(sql, async (error, result) => {
+      req.dbCon.query(sql, async (error: Error, result) => {
         if (error) return reject(error);
 
         const answer: any = {};
@@ -798,7 +798,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static searchOpenvpnChild(dbCon, fwcloud, openvpn) {
+  public static searchOpenvpnChild(dbCon: Query, fwcloud: number, openvpn: number) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT VPN.id FROM openvpn VPN
                 INNER JOIN firewall FW ON FW.id=VPN.firewall
@@ -812,7 +812,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static searchIPObjInOpenvpnOpt(dbCon, ipobj, name) {
+  public static searchIPObjInOpenvpnOpt(dbCon: Query, ipobj, name) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select openvpn from openvpn_opt where ipobj=${ipobj} and name=${dbCon.escape(name)}`,
@@ -830,7 +830,7 @@ export class OpenVPN extends Model {
       const sql = `SELECT VPN.id,VPN.status FROM openvpn VPN
                 INNER JOIN firewall FW on FW.id=VPN.firewall
                 WHERE VPN.status!=0 AND FW.fwcloud=${req.body.fwcloud}`;
-      req.dbCon.query(sql, (error, rows) => {
+      req.dbCon.query(sql, (error: Error, rows) => {
         if (error) return reject(error);
         data.openvpn_status = rows;
         resolve(data);
@@ -850,14 +850,14 @@ export class OpenVPN extends Model {
   public static removeFromGroup(req) {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM openvpn__ipobj_g WHERE ipobj_g=${req.body.ipobj_g} AND openvpn=${req.body.ipobj}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error: Error, result) => {
         if (error) return reject(error);
         resolve(result.insertId);
       });
     });
   }
 
-  public static createOpenvpnServerInterface(req, cfg): Promise<void> {
+  public static createOpenvpnServerInterface(req, cfg: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         let openvpn_opt: any = await this.getOptData(req.dbCon, cfg, 'dev');
@@ -966,7 +966,11 @@ export class OpenVPN extends Model {
   }
 
   //Move rules from one firewall to other.
-  public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
+  public static moveToOtherFirewall(
+    dbCon: Query,
+    src_firewall: number,
+    dst_firewall: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`,

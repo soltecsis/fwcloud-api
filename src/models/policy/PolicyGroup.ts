@@ -37,6 +37,8 @@ import Model from '../Model';
 import { PolicyRule } from './PolicyRule';
 import { Firewall } from '../firewall/Firewall';
 import { logger } from '../../fonaments/abstract-application';
+import { Func } from 'mocha';
+import Query from '../../database/Query';
 
 const tableName = 'policy_g';
 
@@ -100,7 +102,7 @@ export class PolicyGroup extends Model {
   }
 
   //Get All policy_g by firewall
-  public static getPolicy_gs(idfirewall, callback) {
+  public static getPolicy_gs(idfirewall: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -117,7 +119,7 @@ export class PolicyGroup extends Model {
   }
 
   //Get All policy_g by firewall and group father
-  public static getPolicy_gs_group(idfirewall, idgroup, callback) {
+  public static getPolicy_gs_group(idfirewall: number, idgroup: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -136,7 +138,7 @@ export class PolicyGroup extends Model {
   }
 
   //Get policy_g by  id and firewall
-  public static getPolicy_g(idfirewall, id, callback) {
+  public static getPolicy_g(idfirewall: number, id: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -154,7 +156,7 @@ export class PolicyGroup extends Model {
   }
 
   //Add new policy_g from user
-  public static insertPolicy_g(policy_gData, callback) {
+  public static insertPolicy_g(policy_gData: PolicyGroup, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists =
@@ -174,7 +176,7 @@ export class PolicyGroup extends Model {
             'INSERT INTO ' +
             tableName +
             ' SET firewall=' +
-            policy_gData.firewall +
+            connection.escape(policy_gData.firewall) +
             ', name=' +
             connection.escape(policy_gData.name) +
             ', comment=' +
@@ -194,7 +196,7 @@ export class PolicyGroup extends Model {
   }
 
   //Update policy_g from user
-  public static updatePolicy_g(policy_gData, callback) {
+  public static updatePolicy_g(policy_gData: PolicyGroup, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -223,7 +225,7 @@ export class PolicyGroup extends Model {
   }
 
   //Update policy_g NAME
-  public static updatePolicy_g_name(policy_gData, callback) {
+  public static updatePolicy_g_name(policy_gData: PolicyGroup, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -246,7 +248,12 @@ export class PolicyGroup extends Model {
   }
 
   //Update policy_r Style
-  public static updatePolicy_g_Style(firewall, id, style, callback) {
+  public static updatePolicy_g_Style(
+    firewall: number,
+    id: number,
+    style: number,
+    callback: Function,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
@@ -276,7 +283,7 @@ export class PolicyGroup extends Model {
 
   //Remove policy_g with id to remove
   //FALTA BORRADO EN CASCADA
-  public static deletePolicy_g(idfirewall, id, callback) {
+  public static deletePolicy_g(idfirewall: number, id: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists =
@@ -307,7 +314,7 @@ export class PolicyGroup extends Model {
   }
 
   //Clone policy groups
-  public static clonePolicyGroups(idFirewall, idNewFirewall) {
+  public static clonePolicyGroups(idFirewall: number, idNewFirewall: number) {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -372,7 +379,7 @@ export class PolicyGroup extends Model {
   }
 
   //Clone policy groups
-  public static deleteFirewallGroups(idFirewall): Promise<void> {
+  public static deleteFirewallGroups(idFirewall: number): Promise<void> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -387,7 +394,11 @@ export class PolicyGroup extends Model {
   }
 
   //Move rules from one firewall to other.
-  public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
+  public static moveToOtherFirewall(
+    dbCon: Query,
+    src_firewall: number,
+    dst_firewall: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`,

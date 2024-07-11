@@ -23,6 +23,7 @@
 import Model from '../Model';
 import { PrimaryGeneratedColumn, Column, Entity, OneToMany } from 'typeorm';
 import { User } from './User';
+import Query from '../../database/Query';
 const tableName: string = 'customer';
 
 @Entity(tableName)
@@ -94,7 +95,7 @@ export class Customer extends Model {
     });
   };
 
-  public static existsName = (dbCon, name) => {
+  public static existsName = (dbCon: Query, name: string) => {
     return new Promise(async (resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where name=${dbCon.escape(name)}`,
@@ -129,7 +130,7 @@ export class Customer extends Model {
       const sql = req.body.customer
         ? `select * from ${tableName} WHERE id=${req.body.customer}`
         : `select id,name from ${tableName}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error: Error, result) => {
         if (error) return reject(error);
         resolve(result);
       });
@@ -138,7 +139,7 @@ export class Customer extends Model {
 
   public static _delete(req): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      req.dbCon.query(`delete from ${tableName} where id=${req.body.customer}`, (error) => {
+      req.dbCon.query(`delete from ${tableName} where id=${req.body.customer}`, (error: Error) => {
         if (error) return reject(error);
         resolve();
       });
@@ -149,7 +150,7 @@ export class Customer extends Model {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select count(*) as n from user where customer =${req.body.customer}`,
-        async (error, result) => {
+        async (error: Error, result) => {
           if (error) return reject(error);
 
           if (result[0].n > 0) resolve({ result: true, restrictions: { CustomerHasUsers: true } });
@@ -163,7 +164,7 @@ export class Customer extends Model {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select count(*) as n from ${tableName} where id!=${req.body.customer}`,
-        async (error, result) => {
+        async (error: Error, result) => {
           if (error) return reject(error);
 
           if (result[0].n === 0) resolve({ result: true, restrictions: { LastCustomer: true } });

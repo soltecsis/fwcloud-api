@@ -26,6 +26,7 @@ import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { IPObj } from '../ipobj/IPObj';
 import { logger } from '../../fonaments/abstract-application';
 import { Interface } from './Interface';
+import Query from '../../database/Query';
 
 const tableName: string = 'interface__ipobj';
 
@@ -69,7 +70,7 @@ export class InterfaceIPObj extends Model {
   }
 
   //Get All interface__ipobj by interface
-  public static getInterface__ipobjs_interface(_interface, callback) {
+  public static getInterface__ipobjs_interface(_interface: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -86,7 +87,7 @@ export class InterfaceIPObj extends Model {
   }
 
   //Get All interface__ipobj by ipobj
-  public static getInterface__ipobjs_ipobj(ipobj, callback) {
+  public static getInterface__ipobjs_ipobj(ipobj: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -103,7 +104,7 @@ export class InterfaceIPObj extends Model {
   }
 
   //Get interface__ipobj by interface and ipobj
-  public static getInterface__ipobj(_interface, ipobj, callback) {
+  public static getInterface__ipobj(_interface: number, ipobj: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -121,7 +122,7 @@ export class InterfaceIPObj extends Model {
   }
 
   //Search Interface in hosts
-  public static getInterface__ipobj_hosts(_interface, fwcloud) {
+  public static getInterface__ipobj_hosts(_interface: number, fwcloud: number) {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -148,7 +149,7 @@ export class InterfaceIPObj extends Model {
   }
 
   //Add new interface__ipobj
-  public static insertInterface__ipobj(dbCon, interface__ipobjData) {
+  public static insertInterface__ipobj(dbCon: Query, interface__ipobjData) {
     return new Promise((resolve, reject) => {
       dbCon.query(`INSERT INTO ${tableName} SET ?`, interface__ipobjData, (error, result) => {
         if (error) return reject(error);
@@ -159,11 +160,11 @@ export class InterfaceIPObj extends Model {
 
   //Update interface__ipobj
   public static async updateInterface__ipobj(
-    get_interface,
-    get_ipobj,
-    get_interface_order,
+    get_interface: number,
+    get_ipobj: number,
+    get_interface_order: number,
     interface__ipobjData,
-    callback,
+    callback: Function,
   ) {
     await this.OrderList(interface__ipobjData.interface_order, get_interface, get_interface_order);
 
@@ -197,7 +198,11 @@ export class InterfaceIPObj extends Model {
   }
 
   //Update ORDER interface__ipobj
-  public static async updateInterface__ipobj_order(new_order, interface__ipobjData, callback) {
+  public static async updateInterface__ipobj_order(
+    new_order: number,
+    interface__ipobjData,
+    callback: Function,
+  ) {
     await this.OrderList(
       new_order,
       interface__ipobjData.interface,
@@ -228,7 +233,7 @@ export class InterfaceIPObj extends Model {
   }
 
   //UPDATE HOST IF IPOBJ IS UNDER
-  public static UpdateHOST(_interface) {
+  public static UpdateHOST(_interface: number) {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) reject(error);
@@ -255,7 +260,7 @@ export class InterfaceIPObj extends Model {
     });
   }
 
-  private static async OrderList(new_order, _interface, old_order) {
+  private static async OrderList(new_order: number, _interface: number, old_order: number) {
     return new Promise<any>((resolve, reject) => {
       let increment = '+1';
       let order1 = new_order;
@@ -291,7 +296,7 @@ export class InterfaceIPObj extends Model {
     });
   }
 
-  public static deleteHostInterface(dbCon, host, _interface): Promise<void> {
+  public static deleteHostInterface(dbCon: Query, host: number, _interface: number): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `DELETE FROM ${tableName} WHERE interface=${_interface} and ipobj=${host}`,

@@ -186,7 +186,7 @@ export class PolicyRule extends Model {
   }
 
   //Get All policy_r by firewall and group
-  public static getPolicy_rs(idfirewall, idgroup, callback) {
+  public static getPolicy_rs(idfirewall: number, idgroup: string, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       let whereGroup = '';
@@ -408,7 +408,7 @@ export class PolicyRule extends Model {
     firewall: number,
     type: number,
     rules: number[],
-    idgroup: number,
+    idgroup: string,
     ignoreGroupsData?: boolean,
   ) {
     return new Promise((resolve, reject) => {
@@ -472,7 +472,7 @@ export class PolicyRule extends Model {
   }
 
   //Get policy_r by  id  and firewall
-  public static getPolicy_r(dbCon, firewall, rule) {
+  public static getPolicy_r(dbCon: Query, firewall: number, rule: number) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT P.*, F.fwcloud, 
 		  (select MAX(rule_order) from ${tableName} where firewall=P.firewall and type=P.type) as max_order,
@@ -488,7 +488,7 @@ export class PolicyRule extends Model {
   }
 
   //Get policy_r by  id
-  public static getPolicy_r_id(id, callback) {
+  public static getPolicy_r_id(id: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
 
@@ -509,7 +509,7 @@ export class PolicyRule extends Model {
   }
 
   //Get rule type for a rule
-  public static getPolicyRuleType(dbCon, fwcloud, firewall, rule) {
+  public static getPolicyRuleType(dbCon: Query, fwcloud: number, firewall: number, rule: number) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT R.type FROM ${tableName} R
 				inner join firewall F on F.id=R.firewall
@@ -523,7 +523,12 @@ export class PolicyRule extends Model {
   }
 
   //Get rule type for a rule
-  public static getPolicyRuleIPversion(dbCon, fwcloud, firewall, rule) {
+  public static getPolicyRuleIPversion(
+    dbCon: Query,
+    fwcloud: number,
+    firewall: number,
+    rule: number,
+  ) {
     return new Promise<number>((resolve, reject) => {
       const sql = `SELECT R.type FROM ${tableName} R
 				inner join firewall F on F.id=R.firewall
@@ -542,7 +547,7 @@ export class PolicyRule extends Model {
   }
 
   //Get last rule_order by firewall and policy type.
-  public static getLastRuleOrder(dbCon, firewall, type) {
+  public static getLastRuleOrder(dbCon: Query, firewall: number, type: number) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT rule_order FROM ${tableName} 
 				WHERE firewall=${firewall} AND type=${type} ORDER BY rule_order desc limit 1`;
@@ -555,7 +560,13 @@ export class PolicyRule extends Model {
   }
 
   //Get policy_r  GROUP by  NEXT or Previous RULE
-  public static getPolicy_r_DestGroup(idfirewall, offset, order, type, callback) {
+  public static getPolicy_r_DestGroup(
+    idfirewall: number,
+    offset: number,
+    order: number,
+    type: number,
+    callback: Function,
+  ) {
     db.get((error, connection) => {
       let nextRuleStr;
 
@@ -586,7 +597,12 @@ export class PolicyRule extends Model {
   }
 
   //Get routing by name and firewall and group
-  public static getPolicy_rName(idfirewall, idgroup, name, callback) {
+  public static getPolicy_rName(
+    idfirewall: number,
+    idgroup: string,
+    name: number,
+    callback: Function,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const namesql = '%' + name + '%';
@@ -610,7 +626,11 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static insertDefaultPolicy(fwId, loInterfaceId, options): Promise<void> {
+  public static insertDefaultPolicy(
+    fwId: number,
+    loInterfaceId: number,
+    options: any,
+  ): Promise<void> {
     return new Promise(async (resolve, reject) => {
       const policy_rData = {
         id: null,
@@ -773,7 +793,12 @@ export class PolicyRule extends Model {
   }
 
   //Clone policy and IPOBJ
-  public static cloneFirewallPolicy(dbCon, idfirewall, idNewFirewall, dataI): Promise<void> {
+  public static cloneFirewallPolicy(
+    dbCon: Query,
+    idfirewall: number,
+    idNewFirewall: number,
+    dataI: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       this.clon_data = dataI;
       const sql = `select ${idNewFirewall} as newfirewall, P.*
@@ -836,7 +861,12 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static clonePolicyIpobj(dbCon, newFirewall, oldRule, newRule): Promise<void> {
+  public static clonePolicyIpobj(
+    dbCon: Query,
+    newFirewall: number,
+    oldRule,
+    newRule,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       //SELECT ALL IPOBJ UNDER POSITIONS
       const sql = `select ${newFirewall} as newfirewall, ${newRule} as newrule, O.*
@@ -882,7 +912,12 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static clonePolicyInterface(dbCon, oldFirewall, oldRule, newRule): Promise<void> {
+  public static clonePolicyInterface(
+    dbCon: Query,
+    oldFirewall: number,
+    oldRule,
+    newRule,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       //SELECT ALL INTERFACES UNDER POSITIONS
       const sql = `select ${newRule} as newrule, I.id as newInterface, O.*
@@ -919,7 +954,7 @@ export class PolicyRule extends Model {
   }
 
   //Update policy_r from user
-  public static updatePolicy_r(dbCon, policy_rData): Promise<void> {
+  public static updatePolicy_r(dbCon: Query, policy_rData): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql = 'UPDATE ' + tableName + ' SET ';
       if (typeof policy_rData.idgroup !== 'undefined')
@@ -950,7 +985,11 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static makeBeforeRuleOrderGap(firewall, type, rule): Promise<void> {
+  public static makeBeforeRuleOrderGap(
+    firewall: number,
+    type: number,
+    rule: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -999,7 +1038,7 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static makeAfterRuleOrderGap(firewall, type, rule) {
+  public static makeAfterRuleOrderGap(firewall: number, type: number, rule: number) {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1039,7 +1078,12 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static reorderAfterRuleOrder(dbCon, firewall, type, rule_order): Promise<void> {
+  public static reorderAfterRuleOrder(
+    dbCon: Query,
+    firewall: number,
+    type: number,
+    rule_order: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql =
         'UPDATE ' +
@@ -1098,7 +1142,7 @@ export class PolicyRule extends Model {
   }
 
   //Remove policy_r with id to remove
-  public static deletePolicy_r(firewall, rule) {
+  public static deletePolicy_r(firewall: number, rule: number) {
     return new Promise((resolve, reject) => {
       db.get((error, dbCon) => {
         if (error) return reject(error);
@@ -1134,7 +1178,7 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static cleanApplyTo(idfirewall, callback) {
+  public static cleanApplyTo(idfirewall: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error);
 
@@ -1154,7 +1198,7 @@ export class PolicyRule extends Model {
   }
 
   //Update apply_to fields of a cloned cluster to point to the new cluster nodes.
-  public static updateApplyToRules(clusterNew, fwNewMaster) {
+  public static updateApplyToRules(clusterNew: number, fwNewMaster: number) {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -1220,7 +1264,12 @@ export class PolicyRule extends Model {
   }
 
   //Negate rule position.
-  public static negateRulePosition(dbCon, firewall, rule, position): Promise<void> {
+  public static negateRulePosition(
+    dbCon: Query,
+    firewall: number,
+    rule: number,
+    position: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql = `select negate from ${tableName} where id=${rule} and firewall=${firewall}`;
       dbCon.query(sql, (error, result) => {
@@ -1250,7 +1299,12 @@ export class PolicyRule extends Model {
   }
 
   //Allow rule position.
-  public static allowRulePosition(dbCon, firewall, rule, position): Promise<void> {
+  public static allowRulePosition(
+    dbCon: Query,
+    firewall: number,
+    rule: number,
+    position: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql = `select negate from ${tableName} where id=${rule} and firewall=${firewall}`;
       dbCon.query(sql, (error, result) => {
@@ -1311,7 +1365,7 @@ export class PolicyRule extends Model {
   }
 
   //Allow all positions of a rule that are empty.
-  public static firewallWithMarkRules(dbCon, firewall) {
+  public static firewallWithMarkRules(dbCon: Query, firewall: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where firewall=${firewall} and mark!=0`,
@@ -1324,7 +1378,11 @@ export class PolicyRule extends Model {
   }
 
   //Move rules from one firewall to other.
-  public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
+  public static moveToOtherFirewall(
+    dbCon: Query,
+    src_firewall: number,
+    dst_firewall: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`,

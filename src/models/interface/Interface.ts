@@ -37,6 +37,7 @@ import { RoutingRuleToIPObj } from '../routing/routing-rule/routing-rule-to-ipob
 import { DHCPRule } from '../system/dhcp/dhcp_r/dhcp_r.model';
 import { KeepalivedRule } from '../system/keepalived/keepalived_r/keepalived_r.model';
 import { Func } from 'mocha';
+import Query from '../../database/Query';
 const data_policy_position_ipobjs = require('../../models/data/data_policy_position_ipobjs');
 
 const tableName: string = 'interface';
@@ -127,7 +128,7 @@ export class Interface extends Model {
   }
 
   //Get All interface by firewall and IPOBJ UNDER Interfaces
-  public static getInterfacesFull(idfirewall, fwcloud, callback: Function) {
+  public static getInterfacesFull(idfirewall: number, fwcloud: number, callback: Function) {
     db.get((error, connection) => {
       if (error) return callback(error, null);
 
@@ -157,7 +158,7 @@ export class Interface extends Model {
   }
 
   //Get All interface by HOST
-  public static getInterfacesHost(idhost, fwcloud, callback: Function) {
+  public static getInterfacesHost(idhost: number, fwcloud: number, callback: Function) {
     db.get((error: Error, connection) => {
       if (error) callback(error, null);
       //var sql = 'SELECT * FROM ' + tableName + ' WHERE (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
@@ -181,7 +182,7 @@ export class Interface extends Model {
   }
 
   //Get All interface by HOST and IPOBJECTS UNDER INTERFACES
-  public static getInterfacesHost_Full_Pro(idhost, fwcloud) {
+  public static getInterfacesHost_Full_Pro(idhost: number, fwcloud: number) {
     return new Promise((resolve, reject) => {
       db.get((error: Error, connection) => {
         if (error) reject(error);
@@ -218,7 +219,7 @@ export class Interface extends Model {
   }
 
   //Get interface by  id and interface
-  public static getInterfaceHost(idhost, fwcloud, id, callback: Function) {
+  public static getInterfaceHost(idhost: number, fwcloud: number, id: number, callback: Function) {
     db.get((error: Error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -251,7 +252,7 @@ export class Interface extends Model {
   }
 
   //Get interface by  id and interface
-  public static getInterface(fwcloud, id) {
+  public static getInterface(fwcloud: number, id: number) {
     return new Promise((resolve, reject) => {
       db.get((error: Error, dbCon) => {
         if (error) return reject(error);
@@ -286,7 +287,7 @@ export class Interface extends Model {
   }
 
   //Get interface by  id and interface
-  public static getInterfaceFullPro(idfirewall, fwcloud, id) {
+  public static getInterfaceFullPro(idfirewall: number, fwcloud: number, id: number) {
     return new Promise((resolve, reject) => {
       db.get((error: Error, connection) => {
         if (error) reject(error);
@@ -339,7 +340,7 @@ export class Interface extends Model {
   }
 
   //Get data of interface
-  public static getInterface_data(id, type, callback: Function) {
+  public static getInterface_data(id: number, type: number, callback: Function) {
     db.get((error: Error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -358,7 +359,7 @@ export class Interface extends Model {
   }
 
   // Get interface address.
-  public static getInterfaceAddr(dbCon, _interface): Promise<IPObj[]> {
+  public static getInterfaceAddr(dbCon: Query, _interface: number): Promise<IPObj[]> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id,interface,ip_version from ipobj where interface=${_interface}`,
@@ -371,7 +372,7 @@ export class Interface extends Model {
   }
 
   // Get all host addresses.
-  public static getHostAddr(dbCon, host) {
+  public static getHostAddr(dbCon: Query, host: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select interface from interface__ipobj where ipobj=${host}`,
@@ -471,7 +472,12 @@ export class Interface extends Model {
   }
 
   /* Search where is in RULES interface in OTHER FIREWALLS  */
-  public static searchInterfaceUsage(id, type, fwcloud, diff_firewall) {
+  public static searchInterfaceUsage(
+    id: number,
+    type: number,
+    fwcloud: number,
+    diff_firewall: number,
+  ) {
     return new Promise((resolve, reject) => {
       //SEARCH INTERFACE DATA
       this.getInterface_data(id, type, async (error: Error, data) => {
@@ -580,12 +586,12 @@ export class Interface extends Model {
               .getRawMany();
 
             search.restrictions.InterfaceInDhcpRule = await this.searchInterfaceInDhcpRule(
-              id,
-              fwcloud,
+              id.toString(),
+              fwcloud.toString(),
             );
 
             search.restrictions.InterfaceInKeepalivedRule =
-              await this.searchInterfaceInKeepalivedRule(id, fwcloud);
+              await this.searchInterfaceInKeepalivedRule(id.toString(), fwcloud.toString());
 
             for (const key in search.restrictions) {
               if (search.restrictions[key].length > 0) {
@@ -604,7 +610,7 @@ export class Interface extends Model {
   }
 
   //Search Interfaces in Firewalls
-  public static searchInterfaceInFirewall(_interface, type, fwcloud) {
+  public static searchInterfaceInFirewall(_interface: number, type: number, fwcloud: number) {
     return new Promise((resolve, reject) => {
       db.get((error: Error, connection) => {
         if (error) return reject(error);
@@ -631,7 +637,12 @@ export class Interface extends Model {
     });
   }
 
-  public static searchInterfaceInFirewallByName(dbCon, fwcloud, firewall, ifName) {
+  public static searchInterfaceInFirewallByName(
+    dbCon: Query,
+    fwcloud: number,
+    firewall: number,
+    ifName: string,
+  ) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT I.id from interface I
 			INNER JOIN ipobj_type T on T.id=I.interface_type
@@ -695,8 +706,8 @@ export class Interface extends Model {
   }
 
   //Add new interface from user
-  public static insertInterface(dbCon, interfaceData) {
-    return new Promise((resolve, reject) => {
+  public static insertInterface(dbCon: Query, interfaceData) {
+    return new Promise<number>((resolve, reject) => {
       dbCon.query(`INSERT INTO ${tableName} SET ?`, interfaceData, (error, result) => {
         if (error) return reject(error);
         resolve(result.affectedRows > 0 ? result.insertId : null);
@@ -881,7 +892,12 @@ export class Interface extends Model {
   }
 
   //Clone interfaces and IPOBJ
-  public static cloneFirewallInterfaces(iduser, fwcloud, idfirewall, idNewfirewall) {
+  public static cloneFirewallInterfaces(
+    iduser: number,
+    fwcloud: number,
+    idfirewall: number,
+    idNewfirewall: number,
+  ) {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -967,7 +983,13 @@ export class Interface extends Model {
 
   //Remove interface with id to remove
   //FALTA BORRADO EN CASCADA
-  public static deleteInterface(fwcloud, idfirewall, id, type, callback: Function) {
+  public static deleteInterface(
+    fwcloud: number,
+    idfirewall: number,
+    id: number,
+    type: number,
+    callback: Function,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists =
@@ -1009,7 +1031,7 @@ export class Interface extends Model {
     });
   }
 
-  public static deleteInterfaceFW(dbCon, _interface): Promise<void> {
+  public static deleteInterfaceFW(dbCon: Query, _interface: number): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE type=10 AND id=${_interface}`;
       dbCon.query(sql, (error) => {
@@ -1019,7 +1041,7 @@ export class Interface extends Model {
     });
   }
 
-  public static deleteInterfaceHOST(dbCon, _interface): Promise<void> {
+  public static deleteInterfaceHOST(dbCon: Query, _interface: number): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE type=11 AND id=${_interface}`;
       dbCon.query(sql, (error: Error) => {
@@ -1030,7 +1052,7 @@ export class Interface extends Model {
   }
 
   //Remove all IPOBJ UNDER INTERFACES UNDER FIREWALL
-  public static deleteInterfacesIpobjFirewall(firewall): Promise<void> {
+  public static deleteInterfacesIpobjFirewall(firewall: number): Promise<void> {
     return new Promise((resolve, reject) => {
       db.get((error: Error, dbCon) => {
         if (error) return reject(error);
@@ -1054,7 +1076,7 @@ export class Interface extends Model {
   }
 
   //Remove ALL interface from Firewall
-  public static deleteInterfaceFirewall(firewall) {
+  public static deleteInterfaceFirewall(firewall: number) {
     return new Promise((resolve, reject) => {
       db.get((error: Error, connection) => {
         if (error) return reject(error);
@@ -1070,7 +1092,11 @@ export class Interface extends Model {
   }
 
   //Move rules from one firewall to other.
-  public static moveToOtherFirewall(dbCon, src_firewall, dst_firewall): Promise<void> {
+  public static moveToOtherFirewall(
+    dbCon: Query,
+    src_firewall: number,
+    dst_firewall: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE ${tableName} SET firewall=${dst_firewall} WHERE firewall=${src_firewall}`,

@@ -36,7 +36,7 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { Ca } from '../vpn/pki/Ca';
 import { Customer } from './Customer';
 import { Tfa } from './Tfa';
-import { Request } from 'express';
+import Query from '../../database/Query';
 
 const fwcError = require('../../utils/error_table');
 
@@ -171,7 +171,7 @@ export class User extends Model {
     });
   }
 
-  public static existsCustomerUserName(dbCon, customer, username) {
+  public static existsCustomerUserName(dbCon: Query, customer: number, username: string) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where customer=${customer} and username=${dbCon.escape(username)}`,
@@ -184,7 +184,12 @@ export class User extends Model {
     });
   }
 
-  public static existsCustomerUserNameOtherId(dbCon, customer, username, user) {
+  public static existsCustomerUserNameOtherId(
+    dbCon: Query,
+    customer: number,
+    username: string,
+    user: number,
+  ) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where customer=${customer} and username=${dbCon.escape(username)} and id!=${user}`,
@@ -197,7 +202,7 @@ export class User extends Model {
     });
   }
 
-  public static existsCustomerUserId(dbCon, customer, user) {
+  public static existsCustomerUserId(dbCon: Query, customer: number, user: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where customer=${customer} and id=${user}`,
@@ -294,7 +299,7 @@ export class User extends Model {
       if (req.body.user)
         sql = `select id,customer,name,email,username,enabled,role,allowed_from,last_login from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`;
       else sql = `select id,customer,name from ${tableName} where customer=${req.body.customer}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error: Error, result) => {
         if (error) return reject(error);
         resolve(result);
       });
@@ -331,7 +336,7 @@ export class User extends Model {
     });
   }
 
-  public static allowFwcloudAccess(dbCon, user, fwcloud) {
+  public static allowFwcloudAccess(dbCon: Query, user: number, fwcloud: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `INSERT IGNORE user__fwcloud values(${user},${fwcloud})`,
@@ -343,7 +348,7 @@ export class User extends Model {
     });
   }
 
-  public static allowAllFwcloudAccess(dbCon, user): Promise<void> {
+  public static allowAllFwcloudAccess(dbCon: Query, user: number): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(`select id from fwcloud`, async (error: Error, result) => {
         if (error) return reject(error);
@@ -361,11 +366,11 @@ export class User extends Model {
     });
   }
 
-  public static disableFwcloudAccess(dbCon, user, fwcloud): Promise<void> {
+  public static disableFwcloudAccess(dbCon: Query, user: number, fwcloud: number): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `delete from user__fwcloud where user=${user} and fwcloud=${fwcloud}`,
-        (error) => {
+        (error: Error) => {
           if (error) return reject(error);
           resolve();
         },

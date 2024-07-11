@@ -54,7 +54,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   }
 
   //Get All ipobj_type__policy_position
-  public static getIpobj_type__policy_positions = (callback) => {
+  public static getIpobj_type__policy_positions = (callback: Function) => {
     db.get((error, connection) => {
       if (error) return callback(error, null);
       connection.query(
@@ -68,7 +68,7 @@ export class IPObjTypeToPolicyPosition extends Model {
   };
 
   //Get ipobj_type__policy_position by  id
-  public static getIpobj_type__policy_position(type, position, callback) {
+  public static getIpobj_type__policy_position(type: number, position: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -87,7 +87,10 @@ export class IPObjTypeToPolicyPosition extends Model {
   }
 
   //Add new ipobj_type__policy_position
-  public static insertIpobj_type__policy_position(ipobj_type__policy_positionData, callback) {
+  public static insertIpobj_type__policy_position(
+    ipobj_type__policy_positionData,
+    callback: Function,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query(
@@ -106,7 +109,10 @@ export class IPObjTypeToPolicyPosition extends Model {
   }
 
   //Update ipobj_type__policy_position
-  public static updateIpobj_type__policy_position(ipobj_type__policy_positionData, callback) {
+  public static updateIpobj_type__policy_position(
+    ipobj_type__policy_positionData,
+    callback: Function,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -130,7 +136,11 @@ export class IPObjTypeToPolicyPosition extends Model {
   }
 
   //Remove ipobj_type__policy_position with id to remove
-  public static deleteIpobj_type__policy_position(type, position, callback) {
+  public static deleteIpobj_type__policy_position(
+    type: number,
+    position: number,
+    callback: Function,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists =

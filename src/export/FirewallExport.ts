@@ -20,7 +20,9 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { RuleArgs } from 'joi';
 import db from '../database/database-manager';
+import Query from '../database/Query';
 const fwcError = require('../utils/error_table');
 
 export class FirewallExport {
@@ -28,7 +30,7 @@ export class FirewallExport {
    * Export firewall data
    *
    */
-  public static exportFirewall(id) {
+  public static exportFirewall(id: number) {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -64,7 +66,7 @@ export class FirewallExport {
     });
   }
 
-  private static exportInterfaces(connection, id) {
+  private static exportInterfaces(connection: Query, id: number) {
     return new Promise((resolve, reject) => {
       const sql = 'select * from interface where firewall=' + connection.escape(id);
       connection.query(sql, (error, interfaces) => {
@@ -156,7 +158,7 @@ export class FirewallExport {
     });
   }
 
-  private static exportPolicy(connection, id) {
+  private static exportPolicy(connection: Query, id: number) {
     return new Promise((resolve, reject) => {
       const sql = 'select * from policy_r where firewall=' + connection.escape(id);
       connection.query(sql, async (error, rules) => {

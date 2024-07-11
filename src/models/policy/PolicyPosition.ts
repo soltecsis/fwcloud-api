@@ -165,7 +165,7 @@ export class PolicyPosition extends Model {
   }
 
   //Get All policy_position
-  public static getPolicy_positions(callback) {
+  public static getPolicy_positions(callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query('SELECT * FROM ' + tableName + ' ORDER BY position_order', (error, rows) => {
@@ -176,7 +176,7 @@ export class PolicyPosition extends Model {
   }
 
   //Get policy_position by type
-  public static getPolicyPositionsByType(dbCon, type) {
+  public static getPolicyPositionsByType(dbCon: Query, type: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT * FROM ${tableName} WHERE policy_type=${type} ORDER BY position_order`,
@@ -189,7 +189,7 @@ export class PolicyPosition extends Model {
   }
 
   //Get policy_position by  type
-  public static checkPolicyRulePosition(dbCon, rule, position) {
+  public static checkPolicyRulePosition(dbCon: Query, rule: number, position: number) {
     return new Promise((resolve, reject) => {
       const sql = `select PP.id from ${tableName} PP
                 inner join policy_r R on R.type=PP.policy_type
@@ -229,7 +229,7 @@ export class PolicyPosition extends Model {
   }
 
   //Get policy_position by  id
-  public static getPolicy_position(id, callback) {
+  public static getPolicy_position(id: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
@@ -260,7 +260,7 @@ export class PolicyPosition extends Model {
   }
 
   //Update policy_position
-  public static updatePolicy_position(policy_positionData, callback) {
+  public static updatePolicy_position(policy_positionData, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -292,7 +292,7 @@ export class PolicyPosition extends Model {
   }
 
   //Remove policy_position with id to remove
-  public static deletePolicy_position(id, callback) {
+  public static deletePolicy_position(id: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);

@@ -82,7 +82,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Get All policy_r__interface by policy_r
-  public static getPolicy_r__interfaces_rule(_interface, callback) {
+  public static getPolicy_r__interfaces_rule(_interface: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -99,7 +99,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Get All policy_r__interface by policy_r
-  public static getPolicy_r__interfaces_interface(rule, callback) {
+  public static getPolicy_r__interfaces_interface(rule: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -116,7 +116,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Get policy_r__interface by  rule and  interface
-  public static getPolicy_r__interface(_interface, rule, callback) {
+  public static getPolicy_r__interface(_interface: number, rule: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -419,7 +419,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Check if a object (type) can be inserted in a position type
-  private static checkInterfacePosition(idfirewall, rule, id, position, callback) {
+  private static checkInterfacePosition(idfirewall, rule, id, position, callback: Function) {
     db.get((error, connection) => {
       if (error) return callback(null, 0);
 
@@ -468,7 +468,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Remove policy_r__interface with id to remove
-  public static deletePolicy_r__All(rule, callback) {
+  public static deletePolicy_r__All(rule, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
@@ -499,7 +499,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Order policy_r__interfaces Position
-  public static orderPolicyPosition(rule, position, callback) {
+  public static orderPolicyPosition(rule, position, callback: Function) {
     logger().debug('DENTRO ORDER   Rule: ' + rule + '  Position: ' + position);
 
     db.get((error, connection) => {
@@ -554,7 +554,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Order policy_r__interfaces Position
-  public static orderPolicy(rule, callback) {
+  public static orderPolicy(rule, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlRule =
@@ -611,7 +611,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Order policy_r__interfaces Position
-  public static orderAllPolicy(callback) {
+  public static orderAllPolicy(callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlRule = 'SELECT * FROM ' + tableName + ' ORDER by rule,position, position_order';
@@ -667,7 +667,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //check if INTERFACE Exists in any rule
-  public static checkInterfaceInRule(_interface, type, fwcloud, callback) {
+  public static checkInterfaceInRule(_interface, type, fwcloud, callback: Function) {
     logger().debug(
       'CHECK DELETING interface I POSITIONS:' +
         _interface +
@@ -720,7 +720,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //check if HOST ALL INTERFACEs Exists in any rule
-  public static checkHostAllInterfacesInRule(ipobj_host, fwcloud, callback) {
+  public static checkHostAllInterfacesInRule(ipobj_host, fwcloud, callback: Function) {
     logger().debug(
       'CHECK DELETING HOST ALL interfaces I POSITIONS:' + ipobj_host + '  fwcloud:' + fwcloud,
     );

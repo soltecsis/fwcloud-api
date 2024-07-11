@@ -43,6 +43,7 @@ import { Interface } from '../interface/Interface';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { RouteToIPObjGroup } from '../routing/route/route-to-ipobj-group.model';
 import { RoutingRuleToIPObjGroup } from '../routing/routing-rule/routing-rule-to-ipobj-group.model';
+import Query from '../../database/Query';
 const asyncMod = require('async');
 const ipobj_g_Data = require('../data/data_ipobj_g');
 const ipobj_Data = require('../data/data_ipobj');
@@ -107,7 +108,7 @@ export class IPObjGroup extends Model {
   }
 
   //Get All ipobj_g
-  public static getIpobjGroups(dbCon, fwcloud) {
+  public static getIpobjGroups(dbCon: Query, fwcloud: number): Promise<IPObjGroup[]> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT * FROM ${tableName} WHERE (fwcloud=${dbCon.escape(fwcloud)} OR fwcloud is null) ORDER BY id`,
@@ -120,7 +121,7 @@ export class IPObjGroup extends Model {
   }
 
   //Get ipobj_g by  id
-  public static getIpobj_g(dbCon, fwcloud, id) {
+  public static getIpobj_g(dbCon: Query, fwcloud: number, id: number): Promise<IPObjGroup[]> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT * FROM ${tableName} WHERE id=${id} AND (fwcloud=${fwcloud} OR fwcloud is null)`,
@@ -133,7 +134,7 @@ export class IPObjGroup extends Model {
   }
 
   //Count group items.
-  public static countGroupItems(dbCon, group) {
+  public static countGroupItems(dbCon: Query, group: number) {
     return new Promise((resolve, reject) => {
       const sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
             union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
@@ -147,7 +148,10 @@ export class IPObjGroup extends Model {
   }
 
   //IP version of the group items.
-  public static groupIPVersion(dbCon, group): Promise<{ ipv4: boolean; ipv6: boolean }> {
+  public static groupIPVersion(
+    dbCon: Query,
+    group: number,
+  ): Promise<{ ipv4: boolean; ipv6: boolean }> {
     const ipVersions: { ipv4: boolean; ipv6: boolean } = {
       ipv4: false,
       ipv6: false,
@@ -249,7 +253,7 @@ export class IPObjGroup extends Model {
   }
 
   //Get ipobj_g by  id AND ALL IPOBjs
-  public static getIpobj_g_Full(dbCon, fwcloud, gid) {
+  public static getIpobj_g_Full(dbCon: Query, fwcloud: number, gid: number) {
     return new Promise((resolve, reject) => {
       let sql = `SELECT G.*, T.id id_node, T.id_parent id_parent_node FROM ${tableName} G
             inner join fwc_tree T on T.id_obj=G.id and T.obj_type=G.type AND (T.fwcloud=${fwcloud} OR T.fwcloud IS NULL)
@@ -305,7 +309,7 @@ export class IPObjGroup extends Model {
   }
 
   //Get ipobj_g by  id AND ALL IPOBjs
-  public static getIpobj_g_Full_Pro(fwcloud, id) {
+  public static getIpobj_g_Full_Pro(fwcloud: number, id: string) {
     return new Promise((resolve, reject) => {
       const groups = [];
       let group_cont = 0;
@@ -335,7 +339,7 @@ export class IPObjGroup extends Model {
             //const row = rows[0];
             asyncMod.map(
               rows,
-              (row, callback1) => {
+              (row, callback1: Function) => {
                 const group_node = new ipobj_g_Data(row);
 
                 logger().debug(' ---> DENTRO de GRUPO: ' + row.id + ' NAME: ' + row.name);
@@ -397,7 +401,7 @@ export class IPObjGroup extends Model {
     });
   }
 
-  public static searchGroupUsage(id, fwcloud) {
+  public static searchGroupUsage(id: number, fwcloud: number) {
     return new Promise(async (resolve, reject) => {
       try {
         const search: any = {};
@@ -451,7 +455,7 @@ export class IPObjGroup extends Model {
   }
 
   //Add new ipobj_g
-  public static insertIpobj_g(ipobj_gData, callback) {
+  public static insertIpobj_g(ipobj_gData, callback: Function) {
     db.get((error, connection) => {
       if (error) return callback(error, null);
       // The IDs for the user defined IP Objects groups begin from the value 100000.
@@ -488,7 +492,12 @@ export class IPObjGroup extends Model {
   }
 
   //Remove ipobj_g with id to remove
-  public static deleteIpobj_g(dbCon, fwcloud, id, type): Promise<void> {
+  public static deleteIpobj_g(
+    dbCon: Query,
+    fwcloud: number,
+    id: number,
+    type: number,
+  ): Promise<void> {
     return new Promise(async (resolve, reject) => {
       // FIRST DELETE CHILDREN
       try {

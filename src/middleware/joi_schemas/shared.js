@@ -20,7 +20,6 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 //create object
 var sharedSchema = {};
 //Export the object

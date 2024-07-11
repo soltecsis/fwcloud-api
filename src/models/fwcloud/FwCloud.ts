@@ -46,6 +46,7 @@ import { IPObj } from '../ipobj/IPObj';
 import { Mark } from '../ipobj/Mark';
 import { FSHelper } from '../../utils/fs-helper';
 import { IPObjGroup } from '../ipobj/IPObjGroup';
+import Query from '../../database/Query';
 
 const tableName: string = 'fwcloud';
 
@@ -338,7 +339,7 @@ export class FwCloud extends Model {
    *           updated_at	datetime
    *           by_user	int(11)
    */
-  public static getFwclouds(dbCon, user: number) {
+  public static getFwclouds(dbCon: Query, user: number) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT distinctrow C.* FROM ${tableName} C
 				INNER JOIN user__fwcloud U ON C.id=U.fwcloud
@@ -481,7 +482,7 @@ export class FwCloud extends Model {
    * @return {Boolean} Returns `RESULT UNLOCKED`
    *
    */
-  public static checkFwcloudLockTimeout(timeout) {
+  public static checkFwcloudLockTimeout(timeout: number) {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(false);

@@ -25,6 +25,7 @@ import db from '../../database/database-manager';
 import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, JoinColumn } from 'typeorm';
 import { IPObjGroup } from './IPObjGroup';
 import { IPObj } from './IPObj';
+import Query from '../../database/Query';
 
 const tableName: string = 'ipobj__ipobjg';
 
@@ -83,7 +84,7 @@ export class IPObjToIPObjGroup extends Model {
 
   //FALTA comprobar si el Grupo está en alguna Regla
   //Remove ipobj__ipobjg with id to remove
-  public static deleteIpobj__ipobjg(dbCon, ipobj_g, ipobj): Promise<void> {
+  public static deleteIpobj__ipobjg(dbCon: Query, ipobj_g: number, ipobj: number): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM ${tableName} WHERE ipobj_g=${ipobj_g} AND ipobj=${ipobj}`;
       dbCon.query(sql, (error) => {
@@ -94,7 +95,7 @@ export class IPObjToIPObjGroup extends Model {
   }
 
   //Remove ipobj__ipobjg with id to remove
-  public static deleteIpobj__ipobjgAll(dbCon, ipobj_g): Promise<void> {
+  public static deleteIpobj__ipobjgAll(dbCon: Query, ipobj_g: number): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(`DELETE FROM ${tableName} WHERE ipobj_g=${ipobj_g}`, (error) => {
         if (error) return reject(error);
@@ -112,7 +113,7 @@ export class IPObjToIPObjGroup extends Model {
   }
 
   //check if IPOBJ Exists in GROUP
-  public static searchIpobjInGroup(ipobj, type, fwcloud) {
+  public static searchIpobjInGroup(ipobj: number, type: number, fwcloud: number) {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -133,7 +134,7 @@ export class IPObjToIPObjGroup extends Model {
   }
 
   //check if addr host exists in a group
-  public static searchAddrHostInGroup(dbCon, fwcloud, host) {
+  public static searchAddrHostInGroup(dbCon: Query, fwcloud: number, host: number) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT I.id obj_id,I.name obj_name, I.type obj_type_id,T.type obj_type_name,
                 C.id cloud_id, C.name cloud_name, GR.id group_id, GR.name group_name, GR.type group_type

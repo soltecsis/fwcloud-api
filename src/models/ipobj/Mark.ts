@@ -27,6 +27,7 @@ import { PolicyRule } from '../policy/PolicyRule';
 import { RoutingRule } from '../routing/routing-rule/routing-rule.model';
 import { RoutingRuleToMark } from '../routing/routing-rule/routing-rule-to-mark.model';
 import db from '../../database/database-manager';
+import Query from '../../database/Query';
 
 const fwcError = require('../../utils/error_table');
 
@@ -78,7 +79,7 @@ export class Mark extends Model {
   }
 
   // Verify if the iptables mark exists for the indicated fwcloud.
-  public static existsMark(dbCon, fwcloud, code) {
+  public static existsMark(dbCon: Query, fwcloud: number, code: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT id FROM ${tableName} WHERE code=${code} AND fwcloud=${fwcloud}`,
@@ -119,7 +120,7 @@ export class Mark extends Model {
   }
 
   // Delete an iptables mark.
-  public static deleteMark(dbCon, mark): Promise<void> {
+  public static deleteMark(dbCon: Query, mark: number): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(`DELETE from ${tableName} WHERE id=${mark}`, (error) => {
         if (error) return reject(error);
@@ -128,7 +129,7 @@ export class Mark extends Model {
     });
   }
 
-  public static getMark(dbCon, mark) {
+  public static getMark(dbCon: Query, mark: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(`select * from ${tableName} WHERE id=${mark}`, (error, result) => {
         if (error) return reject(error);
@@ -138,7 +139,7 @@ export class Mark extends Model {
     });
   }
 
-  public static searchMarkInRule(dbCon, fwcloud, mark) {
+  public static searchMarkInRule(dbCon: Query, fwcloud: number, mark: number) {
     return new Promise((resolve, reject) => {
       const sql = `select R.id as rule, R.firewall, FW.id as firewall_id, FW.name as firewall_name,
 	        M.id obj_id, M.name obj_name,
@@ -157,7 +158,7 @@ export class Mark extends Model {
     });
   }
 
-  public static searchMarkUsage(dbCon, fwcloud, mark) {
+  public static searchMarkUsage(dbCon: Query, fwcloud: number, mark: number) {
     return new Promise(async (resolve, reject) => {
       try {
         const search: any = {};

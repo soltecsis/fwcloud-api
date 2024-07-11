@@ -33,7 +33,7 @@ import { Communication } from '../communications/communication';
 import { AgentCommunication } from '../communications/agent.communication';
 import { IPObj } from '../models/ipobj/IPObj';
 import db from '../database/database-manager';
-const utilsModel = require('../utils/utils.js');
+import utilsModel from '../utils/utils.js';
 
 export class IptablesSaveService extends IptablesSaveToFWCloud {
   public async import(request: Request): Promise<IptablesSaveStats> {

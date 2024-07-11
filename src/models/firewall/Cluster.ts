@@ -28,6 +28,7 @@ import { Tree } from '../tree/Tree';
 import { Interface } from '../../models/interface/Interface';
 import { FwCloud } from '../fwcloud/FwCloud';
 import { logger } from '../../fonaments/abstract-application';
+import Query from '../../database/Query';
 
 const tableName: string = 'cluster';
 
@@ -132,7 +133,7 @@ export class Cluster extends Model {
   }
 
   //Get clusters by name
-  public static getClusterName = (name, callback) => {
+  public static getClusterName = (name: string, callback: Function) => {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -158,7 +159,7 @@ export class Cluster extends Model {
   }
 
   //Update cluster
-  public static updateCluster(dbCon, fwcloud, clusterData): Promise<void> {
+  public static updateCluster(dbCon: Query, fwcloud: number, clusterData): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql = `UPDATE ${tableName} SET name=${dbCon.escape(clusterData.name)}, comment=${dbCon.escape(clusterData.comment)}, plugins=${dbCon.escape(clusterData.plugins)}
                 WHERE id=${clusterData.id} AND fwcloud=${fwcloud}`;
@@ -176,7 +177,12 @@ export class Cluster extends Model {
   }
 
   //Remove cluster with id to remove
-  public static deleteClusterSimple(id, iduser, fwcloud, callback) {
+  public static deleteClusterSimple(
+    id: number,
+    iduser: number,
+    fwcloud: number,
+    callback: Function,
+  ) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       logger().debug('------>>>> DELETING CLUSTER: ', id);

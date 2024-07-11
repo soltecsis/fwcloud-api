@@ -25,14 +25,22 @@ import { QueryRunner } from 'typeorm';
 import * as sqlstring from 'sqlstring';
 
 export default class Query {
-  public query(query: string, params: Array<any>, callback: (err: any, result: any) => void): void;
+  public query(
+    query: string,
+    params: Array<any>,
+    callback: (err: Error, result: any) => void,
+  ): void;
   public query(
     query: string,
     params: Record<string, never>,
-    callback: (err: any, result: any) => void,
+    callback: (err: Error, result: any) => void,
   ): void;
-  public query(query: string, callback: (err: any, result: any) => void): void;
-  public query(query: string, params: any = [], callback?: (err: any, result: any) => void): void {
+  public query(query: string, callback: (err: Error, result: any) => void): void;
+  public query(
+    query: string,
+    params: any = [],
+    callback?: (err: Error, result: any) => void,
+  ): void {
     const queryRunner: QueryRunner = db.getQueryRunner();
 
     if (typeof params === 'function') {

@@ -25,7 +25,7 @@ import { EventEmitter } from 'typeorm/platform/PlatformTools';
 import { ProgressSSHCmdPayload } from '../sockets/messages/socket-message';
 
 export default class sshTools {
-  public static uploadFile(SSHconn, srcFile, dstFile) {
+  public static uploadFile(SSHconn, srcFile: string, dstFile) {
     const Client = require('ssh2').Client;
     const conn = new Client();
 
@@ -66,7 +66,7 @@ export default class sshTools {
     });
   }
 
-  public static uploadStringToFile(SSHconn, str, dstFile) {
+  public static uploadStringToFile(SSHconn, str: string, dstFile: string) {
     const Client = require('ssh2').Client;
     const conn = new Client();
 

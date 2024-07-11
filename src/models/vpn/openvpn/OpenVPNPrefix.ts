@@ -380,7 +380,7 @@ export class OpenVPNPrefix extends Model {
     });
   }
 
-  public static searchPrefixInRule(dbCon, fwcloud, prefix) {
+  public static searchPrefixInRule(dbCon: Query, fwcloud: number, prefix) {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name,
                 O.prefix obj_id, PRE.name obj_name,
