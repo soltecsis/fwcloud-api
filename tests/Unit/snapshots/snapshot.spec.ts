@@ -117,7 +117,7 @@ describe(describeName('Snapshot Unit Tests'), () => {
     });
 
     it('should copy the policy fwcloud directory if exists', async () => {
-      await FSHelper.mkdirSync(fwCloud.getPolicyDirectoryPath());
+      FSHelper.mkdirSync(fwCloud.getPolicyDirectoryPath());
 
       fs.writeFileSync(
         path.join(fwCloud.getPolicyDirectoryPath(), 'test.txt'),
