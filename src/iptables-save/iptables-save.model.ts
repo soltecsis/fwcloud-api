@@ -43,11 +43,11 @@ import { PolicyRuleToOpenVPN } from '../models/policy/PolicyRuleToOpenVPN';
 import moment from 'moment';
 import { PolicyCompilerTools } from '../compiler/policy/PolicyCompilerTools';
 import db from '../database/database-manager';
-import Joi from 'joi';
-import sharedSch from '../middleware/joi_schemas/shared';
+const Joi = require('joi');
+const sharedSch = require('../middleware/joi_schemas/shared');
 
 export class IptablesSaveToFWCloud extends Service {
-  protected req: Request;
+  protected req: any;
   protected statefulFirewall: boolean;
   protected line: number;
   protected data: string[];
@@ -693,7 +693,7 @@ export class IptablesSaveToFWCloud extends Service {
 
   private async eatInterface(dir: string, _interface: string): Promise<void> {
     // IMPORTANT: Validate data before process it.
-    sharedSch.name.validate(_interface);
+    await sharedSch.name.validate(_interface);
 
     // Search to find out if it already exists.
     let interfaceId = await Interface.searchInterfaceInFirewallByName(
@@ -767,7 +767,7 @@ export class IptablesSaveToFWCloud extends Service {
 
   private async eatAddr(dir: string, addr: string): Promise<void> {
     // IMPORTANT: Validate data before process it.
-    Joi.string()
+    await Joi.string()
       .ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'required' })
       .validate(addr);
 
@@ -816,7 +816,7 @@ export class IptablesSaveToFWCloud extends Service {
       this.stats.ipObjs++;
 
       // Add the addr object to the rule position.
-      await this.addIPObjToRulePosition(dir, addrId.toString());
+      await this.addIPObjToRulePosition(dir, addrId);
     } else {
       // Search if the address object is part of an OpenVPN ifconfig-push configuration option.
       const result: any = await IPObj.addrInIfconfigPushOpenVPN(addrId, this.req.body.fwcloud);
@@ -837,7 +837,7 @@ export class IptablesSaveToFWCloud extends Service {
         )
           await PolicyRuleToOpenVPN.insertInRule(this.req);
       } // Add the addr object to the rule position.
-      else await this.addIPObjToRulePosition(dir, addrId.toString());
+      else await this.addIPObjToRulePosition(dir, addrId);
     }
   }
 
@@ -845,10 +845,10 @@ export class IptablesSaveToFWCloud extends Service {
     const ips = data.split('-');
 
     // IMPORTANT: Validate data before process it.
-    Joi.string()
+    await Joi.string()
       .ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'forbidden' })
       .validate(ips[0]);
-    Joi.string()
+    await Joi.string()
       .ip({ version: [`ipv${this.req.body.ip_version}`], cidr: 'forbidden' })
       .validate(ips[1]);
 
@@ -899,7 +899,7 @@ export class IptablesSaveToFWCloud extends Service {
       return;
     }
 
-    let protocolId: string;
+    let protocolId: any;
 
     if (parseInt(protocol)) {
       // IP protocol by number.
@@ -1022,7 +1022,7 @@ export class IptablesSaveToFWCloud extends Service {
     }
 
     // Search to find out if it already exists.
-    let icmpId: number = await IPObj.searchICMP(
+    let icmpId: any = await IPObj.searchICMP(
       this.req.dbCon,
       this.req.body.fwcloud,
       icmp[0],
@@ -1058,10 +1058,10 @@ export class IptablesSaveToFWCloud extends Service {
     }
 
     // Add the addr object to the rule position.
-    await this.addIPObjToRulePosition('srvc', icmpId.toString());
+    await this.addIPObjToRulePosition('srvc', icmpId);
   }
 
-  private async addIPObjToRulePosition(item: string, id: string): Promise<void> {
+  private async addIPObjToRulePosition(item: string, id: number): Promise<void> {
     const rulePosition = PositionMap.get(`${this.table}:${this.chain}:${item}`);
     if (!rulePosition)
       throw new Error(`Rule position not found for: ${this.table}:${this.chain}:${item}`);
@@ -1102,11 +1102,8 @@ export class IptablesSaveToFWCloud extends Service {
 
   public async groupRulePositionItems(): Promise<void> {
     let i: number;
-    const groupsData: IPObjGroup[] = await IPObjGroup.getIpobjGroups(
-      this.req.dbCon,
-      this.req.body.fwcloud,
-    );
-    const ipobjGroups: number[] = groupsData.map(({ id }) => {
+    const groupsData: any = await IPObjGroup.getIpobjGroups(this.req.dbCon, this.req.body.fwcloud);
+    const ipobjGroups = groupsData.map(({ id }) => {
       return id;
     });
     const positionsList = GroupablePositionMap.get(`${this.table}:${this.chain}`);
@@ -1124,7 +1121,7 @@ export class IptablesSaveToFWCloud extends Service {
 
       // For all existing IP objects groups.
       for (const group of ipobjGroups) {
-        const groupData = await IPObjGroup.getIpobj_g_Full(
+        const groupData: any = await IPObjGroup.getIpobj_g_Full(
           this.req.dbCon,
           this.req.body.fwcloud,
           group,

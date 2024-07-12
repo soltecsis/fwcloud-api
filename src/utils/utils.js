@@ -23,7 +23,7 @@
 //create object
 var utilsModel = {};
 //Export the object
-export default utilsModel;
+module.exports = utilsModel;
 import db from '../database/database-manager';
 import { Firewall } from '../models/firewall/Firewall';
 import { logger } from '../fonaments/abstract-application';
