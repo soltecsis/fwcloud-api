@@ -20,8 +20,8 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import openpgp from 'openpgp';
-import fwcError from './error_table';
+const openpgp = require('openpgp');
+const fwcError = require('./error_table');
 
 export class PgpHelper {
   private _publicKey: string;
@@ -74,7 +74,7 @@ export class PgpHelper {
           encryptionKeys: publicKey,
         });
 
-        resolve(msgEncrypted.toString());
+        resolve(msgEncrypted.toString() as string);
       } catch (error) {
         reject(error);
       }
