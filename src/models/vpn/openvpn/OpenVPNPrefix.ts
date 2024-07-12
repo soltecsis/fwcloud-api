@@ -92,7 +92,7 @@ export class OpenVPNPrefix extends Model {
   }
 
   // Validate new prefix container.
-  public static existsPrefix(dbCon, openvpn, name) {
+  public static existsPrefix(dbCon: Query, openvpn: number, name: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT id FROM ${tableName} WHERE openvpn=${openvpn} AND name=${dbCon.escape(name)}`,
@@ -133,7 +133,7 @@ export class OpenVPNPrefix extends Model {
   }
 
   // Delete CRT Prefix container.
-  public static deletePrefix(dbCon, prefix): Promise<void> {
+  public static deletePrefix(dbCon: Query, prefix: number): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(`DELETE from ${tableName} WHERE id=${prefix}`, (error: Error) => {
         if (error) return reject(error);
@@ -143,7 +143,7 @@ export class OpenVPNPrefix extends Model {
   }
 
   // Remove all prefixes under the indicated firewall.
-  public static deletePrefixAll(dbCon, fwcloud, firewall) {
+  public static deletePrefixAll(dbCon: Query, fwcloud: number, firewall: number) {
     return new Promise((resolve, reject) => {
       const sql = `delete PRE from ${tableName} as PRE
                 inner join openvpn VPN on VPN.id=PRE.openvpn
@@ -157,7 +157,7 @@ export class OpenVPNPrefix extends Model {
   }
 
   // Get all prefixes for the indicated openvpn server.
-  public static getPrefixes(dbCon, openvpn) {
+  public static getPrefixes(dbCon: Query, openvpn: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT id,name FROM ${tableName} WHERE openvpn=${openvpn}`,
@@ -170,7 +170,11 @@ export class OpenVPNPrefix extends Model {
   }
 
   // Get all prefixes for the indicated CA.
-  public static getOpenvpnClientesUnderPrefix(dbCon, openvpn, prefix_name): Promise<unknown[]> {
+  public static getOpenvpnClientesUnderPrefix(
+    dbCon: Query,
+    openvpn: number,
+    prefix_name: string,
+  ): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.id from openvpn VPN 
                 inner join crt CRT on CRT.id=VPN.crt
@@ -242,7 +246,7 @@ export class OpenVPNPrefix extends Model {
   }
 
   // Get information about a prefix used in an OpenVPN server configuration.
-  public static getPrefixOpenvpnInfo(dbCon, fwcloud, prefix) {
+  public static getPrefixOpenvpnInfo(dbCon: Query, fwcloud: number, prefix: number) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, FW.id as firewall_id, FW.name as firewall_name, CRT.cn, CA.cn as ca_cn, FW.cluster as cluster_id,
                 IF(FW.cluster is null,null,(select name from cluster where id=FW.cluster)) as cluster_name
@@ -325,7 +329,11 @@ export class OpenVPNPrefix extends Model {
   }
 
   // Apply OpenVPN server prefixes to tree node.
-  public static applyOpenVPNPrefixes(dbCon, fwcloud, openvpn_srv): Promise<void> {
+  public static applyOpenVPNPrefixes(
+    dbCon: Query,
+    fwcloud: number,
+    openvpn_srv: number,
+  ): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         const node = await Tree.getNodeInfo(dbCon, fwcloud, 'OSR', openvpn_srv);
@@ -401,7 +409,7 @@ export class OpenVPNPrefix extends Model {
     });
   }
 
-  public static searchPrefixInGroup(dbCon, fwcloud, prefix) {
+  public static searchPrefixInGroup(dbCon: Query, fwcloud: number, prefix) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g as group_id, G.name as group_name, G.type as group_type,
                 (select id from ipobj_type where id=401) as obj_type_id, PRE.name obj_name

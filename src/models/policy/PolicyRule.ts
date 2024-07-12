@@ -1103,7 +1103,7 @@ export class PolicyRule extends Model {
   }
 
   //Remove All policy_r from firewall
-  public static async deletePolicy_r_Firewall(idfirewall): Promise<void> {
+  public static async deletePolicy_r_Firewall(idfirewall: number): Promise<void> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);

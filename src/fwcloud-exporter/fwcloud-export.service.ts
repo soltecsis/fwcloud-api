@@ -56,7 +56,7 @@ export class FwCloudExportService extends Service {
       if (ttl > 0) {
         setTimeout(() => {
           if (FSHelper.fileExistsSync(fwCloudExport.exportPath)) {
-            FSHelper.remove(fwCloudExport.exportPath);
+            void FSHelper.remove(fwCloudExport.exportPath);
           }
         }, ttl);
       }

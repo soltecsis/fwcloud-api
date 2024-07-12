@@ -20,51 +20,42 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 var express = require('express');
 var router = express.Router();
 import { PolicyType } from '../../models/policy/PolicyType';
 import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
-
 /* Get all policy_types*/
 router.get('', (req, res) => {
-	PolicyType.getPolicy_types((error, data) => {
-    if (data && data.length > 0)
-      res.status(200).json(data);
-    else
-			res.status(204).end();
-	});
+  PolicyType.getPolicy_types((error, data) => {
+    if (data && data.length > 0) res.status(200).json(data);
+    else res.status(204).end();
+  });
 });
-
-
 
 /* Get  policy_type by type */
 router.get('/:type', (req, res) => {
-	var type = req.params.type;
-	PolicyType.getPolicy_type(type, (error, data) => {
-    if (data && data.length > 0)
-      res.status(200).json(data);
+  var type = req.params.type;
+  PolicyType.getPolicy_type(type, (error, data) => {
+    if (data && data.length > 0) res.status(200).json(data);
     else {
       logger().error('Error finding policy_type: ' + JSON.stringify(fwcError.NOT_FOUND));
       res.status(400).json(fwcError.NOT_FOUND);
     }
-	});
+  });
 });
 
 /* Get all policy_types by name */
 router.get('/name/:name', (req, res) => {
-	var name = req.params.name;
-	PolicyType.getPolicy_typeName(name, (error, data) => {
-    if (data && data.length > 0)
-      res.status(200).json(data);
+  var name = req.params.name;
+  PolicyType.getPolicy_typeName(name, (error, data) => {
+    if (data && data.length > 0) res.status(200).json(data);
     else {
       logger().error('Error finding policy_type by name: ' + JSON.stringify(fwcError.NOT_FOUND));
       res.status(400).json(fwcError.NOT_FOUND);
     }
-	});
+  });
 });
-
 
 module.exports = router;

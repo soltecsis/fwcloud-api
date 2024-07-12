@@ -25,6 +25,7 @@ import { Column, Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { PolicyRule } from './PolicyRule';
 import { PolicyPosition } from './PolicyPosition';
 import { OpenVPNPrefix } from '../vpn/openvpn/OpenVPNPrefix';
+import Query from '../../database/Query';
 
 const tableName: string = 'policy_r__openvpn_prefix';
 
@@ -92,7 +93,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     });
   };
 
-  public static checkPrefixPosition = (dbCon, position) => {
+  public static checkPrefixPosition = (dbCon: Query, position: number) => {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select type from ipobj_type__policy_position where type=401 and position=${position}`,
@@ -104,7 +105,13 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     });
   };
 
-  public static checkExistsInPosition = (dbCon, rule, prefix, openvpn, position) => {
+  public static checkExistsInPosition = (
+    dbCon: Query,
+    rule: number,
+    prefix: number,
+    openvpn: number,
+    position: number,
+  ) => {
     return new Promise((resolve, reject) => {
       const sql = `SELECT rule FROM ${tableName}
                 WHERE rule=${rule} AND prefix=${prefix} AND position=${position}`;
@@ -136,7 +143,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     });
   }
 
-  public static deleteFromRule(dbCon, rule): Promise<void> {
+  public static deleteFromRule(dbCon: Query, rule: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error) => {
         if (error) return reject(error);
@@ -146,7 +153,11 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
   }
 
   //Duplicate policy_r__openvpn_prefix RULES
-  public static duplicatePolicy_r__prefix(dbCon, rule, new_rule): Promise<void> {
+  public static duplicatePolicy_r__prefix(
+    dbCon: Query,
+    rule: number,
+    new_rule: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `INSERT INTO ${tableName} (rule, prefix, position, position_order)
                 (SELECT ${new_rule}, prefix, position, position_order

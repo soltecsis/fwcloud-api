@@ -176,7 +176,7 @@ export class KeepalivedRuleService extends Service {
           ).ip_version,
       );
       if (!hasMatchingIpVersion) {
-        this._repository.remove(persisted);
+        await this._repository.remove(persisted);
         throw new Error('IP version mismatch');
       }
 

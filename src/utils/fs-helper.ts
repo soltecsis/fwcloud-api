@@ -69,7 +69,7 @@ export class FSHelper {
     return fse.mkdirp(directoryPath);
   }
 
-  public static async mkdirSync(directoryPath: string): Promise<void> {
+  public static mkdirSync(directoryPath: string): void {
     return fse.mkdirpSync(directoryPath);
   }
 

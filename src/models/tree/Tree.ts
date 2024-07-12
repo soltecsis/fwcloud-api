@@ -134,7 +134,12 @@ export class Tree extends Model {
   }
 
   //Get ipobjects node info.
-  public static getNodeInfo(dbCon: Query, fwcloud: number, node_type: string, id_obj?: number) {
+  public static getNodeInfo(
+    dbCon: Query,
+    fwcloud: number,
+    node_type: string,
+    id_obj?: number,
+  ): Promise<Tree[]> {
     return new Promise((resolve, reject) => {
       let sql = `SELECT * FROM ${tableName}
                 WHERE fwcloud${!fwcloud ? ' IS NULL' : '=' + fwcloud} 
@@ -1163,7 +1168,7 @@ export class Tree extends Model {
 
   //Generate the system nodes.
   public static systemTree(
-    connection: any,
+    connection: Query,
     fwcloud: number,
     firewall: number,
     node: number,
@@ -1864,7 +1869,7 @@ export class Tree extends Model {
 
       req.dbCon.query(`INSERT INTO ${tableName} SET ?`, fwc_treeData, (error, result) => {
         if (error) return reject(error);
-        this.OrderList(node_order, req.body.fwcloud, node_parent, 999999, result.insertId);
+        void this.OrderList(node_order, req.body.fwcloud, node_parent, 999999, result.insertId);
         //devolvemos la última id insertada
         resolve(result.insertId);
       });
@@ -1979,8 +1984,8 @@ export class Tree extends Model {
     id_parent: number,
     old_order: number,
     id: number,
-  ) {
-    return new Promise<any>((resolve, reject) => {
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
       let increment = '+1';
       let order1 = new_order;
       let order2 = old_order;
@@ -2009,12 +2014,12 @@ export class Tree extends Model {
           order2 +
           ' AND id<>' +
           connection.escape(id);
-        connection.query(sql, (error, result) => {
+        connection.query(sql, (error) => {
           if (error) {
             reject(error);
           }
 
-          resolve(result);
+          resolve();
         });
       });
     });

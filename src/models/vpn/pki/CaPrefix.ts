@@ -25,6 +25,7 @@ import { Crt } from '../../../models/vpn/pki/Crt';
 import Model from '../../Model';
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Ca } from './Ca';
+import Query from '../../../database/Query';
 const fwcError = require('../../../utils/error_table');
 
 const tableName: string = 'ca_prefix';
@@ -64,7 +65,7 @@ export class CaPrefix extends Model {
   }
 
   // Get all prefixes for the indicated CA.
-  public static getPrefixes(dbCon, ca) {
+  public static getPrefixes(dbCon: Query, ca: number): Promise<void> {
     return new Promise((resolve, reject) => {
       dbCon.query(`SELECT id,name FROM ca_prefix WHERE ca=${ca}`, (error, result) => {
         if (error) return reject(error);
@@ -74,7 +75,7 @@ export class CaPrefix extends Model {
   }
 
   // Get prefix info.
-  public static getPrefixInfo(dbCon, fwcloud, prefix) {
+  public static getPrefixInfo(dbCon: Query, fwcloud: number, prefix: number) {
     return new Promise((resolve, reject) => {
       const sql = `select CA.fwcloud,PRE.*,CA.cn from ca_prefix PRE 
       inner join ca CA on CA.id=PRE.ca
@@ -87,7 +88,14 @@ export class CaPrefix extends Model {
   }
 
   // Fill prefix node with matching entries.
-  public static fillPrefixNodeCA(dbCon, fwcloud, ca, name, parent, node): Promise<void> {
+  public static fillPrefixNodeCA(
+    dbCon: Query,
+    fwcloud: number,
+    ca: number,
+    name: string,
+    parent: number,
+    node: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       // Move all affected nodes into the new prefix container node.
       const prefix = dbCon.escape(name).slice(1, -1);
@@ -122,7 +130,7 @@ export class CaPrefix extends Model {
   }
 
   // Apply CRT prefix to tree node.
-  public static applyCrtPrefixes(req, ca): Promise<void> {
+  public static applyCrtPrefixes(req, ca: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         // Search for the CA node tree.
@@ -136,7 +144,7 @@ export class CaPrefix extends Model {
         // Generate all the CRT tree nodes under the CA node.
         const crt_list: any = await Crt.getCRTlist(req.dbCon, ca);
         for (const crt of crt_list)
-          Tree.newNode(
+          void Tree.newNode(
             req.dbCon,
             req.body.fwcloud,
             crt.cn,

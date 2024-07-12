@@ -202,7 +202,7 @@ export class Cluster extends Model {
             fwcloud: fwcloud,
             iduser: iduser,
           };
-          Tree.deleteFwc_TreeFullNode(dataNode).then(() => {
+          void Tree.deleteFwc_TreeFullNode(dataNode).then(() => {
             db.get((error, connection) => {
               const sql = 'DELETE FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
               connection.query(sql, (error) => {

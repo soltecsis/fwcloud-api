@@ -96,7 +96,7 @@ export class PolicyGroupRepository extends Repository<PolicyGroup> {
 
     return await Promise.all(
       policyGroups.map((policyGroup: PolicyGroup) => {
-        this.clone(policyGroup);
+        void this.clone(policyGroup);
       }),
     );
   }

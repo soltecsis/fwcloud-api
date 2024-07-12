@@ -382,7 +382,7 @@ export class createCountriesFwcTree1652811323710 implements MigrationInterface {
     await queryRunner.query(`DELETE FROM ipobj_g WHERE name IN (${continents.join(', ')}) `);
 
     countries.forEach((element) => {
-      queryRunner.query(`DELETE FROM ipobj WHERE name='${element.code}'`);
+      void queryRunner.query(`DELETE FROM ipobj WHERE name='${element.code}'`);
     });
 
     const countriesIds = await queryRunner.query(`SELECT id FROM fwc_tree WHERE node_type='COF'`);

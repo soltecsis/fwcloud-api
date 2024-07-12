@@ -85,7 +85,7 @@ export class Customer extends Model {
     });
   }
 
-  public static existsId = (dbCon, customer) => {
+  public static existsId = (dbCon: Query, customer: number) => {
     return new Promise(async (resolve, reject) => {
       dbCon.query(`select id from ${tableName} where id=${customer}`, (error, result) => {
         if (error) return reject(error);
@@ -147,17 +147,20 @@ export class Customer extends Model {
   }
 
   public static searchUsers(req) {
-    return new Promise((resolve, reject) => {
-      req.dbCon.query(
-        `select count(*) as n from user where customer =${req.body.customer}`,
-        async (error: Error, result) => {
-          if (error) return reject(error);
+    return new Promise<{ result: boolean; restrictions?: { CustomerHasUsers: boolean } }>(
+      (resolve, reject) => {
+        req.dbCon.query(
+          `select count(*) as n from user where customer =${req.body.customer}`,
+          async (error: Error, result) => {
+            if (error) return reject(error);
 
-          if (result[0].n > 0) resolve({ result: true, restrictions: { CustomerHasUsers: true } });
-          else resolve({ result: false });
-        },
-      );
-    });
+            if (result[0].n > 0)
+              resolve({ result: true, restrictions: { CustomerHasUsers: true } });
+            else resolve({ result: false });
+          },
+        );
+      },
+    );
   }
 
   public static lastCustomer(req) {

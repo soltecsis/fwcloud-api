@@ -44,8 +44,6 @@ import { DatabaseService } from '../database/database.service';
 import * as crypto from 'crypto';
 import db from '../database/database-manager';
 import { ExporterResultData } from '../fwcloud-exporter/database-exporter/exporter-result';
-import { Path } from 'glob';
-import { PathLike } from 'fs';
 
 export type SnapshotMetadata = {
   timestamp: number;
@@ -439,7 +437,7 @@ export class Snapshot implements Responsable {
    * Copy all FwCloud DATA directory into the snapshot
    */
   protected async copyFwCloudDataDirectories(): Promise<void> {
-    await FSHelper.mkdirSync(path.join(this._path, Snapshot.DATA_DIRECTORY));
+    FSHelper.mkdirSync(path.join(this._path, Snapshot.DATA_DIRECTORY));
     await FSHelper.copyDirectoryIfExists(
       this.fwCloud.getPkiDirectoryPath(),
       path.join(this._path, Snapshot.PKI_DIRECTORY),
@@ -463,7 +461,7 @@ export class Snapshot implements Responsable {
    */
   protected static async generateSnapshotDirectoryIfDoesNotExist() {
     if (!(await FSHelper.directoryExists(app().config.get('snapshot').data_dir as string))) {
-      FSHelper.mkdir(app().config.get('snapshot').data_dir as string);
+      await FSHelper.mkdir(app().config.get('snapshot').data_dir as string);
     }
   }
 

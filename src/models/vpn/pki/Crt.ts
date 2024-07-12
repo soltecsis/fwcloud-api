@@ -24,6 +24,7 @@ import Model from '../../Model';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Ca } from './Ca';
 import { OpenVPN } from '../openvpn/OpenVPN';
+import Query from '../../../database/Query';
 
 const fwcError = require('../../../utils/error_table');
 
@@ -61,13 +62,13 @@ export class Crt extends Model {
   @Column({ name: 'ca' })
   caId: number;
 
-  @ManyToOne((type) => Ca, (ca) => ca.crts)
+  @ManyToOne(() => Ca, (ca) => ca.crts)
   @JoinColumn({
     name: 'ca',
   })
   ca: Ca;
 
-  @OneToMany((type) => OpenVPN, (openVPN) => openVPN.crt)
+  @OneToMany(() => OpenVPN, (openVPN) => openVPN.crt)
   openVPNs: Array<OpenVPN>;
 
   public getTableName(): string {
@@ -75,7 +76,7 @@ export class Crt extends Model {
   }
 
   // Validate if crt exits.
-  public static existsCRT(dbCon, ca, cn) {
+  public static existsCRT(dbCon: Query, ca: number, cn: string) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT id FROM ${tableName} WHERE ca=${ca} AND cn=${dbCon.escape(cn)}`,
@@ -119,7 +120,7 @@ export class Crt extends Model {
               ),
             );
 
-          req.dbCon.query('DELETE FROM crt WHERE id=' + req.body.crt, (error, result) => {
+          req.dbCon.query('DELETE FROM crt WHERE id=' + req.body.crt, (error) => {
             if (error) return reject(error);
             resolve();
           });
@@ -129,7 +130,7 @@ export class Crt extends Model {
   }
 
   // Get database certificate data.
-  public static getCRTdata(dbCon, crt) {
+  public static getCRTdata(dbCon: Query, crt: number) {
     return new Promise((resolve, reject) => {
       dbCon.query('SELECT * FROM crt WHERE id=' + crt, (error, result) => {
         if (error) return reject(error);
@@ -141,7 +142,7 @@ export class Crt extends Model {
   }
 
   // Get certificate list for a CA.
-  public static getCRTlist(dbCon, ca) {
+  public static getCRTlist(dbCon: Query, ca: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(`SELECT * FROM crt WHERE ca=${ca}`, (error, result) => {
         if (error) return reject(error);
@@ -150,7 +151,7 @@ export class Crt extends Model {
     });
   }
 
-  public static searchCRTInOpenvpn(dbCon, fwcloud, crt) {
+  public static searchCRTInOpenvpn(dbCon: Query, fwcloud: number, crt: number) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT VPN.id FROM openvpn VPN
         INNER JOIN crt CRT ON CRT.id=VPN.crt

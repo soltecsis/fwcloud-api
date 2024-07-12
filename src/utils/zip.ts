@@ -3,8 +3,6 @@ import { FSHelper } from './fs-helper';
 import * as path from 'path';
 import * as fs from 'fs';
 import archiver from 'archiver';
-import { Readable } from 'stream';
-import { ReadableStream } from 'stream/web';
 
 export class Zip {
   /**
@@ -21,7 +19,7 @@ export class Zip {
         }
 
         if (!fs.existsSync(destinationPath)) {
-          FSHelper.mkdirSync(destinationPath);
+          void FSHelper.mkdirSync(destinationPath);
         }
 
         zipfile.on('entry', (entry: yauzl.Entry) => {
@@ -50,7 +48,7 @@ export class Zip {
           return reject(err);
         });
 
-        zipfile.on('end', async () => {
+        zipfile.on('end', () => {
           return resolve();
         });
 
@@ -74,7 +72,7 @@ export class Zip {
       const output = fs.createWriteStream(destinationPath);
       const archive = archiver('zip', { zlib: { level: 9 } });
 
-      output.on('close', async () => {
+      output.on('close', () => {
         return resolve();
       });
 

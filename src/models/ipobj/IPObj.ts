@@ -680,7 +680,7 @@ export class IPObj extends Model {
   }
 
   public static getIpobjInfo(dbCon, fwcloud: number, ipobj: number) {
-    return new Promise((resolve, reject) => {
+    return new Promise<IPObj>((resolve, reject) => {
       const sql = 'SELECT * FROM ipobj WHERE fwcloud=' + fwcloud + ' AND id=' + ipobj;
       dbCon.query(sql, (error, result) => {
         if (error) return reject(error);
@@ -1737,8 +1737,13 @@ export class IPObj extends Model {
   }
 
   // Search if IP with mask exists. (IP is given in CIDR notation)
-  public static searchIPRange(dbCon: Query, fwcloud: number, start: string, end: string) {
-    return new Promise<Number>((resolve, reject) => {
+  public static searchIPRange(
+    dbCon: Query,
+    fwcloud: number,
+    start: string,
+    end: string,
+  ): Promise<number> {
+    return new Promise((resolve, reject) => {
       const sql = `select id from ipobj where (fwcloud IS NULL OR fwcloud=${fwcloud}) 
             AND range_start=${dbCon.escape(start)} AND range_end=${dbCon.escape(end)} AND type=6`; // 6: ADDRESS RANGE
 

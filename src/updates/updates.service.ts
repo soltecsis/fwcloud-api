@@ -28,7 +28,6 @@ import axios, { AxiosRequestConfig, Method } from 'axios';
 import * as https from 'https';
 import cmp from 'semver-compare';
 import { spawn } from 'child-process-promise';
-import { Err } from 'joi';
 export interface Versions {
   current: string;
   last: string;

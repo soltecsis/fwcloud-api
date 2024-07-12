@@ -38,7 +38,7 @@ async function loadApiApplication(): Promise<Application> {
 
 function startServer(app: Application): Server {
   const server: Server = new Server(app);
-  server.start();
+  void server.start();
   return server;
 }
 
@@ -47,4 +47,4 @@ async function start() {
   startServer(app);
 }
 
-start();
+void start();

@@ -444,20 +444,20 @@ export class OpenVPN extends Model {
                 (opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') + opt.name;
               if (opt.ipobj) {
                 // Get the ipobj data.
-                const ipobj: any = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
-                if (ipobj.type === 7) {
+                const ipobj = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
+                if (ipobj.ipObjTypeId === 7) {
                   // Network
                   const netmask =
                     ipobj.netmask[0] === '/'
                       ? ip.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask
                       : ipobj.netmask;
                   cfg_line += ' ' + ipobj.address + ' ' + netmask;
-                } else if (ipobj.type === 5) {
+                } else if (ipobj.ipObjTypeId === 5) {
                   // Address
                   cfg_line += ' ' + ipobj.address;
                   if (opt.name === 'ifconfig-push') cfg_line += ' ' + ipobj.netmask;
                   else if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
-                } else if (ipobj.type === 9) {
+                } else if (ipobj.ipObjTypeId === 9) {
                   // DNS Name
                   cfg_line += ' ' + ipobj.name;
                   if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
@@ -799,17 +799,19 @@ export class OpenVPN extends Model {
   }
 
   public static searchOpenvpnChild(dbCon: Query, fwcloud: number, openvpn: number) {
-    return new Promise((resolve, reject) => {
-      const sql = `SELECT VPN.id FROM openvpn VPN
+    return new Promise<{ result: boolean; restrictions?: { OpenvpnHasChild: boolean } }>(
+      (resolve, reject) => {
+        const sql = `SELECT VPN.id FROM openvpn VPN
                 INNER JOIN firewall FW ON FW.id=VPN.firewall
                 WHERE FW.fwcloud=${fwcloud} AND VPN.openvpn=${openvpn}`;
-      dbCon.query(sql, async (error, result) => {
-        if (error) return reject(error);
+        dbCon.query(sql, async (error, result) => {
+          if (error) return reject(error);
 
-        if (result.length > 0) resolve({ result: true, restrictions: { OpenvpnHasChild: true } });
-        else resolve({ result: false });
-      });
-    });
+          if (result.length > 0) resolve({ result: true, restrictions: { OpenvpnHasChild: true } });
+          else resolve({ result: false });
+        });
+      },
+    );
   }
 
   public static searchIPObjInOpenvpnOpt(dbCon: Query, ipobj, name) {
@@ -838,7 +840,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static addToGroup(dbCon: Query, openvpn: number, ipobj_g: number) {
+  public static addToGroup(dbCon: Query, openvpn: number, ipobj_g: number): Promise<number> {
     return new Promise((resolve, reject) => {
       dbCon.query(`INSERT INTO openvpn__ipobj_g values(${openvpn},${ipobj_g})`, (error, result) => {
         if (error) return reject(error);
@@ -847,7 +849,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static removeFromGroup(req) {
+  public static removeFromGroup(req): Promise<number> {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM openvpn__ipobj_g WHERE ipobj_g=${req.body.ipobj_g} AND openvpn=${req.body.ipobj}`;
       req.dbCon.query(sql, (error: Error, result) => {

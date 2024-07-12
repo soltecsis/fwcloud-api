@@ -118,7 +118,8 @@ export class RouteGroupService extends Service {
 
   async remove(path: IFindOneRouteGroupPath): Promise<RouteGroup> {
     const group: RouteGroup = await this.findOneInPath(path);
-    db.getSource()
+    await db
+      .getSource()
       .manager.getRepository(Route)
       .update(
         group.routes.map((route) => route.id),

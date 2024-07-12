@@ -25,6 +25,7 @@ import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { PolicyPosition } from './PolicyPosition';
 import { OpenVPN } from '../vpn/openvpn/OpenVPN';
 import { PolicyRule } from './PolicyRule';
+import Query from '../../database/Query';
 
 const tableName: string = 'policy_r__openvpn';
 
@@ -92,7 +93,7 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static checkOpenvpnPosition(dbCon, position) {
+  public static checkOpenvpnPosition(dbCon: Query, position: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select type from ipobj_type__policy_position where type=311 and position=${position}`,
@@ -104,7 +105,12 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static checkExistsInPosition(dbCon, rule, openvpn, position) {
+  public static checkExistsInPosition(
+    dbCon: Query,
+    rule: number,
+    openvpn: number,
+    position: number,
+  ) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT rule FROM ${tableName}
                 WHERE rule=${rule} AND openvpn=${openvpn} AND position=${position}`;
@@ -136,7 +142,7 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static deleteFromRule(dbCon, rule): Promise<void> {
+  public static deleteFromRule(dbCon: Query, rule: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
       dbCon.query(`DELETE FROM ${tableName} WHERE rule=${rule}`, async (error) => {
         if (error) return reject(error);
@@ -146,7 +152,11 @@ export class PolicyRuleToOpenVPN extends Model {
   }
 
   //Duplicate policy_r__openvpn RULES
-  public static duplicatePolicy_r__openvpn(dbCon, rule, new_rule): Promise<void> {
+  public static duplicatePolicy_r__openvpn(
+    dbCon: Query,
+    rule: number,
+    new_rule: number,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `INSERT INTO ${tableName} (rule, openvpn, position,position_order)
                 (SELECT ${new_rule}, openvpn, position, position_order
@@ -158,7 +168,7 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static searchOpenvpnInRule(dbCon, fwcloud, openvpn) {
+  public static searchOpenvpnInRule(dbCon: Query, fwcloud: number, openvpn: number) {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name, 
                 O.openvpn obj_id, CRT.cn obj_name,
@@ -180,7 +190,7 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static searchOpenvpnInGroup(dbCon, fwcloud, openvpn) {
+  public static searchOpenvpnInGroup(dbCon: Query, fwcloud: number, openvpn: number) {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g group_id, G.name group_name, G.type as group_type,
                 (select id from ipobj_type where id=311) as obj_type_id, CRT.cn obj_name
@@ -196,7 +206,11 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static getConfigsUnderOpenvpnPrefix(dbCon, openvpn_server_id, prefix_name) {
+  public static getConfigsUnderOpenvpnPrefix(
+    dbCon: Query,
+    openvpn_server_id: number,
+    prefix_name: number,
+  ) {
     return new Promise((resolve, reject) => {
       // Get all OpenVPN client configs under an openvpn configuration server whose CRT common name matches the prefix name.
       const sql = `select VPN.id from openvpn VPN
@@ -209,7 +223,7 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static searchLastOpenvpnInPrefixInRule(dbCon, fwcloud, openvpn) {
+  public static searchLastOpenvpnInPrefixInRule(dbCon: Query, fwcloud: number, openvpn: number) {
     return new Promise((resolve, reject) => {
       // Fisrt get all the OpenVPN prefixes in rules to which the openvpn configuration belongs.
       const sql = `select P.rule rule_id, P.prefix, PRE.openvpn, PRE.name, R.type rule_type, (select id from ipobj_type where id=311) as obj_type_id, CRT.cn obj_name,
@@ -244,7 +258,7 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static searchLastOpenvpnInPrefixInGroup(dbCon, fwcloud, openvpn) {
+  public static searchLastOpenvpnInPrefixInGroup(dbCon: Query, fwcloud: number, openvpn: number) {
     return new Promise((resolve, reject) => {
       // Fisrt get all the OpenVPN prefixes in groups to which the openvpn configuration belongs.
       const sql = `select P.prefix, PRE.openvpn, PRE.name, GR.id group_id, GR.name group_name
@@ -274,7 +288,7 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static searchOpenvpnInPrefixInRule(dbCon, fwcloud, openvpn) {
+  public static searchOpenvpnInPrefixInRule(dbCon: Query, fwcloud: number, openvpn: number) {
     return new Promise((resolve, reject) => {
       // Get all the OpenVPN prefixes in rules to which the openvpn configuration belongs.
       const sql = `select R.firewall,P.rule from policy_r__openvpn_prefix P
@@ -291,7 +305,7 @@ export class PolicyRuleToOpenVPN extends Model {
     });
   }
 
-  public static searchOpenvpnInPrefixInGroup(dbCon, fwcloud, openvpn) {
+  public static searchOpenvpnInPrefixInGroup(dbCon: Query, fwcloud: number, openvpn: number) {
     return new Promise((resolve, reject) => {
       // Get all the OpenVPN prefixes in groups to which the openvpn configuration belongs.
       const sql = `select P.ipobj_g from openvpn_prefix__ipobj_g P

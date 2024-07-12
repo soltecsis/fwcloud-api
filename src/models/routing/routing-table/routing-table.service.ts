@@ -188,12 +188,12 @@ export class RoutingTableService extends Service {
 
     await db.getSource().manager.getRepository(RoutingTable).remove(table);
 
-    const nodes: any[] = (await Tree.getNodeInfo(
+    const nodes = await Tree.getNodeInfo(
       db.getQuery(),
       tableWithRules.firewall.fwCloudId,
       'RT',
       tableWithRules.id,
-    )) as any[];
+    );
     if (nodes.length > 0) {
       const node_id = nodes[0].id;
       await Tree.deleteNodesUnderMe(db.getQuery(), tableWithRules.firewall.fwCloudId, node_id);

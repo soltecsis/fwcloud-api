@@ -31,6 +31,7 @@ const fwcError = require('../../../utils/error_table');
 import { spawn } from 'child-process-promise';
 import * as readline from 'readline';
 import * as fs from 'fs';
+import Query from '../../../database/Query';
 
 const tableName: string = 'ca';
 
@@ -127,7 +128,7 @@ export class Ca extends Model {
   }
 
   // Get CA list for a fwcloud.
-  public static getCAlist(dbCon, fwcloud) {
+  public static getCAlist(dbCon: Query, fwcloud: number) {
     return new Promise((resolve, reject) => {
       dbCon.query(`SELECT * FROM ca WHERE fwcloud=${fwcloud}`, (error, result) => {
         if (error) return reject(error);
@@ -250,7 +251,7 @@ export class Ca extends Model {
     });
   }
 
-  public static searchCAHasCRTs(dbCon, fwcloud, ca) {
+  public static searchCAHasCRTs(dbCon: Query, fwcloud: number, ca: number) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT CRT.id FROM crt CRT
       INNER JOIN ca CA ON CA.id=CRT.ca
@@ -264,7 +265,7 @@ export class Ca extends Model {
     });
   }
 
-  public static searchCAHasPrefixes(dbCon, fwcloud, ca) {
+  public static searchCAHasPrefixes(dbCon: Query, fwcloud: number, ca: number) {
     return new Promise((resolve, reject) => {
       const sql = `SELECT P.id FROM ca_prefix P
       INNER JOIN ca CA ON CA.id=P.ca

@@ -777,7 +777,10 @@ export class Firewall extends Model {
     });
   }
 
-  public static async updateFirewallStatusIPOBJ(fwcloudId: any, ipObjIds: number[]): Promise<void> {
+  public static async updateFirewallStatusIPOBJ(
+    fwcloudId: number,
+    ipObjIds: number[],
+  ): Promise<void> {
     if (ipObjIds.length === 0) {
       return;
     }

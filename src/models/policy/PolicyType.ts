@@ -67,7 +67,7 @@ export class PolicyType extends Model {
   }
 
   //Get All policy_type
-  public static getPolicy_types(callback) {
+  public static getPolicy_types(callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query('SELECT * FROM ' + tableName + ' ORDER BY type_order', (error, rows) => {
@@ -78,7 +78,7 @@ export class PolicyType extends Model {
   }
 
   //Get policy_type by  type
-  public static getPolicy_type(id, callback) {
+  public static getPolicy_type(id: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql = 'SELECT * FROM ' + tableName + ' WHERE id = ' + connection.escape(id);
@@ -92,7 +92,7 @@ export class PolicyType extends Model {
   }
 
   //Get policy_type by  type Letter
-  public static getPolicy_typeL(id, callback) {
+  public static getPolicy_typeL(id: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(id);
@@ -106,7 +106,7 @@ export class PolicyType extends Model {
   }
 
   //Get policy_type by name
-  public static getPolicy_typeName(name, callback) {
+  public static getPolicy_typeName(name: string, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const namesql = '%' + name + '%';
@@ -124,7 +124,7 @@ export class PolicyType extends Model {
   }
 
   //Add new policy_type
-  public static insertPolicy_type(policy_typeData, callback) {
+  public static insertPolicy_type(policy_typeData, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       connection.query('INSERT INTO ' + tableName + ' SET ?', policy_typeData, (error, result) => {
@@ -139,7 +139,7 @@ export class PolicyType extends Model {
   }
 
   //Update policy_type
-  public static updatePolicy_type(policy_typeData, callback) {
+  public static updatePolicy_type(policy_typeData, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -168,7 +168,7 @@ export class PolicyType extends Model {
   }
 
   //Remove policy_type with type to remove
-  public static deletePolicy_type(type, callback) {
+  public static deletePolicy_type(type: string, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE type = ' + connection.escape(type);

@@ -27,6 +27,8 @@ import { logger } from '../../fonaments/abstract-application';
 import { PolicyRule } from './PolicyRule';
 import { Interface } from '../interface/Interface';
 import { PolicyPosition } from './PolicyPosition';
+import Query from '../../database/Query';
+import { number, string } from 'joi';
 const fwcError = require('../../utils/error_table');
 
 const asyncMod = require('async');
@@ -134,7 +136,10 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Add new policy_r__interface
-  public static insertPolicy_r__interface(idfirewall, policy_r__interfaceData): Promise<void> {
+  public static insertPolicy_r__interface(
+    idfirewall: number,
+    policy_r__interfaceData,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       //Check if IPOBJ TYPE is ALLOWED in this Position
       this.checkInterfacePosition(
@@ -176,7 +181,9 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Clone policy_r__interface
-  public static clonePolicy_r__interface(policy_r__interfaceData) {
+  public static clonePolicy_r__interface(
+    policy_r__interfaceData,
+  ): Promise<{ result: boolean; allowed: string }> {
     return new Promise((resolve, reject) => {
       const p_interfaceData = {
         rule: policy_r__interfaceData.newrule,
@@ -195,7 +202,7 @@ export class PolicyRuleToInterface extends Model {
               reject(error);
             } else {
               if (result.affectedRows > 0) {
-                this.OrderList(
+                void this.OrderList(
                   p_interfaceData.position_order,
                   p_interfaceData.rule,
                   p_interfaceData.position,
@@ -215,7 +222,11 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Duplicate policy_r__interface RULES
-  public static duplicatePolicy_r__interface = (dbCon, rule, new_rule): Promise<void> => {
+  public static duplicatePolicy_r__interface = (
+    dbCon: Query,
+    rule: number,
+    new_rule: number,
+  ): Promise<void> => {
     return new Promise((resolve, reject) => {
       const sql = `INSERT INTO ${tableName} (rule, interface, position,position_order)
 			(SELECT ${new_rule}, interface, position, position_order
@@ -229,13 +240,13 @@ export class PolicyRuleToInterface extends Model {
 
   //Update policy_r__interface
   public static updatePolicy_r__interface(
-    idfirewall,
-    rule,
-    _interface,
-    old_position,
-    old_position_order,
+    idfirewall: number,
+    rule: number,
+    _interface: number,
+    old_position: number,
+    old_position_order: number,
     policy_r__interfaceData,
-    callback,
+    callback: Function,
   ) {
     //Check if IPOBJ TYPE is ALLOWED in this Position
     this.checkInterfacePosition(
@@ -267,7 +278,7 @@ export class PolicyRuleToInterface extends Model {
                   callback(error, null);
                 } else {
                   if (result.affectedRows > 0) {
-                    this.OrderList(
+                    void this.OrderList(
                       policy_r__interfaceData.position_order,
                       rule,
                       null,
@@ -289,15 +300,15 @@ export class PolicyRuleToInterface extends Model {
 
   //Update policy_r__interface POSITION AND RULE
   public static updatePolicy_r__interface_position(
-    dbCon,
-    idfirewall,
-    rule,
-    _interface,
-    old_position,
-    old_position_order,
-    new_rule,
-    new_position,
-    new_order,
+    dbCon: Query,
+    idfirewall: number,
+    rule: number,
+    _interface: number,
+    old_position: number,
+    old_position_order: number,
+    new_rule: number,
+    new_position: number,
+    new_order: number,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       //Check if IPOBJ TYPE is ALLOWED in this Position
@@ -317,9 +328,9 @@ export class PolicyRuleToInterface extends Model {
             if (error) return reject(error);
             if (result.affectedRows > 0) {
               //Order New position
-              this.OrderList(new_order, new_rule, new_position, 999999, _interface);
+              void this.OrderList(new_order, new_rule, new_position, 999999, _interface);
               //Order OLD position
-              this.OrderList(999999, rule, old_position, old_position_order, _interface);
+              void this.OrderList(999999, rule, old_position, old_position_order, _interface);
 
               resolve();
             } else reject(fwcError.NOT_FOUND);
@@ -331,14 +342,14 @@ export class PolicyRuleToInterface extends Model {
 
   //Update ORDER policy_r__interface
   public static updatePolicy_r__interface_order(
-    rule,
-    _interface,
-    position,
-    old_order,
-    new_order,
-    callback,
+    rule: number,
+    _interface: number,
+    position: number,
+    old_order: number,
+    new_order: number,
+    callback: Function,
   ) {
-    this.OrderList(new_order, rule, position, old_order, _interface);
+    void this.OrderList(new_order, rule, position, old_order, _interface);
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sql =
@@ -363,7 +374,13 @@ export class PolicyRuleToInterface extends Model {
     });
   }
 
-  private static OrderList(new_order, rule, position, old_order, _interface) {
+  private static OrderList(
+    new_order: number,
+    rule: number,
+    position: number,
+    old_order: number,
+    _interface: number,
+  ) {
     return new Promise((resolve, reject) => {
       let increment = '+1';
       let order1 = new_order;
@@ -419,7 +436,13 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Check if a object (type) can be inserted in a position type
-  private static checkInterfacePosition(idfirewall, rule, id, position, callback: Function) {
+  private static checkInterfacePosition(
+    idfirewall: number,
+    rule: number,
+    id: number,
+    position: number,
+    callback: Function,
+  ) {
     db.get((error, connection) => {
       if (error) return callback(null, 0);
 
@@ -436,11 +459,11 @@ export class PolicyRuleToInterface extends Model {
 
   //Remove policy_r__interface with id to remove
   public static deletePolicy_r__interface(
-    dbCon,
-    rule,
-    _interface,
-    position,
-    old_order,
+    dbCon: Query,
+    rule: number,
+    _interface: number,
+    position: number,
+    old_order: number,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sqlExists = `SELECT * FROM ${tableName} 
@@ -457,7 +480,7 @@ export class PolicyRuleToInterface extends Model {
             connection.query(sql, async (error, result) => {
               if (error) return reject(error);
               if (result.affectedRows > 0) {
-                this.OrderList(999999, rule, position, old_order, _interface);
+                void this.OrderList(999999, rule, position, old_order, _interface);
                 resolve();
               } else reject(fwcError.NOT_FOUND);
             });
@@ -468,7 +491,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Remove policy_r__interface with id to remove
-  public static deletePolicy_r__All(rule, callback: Function) {
+  public static deletePolicy_r__All(rule: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlExists = 'SELECT * FROM ' + tableName + ' WHERE rule = ' + connection.escape(rule);
@@ -499,7 +522,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Order policy_r__interfaces Position
-  public static orderPolicyPosition(rule, position, callback: Function) {
+  public static orderPolicyPosition(rule: number, position: number, callback: Function) {
     logger().debug('DENTRO ORDER   Rule: ' + rule + '  Position: ' + position);
 
     db.get((error, connection) => {
@@ -554,7 +577,7 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //Order policy_r__interfaces Position
-  public static orderPolicy(rule, callback: Function) {
+  public static orderPolicy(rule: number, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
       const sqlRule =
@@ -667,7 +690,12 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //check if INTERFACE Exists in any rule
-  public static checkInterfaceInRule(_interface, type, fwcloud, callback: Function) {
+  public static checkInterfaceInRule(
+    _interface: number,
+    type: number,
+    fwcloud: number,
+    callback: Function,
+  ) {
     logger().debug(
       'CHECK DELETING interface I POSITIONS:' +
         _interface +
@@ -720,7 +748,11 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //check if HOST ALL INTERFACEs Exists in any rule
-  public static checkHostAllInterfacesInRule(ipobj_host, fwcloud, callback: Function) {
+  public static checkHostAllInterfacesInRule(
+    ipobj_host: number,
+    fwcloud: number,
+    callback: Function,
+  ) {
     logger().debug(
       'CHECK DELETING HOST ALL interfaces I POSITIONS:' + ipobj_host + '  fwcloud:' + fwcloud,
     );
@@ -765,7 +797,13 @@ export class PolicyRuleToInterface extends Model {
   }
 
   //search if INTERFACE Exists in any rule I POSITIONS
-  public static SearchInterfaceInRules = (_interface, type, fwcloud, firewall, diff_firewall) => {
+  public static SearchInterfaceInRules = (
+    _interface: number,
+    type: number,
+    fwcloud: number,
+    firewall: number,
+    diff_firewall: number,
+  ) => {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -813,12 +851,12 @@ export class PolicyRuleToInterface extends Model {
   };
 
   public static interfaceAlreadyInRulePosition = (
-    dbCon,
-    fwcloud,
-    firewall,
-    rule,
-    position,
-    _interface,
+    dbCon: Query,
+    fwcloud: number,
+    firewall: number,
+    rule: number,
+    position: number,
+    _interface: number,
   ) => {
     return new Promise((resolve, reject) => {
       const sql = `SELECT O.rule FROM ${tableName} O 

@@ -853,7 +853,7 @@ export class IptablesSaveToFWCloud extends Service {
       .validate(ips[1]);
 
     // Search to find out if it already exists.
-    let iprangeId: any = await IPObj.searchIPRange(
+    let iprangeId = await IPObj.searchIPRange(
       this.req.dbCon,
       this.req.body.fwcloud,
       ips[0],

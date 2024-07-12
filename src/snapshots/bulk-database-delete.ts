@@ -61,7 +61,7 @@ export class BulkDatabaseDelete {
       } catch (e) {
         await qr.rollbackTransaction();
         await qr.query('SET FOREIGN_KEY_CHECKS = 1');
-        qr.release();
+        await qr.release();
         return reject(e);
       }
 
