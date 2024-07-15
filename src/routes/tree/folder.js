@@ -20,65 +20,68 @@
     along with FWCloud.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 var express = require('express');
 var router = express.Router();
 import { Folder } from '../../models/tree/Folder';
 import { logger } from '../../fonaments/abstract-application';
 const fwcError = require('../../utils/error_table');
 
-
 /* Create new folder */
-router.post('/', async (req, res) =>{
-	var nodeData = {
-		id: null,
-		name: req.body.name,
-		id_parent: req.body.id_parent,
-		node_type: 'FD',
-		obj_type: null,
-		id_obj: null,
-		fwcloud: req.body.fwcloud
-	};
+router.post('/', async (req, res) => {
+  var nodeData = {
+    id: null,
+    name: req.body.name,
+    id_parent: req.body.id_parent,
+    node_type: 'FD',
+    obj_type: null,
+    id_obj: null,
+    fwcloud: req.body.fwcloud,
+  };
 
-	try {
-		res.status(200).json(await Folder.createFolderNode(nodeData)); 
-	} catch(error) {
-		logger().error('Error creating new folder: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
+  try {
+    res.status(200).json(await Folder.createFolderNode(nodeData));
+  } catch (error) {
+    logger().error('Error creating new folder: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
 
 /* Rename folder */
-router.put('/', async (req, res) =>{
-	try {
-		await Folder.renameFolderNode(req.body.fwcloud,req.body.id,req.body.old_name,req.body.new_name);
-		res.status(204).end(); 
-	} catch(error) {
-		logger().error('Error renaming folder: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
+router.put('/', async (req, res) => {
+  try {
+    await Folder.renameFolderNode(
+      req.body.fwcloud,
+      req.body.id,
+      req.body.old_name,
+      req.body.new_name,
+    );
+    res.status(204).end();
+  } catch (error) {
+    logger().error('Error renaming folder: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
 
 /* Delete folder */
-router.put('/del', async (req, res) =>{
-	try {
-		await Folder.deleteFolderNode(req.body.fwcloud,req.body.id);
-		res.status(204).end(); 
-	} catch(error) {
-		logger().error('Error removing folder: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
+router.put('/del', async (req, res) => {
+  try {
+    await Folder.deleteFolderNode(req.body.fwcloud, req.body.id);
+    res.status(204).end();
+  } catch (error) {
+    logger().error('Error removing folder: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
 
 /* Drop to folder */
-router.put('/drop', async (req, res) =>{
-	try {
-		await Folder.moveToFolder(req.body.fwcloud,req.body.src,req.body.dst);
-		res.status(204).end(); 
-	} catch(error) {
-		logger().error('Error dropping folder: ' + JSON.stringify(error));
-		res.status(400).json(error);
-	}
+router.put('/drop', async (req, res) => {
+  try {
+    await Folder.moveToFolder(req.body.fwcloud, req.body.src, req.body.dst);
+    res.status(204).end();
+  } catch (error) {
+    logger().error('Error dropping folder: ' + JSON.stringify(error));
+    res.status(400).json(error);
+  }
 });
 
 module.exports = router;

@@ -65,12 +65,18 @@ export class CaPrefix extends Model {
   }
 
   // Get all prefixes for the indicated CA.
-  public static getPrefixes(dbCon: Query, ca: number): Promise<void> {
+  public static getPrefixes(
+    dbCon: Query,
+    ca: number,
+  ): Promise<Array<{ id: number; name: string }>> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`SELECT id,name FROM ca_prefix WHERE ca=${ca}`, (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      });
+      dbCon.query(
+        `SELECT id,name FROM ca_prefix WHERE ca=${ca}`,
+        (error, result: Array<{ id: number; name: string }>) => {
+          if (error) return reject(error);
+          resolve(result);
+        },
+      );
     });
   }
 
@@ -101,31 +107,34 @@ export class CaPrefix extends Model {
       const prefix = dbCon.escape(name).slice(1, -1);
       let sql = `SELECT id,type,cn,SUBSTRING(cn,${prefix.length + 1},255) as sufix FROM crt
       WHERE ca=${ca} AND cn LIKE '${prefix}%'`;
-      dbCon.query(sql, async (error, result) => {
-        if (error) return reject(error);
-
-        try {
-          for (const row of result)
-            await Tree.newNode(
-              dbCon,
-              fwcloud,
-              row.sufix,
-              node,
-              'CRT',
-              row.id,
-              row.type === 1 ? 301 : 302,
-            );
-        } catch (error) {
-          return reject(error);
-        }
-
-        // Remove from root CA node the nodes that match de prefix.
-        sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} AND (obj_type=301 OR obj_type=302) AND name LIKE '${prefix}%'`;
-        dbCon.query(sql, (error) => {
+      dbCon.query(
+        sql,
+        async (error, result: Array<{ id: number; type: number; sufix: string }>) => {
           if (error) return reject(error);
-          resolve();
-        });
-      });
+
+          try {
+            for (const row of result)
+              await Tree.newNode(
+                dbCon,
+                fwcloud,
+                row.sufix,
+                node,
+                'CRT',
+                row.id,
+                row.type === 1 ? 301 : 302,
+              );
+          } catch (error) {
+            return reject(error);
+          }
+
+          // Remove from root CA node the nodes that match de prefix.
+          sql = `DELETE FROM fwc_tree WHERE id_parent=${parent} AND (obj_type=301 OR obj_type=302) AND name LIKE '${prefix}%'`;
+          dbCon.query(sql, (error) => {
+            if (error) return reject(error);
+            resolve();
+          });
+        },
+      );
     });
   }
 
@@ -134,7 +143,7 @@ export class CaPrefix extends Model {
     return new Promise(async (resolve, reject) => {
       try {
         // Search for the CA node tree.
-        const node: any = await Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'CA', ca);
+        const node = await Tree.getNodeInfo(req.dbCon, req.body.fwcloud, 'CA', ca);
         if (node.length !== 1) throw fwcError.other(`Found ${node.length} CA nodes, awaited 1`);
         const node_id = node[0].id;
 

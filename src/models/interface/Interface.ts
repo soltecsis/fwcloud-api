@@ -158,7 +158,7 @@ export class Interface extends Model {
   }
 
   //Get All interface by HOST
-  public static getInterfacesHost(idhost: number, fwcloud: number, callback: Function) {
+  public static getInterfacesHost(idhost: number, fwcloud: number, callback: Function): void {
     db.get((error: Error, connection) => {
       if (error) callback(error, null);
       //var sql = 'SELECT * FROM ' + tableName + ' WHERE (firewall=' + connection.escape(idfirewall) + ' OR firewall is NULL) ' + ' ORDER BY id';
@@ -372,14 +372,14 @@ export class Interface extends Model {
   }
 
   // Get all host addresses.
-  public static getHostAddr(dbCon: Query, host: number) {
+  public static getHostAddr(dbCon: Query, host: number): Promise<IPObj[]> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select interface from interface__ipobj where ipobj=${host}`,
-        async (error: Error, interfaces) => {
+        async (error: Error, interfaces: Array<{ interface: number }>) => {
           if (error) return reject(error);
 
-          let result = [];
+          let result: IPObj[] = [];
           try {
             for (const _interface of interfaces) {
               result = result.concat(await this.getInterfaceAddr(dbCon, _interface.interface));

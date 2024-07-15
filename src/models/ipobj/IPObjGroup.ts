@@ -44,6 +44,7 @@ import { FwCloud } from '../fwcloud/FwCloud';
 import { RouteToIPObjGroup } from '../routing/route/route-to-ipobj-group.model';
 import { RoutingRuleToIPObjGroup } from '../routing/routing-rule/routing-rule-to-ipobj-group.model';
 import Query from '../../database/Query';
+import { number } from 'joi';
 const asyncMod = require('async');
 const ipobj_g_Data = require('../data/data_ipobj_g');
 const ipobj_Data = require('../data/data_ipobj');
@@ -112,7 +113,7 @@ export class IPObjGroup extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT * FROM ${tableName} WHERE (fwcloud=${dbCon.escape(fwcloud)} OR fwcloud is null) ORDER BY id`,
-        (error, rows) => {
+        (error, rows: Array<IPObjGroup>) => {
           if (error) return reject(error);
           resolve(rows);
         },
@@ -125,7 +126,7 @@ export class IPObjGroup extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT * FROM ${tableName} WHERE id=${id} AND (fwcloud=${fwcloud} OR fwcloud is null)`,
-        (error, rows) => {
+        (error, rows: Array<IPObjGroup>) => {
           if (error) return reject(error);
           resolve(rows);
         },
@@ -134,12 +135,12 @@ export class IPObjGroup extends Model {
   }
 
   //Count group items.
-  public static countGroupItems(dbCon: Query, group: number) {
+  public static countGroupItems(dbCon: Query, group: number): Promise<number> {
     return new Promise((resolve, reject) => {
       const sql = `select ipobj as id from ipobj__ipobjg where ipobj_g=${group}
             union select openvpn as id from openvpn__ipobj_g where ipobj_g=${group}
             union select prefix as id from openvpn_prefix__ipobj_g where ipobj_g=${group}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
 
         resolve(result.length);
@@ -279,7 +280,7 @@ export class IPObjGroup extends Model {
                 inner join openvpn_prefix__ipobj_g R on R.prefix=O.id
                 where R.ipobj_g=${gid}
                 order by name`;
-        dbCon.query(sql, async (error, rows) => {
+        dbCon.query(sql, async (error, rows: Array<{ id: number; name: string; type: string }>) => {
           if (error) return reject(error);
 
           let ipobj_node;
@@ -455,14 +456,14 @@ export class IPObjGroup extends Model {
   }
 
   //Add new ipobj_g
-  public static insertIpobj_g(ipobj_gData, callback: Function) {
+  public static insertIpobj_g(ipobj_gData: IPObjGroup, callback: Function) {
     db.get((error, connection) => {
       if (error) return callback(error, null);
       // The IDs for the user defined IP Objects groups begin from the value 100000.
       // IDs values from 0 to 99999 are reserved for standard IP Objects.
       connection.query(
         'SELECT ID FROM ' + tableName + ' ORDER BY ID DESC LIMIT 1',
-        (error, result) => {
+        (error, result: Array<{ ID: number }>) => {
           if (error) return callback(error, null);
           ipobj_gData.id = result[0].ID >= 100000 ? result[0].ID + 1 : 100000;
           connection.query('INSERT INTO ' + tableName + ' SET ?', ipobj_gData, (error, result) => {
@@ -478,7 +479,7 @@ export class IPObjGroup extends Model {
   }
 
   //Update ipobj_g
-  public static updateIpobj_g(req, ipobj_gData): Promise<void> {
+  public static updateIpobj_g(req, ipobj_gData: IPObjGroup): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(ipobj_gData.name)}
             ,type=${ipobj_gData.type}

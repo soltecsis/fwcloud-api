@@ -331,11 +331,14 @@ export class Firewall extends Model {
 
   public static getClusterId(dbCon: Query, firewall: number): Promise<number | null> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`select cluster from ${tableName} where id=${firewall}`, (error, rows) => {
-        if (error) return reject(error);
-        if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
-        resolve(rows[0].cluster);
-      });
+      dbCon.query(
+        `select cluster from ${tableName} where id=${firewall}`,
+        (error, rows: Array<{ cluster: number }>) => {
+          if (error) return reject(error);
+          if (rows.length !== 1) return reject(fwcError.NOT_FOUND);
+          resolve(rows[0].cluster);
+        },
+      );
     });
   }
 
@@ -1356,7 +1359,11 @@ export class Firewall extends Model {
    *       callback(null, {"result": false});
    *
    */
-  public static deleteFirewall = (user, fwcloud, firewall): Promise<void> => {
+  public static deleteFirewall = (
+    user: number,
+    fwcloud: number,
+    firewall: number,
+  ): Promise<void> => {
     return new Promise((resolve, reject) => {
       db.get((error, dbCon) => {
         if (error) return reject(error);

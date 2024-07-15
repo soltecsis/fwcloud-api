@@ -149,7 +149,7 @@ export class Tree extends Model {
         sql = sql + ` AND id_obj${!id_obj ? ' IS NULL' : '=' + id_obj}`;
       }
 
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error, result: Array<Tree>) => {
         if (error) return reject(error);
         resolve(result);
       });
@@ -496,7 +496,7 @@ export class Tree extends Model {
   }
 
   //Verify node info.
-  public static verifyNodeInfo(id: number, fwcloud: number, id_obj: number) {
+  public static verifyNodeInfo(id: number, fwcloud: number, id_obj: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -522,8 +522,8 @@ export class Tree extends Model {
     node_type: string,
     id_obj: number,
     obj_type: number,
-  ) {
-    return new Promise<number>((resolve, reject) => {
+  ): Promise<number> {
+    return new Promise((resolve, reject) => {
       const sql =
         'INSERT INTO ' +
         tableName +
@@ -605,7 +605,11 @@ export class Tree extends Model {
   }
 
   //UPDATE NODE
-  public static updateIDOBJFwc_Tree_node(fwcloud: number, id: number, idNew: number) {
+  public static updateIDOBJFwc_Tree_node(
+    fwcloud: number,
+    id: number,
+    idNew: number,
+  ): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) reject(error);
@@ -653,7 +657,19 @@ export class Tree extends Model {
     });
   }
 
-  public static createObjectsTree(dbCon: Query, fwCloudId: number) {
+  public static createObjectsTree(
+    dbCon: Query,
+    fwCloudId: number,
+  ): Promise<{
+    OBJECTS: number;
+    Addresses: number;
+    AddressesRanges: number;
+    Networks: number;
+    DNS: number;
+    Marks: number;
+    Groups: number;
+    COUNTRIES: number;
+  }> {
     return new Promise(async (resolve, reject) => {
       try {
         const ids: any = {};
@@ -875,10 +891,10 @@ export class Tree extends Model {
     group: number,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      let sql = `SELECT O.id,O.name,O.type FROM ipobj__ipobjg G
+      let sql = `SELECT O.id id,O.name name,O.type type FROM ipobj__ipobjg G
 			INNER JOIN ipobj O ON O.id=G.ipobj
 			WHERE G.ipobj_g=${group}`;
-      dbCon.query(sql, async (error, ipobjs) => {
+      dbCon.query(sql, async (error, ipobjs: Array<{ id: number; name: string; type: number }>) => {
         if (error) return reject(error);
 
         try {
@@ -907,13 +923,12 @@ export class Tree extends Model {
           return reject(error);
         }
 
-        sql = `SELECT VPN.id,CRT.cn FROM openvpn__ipobj_g G
+        sql = `SELECT VPN.id as id,CRT.cn as cn FROM openvpn__ipobj_g G
 				INNER JOIN openvpn VPN ON VPN.id=G.openvpn
 				INNER JOIN crt CRT ON CRT.id=VPN.crt
 				WHERE G.ipobj_g=${group}`;
-        dbCon.query(sql, async (error, openvpns) => {
+        dbCon.query(sql, async (error, openvpns: Array<{ id: number; cn: string }>) => {
           if (error) return reject(error);
-
           try {
             for (const openvpn of openvpns)
               await this.newNode(dbCon, fwcloud, openvpn.cn, node_id, 'OCL', openvpn.id, 311);
@@ -921,10 +936,10 @@ export class Tree extends Model {
             return reject(error);
           }
 
-          sql = `SELECT P.id,P.name FROM openvpn_prefix__ipobj_g G
+          sql = `SELECT P.id id,P.name name FROM openvpn_prefix__ipobj_g G
 					INNER JOIN openvpn_prefix P ON P.id=G.prefix
 					WHERE G.ipobj_g=${group}`;
-          dbCon.query(sql, async (error, prefixes) => {
+          dbCon.query(sql, async (error, prefixes: Array<{ id: number; name: string }>) => {
             if (error) return reject(error);
 
             try {
@@ -949,7 +964,7 @@ export class Tree extends Model {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = 'SELECT id,name FROM ipobj_g WHERE fwcloud is null and type=' + ipobj_type;
-      dbCon.query(sql, async (error, groups) => {
+      dbCon.query(sql, async (error, groups: Array<{ id: number; name: string }>) => {
         if (error) return reject(error);
 
         try {
@@ -984,31 +999,43 @@ export class Tree extends Model {
     return new Promise((resolve, reject) => {
       // Get interface IPs.
       const sql =
-        'SELECT O.id,O.name,O.type,O.address,T.node_type FROM ipobj O' +
+        'SELECT O.id id,O.name name,O.type type,O.address address ,T.node_type node_type FROM ipobj O' +
         ' INNER JOIN fwc_tree_node_types T on T.obj_type=O.type' +
         ' WHERE O.interface=' +
         connection.escape(ifId);
-      connection.query(sql, async (error, ips) => {
-        if (error) return reject(error);
-        if (ips.length === 0) resolve();
+      connection.query(
+        sql,
+        async (
+          error,
+          ips: Array<{
+            id: number;
+            name: string;
+            type: number;
+            address: number;
+            node_type: string;
+          }>,
+        ) => {
+          if (error) return reject(error);
+          if (ips.length === 0) resolve();
 
-        try {
-          for (const ip of ips) {
-            await this.newNode(
-              connection,
-              fwcloud,
-              `${ip.name} (${ip.address})`,
-              nodeId,
-              ip.node_type,
-              ip.id,
-              ip.type,
-            );
+          try {
+            for (const ip of ips) {
+              await this.newNode(
+                connection,
+                fwcloud,
+                `${ip.name} (${ip.address})`,
+                nodeId,
+                ip.node_type,
+                ip.id,
+                ip.type,
+              );
+            }
+          } catch (error) {
+            return reject(error);
           }
-        } catch (error) {
-          return reject(error);
-        }
-        resolve();
-      });
+          resolve();
+        },
+      );
     });
   }
 
@@ -1023,7 +1050,7 @@ export class Tree extends Model {
     return new Promise((resolve, reject) => {
       // Get firewall interfaces.
       let sql = '';
-      let obj_type;
+      let obj_type: number;
 
       if (ownerType === 'FW') {
         sql =
@@ -1034,7 +1061,7 @@ export class Tree extends Model {
         obj_type = 10;
       } else if (ownerType === 'HOST') {
         sql =
-          'SELECT I.id,I.name,I.labelName FROM interface I' +
+          'SELECT I.id id,I.name name ,I.labelName labelName FROM interface I' +
           ' INNER JOIN interface__ipobj IO on IO.interface=I.id ' +
           ' WHERE IO.ipobj=' +
           connection.escape(ownerId) +
@@ -1042,28 +1069,31 @@ export class Tree extends Model {
         obj_type = 11;
       } else return reject(fwcError.other('Invalid owner type'));
 
-      connection.query(sql, async (error, interfaces) => {
-        if (error) return reject(error);
-        if (interfaces.length === 0) return resolve();
+      connection.query(
+        sql,
+        async (error, interfaces: Array<{ id: number; name: string; labelName: string }>) => {
+          if (error) return reject(error);
+          if (interfaces.length === 0) return resolve();
 
-        try {
-          for (const _interface of interfaces) {
-            const id = await this.newNode(
-              connection,
-              fwcloud,
-              _interface.name + (_interface.labelName ? ' [' + _interface.labelName + ']' : ''),
-              nodeId,
-              ownerType === 'FW' ? 'IFF' : 'IFH',
-              _interface.id,
-              obj_type,
-            );
-            await this.interfacesIpTree(connection, fwcloud, id, _interface.id);
+          try {
+            for (const _interface of interfaces) {
+              const id = await this.newNode(
+                connection,
+                fwcloud,
+                _interface.name + (_interface.labelName ? ' [' + _interface.labelName + ']' : ''),
+                nodeId,
+                ownerType === 'FW' ? 'IFF' : 'IFH',
+                _interface.id,
+                obj_type,
+              );
+              await this.interfacesIpTree(connection, fwcloud, id, _interface.id);
+            }
+          } catch (error) {
+            return reject(error);
           }
-        } catch (error) {
-          return reject(error);
-        }
-        resolve();
-      });
+          resolve();
+        },
+      );
     });
   }
 
@@ -1080,7 +1110,7 @@ export class Tree extends Model {
       const sql = `SELECT VPN.id,CRT.cn FROM openvpn VPN
 			INNER JOIN crt CRT on CRT.id=VPN.crt
 			WHERE VPN.firewall=${firewall} and VPN.openvpn=${server_vpn}`;
-      connection.query(sql, async (error, vpns) => {
+      connection.query(sql, async (error, vpns: Array<{ id: number; cn: string }>) => {
         if (error) return reject(error);
         if (vpns.length === 0) return resolve();
 
@@ -1108,7 +1138,7 @@ export class Tree extends Model {
       const sql = `SELECT VPN.id,CRT.cn FROM openvpn VPN
 			INNER JOIN crt CRT on CRT.id=VPN.crt
 			WHERE VPN.firewall=${firewall} and VPN.openvpn is null`;
-      connection.query(sql, async (error, vpns) => {
+      connection.query(sql, async (error, vpns: Array<{ id: number; cn: string }>) => {
         if (error) return reject(error);
         if (vpns.length === 0) return resolve();
 
@@ -1151,7 +1181,7 @@ export class Tree extends Model {
       }
 
       const sql = `SELECT id,name FROM routing_table WHERE firewall=${firewall}`;
-      connection.query(sql, async (error, tables) => {
+      connection.query(sql, async (error, tables: Array<{ id: number; name: string }>) => {
         if (error) return reject(error);
         if (tables.length === 0) return resolve();
 
@@ -1251,7 +1281,7 @@ export class Tree extends Model {
 
         // Obtain cluster data required for tree nodes creation.
         const sql = 'SELECT name FROM firewall WHERE id=' + firewallId + ' AND fwcloud=' + fwcloud;
-        connection.query(sql, async (error, firewalls) => {
+        connection.query(sql, async (error, firewalls: Array<{ name: string }>) => {
           if (error) return reject(error);
           if (firewalls.length !== 1)
             return reject(fwcError.other('Firewall with id ' + firewallId + ' not found'));
@@ -1335,7 +1365,7 @@ export class Tree extends Model {
           ' AND fwcloud=' +
           connection.escape(fwcloud) +
           ' AND node_type="FCF"';
-        connection.query(sql, async (error, nodes) => {
+        connection.query(sql, async (error, nodes: Array<{ id: number }>) => {
           if (error) return reject(error);
           if (nodes.length !== 1) return reject(fwcError.other('Node NODES not found'));
 
@@ -1365,188 +1395,208 @@ export class Tree extends Model {
           ' AND C.fwcloud=' +
           fwcloud +
           ' AND F.fwmaster=1';
-        connection.query(sql, async (error: Error, clusters) => {
-          if (error) return reject(error);
-          if (clusters.length !== 1)
-            return reject(fwcError.other('Cluster with id ' + clusterId + ' not found'));
+        connection.query(
+          sql,
+          async (
+            error: Error,
+            clusters: Array<{ id: number; name: string; fwmaster_id: number }>,
+          ) => {
+            if (error) return reject(error);
+            if (clusters.length !== 1)
+              return reject(fwcError.other('Cluster with id ' + clusterId + ' not found'));
 
-          try {
-            // Create root cluster node
-            const id1: number = await this.newNode(
-              connection,
-              fwcloud,
-              clusters[0].name,
-              nodeId,
-              'CL',
-              clusters[0].id,
-              100,
-            );
+            try {
+              // Create root cluster node
+              const id1: number = await this.newNode(
+                connection,
+                fwcloud,
+                clusters[0].name,
+                nodeId,
+                'CL',
+                clusters[0].id,
+                100,
+              );
 
-            let id2 = await this.newNode(
-              connection,
-              fwcloud,
-              'IPv4 POLICY',
-              id1,
-              'FP',
-              clusters[0].fwmaster_id,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'INPUT',
-              id2,
-              'PI',
-              clusters[0].fwmaster_id,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'OUTPUT',
-              id2,
-              'PO',
-              clusters[0].fwmaster_id,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'FORWARD',
-              id2,
-              'PF',
-              clusters[0].fwmaster_id,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'SNAT',
-              id2,
-              'NTS',
-              clusters[0].fwmaster_id,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'DNAT',
-              id2,
-              'NTD',
-              clusters[0].fwmaster_id,
-              null,
-            );
+              let id2 = await this.newNode(
+                connection,
+                fwcloud,
+                'IPv4 POLICY',
+                id1,
+                'FP',
+                clusters[0].fwmaster_id,
+                null,
+              );
+              await this.newNode(
+                connection,
+                fwcloud,
+                'INPUT',
+                id2,
+                'PI',
+                clusters[0].fwmaster_id,
+                null,
+              );
+              await this.newNode(
+                connection,
+                fwcloud,
+                'OUTPUT',
+                id2,
+                'PO',
+                clusters[0].fwmaster_id,
+                null,
+              );
+              await this.newNode(
+                connection,
+                fwcloud,
+                'FORWARD',
+                id2,
+                'PF',
+                clusters[0].fwmaster_id,
+                null,
+              );
+              await this.newNode(
+                connection,
+                fwcloud,
+                'SNAT',
+                id2,
+                'NTS',
+                clusters[0].fwmaster_id,
+                null,
+              );
+              await this.newNode(
+                connection,
+                fwcloud,
+                'DNAT',
+                id2,
+                'NTD',
+                clusters[0].fwmaster_id,
+                null,
+              );
 
-            id2 = await this.newNode(
-              connection,
-              fwcloud,
-              'IPv6 POLICY',
-              id1,
-              'FP6',
-              clusters[0].fwmaster_id,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'INPUT',
-              id2,
-              'PI6',
-              clusters[0].fwmaster_id,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'OUTPUT',
-              id2,
-              'PO6',
-              clusters[0].fwmaster_id,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'FORWARD',
-              id2,
-              'PF6',
-              clusters[0].fwmaster_id,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'SNAT',
-              id2,
-              'NS6',
-              clusters[0].fwmaster_id,
-              null,
-            );
-            await this.newNode(
-              connection,
-              fwcloud,
-              'DNAT',
-              id2,
-              'ND6',
-              clusters[0].fwmaster_id,
-              null,
-            );
+              id2 = await this.newNode(
+                connection,
+                fwcloud,
+                'IPv6 POLICY',
+                id1,
+                'FP6',
+                clusters[0].fwmaster_id,
+                null,
+              );
+              await this.newNode(
+                connection,
+                fwcloud,
+                'INPUT',
+                id2,
+                'PI6',
+                clusters[0].fwmaster_id,
+                null,
+              );
+              await this.newNode(
+                connection,
+                fwcloud,
+                'OUTPUT',
+                id2,
+                'PO6',
+                clusters[0].fwmaster_id,
+                null,
+              );
+              await this.newNode(
+                connection,
+                fwcloud,
+                'FORWARD',
+                id2,
+                'PF6',
+                clusters[0].fwmaster_id,
+                null,
+              );
+              await this.newNode(
+                connection,
+                fwcloud,
+                'SNAT',
+                id2,
+                'NS6',
+                clusters[0].fwmaster_id,
+                null,
+              );
+              await this.newNode(
+                connection,
+                fwcloud,
+                'DNAT',
+                id2,
+                'ND6',
+                clusters[0].fwmaster_id,
+                null,
+              );
 
-            id2 = await this.newNode(
-              connection,
-              fwcloud,
-              'Interfaces',
-              id1,
-              'FDI',
-              clusters[0].fwmaster_id,
-              10,
-            );
-            await this.interfacesTree(connection, fwcloud, id2, clusters[0].fwmaster_id, 'FW');
+              id2 = await this.newNode(
+                connection,
+                fwcloud,
+                'Interfaces',
+                id1,
+                'FDI',
+                clusters[0].fwmaster_id,
+                10,
+              );
+              await this.interfacesTree(connection, fwcloud, id2, clusters[0].fwmaster_id, 'FW');
 
-            id2 = await this.newNode(
-              connection,
-              fwcloud,
-              'OpenVPN',
-              id1,
-              'OPN',
-              clusters[0].fwmaster_id,
-              0,
-            );
-            await this.openvpnServerTree(connection, fwcloud, clusters[0].fwmaster_id, id2);
+              id2 = await this.newNode(
+                connection,
+                fwcloud,
+                'OpenVPN',
+                id1,
+                'OPN',
+                clusters[0].fwmaster_id,
+                0,
+              );
+              await this.openvpnServerTree(connection, fwcloud, clusters[0].fwmaster_id, id2);
 
-            await this.routingTree(connection, fwcloud, clusters[0].fwmaster_id, id1);
+              await this.routingTree(connection, fwcloud, clusters[0].fwmaster_id, id1);
 
-            await this.systemTree(connection, fwcloud, clusters[0].fwmaster_id, id1);
+              await this.systemTree(connection, fwcloud, clusters[0].fwmaster_id, id1);
 
-            id2 = await this.newNode(
-              connection,
-              fwcloud,
-              'NODES',
-              id1,
-              'FCF',
-              clusters[0].fwmaster_id,
-              null,
-            );
+              id2 = await this.newNode(
+                connection,
+                fwcloud,
+                'NODES',
+                id1,
+                'FCF',
+                clusters[0].fwmaster_id,
+                null,
+              );
 
-            // Create the nodes for the cluster firewalls.
-            sql =
-              'SELECT id,name FROM firewall WHERE cluster=' + clusterId + ' AND fwcloud=' + fwcloud;
-            connection.query(sql, async (error, firewalls) => {
-              if (error) return reject(error);
-              if (firewalls.length === 0)
-                return reject(
-                  fwcError.other('No firewalls found for cluster with id ' + clusters[0].id),
-                );
+              // Create the nodes for the cluster firewalls.
+              sql =
+                'SELECT id,name FROM firewall WHERE cluster=' +
+                clusterId +
+                ' AND fwcloud=' +
+                fwcloud;
+              connection.query(
+                sql,
+                async (error, firewalls: Array<{ id: number; name: string }>) => {
+                  if (error) return reject(error);
+                  if (firewalls.length === 0)
+                    return reject(
+                      fwcError.other('No firewalls found for cluster with id ' + clusters[0].id),
+                    );
 
-              for (const firewall of firewalls)
-                await this.newNode(connection, fwcloud, firewall.name, id2, 'FW', firewall.id, 0);
+                  for (const firewall of firewalls)
+                    await this.newNode(
+                      connection,
+                      fwcloud,
+                      firewall.name,
+                      id2,
+                      'FW',
+                      firewall.id,
+                      0,
+                    );
 
-              resolve();
-            });
-          } catch (error) {
-            return reject(error);
-          }
-        });
+                  resolve();
+                },
+              );
+            } catch (error) {
+              return reject(error);
+            }
+          },
+        );
       });
     });
   }
@@ -1558,7 +1608,7 @@ export class Tree extends Model {
     idcluster: number,
     idfirewall: number,
     AllDone: Function,
-  ) {
+  ): void {
     db.get((error, connection) => {
       if (error) {
         return AllDone(error, null);
@@ -1709,7 +1759,7 @@ export class Tree extends Model {
     idcluster: number,
     idfirewall: number,
     AllDone: Function,
-  ) {
+  ): void {
     db.get((error, connection) => {
       if (error) {
         return AllDone(error, null);
@@ -1848,7 +1898,7 @@ export class Tree extends Model {
     node_order: number,
     node_type: string,
     node_Data,
-  ) {
+  ): Promise<number> {
     return new Promise((resolve, reject) => {
       const fwc_treeData = {
         id: null,
@@ -1924,7 +1974,7 @@ export class Tree extends Model {
   }
 
   //Update NODE from IPOBJ or INTERFACE UPDATE
-  public static updateFwc_Tree_OBJ(req, ipobjData) {
+  public static updateFwc_Tree_OBJ(req, ipobjData): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {
       let name = ipobjData.name;
       // Firewall and host interfaces.

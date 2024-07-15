@@ -283,12 +283,12 @@ export class OpenVPNPrefix extends Model {
 
   // Fill prefix node with matching entries.
   public static fillPrefixNodeOpenVPN(
-    dbCon,
-    fwcloud,
-    openvpn_ser,
-    prefix_name,
-    prefix_id,
-    parent,
+    dbCon: Query,
+    fwcloud: number,
+    openvpn_ser: number,
+    prefix_name: string,
+    prefix_id: number,
+    parent: number,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       // Move all affected nodes into the new prefix container node.
@@ -342,7 +342,7 @@ export class OpenVPNPrefix extends Model {
         await Tree.deleteNodesUnderMe(dbCon, fwcloud, node_id);
 
         // Create all OpenVPN client config nodes.
-        const openvpn_cli_list: any = await OpenVPN.getOpenvpnClients(dbCon, openvpn_srv);
+        const openvpn_cli_list = await OpenVPN.getOpenvpnClients(dbCon, openvpn_srv);
         for (const openvpn_cli of openvpn_cli_list) {
           await Tree.newNode(dbCon, fwcloud, openvpn_cli.cn, node_id, 'OCL', openvpn_cli.id, 311);
         }

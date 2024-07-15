@@ -72,12 +72,12 @@ export class Cluster extends Model {
   }
 
   //Get All clusters
-  public static getClusterCloud(req) {
+  public static getClusterCloud(req): Promise<Array<Cluster>> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT T.* FROM ${tableName} T 
                 INNER JOIN user__fwcloud U ON T.fwcloud=U.fwcloud AND U.user=${req.session.user_id}
                 WHERE T.fwcloud=${req.body.fwcloud}`;
-      req.dbCon.query(sql, (error, rows) => {
+      req.dbCon.query(sql, (error, rows: Array<Cluster>) => {
         if (error) return reject(error);
         resolve(rows);
       });

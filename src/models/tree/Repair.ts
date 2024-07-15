@@ -23,15 +23,15 @@
 import Model from '../Model';
 import { OpenVPN } from '../../models/vpn/openvpn/OpenVPN';
 import { PolicyRule } from '../../models/policy/PolicyRule';
-import { Tree } from '../tree/Tree';
+import { Tree, TreeNode } from '../tree/Tree';
 import { PrimaryColumn, Column } from 'typeorm';
 import Query from '../../database/Query';
 import { ProgressNoticePayload } from '../../sockets/messages/socket-message';
 import { EventEmitter } from 'typeorm/platform/PlatformTools';
 const fwcError = require('../../utils/error_table');
 
-let dbCon;
-let fwcloud;
+let dbCon: Query;
+let fwcloud: number;
 
 const tableName: string = 'fwc_tree';
 
@@ -73,7 +73,10 @@ export class Repair extends Model {
   }
 
   //Ontain all root nodes.
-  public static checkRootNodes(dbCon: Query, channel: EventEmitter = new EventEmitter()) {
+  public static checkRootNodes(
+    dbCon: Query,
+    channel: EventEmitter = new EventEmitter(),
+  ): Promise<[{ id: number; node_type: number; id_obj: number; obj_type: number }]> {
     return new Promise((resolve, reject) => {
       let sql =
         'SELECT id,name,node_type,id_obj,obj_type FROM ' +
@@ -573,7 +576,7 @@ export class Repair extends Model {
   }
 
   // Verify that the host objects are correct.
-  public static checkHostObjects(rootNode): Promise<void> {
+  public static checkHostObjects(rootNode: TreeNode): Promise<void> {
     return new Promise((resolve, reject) => {
       // Verify that we have only one Hosts node.
       let sql =
@@ -584,7 +587,7 @@ export class Repair extends Model {
         ' AND id_parent=' +
         dbCon.escape(rootNode.id) +
         ' AND node_type="OIH" AND id_obj IS NULL and obj_type=8';
-      dbCon.query(sql, (error, nodes) => {
+      dbCon.query(sql, (error, nodes: Array<{ id: number }>) => {
         if (error) return reject(error);
         if (nodes.length !== 1) return reject(fwcError.other('Hosts node not found'));
 

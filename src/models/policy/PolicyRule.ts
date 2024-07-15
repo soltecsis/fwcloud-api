@@ -37,6 +37,7 @@ import { Firewall, FireWallOptMask } from '../firewall/Firewall';
 import { Mark } from '../ipobj/Mark';
 import { PolicyTypesMap } from '../../models/policy/PolicyType';
 import Query from '../../database/Query';
+import { number } from 'joi';
 const fwcError = require('../../utils/error_table');
 
 const tableName: string = 'policy_r';
@@ -1115,7 +1116,7 @@ export class PolicyRule extends Model {
           ' WHERE (I.firewall=' +
           connection.escape(idfirewall) +
           ') ';
-        connection.query(sql, async (error, rows) => {
+        connection.query(sql, async (error, rows: Array<PolicyRule>) => {
           if (error) return reject(error);
           //Bucle por reglas
           Promise.all(rows.map((data) => this.deletePolicy_rPro(data)))
@@ -1129,9 +1130,9 @@ export class PolicyRule extends Model {
     });
   }
 
-  public static deletePolicy_rPro(data) {
+  public static deletePolicy_rPro(data: PolicyRule) {
     return new Promise((resolve, reject) => {
-      this.deletePolicy_r(data.firewall, data.id)
+      this.deletePolicy_r(data.firewallId, data.id)
         .then((resp) => {
           resolve(resp);
         })
@@ -1272,7 +1273,7 @@ export class PolicyRule extends Model {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql = `select negate from ${tableName} where id=${rule} and firewall=${firewall}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error, result: Array<{ negate: string }>) => {
         if (error) return reject(error);
         if (result.length !== 1) return reject(fwcError.other('Firewall rule not found'));
 
@@ -1307,7 +1308,7 @@ export class PolicyRule extends Model {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       let sql = `select negate from ${tableName} where id=${rule} and firewall=${firewall}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error, result: Array<{ negate: string }>) => {
         if (error) return reject(error);
         if (result.length !== 1) return reject(fwcError.other('Firewall rule not found'));
 
@@ -1475,7 +1476,7 @@ export class PolicyRule extends Model {
   ): Promise<number> {
     return new Promise((resolve, reject) => {
       const sql = `select id from ${tableName} where firewall=${firewall} ${type ? `and type=${type}` : ''} and special=${specialRule}`;
-      dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
         resolve(result.length > 0 ? result[0].id : 0);
       });

@@ -281,7 +281,7 @@ export class FirewallService extends Service {
           // Transfer data to the new slave firewall.
           let sql = `SELECT T.id FROM ${Firewall._getTableName()} T
 						WHERE fwmaster=0 AND  T.cluster=${clusterId}	ORDER by T.id limit 1`;
-          db.getQuery().query(sql, async (error, rowS) => {
+          db.getQuery().query(sql, async (error, rowS: Array<{ id: number }>) => {
             if (error) return reject(error);
             if (rowS.length === 0) return reject(fwcError.NOT_FOUND);
 

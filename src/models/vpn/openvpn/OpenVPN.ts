@@ -332,7 +332,10 @@ export class OpenVPN extends Model {
   }
 
   // Get data of an OpenVPN server clients.
-  public static getOpenvpnClients(dbCon: Query, openvpn: number) {
+  public static getOpenvpnClients(
+    dbCon: Query,
+    openvpn: number,
+  ): Promise<[{ id: number; cn: string; status: number }]> {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.id,CRT.cn,VPN.status from openvpn VPN 
                 inner join crt CRT on CRT.id=VPN.crt

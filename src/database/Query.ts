@@ -30,6 +30,7 @@ export default class Query {
     params: Array<any>,
     callback: (err: Error, result: any) => void,
   ): void;
+  public query(query: string, params: any, callback: (err: Error, result: any) => void): void;
   public query(
     query: string,
     params: Record<string, never>,
