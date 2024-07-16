@@ -127,14 +127,18 @@ export class PolicyType extends Model {
   public static insertPolicy_type(policy_typeData, callback: Function) {
     db.get((error, connection) => {
       if (error) callback(error, null);
-      connection.query('INSERT INTO ' + tableName + ' SET ?', policy_typeData, (error, result) => {
-        if (error) {
-          callback(error, null);
-        } else {
-          //devolvemos la última id insertada
-          callback(null, { insertId: result.insertId });
-        }
-      });
+      connection.query(
+        'INSERT INTO ' + tableName + ' SET ?',
+        policy_typeData,
+        (error, result: { insertId: number }) => {
+          if (error) {
+            callback(error, null);
+          } else {
+            //devolvemos la última id insertada
+            callback(null, { insertId: result.insertId });
+          }
+        },
+      );
     });
   }
 

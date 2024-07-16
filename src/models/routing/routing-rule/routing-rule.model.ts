@@ -161,7 +161,7 @@ export class RoutingRule extends Model {
     const result: RoutingRuleToIPObj[] = [];
 
     for (const routingRuleToIPObj of routingRuleToIPObjs) {
-      const addrs: any = await Interface.getHostAddr(db.getQuery(), routingRuleToIPObj.ipObjId);
+      const addrs = await Interface.getHostAddr(db.getQuery(), routingRuleToIPObj.ipObjId);
 
       // Count the amount of interface address with the same IP version of the rule.
       let n = 0;
@@ -226,7 +226,7 @@ export class RoutingRule extends Model {
 
     for (const routingRuleToIPObjGroup of routingRuleToIPObjGroups) {
       for (const ipObjToIPObjGroup of routingRuleToIPObjGroup.ipObjGroup.ipObjToIPObjGroups) {
-        const addrs: any = await Interface.getHostAddr(db.getQuery(), ipObjToIPObjGroup.ipObjId);
+        const addrs = await Interface.getHostAddr(db.getQuery(), ipObjToIPObjGroup.ipObjId);
 
         // Count the amount of interface address with the same IP version of the rule.
         let n = 0;

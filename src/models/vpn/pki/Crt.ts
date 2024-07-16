@@ -76,11 +76,11 @@ export class Crt extends Model {
   }
 
   // Validate if crt exits.
-  public static existsCRT(dbCon: Query, ca: number, cn: string) {
+  public static existsCRT(dbCon: Query, ca: number, cn: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT id FROM ${tableName} WHERE ca=${ca} AND cn=${dbCon.escape(cn)}`,
-        (error, result) => {
+        (error, result: Array<{ id: number }>) => {
           if (error) return reject(error);
           resolve(result.length > 0 ? true : false);
         },
@@ -89,7 +89,7 @@ export class Crt extends Model {
   }
 
   // Insert new certificate in the database.
-  public static createCRT(req) {
+  public static createCRT(req): Promise<number> {
     return new Promise((resolve, reject) => {
       const cert = {
         ca: req.body.ca,
@@ -98,7 +98,7 @@ export class Crt extends Model {
         type: req.body.type,
         comment: req.body.comment,
       };
-      req.dbCon.query('insert into crt SET ?', cert, (error, result) => {
+      req.dbCon.query('insert into crt SET ?', cert, (error, result: { insertId: number }) => {
         if (error) return reject(error);
         resolve(result.insertId);
       });
@@ -111,7 +111,7 @@ export class Crt extends Model {
       // Verify that the CA can be deleted.
       req.dbCon.query(
         'SELECT count(*) AS n FROM openvpn WHERE crt=' + req.body.crt,
-        (error, result) => {
+        (error, result: Array<{ n: number }>) => {
           if (error) return reject(error);
           if (result[0].n > 0)
             return reject(
@@ -130,9 +130,9 @@ export class Crt extends Model {
   }
 
   // Get database certificate data.
-  public static getCRTdata(dbCon: Query, crt: number) {
+  public static getCRTdata(dbCon: Query, crt: number): Promise<Crt> {
     return new Promise((resolve, reject) => {
-      dbCon.query('SELECT * FROM crt WHERE id=' + crt, (error, result) => {
+      dbCon.query('SELECT * FROM crt WHERE id=' + crt, (error, result: Array<Crt>) => {
         if (error) return reject(error);
         if (result.length !== 1) return reject(fwcError.NOT_FOUND);
 
@@ -142,22 +142,26 @@ export class Crt extends Model {
   }
 
   // Get certificate list for a CA.
-  public static getCRTlist(dbCon: Query, ca: number) {
+  public static getCRTlist(dbCon: Query, ca: number): Promise<Array<Crt>> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`SELECT * FROM crt WHERE ca=${ca}`, (error, result) => {
+      dbCon.query(`SELECT * FROM crt WHERE ca=${ca}`, (error, result: Array<Crt>) => {
         if (error) return reject(error);
         resolve(result);
       });
     });
   }
 
-  public static searchCRTInOpenvpn(dbCon: Query, fwcloud: number, crt: number) {
+  public static searchCRTInOpenvpn(
+    dbCon: Query,
+    fwcloud: number,
+    crt: number,
+  ): Promise<{ result: boolean; restrictions?: { crtUsedInOpenvpn: boolean } }> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT VPN.id FROM openvpn VPN
         INNER JOIN crt CRT ON CRT.id=VPN.crt
         INNER JOIN ca CA ON CA.id=CRT.ca
         WHERE CA.fwcloud=${fwcloud} AND CRT.id=${crt}`;
-      dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
 
         if (result.length > 0) resolve({ result: true, restrictions: { crtUsedInOpenvpn: true } });

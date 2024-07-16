@@ -16,7 +16,7 @@ import { PolicyRule } from '../policy/PolicyRule';
 import { PolicyGroup } from '../policy/PolicyGroup';
 import { Interface } from '../interface/Interface';
 import { OpenVPN } from '../vpn/openvpn/OpenVPN';
-import { Tree } from '../tree/Tree';
+import { nodeUpdateFwc, Tree } from '../tree/Tree';
 import { RoutingTable } from '../routing/routing-table/routing-table.model';
 import { RoutingTableService } from '../routing/routing-table/routing-table.service';
 import { Route } from '../routing/route/route.model';
@@ -319,7 +319,7 @@ export class FirewallService extends Service {
             //GET NODE FROM CLUSTER
             sql = `SELECT ${firewallId} as OLDFW, ${idNewFM} as NEWFW, T.* FROM fwc_tree T 
 							WHERE node_type='CL' AND id_obj=${clusterId} AND fwcloud=${fwcloudId}`;
-            db.getQuery().query(sql, async (error, rowT) => {
+            db.getQuery().query(sql, async (error, rowT: Array<nodeUpdateFwc>) => {
               if (error) return reject(error);
 
               if (rowT && rowT.length > 0) {
@@ -348,7 +348,6 @@ export class FirewallService extends Service {
             await Tree.deleteFwc_TreeFullNode({
               id: idNodeFirewall,
               fwcloud: fwcloudId,
-              iduser: userId,
             });
             await Firewall.deleteFirewallRow(db.getQuery(), fwcloudId, firewallId);
             resolve();

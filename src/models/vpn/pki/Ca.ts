@@ -92,7 +92,7 @@ export class Ca extends Model {
   }
 
   // Insert new CA in the database.
-  public static createCA(req) {
+  public static createCA(req): Promise<number> {
     return new Promise((resolve, reject) => {
       const ca = {
         fwcloud: req.body.fwcloud,
@@ -101,7 +101,7 @@ export class Ca extends Model {
         comment: req.body.comment,
         status: 1, // This status variable will be changed to 0 when the DF file generation is completed.
       };
-      req.dbCon.query('insert into ca SET ?', ca, (error, result) => {
+      req.dbCon.query('insert into ca SET ?', ca, (error, result: { insertId: number }) => {
         if (error) return reject(error);
         resolve(result.insertId);
       });
@@ -112,25 +112,28 @@ export class Ca extends Model {
   public static deleteCA(req): Promise<void> {
     return new Promise((resolve, reject) => {
       // Verify that the CA can be deleted.
-      req.dbCon.query('SELECT count(*) AS n FROM crt WHERE ca=' + req.body.ca, (error, result) => {
-        if (error) return reject(error);
-        if (result[0].n > 0)
-          return reject(
-            fwcError.other('This CA can not be removed because it still has certificates'),
-          );
-
-        req.dbCon.query('DELETE FROM ca WHERE id=' + req.body.ca, (error) => {
+      req.dbCon.query(
+        'SELECT count(*) AS n FROM crt WHERE ca=' + req.body.ca,
+        (error, result: Array<{ n: number }>) => {
           if (error) return reject(error);
-          resolve();
-        });
-      });
+          if (result[0].n > 0)
+            return reject(
+              fwcError.other('This CA can not be removed because it still has certificates'),
+            );
+
+          req.dbCon.query('DELETE FROM ca WHERE id=' + req.body.ca, (error) => {
+            if (error) return reject(error);
+            resolve();
+          });
+        },
+      );
     });
   }
 
   // Get CA list for a fwcloud.
-  public static getCAlist(dbCon: Query, fwcloud: number) {
+  public static getCAlist(dbCon: Query, fwcloud: number): Promise<Array<Ca>> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`SELECT * FROM ca WHERE fwcloud=${fwcloud}`, (error, result) => {
+      dbCon.query(`SELECT * FROM ca WHERE fwcloud=${fwcloud}`, (error, result: Array<Ca>) => {
         if (error) return reject(error);
         resolve(result);
       });
@@ -148,7 +151,7 @@ export class Ca extends Model {
                 INNER JOIN firewall FW on FW.id=VPN.firewall
                 LEFT JOIN openvpn_opt OPT on OPT.openvpn=VPN.id and OPT.name='disable'
                 WHERE FW.fwcloud=${req.body.fwcloud}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
         tree.openvpn_info = result;
         resolve();
@@ -242,7 +245,7 @@ export class Ca extends Model {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `SELECT id,status FROM ca WHERE status!=0 AND fwcloud=${req.body.fwcloud}`,
-        (error, rows) => {
+        (error, rows: Array<{ id: number; status: number }>) => {
           if (error) return reject(error);
           data.ca_status = rows;
           resolve(data);
@@ -251,12 +254,16 @@ export class Ca extends Model {
     });
   }
 
-  public static searchCAHasCRTs(dbCon: Query, fwcloud: number, ca: number) {
+  public static searchCAHasCRTs(
+    dbCon: Query,
+    fwcloud: number,
+    ca: number,
+  ): Promise<{ result: boolean; restrictions?: { caHasCertificates: boolean } }> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT CRT.id FROM crt CRT
       INNER JOIN ca CA ON CA.id=CRT.ca
       WHERE CA.fwcloud=${fwcloud} AND CA.id=${ca}`;
-      dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
 
         if (result.length > 0) resolve({ result: true, restrictions: { caHasCertificates: true } });
@@ -265,12 +272,16 @@ export class Ca extends Model {
     });
   }
 
-  public static searchCAHasPrefixes(dbCon: Query, fwcloud: number, ca: number) {
+  public static searchCAHasPrefixes(
+    dbCon: Query,
+    fwcloud: number,
+    ca: number,
+  ): Promise<{ result: boolean; restrictions?: { caHasPrefixes: boolean } }> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT P.id FROM ca_prefix P
       INNER JOIN ca CA ON CA.id=P.ca
       WHERE CA.fwcloud=${fwcloud} AND CA.id=${ca}`;
-      dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
 
         if (result.length > 0) resolve({ result: true, restrictions: { caHasPrefixes: true } });

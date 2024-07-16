@@ -78,7 +78,7 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
   }
 
   //Add new policy_r__openvpn_prefix
-  public static insertInRule = (req) => {
+  public static insertInRule = (req): Promise<number> => {
     return new Promise(async (resolve, reject) => {
       const policyPrefix = {
         rule: req.body.rule,
@@ -86,18 +86,22 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
         position: req.body.position,
         position_order: req.body.position_order,
       };
-      req.dbCon.query(`insert into ${tableName} set ?`, policyPrefix, async (error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+      req.dbCon.query(
+        `insert into ${tableName} set ?`,
+        policyPrefix,
+        async (error, result: { insertId: number }) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
     });
   };
 
-  public static checkPrefixPosition = (dbCon: Query, position: number) => {
+  public static checkPrefixPosition = (dbCon: Query, position: number): Promise<number> => {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select type from ipobj_type__policy_position where type=401 and position=${position}`,
-        (error, rows) => {
+        (error, rows: Array<{ type: number }>) => {
           if (error) return reject(error);
           resolve(rows.length > 0 ? 1 : 0);
         },
@@ -111,11 +115,11 @@ export class PolicyRuleToOpenVPNPrefix extends Model {
     prefix: number,
     openvpn: number,
     position: number,
-  ) => {
+  ): Promise<number> => {
     return new Promise((resolve, reject) => {
       const sql = `SELECT rule FROM ${tableName}
                 WHERE rule=${rule} AND prefix=${prefix} AND position=${position}`;
-      dbCon.query(sql, (error, rows) => {
+      dbCon.query(sql, (error, rows: Array<{ rule: number }>) => {
         if (error) return reject(error);
         resolve(rows.length > 0 ? 1 : 0);
       });

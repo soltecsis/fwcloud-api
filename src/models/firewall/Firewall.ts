@@ -1373,7 +1373,7 @@ export class Firewall extends Model {
           firewall +
           ' and fwcloud=' +
           fwcloud;
-        dbCon.query(sql, async (error, row) => {
+        dbCon.query(sql, async (error, row: Array<{ id: number }>) => {
           if (error) return reject(error);
 
           //If exists Id from firewall to remove
@@ -1387,7 +1387,6 @@ export class Firewall extends Model {
               await Tree.deleteFwc_TreeFullNode({
                 id: row[0].id,
                 fwcloud: fwcloud,
-                iduser: user,
               }); //DELETE TREE NODES From firewall
               await utilsModel.deleteFolder(
                 config.get('policy').data_dir + '/' + fwcloud + '/' + firewall,

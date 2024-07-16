@@ -27,7 +27,7 @@ export class ClusterService extends Service {
         sql = `SELECT T.* , A.id as idnode FROM ${Cluster._getTableName()} T
                     INNER JOIN fwc_tree A ON A.id_obj=T.id AND A.obj_type=100
                     WHERE T.id=${clusterId}`;
-        db.getQuery().query(sql, async (error, cluster) => {
+        db.getQuery().query(sql, async (error, cluster: Array<Cluster & { idnode: number }>) => {
           if (error) return reject(error);
 
           try {
@@ -36,7 +36,6 @@ export class ClusterService extends Service {
               await Tree.deleteFwc_TreeFullNode({
                 id: cluster[0].idnode,
                 fwcloud: fwcloudId,
-                iduser: userId,
               });
           } catch (error) {
             return reject(error);

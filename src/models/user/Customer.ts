@@ -66,7 +66,7 @@ export class Customer extends Model {
   }
 
   //Add new customer
-  public static _insert(req) {
+  public static _insert(req): Promise<number> {
     return new Promise(async (resolve, reject) => {
       //New object with customer data
       const customerData = {
@@ -78,28 +78,35 @@ export class Customer extends Model {
         web: req.body.web,
       };
 
-      req.dbCon.query(`INSERT INTO ${tableName} SET ?`, customerData, (error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+      req.dbCon.query(
+        `INSERT INTO ${tableName} SET ?`,
+        customerData,
+        (error, result: { insertId: number }) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
     });
   }
 
-  public static existsId = (dbCon: Query, customer: number) => {
+  public static existsId = (dbCon: Query, customer: number): Promise<boolean> => {
     return new Promise(async (resolve, reject) => {
-      dbCon.query(`select id from ${tableName} where id=${customer}`, (error, result) => {
-        if (error) return reject(error);
-        if (result.length > 0) return resolve(true);
-        resolve(false);
-      });
+      dbCon.query(
+        `select id from ${tableName} where id=${customer}`,
+        (error, result: Array<{ id: number }>) => {
+          if (error) return reject(error);
+          if (result.length > 0) return resolve(true);
+          resolve(false);
+        },
+      );
     });
   };
 
-  public static existsName = (dbCon: Query, name: string) => {
+  public static existsName = (dbCon: Query, name: string): Promise<number | boolean> => {
     return new Promise(async (resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where name=${dbCon.escape(name)}`,
-        (error, result) => {
+        (error, result: Array<{ id: number }>) => {
           if (error) return reject(error);
           if (result.length > 0) return resolve(result[0].id);
           resolve(false);
@@ -109,7 +116,7 @@ export class Customer extends Model {
   };
 
   //Update customer
-  public static _update = (req) => {
+  public static _update = (req): Promise<void> => {
     return new Promise<void>(async (resolve, reject) => {
       const sql = `UPDATE ${tableName} SET name=${req.dbCon.escape(req.body.name)},
                 email=${req.dbCon.escape(req.body.email)},
@@ -125,12 +132,12 @@ export class Customer extends Model {
   };
 
   //Update customer
-  public static get(req) {
+  public static get(req): Promise<Array<Customer>> {
     return new Promise(async (resolve, reject) => {
       const sql = req.body.customer
         ? `select * from ${tableName} WHERE id=${req.body.customer}`
         : `select id,name from ${tableName}`;
-      req.dbCon.query(sql, (error: Error, result) => {
+      req.dbCon.query(sql, (error: Error, result: Array<Customer>) => {
         if (error) return reject(error);
         resolve(result);
       });
@@ -146,28 +153,29 @@ export class Customer extends Model {
     });
   }
 
-  public static searchUsers(req) {
-    return new Promise<{ result: boolean; restrictions?: { CustomerHasUsers: boolean } }>(
-      (resolve, reject) => {
-        req.dbCon.query(
-          `select count(*) as n from user where customer =${req.body.customer}`,
-          async (error: Error, result) => {
-            if (error) return reject(error);
+  public static searchUsers(
+    req,
+  ): Promise<{ result: boolean; restrictions?: { CustomerHasUsers: boolean } }> {
+    return new Promise((resolve, reject) => {
+      req.dbCon.query(
+        `select count(*) as n from user where customer =${req.body.customer}`,
+        async (error: Error, result) => {
+          if (error) return reject(error);
 
-            if (result[0].n > 0)
-              resolve({ result: true, restrictions: { CustomerHasUsers: true } });
-            else resolve({ result: false });
-          },
-        );
-      },
-    );
+          if (result[0].n > 0) resolve({ result: true, restrictions: { CustomerHasUsers: true } });
+          else resolve({ result: false });
+        },
+      );
+    });
   }
 
-  public static lastCustomer(req) {
+  public static lastCustomer(
+    req,
+  ): Promise<{ result: boolean; restrictions?: { LastCustomer: boolean } }> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select count(*) as n from ${tableName} where id!=${req.body.customer}`,
-        async (error: Error, result) => {
+        async (error: Error, result: Array<{ n: number }>) => {
           if (error) return reject(error);
 
           if (result[0].n === 0) resolve({ result: true, restrictions: { LastCustomer: true } });

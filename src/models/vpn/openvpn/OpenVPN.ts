@@ -50,6 +50,7 @@ import { RoutingRuleToOpenVPN } from '../../routing/routing-rule/routing-rule-to
 import { OpenVPNStatusHistory } from './status/openvpn-status-history';
 import db from '../../../database/database-manager';
 import Query from '../../../database/Query';
+import { StringifyOptions } from 'querystring';
 const fwcError = require('../../../utils/error_table');
 const ip = require('ip');
 
@@ -183,7 +184,7 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static addCfgOpt(req, opt): Promise<void> {
+  public static addCfgOpt(req, opt: OpenVPNOption): Promise<void> {
     return new Promise((resolve, reject) => {
       req.dbCon.query('insert into openvpn_opt SET ?', opt, (error: Error) => {
         if (error) return reject(error);
@@ -208,7 +209,7 @@ export class OpenVPN extends Model {
       const sql = `select OBJ.id,OBJ.type from openvpn_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
                 where OPT.openvpn=${openvpn} and OPT.name!='remote'`;
-      dbCon.query(sql, (error: Error, ipobj_list) => {
+      dbCon.query(sql, (error: Error, ipobj_list: Array<{ id: number; type: number }>) => {
         if (error) return reject(error);
 
         dbCon.query(`delete from openvpn_opt where openvpn=${openvpn}`, (error: Error) => {
@@ -248,7 +249,7 @@ export class OpenVPN extends Model {
       const sql = `select VPN.id,CRT.type from ${tableName} VPN
                 inner join crt CRT on CRT.id=VPN.crt
                 where VPN.firewall=${firewall} order by CRT.type asc`;
-      dbCon.query(sql, async (error: Error, result) => {
+      dbCon.query(sql, async (error: Error, result: Array<{ id: number; type: number }>) => {
         if (error) return reject(error);
 
         try {
@@ -264,17 +265,17 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static getCfgId(req) {
+  public static getCfgId(req): Promise<number> {
     return new Promise((resolve, reject) => {
       const sql = `select id from ${tableName} where firewall=${req.body.firewall} and crt=${req.body.crt}`;
-      req.dbCon.query(sql, (error: Error, result) => {
+      req.dbCon.query(sql, (error: Error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
         resolve(result[0].id);
       });
     });
   }
 
-  public static getCfg(req) {
+  public static getCfg(req): Promise<any> {
     return new Promise((resolve, reject) => {
       let sql = `select * from ${tableName} where id=${req.body.openvpn}`;
       req.dbCon.query(sql, (error: Error, result) => {
@@ -292,11 +293,11 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static getOptData(dbCon: Query, openvpn: number, name: string) {
+  public static getOptData(dbCon: Query, openvpn: number, name: string): Promise<OpenVPNOption> {
     return new Promise((resolve, reject) => {
       const sql =
         'select * from openvpn_opt where openvpn=' + openvpn + ' and name=' + dbCon.escape(name);
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error, result: Array<OpenVPNOption>) => {
         if (error) return reject(error);
         resolve(result.length === 0 ? null : result[0]);
       });
@@ -304,7 +305,7 @@ export class OpenVPN extends Model {
   }
 
   // Get certificate data form file.
-  public static getCRTData(file: string) {
+  public static getCRTData(file: string): Promise<string> {
     return new Promise((resolve, reject) => {
       let data = '';
       let onData = 0;
@@ -335,12 +336,12 @@ export class OpenVPN extends Model {
   public static getOpenvpnClients(
     dbCon: Query,
     openvpn: number,
-  ): Promise<[{ id: number; cn: string; status: number }]> {
+  ): Promise<Array<{ id: number; cn: string; status: number }>> {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.id,CRT.cn,VPN.status from openvpn VPN 
                 inner join crt CRT on CRT.id=VPN.crt
                 where openvpn=${openvpn}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error, result: Array<{ id: number; cn: string; status: number }>) => {
         if (error) return reject(error);
         resolve(result);
       });
@@ -348,12 +349,15 @@ export class OpenVPN extends Model {
   }
 
   // Get data of OpenVPN servers of a firewall.
-  public static getOpenvpnServersByFirewall(dbCon: Query, firewall: number) {
+  public static getOpenvpnServersByFirewall(
+    dbCon: Query,
+    firewall: number,
+  ): Promise<Array<{ id: number; cn: string }>> {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.id,CRT.cn from openvpn VPN 
                 inner join crt CRT on CRT.id=VPN.crt
                 where VPN.firewall=${firewall} and CRT.type=2`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error, result: Array<{ id: number; cn: string }>) => {
         if (error) return reject(error);
         resolve(result);
       });
@@ -384,13 +388,16 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static getOpenvpnServersByCloud(dbCon: Query, fwcloud: number) {
+  public static getOpenvpnServersByCloud(
+    dbCon: Query,
+    fwcloud: number,
+  ): Promise<Array<{ id: number; cn: string }>> {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.id,CRT.cn from openvpn VPN 
                 inner join crt CRT on CRT.id=VPN.crt
                 inner join ca CA on CA.id=CRT.ca
                 where CA.fwcloud=${fwcloud} and CRT.type=2`; // 2 = Server certificate.
-      dbCon.query(sql, (error: Error, result) => {
+      dbCon.query(sql, (error: Error, result: Array<{ id: number; cn: string }>) => {
         if (error) return reject(error);
         resolve(result);
       });
@@ -408,90 +415,123 @@ export class OpenVPN extends Model {
                 LEFT JOIN cluster CL ON CL.id=FW.cluster
 			    WHERE VPN.id=${openvpn}`;
 
-      dbCon.query(sql, (error: Error, result) => {
-        if (error) return reject(error);
-
-        const ca_dir = config.get('pki').data_dir + '/' + fwcloud + '/' + result[0].ca + '/';
-        const ca_crt_path = ca_dir + 'ca.crt';
-        const crt_path = ca_dir + 'issued/' + result[0].cn + '.crt';
-        const key_path = ca_dir + 'private/' + result[0].cn + '.key';
-        const dh_path = result[0].type === 2 ? ca_dir + 'dh.pem' : '';
-
-        // Header description.
-        let des = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
-        des += `# Generated: ${Date()}\n`;
-        des += `# Certificate Common Name: ${result[0].cn} \n`;
-        des += result[0].cl_name
-          ? `# Firewall Cluster: ${result[0].cl_name}\n`
-          : `# Firewall: ${result[0].fw_name}\n`;
-        if (result[0].srv_config1 && result[0].srv_config1.endsWith('.conf'))
-          result[0].srv_config1 = result[0].srv_config1.slice(0, -5);
-        if (result[0].srv_config2 && result[0].srv_config2.endsWith('.conf'))
-          result[0].srv_config2 = result[0].srv_config2.slice(0, -5);
-        des += `# OpenVPN Server: ${result[0].srv_config1 ? result[0].srv_config1 : result[0].srv_config2}\n`;
-        des += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
-
-        // Get all the configuration options.
-        sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${openvpn} order by openvpn_opt.order`;
-        dbCon.query(sql, async (error: Error, result) => {
+      dbCon.query(
+        sql,
+        (
+          error: Error,
+          result: Array<{
+            cn: string;
+            ca: number;
+            type: number;
+            fw_name: string;
+            cl_name: string;
+            srv_config1: string;
+            srv_config2: string;
+          }>,
+        ) => {
           if (error) return reject(error);
 
-          try {
-            // Generate the OpenVPN config file.
-            let ovpn_cfg = des;
-            let ovpn_ccd = '';
+          const ca_dir = config.get('pki').data_dir + '/' + fwcloud + '/' + result[0].ca + '/';
+          const ca_crt_path = ca_dir + 'ca.crt';
+          const crt_path = ca_dir + 'issued/' + result[0].cn + '.crt';
+          const key_path = ca_dir + 'private/' + result[0].cn + '.key';
+          const dh_path = result[0].type === 2 ? ca_dir + 'dh.pem' : '';
 
-            // First add all the configuration options.
-            for (const opt of result) {
-              let cfg_line =
-                (opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') + opt.name;
-              if (opt.ipobj) {
-                // Get the ipobj data.
-                const ipobj = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
-                if (ipobj.ipObjTypeId === 7) {
-                  // Network
-                  const netmask =
-                    ipobj.netmask[0] === '/'
-                      ? ip.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask
-                      : ipobj.netmask;
-                  cfg_line += ' ' + ipobj.address + ' ' + netmask;
-                } else if (ipobj.ipObjTypeId === 5) {
-                  // Address
-                  cfg_line += ' ' + ipobj.address;
-                  if (opt.name === 'ifconfig-push') cfg_line += ' ' + ipobj.netmask;
-                  else if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
-                } else if (ipobj.ipObjTypeId === 9) {
-                  // DNS Name
-                  cfg_line += ' ' + ipobj.name;
-                  if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
+          // Header description.
+          let des = '# FWCloud.net - Developed by SOLTECSIS (https://soltecsis.com)\n';
+          des += `# Generated: ${Date()}\n`;
+          des += `# Certificate Common Name: ${result[0].cn} \n`;
+          des += result[0].cl_name
+            ? `# Firewall Cluster: ${result[0].cl_name}\n`
+            : `# Firewall: ${result[0].fw_name}\n`;
+          if (result[0].srv_config1 && result[0].srv_config1.endsWith('.conf'))
+            result[0].srv_config1 = result[0].srv_config1.slice(0, -5);
+          if (result[0].srv_config2 && result[0].srv_config2.endsWith('.conf'))
+            result[0].srv_config2 = result[0].srv_config2.slice(0, -5);
+          des += `# OpenVPN Server: ${result[0].srv_config1 ? result[0].srv_config1 : result[0].srv_config2}\n`;
+          des += `# Type: ${result[0].srv_config1 ? 'Server' : 'Client'}\n\n`;
+
+          // Get all the configuration options.
+          sql = `select name,ipobj,arg,scope,comment from openvpn_opt where openvpn=${openvpn} order by openvpn_opt.order`;
+          dbCon.query(
+            sql,
+            async (
+              error: Error,
+              result: Array<{
+                name: string;
+                ipobj: number;
+                arg: string;
+                scope: number;
+                comment: string;
+              }>,
+            ) => {
+              if (error) return reject(error);
+
+              try {
+                // Generate the OpenVPN config file.
+                let ovpn_cfg = des;
+                let ovpn_ccd = '';
+
+                // First add all the configuration options.
+                for (const opt of result) {
+                  let cfg_line =
+                    (opt.comment ? '# ' + opt.comment.replace('\n', '\n# ') + '\n' : '') + opt.name;
+                  if (opt.ipobj) {
+                    // Get the ipobj data.
+                    const ipobj = await IPObj.getIpobjInfo(dbCon, fwcloud, opt.ipobj);
+                    if (ipobj.ipObjTypeId === 7) {
+                      // Network
+                      const netmask =
+                        ipobj.netmask[0] === '/'
+                          ? ip.cidrSubnet(`${ipobj.address}${ipobj.netmask}`).subnetMask
+                          : ipobj.netmask;
+                      cfg_line += ' ' + ipobj.address + ' ' + netmask;
+                    } else if (ipobj.ipObjTypeId === 5) {
+                      // Address
+                      cfg_line += ' ' + ipobj.address;
+                      if (opt.name === 'ifconfig-push') cfg_line += ' ' + ipobj.netmask;
+                      else if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
+                    } else if (ipobj.ipObjTypeId === 9) {
+                      // DNS Name
+                      cfg_line += ' ' + ipobj.name;
+                      if (opt.name === 'remote') cfg_line += ' ' + opt.arg;
+                    }
+                  } else if (opt.arg) cfg_line += ' ' + opt.arg;
+
+                  if (opt.scope === 0)
+                    // CCD file
+                    ovpn_ccd += cfg_line + '\n';
+                  // Config file
+                  else ovpn_cfg += cfg_line + '\n';
                 }
-              } else if (opt.arg) cfg_line += ' ' + opt.arg;
 
-              if (opt.scope === 0)
-                // CCD file
-                ovpn_ccd += cfg_line + '\n';
-              // Config file
-              else ovpn_cfg += cfg_line + '\n';
-            }
+                // Now read the files data and put it into de config files.
+                if (dh_path)
+                  // Configuración OpenVPN de servidor.
+                  ovpn_cfg += '\n<dh>\n' + ((await this.getCRTData(dh_path)) as string) + '</dh>\n';
+                ovpn_cfg +=
+                  '\n<ca>\n' + ((await this.getCRTData(ca_crt_path)) as string) + '</ca>\n';
+                ovpn_cfg +=
+                  '\n<cert>\n' + ((await this.getCRTData(crt_path)) as string) + '</cert>\n';
+                ovpn_cfg +=
+                  '\n<key>\n' + ((await this.getCRTData(key_path)) as string) + '</key>\n';
 
-            // Now read the files data and put it into de config files.
-            if (dh_path)
-              // Configuración OpenVPN de servidor.
-              ovpn_cfg += '\n<dh>\n' + ((await this.getCRTData(dh_path)) as string) + '</dh>\n';
-            ovpn_cfg += '\n<ca>\n' + ((await this.getCRTData(ca_crt_path)) as string) + '</ca>\n';
-            ovpn_cfg += '\n<cert>\n' + ((await this.getCRTData(crt_path)) as string) + '</cert>\n';
-            ovpn_cfg += '\n<key>\n' + ((await this.getCRTData(key_path)) as string) + '</key>\n';
-
-            resolve({ cfg: ovpn_cfg, ccd: ovpn_ccd });
-          } catch (error) {
-            reject(error);
-          }
-        });
-      });
+                resolve({ cfg: ovpn_cfg, ccd: ovpn_ccd });
+              } catch (error) {
+                reject(error);
+              }
+            },
+          );
+        },
+      );
     });
   }
 
-  public static updateOpenvpnStatus(dbCon: Query, openvpn: number, status_action: number) {
+  public static updateOpenvpnStatus(
+    dbCon: Query,
+    openvpn: number,
+    status_action: number,
+  ): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `UPDATE openvpn SET status=status${status_action} WHERE id=${openvpn}`,
@@ -503,7 +543,10 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static updateOpenvpnInstallDate(dbCon: Query, openvpn: number) {
+  public static updateOpenvpnInstallDate(
+    dbCon: Query,
+    openvpn: number,
+  ): Promise<{ result: boolean }> {
     return new Promise((resolve, reject) => {
       dbCon.query(`UPDATE openvpn SET installed_at=NOW() WHERE id=${openvpn}`, (error) => {
         if (error) return reject(error);
@@ -526,13 +569,13 @@ export class OpenVPN extends Model {
     });
   }
 
-  public static freeVpnIP(req) {
+  public static freeVpnIP(req): Promise<{ ip: any; netmask: string }> {
     return new Promise((resolve, reject) => {
       // Search for the VPN LAN and mask.
       let sql = `select OBJ.address,OBJ.netmask from openvpn_opt OPT
                 inner join ipobj OBJ on OBJ.id=OPT.ipobj
                 where OPT.openvpn=${req.body.openvpn} and OPT.name='server' and OPT.ipobj is not null`;
-      req.dbCon.query(sql, (error: Error, result) => {
+      req.dbCon.query(sql, (error: Error, result: Array<{ address: string; netmask: string }>) => {
         if (error) return reject(error);
 
         // If we have no VPN LAN we can not give any free IP.
@@ -553,7 +596,7 @@ export class OpenVPN extends Model {
                     inner join openvpn_opt OPT on OPT.openvpn=VPN.id
                     inner join ipobj OBJ on OBJ.id=OPT.ipobj
                     where VPN.openvpn=${req.body.openvpn} and OPT.ipobj is not null and OBJ.type=5`; // 5=ADDRESS
-        req.dbCon.query(sql, (error: Error, result) => {
+        req.dbCon.query(sql, (error: Error, result: Array<{ address: string }>) => {
           if (error) return reject(error);
 
           let freeIPLong;
@@ -747,7 +790,7 @@ export class OpenVPN extends Model {
       // First get all firewalls OpenVPN configurations.
       const sql = 'select id from openvpn where firewall=' + req.body.firewall;
 
-      req.dbCon.query(sql, async (error: Error, result) => {
+      req.dbCon.query(sql, async (error: Error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
 
         const answer: any = {};
@@ -807,7 +850,7 @@ export class OpenVPN extends Model {
         const sql = `SELECT VPN.id FROM openvpn VPN
                 INNER JOIN firewall FW ON FW.id=VPN.firewall
                 WHERE FW.fwcloud=${fwcloud} AND VPN.openvpn=${openvpn}`;
-        dbCon.query(sql, async (error, result) => {
+        dbCon.query(sql, async (error, result: Array<{ id: number }>) => {
           if (error) return reject(error);
 
           if (result.length > 0) resolve({ result: true, restrictions: { OpenvpnHasChild: true } });
@@ -817,11 +860,11 @@ export class OpenVPN extends Model {
     );
   }
 
-  public static searchIPObjInOpenvpnOpt(dbCon: Query, ipobj, name) {
+  public static searchIPObjInOpenvpnOpt(dbCon: Query, ipobj: number, name: string) {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select openvpn from openvpn_opt where ipobj=${ipobj} and name=${dbCon.escape(name)}`,
-        (error, result) => {
+        (error, result: Array<{ openvpn: number }>) => {
           if (error) return reject(error);
           resolve(result.length < 1 ? false : true);
         },
@@ -835,7 +878,7 @@ export class OpenVPN extends Model {
       const sql = `SELECT VPN.id,VPN.status FROM openvpn VPN
                 INNER JOIN firewall FW on FW.id=VPN.firewall
                 WHERE VPN.status!=0 AND FW.fwcloud=${req.body.fwcloud}`;
-      req.dbCon.query(sql, (error: Error, rows) => {
+      req.dbCon.query(sql, (error: Error, rows: Array<{ id: number; status: number }>) => {
         if (error) return reject(error);
         data.openvpn_status = rows;
         resolve(data);

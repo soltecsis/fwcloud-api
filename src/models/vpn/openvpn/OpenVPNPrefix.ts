@@ -43,6 +43,7 @@ import { RoutingRuleToOpenVPNPrefix } from '../../routing/routing-rule/routing-r
 import db from '../../../database/database-manager';
 import Query from '../../../database/Query';
 import fwcError from '../../../utils/error_table';
+import { OpenVPNPrefixToIPObjGroupExporter } from '../../../fwcloud-exporter/database-exporter/exporters/openvpn-prefix-to-ipobj-group.exporter';
 
 const tableName: string = 'openvpn_prefix';
 
@@ -96,7 +97,7 @@ export class OpenVPNPrefix extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT id FROM ${tableName} WHERE openvpn=${openvpn} AND name=${dbCon.escape(name)}`,
-        (error: Error, result) => {
+        (error: Error, result: Array<{ id: number }>) => {
           if (error) return reject(error);
           resolve(result.length > 0 ? true : false);
         },
@@ -157,11 +158,14 @@ export class OpenVPNPrefix extends Model {
   }
 
   // Get all prefixes for the indicated openvpn server.
-  public static getPrefixes(dbCon: Query, openvpn: number) {
+  public static getPrefixes(
+    dbCon: Query,
+    openvpn: number,
+  ): Promise<Array<{ id: number; name: string }>> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `SELECT id,name FROM ${tableName} WHERE openvpn=${openvpn}`,
-        (error: Error, result) => {
+        (error: Error, result: Array<{ id: number; name: string }>) => {
           if (error) return reject(error);
           resolve(result);
         },
@@ -174,12 +178,12 @@ export class OpenVPNPrefix extends Model {
     dbCon: Query,
     openvpn: number,
     prefix_name: string,
-  ): Promise<unknown[]> {
+  ): Promise<Array<{ id: number }>> {
     return new Promise((resolve, reject) => {
       const sql = `select VPN.id from openvpn VPN 
                 inner join crt CRT on CRT.id=VPN.crt
                 where openvpn=${openvpn} and CRT.cn LIKE '${prefix_name}%'`;
-      dbCon.query(sql, (error: Error, result) => {
+      dbCon.query(sql, (error: Error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
         resolve(result);
       });
@@ -198,7 +202,7 @@ export class OpenVPNPrefix extends Model {
                 inner join openvpn V2 on V2.openvpn=V1.id
                 inner join crt CRT on CRT.id=V2.crt    
                 where V2.id=${openvpn}`;
-      dbCon.query(sql, (error: Error, result) => {
+      dbCon.query(sql, (error: Error, result: Array<{ id: number; name: string; cn: string }>) => {
         if (error) return reject(error);
 
         const matches: { id: number; name: string }[] = [];
@@ -263,7 +267,7 @@ export class OpenVPNPrefix extends Model {
         result[0].type = 401;
         result[0].openvpn_clients = [];
         try {
-          const openvpn_clients: any = await this.getOpenvpnClientesUnderPrefix(
+          const openvpn_clients = await this.getOpenvpnClientesUnderPrefix(
             dbCon,
             result[0].openvpn,
             result[0].name,
@@ -296,7 +300,7 @@ export class OpenVPNPrefix extends Model {
       let sql = `SELECT VPN.id,SUBSTRING(cn,${prefix.length + 1},255) as sufix FROM crt CRT
                 INNER JOIN openvpn VPN on VPN.crt=CRT.id
                 WHERE VPN.openvpn=${openvpn_ser} AND CRT.type=1 AND CRT.cn LIKE '${prefix}%'`;
-      dbCon.query(sql, async (error: Error, result) => {
+      dbCon.query(sql, async (error: Error, result: Array<{ id: number; sufix: string }>) => {
         if (error) return reject(error);
 
         try {
@@ -348,7 +352,7 @@ export class OpenVPNPrefix extends Model {
         }
 
         // Create the nodes for all the prefixes.
-        const prefix_list: any = await this.getPrefixes(dbCon, openvpn_srv);
+        const prefix_list = await this.getPrefixes(dbCon, openvpn_srv);
         for (const prefix of prefix_list)
           await this.fillPrefixNodeOpenVPN(
             dbCon,
@@ -370,7 +374,7 @@ export class OpenVPNPrefix extends Model {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `INSERT INTO openvpn_prefix__ipobj_g values(${prefix},${ipobj_g})`,
-        (error, result) => {
+        (error, result: { insertId: number }) => {
           if (error) return reject(error);
           resolve(result.insertId);
         },
@@ -381,14 +385,18 @@ export class OpenVPNPrefix extends Model {
   public static removePrefixFromGroup(req) {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM openvpn_prefix__ipobj_g WHERE prefix=${req.body.ipobj} AND ipobj_g=${req.body.ipobj_g}`;
-      req.dbCon.query(sql, (error, result) => {
+      req.dbCon.query(sql, (error, result: { insertId: number }) => {
         if (error) return reject(error);
         resolve(result.insertId);
       });
     });
   }
 
-  public static searchPrefixInRule(dbCon: Query, fwcloud: number, prefix) {
+  public static searchPrefixInRule(
+    dbCon: Query,
+    fwcloud: number,
+    prefix: number,
+  ): Promise<Array<PolicyRuleToOpenVPNPrefix & { firewall_id: number; firewall_name: string }>> {
     return new Promise((resolve, reject) => {
       const sql = `select O.*, FW.id as firewall_id, FW.name as firewall_name,
                 O.prefix obj_id, PRE.name obj_name,
@@ -402,14 +410,32 @@ export class OpenVPNPrefix extends Model {
                 inner join policy_type PT on PT.id=R.type
                 inner join openvpn_prefix PRE on PRE.id=O.prefix
                 where FW.fwcloud=${fwcloud} and O.prefix=${prefix}`;
-      dbCon.query(sql, (error, rows) => {
-        if (error) return reject(error);
-        resolve(rows);
-      });
+      dbCon.query(
+        sql,
+        (
+          error,
+          rows: Array<PolicyRuleToOpenVPNPrefix & { firewall_id: number; firewall_name: string }>,
+        ) => {
+          if (error) return reject(error);
+          resolve(rows);
+        },
+      );
     });
   }
 
-  public static searchPrefixInGroup(dbCon: Query, fwcloud: number, prefix) {
+  public static searchPrefixInGroup(
+    dbCon: Query,
+    fwcloud: number,
+    prefix: number,
+  ): Promise<
+    Array<OpenVPNPrefixToIPObjGroupExporter> & {
+      group_id: number;
+      group_name: string;
+      group_type: number;
+      obj_type_id: number;
+      obj_name: string;
+    }
+  > {
     return new Promise((resolve, reject) => {
       const sql = `select P.*, P.ipobj_g as group_id, G.name as group_name, G.type as group_type,
                 (select id from ipobj_type where id=401) as obj_type_id, PRE.name obj_name
@@ -417,10 +443,22 @@ export class OpenVPNPrefix extends Model {
                 inner join openvpn_prefix PRE on PRE.id=P.prefix
                 inner join ipobj_g G on G.id=P.ipobj_g
                 where G.fwcloud=${fwcloud} and P.prefix=${prefix}`;
-      dbCon.query(sql, (error, rows) => {
-        if (error) return reject(error);
-        resolve(rows);
-      });
+      dbCon.query(
+        sql,
+        (
+          error,
+          rows: Array<OpenVPNPrefixToIPObjGroupExporter> & {
+            group_id: number;
+            group_name: string;
+            group_type: number;
+            obj_type_id: number;
+            obj_name: string;
+          },
+        ) => {
+          if (error) return reject(error);
+          resolve(rows);
+        },
+      );
     });
   }
 
@@ -568,7 +606,7 @@ export class OpenVPNPrefix extends Model {
                 inner join openvpn VPN on VPN.id=P.openvpn
                 where VPN.firewall=${req.body.firewall}`;
 
-      req.dbCon.query(sql, async (error: Error, result) => {
+      req.dbCon.query(sql, async (error: Error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
 
         const answer: any = {};

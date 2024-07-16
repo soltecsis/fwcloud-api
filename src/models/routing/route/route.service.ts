@@ -624,7 +624,7 @@ export class RouteService extends Service {
         errors[`ipObjIds.${i}`] = ['ipObj id must exist'];
       } else if (ipObj.ipObjTypeId === 8) {
         // 8 = HOST
-        const addrs: any = await Interface.getHostAddr(db.getQuery(), ipObj.id);
+        const addrs = await Interface.getHostAddr(db.getQuery(), ipObj.id);
         if (addrs.length === 0) {
           errors[`ipObjIds.${i}`] = ['ipObj must contain at least one address'];
         }
@@ -679,10 +679,7 @@ export class RouteService extends Service {
         for (const ipObjToIPObjGroup of ipObjGroup.ipObjToIPObjGroups) {
           if (ipObjToIPObjGroup.ipObj.ipObjTypeId === 8) {
             // 8 = HOST
-            const addrs: any = await Interface.getHostAddr(
-              db.getQuery(),
-              ipObjToIPObjGroup.ipObj.id,
-            );
+            const addrs = await Interface.getHostAddr(db.getQuery(), ipObjToIPObjGroup.ipObj.id);
             if (addrs.length > 0) {
               valid = true;
             }

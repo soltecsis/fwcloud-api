@@ -93,7 +93,7 @@ export class PolicyRuleToInterface extends Model {
         ' WHERE interface = ' +
         connection.escape(_interface) +
         ' ORDER by interface_order';
-      connection.query(sql, (error, rows) => {
+      connection.query(sql, (error, rows: Array<PolicyRuleToInterface>) => {
         if (error) callback(error, null);
         else callback(null, rows);
       });
@@ -110,7 +110,7 @@ export class PolicyRuleToInterface extends Model {
         ' WHERE rule = ' +
         connection.escape(rule) +
         ' ORDER by interface_order';
-      connection.query(sql, (error, rows) => {
+      connection.query(sql, (error, rows: Array<PolicyRuleToInterface>) => {
         if (error) callback(error, null);
         else callback(null, rows);
       });

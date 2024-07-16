@@ -114,7 +114,7 @@ export class User extends Model {
   }
 
   //Get user by  username
-  public static getUserName(customer, username) {
+  public static getUserName(customer: number, username: string): Promise<Array<User>> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -126,7 +126,7 @@ export class User extends Model {
           ' AND username =' +
           connection.escape(username).toString();
 
-        connection.query(sql, (error, row) => {
+        connection.query(sql, (error, row: Array<User>) => {
           if (error) reject(error);
           else resolve(row);
         });
@@ -134,12 +134,15 @@ export class User extends Model {
     });
   }
 
-  public static getAllAdminUserIds(req) {
+  public static getAllAdminUserIds(req): Promise<Array<{ id: number }>> {
     return new Promise((resolve, reject) => {
-      req.dbCon.query(`select id from ${tableName} where role=1`, (error: Error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      });
+      req.dbCon.query(
+        `select id from ${tableName} where role=1`,
+        (error: Error, result: Array<{ id: number }>) => {
+          if (error) return reject(error);
+          resolve(result);
+        },
+      );
     });
   }
 
@@ -171,11 +174,15 @@ export class User extends Model {
     });
   }
 
-  public static existsCustomerUserName(dbCon: Query, customer: number, username: string) {
+  public static existsCustomerUserName(
+    dbCon: Query,
+    customer: number,
+    username: string,
+  ): Promise<boolean> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where customer=${customer} and username=${dbCon.escape(username)}`,
-        (error, result) => {
+        (error, result: Array<{ id: number }>) => {
           if (error) return reject(error);
           if (result.length > 0) return resolve(true);
           resolve(false);
@@ -189,11 +196,11 @@ export class User extends Model {
     customer: number,
     username: string,
     user: number,
-  ) {
+  ): Promise<boolean> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where customer=${customer} and username=${dbCon.escape(username)} and id!=${user}`,
-        (error, result) => {
+        (error, result: Array<{ id: number }>) => {
           if (error) return reject(error);
           if (result.length > 0) return resolve(true);
           resolve(false);
@@ -202,11 +209,15 @@ export class User extends Model {
     });
   }
 
-  public static existsCustomerUserId(dbCon: Query, customer: number, user: number) {
+  public static existsCustomerUserId(
+    dbCon: Query,
+    customer: number,
+    user: number,
+  ): Promise<boolean> {
     return new Promise((resolve, reject) => {
       dbCon.query(
         `select id from ${tableName} where customer=${customer} and id=${user}`,
-        (error: Error, result) => {
+        (error: Error, result: Array<{ id: number }>) => {
           if (error) return reject(error);
           if (result.length > 0) return resolve(true);
           resolve(false);
@@ -215,11 +226,11 @@ export class User extends Model {
     });
   }
 
-  public static isAdmin(req) {
+  public static isAdmin(req): Promise<boolean> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select role from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`,
-        (error: Error, result) => {
+        (error: Error, result: Array<{ role: number }>) => {
           if (error) return reject(error);
           if (result.length === 0) return reject(fwcError.NOT_FOUND);
 
@@ -229,7 +240,7 @@ export class User extends Model {
     });
   }
 
-  public static async isLoggedUserAdmin(req) {
+  public static async isLoggedUserAdmin(req): Promise<boolean> {
     return new Promise((resolve, reject) => {
       if (!req.session || !req.session.user_id) {
         reject(fwcError.NOT_FOUND);
@@ -237,7 +248,7 @@ export class User extends Model {
 
       req.dbCon.query(
         `select role from ${tableName} where id=${req.session.user_id}`,
-        (error: Error, result) => {
+        (error: Error, result: Array<{ role: number }>) => {
           if (error) return reject(error);
           if (result.length === 0) reject(fwcError.NOT_FOUND);
 
@@ -292,17 +303,45 @@ export class User extends Model {
     });
   }
 
-  public static get(req) {
+  public static get(req): Promise<
+    Array<{
+      id: number;
+      customer: number;
+      name: string;
+      email: string;
+      username: string;
+      enabled: number;
+      role: number;
+      allowed_from: string;
+      last_login: Date;
+    }>
+  > {
     return new Promise((resolve, reject) => {
       let sql = '';
 
       if (req.body.user)
         sql = `select id,customer,name,email,username,enabled,role,allowed_from,last_login from ${tableName} where customer=${req.body.customer} and id=${req.body.user}`;
       else sql = `select id,customer,name from ${tableName} where customer=${req.body.customer}`;
-      req.dbCon.query(sql, (error: Error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      });
+      req.dbCon.query(
+        sql,
+        (
+          error: Error,
+          result: Array<{
+            id: number;
+            customer: number;
+            name: string;
+            email: string;
+            username: string;
+            enabled: number;
+            role: number;
+            allowed_from: string;
+            last_login: Date;
+          }>,
+        ) => {
+          if (error) return reject(error);
+          resolve(result);
+        },
+      );
     });
   }
 
@@ -322,11 +361,13 @@ export class User extends Model {
     });
   }
 
-  public static lastAdminUser(req) {
+  public static lastAdminUser(
+    req,
+  ): Promise<{ result: boolean; restrictions?: { LastAdminUser: boolean } }> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `select count(*) as n from ${tableName} where role=1`,
-        async (error: Error, result) => {
+        async (error: Error, result: Array<{ n: number }>) => {
           if (error) return reject(error);
 
           if (result[0].n < 2) resolve({ result: true, restrictions: { LastAdminUser: true } });
@@ -350,7 +391,7 @@ export class User extends Model {
 
   public static allowAllFwcloudAccess(dbCon: Query, user: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      dbCon.query(`select id from fwcloud`, async (error: Error, result) => {
+      dbCon.query(`select id from fwcloud`, async (error: Error, result: Array<{ id: number }>) => {
         if (error) return reject(error);
 
         try {

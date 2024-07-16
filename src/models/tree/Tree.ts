@@ -51,8 +51,26 @@ export type OpenVPNNode = TreeNode & {
 
 export type TreeType = 'FIREWALLS' | 'OBJECTS' | 'SERVICES' | 'CA';
 
+export type nodeUpdateFwc = Tree & {
+  OLDFW: number;
+  NEWFW: number;
+};
+
 type ChildrenArrayMap = Map<number, TreeNode[]>;
 type sortType = 'TEXT' | 'NODE_TYPE';
+type nodeSearch = Tree & {
+  order_mode: number;
+};
+type objectTree = {
+  OBJECTS: number;
+  Addresses: number;
+  AddressesRanges: number;
+  Networks: number;
+  DNS: number;
+  Marks: number;
+  Groups: number;
+  COUNTRIES: number;
+};
 
 export class Tree extends Model {
   @PrimaryGeneratedColumn()
@@ -84,14 +102,14 @@ export class Tree extends Model {
   }
 
   //Get fwcloud root node bye type.
-  public static getRootNodeByType(req, type: string) {
+  public static getRootNodeByType(req, type: string): Promise<nodeSearch> {
     return new Promise((resolve, reject) => {
       const sql = `SELECT T.*, P.order_mode FROM ${tableName} T
 			inner join fwcloud C on C.id=T.fwcloud
 			LEFT JOIN fwc_tree_node_types P on T.node_type=P.node_type
 			WHERE T.fwcloud=${req.body.fwcloud} AND T.node_type=${req.dbCon.escape(type)} AND T.id_parent is null`;
 
-      req.dbCon.query(sql, (error: Error, rows) => {
+      req.dbCon.query(sql, (error: Error, rows: Array<nodeSearch>) => {
         if (error) return reject(error);
         if (rows.length === 0)
           return reject(fwcError.other(`Root node of type '${type}' not found`));
@@ -103,7 +121,11 @@ export class Tree extends Model {
   }
 
   //Get fwcloud root node bye type.
-  public static getNodeByNameAndType(fwcloud: number, name: string, type: string) {
+  public static getNodeByNameAndType(
+    fwcloud: number,
+    name: string,
+    type: string,
+  ): Promise<nodeSearch> {
     const dbCon: Query = db.getQuery();
 
     return new Promise((resolve, reject) => {
@@ -112,7 +134,7 @@ export class Tree extends Model {
                 LEFT JOIN fwc_tree_node_types P on T.node_type=P.node_type
                 WHERE T.fwcloud=${fwcloud} AND T.name=${dbCon.escape(name).toString()} AND T.node_type=${dbCon.escape(type).toString()}`;
 
-      dbCon.query(sql, (error, rows) => {
+      dbCon.query(sql, (error, rows: Array<nodeSearch>) => {
         if (error) return reject(error);
         if (rows.length === 0) return reject(fwcError.other(`Node not found`));
         if (rows.length > 1) return reject(fwcError.other(`Found more than one nodes`));
@@ -121,11 +143,11 @@ export class Tree extends Model {
     });
   }
 
-  public static hasChilds(req, node_id: number) {
+  public static hasChilds(req, node_id: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `SELECT count(*) AS n FROM ${tableName} WHERE id_parent=${node_id}`,
-        (error: Error, result) => {
+        (error: Error, result: Array<{ n: number }>) => {
           if (error) return reject(error);
           resolve(result[0].n > 0 ? true : false);
         },
@@ -139,7 +161,7 @@ export class Tree extends Model {
     fwcloud: number,
     node_type: string,
     id_obj?: number,
-  ): Promise<Tree[]> {
+  ): Promise<Array<Tree>> {
     return new Promise((resolve, reject) => {
       let sql = `SELECT * FROM ${tableName}
                 WHERE fwcloud${!fwcloud ? ' IS NULL' : '=' + fwcloud} 
@@ -162,14 +184,14 @@ export class Tree extends Model {
     fwcloud: number,
     firewall: number,
     node_type: string,
-  ) {
+  ): Promise<Tree> {
     return new Promise((resolve, reject) => {
       // Nodes in level 2.
       let sql = `SELECT T2.* FROM ${tableName} T1
                 INNER JOIN ${tableName} T2 ON T2.id_parent=T1.id
                 WHERE T1.fwcloud=${fwcloud} AND (T1.node_type='FW' OR T1.node_type='CL')  
                 AND T2.id_obj=${firewall} AND T2.node_type=${dbCon.escape(node_type)}`;
-      dbCon.query(sql, (error: Error, result) => {
+      dbCon.query(sql, (error: Error, result: Array<Tree>) => {
         if (error) return reject(error);
 
         // If found a node in level 2 return it.
@@ -181,7 +203,7 @@ export class Tree extends Model {
                     INNER JOIN ${tableName} T3 ON T3.id_parent=T2.id
                     WHERE T1.fwcloud=${fwcloud} AND (T1.node_type='FW' OR T1.node_type='CL')  
                     AND T2.id_obj=${firewall} AND T3.node_type=${dbCon.escape(node_type)}`;
-        dbCon.query(sql, (error: Error, result) => {
+        dbCon.query(sql, (error: Error, result: Array<Tree>) => {
           if (error) return reject(error);
           resolve(result.length > 0 ? result[0] : null);
         });
@@ -200,7 +222,7 @@ export class Tree extends Model {
     return new Promise(async (resolve, reject) => {
       const sql = `select id from fwc_tree where fwcloud=${fwcloud} and node_type in (${nodeType.map((value) => `'${value}'`).join(', ')})`;
 
-      dbCon.query(sql, async (error, nodes) => {
+      dbCon.query(sql, async (error, nodes: Array<{ id: number }>) => {
         if (error) return reject(error);
 
         switch (sortType) {
@@ -423,7 +445,7 @@ export class Tree extends Model {
           id_obj +
           ' AND obj_type=' +
           obj_type;
-        connection.query(sql, async (error, rows) => {
+        connection.query(sql, async (error, rows: Array<{ fwcloud: number; id: number }>) => {
           if (error) return reject(error);
 
           try {
@@ -438,14 +460,14 @@ export class Tree extends Model {
   }
 
   //REMOVE FULL TREE FROM PARENT NODE
-  public static deleteFwc_TreeFullNode(data): Promise<void> {
+  public static deleteFwc_TreeFullNode(data: { fwcloud: number; id: number }): Promise<void> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
 
         const sql = `SELECT * FROM ${tableName} 
 				WHERE (fwcloud=${data.fwcloud} OR fwcloud is null) AND id_parent=${data.id}`;
-        connection.query(sql, async (error, rows) => {
+        connection.query(sql, async (error, rows: Array<Tree>) => {
           if (error) return reject(error);
 
           try {
@@ -480,7 +502,7 @@ export class Tree extends Model {
     return new Promise((resolve, reject) => {
       const sql = `SELECT fwcloud,id FROM ${tableName} 
 			WHERE (fwcloud=${fwcloud} OR fwcloud is null) AND id_parent=${node_id}`;
-      dbCon.query(sql, async (error, rows) => {
+      dbCon.query(sql, async (error, rows: Array<{ fwcloud: number; id: number }>) => {
         if (error) return reject(error);
 
         try {
@@ -502,7 +524,7 @@ export class Tree extends Model {
         if (error) return reject(error);
         const sql =
           'select fwcloud,id_obj FROM ' + tableName + ' WHERE id=' + connection.escape(id);
-        connection.query(sql, (error, result) => {
+        connection.query(sql, (error, result: Array<{ fwcloud: number; id_obj: number }>) => {
           if (error) return reject(error);
 
           result.length === 1 && fwcloud === result[0].fwcloud && id_obj === result[0].id_obj
@@ -541,7 +563,7 @@ export class Tree extends Model {
         ',' +
         fwcloud +
         ')';
-      dbCon.query(sql, (error: Error, result) => {
+      dbCon.query(sql, (error: Error, result: { insertId: number }) => {
         if (error) return reject(error);
         resolve(result.insertId);
       });
@@ -549,7 +571,7 @@ export class Tree extends Model {
   }
 
   //UPDATE ID_OBJ FOR FIREWALL CLUSTER FULL TREE FROM PARENT NODE
-  public static updateIDOBJFwc_TreeFullNode(data): Promise<void> {
+  public static updateIDOBJFwc_TreeFullNode(data: nodeUpdateFwc): Promise<void> {
     return new Promise((resolve, reject) => {
       db.get((error, connection) => {
         if (error) return reject(error);
@@ -570,7 +592,7 @@ export class Tree extends Model {
           ' AND id_obj=' +
           connection.escape(data.OLDFW);
         logger().debug(sql);
-        connection.query(sql, (error, rows) => {
+        connection.query(sql, (error, rows: Array<nodeUpdateFwc>) => {
           if (error) return reject(error);
           if (rows.length > 0) {
             logger().debug('-----> UPDATING NODES UNDER PARENT: ' + data.id);
@@ -657,22 +679,19 @@ export class Tree extends Model {
     });
   }
 
-  public static createObjectsTree(
-    dbCon: Query,
-    fwCloudId: number,
-  ): Promise<{
-    OBJECTS: number;
-    Addresses: number;
-    AddressesRanges: number;
-    Networks: number;
-    DNS: number;
-    Marks: number;
-    Groups: number;
-    COUNTRIES: number;
-  }> {
+  public static createObjectsTree(dbCon: Query, fwCloudId: number): Promise<objectTree> {
     return new Promise(async (resolve, reject) => {
       try {
-        const ids: any = {};
+        const ids: objectTree = {
+          OBJECTS: null,
+          Addresses: null,
+          AddressesRanges: null,
+          Networks: null,
+          DNS: null,
+          Marks: null,
+          Groups: null,
+          COUNTRIES: null,
+        };
         let id: number;
 
         // OBJECTS
@@ -788,7 +807,21 @@ export class Tree extends Model {
   public static createServicesTree(dbCon: Query, fwCloudId: number) {
     return new Promise(async (resolve, reject) => {
       try {
-        const ids: any = {};
+        const ids: {
+          SERVICES: number;
+          IP: number;
+          ICMP: number;
+          TCP: number;
+          UDP: number;
+          Groups: number;
+        } = {
+          SERVICES: null,
+          IP: null,
+          ICMP: null,
+          TCP: null,
+          UDP: null,
+          Groups: null,
+        };
         let id: number;
 
         // SERVICES
@@ -861,7 +894,7 @@ export class Tree extends Model {
       ipobj_type === 24 && node_type === 'COD'
         ? (sql = `SELECT i.id, i.name FROM ipobj i JOIN ipobj__ipobjg ii ON i.id=ii.ipobj JOIN ipobj_g ig ON ii.ipobj_g=ig.id WHERE ig.id=(SELECT fwt.id_obj FROM fwc_tree fwt WHERE fwt.id=${node_id})`)
         : (sql = 'SELECT id,name FROM ipobj WHERE fwcloud is null and type=' + ipobj_type);
-      dbCon.query(sql, async (error, result) => {
+      dbCon.query(sql, async (error, result: Array<{ id: number; name: string }>) => {
         if (error) return reject(error);
 
         try {
@@ -2088,7 +2121,7 @@ export class Tree extends Model {
         ' OR fwcloud is null) AND id_obj=' +
         id_obj_deleted +
         ' order by id_parent';
-      dbCon.query(sqlParent, (error, rows) => {
+      dbCon.query(sqlParent, (error, rows: Array<{ id_parent: number }>) => {
         if (error) return reject(error);
 
         if (rows.length > 0) {

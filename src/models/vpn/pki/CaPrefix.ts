@@ -52,11 +52,11 @@ export class CaPrefix extends Model {
   }
 
   // Validate new prefix container.
-  public static existsCrtPrefix(req) {
+  public static existsCrtPrefix(req): Promise<boolean> {
     return new Promise((resolve, reject) => {
       req.dbCon.query(
         `SELECT id FROM ca_prefix WHERE ca=${req.body.ca} AND name=${req.dbCon.escape(req.body.name)}`,
-        (error, result) => {
+        (error, result: Array<{ id: number }>) => {
           if (error) return reject(error);
           resolve(result.length > 0 ? true : false);
         },
@@ -81,12 +81,16 @@ export class CaPrefix extends Model {
   }
 
   // Get prefix info.
-  public static getPrefixInfo(dbCon: Query, fwcloud: number, prefix: number) {
+  public static getPrefixInfo(
+    dbCon: Query,
+    fwcloud: number,
+    prefix: number,
+  ): Promise<Array<CaPrefix & { fwcloud: number; cn: string }>> {
     return new Promise((resolve, reject) => {
       const sql = `select CA.fwcloud,PRE.*,CA.cn from ca_prefix PRE 
       inner join ca CA on CA.id=PRE.ca
       where CA.fwcloud=${fwcloud} and PRE.id=${prefix}`;
-      dbCon.query(sql, (error, result) => {
+      dbCon.query(sql, (error, result: Array<CaPrefix & { fwcloud: number; cn: string }>) => {
         if (error) return reject(error);
         resolve(result);
       });
@@ -193,10 +197,14 @@ export class CaPrefix extends Model {
         name: req.body.name,
         ca: req.body.ca,
       };
-      req.dbCon.query(`INSERT INTO ca_prefix SET ?`, prefixData, (error, result) => {
-        if (error) return reject(error);
-        resolve(result.insertId);
-      });
+      req.dbCon.query(
+        `INSERT INTO ca_prefix SET ?`,
+        prefixData,
+        (error, result: { insertId: number }) => {
+          if (error) return reject(error);
+          resolve(result.insertId);
+        },
+      );
     });
   }
 
